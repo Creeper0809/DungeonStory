@@ -95,6 +95,12 @@ public sealed class ApparelWorkOrderSaveData
     public string craftOutputBatchCommitId = string.Empty;
     public string craftOutcomeFingerprint = string.Empty;
     public string craftOutputComponentFingerprint = string.Empty;
+    public int craftQualityOutcomeSchemaVersion;
+    public string craftMakerCharacterId = string.Empty;
+    public string craftMakerDisplayName = string.Empty;
+    public CraftsmanshipQualityTier craftResolvedQuality =
+        CraftsmanshipQualityTier.Normal;
+    public bool craftRejectedBelowMinimum;
     public ProductionOutputCapabilitySaveData craftOutputCapability = new();
     public string craftAdmissionTokenId = string.Empty;
     public string craftMaximumMassProofDigest = string.Empty;
@@ -1659,7 +1665,13 @@ public sealed class ApparelWorkOrderRuntime :
                 facility,
                 definition.PhysicalItemId,
                 ApparelItemStateCodec.Create(state),
-                markForSale);
+                markForSale,
+                makerCharacterId,
+                order.craftQualityOutcomeSchemaVersion == 1
+                    ? order.craftMakerDisplayName
+                    : maker?.Identity?.DisplayName ?? string.Empty,
+                completedQuality,
+                rejectedBelowMinimum);
         if (!physical.IsCompleted)
         {
             order.state = physical.Status switch
@@ -1679,29 +1691,48 @@ public sealed class ApparelWorkOrderRuntime :
             return false;
         }
         string stackId = physical.OutputStackId;
-        if (hasInspiration)
+        try
         {
-            inspirationRuntime?.RecordEligibleCompletion(
-                maker,
-                definition.ApparelId,
-                completedQuality == CraftsmanshipQualityTier.Mythic,
-                clock.Time);
+            if (hasInspiration)
+            {
+                inspirationRuntime?.RecordEligibleCompletion(
+                    maker,
+                    definition.ApparelId,
+                    completedQuality == CraftsmanshipQualityTier.Mythic,
+                    clock.Time,
+                    order.craftOutputBatchCommitId);
+            }
         }
-        if (identityEvents != null
-            && CharacterPersistentIdentity.TryGet(
-                maker,
-                out CharacterId qualityMakerId))
+        catch (Exception exception)
         {
-            identityEvents.Publish(new ProductQualityResolvedEvent(
-                qualityMakerId,
-                definition.ApparelId,
-                completedQuality,
-                order.qualityRoll?.attemptIndex
-                    ?? order.qualityAttemptIndex,
-                Mathf.FloorToInt(
-                    clock.Time / GameCalendarRules.SecondsPerDay),
-                rejectedBelowMinimum: (int)completedQuality
-                    < (int)order.minimumCraftsmanshipQuality));
+            Debug.LogWarning(
+                "Post-commit apparel inspiration notification failed: "
+                + exception.Message);
+        }
+        try
+        {
+            if (identityEvents != null
+                && CharacterPersistentIdentity.TryGet(
+                    maker,
+                    out CharacterId qualityMakerId))
+            {
+                identityEvents.Publish(new ProductQualityResolvedEvent(
+                    qualityMakerId,
+                    definition.ApparelId,
+                    completedQuality,
+                    order.qualityRoll?.attemptIndex
+                        ?? order.qualityAttemptIndex,
+                    Mathf.FloorToInt(
+                        clock.Time / GameCalendarRules.SecondsPerDay),
+                    rejectedBelowMinimum: (int)completedQuality
+                        < (int)order.minimumCraftsmanshipQuality));
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "Post-commit apparel product-quality identity notification failed: "
+                + exception.Message);
         }
         order.consumedWork += Mathf.Max(0f, order.craftWorkPerAttempt);
         if ((int)completedQuality >= (int)order.minimumCraftsmanshipQuality)
@@ -3342,6 +3373,18 @@ public sealed class ApparelWorkOrderRuntime :
             value?.craftOutcomeFingerprint?.Trim() ?? string.Empty,
         craftOutputComponentFingerprint =
             value?.craftOutputComponentFingerprint?.Trim() ?? string.Empty,
+        craftQualityOutcomeSchemaVersion = Mathf.Clamp(
+            value?.craftQualityOutcomeSchemaVersion ?? 0,
+            0,
+            1),
+        craftMakerCharacterId =
+            value?.craftMakerCharacterId?.Trim() ?? string.Empty,
+        craftMakerDisplayName =
+            value?.craftMakerDisplayName?.Trim() ?? string.Empty,
+        craftResolvedQuality = value?.craftResolvedQuality
+            ?? CraftsmanshipQualityTier.Normal,
+        craftRejectedBelowMinimum =
+            value?.craftRejectedBelowMinimum ?? false,
         craftOutputCapability = value?.craftOutputCapability?.Clone()
             ?? new ProductionOutputCapabilitySaveData(),
         craftAdmissionTokenId =

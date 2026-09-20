@@ -80,10 +80,150 @@ public static class KnowledgeResiduePhysicalRestoreJoinDebugScenarios
                     Array.Empty<KnowledgeResidueTaskSaveData>(),
                     new CandidateQuery(receipt)));
 
+        VerifyJointCompletionIdentity(torn, receipt);
+        VerifyDurableSaveJoin(receipt);
         return "[PASS] knowledge residue physical restore join: "
             + "torn-capture hydration, exact replay, mismatch rejection, "
-            + "and orphan rejection";
+            + "orphan rejection, joint completion identity, durable research/physical/ledger join";
     }
+
+    private static void VerifyJointCompletionIdentity(KnowledgeResidueTaskSaveData task,
+        PhysicalItemRestoreCandidateDispositionSnapshot legacyReceipt)
+    {
+        task.dispositionPhase = KnowledgeResidueDispositionPhase.OutcomePublished;
+        task.completionOwnerRevision = 41;
+        PhysicalItemBatchDispositionSaveData pending =
+            CreateJointPending(legacyReceipt);
+        void Check() => BlueprintResearchSaveSection.ReconcileKnowledgeResiduePhysicalCandidate(
+            new[] { task }, new CandidateQuery(new PhysicalItemRestoreCandidateDispositionSnapshot(pending)));
+        Check();
+        pending.expectedOutcomeCommitRevision = 42;
+        RequireThrows(Check);
+        pending.expectedOutcomeCommitRevision = 41;
+        pending.expectedOutcomeProducerId = "items.disposition";
+        RequireThrows(Check);
+        pending.expectedOutcomeProducerId = KnowledgeCompletionOutcomeIds.ProducerId;
+        pending.expectedOutcomeOperationId = "other-operation";
+        RequireThrows(Check);
+        pending.expectedOutcomeOperationId = OperationId;
+        task.completionOwnerRevision = 0;
+        Check();
+        Require(task.completionOwnerRevision == 41
+            && task.dispositionPhase ==
+                KnowledgeResidueDispositionPhase.OutcomePublished,
+            "torn research completion owner was not hydrated from its exact physical attachment");
+        task.dispositionPhase = KnowledgeResidueDispositionPhase.AwaitingInput;
+        task.completionOwnerRevision = 0;
+        Check();
+        Require(task.completionOwnerRevision == 41
+            && task.dispositionPhase ==
+                KnowledgeResidueDispositionPhase.OutcomePublished,
+            "awaiting research capture was not advanced from its committed joint attachment");
+        RequireThrows(() => BlueprintResearchSaveSection.ReconcileKnowledgeResiduePhysicalCandidate(
+            new[] { task }, new CandidateQuery()));
+        Check();
+    }
+
+    private static void VerifyDurableSaveJoin(
+        PhysicalItemRestoreCandidateDispositionSnapshot receipt)
+    {
+        KnowledgeResidueTaskSaveData task = CreateTask();
+        task.sinkRequestFingerprint = receipt.RequestFingerprint;
+        task.sinkSourceStackIds = receipt.SourceStackIds.ToList();
+        task.sinkInputMassGrams = receipt.InputMassGrams;
+        task.sinkCommitId = receipt.CommitId;
+        task.dispositionPhase =
+            KnowledgeResidueDispositionPhase.OutcomePublished;
+        task.completionOwnerRevision = 41;
+        DungeonResearchSaveData research = new()
+        {
+            nextKnowledgeTaskSequence = 2,
+            knowledgeTaskIdentityGeneration =
+                KnowledgeResidueTaskIdentity.OriginalGeneration,
+            knowledgeTasks = new List<KnowledgeResidueTaskSaveData> { task }
+        };
+        DungeonPhysicalItemSaveData physical = new();
+        physical.pendingBatchDispositions.Add(CreateJointPending(receipt));
+        GameplayOutcomeLedgerSaveData ledger = new();
+        ledger.exactOutcomes.Add(new GameplayOutcomeSnapshot
+        {
+            runId = "run:knowledge-restore-join",
+            sequence = 1,
+            producerId = KnowledgeCompletionOutcomeIds.ProducerId,
+            operationId = OperationId,
+            commitRevision = 41,
+            localResultIndex = 0,
+            outcomeTypeId = KnowledgeCompletionOutcomeIds.Completed.Value,
+            ownerRevision = 41
+        });
+
+        DungeonGameRestoreReport accepted = new();
+        ResearchOutcomeSavePreflight.ValidateKnowledgeCompletionJoin(
+            research,
+            physical,
+            ledger,
+            accepted);
+        Require(accepted.Success,
+            "matching durable knowledge completion join was rejected");
+
+        task.completionOwnerRevision = 0;
+        DungeonGameRestoreReport tornAccepted = new();
+        ResearchOutcomeSavePreflight.ValidateKnowledgeCompletionJoin(
+            research,
+            physical,
+            ledger,
+            tornAccepted);
+        Require(tornAccepted.Success,
+            "recoverable torn research owner was rejected before hydration");
+        task.completionOwnerRevision = 41;
+
+        DungeonGameRestoreReport missingLedger = new();
+        ResearchOutcomeSavePreflight.ValidateKnowledgeCompletionJoin(
+            research,
+            physical,
+            new GameplayOutcomeLedgerSaveData(),
+            missingLedger);
+        Require(!missingLedger.Success,
+            "missing canonical knowledge completion was accepted");
+
+        DungeonGameRestoreReport orphan = new();
+        ResearchOutcomeSavePreflight.ValidateKnowledgeCompletionJoin(
+            new DungeonResearchSaveData(),
+            physical,
+            ledger,
+            orphan);
+        Require(!orphan.Success,
+            "physical completion without its research owner was accepted");
+    }
+
+    private static PhysicalItemBatchDispositionSaveData CreateJointPending(
+        PhysicalItemRestoreCandidateDispositionSnapshot receipt) => new()
+    {
+        kind = (int)PhysicalItemDispositionKind.Sink,
+        operationId = OperationId,
+        reasonCode = ReasonCode,
+        requestFingerprint = receipt.RequestFingerprint,
+        sourceStackIds = receipt.SourceStackIds.ToList(),
+        quantity = 1,
+        inputMassGrams = 200,
+        commitId = receipt.CommitId,
+        outcomeOwnerRevision = 41,
+        gameplayOutcomeExpected = true,
+        expectedOutcomeProducerId = KnowledgeCompletionOutcomeIds.ProducerId,
+        expectedOutcomeOperationId = OperationId,
+        expectedOutcomeCommitRevision = 41,
+        gameplayOutcome = new PhysicalGameplayOutcomeAttachmentSaveData
+        {
+            producerId = KnowledgeCompletionOutcomeIds.ProducerId,
+            operationId = OperationId,
+            commitRevision = 41,
+            localResultIndex = 0,
+            outcomeRunId = "run:knowledge-restore-join",
+            outcomeSequence = 1,
+            replayState = (int)GameplayOutcomeReplayState.Committed,
+            canonicalPayloadHash = new string('a', 64)
+        }
+    };
 
     private static KnowledgeResidueTaskSaveData CreateTask() => new()
     {

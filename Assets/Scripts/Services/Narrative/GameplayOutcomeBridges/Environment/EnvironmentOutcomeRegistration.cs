@@ -12,6 +12,14 @@ public static class EnvironmentOutcomeRegistration
             .As<IGameplayOutcomeAdapterRegistration>();
         builder.Register<CropPlanGameplayOutcomeAdapter>(Lifetime.Singleton)
             .As<IGameplayOutcomeAdapterRegistration>();
+        builder.Register<CropIrrigationSupplyOutcomeAdapter>(Lifetime.Singleton)
+            .As<IGameplayOutcomeAdapterRegistration>();
+        builder.Register<EnvironmentalFireIgnitionOutcomeAdapter>(Lifetime.Singleton)
+            .As<IGameplayOutcomeAdapterRegistration>();
+        builder.Register<EnvironmentalFireSuppressionOutcomeAdapter>(Lifetime.Singleton)
+            .As<IGameplayOutcomeAdapterRegistration>();
+        builder.Register<EnvironmentalFireDamageOutcomeAdapter>(Lifetime.Singleton)
+            .As<IGameplayOutcomeAdapterRegistration>();
         builder.Register<EnvironmentalFireFuelOutcomeAdapter>(Lifetime.Singleton)
             .As<IGameplayOutcomeAdapterRegistration>();
         builder.Register<EnvironmentalFireWaterOutcomeAdapter>(Lifetime.Singleton)
@@ -32,6 +40,14 @@ public static class EnvironmentOutcomeRegistration
         builder.Register<CertifiedSeedCompletionOutcomeDescriptor>(Lifetime.Singleton)
             .As<IGameplayOutcomeDescriptor>();
         builder.Register<CropPlanOutcomeDescriptor>(Lifetime.Singleton)
+            .As<IGameplayOutcomeDescriptor>();
+        builder.Register<CropIrrigationSupplyOutcomeDescriptor>(Lifetime.Singleton)
+            .As<IGameplayOutcomeDescriptor>();
+        builder.Register<FireIgnitionOutcomeDescriptor>(Lifetime.Singleton)
+            .As<IGameplayOutcomeDescriptor>();
+        builder.Register<FireSuppressionOutcomeDescriptor>(Lifetime.Singleton)
+            .As<IGameplayOutcomeDescriptor>();
+        builder.Register<FireDamageOutcomeDescriptor>(Lifetime.Singleton)
             .As<IGameplayOutcomeDescriptor>();
         builder.Register<FireFuelOutcomeDescriptor>(Lifetime.Singleton)
             .As<IGameplayOutcomeDescriptor>();

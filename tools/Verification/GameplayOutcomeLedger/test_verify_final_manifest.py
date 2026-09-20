@@ -163,6 +163,24 @@ class FinalManifestVerifierTests(unittest.TestCase):
         self.assertNotEqual(0, result.returncode)
         self.assertIn("Record requires runtime-test evidence", result.stdout)
 
+    def test_dynamic_records_may_share_registered_outcome_type(self) -> None:
+        inventory = self.inventory()
+        inventory["definitions"].append({
+            "base_type": "ProofSiblingResult",
+            "definition_path": "Assets/Scripts/proof.cs",
+            "inventory_scope": "pre-phase80-producer",
+        })
+        closure = self.closure()
+        sibling = json.loads(json.dumps(closure["rows"][0]))
+        sibling["candidate"] = "ProofSiblingResult"
+        sibling["replayIdentity"] = (
+            "A separate stable operation and revision identify sibling retries."
+        )
+        closure["rows"].append(sibling)
+        closure["candidateCount"] = 2
+        result = self.run_verifier(inventory, closure)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_non_result_without_source_audit_fails(self) -> None:
         closure = self.closure()
         row = closure["rows"][0]

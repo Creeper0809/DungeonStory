@@ -522,6 +522,9 @@ public static class Wim040IncidentCompletionDebugScenarios
     {
         DungeonRuntimeAggregateRootStore root = new();
         V20CampaignRuntime campaign = new(root, catalog);
+        MigratedProducerOutcomeEditorFixture outcomeFixture = new(
+            "wim040-lineage-compression",
+            root);
         DungeonStory.Foundation.GameEventBus events = new();
         EventAlertRequest alert = null;
         V20ContentEffectsResolvedEvent effectEvent = default;
@@ -539,7 +542,11 @@ public static class Wim040IncidentCompletionDebugScenarios
                 effectEventCount++;
                 effectEvent = value;
             });
-        KinshipHouseholdRuntime social = new(root, campaign, events);
+        KinshipHouseholdRuntime social = new(
+            root,
+            campaign,
+            events,
+            outcomeFixture.Transaction);
         CharacterId archivedId =
             new("character:wim040:actual-lineage-archive");
         social.ArchiveDeath(

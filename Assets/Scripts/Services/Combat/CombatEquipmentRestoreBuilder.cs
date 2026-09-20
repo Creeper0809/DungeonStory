@@ -646,7 +646,11 @@ internal static class CombatEquipmentRestoreBuilder
                 && !order.outputMarketRouted
                 && order.outputPreparedComponent == null
                 && order.resolvedMythicProvenance == null
-                && !order.completionEffectsPublished;
+                && string.IsNullOrEmpty(order.resolvedMakerDisplayName)
+                && order.resolvedAbsoluteDay == 0
+                && !order.completionEffectsPublished
+                && order.qualityOutcomeSchemaVersion == 0
+                && !order.qualityOutcomeCommitted;
         }
 
         bool ammunition = CombatEquipmentCraftingRuntime.IsAmmunitionRecipe(
@@ -700,6 +704,7 @@ internal static class CombatEquipmentRestoreBuilder
                                 StringComparison.Ordinal));
             return order.materialsReady
                 && order.completionEffectsPublished
+                && ValidateQualityOutcomeShape(order)
                 && crafting.TryValidateResolvedOutputCapability(order, out _)
                 && Enum.IsDefined(
                     typeof(CombatEquipmentQuality),
@@ -730,6 +735,7 @@ internal static class CombatEquipmentRestoreBuilder
         }
         return order.materialsReady
             && order.completionEffectsPublished
+            && ValidateQualityOutcomeShape(order)
             && crafting.TryValidateResolvedOutputCapability(order, out _)
             && Enum.IsDefined(
                 typeof(CombatEquipmentQuality),
@@ -758,6 +764,18 @@ internal static class CombatEquipmentRestoreBuilder
                 || order.outputPublication.IsEmpty)
             && !order.outputMarketRouted
             && order.outputPreparedComponent == null;
+    }
+
+    private static bool ValidateQualityOutcomeShape(
+        CombatEquipmentCraftOrderSaveData order)
+    {
+        if (order.qualityOutcomeSchemaVersion == 0)
+            return !order.qualityOutcomeCommitted;
+        return order.qualityOutcomeSchemaVersion == 1
+            && GameplayOutcomeStableIdSyntax.IsValid(
+                order.resolvedMakerCharacterId)
+            && !string.IsNullOrWhiteSpace(order.resolvedMakerDisplayName)
+            && order.resolvedAbsoluteDay >= 0;
     }
 
     private static bool ValidateMaterial(

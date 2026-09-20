@@ -65,6 +65,18 @@ public sealed class OffenseExpeditionAmmunitionConsumption
 
 public sealed class OffenseExpeditionRun
 {
+    internal sealed class NodeResolutionSnapshot
+    {
+        internal OffenseExpeditionPhase Phase;
+        internal string CurrentNodeId;
+        internal string[] CompletedNodeIds;
+        internal Dictionary<StockCategory, int> CarriedStock;
+        internal Dictionary<OffenseSupplyType, int> Supplies;
+        internal Dictionary<OffenseSupplyType, int> ConsumedSupplies;
+        internal OffenseExpeditionTreatmentReceipt[] TreatmentReceipts;
+        internal (OffenseFormationSlot Formation, float Stress,
+            float Damage, float Health)[] Members;
+    }
     private readonly List<CharacterActor> members;
     private readonly List<CharacterActor> protectedRescueMembers =
         new List<CharacterActor>();
@@ -803,6 +815,75 @@ public sealed class OffenseExpeditionRun
         result = new OffenseExpeditionNodeResult(resultMessage, usedSupply, gainedLoot);
         message = resultMessage;
         return true;
+    }
+
+    internal NodeResolutionSnapshot CaptureNodeResolutionSnapshot() => new()
+    {
+        Phase = Phase,
+        CurrentNodeId = CurrentNodeId,
+        CompletedNodeIds = completedNodeIds.ToArray(),
+        CarriedStock = carriedStock.ToDictionary(pair => pair.Key, pair => pair.Value),
+        Supplies = Supplies.Amounts.ToDictionary(pair => pair.Key, pair => pair.Value),
+        ConsumedSupplies = consumedSupplies.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value),
+        TreatmentReceipts = treatmentReceipts.ToArray(),
+        Members = memberStates.Select(member => (
+            member.Formation,
+            member.Stress,
+            member.TotalDamageTaken,
+            member.Actor != null ? member.Actor.CurrentHealth : 0f)).ToArray()
+    };
+
+    internal void RestoreNodeResolutionSnapshot(NodeResolutionSnapshot snapshot)
+    {
+        if (snapshot == null)
+            throw new ArgumentNullException(nameof(snapshot));
+        Phase = snapshot.Phase;
+        CurrentNodeId = snapshot.CurrentNodeId;
+        completedNodeIds.Clear();
+        foreach (string nodeId in snapshot.CompletedNodeIds)
+            completedNodeIds.Add(nodeId);
+        carriedStock.Clear();
+        foreach (KeyValuePair<StockCategory, int> pair in snapshot.CarriedStock)
+            carriedStock.Add(pair.Key, pair.Value);
+        foreach (OffenseSupplyType type in Enum.GetValues(typeof(OffenseSupplyType)))
+        {
+            int current = Supplies.Get(type);
+            int expected = snapshot.Supplies.TryGetValue(type, out int value)
+                ? value
+                : 0;
+            if (current < expected)
+                Supplies.Add(type, expected - current);
+            else if (current > expected)
+                Supplies.TryConsume(type, current - expected);
+        }
+        consumedSupplies.Clear();
+        foreach (KeyValuePair<OffenseSupplyType, int> pair in
+                 snapshot.ConsumedSupplies)
+        {
+            consumedSupplies.Add(pair.Key, pair.Value);
+        }
+        treatmentReceipts.Clear();
+        treatmentReceipts.AddRange(snapshot.TreatmentReceipts);
+        for (int index = 0; index < memberStates.Count; index++)
+        {
+            var memberBefore = snapshot.Members[index];
+            OffenseExpeditionMemberState member = memberStates[index];
+            member.Restore(
+                memberBefore.Formation,
+                memberBefore.Stress,
+                memberBefore.Damage);
+            if (member.Actor == null)
+                continue;
+            float healthDelta = memberBefore.Health - member.Actor.CurrentHealth;
+            if (healthDelta > 0f)
+                member.Actor.Heal(healthDelta);
+            else if (healthDelta < 0f)
+                member.Actor.ApplyDamage(
+                    -healthDelta,
+                    "offense-expedition-node-outcome-rollback");
+        }
     }
 
     public bool TryUseSupply(OffenseSupplyType type, int memberIndex, out string message)

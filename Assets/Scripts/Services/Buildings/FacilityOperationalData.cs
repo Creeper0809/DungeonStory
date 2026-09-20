@@ -70,6 +70,7 @@ public sealed class FacilityRuntimeState
     [Range(0f, 100f)] public float cleanliness = 100f;
     [Min(0f)] public float remainingFuelGameSeconds;
     [Min(1)] public int nextFuelOperationSequence = 1;
+    public long synthesisOutcomeRevision;
     public FacilityFuelCommitState pendingFuel = new FacilityFuelCommitState();
 
     public FacilityRuntimeState Clone()
@@ -81,6 +82,7 @@ public sealed class FacilityRuntimeState
             cleanliness = cleanliness,
             remainingFuelGameSeconds = remainingFuelGameSeconds,
             nextFuelOperationSequence = nextFuelOperationSequence,
+            synthesisOutcomeRevision = synthesisOutcomeRevision,
             pendingFuel = pendingFuel?.Clone() ?? new FacilityFuelCommitState()
         };
     }
@@ -94,6 +96,7 @@ public sealed class FacilityRuntimeState
             cleanliness = 100f;
             remainingFuelGameSeconds = 0f;
             nextFuelOperationSequence = 1;
+            synthesisOutcomeRevision = 0L;
             pendingFuel = new FacilityFuelCommitState();
             return;
         }
@@ -103,6 +106,7 @@ public sealed class FacilityRuntimeState
         cleanliness = Mathf.Clamp(source.cleanliness, 0f, 100f);
         remainingFuelGameSeconds = source.remainingFuelGameSeconds;
         nextFuelOperationSequence = source.nextFuelOperationSequence;
+        synthesisOutcomeRevision = source.synthesisOutcomeRevision;
         pendingFuel = source.pendingFuel?.Clone() ?? new FacilityFuelCommitState();
     }
 
@@ -111,7 +115,8 @@ public sealed class FacilityRuntimeState
         if (completedUses < 0 || completedWorkCycles < 0
             || !IsFinite(cleanliness) || cleanliness < 0f || cleanliness > 100f
             || !IsFinite(remainingFuelGameSeconds) || remainingFuelGameSeconds < 0f
-            || nextFuelOperationSequence <= 0)
+            || nextFuelOperationSequence <= 0
+            || synthesisOutcomeRevision < 0L)
         {
             error = "facility runtime scalar state is invalid";
             return false;

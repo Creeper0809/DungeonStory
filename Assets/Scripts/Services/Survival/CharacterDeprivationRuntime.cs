@@ -144,7 +144,9 @@ public sealed class CharacterDeprivationRuntime :
             stateStore,
             safeDrinkPlanner,
             emergencyMovement,
-            diagnostics);
+            diagnostics,
+            authority.PrimitiveSurvival.Calendar,
+            authority.PrimitiveSurvival.OutcomeTransactions);
         consequences = new CharacterDeprivationConsequences(
             stateStore,
             worldRegistry);

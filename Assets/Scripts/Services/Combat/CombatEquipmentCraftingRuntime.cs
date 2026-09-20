@@ -968,7 +968,13 @@ public sealed class CombatEquipmentCraftingRuntime
         order.resolvedQuality = resolvedQuality;
         order.resolvedMythicProvenance = mythicProvenance;
         order.resolvedMakerCharacterId = makerCharacterId;
+        order.resolvedMakerDisplayName =
+            worker?.Identity?.DisplayName?.Trim() ?? string.Empty;
+        order.resolvedAbsoluteDay = Mathf.FloorToInt(
+            (gameClock?.Time ?? 0f) / GameCalendarRules.SecondsPerDay);
         order.resolvedHadInspiration = hasInspiration;
+        order.qualityOutcomeSchemaVersion = outputTransaction != null ? 1 : 0;
+        order.qualityOutcomeCommitted = false;
         order.outputOperationId = CombatEquipmentCraftOutputOutbox
             .FormatOperationId(order.orderId, order.qualityAttemptIndex);
         if (CombatAmmunitionCraftDefinitions.TryGetExact(
@@ -1012,34 +1018,6 @@ public sealed class CombatEquipmentCraftingRuntime
             ? CombatEquipmentCraftOutputPhase.ResolvedWaitingForPublication
             : CombatEquipmentCraftOutputPhase.LegacyUniqueOutput;
         order.attemptOutcomeResolved = true;
-
-        // Quality resolution is a deterministic authored outcome. Publish its
-        // side effects once and persist the marker before output retries.
-        if (hasInspiration)
-        {
-            inspirationRuntime?.RecordEligibleCompletion(
-                worker,
-                order.definitionId,
-                resolvedQuality == CombatEquipmentQuality.Mythic,
-                gameClock?.Time ?? 0f);
-        }
-        if (identityEvents != null
-            && CharacterPersistentIdentity.TryGet(
-                worker,
-                out CharacterId qualityMakerId))
-        {
-            identityEvents.Publish(new ProductQualityResolvedEvent(
-                qualityMakerId,
-                order.definitionId,
-                (CraftsmanshipQualityTier)(int)resolvedQuality,
-                order.qualityRoll?.attemptIndex ?? order.qualityAttemptIndex,
-                Mathf.FloorToInt(
-                    (gameClock?.Time ?? 0f)
-                    / GameCalendarRules.SecondsPerDay),
-                rejectedBelowMinimum: (int)resolvedQuality
-                    < (int)order.minimumQuality));
-        }
-        order.completionEffectsPublished = true;
     }
 
     private bool TryFinalizeResolvedAttempt(
@@ -1056,7 +1034,6 @@ public sealed class CombatEquipmentCraftingRuntime
         completedMythicProvenance = null;
         if (order == null
             || !order.attemptOutcomeResolved
-            || !order.completionEffectsPublished
             || !TryValidateResolvedOutputCapability(order, out _)
             || !TryGetConcreteMaterials(
                 order,
@@ -1098,6 +1075,7 @@ public sealed class CombatEquipmentCraftingRuntime
         {
             return false;
         }
+        PublishCompletionEffects(order);
 
         if (materials.Count > 0
             && !CombatEquipmentCraftMaterialOutbox.TryAcknowledgeOutcome(
@@ -1159,6 +1137,61 @@ public sealed class CombatEquipmentCraftingRuntime
             PrepareNextEquipmentAttempt(order);
         }
         return true;
+    }
+
+    private void PublishCompletionEffects(
+        CombatEquipmentCraftOrderSaveData order)
+    {
+        if (order == null || order.completionEffectsPublished)
+            return;
+        CharacterActor maker = characterWorld?.Characters.FirstOrDefault(
+            actor => actor != null && string.Equals(
+                actor.Identity?.PersistentId,
+                order.resolvedMakerCharacterId,
+                StringComparison.Ordinal));
+        try
+        {
+            if (order.resolvedHadInspiration)
+            {
+                inspirationRuntime?.RecordEligibleCompletion(
+                    maker,
+                    order.definitionId,
+                    order.resolvedQuality == CombatEquipmentQuality.Mythic,
+                    gameClock?.Time ?? 0f,
+                    order.outputOperationId);
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "Post-commit equipment inspiration notification failed: "
+                + exception.Message);
+        }
+        try
+        {
+            if (identityEvents != null
+                && CharacterPersistentIdentity.TryGet(
+                    maker,
+                    out CharacterId qualityMakerId))
+            {
+                identityEvents.Publish(new ProductQualityResolvedEvent(
+                    qualityMakerId,
+                    order.definitionId,
+                    (CraftsmanshipQualityTier)(int)order.resolvedQuality,
+                    order.qualityRoll?.attemptIndex
+                        ?? order.qualityAttemptIndex,
+                    order.resolvedAbsoluteDay,
+                    rejectedBelowMinimum: (int)order.resolvedQuality
+                        < (int)order.minimumQuality));
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "Post-commit product-quality identity notification failed: "
+                + exception.Message);
+        }
+        order.completionEffectsPublished = true;
     }
 
     internal bool TryValidateResolvedOutputCapability(

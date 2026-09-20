@@ -198,6 +198,21 @@ public sealed class AutomationRestoreCandidate
     internal AutomationAggregateState State { get; }
 }
 
+public readonly struct AutomationInfrastructureMutationToken
+{
+    internal AutomationInfrastructureMutationToken(
+        AutomationAggregateState before,
+        int expectedMutatedVersion)
+    {
+        Before = before;
+        ExpectedMutatedVersion = expectedMutatedVersion;
+    }
+
+    internal AutomationAggregateState Before { get; }
+    internal int ExpectedMutatedVersion { get; }
+    public bool IsValid => Before != null && ExpectedMutatedVersion >= 0;
+}
+
 public sealed class AutomationFacilityStateSession
 {
     private readonly AutomationFacilityState state;
@@ -248,6 +263,23 @@ public sealed class AutomationStateSession
 
     public int Version => Current.Version;
     public void IncrementVersion() => Writable.Version++;
+    public AutomationInfrastructureMutationToken CaptureMutation() => new(
+        Current.DeepClone(),
+        checked(Current.Version + 1));
+    public void RestoreMutation(
+        in AutomationInfrastructureMutationToken token)
+    {
+        if (!token.IsValid)
+            throw new ArgumentException(
+                "A valid automation mutation token is required.",
+                nameof(token));
+        if (Current.Version != token.ExpectedMutatedVersion)
+        {
+            throw new InvalidOperationException(
+                "Automation mutation rollback would overwrite a later authoritative mutation.");
+        }
+        rootStore.Replace(token.Before.DeepClone());
+    }
     public AutomationFacilityStateSession GetOrCreate(string facilityId)
     {
         string id = facilityId?.Trim() ?? string.Empty;

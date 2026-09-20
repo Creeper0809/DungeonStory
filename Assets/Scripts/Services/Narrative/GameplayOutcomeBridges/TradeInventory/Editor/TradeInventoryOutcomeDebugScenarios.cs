@@ -644,6 +644,11 @@ public static class TradeInventoryOutcomeDebugScenarios
             long expectedOwnerRevision,
             out CommittedOutcomeToken committed) =>
             throw new NotSupportedException();
+        public OutcomeCommitResult CommitPreparedBatch(
+            PreparedOutcomeToken[] prepared,
+            long[] expectedOwnerRevisions,
+            CommittedOutcomeToken[] committed) =>
+            throw new NotSupportedException();
         public OutcomeDeliveryResult TryDeliver(
             in CommittedOutcomeToken committed) =>
             throw new NotSupportedException();

@@ -653,7 +653,7 @@ public static class IndustrialInfrastructureDebugScenarios
         Require(
             DungeonPowerInfrastructureSaveData.CurrentVersion == 3
             && DungeonFluidInfrastructureSaveData.CurrentVersion == 7
-            && DungeonConveyorInfrastructureSaveData.CurrentVersion == 3
+            && DungeonConveyorInfrastructureSaveData.CurrentVersion == 4
             && DungeonAutomationSaveData.CurrentVersion == 2,
             "Industrial save DTO versions changed without fixture approval.");
 
@@ -744,7 +744,8 @@ public static class IndustrialInfrastructureDebugScenarios
                         segmentBuildingInstanceId = "building:loop",
                         destinationId = "warehouse:reserve",
                         stalledSince = 37f,
-                        stallReason = ConveyorStallReason.CyclicDeadlock
+                        stallReason = ConveyorStallReason.CyclicDeadlock,
+                        overflowApproved = true
                     }
                 }
             };
@@ -771,7 +772,8 @@ public static class IndustrialInfrastructureDebugScenarios
             "Advanced conveyor filters did not round-trip.");
         Require(restored.payloads[0].itemStackId == "stack:corpse"
                 && restored.payloads[0].segmentBuildingInstanceId
-                    == "building:loop",
+                    == "building:loop"
+                && restored.payloads[0].overflowApproved,
             "Conveyor payload did not preserve its physical stack reference.");
         RequireInvalidConveyorCandidate(
             source,

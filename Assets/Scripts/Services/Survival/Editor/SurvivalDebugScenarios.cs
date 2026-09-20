@@ -12,6 +12,38 @@ using VContainer;
 
 public static class SurvivalDebugScenarios
 {
+    internal static SurvivalFoodRuntime CreateMealMissedOutcomeEntryFixture(
+        GameEventBus events,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
+    {
+        if (events == null)
+            throw new ArgumentNullException(nameof(events));
+        if (aggregateRootStore == null)
+            throw new ArgumentNullException(nameof(aggregateRootStore));
+        if (outcomeTransactions == null)
+            throw new ArgumentNullException(nameof(outcomeTransactions));
+
+        IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        SurvivalFoodRuntime runtime = new(
+            new SurvivalFoodRuntimeDependencies(
+                new EmptyGridSystemProvider(),
+                new EditorWarehouseStockRuntime(),
+                itemCatalog,
+                new EmptyStockQuery(),
+                FixedClimateQuery.Instance),
+            new EmptyWildlifeSpeciesCatalog(),
+            events,
+            CharacterAiEditorTestDependencies.WorldRegistry,
+            new FixedGameClock(),
+            EmptyWorldThreatModifiers.Instance,
+            EmptySurvivalServiceSessions.Instance,
+            aggregateRootStore);
+        runtime.ConstructMealMissedOutcomeTransactions(outcomeTransactions);
+        return runtime;
+    }
+
     [MenuItem("DungeonStory/Debug/Survival/Run Survival Scenarios")]
     public static void RunFromMenu()
     {

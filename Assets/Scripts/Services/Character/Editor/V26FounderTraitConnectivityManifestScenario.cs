@@ -386,7 +386,7 @@ public static class V26FounderTraitConnectivityManifestScenario
             (typeof(ExtremeCraftInspirationRuntime), "RecordEligibleCompletion"),
             (typeof(ExtremeTraitRuntime), "TryActivateLastStand"),
             (typeof(ExtremeTraitRuntime), "EndLastStand"),
-            (typeof(ExtremeTraitRuntime), "TryResolveForbiddenResearchLeap"),
+            (typeof(ExtremeTraitRuntime), "TryPrepareForbiddenResearchLeap"),
             (typeof(ExtremeTraitRuntime), "TryResolveMiracleSurgery"),
             (typeof(ExtremeTraitRuntime), "TryScheduleGoldenHarvest"),
             (typeof(ExtremeTraitRuntime), "TryResolveGoldenHarvest"),

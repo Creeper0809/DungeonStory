@@ -95,11 +95,12 @@ public interface ICaptivityCommandService
         string captiveId,
         CaptivePerformerMilestoneChoice choice,
         out string failureReason);
-    void RecordPerformance(
+    bool RecordPerformance(
         string captiveId,
         float fameGain,
         float skillGain,
-        bool injured);
+        bool injured,
+        out string failureReason);
 }
 
 public interface ICaptivityEscapeRuntime
@@ -110,7 +111,11 @@ public interface ICaptivityEscapeRuntime
         out Vector2Int destination,
         out string failureReason);
     IDisposable BeginEscapePass(CharacterActor actor, string captiveId);
-    void CompleteEscape(string captiveId, CharacterActor actor);
+    bool CompleteEscape(
+        string captiveId,
+        CharacterActor actor,
+        string trigger,
+        out string failureReason);
     void FailEscape(string captiveId, CharacterActor actor, string reason);
 }
 

@@ -18,7 +18,7 @@ public static class FacilityEvolutionConstructorFacadeDebugScenarios
 
         Debug.Log(
             "[FacilityEvolutionConstructorFacadeDebugScenarios] PASS "
-            + "FacilityEvolutionEngine=2, DefinitionContext=7, ExecutionContext=8");
+            + "FacilityEvolutionEngine=6, DefinitionContext=7, ExecutionContext=8");
     }
 
     public static bool Verify()
@@ -34,15 +34,23 @@ public static class FacilityEvolutionConstructorFacadeDebugScenarios
             .SelectMany(type => type.GetConstructors())
             .All(constructor => constructor.GetParameters().Length <= DependencyLimit);
         var engineConstructors = typeof(FacilityEvolutionEngine).GetConstructors();
-        bool engineUsesOnlyContexts = engineConstructors.Length == 1
-            && engineConstructors[0].GetParameters().Length == 2
+        bool engineUsesBoundedFacade = engineConstructors.Length == 1
+            && engineConstructors[0].GetParameters().Length == 6
             && engineConstructors[0].GetParameters()[0].ParameterType
                 == typeof(FacilityEvolutionDefinitionContext)
             && engineConstructors[0].GetParameters()[1].ParameterType
-                == typeof(FacilityEvolutionExecutionContext);
+                == typeof(FacilityEvolutionExecutionContext)
+            && engineConstructors[0].GetParameters()[2].ParameterType
+                == typeof(IFacilityEvolutionOutcomeCommitter)
+            && engineConstructors[0].GetParameters()[3].ParameterType
+                == typeof(IGameCalendar)
+            && engineConstructors[0].GetParameters()[4].ParameterType
+                == typeof(IGameplayOutcomeNarrativeEvidenceQuery)
+            && engineConstructors[0].GetParameters()[5].ParameterType
+                == typeof(IGameplayOutcomeEvidenceUseTransaction);
 
         return dependencyLimitSatisfied
-            && engineUsesOnlyContexts
+            && engineUsesBoundedFacade
             && ThrowsArgumentNull(() => new FacilityEvolutionEngine(null, null))
             && ThrowsArgumentNull(() => new FacilityEvolutionDefinitionContext(
                 null,

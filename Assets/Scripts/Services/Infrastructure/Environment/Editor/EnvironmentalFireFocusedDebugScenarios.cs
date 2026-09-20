@@ -5,32 +5,39 @@ using System.IO;
 using System.Linq;
 using DungeonStory.Environment;
 using DungeonStory.Foundation;
+using DungeonStory.Narrative.Korean;
 using UnityEditor;
 using UnityEngine;
 
 public static class EnvironmentalFireFocusedDebugScenarios
 {
     private const string ReportPath =
-        "Artifacts/QA/wim-implementation/fire-01-environmental-fire-focused.txt";
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FireGroup7-20260919-r6/"
+        + "environmental-fire-focused.txt";
 
     [MenuItem("DungeonStory/QA/Run FIRE-01 Environmental Fire Focused")]
     public static void Run()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(ReportPath));
+        if (File.Exists(ReportPath))
+        {
+            throw new InvalidOperationException(
+                "Environmental-fire focused evidence is immutable and already exists: "
+                + ReportPath);
+        }
         try
         {
-            VerifyElectricalIsolationAndInitialAttack();
-            VerifyWaterReceiptRestoreAndAcknowledgement();
-            VerifyDeterministicAdjacentSpread();
-            VerifyProcessAccidentProducerContract();
+            RunAll();
             File.WriteAllText(
                 ReportPath,
                 "result=PASS\n"
                 + "PASS electrical contact, breaker, generation and stored-power isolation gate\n"
                 + "PASS exact ignition replay and 13 WU initial attack\n"
                 + "PASS physical water pending receipt, current-format restore and exact acknowledgement\n"
+                + "PASS v2 legacy migration without fabricated outcomes and strict malformed-v3 rejection\n"
                 + "PASS deterministic direct-neighbour spread, duplicate collapse and non-combustible rejection\n"
                 + "PASS process-accident receipt producer request contract, ineligible rejection and cause replay\n"
+                + "PASS fire-damage exact replay, conflict rejection, save restore, false/throw retention and retry\n"
                 + "scope=isolated production EnvironmentalFireRuntime and process-accident producer with controlled target/access/power/water/command authorities; registered worker selection, hauling and scene overlay require the focused Play witness\n");
             Debug.Log("FIRE01_ENVIRONMENTAL_FIRE=PASS");
         }
@@ -42,15 +49,44 @@ public static class EnvironmentalFireFocusedDebugScenarios
         }
     }
 
+    public static void RunAll()
+    {
+        VerifyElectricalIsolationAndInitialAttack();
+        VerifyWaterReceiptRestoreAndAcknowledgement();
+        VerifyLegacyV2MigrationAndNativeValidation();
+        VerifyDeterministicAdjacentSpread();
+        VerifyProcessAccidentProducerContract();
+        VerifyDamageOutcomeReplayRestoreAndFailureRetry();
+    }
+
     private static void VerifyElectricalIsolationAndInitialAttack()
     {
         var fixture = new Fixture(electrical: true, intensity: 0.25f);
         EnvironmentalFireIgnitionResult ignition = fixture.Ignite("cause:electrical");
         Require(ignition.Created, "Electrical ignition was not accepted.");
+        Require(fixture.PublishedOutcomeCount == 1,
+            "Ignition did not publish exactly one gameplay outcome.");
         Require(
             fixture.Ignite("cause:electrical").Disposition
                 == EnvironmentalFireIgnitionDisposition.PreviouslyProcessed,
             "Exact ignition replay was not idempotent.");
+        Require(fixture.PublishedOutcomeCount == 1,
+            "Ignition replay published a duplicate gameplay outcome.");
+        EnvironmentalFireIgnitionResult conflictingIgnition =
+            fixture.Runtime.TryIgnite(new EnvironmentalFireIgnitionRequest(
+                "cause:electrical",
+                EnvironmentalFireIgnitionKind.ElectricalFault,
+                "focused-test",
+                fixture.Target,
+                fixture.IgnitionIntensity,
+                "evidence:different",
+                targetDisplayName: "전기 설비"));
+        Require(
+            conflictingIgnition.Disposition
+                == EnvironmentalFireIgnitionDisposition.CauseConflict,
+            "Same ignition cause with different evidence was not rejected as a conflict.");
+        Require(fixture.PublishedOutcomeCount == 1,
+            "Conflicting ignition published a gameplay outcome.");
 
         EnvironmentalFireSuppressionCommand command = fixture.InitialAttack(
             "suppression:electrical",
@@ -89,10 +125,25 @@ public static class EnvironmentalFireFocusedDebugScenarios
                 == EnvironmentalFireSuppressionDisposition.Extinguished,
             "The authored 13 WU initial attack did not extinguish intensity 0.25.");
         Require(fixture.Runtime.ActiveFires.Count == 0, "Extinguished fire remained active.");
+        Require(fixture.PublishedOutcomeCount == 2,
+            "Successful suppression did not publish exactly one gameplay outcome.");
         Require(
             fixture.Runtime.TryApplySuppression(command).Disposition
                 == EnvironmentalFireSuppressionDisposition.PreviouslyApplied,
             "Committed suppression replay was not idempotent.");
+        Require(fixture.PublishedOutcomeCount == 2,
+            "Suppression replay published a duplicate gameplay outcome.");
+        EnvironmentalFireSuppressionResult conflictingSuppression =
+            fixture.Runtime.TryApplySuppression(fixture.InitialAttack(
+                "suppression:electrical",
+                ignition.FireId,
+                12f));
+        Require(
+            conflictingSuppression.Disposition
+                == EnvironmentalFireSuppressionDisposition.OperationConflict,
+            "Same suppression operation with different work was not rejected as a conflict.");
+        Require(fixture.PublishedOutcomeCount == 2,
+            "Conflicting suppression published a gameplay outcome.");
     }
 
     private static void VerifyWaterReceiptRestoreAndAcknowledgement()
@@ -110,7 +161,8 @@ public static class EnvironmentalFireFocusedDebugScenarios
             EnvironmentalFireSuppressionMode.Water,
             2.5f,
             "lease:clean-water",
-            2);
+            2,
+            "진압 작업자");
         EnvironmentalFireSuppressionResult applied =
             fixture.Runtime.TryApplySuppression(command);
         Require(
@@ -125,7 +177,8 @@ public static class EnvironmentalFireFocusedDebugScenarios
         var restoredFixture = new Fixture(
             electrical: false,
             intensity: 0.8f,
-            fixture.Water);
+            fixture.Water,
+            outcomes: fixture.Outcomes);
         restoredFixture.Runtime.Restore(restoredFixture.Runtime.PrepareRestore(
             JsonUtility.FromJson<DungeonEnvironmentalFireSaveData>(json)));
         restoredFixture.Water.Acknowledge = true;
@@ -242,6 +295,123 @@ public static class EnvironmentalFireFocusedDebugScenarios
         }
     }
 
+    private static void VerifyLegacyV2MigrationAndNativeValidation()
+    {
+        var source = new Fixture(electrical: false, intensity: 0.25f);
+        EnvironmentalFireIgnitionRequest ignitionRequest =
+            source.CreateIgnitionRequest("cause:v2-active");
+        EnvironmentalFireIgnitionResult ignition =
+            source.Runtime.TryIgnite(ignitionRequest);
+        Require(ignition.Created, "V2 active-fire source ignition failed.");
+        EnvironmentalFireSuppressionCommand suppression = source.InitialAttack(
+                "suppression:v2-active",
+                ignition.FireId,
+                1f);
+        EnvironmentalFireSuppressionResult suppressionResult =
+            source.Runtime.TryApplySuppression(suppression);
+        Require(
+            suppressionResult.Disposition
+                == EnvironmentalFireSuppressionDisposition.Applied,
+            "V2 active-fire source suppression did not remain active: "
+                + suppressionResult.Disposition);
+
+        DungeonEnvironmentalFireSaveData legacy = Clone(source.Runtime.Capture());
+        legacy.version = 2;
+        legacy.processedCauses[0].fingerprint = ignitionRequest.LegacyFingerprint;
+        legacy.suppressionOperations[0].fingerprint = suppression.LegacyFingerprint;
+
+        var migratedOutcomes = new OutcomeFixture();
+        var migrated = new Fixture(
+            electrical: false,
+            intensity: 0.25f,
+            outcomes: migratedOutcomes);
+        migrated.Runtime.Restore(migrated.Runtime.PrepareRestore(legacy));
+        DungeonEnvironmentalFireSaveData migratedCapture = migrated.Runtime.Capture();
+        Require(
+            migratedCapture.version == DungeonEnvironmentalFireSaveData.CurrentVersion
+                && migratedCapture.activeFires.Count == 1
+                && migratedCapture.history.Count == 0
+                && migratedCapture.processedCauses.Count == 1
+                && migratedCapture.suppressionOperations.Count == 1,
+            "V2 active fire/cause/suppression did not migrate to the current schema.");
+        Require(
+            migratedCapture.processedCauses[0].legacyPreOutcome
+                && migratedCapture.processedCauses[0].outcomeRevision == 0
+                && !migratedCapture.processedCauses[0].outcomePending
+                && migratedCapture.suppressionOperations[0].legacyPreOutcome
+                && migratedCapture.suppressionOperations[0].outcomeRevision == 0
+                && !migratedCapture.suppressionOperations[0].outcomePending,
+            "V2 records were not retained as explicit pre-outcome legacy state.");
+        Require(migrated.PublishedOutcomeCount == 0,
+            "V2 migration fabricated gameplay outcomes.");
+        Require(
+            migrated.Runtime.TryIgnite(ignitionRequest).Disposition
+                == EnvironmentalFireIgnitionDisposition.PreviouslyProcessed
+                && migrated.Runtime.TryApplySuppression(suppression).Disposition
+                    == EnvironmentalFireSuppressionDisposition.PreviouslyApplied
+                && migrated.PublishedOutcomeCount == 0,
+            "V2 replay did not preserve legacy identity without new outcomes.");
+
+        var endedSource = new Fixture(electrical: false, intensity: 0.25f);
+        EnvironmentalFireIgnitionRequest endedRequest =
+            endedSource.CreateIgnitionRequest("cause:v2-history");
+        EnvironmentalFireIgnitionResult endedIgnition =
+            endedSource.Runtime.TryIgnite(endedRequest);
+        EnvironmentalFireSuppressionCommand endedSuppression =
+            endedSource.InitialAttack(
+                "suppression:v2-history",
+                endedIgnition.FireId,
+                13f);
+        Require(
+            endedSource.Runtime.TryApplySuppression(endedSuppression).Disposition
+                == EnvironmentalFireSuppressionDisposition.Extinguished,
+            "V2 history source fire was not extinguished.");
+        DungeonEnvironmentalFireSaveData legacyHistory =
+            Clone(endedSource.Runtime.Capture());
+        legacyHistory.version = 2;
+        legacyHistory.processedCauses[0].fingerprint = endedRequest.LegacyFingerprint;
+        legacyHistory.suppressionOperations[0].fingerprint =
+            endedSuppression.LegacyFingerprint;
+        var historyOutcomes = new OutcomeFixture();
+        var restoredHistory = new Fixture(
+            electrical: false,
+            intensity: 0.25f,
+            outcomes: historyOutcomes);
+        restoredHistory.Runtime.Restore(
+            restoredHistory.Runtime.PrepareRestore(legacyHistory));
+        DungeonEnvironmentalFireSaveData historyCapture =
+            restoredHistory.Runtime.Capture();
+        Require(
+            historyCapture.activeFires.Count == 0
+                && historyCapture.history.Count == 1
+                && historyCapture.history[0].fire.fireId == endedIgnition.FireId
+                && historyOutcomes.Ledger.GetDiagnostics().PublishedCount == 0,
+            "V2 ended-fire history did not round-trip without a fabricated ledger record.");
+
+        DungeonEnvironmentalFireSaveData malformedLegacyMarker =
+            Clone(source.Runtime.Capture());
+        malformedLegacyMarker.processedCauses[0].legacyPreOutcome = true;
+        RequireThrows(
+            () => source.Runtime.PrepareRestore(malformedLegacyMarker),
+            "Native v3 cause accepted a legacy marker with native outcome fields.");
+
+        DungeonEnvironmentalFireSaveData malformedNativeName =
+            Clone(source.Runtime.Capture());
+        malformedNativeName.processedCauses[0].targetDisplayName = string.Empty;
+        RequireThrows(
+            () => source.Runtime.PrepareRestore(malformedNativeName),
+            "Native v3 cause accepted a missing canonical target display snapshot.");
+
+        DungeonEnvironmentalFireSaveData malformedPending =
+            Clone(source.Runtime.Capture());
+        malformedPending.suppressionOperations[0].outcomePending = true;
+        malformedPending.suppressionOperations[0].phase =
+            (int)EnvironmentalFireSuppressionPhase.Cancelled;
+        RequireThrows(
+            () => source.Runtime.PrepareRestore(malformedPending),
+            "Native v3 suppression accepted an illegal pending phase.");
+    }
+
     private static void VerifyDeterministicAdjacentSpread()
     {
         var fixture = new Fixture(
@@ -283,9 +453,150 @@ public static class EnvironmentalFireFocusedDebugScenarios
             "Repeated adjacency evaluation created a duplicate fire target.");
     }
 
+    private static void VerifyDamageOutcomeReplayRestoreAndFailureRetry()
+    {
+        var outcomes = new OutcomeFixture(includeDamage: true);
+        var authority = new EnvironmentalFireDamageOutcomeAuthority(
+            outcomes.Bridge);
+        EnvironmentalFireDamageCommand command = DamageCommand(
+            "fire-damage:replay");
+        Require(authority.TryBegin(
+                command,
+                "화재 시험 시설",
+                17,
+                out _,
+                out string beginFailure),
+            "Fire-damage prepare failed: " + beginFailure);
+        Require(authority.TryCommitApplied(
+                command.OperationId,
+                7f,
+                targetRemainsCombustible: true,
+                out EnvironmentalFireDamageResult committed,
+                out string commitFailure)
+            && committed.Committed
+            && Math.Abs(committed.AppliedDamage - 7f) < 0.001f
+            && outcomes.Ledger.GetDiagnostics().PublishedCount == 1,
+            "Fire-damage outcome did not commit exactly once: " + commitFailure);
+        Require(authority.TryBegin(
+                command,
+                "화재 시험 시설",
+                17,
+                out EnvironmentalFireDamageOutcomeSaveRecord replay,
+                out string replayFailure)
+            && replay.phase == EnvironmentalFireDamageOutcomePhase.OutcomeCommitted,
+            "Exact fire-damage replay was not recovered: " + replayFailure);
+        Require(!authority.TryBegin(
+                new EnvironmentalFireDamageCommand(
+                    command.OperationId,
+                    command.FireId,
+                    command.Target,
+                    command.Position,
+                    command.Intensity,
+                    command.RequestedDamage + 1f),
+                "화재 시험 시설",
+                17,
+                out _,
+                out string conflictFailure)
+            && conflictFailure == "environmental-fire-damage-operation-conflict",
+            "Conflicting fire-damage replay was accepted.");
+
+        var restored = new EnvironmentalFireDamageOutcomeAuthority(
+            outcomes.Bridge);
+        restored.Restore(authority.Capture());
+        Require(restored.TryCommitApplied(
+                command.OperationId,
+                7f,
+                targetRemainsCombustible: true,
+                out _,
+                out string restoreFailure)
+            && outcomes.Ledger.GetDiagnostics().PublishedCount == 1,
+            "Restored fire-damage replay duplicated or lost its outcome: "
+            + restoreFailure);
+
+        VerifyLethalDamageFailureRetry(
+            "fire-damage:false-retry",
+            ControlledCommitMode.Fail);
+        VerifyLethalDamageFailureRetry(
+            "fire-damage:throw-retry",
+            ControlledCommitMode.Throw);
+    }
+
+    private static void VerifyLethalDamageFailureRetry(
+        string operationId,
+        ControlledCommitMode initialMode)
+    {
+        var committer = new ControlledEnvironmentCommitter
+        {
+            Mode = initialMode
+        };
+        var authority = new EnvironmentalFireDamageOutcomeAuthority(committer);
+        EnvironmentalFireDamageCommand command = DamageCommand(operationId);
+        Require(authority.TryBegin(
+                command,
+                "소실 시험 시설",
+                18,
+                out _,
+                out string beginFailure),
+            "Lethal fire-damage prepare failed: " + beginFailure);
+        Require(authority.TryStageAwaitingWorldRemoval(
+                operationId,
+                command.RequestedDamage,
+                out string stageFailure),
+            "Lethal fire-damage staging failed: " + stageFailure);
+        Require(!authority.TryFinalizeAfterWorldRemoval(
+                operationId,
+                out _)
+            && authority.TryGet(operationId, out var pending)
+            && pending.phase
+                == EnvironmentalFireDamageOutcomePhase.AwaitingWorldRemoval,
+            "Failed lethal fire-damage commit did not remain retryable.");
+
+        var restored = new EnvironmentalFireDamageOutcomeAuthority(committer);
+        restored.Restore(authority.Capture());
+        committer.Mode = ControlledCommitMode.Success;
+        Require(restored.TryFinalizeAfterWorldRemoval(
+                operationId,
+                out string retryFailure)
+            && restored.TryGet(operationId, out var finalized)
+            && finalized.phase
+                == EnvironmentalFireDamageOutcomePhase.OutcomeCommitted
+            && finalized.outcomeDigest.Length == 64,
+            "Restored lethal fire-damage retry did not commit: " + retryFailure);
+    }
+
+    private static EnvironmentalFireDamageCommand DamageCommand(
+        string operationId) => new(
+        operationId,
+        "fire:damage-focused",
+        new EnvironmentalFireTargetRef(
+            EnvironmentalFireTargetKind.Building,
+            "building:damage-focused"),
+        new Vector2Int(4, 5),
+        0.75f,
+        9f);
+
     private static void Require(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
+    }
+
+    private static DungeonEnvironmentalFireSaveData Clone(
+        DungeonEnvironmentalFireSaveData value) =>
+        JsonUtility.FromJson<DungeonEnvironmentalFireSaveData>(
+            JsonUtility.ToJson(value));
+
+    private static void RequireThrows(Action action, string message)
+    {
+        try
+        {
+            action();
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(message);
     }
 
     private static BuildableObject CreateProcessAccidentFacility(
@@ -305,6 +616,7 @@ public static class EnvironmentalFireFocusedDebugScenarios
         });
         BuildingSO definition = ScriptableObject.CreateInstance<BuildingSO>();
         definition.hideFlags = HideFlags.HideAndDontSave;
+        definition.objectName = "공정 시험 시설";
         definition.ReplaceAbilities(abilities);
 
         var host = new GameObject("FIRE-01 Process Accident Facility")
@@ -454,8 +766,10 @@ public static class EnvironmentalFireFocusedDebugScenarios
             float intensity,
             RecordingWaterSink water = null,
             float spreadChancePerTick = 0f,
-            float minimumSpreadIntensity = 0.55f)
+            float minimumSpreadIntensity = 0.55f,
+            OutcomeFixture outcomes = null)
         {
+            Outcomes = outcomes ?? new OutcomeFixture();
             Target = new EnvironmentalFireTargetRef(
                 EnvironmentalFireTargetKind.Building,
                 electrical ? "building:electrical" : "building:process");
@@ -474,7 +788,8 @@ public static class EnvironmentalFireFocusedDebugScenarios
                     minimumSpreadIntensity: minimumSpreadIntensity,
                     spreadChancePerTick: spreadChancePerTick,
                     spreadIgnitionMultiplier: 0.5f,
-                    waterSuppressionPerUnit: 0.5f));
+                    waterSuppressionPerUnit: 0.5f),
+                displayName: electrical ? "전기 설비" : "작업 시설");
             IgnitionIntensity = intensity;
             Safety = new EnvironmentalFireElectricalSafetySnapshot(
                 Target,
@@ -491,10 +806,15 @@ public static class EnvironmentalFireFocusedDebugScenarios
                 this,
                 Water,
                 new EnvironmentalFireRuntimeSettings(5f, 0.35f, 0.02f),
-                new RandomStreamProvider(157181));
+                new RandomStreamProvider(157181),
+                Outcomes.Bridge,
+                EditorFixedGameCalendar.Instance);
         }
 
         public EnvironmentalFireRuntime Runtime { get; }
+        public OutcomeFixture Outcomes { get; }
+        public int PublishedOutcomeCount =>
+            Outcomes.Ledger.GetDiagnostics().PublishedCount;
         public EnvironmentalFireTargetRef Target { get; }
         public RecordingWaterSink Water { get; }
         public List<EnvironmentalFireTargetSnapshot> AdjacentTargets { get; } =
@@ -502,8 +822,8 @@ public static class EnvironmentalFireFocusedDebugScenarios
         public float IgnitionIntensity { get; }
         public EnvironmentalFireElectricalSafetySnapshot Safety { get; set; }
 
-        public EnvironmentalFireIgnitionResult Ignite(string causeId) =>
-            Runtime.TryIgnite(new EnvironmentalFireIgnitionRequest(
+        public EnvironmentalFireIgnitionRequest CreateIgnitionRequest(
+            string causeId) => new(
                 causeId,
                 Target.TargetId.EndsWith("electrical", StringComparison.Ordinal)
                     ? EnvironmentalFireIgnitionKind.ElectricalFault
@@ -511,7 +831,11 @@ public static class EnvironmentalFireFocusedDebugScenarios
                 "focused-test",
                 Target,
                 IgnitionIntensity,
-                "evidence:" + causeId));
+                "evidence:" + causeId,
+                targetDisplayName: snapshot.DisplayName);
+
+        public EnvironmentalFireIgnitionResult Ignite(string causeId) =>
+            Runtime.TryIgnite(CreateIgnitionRequest(causeId));
 
         public EnvironmentalFireSuppressionCommand InitialAttack(
             string operationId,
@@ -522,7 +846,8 @@ public static class EnvironmentalFireFocusedDebugScenarios
                 "character:worker",
                 new Vector2Int(1, 0),
                 EnvironmentalFireSuppressionMode.InitialAttack,
-                work);
+                work,
+                workerDisplayName: "진압 작업자");
 
         public bool TryGetTarget(
             EnvironmentalFireTargetRef target,
@@ -577,7 +902,8 @@ public static class EnvironmentalFireFocusedDebugScenarios
                     waterSuppressionPerUnit: 0.5f),
                 acceptedSources: acceptsSpread
                     ? EnvironmentalFireIgnitionSources.Spread
-                    : EnvironmentalFireIgnitionSources.ProcessAccident);
+                    : EnvironmentalFireIgnitionSources.ProcessAccident,
+                displayName: "인접 시설");
             AdjacentTargets.Add(adjacent);
             return adjacent;
         }
@@ -611,6 +937,133 @@ public static class EnvironmentalFireFocusedDebugScenarios
         {
             result = Safety;
             return target.Equals(Target);
+        }
+    }
+
+    internal sealed class OutcomeFixture
+    {
+        internal OutcomeFixture(bool includeDamage = false)
+        {
+            var josa = new KoreanJosaFormatter();
+            List<IGameplayOutcomeDescriptor> descriptors = new()
+            {
+                new FireIgnitionOutcomeDescriptor(josa),
+                new FireSuppressionOutcomeDescriptor(josa)
+            };
+            List<IGameplayOutcomeAdapterRegistration> adapters = new()
+            {
+                new EnvironmentalFireIgnitionOutcomeAdapter(),
+                new EnvironmentalFireSuppressionOutcomeAdapter()
+            };
+            if (includeDamage)
+            {
+                descriptors.Add(new FireDamageOutcomeDescriptor(josa));
+                adapters.Add(new EnvironmentalFireDamageOutcomeAdapter());
+            }
+            GameplayOutcomeRegistry registry = new(
+                descriptors,
+                adapters);
+            Ledger = new GameplayOutcomeLedger(
+                registry,
+                new GameplayOutcomeBufferLimits(),
+                new GameplayOutcomeRunId("run:fire-01-focused"),
+                1L);
+            GameplayOutcomeRecorder recorder = new(
+                Ledger,
+                registry,
+                new GameEventBus());
+            Bridge = new EnvironmentGameplayOutcomeBridge(recorder, Ledger, Ledger);
+        }
+
+        internal GameplayOutcomeLedger Ledger { get; }
+        internal EnvironmentGameplayOutcomeBridge Bridge { get; }
+    }
+
+    private enum ControlledCommitMode
+    {
+        Success,
+        Fail,
+        Throw
+    }
+
+    private sealed class ControlledEnvironmentCommitter :
+        IEnvironmentGameplayOutcomeCommitter
+    {
+        private GameplayResultKey resultKey;
+
+        public ControlledCommitMode Mode { get; set; }
+
+        public bool TryReserve(
+            in EnvironmentOutcomeReservationSpec spec,
+            out ReservedEnvironmentOutcome reserved,
+            out string failureReason)
+        {
+            resultKey = spec.ResultKey;
+            reserved = default;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryWriteReserved<TReceipt>(
+            in TReceipt receipt,
+            in ReservedEnvironmentOutcome reserved,
+            out PreparedEnvironmentOutcome prepared,
+            out string failureReason)
+            where TReceipt : struct, IEnvironmentOutcomeReceipt =>
+            TryPrepareControlled(out prepared, out failureReason);
+
+        public bool TryPrepare<TReceipt>(
+            in TReceipt receipt,
+            out PreparedEnvironmentOutcome prepared,
+            out string failureReason)
+            where TReceipt : struct, IEnvironmentOutcomeReceipt =>
+            TryPrepareControlled(out prepared, out failureReason);
+
+        public EnvironmentOutcomeCommitResult Commit(
+            in PreparedEnvironmentOutcome prepared,
+            long expectedOwnerRevision) => new(
+            EnvironmentOutcomeCommitPhase.PublishedAcknowledged,
+            resultKey,
+            default,
+            new string('a', 64),
+            string.Empty);
+
+        public EnvironmentOutcomeCommitResult Reconcile(
+            GameplayResultKey key) => new(
+            EnvironmentOutcomeCommitPhase.Rejected,
+            key,
+            default,
+            string.Empty,
+            "controlled-not-committed");
+
+        public bool IsCanonicalAcknowledgedReplay<TReceipt>(
+            in TReceipt receipt,
+            out string failureReason)
+            where TReceipt : struct, IEnvironmentOutcomeReceipt
+        {
+            failureReason = "controlled-not-replay";
+            return false;
+        }
+
+        public void Cancel(in PreparedEnvironmentOutcome prepared)
+        {
+        }
+
+        public void Cancel(in ReservedEnvironmentOutcome reserved)
+        {
+        }
+
+        private bool TryPrepareControlled(
+            out PreparedEnvironmentOutcome prepared,
+            out string failureReason)
+        {
+            if (Mode == ControlledCommitMode.Throw)
+                throw new InvalidOperationException("controlled-throw");
+            prepared = default;
+            failureReason = Mode == ControlledCommitMode.Fail
+                ? "controlled-false"
+                : string.Empty;
+            return Mode == ControlledCommitMode.Success;
         }
     }
 

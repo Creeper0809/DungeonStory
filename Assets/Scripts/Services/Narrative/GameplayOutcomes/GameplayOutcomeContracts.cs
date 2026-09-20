@@ -2,6 +2,11 @@ using System;
 using System.Collections.Generic;
 using DungeonStory.Narrative.Korean;
 
+public static class GameplayOutcomeTransactionLimits
+{
+    public const int MaximumAtomicCommitBatchCount = 256;
+}
+
 public enum GameplayOutcomeStatus
 {
     Succeeded = 1,
@@ -465,6 +470,10 @@ public interface IGameplayOutcomeRecorder
     void CancelReservation(in PreparedOutcomeReservation reservation);
     void CancelPrepared(in PreparedOutcomeToken prepared);
     OutcomeCommitResult CommitPrepared(in PreparedOutcomeToken prepared, long expectedOwnerRevision, out CommittedOutcomeToken committed);
+    OutcomeCommitResult CommitPreparedBatch(
+        PreparedOutcomeToken[] prepared,
+        long[] expectedOwnerRevisions,
+        CommittedOutcomeToken[] committed);
     OutcomeDeliveryResult TryDeliver(in CommittedOutcomeToken committed);
     OutcomeAcknowledgeResult Acknowledge(in CommittedOutcomeToken committed);
     int RetryPendingDeliveries(int maximumCount);

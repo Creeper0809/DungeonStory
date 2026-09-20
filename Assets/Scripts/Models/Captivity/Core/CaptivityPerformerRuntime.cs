@@ -77,16 +77,19 @@ public sealed class CaptivityPerformerRuntime
         return true;
     }
 
-    public void Record(
+    public bool TryRecord(
         string captiveId,
         float fameGain,
         float skillGain,
-        bool injured)
+        bool injured,
+        out string failureReason)
     {
+        failureReason = string.Empty;
         CaptiveState state = findState(captiveId);
         if (state == null)
         {
-            return;
+            failureReason = "공연자 상태를 찾을 수 없습니다.";
+            return false;
         }
 
         state.performerFame = ClampStat(state.performerFame + Mathf.Max(0f, fameGain));
@@ -101,7 +104,7 @@ public sealed class CaptivityPerformerRuntime
             : state.performerFame >= 50f
                 ? 1
                 : 0;
-        ApplyMilestones(state);
+        return true;
     }
 
     public bool TryResolveMilestone(
@@ -163,51 +166,6 @@ public sealed class CaptivityPerformerRuntime
                 failureReason = "선택할 계약이 없습니다.";
                 return false;
         }
-    }
-
-    private void ApplyMilestones(CaptiveState state)
-    {
-        if (state.performerFame >= 50f && !state.carePriorityUnlocked)
-        {
-            state.carePriorityUnlocked = true;
-            state.lastResult = "공연 명성으로 우선 식량·치료 특혜를 얻었습니다.";
-            PublishMilestone(state, 50, state.lastResult);
-        }
-
-        if (state.performerFame >= 75f && !state.staffContractUnlocked)
-        {
-            state.staffContractUnlocked = true;
-            state.lastResult = "조건을 충족하면 직원 계약을 제안할 수 있습니다.";
-            PublishMilestone(state, 75, state.lastResult);
-        }
-
-        if (state.performerFame >= 100f
-            && state.resolvedMilestoneChoice == CaptivePerformerMilestoneChoice.None
-            && !state.finalContractPending)
-        {
-            state.finalContractPending = true;
-            state.lastResult = "석방 협상과 전속 투사 계약 중 하나를 선택할 수 있습니다.";
-            PublishMilestone(state, 100, state.lastResult);
-        }
-
-    }
-
-    private void PublishMilestone(
-        CaptiveState state,
-        int threshold,
-        string message)
-    {
-        port.Publish(new CaptivePerformerMilestoneEvent(
-            state.captiveId,
-            threshold,
-            message));
-        port.RaiseAlert(
-            $"공연자 명성 {threshold}",
-            message,
-            threshold >= 100
-                ? CaptivityMilestoneImportance.High
-                : CaptivityMilestoneImportance.Medium,
-            "포로·노역");
     }
 
     private static float ClampStat(float value)

@@ -1029,10 +1029,12 @@ public static class OffenseJourneyDebugScenarios
         public OffenseExpeditionResult Finalize(
             OffenseExpeditionRun expedition,
             OffenseExpeditionResult result,
-            List<OffenseExpeditionResult> resultHistory)
+            List<OffenseExpeditionResult> resultHistory,
+            Action finalizeReturn = null)
         {
             CallCount++;
             resultHistory.Insert(0, result);
+            finalizeReturn?.Invoke();
             return result;
         }
     }

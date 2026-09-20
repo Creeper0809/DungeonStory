@@ -14,7 +14,9 @@ public enum PhysicalItemTransformFailureCode
     OutputRequiresInstanceAuthority = 5,
     OutputMassExceedsInput = 6,
     OutputCommitFailed = 7,
-    ProtectedRouteCustody = 8
+    ProtectedRouteCustody = 8,
+    OutcomeStateUnavailable = 9,
+    OutcomeCommitFailed = 10
 }
 
 public readonly struct PhysicalItemTransformOutput
@@ -143,13 +145,17 @@ public sealed class PhysicalItemTransformService : IPhysicalItemTransformService
     private readonly IPhysicalItemMassQuery massQuery;
     private readonly IDungeonItemCatalogProvider catalog;
     private readonly IItemMarkerPresenter markerPresenter;
+    private readonly IGameSessionStateProvider gameDataProvider;
+    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
 
     public PhysicalItemTransformService(
         WorldItemRepository repository,
         IWorldItemSpawner spawner,
         IPhysicalItemMassQuery massQuery,
         IDungeonItemCatalogProvider catalog,
-        IItemMarkerPresenter markerPresenter)
+        IItemMarkerPresenter markerPresenter,
+        IGameSessionStateProvider gameDataProvider,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
     {
         this.repository = repository
             ?? throw new ArgumentNullException(nameof(repository));
@@ -159,6 +165,10 @@ public sealed class PhysicalItemTransformService : IPhysicalItemTransformService
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.markerPresenter = markerPresenter
             ?? throw new ArgumentNullException(nameof(markerPresenter));
+        this.gameDataProvider = gameDataProvider
+            ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
     }
 
     public bool TryTransformWholeStack(
@@ -387,6 +397,31 @@ public sealed class PhysicalItemTransformService : IPhysicalItemTransformService
                 out failureReason);
         }
 
+        if (!gameDataProvider.TryGetSessionState(out GameSessionState gameData)
+            || gameData?.day == null
+            || gameData.day.Value < 0)
+        {
+            return Fail(
+                PhysicalItemTransformFailureCode.OutcomeStateUnavailable,
+                $"Transform '{operation}' cannot resolve the current run day.",
+                out failureCode,
+                out failureReason);
+        }
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.PhysicalItemTransformReceipt,
+                operation,
+                gameData.day.Value,
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reserveFailure))
+        {
+            return Fail(
+                PhysicalItemTransformFailureCode.OutcomeCommitFailed,
+                $"Transform '{operation}' outcome reservation failed: {reserveFailure}",
+                out failureCode,
+                out failureReason);
+        }
+
         HashSet<Vector2Int> changedPositions = normalizedOutputs
             .Select(output => output.Position)
             .Concat(sourceMutations.Select(mutation => mutation.Record.position))
@@ -413,6 +448,7 @@ public sealed class PhysicalItemTransformService : IPhysicalItemTransformService
                     output.DestinationId);
                 if (spawned != output.Quantity)
                 {
+                    outcomeTransactions.Cancel(prepared);
                     RollbackOutputs(quantitiesBefore, changedPositions);
                     return Fail(
                         PhysicalItemTransformFailureCode.OutputCommitFailed,
@@ -448,23 +484,77 @@ public sealed class PhysicalItemTransformService : IPhysicalItemTransformService
                 inputMassGrams,
                 outputMassGrams,
                 outputQuantity);
+            MigratedProducerOutcomeCommitResult committed =
+                outcomeTransactions.CommitSingleSubject(
+                    prepared,
+                    new MigratedProducerOutcomeSubject(
+                        MigratedProducerOutcomeIds.OperationKind,
+                        operation,
+                        operation,
+                        MigratedProducerOutcomeIds.OperationRole),
+                    CreateOutcomeSummary(receipt));
+            if (!committed.DurablyCommitted)
+            {
+                RollbackCommittedTransform(
+                    quantitiesBefore,
+                    changedPositions,
+                    sourceMutations);
+                receipt = default;
+                return Fail(
+                    PhysicalItemTransformFailureCode.OutcomeCommitFailed,
+                    $"Transform '{operation}' outcome commit failed: {committed.DetailCode}",
+                    out failureCode,
+                    out failureReason);
+            }
             return true;
         }
         catch (Exception exception)
         {
+            outcomeTransactions.Cancel(prepared);
             try
             {
-                RollbackOutputs(quantitiesBefore, changedPositions);
+                RollbackCommittedTransform(
+                    quantitiesBefore,
+                    changedPositions,
+                    sourceMutations);
             }
-            finally
+            catch (Exception rollbackException)
             {
-                RollbackSources(sourceMutations);
+                throw new InvalidOperationException(
+                    $"Transform '{operation}' failed and its rollback also failed.",
+                    new AggregateException(exception, rollbackException));
             }
+            receipt = default;
             return Fail(
                 PhysicalItemTransformFailureCode.OutputCommitFailed,
                 $"Transform '{operation}' rolled back: {exception.Message}",
                 out failureCode,
                 out failureReason);
+        }
+    }
+
+    private static string CreateOutcomeSummary(
+        in PhysicalItemTransformReceipt receipt) =>
+        $"{receipt.ReasonCode} 변환으로 입력 {receipt.InputQuantity}개 "
+        + $"({receipt.InputMassGrams}g)가 출력 {receipt.OutputQuantity}개 "
+        + $"({receipt.OutputMassGrams}g)로 확정됐다.";
+
+    private void RollbackCommittedTransform(
+        IReadOnlyDictionary<string, int> quantitiesBefore,
+        IReadOnlyCollection<Vector2Int> positions,
+        IReadOnlyList<SourceMutation> sources)
+    {
+        try
+        {
+            RollbackOutputs(quantitiesBefore, positions);
+        }
+        finally
+        {
+            RollbackSources(sources);
+            foreach (Vector2Int position in positions)
+            {
+                markerPresenter.RefreshAt(position);
+            }
         }
     }
 

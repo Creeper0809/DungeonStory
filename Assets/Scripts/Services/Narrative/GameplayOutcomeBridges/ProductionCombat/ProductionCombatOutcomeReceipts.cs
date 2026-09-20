@@ -381,19 +381,31 @@ public readonly struct ReservedCombatDamageOutcome
     internal ReservedCombatDamageOutcome(
         PreparedOutcomeReservation reservation,
         string operationId,
-        long attackRevision)
+        long attackRevision,
+        PreparedMigratedProducerOutcome attackOutcome = default)
     {
         Reservation = reservation;
         OperationId = operationId ?? string.Empty;
         AttackRevision = attackRevision;
+        AttackOutcome = attackOutcome;
     }
 
     internal PreparedOutcomeReservation Reservation { get; }
+    internal PreparedMigratedProducerOutcome AttackOutcome { get; }
     public string OperationId { get; }
     public long AttackRevision { get; }
-    public bool IsValid => Reservation.IsValid
+    public bool HasDamageReservation => Reservation.IsValid;
+    public bool HasAttackOutcome => AttackOutcome.IsValid;
+    public bool IsValid => (HasDamageReservation || HasAttackOutcome)
         && GameplayOutcomeStableIdSyntax.IsValid(OperationId)
         && AttackRevision >= 0L;
+
+    internal ReservedCombatDamageOutcome WithAttackOutcome(
+        in PreparedMigratedProducerOutcome attackOutcome) => new(
+            Reservation,
+            OperationId,
+            AttackRevision,
+            attackOutcome);
 }
 
 public readonly struct CombatOutcomeApplyResult

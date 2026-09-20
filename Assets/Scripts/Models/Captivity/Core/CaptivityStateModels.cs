@@ -114,6 +114,53 @@ public sealed class CaptivityInterrogationTerminalState
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class CaptivityInteractionTerminalState
+{
+    [Min(0)] public int attemptId;
+    [Min(0)] public long outcomeRevision;
+    public string interactionId = string.Empty;
+    public CaptiveInteractionKind interactionKind;
+    public string interactionDisplayName = string.Empty;
+    public string wardenId = string.Empty;
+    public string wardenDisplayName = string.Empty;
+    public string facilityId = string.Empty;
+    public string facilityDisplayName = string.Empty;
+    public int resultGridX;
+    public int resultGridY;
+    public bool success;
+    public string message = string.Empty;
+    public float willBefore;
+    public float willAfter;
+    public float fearBefore;
+    public float fearAfter;
+    public float trustBefore;
+    public float trustAfter;
+    public float grudgeBefore;
+    public float grudgeAfter;
+    public float corruptionBefore;
+    public float corruptionAfter;
+    public string outputItemId = string.Empty;
+    [Min(0)] public int outputAmount;
+    public string outputOperationId = string.Empty;
+    public string outputCommitId = string.Empty;
+    public bool outputPublished;
+    [Min(0f)] public float bodyDamageAmount;
+    [Min(0f)] public float bodyHealthBefore;
+    [Min(0f)] public float bodyHealthAfter;
+    [Min(0f)] public float bodyMaximumHealth;
+    public bool bodyObserversPending;
+
+    public bool HasOutcome => attemptId > 0;
+    public bool HasCommittedOutcome => HasOutcome && outcomeRevision > 0L;
+    public bool HasOutput => outputAmount > 0;
+    public Vector2Int ResultPosition => new(resultGridX, resultGridY);
+
+    public CaptivityInteractionTerminalState Clone() =>
+        (CaptivityInteractionTerminalState)MemberwiseClone();
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CaptiveState
 {
     public string captiveId = string.Empty;
@@ -163,6 +210,10 @@ public sealed class CaptiveState
     public bool interactionMaterialsConsumed;
     public float completedInteractionWork;
     public float requiredInteractionWork;
+    [Min(0)] public int interactionAttemptSequence;
+    [Min(0)] public int currentInteractionAttemptId;
+    [Min(0)] public long interactionOutcomeRevision;
+    public CaptivityInteractionTerminalState interactionTerminal = new();
     [Min(0)] public int interrogationAttemptSequence;
     [Min(0)] public int currentInterrogationAttemptId;
     public CaptivityInterrogationTerminalState interrogationTerminal = new();
@@ -175,6 +226,15 @@ public sealed class CaptiveState
     public float nextCareSupplyAt;
     public bool staffContractUnlocked;
     public bool finalContractPending;
+    [Min(0)] public long performerMilestoneOutcomeRevision;
+    [Min(0)] public long carePriorityOutcomeRevision;
+    [Min(0)] public long staffContractOutcomeRevision;
+    [Min(0)] public long finalContractOutcomeRevision;
+    [Min(0)] public long escapeOutcomeRevision;
+    [Min(0)] public long ransomOutcomeRevision;
+    [Min(0)] public int ransomAcceptedAmount;
+    public bool ransomIncomeCredited;
+    public bool ransomObserversPending;
     public bool exclusiveFighter;
     public CaptivePerformerMilestoneChoice resolvedMilestoneChoice;
     public int failedEscapeAttempts;
@@ -224,6 +284,7 @@ public sealed class CaptiveState
     public CaptiveState Clone()
     {
         CaptiveState clone = (CaptiveState)MemberwiseClone();
+        clone.interactionTerminal = interactionTerminal?.Clone();
         clone.interrogationTerminal = interrogationTerminal?.Clone();
         return clone;
     }
@@ -319,6 +380,8 @@ public static class CaptivityStateTransitionRules
         state.interactionMaterialsConsumed = false;
         state.completedInteractionWork = 0f;
         state.requiredInteractionWork = 0f;
+        state.currentInteractionAttemptId = 0;
+        state.interactionTerminal = new CaptivityInteractionTerminalState();
         state.currentInterrogationAttemptId = 0;
         state.carePriorityUnlocked = false;
         state.nextCareSupplyAt = 0f;
@@ -365,6 +428,14 @@ public static class CaptivityInterrogationAttemptIdentity
         + $"{originEnemyArchetypeId ?? string.Empty} / 세력 "
         + $"{originFactionId ?? string.Empty} / 전열·전술 표식 "
         + $"'{formationTag ?? string.Empty}'";
+}
+
+public static class CaptivityInteractionAttemptIdentity
+{
+    public static string FormatOutputOperationId(
+        string captiveId,
+        int attemptId) =>
+        $"captivity-interaction-output:{captiveId ?? string.Empty}:{attemptId:D8}";
 }
 
 [Serializable]

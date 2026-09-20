@@ -145,21 +145,11 @@ public sealed class CharacterAlarmResponseRuntime :
                 && activeWork.TryConsumeEmergencySuspension(
                     out EmergencyWorkSuspensionReceipt receipt))
             {
-                EmergencyAccountingResult recorded = alerts.RecordSuspendedWork(
-                    new SettlementSuspendedWorkSnapshot(
-                        characterId,
-                        receipt.WorkTypeId,
-                        receipt.TargetBuildingId,
-                        receipt.AlertEpochId,
-                        calendar.AbsoluteHour,
-                        receipt.ProgressExternallyPersisted,
-                        receipt.InlineCompletedWork,
-                        receipt.InlineRequiredWork));
-                if (!recorded.Success)
-                {
-                    throw new InvalidOperationException(
-                        $"{recorded.Code}: {recorded.Message}");
-                }
+                RecordSuspendedWorkOrRestore(
+                    activeWork,
+                    characterId,
+                    receipt,
+                    receipt.AlertEpochId);
             }
 
             response.Actor?.Brain?.PreferWorkActionOnNextDecision(
@@ -270,22 +260,11 @@ public sealed class CharacterAlarmResponseRuntime :
                     if (activeWork.TryConsumeEmergencySuspension(
                             out EmergencyWorkSuspensionReceipt receipt))
                     {
-                        EmergencyAccountingResult recorded =
-                            alerts.RecordSuspendedWork(
-                                new SettlementSuspendedWorkSnapshot(
-                                    characterId,
-                                    receipt.WorkTypeId,
-                                    receipt.TargetBuildingId,
-                                    receipt.AlertEpochId,
-                                    calendar.AbsoluteHour,
-                                    receipt.ProgressExternallyPersisted,
-                                    receipt.InlineCompletedWork,
-                                    receipt.InlineRequiredWork));
-                        if (!recorded.Success)
-                        {
-                            throw new InvalidOperationException(
-                                $"{recorded.Code}: {recorded.Message}");
-                        }
+                        RecordSuspendedWorkOrRestore(
+                            activeWork,
+                            characterId,
+                            receipt,
+                            receipt.AlertEpochId);
                     }
                     else
                     {
@@ -823,22 +802,11 @@ public sealed class CharacterAlarmResponseRuntime :
                 if (work.TryConsumeEmergencySuspension(
                         out EmergencyWorkSuspensionReceipt receipt))
                 {
-                    EmergencyAccountingResult recorded =
-                        alerts.RecordSuspendedWork(
-                            new SettlementSuspendedWorkSnapshot(
-                                characterId,
-                                receipt.WorkTypeId,
-                                receipt.TargetBuildingId,
-                                epochId,
-                                calendar.AbsoluteHour,
-                                receipt.ProgressExternallyPersisted,
-                                receipt.InlineCompletedWork,
-                                receipt.InlineRequiredWork));
-                    if (!recorded.Success)
-                    {
-                        throw new InvalidOperationException(
-                            $"{recorded.Code}: {recorded.Message}");
-                    }
+                    RecordSuspendedWorkOrRestore(
+                        work,
+                        characterId,
+                        receipt,
+                        epochId);
                     receiptRecorded = true;
                 }
                 else
@@ -866,6 +834,31 @@ public sealed class CharacterAlarmResponseRuntime :
                 actor.Brain?.RequestImmediateReplan(clearFailures: true);
             }
         }
+    }
+
+    private void RecordSuspendedWorkOrRestore(
+        AbilityWork work,
+        string characterId,
+        in EmergencyWorkSuspensionReceipt receipt,
+        long effectiveAlertEpochId)
+    {
+        EmergencyAccountingResult recorded = alerts.RecordSuspendedWork(
+            new SettlementSuspendedWorkSnapshot(
+                characterId,
+                receipt.WorkTypeId,
+                receipt.TargetBuildingId,
+                effectiveAlertEpochId,
+                calendar.AbsoluteHour,
+                receipt.ProgressExternallyPersisted,
+                receipt.InlineCompletedWork,
+                receipt.InlineRequiredWork,
+                receipt.OutcomeOwnerRevision));
+        if (recorded.Success)
+            return;
+
+        work.RestoreEmergencySuspensionReceipt(receipt);
+        throw new InvalidOperationException(
+            $"{recorded.Code}: {recorded.Message}");
     }
 
     private void ReleaseEmergencyResponderOwnership(

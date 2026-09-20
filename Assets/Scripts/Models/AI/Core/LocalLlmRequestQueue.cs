@@ -217,6 +217,56 @@ public interface ILocalLlmRuntime
     bool GenerateBubbleLineAsync(string prompt, string originalText, Action<LocalLlmResult> callback);
 }
 
+public enum LocalLlmRuntimeReadinessState
+{
+    Unknown = 0,
+    Starting = 1,
+    Ready = 2,
+    Failed = 3
+}
+
+public readonly struct LocalLlmRuntimeReadinessSnapshot
+{
+    public LocalLlmRuntimeReadinessSnapshot(
+        LocalLlmRuntimeReadinessState state,
+        string failureReason = "")
+    {
+        State = state;
+        FailureReason = failureReason?.Trim() ?? string.Empty;
+        if (state == LocalLlmRuntimeReadinessState.Unknown)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(state),
+                "Local LLM readiness must be explicit.");
+        }
+        if (state == LocalLlmRuntimeReadinessState.Failed
+            && FailureReason.Length == 0)
+        {
+            throw new ArgumentException(
+                "Failed local LLM readiness requires an explicit reason.",
+                nameof(failureReason));
+        }
+    }
+
+    public LocalLlmRuntimeReadinessState State { get; }
+    public string FailureReason { get; }
+}
+
+public interface ILocalLlmRuntimeReadiness
+{
+    LocalLlmRuntimeReadinessSnapshot CaptureReadiness();
+}
+
+/// <summary>
+/// An implementation returning true owns the complete lifetime of every
+/// request it accepts: queue wait, transport timeout, terminal failure, and
+/// cancellation. Each accepted request must invoke its callback exactly once.
+/// </summary>
+public interface ILocalLlmAcceptedRequestCompletionOwner
+{
+    bool OwnsAcceptedRequestCompletion { get; }
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public interface ICorrelatedCharacterSkillLlmRuntime
 {
@@ -231,6 +281,19 @@ public interface ICorrelatedCharacterSkillLlmRuntime
 public interface ICharacterSkillModuleSelectionLlmRuntime
 {
     bool GenerateCharacterSkillModuleSelectionAsync(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback);
+}
+
+/// <summary>
+/// A runtime that can return every unresolved CharacterSkill module-selection
+/// candidate in one exact-count response. Legacy/test runtimes may continue to
+/// implement the single-selection interface and retain the service watchdog.
+/// </summary>
+public interface ICharacterSkillModuleSelectionBatchLlmRuntime
+{
+    bool GenerateCharacterSkillModuleSelectionBatchAsync(
         string requestKey,
         string prompt,
         Action<LocalLlmResult> callback);
@@ -426,8 +489,11 @@ internal sealed class LocalLlmQueuedRequest : IContextAwareLlmRequest
 public sealed class LocalLlmRequestQueue :
     SerializedMonoBehaviour,
     ILocalLlmRuntime,
+    ILocalLlmRuntimeReadiness,
+    ILocalLlmAcceptedRequestCompletionOwner,
     ICorrelatedCharacterSkillLlmRuntime,
     ICharacterSkillModuleSelectionLlmRuntime,
+    ICharacterSkillModuleSelectionBatchLlmRuntime,
     ICorrelatedEvolutionHistoryLlmRuntime,
     ICorrelatedEquipmentEvolutionModuleSelectionLlmRuntime,
     ICorrelatedFacilityEvolutionModuleSelectionLlmRuntime,
@@ -496,6 +562,7 @@ public sealed class LocalLlmRequestQueue :
     public string BundledModelVersion => localHost?.ModelVersion ?? string.Empty;
     public string BundledModelTrainingState => localHost?.TrainingState ?? string.Empty;
     public bool IsBundledModelReleaseCertified => localHost?.ReleaseCertified == true;
+    public bool OwnsAcceptedRequestCompletion => true;
     private float Now => uiClock != null
         ? uiClock.Time
         : throw new InvalidOperationException(
@@ -525,6 +592,46 @@ public sealed class LocalLlmRequestQueue :
             .Take(8)
             .Select(request => $"{request.Profile.Id}:wait={Mathf.Max(0f, now - request.EnqueuedAt):0.0}s/prompt={request.Prompt.Length}"));
         return $"running=[{running}] queued=[{waiting}] last=[{lastCompletionDiagnostic}]";
+    }
+
+    public LocalLlmRuntimeReadinessSnapshot CaptureReadiness()
+    {
+        if (isSuspended)
+        {
+            return new LocalLlmRuntimeReadinessSnapshot(
+                LocalLlmRuntimeReadinessState.Failed,
+                "Local LLM queue is suspended.");
+        }
+        if (!isActiveAndEnabled)
+        {
+            return new LocalLlmRuntimeReadinessSnapshot(
+                LocalLlmRuntimeReadinessState.Failed,
+                "Local LLM queue is not active.");
+        }
+        if (hostStartupTask != null)
+        {
+            return new LocalLlmRuntimeReadinessSnapshot(
+                LocalLlmRuntimeReadinessState.Starting);
+        }
+        if (localHost != null && !localHost.IsRunning)
+        {
+            return new LocalLlmRuntimeReadinessSnapshot(
+                LocalLlmRuntimeReadinessState.Failed,
+                string.IsNullOrWhiteSpace(localHost.LastError)
+                    ? "DungeonStory narrative host stopped before request dispatch."
+                    : localHost.LastError);
+        }
+        if (HasConfiguredEndpoint)
+        {
+            return new LocalLlmRuntimeReadinessSnapshot(
+                LocalLlmRuntimeReadinessState.Ready);
+        }
+
+        return new LocalLlmRuntimeReadinessSnapshot(
+            LocalLlmRuntimeReadinessState.Failed,
+            string.IsNullOrWhiteSpace(lastError)
+                ? "Local LLM endpoint or model is not configured."
+                : lastError);
     }
 
     public void ConfigureBubblePolicyForDebug(float timeoutSeconds, float maxQueueAgeSeconds)
@@ -799,6 +906,20 @@ public sealed class LocalLlmRequestQueue :
     }
 
     public bool GenerateCharacterSkillModuleSelectionAsync(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback)
+    {
+        return Enqueue(
+            LocalLlmRequestProfiles.CharacterSkillModuleSelection,
+            prompt,
+            string.Empty,
+            characterSkillTimeoutSeconds,
+            callback,
+            requestKey);
+    }
+
+    public bool GenerateCharacterSkillModuleSelectionBatchAsync(
         string requestKey,
         string prompt,
         Action<LocalLlmResult> callback)

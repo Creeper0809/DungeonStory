@@ -59,7 +59,8 @@ public sealed class RoomEnvironmentOutcomeSaveSection :
 
     public override string SectionId => Id;
     public override int SectionVersion => RoomEnvironmentOutcomeSaveData.CurrentVersion;
-    public override DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.World;
+    public override DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.LateRuntimeState;
     public override IReadOnlyList<string> DependsOn => Dependencies;
     protected override RoomEnvironmentOutcomeSaveData CapturePayload() =>
         persistence.CaptureOutcomeState();

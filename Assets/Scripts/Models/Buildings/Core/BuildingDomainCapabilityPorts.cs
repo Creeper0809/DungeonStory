@@ -68,7 +68,7 @@ public interface IBuildingItemStackPort
 
 public interface IBuildingVisitEventPort
 {
-    void PublishVisit(
+    void CommitVisit(
         IBuildingCharacterPort visitor,
         IBuildingWorldEntryPort facility);
 }

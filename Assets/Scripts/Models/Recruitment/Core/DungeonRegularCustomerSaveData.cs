@@ -9,6 +9,13 @@ public enum RegularCustomerStatus
     Recruited
 }
 
+public enum RegularCustomerRecruitDeliveryKind
+{
+    None = 0,
+    Staff = 1,
+    Mercenary = 2
+}
+
 public enum SettlementImmigrationPolicy
 {
     Conservative = 0,
@@ -65,6 +72,9 @@ public sealed class DungeonRegularCustomerRecordSaveData
     public bool isRecruited;
     public int recruitedAbsoluteDay;
     public RecruitCapability recruitCapabilities;
+    public bool recruitDeliveryPending;
+    public RegularCustomerRecruitDeliveryKind recruitDeliveryKind;
+    public int pendingMercenaryRolePremium;
 }
 
 public interface IRegularCustomerPersistence
@@ -154,7 +164,11 @@ public sealed class RegularCustomerProgressState
         bool isRecruitCandidate,
         bool isRecruited,
         int recruitedAbsoluteDay,
-        RecruitCapability recruitCapabilities)
+        RecruitCapability recruitCapabilities,
+        bool recruitDeliveryPending = false,
+        RegularCustomerRecruitDeliveryKind recruitDeliveryKind =
+            RegularCustomerRecruitDeliveryKind.None,
+        int pendingMercenaryRolePremium = 0)
     {
         CustomerId = customerId?.Trim() ?? string.Empty;
         DisplayName = string.IsNullOrWhiteSpace(displayName)
@@ -174,6 +188,16 @@ public sealed class RegularCustomerProgressState
         RecruitCapabilities = recruitCapabilities == RecruitCapability.None
             ? RecruitCapability.All
             : recruitCapabilities;
+        RecruitDeliveryPending = IsRecruited && recruitDeliveryPending;
+        RecruitDeliveryKind = RecruitDeliveryPending
+            ? recruitDeliveryKind == RegularCustomerRecruitDeliveryKind.None
+                ? RegularCustomerRecruitDeliveryKind.Staff
+                : recruitDeliveryKind
+            : RegularCustomerRecruitDeliveryKind.None;
+        PendingMercenaryRolePremium = RecruitDeliveryKind
+            == RegularCustomerRecruitDeliveryKind.Mercenary
+            ? Math.Max(0, pendingMercenaryRolePremium)
+            : 0;
     }
 
     public string CustomerId { get; }
@@ -187,6 +211,9 @@ public sealed class RegularCustomerProgressState
     public bool IsRecruited { get; private set; }
     public int RecruitedAbsoluteDay { get; private set; }
     public RecruitCapability RecruitCapabilities { get; }
+    public bool RecruitDeliveryPending { get; private set; }
+    public RegularCustomerRecruitDeliveryKind RecruitDeliveryKind { get; private set; }
+    public int PendingMercenaryRolePremium { get; private set; }
     public RegularCustomerStatus Status =>
         RegularCustomerProgressionRules.ResolveStatus(
             IsRegular,
@@ -249,7 +276,11 @@ public sealed class RegularCustomerProgressState
         return true;
     }
 
-    public bool MarkRecruited(int absoluteDay)
+    public bool MarkRecruited(
+        int absoluteDay,
+        RegularCustomerRecruitDeliveryKind deliveryKind =
+            RegularCustomerRecruitDeliveryKind.Staff,
+        int mercenaryRolePremium = 0)
     {
         if (IsRecruited || !IsRecruitCandidate)
         {
@@ -258,7 +289,29 @@ public sealed class RegularCustomerProgressState
         IsRegular = true;
         IsRecruited = true;
         RecruitedAbsoluteDay = Math.Max(1, absoluteDay);
+        RecruitDeliveryPending = true;
+        RecruitDeliveryKind = deliveryKind
+            == RegularCustomerRecruitDeliveryKind.None
+            ? RegularCustomerRecruitDeliveryKind.Staff
+            : deliveryKind;
+        PendingMercenaryRolePremium = RecruitDeliveryKind
+            == RegularCustomerRecruitDeliveryKind.Mercenary
+            ? Math.Max(0, mercenaryRolePremium)
+            : 0;
         return true;
+    }
+
+    public void CompleteRecruitDelivery()
+    {
+        if (!IsRecruited)
+        {
+            throw new InvalidOperationException(
+                "Cannot complete delivery for a customer that was not recruited.");
+        }
+
+        RecruitDeliveryPending = false;
+        RecruitDeliveryKind = RegularCustomerRecruitDeliveryKind.None;
+        PendingMercenaryRolePremium = 0;
     }
 
     public RegularCustomerProgressState DeepClone() => new(
@@ -271,7 +324,10 @@ public sealed class RegularCustomerProgressState
         IsRecruitCandidate,
         IsRecruited,
         RecruitedAbsoluteDay,
-        RecruitCapabilities);
+        RecruitCapabilities,
+        RecruitDeliveryPending,
+        RecruitDeliveryKind,
+        PendingMercenaryRolePremium);
 
     private static float ClampSatisfaction(float value) =>
         Math.Max(0f, Math.Min(100f, value));

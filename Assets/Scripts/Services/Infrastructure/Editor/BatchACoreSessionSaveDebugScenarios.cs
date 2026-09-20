@@ -210,6 +210,9 @@ public static class BatchACoreSessionSaveDebugScenarios
             InvasionThreatRuntime threat =
                 host.AddComponent<InvasionThreatRuntime>();
             RunVariableRuntime runtime = host.AddComponent<RunVariableRuntime>();
+            MigratedProducerOutcomeEditorFixture outcomeFixture = new(
+                "run:batch-a-run-variable-preflight",
+                store);
             runtime.Construct(
                 EmptyOwnerRunDataProvider.Instance,
                 new InvasionSceneRuntimeReferences(threat, null, null),
@@ -218,7 +221,8 @@ public static class BatchACoreSessionSaveDebugScenarios
                 new GameEventBus(),
                 EmptyRunVariableCatalog.Instance,
                 EmptyDoctrineCatalog.Instance,
-                store);
+                store,
+                outcomeFixture.Transaction);
             RunVariableSaveSection section = new(
                 runtime,
                 EmptyRunVariableCatalog.Instance,
@@ -493,6 +497,9 @@ public static class BatchACoreSessionSaveDebugScenarios
                 host.AddComponent<InvasionThreatRuntime>();
             RunVariableRuntime runVariables =
                 host.AddComponent<RunVariableRuntime>();
+            MigratedProducerOutcomeEditorFixture outcomeFixture = new(
+                "run:batch-a-core-session",
+                store);
             runVariables.Construct(
                 EmptyOwnerRunDataProvider.Instance,
                 new InvasionSceneRuntimeReferences(threat, null, null),
@@ -501,7 +508,8 @@ public static class BatchACoreSessionSaveDebugScenarios
                 new GameEventBus(),
                 EmptyRunVariableCatalog.Instance,
                 EmptyDoctrineCatalog.Instance,
-                store);
+                store,
+                outcomeFixture.Transaction);
             DungeonSceneRuntimeReferences references =
                 new DungeonSceneRuntimeReferences(
                     new DungeonSceneServiceReferences(null, null, null, runVariables),
@@ -730,6 +738,9 @@ public static class BatchACoreSessionSaveDebugScenarios
 
             RunVariableRuntime runVariables =
                 host.AddComponent<RunVariableRuntime>();
+            MigratedProducerOutcomeEditorFixture outcomeFixture = new(
+                "run:batch-a-integrated",
+                store);
             runVariables.Construct(
                 EmptyOwnerRunDataProvider.Instance,
                 invasion,
@@ -738,7 +749,8 @@ public static class BatchACoreSessionSaveDebugScenarios
                 events,
                 authored,
                 authored,
-                store);
+                store,
+                outcomeFixture.Transaction);
             runVariables.RestoreRun(
                 23,
                 4,
@@ -761,7 +773,10 @@ public static class BatchACoreSessionSaveDebugScenarios
                     new IntegratedMoneyAccount(1000),
                     DefaultInterfaceProxy.Create<IPowerInfrastructureQuery>(),
                     DefaultInterfaceProxy.Create<IServiceRoomResearchQuery>(),
-                    rulesProvider),
+                    rulesProvider,
+                    DefaultInterfaceProxy.Create<IGameSessionStateProvider>(),
+                    DefaultInterfaceProxy.Create<
+                        IMigratedProducerOutcomeTransaction>()),
                 store,
                 DefaultInterfaceProxy.Create<IRestoreWorldCandidateQuery>(),
                 DefaultInterfaceProxy.Create<ICharacterWorldPersistenceIdentityQuery>());

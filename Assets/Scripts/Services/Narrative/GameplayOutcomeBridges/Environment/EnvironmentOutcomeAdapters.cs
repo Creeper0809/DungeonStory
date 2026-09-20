@@ -185,6 +185,38 @@ public sealed class CropPlanGameplayOutcomeAdapter : EnvironmentOutcomeAdapter<C
     protected override string FailurePrefix => "crop-plan";
 }
 
+public sealed class CropIrrigationSupplyOutcomeAdapter :
+    EnvironmentOutcomeAdapter<CropIrrigationSupplyOutcomeReceipt>
+{
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.CropIrrigationSupplied;
+    protected override string FailurePrefix => "crop-irrigation";
+}
+
+public sealed class EnvironmentalFireIgnitionOutcomeAdapter :
+    EnvironmentOutcomeAdapter<EnvironmentalFireIgnitionOutcomeReceipt>
+{
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.FireIgnition;
+    protected override string FailurePrefix => "fire-ignition";
+}
+
+public sealed class EnvironmentalFireSuppressionOutcomeAdapter :
+    EnvironmentOutcomeAdapter<EnvironmentalFireSuppressionOutcomeReceipt>
+{
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.FireSuppression;
+    protected override string FailurePrefix => "fire-suppression";
+}
+
+public sealed class EnvironmentalFireDamageOutcomeAdapter :
+    EnvironmentOutcomeAdapter<EnvironmentalFireDamageOutcomeReceipt>
+{
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.FireDamage;
+    protected override string FailurePrefix => "fire-damage";
+}
+
 public sealed class EnvironmentalFireFuelOutcomeAdapter : EnvironmentOutcomeAdapter<EnvironmentalFireFuelOutcomeReceipt>
 {
     public override GameplayOutcomeTypeId OutcomeTypeId => EnvironmentOutcomeIds.FireFuelLoss;

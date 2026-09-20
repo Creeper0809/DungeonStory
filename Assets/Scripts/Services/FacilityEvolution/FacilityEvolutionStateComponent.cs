@@ -824,7 +824,7 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
     public bool TryRestoreState(int version, string payload, out string error)
     {
         error = string.Empty;
-        if (version is < 6 or > 9)
+        if (version < 6 || version > CurrentVersion)
         {
             error = $"Unsupported facility evolution state version {version}.";
             return false;

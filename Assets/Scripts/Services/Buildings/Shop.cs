@@ -144,6 +144,30 @@ public class Shop : BuildableObject,
         // authored stock is therefore activated lazily at the first stock
         // query, after placement/restore has established BuildingInstanceId.
     }
+
+    [Inject]
+    public void ConstructShopOutcomeTransactions(
+        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        IGameSessionStateProvider gameDataProvider)
+    {
+        Crime.ConfigureOutcomeTransactions(
+            outcomeTransactions
+                ?? throw new ArgumentNullException(nameof(outcomeTransactions)),
+            gameDataProvider
+                ?? throw new ArgumentNullException(nameof(gameDataProvider)));
+    }
+#if UNITY_EDITOR
+    internal void ConfigureCrimeForDiagnostics(
+        IFacilityCrimeRiskEvaluator crimeRiskEvaluator,
+        IRandomStream randomStream)
+    {
+        Crime.Configure(
+            crimeRiskEvaluator
+                ?? throw new ArgumentNullException(nameof(crimeRiskEvaluator)),
+            randomStream
+                ?? throw new ArgumentNullException(nameof(randomStream)));
+    }
+#endif
     public bool HasAllocatedWorker => HasServingWorker;
 
     public IEnumerator Interact(IBuildingVisitorPort actor) =>
@@ -447,6 +471,24 @@ public class Shop : BuildableObject,
             out taken,
             out unitOperationId,
             out failureReason);
+    }
+
+    internal bool TryPreviewExactRetailLotOperationId(
+        int saleItemId,
+        out string unitOperationId)
+    {
+        SynchronizeAuthoredStock();
+        RetailStockLotSnapshot source = Inventory.CreateSnapshot().lots
+            .Where(lot => lot != null
+                && lot.saleItemId == saleItemId
+                && lot.quantity > 0)
+            .OrderBy(lot => lot.sourceOperationId, StringComparer.Ordinal)
+            .ThenBy(lot => lot.itemInstanceId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        unitOperationId = source == null
+            ? string.Empty
+            : $"retail-unit:{source.sourceOperationId}:ordinal:{source.quantity:D10}";
+        return unitOperationId.Length > 0;
     }
 
     internal bool TryRestoreTakenExactRetailLot(

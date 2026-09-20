@@ -343,9 +343,13 @@ public static class RegularCustomerDebugScenarios
         void CountCandidate(RegularCustomerSnapshot snapshot) => candidateCount++;
         try
         {
+            MigratedProducerOutcomeEditorFixture outcomes = new(
+                "run:regular-customer-visits");
             runtime.ConstructRecruitmentRuntime(
                 new FakeRecruitActivationService(),
-                new DungeonStory.Foundation.GameEventBus());
+                new DungeonStory.Foundation.GameEventBus(),
+                new FixedSessionStateProvider(1),
+                outcomes.Transaction);
             customer = CreateCustomer(106, "Runtime Candidate", "Orc", 85f);
             facility = CreateFacility();
             runtime.BecameRegular += CountRegular;
@@ -430,9 +434,13 @@ public static class RegularCustomerDebugScenarios
     {
         GameObject runtimeObject = new GameObject("RegularCustomerRewardPromotion_Test");
         RegularCustomerRuntime runtime = runtimeObject.AddComponent<RegularCustomerRuntime>();
+        MigratedProducerOutcomeEditorFixture outcomes = new(
+            "run:regular-customer-reward");
         runtime.ConstructRecruitmentRuntime(
             new FakeRecruitActivationService(),
-            new DungeonStory.Foundation.GameEventBus());
+            new DungeonStory.Foundation.GameEventBus(),
+            new FixedSessionStateProvider(1),
+            outcomes.Transaction);
         RegularCustomerRules rules = RegularCustomerRules.CreateDefault();
         CharacterActor first = CreateCustomer(109, "Reward Visitor A", "Slime", 92f);
         CharacterActor second = CreateCustomer(110, "Reward Visitor B", "Slime", 74f);
@@ -806,6 +814,16 @@ public static class RegularCustomerDebugScenarios
 
     private sealed class FakeRecruitActivationService : IRecruitedCharacterActivationService
     {
+        public bool TryValidateActivation(
+            RegularCustomerRecord record,
+            out string message)
+        {
+            message = record?.ActiveActor != null
+                ? string.Empty
+                : "actor missing";
+            return record?.ActiveActor != null;
+        }
+
         public bool TryActivate(
             RegularCustomerRecord record,
             out CharacterActor actor,
@@ -826,6 +844,22 @@ public static class RegularCustomerDebugScenarios
 
             message = "activated";
             return actor != null;
+        }
+    }
+
+    private sealed class FixedSessionStateProvider : IGameSessionStateProvider
+    {
+        private readonly GameSessionState state;
+
+        internal FixedSessionStateProvider(int day)
+        {
+            state = new GameSessionState(0, Math.Max(1, day));
+        }
+
+        public bool TryGetSessionState(out GameSessionState gameData)
+        {
+            gameData = state;
+            return true;
         }
     }
 

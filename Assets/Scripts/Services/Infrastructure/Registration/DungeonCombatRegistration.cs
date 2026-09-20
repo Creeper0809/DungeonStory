@@ -119,8 +119,6 @@ public static class DungeonCombatRegistration
         builder.Register<CharacterSurgicalPartGameplayEffectSourceQuery>(Lifetime.Singleton)
             .As<ICharacterSurgicalPartGameplayEffectSourceQuery>();
         builder.Register<CharacterDerivedStatsSnapshotProjector>(Lifetime.Singleton);
-        builder.Register<EquipmentExpeditionRewardService>(Lifetime.Singleton)
-            .As<IEquipmentExpeditionRewardService>();
         builder.Register<EquipmentEvolutionInputDeliveryGateway>(Lifetime.Singleton)
             .As<IEquipmentEvolutionInputDeliveryGateway>();
         builder.Register<EquipmentEvolutionInputOwnerRuntime>(Lifetime.Singleton)

@@ -1344,6 +1344,12 @@ public class AbilityWork : CharacterAbility
         return TaskExecutor.TryConsumeEmergencySuspension(out receipt);
     }
 
+    public void RestoreEmergencySuspensionReceipt(
+        in EmergencyWorkSuspensionReceipt receipt)
+    {
+        TaskExecutor.RestoreEmergencySuspensionReceipt(receipt);
+    }
+
     public void RestoreInlineEmergencyProgress(
         WorkTypeId workTypeId,
         string targetBuildingId,

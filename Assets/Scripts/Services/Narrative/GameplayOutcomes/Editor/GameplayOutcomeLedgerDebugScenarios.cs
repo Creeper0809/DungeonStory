@@ -35,6 +35,7 @@ public static class GameplayOutcomeLedgerDebugScenarios
         RetainedHistoryExceedsHotPool();
         KnownResultCapacityBackpressuresBeforeMutation();
         RetentionPromotionFailureIsExplicit();
+        ExpeditionPresentationUsesOperationAndSameOutcomeId();
         return "PASS GameplayOutcomeLedgerDebugScenarios";
     }
 
@@ -750,6 +751,57 @@ public static class GameplayOutcomeLedgerDebugScenarios
         return new Fixture(registry, descriptor, selectedLimits, ledger, recorder);
     }
 
+    private static void ExpeditionPresentationUsesOperationAndSameOutcomeId()
+    {
+        Fixture fixture = CreateFixture(NarrativeMemoryTier.Episodic, witnessLimit: 0);
+        GameplayEntityId expedition = new(
+            new GameplayEntityKindId("expedition"),
+            "expedition-test-1");
+        GameplayOperationId operation = new(expedition.Value);
+        TestReceipt receipt = new(
+            new GameplayResultKey("test-producer", operation, 1L, 0),
+            1L,
+            1,
+            expedition,
+            Name("시험 원정대", "expedition-test-name-v1"),
+            7d,
+            "원정 관점 시험",
+            default,
+            default,
+            default);
+        GameplayOutcomeId outcomeId = Publish(fixture, receipt);
+        GameplayOutcomePresentationQuery presentation = new(
+            fixture.Ledger,
+            new GameplayOutcomeDisplayNameQuery(
+                Array.Empty<IGameplayOutcomeEntityNameResolver>()),
+            new KoreanJosaFormatter());
+
+        GameplayOutcomePresentationPage expeditionPage = presentation.GetExpeditionPage(
+            expedition,
+            operation,
+            OutcomeCursor.FirstPage(10),
+            OutcomeFilter.All);
+        GameplayOutcomePresentationPage globalPage = presentation.GetGlobalPage(
+            OutcomeCursor.FirstPage(10),
+            OutcomeFilter.All);
+        Require(
+            expeditionPage.Rows.Count == 1
+            && globalPage.Rows.Count == 1
+            && expeditionPage.Rows[0].SourceId == outcomeId.ToString()
+            && globalPage.Rows[0].SourceId == outcomeId.ToString()
+            && fixture.Descriptor.LastPerspectiveKind == NarrativePerspectiveKind.Global,
+            "Global and expedition pages must reference the same outcome ID.");
+
+        presentation.GetExpeditionPage(
+            expedition,
+            operation,
+            OutcomeCursor.FirstPage(10),
+            OutcomeFilter.All);
+        Require(
+            fixture.Descriptor.LastPerspectiveKind == NarrativePerspectiveKind.Expedition,
+            "Expedition history must use the Expedition perspective, not Global.");
+    }
+
     private static GameplayOutcomeLedger NewLedger(
         IGameplayOutcomeRegistry registry,
         GameplayOutcomeBufferLimits limits,
@@ -1051,6 +1103,7 @@ public static class GameplayOutcomeLedgerDebugScenarios
         }
 
         public bool ThrowOnValidate { get; set; }
+        public NarrativePerspectiveKind LastPerspectiveKind { get; private set; }
         public GameplayOutcomeTypeId OutcomeTypeId => OutcomeType;
         public INarrativePerspectiveProjector PerspectiveProjector => this;
         public IOutcomeMemoryPolicy MemoryPolicy => this;
@@ -1092,6 +1145,7 @@ public static class GameplayOutcomeLedgerDebugScenarios
             in GameplayOutcomeReadView outcome,
             NarrativePerspectiveContext perspective)
         {
+            LastPerspectiveKind = perspective.Kind;
             GameplayOutcomeParticipant actor = outcome.GetParticipant(0);
             string text = actor.DisplayName.DisplayText + " 결과 "
                 + outcome.GetMetric(0).Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -1107,6 +1161,7 @@ public static class GameplayOutcomeLedgerDebugScenarios
             in CompactedNarrativeMemoryReadView memory,
             NarrativePerspectiveContext perspective)
         {
+            LastPerspectiveKind = perspective.Kind;
             string text = memory.GetParticipant(0).DisplayName.DisplayText
                 + " 결과 " + memory.OccurrenceCount;
             return new NarrativeMemoryView(

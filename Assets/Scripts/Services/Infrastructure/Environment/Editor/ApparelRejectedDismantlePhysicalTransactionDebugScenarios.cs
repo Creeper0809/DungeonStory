@@ -331,6 +331,12 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
                 },
                 WorldItems.MassQuery);
             MaximumMassRegistry = maximumMassRegistry;
+            ProductionFacilityOutputCapacityContributorRegistry contributors = new(
+                new IProductionFacilityOutputCapacityContributor[]
+                {
+                    new RejectedRecoveryOutputCapacityContributor()
+                },
+                maximumMassRegistry);
             ProductionOutputBufferCapacityProjector capacity = new(
                 new EmptyEconomyCatalog(),
                 new ProductionMaximumOutputFactorCatalog(Array.Empty<BuildingSO>()),
@@ -342,9 +348,14 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
                     handle.WorkstationTag,
                     StringComparison.Ordinal),
                 maximumMassRegistry.CaptureAutomatic,
-                maximumMassRegistry.CaptureDeclared);
+                maximumMassRegistry.CaptureDeclared,
+                contributors,
+                clearanceProfiles:
+                    new ProductionOutputClearanceNaturalBootstrapProfileSource());
             CapacityProjector = capacity;
             Destinations = destinations;
+            OutcomeFixture = new EvolutionGameplayOutcomeEditorFixture(
+                "run:apparel-rejected-physical-editor");
             Transaction = new ApparelPhysicalTransaction(
                 WorldItems,
                 dispositions,
@@ -361,7 +372,9 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
                     standardCapability,
                     apparelCapability
                 }),
-                maximumMassRegistry);
+                maximumMassRegistry,
+                OutcomeFixture.Bridge,
+                OutcomeFixture.Clock);
         }
 
         internal FixedCatalog Catalog { get; }
@@ -375,6 +388,7 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
         internal ProductionOutputMaximumMassRegistry MaximumMassRegistry { get; }
         internal ProductionOutputDestinationAuthorityRuntime Destinations { get; }
         internal FacilityBufferPlannedOutputPublicationService Publication { get; }
+        internal EvolutionGameplayOutcomeEditorFixture OutcomeFixture { get; }
         internal string DestinationId => ProductionBillRuntime.OutputDestinationPrefix
             + FacilityId;
         internal IReadOnlyList<WorldItemStackSnapshot> RecoveryStacks => WorldItems
@@ -460,9 +474,9 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
             ProductionOutputBufferCapacitySourceSnapshot source =
                 CapacityProjector.CaptureSource(handle, maximumMassProof);
             Require(
-                Destinations.TryEnsure(
+                Destinations.TryEnsureCapacitySource(
                     handle,
-                    source.RequiredMinimumCapacityGrams,
+                    source,
                     out FacilityBufferCapacityProfile profile,
                     out string failure),
                 "Recovery fixture could not publish capacity: " + failure);
@@ -573,6 +587,55 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
                 descriptor,
                 maximumQuantity,
                 massQuery);
+    }
+
+    private sealed class RejectedRecoveryOutputCapacityContributor :
+        IProductionFacilityOutputCapacityContributor
+    {
+        private const string ContributorIdValue =
+            "production-facility-output-capacity:qa-apparel-rejected";
+
+        public string ContributorId => ContributorIdValue;
+        public int ContractVersion => 1;
+
+        public ProductionFacilityOutputCapacityContribution Capture(
+            ProductionFacilityCapacitySubject subject)
+        {
+            bool applies = string.Equals(
+                    subject.DefinitionId,
+                    FacilityDefinitionId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    subject.WorkstationTag,
+                    WorkstationTag,
+                    StringComparison.Ordinal);
+            if (!applies)
+            {
+                return new ProductionFacilityOutputCapacityContribution(
+                    ContributorIdValue,
+                    1,
+                    false,
+                    Array.Empty<ProductionFacilityOutputCapacityBranch>());
+            }
+
+            return new ProductionFacilityOutputCapacityContribution(
+                ContributorIdValue,
+                1,
+                true,
+                new[]
+                {
+                    new ProductionFacilityOutputCapacityBranch(
+                        "qa-apparel-rejected:recovery",
+                        new[]
+                        {
+                            new ProductionFacilityOutputMaximumMassRequest(
+                                ApparelPhysicalTransaction.RejectedRecoveryOutputLineId,
+                                RecoveryItemId,
+                                ProductionOutputCapabilityIds.StandardDefinition,
+                                ExpectedRecoveryQuantity)
+                        })
+                });
+        }
     }
 
     private sealed class EmptyEconomyCatalog : IResourceEconomyContentCatalog

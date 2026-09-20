@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 
 public sealed class WarehouseCommandSessionContext
 {
@@ -10,6 +11,26 @@ public sealed class WarehouseCommandSessionContext
         IGameMoneyAccount money,
         IGameEventBus gameEventBus,
         IDungeonDebugRuleQuery debugRules)
+        : this(
+            gameDataProvider,
+            money,
+            gameEventBus,
+            debugRules,
+            outcomeTransactions: null,
+            gameSessionState: null,
+            treasuryState: null)
+    {
+    }
+
+    [Inject]
+    public WarehouseCommandSessionContext(
+        IGameSessionStateProvider gameDataProvider,
+        IGameMoneyAccount money,
+        IGameEventBus gameEventBus,
+        IDungeonDebugRuleQuery debugRules,
+        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        IGameSessionStateStore gameSessionState,
+        TreasuryEconomyAggregateStateStore treasuryState)
     {
         GameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
@@ -18,12 +39,18 @@ public sealed class WarehouseCommandSessionContext
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         DebugRules = debugRules
             ?? throw new ArgumentNullException(nameof(debugRules));
+        OutcomeTransactions = outcomeTransactions;
+        GameSessionState = gameSessionState;
+        TreasuryState = treasuryState;
     }
 
     public IGameSessionStateProvider GameDataProvider { get; }
     public IGameMoneyAccount Money { get; }
     public IGameEventBus GameEventBus { get; }
     public IDungeonDebugRuleQuery DebugRules { get; }
+    public IMigratedProducerOutcomeTransaction OutcomeTransactions { get; }
+    public IGameSessionStateStore GameSessionState { get; }
+    public TreasuryEconomyAggregateStateStore TreasuryState { get; }
 }
 
 public sealed class WarehouseCommandWorldContext
@@ -77,6 +104,9 @@ public sealed class WarehouseFeatureCommandService : IWarehouseFeatureCommandSer
     private readonly IRegionalSupplyContractRuntime contracts;
     private readonly IGrandProjectRuntime grandProjects;
     private readonly IDungeonDebugRuleQuery debugRules;
+    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private readonly IGameSessionStateStore gameSessionState;
+    private readonly TreasuryEconomyAggregateStateStore treasuryState;
 
     public WarehouseFeatureCommandService(
         WarehouseCommandSessionContext session,
@@ -90,6 +120,9 @@ public sealed class WarehouseFeatureCommandService : IWarehouseFeatureCommandSer
         money = session.Money;
         gameEventBus = session.GameEventBus;
         debugRules = session.DebugRules;
+        outcomeTransactions = session.OutcomeTransactions;
+        gameSessionState = session.GameSessionState;
+        treasuryState = session.TreasuryState;
         worldItemStackRuntime = world.WorldItemStackRuntime;
         warehouseWorld = world.WarehouseWorld;
         buildingWorld = world.BuildingWorld;
@@ -128,18 +161,89 @@ public sealed class WarehouseFeatureCommandService : IWarehouseFeatureCommandSer
         {
             return new WarehouseFeatureCommandResult(false, "게임 자금 정보를 찾지 못했습니다.");
         }
+        if (outcomeTransactions == null
+            || gameSessionState == null
+            || treasuryState == null)
+        {
+            return new WarehouseFeatureCommandResult(
+                false,
+                "재고 납품 결과 원장 트랜잭션이 준비되지 않았습니다.");
+        }
 
         IWarehouseFacility[] warehouses = FindWarehouses();
         int beforeMoney = GetHoldingMoney(gameData);
         int beforeStock = warehouses.Sum((warehouse) => warehouse.Inventory.TotalStock);
-        bool success = StockSupplyService.TryPurchaseDelivery(
-            money,
-            warehouses,
-            worldItemStackRuntime,
-            offer,
-            debugRules,
-            out StockSupplyResult result,
-            PublishSupplyResult);
+        int absoluteDay = Mathf.Max(0, gameData.day?.Value ?? 0);
+        string identity = CreateSupplyOutcomeIdentity(absoluteDay, offer);
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.StockSupplyResult,
+                identity,
+                absoluteDay,
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reserveFailure))
+        {
+            return new WarehouseFeatureCommandResult(
+                false,
+                "재고 납품 결과 예약 실패: " + reserveFailure);
+        }
+
+        GameSessionSnapshot sessionBefore;
+        TreasuryEconomyAggregateState treasuryBefore;
+        DungeonPhysicalItemSaveData physicalBefore;
+        try
+        {
+            sessionBefore = gameData.Capture();
+            treasuryBefore = treasuryState.Current.Copy();
+            physicalBefore = worldItemStackRuntime.Capture();
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            throw;
+        }
+        bool success;
+        StockSupplyResult result;
+        try
+        {
+            success = StockSupplyService.TryPurchaseDelivery(
+                money,
+                warehouses,
+                worldItemStackRuntime,
+                offer,
+                debugRules,
+                out result,
+                resultCallback: null);
+            MigratedProducerOutcomeCommitResult committed =
+                outcomeTransactions.CommitSingleSubject(
+                    prepared,
+                    new MigratedProducerOutcomeSubject(
+                        MigratedProducerOutcomeIds.OperationKind,
+                        prepared.ResultKey.OperationId.Value,
+                        string.IsNullOrWhiteSpace(result.sourceLabel)
+                            ? result.category.ToString()
+                            : result.sourceLabel,
+                        MigratedProducerOutcomeIds.OperationRole),
+                    CreateSupplyOutcomeSummary(result));
+            if (!committed.DurablyCommitted)
+            {
+                RestoreSupplyOwners(
+                    sessionBefore,
+                    treasuryBefore,
+                    physicalBefore);
+                return new WarehouseFeatureCommandResult(
+                    false,
+                    "재고 납품 결과 확정 실패: " + committed.DetailCode);
+            }
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            RestoreSupplyOwners(sessionBefore, treasuryBefore, physicalBefore);
+            throw;
+        }
+
+        PublishSupplyResultPostCommit(result);
         int afterStock = warehouses.Sum((warehouse) => warehouse.Inventory.TotalStock);
         string message =
             $"납품 {(success ? "성공" : "실패")}: {result.ToSummaryText()} / " +
@@ -280,10 +384,52 @@ public sealed class WarehouseFeatureCommandService : IWarehouseFeatureCommandSer
         };
     }
 
-    private void PublishSupplyResult(StockSupplyResult result)
+    private void PublishSupplyResultPostCommit(StockSupplyResult result)
     {
-        gameEventBus.Publish(new StockSupplyEvent(result));
+        try
+        {
+            gameEventBus.Publish(new StockSupplyEvent(result));
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "stock-supply-post-commit-event:"
+                + exception.GetType().Name);
+        }
     }
+
+    private void RestoreSupplyOwners(
+        GameSessionSnapshot sessionBefore,
+        TreasuryEconomyAggregateState treasuryBefore,
+        DungeonPhysicalItemSaveData physicalBefore)
+    {
+        gameSessionState.Restore(sessionBefore);
+        treasuryState.Replace(treasuryBefore
+            ?? throw new ArgumentNullException(nameof(treasuryBefore)));
+        worldItemStackRuntime.Restore(physicalBefore
+            ?? throw new ArgumentNullException(nameof(physicalBefore)));
+    }
+
+    private static string CreateSupplyOutcomeIdentity(
+        int absoluteDay,
+        StockDeliveryOffer offer) =>
+        "stock-supply:warehouse:day=" + absoluteDay
+        + ":category=" + offer.category
+        + ":item=" + (offer.itemId?.Trim() ?? string.Empty)
+        + ":amount=" + Mathf.Max(0, offer.amount)
+        + ":source=" + (offer.sourceLabel?.Trim() ?? string.Empty);
+
+    private static string CreateSupplyOutcomeSummary(StockSupplyResult result) =>
+        "재고 납품 결과: success=" + (result.success ? "true" : "false")
+        + "; category=" + result.category
+        + "; requested=" + result.requestedAmount
+        + "; delivered=" + result.deliveredAmount
+        + "; cost=" + result.cost
+        + "; source=" + result.sourceLabel
+        + "; reason=" + result.reason;
 
     private IWarehouseFacility[] FindWarehouses()
     {

@@ -526,7 +526,10 @@ public static class FacilityDebugScenarios
             building.ConstructBuildableObjectEventBus(
                 CharacterAiEditorTestDependencies.GameEvents,
                 new BuildingVisitEventPublisher(
-                    CharacterAiEditorTestDependencies.GameEvents),
+                    CharacterAiEditorTestDependencies.GameEvents,
+                    new FixedGameSessionStateProvider(),
+                    new MigratedProducerOutcomeEditorFixture(
+                        "run:facility-debug-visits").Transaction),
                 new BuildingInfoPresentationAdapter(
                     CharacterAiEditorTestDependencies.GameEvents));
             if (building is Facility facility)
@@ -708,7 +711,8 @@ public static class FacilityDebugScenarios
         public BlueprintResearchWorkResult ApplyApprovedResearchWork(
             CharacterActor researcher,
             BuildableObject researchFacility,
-            float approvedWorkUnits) =>
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null) =>
             ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 

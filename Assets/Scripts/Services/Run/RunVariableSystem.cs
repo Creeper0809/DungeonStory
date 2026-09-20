@@ -24,6 +24,7 @@ public class RunVariableRuntime :
     private IRunVariableDefinitionCatalog definitionCatalog;
     private IOwnerDoctrineDefinitionCatalog ownerDoctrineCatalog;
     private DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
     private IDisposable invasionCandidateSubscription;
     private IDisposable invasionResolvedSubscription;
     private IDisposable operatingDayStartedSubscription;
@@ -60,7 +61,8 @@ public class RunVariableRuntime :
         IGameEventBus gameEventBus,
         IRunVariableDefinitionCatalog definitionCatalog,
         IOwnerDoctrineDefinitionCatalog ownerDoctrineCatalog,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
     {
         this.ownerRunDataProvider = ownerRunDataProvider
             ?? throw new ArgumentNullException(nameof(ownerRunDataProvider));
@@ -81,6 +83,8 @@ public class RunVariableRuntime :
             ?? throw new ArgumentNullException(nameof(ownerDoctrineCatalog));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
         aggregateRootStore.GetOrCreate(CreateInitialAggregateState);
         SubscribeToScopedEvents();
     }
@@ -142,10 +146,111 @@ public class RunVariableRuntime :
 
     public void OnTriggerEvent(OperatingDayEndedEvent eventType)
     {
-        IReadOnlyList<ActiveRunVariable> expired = state.AdvanceOperationVariables();
+        int completedDay = Mathf.Max(1, eventType.day);
+        if (completedDay <= aggregateState.LastOperationAdvanceDay)
+            return;
+
+        RunVariableAggregateState rollback = aggregateState.DeepClone();
+        RunVariableAggregateState preview = aggregateState.DeepClone();
+        ActiveRunVariable[] expectedExpired = preview.Variables
+            .AdvanceOperationVariables()
+            .OrderBy(active => active.InstanceSequence)
+            .ToArray();
+        if (expectedExpired.Length > 16)
+        {
+            Debug.LogError(
+                "Run-variable expiration exceeded the fixed gameplay-outcome batch capacity; the day was not advanced.");
+            return;
+        }
+
+        PreparedMigratedProducerOutcome prepared = default;
+        if (expectedExpired.Length > 0
+            && !outcomeTransactions.TryReserve(
+                MigratedProducerOutcomeKind.RunVariableExpiredEvent,
+                $"run:{runSeed}:operation-expiry-day:{completedDay}",
+                completedDay,
+                GameplayOutcomeStatus.Succeeded,
+                expectedExpired.Length,
+                metricCount: 0,
+                subjectCount: expectedExpired.Length,
+                additionalFactCount: 0,
+                out prepared,
+                out string reserveFailure))
+        {
+            Debug.LogError(
+                "Run-variable expiration outcome reservation failed; the day was not advanced: "
+                + reserveFailure);
+            return;
+        }
+
+        ActiveRunVariable[] expired = state.AdvanceOperationVariables()
+            .OrderBy(active => active.InstanceSequence)
+            .ToArray();
+        aggregateState.LastOperationAdvanceDay = completedDay;
+        if (expectedExpired.Length != expired.Length
+            || expectedExpired.Where((active, index) =>
+                    active.InstanceSequence != expired[index].InstanceSequence)
+                .Any())
+        {
+            if (prepared.IsValid)
+                outcomeTransactions.Cancel(prepared);
+            PublishRestoreState(rollback);
+            Debug.LogError(
+                "Run-variable expiration preview diverged from the authoritative mutation; the day was rolled back.");
+            return;
+        }
+
+        if (expired.Length > 0)
+        {
+            MigratedProducerOutcomePayloadBuilder builder =
+                outcomeTransactions.CreatePayloadBuilder(prepared);
+            bool complete = builder.AddFact(new GameplayOutcomeFact(
+                MigratedProducerOutcomeIds.SummaryFact,
+                $"{expired.Length}개의 런 변수가 종료됐다."));
+            for (int index = 0; complete && index < expired.Length; index++)
+            {
+                ActiveRunVariable active = expired[index];
+                string identity = RunVariableOutcomeIdentity(active.InstanceSequence);
+                GameplayEntityId entity = new(
+                    MigratedProducerOutcomeIds.OperationKind,
+                    identity);
+                complete = builder.AddParticipant(new GameplayOutcomeParticipant(
+                        entity,
+                        MigratedProducerOutcomeIds.OperationRole,
+                        GameplayParticipationKind.Direct,
+                        true,
+                        MigratedProducerOutcomeSnapshots.Name(
+                            identity,
+                            active.Definition.title)))
+                    && builder.AddSubject(new GameplayOutcomeSubjectLink(
+                        entity,
+                        prepared.Salience,
+                        prepared.Tier,
+                        prepared.Tier == NarrativeMemoryTier.Core,
+                        false,
+                        0));
+            }
+            MigratedProducerOutcomeCommitResult committed = complete
+                ? outcomeTransactions.Commit(prepared, builder.Build())
+                : default;
+            if (!complete || !committed.DurablyCommitted)
+            {
+                if (!complete)
+                    outcomeTransactions.Cancel(prepared);
+                PublishRestoreState(rollback);
+                Debug.LogError(
+                    "Run-variable expiration outcome commit failed; the day was rolled back: "
+                    + (complete ? committed.DetailCode : "payload-capacity-invalid"));
+                return;
+            }
+        }
+
         foreach (ActiveRunVariable active in expired)
         {
-            gameEventBus.Publish(new RunVariableExpiredEvent(active.Definition));
+            PublishObserver(
+                () => gameEventBus.Publish(
+                    new RunVariableExpiredEvent(active.Definition)),
+                "run-variable-expired-observer");
         }
     }
 
@@ -163,20 +268,70 @@ public class RunVariableRuntime :
     public ActiveRunVariable ActivateOperationVariable(string id, int day = -1, bool alert = true)
     {
         RunVariableDefinition definition = ResolveDefinitionCatalog().Get(id);
-        ActiveRunVariable active = state.ActivateOperationVariable(definition, day > 0 ? day : currentDay);
-        if (active == null)
+        if (definition == null
+            || definition.category != RunVariableCategory.Operation)
         {
             return null;
         }
+        int activationDay = day > 0 ? day : currentDay;
+        long instanceSequence = aggregateState.NextOperationSequence;
+        string identity = RunVariableOutcomeIdentity(instanceSequence);
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.RunVariableActivatedEvent,
+                identity,
+                Mathf.Max(0, activationDay),
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reserveFailure))
+        {
+            Debug.LogError(
+                "Run-variable activation outcome reservation failed: "
+                + reserveFailure);
+            return null;
+        }
 
-        gameEventBus.Publish(new RunVariableActivatedEvent(active));
+        RunVariableAggregateState rollback = aggregateState.DeepClone();
+        ActiveRunVariable active = state.ActivateOperationVariable(
+            definition,
+            activationDay,
+            instanceSequence);
+        if (active == null)
+        {
+            outcomeTransactions.Cancel(prepared);
+            return null;
+        }
+        aggregateState.NextOperationSequence = checked(instanceSequence + 1L);
+
+        MigratedProducerOutcomeCommitResult committed =
+            outcomeTransactions.CommitSingleSubject(
+                prepared,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.OperationKind,
+                    identity,
+                    definition.title,
+                    MigratedProducerOutcomeIds.OperationRole),
+                $"{definition.title} 변수가 발현됐다.");
+        if (!committed.DurablyCommitted)
+        {
+            PublishRestoreState(rollback);
+            Debug.LogError(
+                "Run-variable activation outcome commit failed; activation was rolled back: "
+                + committed.DetailCode);
+            return null;
+        }
+
+        PublishObserver(
+            () => gameEventBus.Publish(new RunVariableActivatedEvent(active)),
+            "run-variable-activated-observer");
         if (alert && raiseAlerts)
         {
-            gameEventBus.RaiseAlert(
-                active.Definition.title,
-                active.Definition.ToDetailText(),
-                active.Definition.importance,
-                "운영 변수");
+            PublishObserver(
+                () => gameEventBus.RaiseAlert(
+                    active.Definition.title,
+                    active.Definition.ToDetailText(),
+                    active.Definition.importance,
+                    "운영 변수"),
+                "run-variable-activation-alert");
         }
 
         return active;
@@ -310,7 +465,9 @@ public class RunVariableRuntime :
         DungeonRunVariableSaveData destination = new()
         {
             runSeed = RunSeed,
-            currentDay = CurrentDay
+            currentDay = CurrentDay,
+            nextOperationSequence = aggregateState.NextOperationSequence,
+            lastOperationAdvanceDay = aggregateState.LastOperationAdvanceDay
         };
         RunStartVariableSnapshot start = State.StartVariables;
         destination.hasStartVariables = start != null;
@@ -340,7 +497,8 @@ public class RunVariableRuntime :
             {
                 definitionId = active.Definition.id,
                 startDay = active.StartDay,
-                remainingDays = active.RemainingDays
+                remainingDays = active.RemainingDays,
+                instanceSequence = active.InstanceSequence
             })
             .ToList();
         destination.invasionVariableId =
@@ -382,7 +540,8 @@ public class RunVariableRuntime :
             activeVariables.Add(new ActiveRunVariable(
                 definition,
                 saved.startDay,
-                saved.remainingDays));
+                saved.remainingDays,
+                saved.instanceSequence));
         }
 
         RestoreRun(
@@ -394,6 +553,8 @@ public class RunVariableRuntime :
                 ? null
                 : ResolveDefinitionCatalog().Require(
                     source.invasionVariableId));
+        aggregateState.NextOperationSequence = source.nextOperationSequence;
+        aggregateState.LastOperationAdvanceDay = source.lastOperationAdvanceDay;
     }
 
     private int NextRandomIndex(int maximum)
@@ -401,6 +562,24 @@ public class RunVariableRuntime :
         EnsureRandom();
         int safeMaximum = Mathf.Max(1, maximum);
         return random.NextInt(0, safeMaximum);
+    }
+
+    private string RunVariableOutcomeIdentity(long instanceSequence) =>
+        $"run-variable:{runSeed}:{instanceSequence}";
+
+    private static void PublishObserver(Action observer, string label)
+    {
+        try
+        {
+            observer?.Invoke();
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(label + ":" + exception.GetType().Name);
+        }
     }
 
     private void EnsureRunStarted()

@@ -12,6 +12,7 @@
 
 ## 현재 작업에서 자주 보는 문서
 
+- 에이전트 공통 원칙: [`AGENTS.md`](AGENTS.md); 작업별 상세는 [검증 도구](docs/dev/verification.md), [Unity 실행](docs/dev/unity-workflow.md), [아키텍처 변경](docs/dev/architecture-review.md)
 - 게임 결과 서사 원장: [`tools/Documentation/gameplay-outcome-narrative-ledger-plan.md`](tools/Documentation/gameplay-outcome-narrative-ledger-plan.md)
 - 서사 공식 기계 계약: [`tools/Documentation/narrative-formula-mechanics-contract.md`](tools/Documentation/narrative-formula-mechanics-contract.md)
 - LLM 모듈 선택 계약: [`tools/Documentation/narrative-formula-llm-module-selection-contract.md`](tools/Documentation/narrative-formula-llm-module-selection-contract.md)
@@ -29,6 +30,7 @@
 ## 새 문서를 둘 위치
 
 - 현행 설계 설명: `docs/`의 기존 분류 아래
+- 개발 워크플로·도구 사용법: `docs/dev/` (해당 작업에 필요한 문서만 열람)
 - 구현 계약과 검증 절차: `tools/Documentation/`
 - 자동 생성 문서: 생성기가 관리하는 `docs_final/` 또는 `docs/generated/`
 - 버전별 실행·검수 증거: 새 이름의 `Artifacts/.../` 디렉터리

@@ -149,6 +149,9 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
         WorldItemStackSnapshot source = FindOnly(
             runtime,
             Wim030CrystalBeetleCarapaceAssetBuilder.CrystalBeetleCarcassItemId);
+        var outcomeFixture = new MigratedProducerOutcomeEditorFixture(
+            "run:wim030-crystal-beetle-transform");
+        var session = new FixedGameSessionStateProvider();
 
         IPhysicalItemTransformService rejectingTransform =
             new PhysicalItemTransformService(
@@ -156,7 +159,9 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
                 spawner,
                 runtime.MassQuery,
                 new CarapaceExcludedCatalog(itemCatalog),
-                EditorNullItemMarkerPresenter.Instance);
+                EditorNullItemMarkerPresenter.Instance,
+                session,
+                outcomeFixture.Transaction);
         WildlifeCarcassService rejectingService = new(
             runtime,
             rejectingTransform,
@@ -188,7 +193,9 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
                     spawner,
                     runtime.MassQuery,
                     itemCatalog,
-                    EditorNullItemMarkerPresenter.Instance));
+                    EditorNullItemMarkerPresenter.Instance,
+                    session,
+                    outcomeFixture.Transaction));
         WildlifeCarcassService committedService = new(
             runtime,
             committedTransform,

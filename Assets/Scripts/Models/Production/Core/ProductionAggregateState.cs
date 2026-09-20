@@ -3,11 +3,88 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.Scripting.APIUpdating;
 
+public interface IProductionBillConfigurationState
+{
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class ProductionBillRecord
 {
     internal ProductionBillRecord()
     {
+    }
+
+    public IProductionBillConfigurationState CaptureConfigurationState() =>
+        new ConfigurationState(this);
+
+    public void RestoreConfigurationState(
+        IProductionBillConfigurationState state)
+    {
+        if (state is not ConfigurationState exact
+            || !billId.Equals(exact.BillId))
+        {
+            throw new InvalidOperationException(
+                "Production bill configuration snapshot is stale or foreign.");
+        }
+
+        minimumCraftQuality = exact.MinimumCraftQuality;
+        blockedFailure = exact.BlockedFailure;
+        suspended = exact.Suspended;
+        reservedWorkerId = exact.ReservedWorkerId;
+        minimumReserve = exact.MinimumReserve;
+        targetStock = exact.TargetStock;
+        mode = exact.Mode;
+        remainingCycles = exact.RemainingCycles;
+        hasPendingModeTransition = exact.HasPendingModeTransition;
+        pendingMode = exact.PendingMode;
+        distributionMode = exact.DistributionMode;
+        mutableRoutePolicies.Clear();
+        mutableRoutePolicies.AddRange(
+            exact.RoutePolicies.Select(value => value.Clone()));
+        workerPolicy = exact.WorkerPolicy.CloneNormalized();
+        emergencyWorkerId = exact.EmergencyWorkerId;
+    }
+
+    private sealed class ConfigurationState : IProductionBillConfigurationState
+    {
+        internal ConfigurationState(ProductionBillRecord record)
+        {
+            BillId = record.billId;
+            MinimumCraftQuality = record.minimumCraftQuality;
+            BlockedFailure = record.blockedFailure;
+            Suspended = record.suspended;
+            ReservedWorkerId = record.reservedWorkerId;
+            MinimumReserve = record.minimumReserve;
+            TargetStock = record.targetStock;
+            Mode = record.mode;
+            RemainingCycles = record.remainingCycles;
+            HasPendingModeTransition = record.hasPendingModeTransition;
+            PendingMode = record.pendingMode;
+            DistributionMode = record.distributionMode;
+            RoutePolicies = record.routePolicies
+                .Where(value => value != null)
+                .Select(value => value.Clone())
+                .ToArray();
+            WorkerPolicy = record.workerPolicy?.CloneNormalized()
+                ?? WorkerSelectionPolicySaveData.Anyone();
+            EmergencyWorkerId = record.emergencyWorkerId;
+        }
+
+        internal ProductionBillId BillId { get; }
+        internal int MinimumCraftQuality { get; }
+        internal DomainFailure BlockedFailure { get; }
+        internal bool Suspended { get; }
+        internal string ReservedWorkerId { get; }
+        internal int MinimumReserve { get; }
+        internal int TargetStock { get; }
+        internal ProductionOrderMode Mode { get; }
+        internal int RemainingCycles { get; }
+        internal bool HasPendingModeTransition { get; }
+        internal ProductionOrderMode PendingMode { get; }
+        internal ProductionDistributionMode DistributionMode { get; }
+        internal ProductionConsumerRoutePolicy[] RoutePolicies { get; }
+        internal WorkerSelectionPolicySaveData WorkerPolicy { get; }
+        internal string EmergencyWorkerId { get; }
     }
 
     public ProductionBillId billId { get; internal set; }
@@ -541,6 +618,8 @@ public sealed class ProductionBillRecord
 internal sealed class ProductionAggregateState
 {
     internal List<ProductionBillRecord> Bills { get; } = new();
+    internal SortedDictionary<long, ProductionCommandOutcomeOutboxSaveData>
+        PendingCommandOutcomesByOwnerRevision { get; } = new();
     internal List<ProductionWipTerminalReceiptSaveData> WipTerminalReceipts { get; } =
         new();
     internal HashSet<string> InstalledStockSensorFacilityIds { get; } =
@@ -557,6 +636,7 @@ internal sealed class ProductionAggregateState
         PendingStockSensorRemovalsByFacilityId { get; } =
             new(StringComparer.Ordinal);
     internal int NextBillSequence { get; set; } = 1;
+    internal long NextCommandOutcomeSequence { get; set; } = 1L;
     internal int BillVersion { get; set; }
     internal int StockSensorVersion { get; set; }
 }
@@ -575,12 +655,20 @@ public sealed class ProductionAggregateStateSession
         rootStore.GetOrCreate(() => new ProductionAggregateState());
 
     public IReadOnlyList<ProductionBillRecord> Bills => Current.Bills;
+    public IReadOnlyCollection<ProductionCommandOutcomeOutboxSaveData>
+        PendingCommandOutcomes =>
+            Current.PendingCommandOutcomesByOwnerRevision.Values;
     public IReadOnlyList<ProductionWipTerminalReceiptSaveData> WipTerminalReceipts =>
         Current.WipTerminalReceipts;
     public int NextBillSequence
     {
         get => Current.NextBillSequence;
         set => Current.NextBillSequence = Math.Max(1, value);
+    }
+    public long NextCommandOutcomeSequence
+    {
+        get => Current.NextCommandOutcomeSequence;
+        set => Current.NextCommandOutcomeSequence = Math.Max(1L, value);
     }
     public int BillVersion => Current.BillVersion;
     public int StockSensorVersion => Current.StockSensorVersion;
@@ -601,6 +689,24 @@ public sealed class ProductionAggregateStateSession
     public void AddBill(ProductionBillRecord bill) =>
         Current.Bills.Add(bill ?? throw new ArgumentNullException(nameof(bill)));
     public bool RemoveBill(ProductionBillRecord bill) => Current.Bills.Remove(bill);
+    public void SetPendingCommandOutcome(
+        ProductionCommandOutcomeOutboxSaveData pending)
+    {
+        if (pending == null || pending.ownerRevision <= 0L)
+            throw new ArgumentException(
+                "Pending production command outcome must have an owner revision.",
+                nameof(pending));
+        Current.PendingCommandOutcomesByOwnerRevision[pending.ownerRevision] =
+            pending.Clone();
+    }
+    public bool TryGetPendingCommandOutcome(
+        long ownerRevision,
+        out ProductionCommandOutcomeOutboxSaveData pending) =>
+        Current.PendingCommandOutcomesByOwnerRevision.TryGetValue(
+            ownerRevision,
+            out pending);
+    public bool RemovePendingCommandOutcome(long ownerRevision) =>
+        Current.PendingCommandOutcomesByOwnerRevision.Remove(ownerRevision);
     public bool AddWipTerminalReceipt(ProductionWipTerminalReceiptSaveData receipt)
     {
         if (receipt == null || string.IsNullOrEmpty(receipt.commitId))
@@ -760,11 +866,21 @@ public sealed class ProductionAggregateStateSession
         ProductionAggregateState restored = new()
         {
             NextBillSequence = snapshot.nextBillSequence,
+            NextCommandOutcomeSequence = Math.Max(
+                1L,
+                snapshot.nextCommandOutcomeSequence),
             BillVersion = billVersion,
             StockSensorVersion = stockSensorVersion
         };
         restored.InstalledStockSensorFacilityIds.UnionWith(
             snapshot.installedStockSensorFacilityIds);
+        foreach (ProductionCommandOutcomeOutboxSaveData pending in
+                 snapshot.pendingCommandOutcomes)
+        {
+            restored.PendingCommandOutcomesByOwnerRevision.Add(
+                pending.ownerRevision,
+                pending.Clone());
+        }
         restored.AcknowledgedStockSensorFacilityIds.UnionWith(
             snapshot.acknowledgedStockSensorFacilityIds);
         foreach (ProductionStockSensorPhysicalCommitSaveData owner in

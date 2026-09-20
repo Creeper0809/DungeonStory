@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 
 public interface IWildlifeCarcassService
 {
@@ -83,6 +84,8 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
     private readonly IPhysicalItemTransformService physicalTransforms;
     private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
     private readonly IGameEventBus gameEventBus;
+    private IGameCalendar calendar;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
     private Dictionary<string, WildlifeCarcassFreshnessSaveData> freshnessByStackId =
         new Dictionary<string, WildlifeCarcassFreshnessSaveData>(StringComparer.Ordinal);
 
@@ -103,6 +106,16 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
             ?? throw new ArgumentNullException(nameof(speciesCatalog));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+    }
+
+    [Inject]
+    public void ConstructOutcomeTransaction(
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
+    {
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
     }
 
     public IReadOnlyList<WildlifeCarcassFreshnessSaveData> CaptureFreshness()
@@ -464,6 +477,42 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
             return false;
         }
 
+        CharacterActor butcherActor = null;
+        bool hasButcherActor = CharacterBuildingVisitorAdapter.TryGetActor(
+            butcher,
+            out butcherActor);
+        PreparedMigratedProducerOutcome preparedTaboo = default;
+        DungeonPhysicalItemSaveData physicalBefore = null;
+        Dictionary<string, WildlifeCarcassFreshnessSaveData> freshnessBefore = null;
+        CharacterMoodDeliveryTransactionSnapshot statsBefore = null;
+        CharacterProgressionSnapshot progressionBefore = null;
+        if (hasButcherActor)
+        {
+            RequireOutcomeDependencies();
+            CharacterId butcherId = CharacterPersistentIdentity.Require(butcherActor);
+            if (!outcomeTransactions.TryReserveSingleSubject(
+                    MigratedProducerOutcomeKind.CharacterTabooIncidentEvent,
+                    "taboo-butchery:" + carcass.StackId,
+                    Math.Max(1, calendar.Day),
+                    GameplayOutcomeStatus.Succeeded,
+                    out preparedTaboo,
+                    out string reservationFailure))
+            {
+                throw new InvalidOperationException(
+                    "Required taboo-butchery outcome reservation failed: "
+                    + reservationFailure);
+            }
+            physicalBefore = itemStackRuntime.Capture();
+            freshnessBefore = freshnessByStackId.ToDictionary(
+                pair => pair.Key,
+                pair => Clone(pair.Value),
+                StringComparer.Ordinal);
+            statsBefore = butcherActor.Stats?
+                .CaptureMoodDeliveryTransactionState();
+            progressionBefore = butcherActor.Progression?
+                .CapturePersistentState();
+        }
+
         Vector2Int outputPosition = building != null ? building.centerPos : carcass.Position;
         if (!physicalTransforms.TryTransformWholeStack(
                 carcass.StackId,
@@ -484,6 +533,8 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
                 out _,
                 out string transformFailure))
         {
+            if (hasButcherActor)
+                outcomeTransactions.Cancel(preparedTaboo);
             message = transformFailure;
             return false;
         }
@@ -492,23 +543,43 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
         freshnessByStackId.Remove(carcass.StackId);
         InvalidateButcherCache();
 
-        ApplyHumanoidButcheryConsequences(butcher, carcass, outputPosition, produced);
+        ApplyHumanoidButcheryConsequences(
+            butcherActor,
+            carcass,
+            produced);
+        if (hasButcherActor
+            && !CommitHumanoidButcheryOutcome(
+                preparedTaboo,
+                butcherActor,
+                carcass,
+                produced))
+        {
+            itemStackRuntime.Restore(physicalBefore);
+            freshnessByStackId = freshnessBefore;
+            InvalidateButcherCache();
+            if (statsBefore != null)
+                butcherActor.Stats?.RestoreMoodDeliveryTransactionState(statsBefore);
+            if (progressionBefore != null)
+                butcherActor.Progression?.RestorePersistentState(progressionBefore);
+            throw new InvalidOperationException(
+                "Required taboo-butchery outcome commit was definitely rejected.");
+        }
+        if (hasButcherActor)
+            PublishHumanoidButcheryObserver(
+                butcherActor,
+                carcass,
+                outputPosition);
         message = produced > 0 ? "비상 도축 완료" : "도축 산출물 없음";
         return produced > 0;
     }
 
     private void ApplyHumanoidButcheryConsequences(
-        IBuildingVisitorPort butcherPort,
+        CharacterActor butcher,
         WorldItemStackSnapshot carcass,
-        Vector2Int outputPosition,
         int produced)
     {
-        if (!CharacterBuildingVisitorAdapter.TryGetActor(
-                butcherPort,
-                out CharacterActor butcher))
-        {
+        if (butcher == null)
             return;
-        }
 
         bool sameSpecies = string.Equals(
             butcher.SpeciesTag,
@@ -521,6 +592,50 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
             900f,
             1);
         butcher.ChangesStat(CharacterCondition.HYGIENE, -18f);
+        butcher.Progression?.RecordNarrative(
+            CharacterNarrativeDomain.Survival,
+            "survival/taboo-butchery",
+            carcass.SourceCharacterId,
+            sameSpecies ? "same-species" : "humanoid",
+            produced,
+            0);
+    }
+
+    private bool CommitHumanoidButcheryOutcome(
+        in PreparedMigratedProducerOutcome prepared,
+        CharacterActor butcher,
+        WorldItemStackSnapshot carcass,
+        int produced)
+    {
+        bool sameSpecies = string.Equals(
+            butcher.SpeciesTag,
+            carcass.SourceSpeciesTag,
+            StringComparison.OrdinalIgnoreCase);
+        string sourceName = string.IsNullOrWhiteSpace(carcass.SourceDisplayName)
+            ? "이름 모를 자"
+            : carcass.SourceDisplayName;
+        CharacterId butcherId = CharacterPersistentIdentity.Require(butcher);
+        MigratedProducerOutcomeCommitResult committed =
+            outcomeTransactions.CommitSingleSubject(
+                prepared,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    butcherId.Value,
+                    butcher.BuildingDisplayName,
+                    MigratedProducerOutcomeIds.ActorRole),
+                $"sourceCharacter={carcass.SourceCharacterId}; sourceName={sourceName}; sameSpecies={sameSpecies}; produced={produced}");
+        return committed.DurablyCommitted;
+    }
+
+    private void PublishHumanoidButcheryObserver(
+        CharacterActor butcher,
+        WorldItemStackSnapshot carcass,
+        Vector2Int outputPosition)
+    {
+        bool sameSpecies = string.Equals(
+            butcher.SpeciesTag,
+            carcass.SourceSpeciesTag,
+            StringComparison.OrdinalIgnoreCase);
         string sourceName = string.IsNullOrWhiteSpace(carcass.SourceDisplayName)
             ? "이름 모를 자"
             : carcass.SourceDisplayName;
@@ -530,13 +645,15 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
             $"{sourceName}의 사체를 비상 도축했다",
             "인간형 사체의 비상 도축을 목격함",
             sameSpecies ? -10f : -7f));
-        butcher.Progression?.RecordNarrative(
-            CharacterNarrativeDomain.Survival,
-            "survival/taboo-butchery",
-            carcass.SourceCharacterId,
-            sameSpecies ? "same-species" : "humanoid",
-            produced,
-            0);
+    }
+
+    private void RequireOutcomeDependencies()
+    {
+        if (calendar == null || outcomeTransactions == null)
+        {
+            throw new InvalidOperationException(
+                "Wildlife carcass taboo outcomes require calendar and outcome transaction injection.");
+        }
     }
 
     private WorldItemStackSnapshot FindBestButcherCarcass()

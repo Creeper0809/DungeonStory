@@ -86,6 +86,10 @@ public sealed class BlueprintResearchSaveSection :
         bool usesProjectAuthority = projectCatalog.Projects.Count > 0;
         return new DungeonResearchSaveData
         {
+            outcomeSequence = runtime.State.OutcomeSequence,
+            nextKnowledgeTaskSequence = knowledgeProcessing.NextTaskSequence,
+            knowledgeTaskIdentityGeneration =
+                knowledgeProcessing.TaskIdentityGeneration,
             tasks = usesProjectAuthority
                 ? new List<DungeonResearchTaskSaveData>()
                 : runtime.State.Tasks
@@ -148,7 +152,10 @@ public sealed class BlueprintResearchSaveSection :
             source.knowledgeTasks,
             physicalCandidates);
         KnowledgeResidueRestoreCandidate knowledge =
-            knowledgeProcessing.PrepareRestore(source.knowledgeTasks);
+            knowledgeProcessing.PrepareRestore(
+                source.knowledgeTasks,
+                source.nextKnowledgeTaskSequence,
+                source.knowledgeTaskIdentityGeneration);
         return new BlueprintResearchRestoreCandidate(restored, knowledge);
     }
 
@@ -156,7 +163,33 @@ public sealed class BlueprintResearchSaveSection :
         DungeonResearchSaveData source)
     {
         _ = ValidateAndBuildResearchState(source);
-        _ = knowledgeProcessing.PrepareRestore(source.knowledgeTasks);
+        _ = knowledgeProcessing.PrepareRestore(
+            source.knowledgeTasks,
+            source.nextKnowledgeTaskSequence,
+            source.knowledgeTaskIdentityGeneration);
+    }
+
+    protected override void NormalizeRestorePayload(DungeonResearchSaveData payload, DungeonGameRestoreReport report)
+    {
+        if (payload.nextKnowledgeTaskSequence == 0)
+        {
+            payload.knowledgeTaskIdentityGeneration =
+                KnowledgeResidueTaskIdentity.MigratedGeneration;
+            payload.nextKnowledgeTaskSequence = 1;
+            report?.AddWarning(
+                "KnowledgeTaskIdentityHistoryMissing: legacy allocation history is unavailable; "
+                + "future tasks were moved to the disjoint generation-2 namespace without guessing old IDs.");
+        }
+        else if (payload.knowledgeTaskIdentityGeneration == 0)
+        {
+            payload.knowledgeTaskIdentityGeneration =
+                KnowledgeResidueTaskIdentity.OriginalGeneration;
+        }
+        if (payload.knowledgeTasks?.Any(task => task != null
+                && task.dispositionPhase != KnowledgeResidueDispositionPhase.AwaitingInput
+                && task.completionOwnerRevision == 0) == true)
+            report?.AddWarning("KnowledgeLegacyCompletionPending: split-commit reward/input state requires reconciliation; "
+                + "the runtime will not guess success or reapply a reward.");
     }
 
     private BlueprintResearchState ValidateAndBuildResearchState(
@@ -178,6 +211,7 @@ public sealed class BlueprintResearchSaveSection :
         HashSet<string> recipes = CollectResearchRecipeIds(blueprints, projects);
 
         BlueprintResearchState restored = new BlueprintResearchState();
+        restored.RestoreOutcomeSequence(source.outcomeSequence);
         RestoreBlueprintState(source, restored, blueprints, buildings, recipes);
         RestoreProjectState(source, restored, projects);
         return restored;
@@ -270,11 +304,24 @@ public sealed class BlueprintResearchSaveSection :
             bool hasReceipt = query.TryGetPendingBatchDisposition(
                 task.sinkOperationId,
                 out PhysicalItemRestoreCandidateDispositionSnapshot receipt);
+            if (hasReceipt
+                && task.completionOwnerRevision == 0
+                && IsCommittedKnowledgeCompletionReceipt(task, receipt))
+            {
+                RequireKnowledgeResidueReceipt(
+                    task,
+                    receipt,
+                    task.dispositionPhase !=
+                        KnowledgeResidueDispositionPhase.AwaitingInput);
+                HydrateCommittedKnowledgeCompletion(task, receipt);
+            }
             if (task.dispositionPhase ==
                 KnowledgeResidueDispositionPhase.AwaitingInput)
             {
                 if (hasReceipt)
                 {
+                    if (receipt.OutcomeProducerId == KnowledgeCompletionOutcomeIds.ProducerId)
+                        throw new InvalidOperationException("Joint knowledge completion has an uncommitted research owner: " + task.taskId);
                     RequireKnowledgeResidueReceipt(task, receipt, false);
                     task.sinkRequestFingerprint = receipt.RequestFingerprint;
                     task.sinkSourceStackIds = receipt.SourceStackIds
@@ -295,6 +342,20 @@ public sealed class BlueprintResearchSaveSection :
                     + task.sinkOperationId);
             }
             RequireKnowledgeResidueReceipt(task, receipt, true);
+            if (task.completionOwnerRevision > 0
+                || receipt.OutcomeProducerId == KnowledgeCompletionOutcomeIds.ProducerId)
+            {
+                if (task.dispositionPhase != KnowledgeResidueDispositionPhase.OutcomePublished
+                    || !receipt.OutcomeExpected
+                    || !receipt.HasMatchingOutcomeAttachment
+                    || receipt.OutcomeProducerId != KnowledgeCompletionOutcomeIds.ProducerId
+                    || receipt.OutcomeOperationId != task.sinkOperationId
+                    || receipt.OutcomeLocalResultIndex != 0
+                    || task.completionOwnerRevision <= 0
+                    || receipt.OutcomeCommitRevision != task.completionOwnerRevision
+                    || receipt.OwnerRevision != task.completionOwnerRevision)
+                    throw new InvalidOperationException("Joint knowledge completion identity mismatch: " + task.taskId);
+            }
         }
 
         foreach (PhysicalItemRestoreCandidateDispositionSnapshot receipt in
@@ -324,6 +385,40 @@ public sealed class BlueprintResearchSaveSection :
                 owner.dispositionPhase !=
                     KnowledgeResidueDispositionPhase.AwaitingInput);
         }
+    }
+
+    private static bool IsCommittedKnowledgeCompletionReceipt(
+        KnowledgeResidueTaskSaveData task,
+        PhysicalItemRestoreCandidateDispositionSnapshot receipt) =>
+        task != null
+        && receipt != null
+        && receipt.OutcomeExpected
+        && receipt.HasMatchingOutcomeAttachment
+        && string.Equals(
+            receipt.OutcomeProducerId,
+            KnowledgeCompletionOutcomeIds.ProducerId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            receipt.OutcomeOperationId,
+            task.sinkOperationId,
+            StringComparison.Ordinal)
+        && receipt.OutcomeCommitRevision > 0
+        && receipt.OutcomeCommitRevision == receipt.OwnerRevision
+        && receipt.OutcomeLocalResultIndex == 0;
+
+    private static void HydrateCommittedKnowledgeCompletion(
+        KnowledgeResidueTaskSaveData task,
+        PhysicalItemRestoreCandidateDispositionSnapshot receipt)
+    {
+        task.sinkRequestFingerprint = receipt.RequestFingerprint;
+        task.sinkSourceStackIds = receipt.SourceStackIds
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToList();
+        task.sinkInputMassGrams = receipt.InputMassGrams;
+        task.sinkCommitId = receipt.CommitId;
+        task.dispositionPhase =
+            KnowledgeResidueDispositionPhase.OutcomePublished;
+        task.completionOwnerRevision = receipt.OwnerRevision;
     }
 
     private static void RequireKnowledgeResidueReceipt(

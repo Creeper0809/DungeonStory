@@ -72,7 +72,11 @@ public sealed class RegularCustomerRecord
         bool isRecruitCandidate,
         bool isRecruited,
         int recruitedAbsoluteDay,
-        RecruitCapability recruitCapabilities)
+        RecruitCapability recruitCapabilities,
+        bool recruitDeliveryPending = false,
+        RegularCustomerRecruitDeliveryKind recruitDeliveryKind =
+            RegularCustomerRecruitDeliveryKind.None,
+        int pendingMercenaryRolePremium = 0)
     {
         SourceData = sourceData;
         progress = new RegularCustomerProgressState(
@@ -85,7 +89,10 @@ public sealed class RegularCustomerRecord
             isRecruitCandidate,
             isRecruited,
             recruitedAbsoluteDay,
-            recruitCapabilities);
+            recruitCapabilities,
+            recruitDeliveryPending,
+            recruitDeliveryKind,
+            pendingMercenaryRolePremium);
     }
 
     public string CustomerId => progress.CustomerId;
@@ -100,6 +107,11 @@ public sealed class RegularCustomerRecord
     public bool IsRecruited => progress.IsRecruited;
     public int RecruitedAbsoluteDay => progress.RecruitedAbsoluteDay;
     public RecruitCapability RecruitCapabilities => progress.RecruitCapabilities;
+    public bool RecruitDeliveryPending => progress.RecruitDeliveryPending;
+    public RegularCustomerRecruitDeliveryKind RecruitDeliveryKind =>
+        progress.RecruitDeliveryKind;
+    public int PendingMercenaryRolePremium =>
+        progress.PendingMercenaryRolePremium;
     public RegularCustomerStatus Status => progress.Status;
 
     public void RecordVisit(CharacterActor customer, float satisfaction, RegularCustomerRules rules)
@@ -125,10 +137,20 @@ public sealed class RegularCustomerRecord
         progress.RecordVisit(satisfaction, rules, allowRecruitCandidate);
     }
 
-    public bool MarkRecruited(int absoluteDay)
+    public bool MarkRecruited(
+        int absoluteDay,
+        RegularCustomerRecruitDeliveryKind deliveryKind =
+            RegularCustomerRecruitDeliveryKind.Staff,
+        int mercenaryRolePremium = 0)
     {
-        return progress.MarkRecruited(absoluteDay);
+        return progress.MarkRecruited(
+            absoluteDay,
+            deliveryKind,
+            mercenaryRolePremium);
     }
+
+    public void CompleteRecruitDelivery() =>
+        progress.CompleteRecruitDelivery();
 
     public bool MarkRecruitCandidate()
     {
@@ -160,7 +182,10 @@ public sealed class RegularCustomerRecord
             IsRecruitCandidate,
             IsRecruited,
             RecruitedAbsoluteDay,
-            RecruitCapabilities)
+            RecruitCapabilities,
+            RecruitDeliveryPending,
+            RecruitDeliveryKind,
+            PendingMercenaryRolePremium)
         {
             ActiveActor = ActiveActor
         };
@@ -356,11 +381,30 @@ public sealed class RegularCustomerState
             && record.IsRecruited;
     }
 
+    public bool TryCompleteRecruitDelivery(string customerId)
+    {
+        if (!Writable.Records.TryGetValue(
+                customerId ?? string.Empty,
+                out RegularCustomerRecord record)
+            || record == null
+            || !record.IsRecruited
+            || !record.RecruitDeliveryPending)
+        {
+            return false;
+        }
+
+        record.CompleteRecruitDelivery();
+        return true;
+    }
+
     public bool TryRecruit(
         string customerId,
         int absoluteDay,
         RegularCustomerRules rules,
-        out RegularCustomerRecruitResult result)
+        out RegularCustomerRecruitResult result,
+        RegularCustomerRecruitDeliveryKind deliveryKind =
+            RegularCustomerRecruitDeliveryKind.Staff,
+        int mercenaryRolePremium = 0)
     {
         Dictionary<string, RegularCustomerRecord> records = Writable.Records;
         rules ??= RegularCustomerRules.CreateDefault();
@@ -394,7 +438,10 @@ public sealed class RegularCustomerState
             return false;
         }
 
-        if (!record.MarkRecruited(absoluteDay))
+        if (!record.MarkRecruited(
+                absoluteDay,
+                deliveryKind,
+                mercenaryRolePremium))
         {
             result = new RegularCustomerRecruitResult(false, record, "영입할 수 없습니다");
             return false;

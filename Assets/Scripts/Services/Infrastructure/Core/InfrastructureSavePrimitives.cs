@@ -48,6 +48,9 @@ public sealed class DungeonGameSaveData
 public sealed class DungeonSaveManifestData
 {
     public int compatibilityGeneration;
+    // Zero is an explicitly unsealed legacy V24 snapshot, not a verified digest.
+    public int payloadHashVersion;
+    public string snapshotSha256 = string.Empty;
     public List<DungeonSaveManifestSectionData> sections =
         new List<DungeonSaveManifestSectionData>();
 }
@@ -58,6 +61,7 @@ public sealed class DungeonSaveManifestSectionData
     public string sectionId = string.Empty;
     public int sectionVersion;
     public bool optional;
+    public string payloadSha256 = string.Empty;
 }
 
 public static class DungeonSaveManifest
@@ -65,7 +69,7 @@ public static class DungeonSaveManifest
     public static DungeonSaveManifestData Capture(
         IReadOnlyList<DungeonSaveSectionEnvelope> envelopes)
     {
-        return new DungeonSaveManifestData
+        DungeonSaveManifestData manifest = new DungeonSaveManifestData
         {
             compatibilityGeneration = DungeonGameSaveData.CurrentVersion,
             sections = (envelopes ?? Array.Empty<DungeonSaveSectionEnvelope>())
@@ -75,10 +79,14 @@ public static class DungeonSaveManifest
                 {
                     sectionId = envelope.sectionId?.Trim() ?? string.Empty,
                     sectionVersion = envelope.sectionVersion,
-                    optional = envelope.optional
+                    optional = envelope.optional,
+                    payloadSha256 = DungeonSavePayloadIntegrity.HashSection(envelope)
                 })
                 .ToList()
         };
+        manifest.payloadHashVersion = DungeonSavePayloadIntegrity.CurrentVersion;
+        manifest.snapshotSha256 = DungeonSavePayloadIntegrity.HashManifest(manifest);
+        return manifest;
     }
 
     public static bool TryValidate(
@@ -147,8 +155,7 @@ public static class DungeonSaveManifest
             return false;
         }
 
-        reason = string.Empty;
-        return true;
+        return DungeonSavePayloadIntegrity.TryValidate(manifest, envelopes, out reason);
     }
 }
 

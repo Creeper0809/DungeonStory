@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 
 public interface IOffenseExpeditionResultFinalizer
 {
     OffenseExpeditionResult Finalize(
         OffenseExpeditionRun expedition,
         OffenseExpeditionResult result,
-        List<OffenseExpeditionResult> resultHistory);
+        List<OffenseExpeditionResult> resultHistory,
+        Action finalizeReturn = null);
 }
 
 /// <summary>
@@ -31,6 +33,8 @@ public sealed class OffenseExpeditionResultFinalizer :
     private readonly IOffenseReturnArrivalRuntime arrivals;
     private readonly IV27EmbeddedWorkValueProjectionQuery workValues;
     private readonly IOffenseWorldSimulation world;
+    private IGameCalendar calendar;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
 
     public OffenseExpeditionResultFinalizer(
         OffenseSceneRuntimeReferences offenseRuntimes,
@@ -64,10 +68,21 @@ public sealed class OffenseExpeditionResultFinalizer :
         this.world = world;
     }
 
+    [Inject]
+    public void ConstructOutcomeTransaction(
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
+    {
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+    }
+
     public OffenseExpeditionResult Finalize(
         OffenseExpeditionRun expedition,
         OffenseExpeditionResult result,
-        List<OffenseExpeditionResult> resultHistory)
+        List<OffenseExpeditionResult> resultHistory,
+        Action finalizeReturn = null)
     {
         if (expedition == null || result == null)
         {
@@ -79,15 +94,71 @@ public sealed class OffenseExpeditionResultFinalizer :
             throw new ArgumentNullException(nameof(resultHistory));
         }
 
-        if (result.success)
+        if (calendar == null || outcomeTransactions == null)
         {
-            metaProgression.RecordOffenseSuccess();
+            throw new InvalidOperationException(
+                "Offense expedition-result outcome transaction is unavailable.");
+        }
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.OffenseExpeditionResult,
+                "offense-expedition-result:" + expedition.ExpeditionId,
+                Math.Max(1, calendar.Day),
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reservationFailure))
+        {
+            throw new InvalidOperationException(
+                "Offense expedition-result outcome reservation failed: "
+                + reservationFailure);
         }
 
-        if (result.success)
+        OffenseExpeditionResult[] resultHistoryBefore = resultHistory.ToArray();
+        bool advancesCampaign = result.success
+            && (!expedition.UsesWorldTravel
+                || expedition.Target.revealsTruth);
+        bool resolvesWorldSite = expedition.UsesWorldTravel
+            && !string.IsNullOrWhiteSpace(
+                expedition.Target.seasonalOccurrenceInstanceId)
+            && world != null;
+        MetaRunProgressTransactionSnapshot metaBefore = null;
+        OffenseRewardTransactionSnapshot rewardsBefore = null;
+        IOffenseCampaignRuntime campaignPersistence = null;
+        DungeonOffenseCampaignSaveData campaignBefore = null;
+        OffenseWorldSaveData worldBefore = null;
+        try
         {
-            IReadOnlyList<OffenseRewardGrantResult> grantedRewards =
-                rewards.ApplyExpeditionRewards(expedition, result);
+            rewardsBefore = rewards.CaptureTransaction(expedition);
+            if (result.success)
+            {
+                metaBefore = metaProgression.RunProgress
+                    .CaptureTransactionState();
+            }
+            if (advancesCampaign)
+            {
+                campaignPersistence = ResolveCampaignPersistence();
+                campaignBefore = campaignPersistence.Capture();
+            }
+            if (resolvesWorldSite)
+                worldBefore = world.Capture();
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            throw;
+        }
+        IReadOnlyList<OffenseRewardGrantResult> grantedRewards =
+            Array.Empty<OffenseRewardGrantResult>();
+
+        try
+        {
+            if (result.success)
+            {
+                metaProgression.RecordOffenseSuccess();
+            }
+
+            if (result.success)
+            {
+            grantedRewards = rewards.ApplyExpeditionRewards(expedition, result);
             result = result.WithGrantedRewards(grantedRewards);
             OffenseExpeditionItemReceipt[] physicalRewards = result.grantedRewards
                 .Where(value => value?.success == true)
@@ -110,29 +181,92 @@ public sealed class OffenseExpeditionResultFinalizer :
                 result = result.WithArrivalReceipts(
                     arrivals.GetSettlementReceipts(expedition.ExpeditionId));
             }
-            gameEventBus.Publish(new OffenseRewardGrantedEvent(
-                result,
-                result.grantedRewards));
-        }
+            }
 
-        if (expedition.UsesWorldTravel
-            && !string.IsNullOrWhiteSpace(
-                expedition.Target.seasonalOccurrenceInstanceId))
-            world?.TryResolveSite(expedition.WorldSiteId);
+            if (resolvesWorldSite
+                && !world.TryResolveSite(expedition.WorldSiteId))
+            {
+                throw new InvalidOperationException(
+                    "Offense expedition world site could not be resolved: "
+                    + expedition.WorldSiteId);
+            }
 
-        resultHistory.Insert(0, result);
-        if (resultHistory.Count > MaxResultHistory)
-        {
+            resultHistory.Insert(0, result);
+            if (resultHistory.Count > MaxResultHistory)
+            {
             resultHistory.RemoveRange(
                 MaxResultHistory,
                 resultHistory.Count - MaxResultHistory);
+            }
+
+            if (advancesCampaign)
+            {
+                AdvanceCampaign(expedition, result);
+            }
+
+            finalizeReturn?.Invoke();
+
+            MigratedProducerOutcomeCommitResult committed =
+            outcomeTransactions.CommitSingleSubject(
+                prepared,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.ExpeditionKind,
+                    result.expeditionId,
+                    result.targetTitle,
+                    MigratedProducerOutcomeIds.ExpeditionRole),
+                $"target={result.targetId}; success={result.success}; power={result.totalPower:0.###}/{result.requiredPower:0.###}; danger={result.danger:0.###}; elapsed={result.elapsedSeconds:0.###}; members={result.members.Count}; rewards={result.grantedRewards.Count}; items={result.itemReceipts.Count}; arrivals={result.arrivalReceipts.Count}; currency={result.currencyReceipts.Count}");
+            if (!committed.DurablyCommitted)
+            {
+            throw new InvalidOperationException(
+                "Offense expedition-result outcome commit failed: "
+                + committed.DetailCode);
+            }
+        }
+        catch (Exception failure)
+        {
+            outcomeTransactions.Cancel(prepared);
+            List<Exception> rollbackFailures = new();
+            AttemptRollback(
+                () =>
+                {
+                    resultHistory.Clear();
+                    resultHistory.AddRange(resultHistoryBefore);
+                },
+                rollbackFailures);
+            if (worldBefore != null)
+                AttemptRollback(() => world.Restore(worldBefore), rollbackFailures);
+            if (campaignBefore != null)
+            {
+                AttemptRollback(
+                    () => campaignPersistence.PublishRestoreCandidate(
+                        campaignPersistence.BuildRestoreCandidate(
+                            campaignBefore)),
+                    rollbackFailures);
+            }
+            if (rewardsBefore != null)
+                AttemptRollback(
+                    () => rewards.RestoreTransaction(rewardsBefore),
+                    rollbackFailures);
+            if (metaBefore != null)
+                AttemptRollback(
+                    () => metaProgression.RunProgress
+                        .RestoreTransactionState(metaBefore),
+                    rollbackFailures);
+            if (rollbackFailures.Count > 0)
+            {
+                rollbackFailures.Insert(0, failure);
+                throw new AggregateException(
+                    "Offense expedition result failed and rollback was incomplete.",
+                    rollbackFailures);
+            }
+            throw;
         }
 
-        if (result.success
-            && (!expedition.UsesWorldTravel
-                || expedition.Target.revealsTruth))
+        if (result.success)
         {
-            AdvanceCampaign(expedition, result);
+            gameEventBus.Publish(new OffenseRewardGrantedEvent(
+                result,
+                grantedRewards));
         }
 
         gameEventBus.RaiseAlert(
@@ -144,6 +278,30 @@ public sealed class OffenseExpeditionResultFinalizer :
             "offense");
         PublishIdentityOutcome(expedition, result);
         return result;
+    }
+
+    private IOffenseCampaignRuntime ResolveCampaignPersistence()
+    {
+        if (campaign is OffenseWorldMapRuntime worldMap)
+            return worldMap.Campaign;
+        if (campaign is IOffenseCampaignRuntime runtime)
+            return runtime;
+        throw new InvalidOperationException(
+            "Offense expedition campaign rollback authority is unavailable.");
+    }
+
+    private static void AttemptRollback(
+        Action rollback,
+        ICollection<Exception> failures)
+    {
+        try
+        {
+            rollback?.Invoke();
+        }
+        catch (Exception exception)
+        {
+            failures?.Add(exception);
+        }
     }
 
     private void PublishIdentityOutcome(

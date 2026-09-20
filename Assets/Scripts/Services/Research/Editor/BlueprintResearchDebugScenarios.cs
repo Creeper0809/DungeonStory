@@ -374,7 +374,8 @@ public static class BlueprintResearchDebugScenarios
             CharacterActor.From(researcher),
             lab,
             approvedWorkUnits);
-        float added = progress.Progress - before;
+        // Work publishes a detached aggregate; the old progress object is a snapshot.
+        float added = runtime.State.Projects.GetProgress(project.ProjectId).Progress - before;
 
         float expectedExplicitBonus = approvedWorkUnits
             + CharacterSkillRuntimeEffects.GetResearchWorkBonus(
@@ -382,6 +383,7 @@ public static class BlueprintResearchDebugScenarios
                 approvedWorkUnits / ResearchProgressRules.BaseResearchWorkPerSecond);
         return result.Success
             && !result.Completed
+            && Mathf.Approximately(progress.Progress, before)
             && Mathf.Approximately(expected, expectedExplicitBonus)
             && Mathf.Approximately(result.AddedProgress, expected)
             && Mathf.Approximately(added, expected)
@@ -580,6 +582,8 @@ public static class BlueprintResearchDebugScenarios
                 aggregateRootStore: new DungeonRuntimeAggregateRootStore(),
                 debugRules: DisabledDungeonDebugRuleQuery.Instance,
                 uiClock: new DungeonStory.Foundation.UnityUiClock());
+            runtime.ConstructGameplayOutcomes(
+                ResearchOutcomeTransactionDebugScenarios.CreateTransactionForRuntimeFixture());
             researchRuntime = runtime;
             return runtime;
         }

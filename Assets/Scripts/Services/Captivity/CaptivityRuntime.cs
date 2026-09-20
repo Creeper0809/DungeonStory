@@ -54,9 +54,15 @@ public sealed class CaptivityRuntime :
     private readonly CaptivityActorAccess actorAccess;
     private readonly CaptivityPolicyRuntime policyRuntime;
     private readonly CaptivityPerformerRuntime performerRuntime;
+    private readonly CaptivePerformerMilestoneOutcomeRuntime
+        performerMilestoneOutcomeRuntime;
     private readonly CaptivityInteractionRuntime interactionRuntime;
     private readonly CaptivityEscortRuntime escortRuntime;
+    private readonly CaptiveEscapeOutcomeRuntime escapeOutcomeRuntime;
+    private readonly CaptiveRansomOutcomeRuntime ransomOutcomeRuntime;
+    private readonly CaptivityDefectionRuntime defectionRuntime;
     private readonly CaptivityEscapeRuntime escapeRuntime;
+    private readonly CaptivityRansomRuntime ransomRuntime;
     private readonly CaptivityStateRuntime stateRuntime;
     private readonly CaptivityRestoreCoordinator restoreCoordinator;
     private readonly CaptivityQueryView queryView;
@@ -67,6 +73,12 @@ public sealed class CaptivityRuntime :
     private IDisposable recoveredSubscription;
     private IDisposable deathSubscription;
     private IDisposable invasionSubscription;
+    private float nextPerformerMilestoneRetryAt;
+    private string lastPerformerMilestoneRetryFailure = string.Empty;
+    private float nextEscapeOutcomeRetryAt;
+    private string lastEscapeOutcomeRetryFailure = string.Empty;
+    private float nextRansomOutcomeRetryAt;
+    private string lastRansomOutcomeRetryFailure = string.Empty;
     private IReadOnlyList<CaptiveState> captives => actorAccess.States;
 
     public CaptivityRuntime(
@@ -134,22 +146,31 @@ public sealed class CaptivityRuntime :
         policyRuntime = new CaptivityPolicyRuntime(
             actorAccess,
             new CaptivityPolicyActorDefaultPort(captivityEffects));
+        ICaptivityPerformerPort performerPort =
+            new CaptivityPerformerDefaultPort(
+                captivityEffects,
+                captivityEffects);
         performerRuntime = new CaptivityPerformerRuntime(
             FindState,
             policyRuntime.Find,
             TryRecruit,
             TryRelease,
-            new CaptivityPerformerDefaultPort(
-                captivityEffects,
-                captivityEffects));
+            performerPort);
+        performerMilestoneOutcomeRuntime =
+            new CaptivePerformerMilestoneOutcomeRuntime(
+                session.PerformerMilestoneOutcomes,
+                performerPort);
         interactionRuntime = new CaptivityInteractionRuntime(
             actorAccess,
             actorRuntime,
             interactions,
             interrogationInformation,
             bodyHealthQuery,
-            bodyHealthCommands,
-            itemRuntime,
+            characters.BodyHealthMutations,
+            new CaptivityInteractionOutcomeRuntime(
+                session.CaptivityInteractionOutcomes,
+                characters.PhysicalItemSources),
+            gameClock,
             interactionMaterials,
             TryGetHousing);
         escortRuntime = new CaptivityEscortRuntime(
@@ -158,6 +179,23 @@ public sealed class CaptivityRuntime :
             characters,
             world,
             session);
+        escapeOutcomeRuntime = new CaptiveEscapeOutcomeRuntime(
+            session.CaptiveEscapeOutcomes,
+            gameEventBus);
+        ransomOutcomeRuntime = new CaptiveRansomOutcomeRuntime(
+            session.CaptiveRansomOutcomes,
+            gameEventBus,
+            worldRegistry,
+            gameClock);
+        defectionRuntime = new CaptivityDefectionRuntime(
+            actorAccess,
+            actorRuntime,
+            random,
+            doorSubjectRegistry,
+            new CaptivityPopulationStandingPort(characterPopulation),
+            employmentStanding,
+            gameClock,
+            escapeOutcomeRuntime);
         stateRuntime = new CaptivityStateRuntime(
             actorAccess,
             policyRuntime,
@@ -170,7 +208,19 @@ public sealed class CaptivityRuntime :
             actorRuntime,
             world,
             session,
-            TryTriggerBetrayal);
+            TryTriggerBetrayal,
+            escapeOutcomeRuntime);
+        ransomRuntime = new CaptivityRansomRuntime(
+            actorAccess,
+            actorRuntime,
+            policyRuntime,
+            bodyHealthQuery,
+            money,
+            new CaptivityRansomTerminalPhysicalPort(
+                TryPrepareTerminalPhysicalInputs),
+            doorSubjectRegistry,
+            gameClock,
+            ransomOutcomeRuntime);
         restoreCoordinator = new CaptivityRestoreCoordinator(
             this.worldRegistry,
             this.itemRuntime,
@@ -281,12 +331,17 @@ public sealed class CaptivityRuntime :
 
     private void TickRuntime()
     {
+        TickRansomOutcomeRecovery();
         RequireCareLaborInputOwner("tick");
-        interactionRuntime.RetryPendingInterrogationPublications(captives);
+        interactionRuntime.RetryPendingOutcomes(captives);
         if (gameClock.IsPaused || gameClock.DeltaTime <= 0f)
         {
             return;
         }
+
+        TickPerformerMilestoneRecovery();
+
+        TickEscapeOutcomeRecovery();
 
         escapeRuntime.TickPendingInvasionEscapes();
 
@@ -341,6 +396,97 @@ public sealed class CaptivityRuntime :
                     out _);
             }
         }
+    }
+
+    private void TickPerformerMilestoneRecovery()
+    {
+        if (aggregateRootStore.IsRestoreStaging
+            || gameClock.Time + 0.001f < nextPerformerMilestoneRetryAt)
+        {
+            return;
+        }
+
+        nextPerformerMilestoneRetryAt = gameClock.Time + 5f;
+        bool success = performerMilestoneOutcomeRuntime.TryCommitNextPendingMilestone(
+            captives,
+            CurrentAbsoluteDay,
+            out _,
+            out string failureReason);
+        if (success)
+        {
+            lastPerformerMilestoneRetryFailure = string.Empty;
+            return;
+        }
+        if (string.Equals(
+                failureReason,
+                lastPerformerMilestoneRetryFailure,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+        lastPerformerMilestoneRetryFailure = failureReason;
+        Debug.LogWarning(
+            "공연자 이정표 원장 기록을 재시도합니다: " + failureReason);
+    }
+
+    private void TickEscapeOutcomeRecovery()
+    {
+        if (aggregateRootStore.IsRestoreStaging
+            || gameClock.Time + 0.001f < nextEscapeOutcomeRetryAt)
+        {
+            return;
+        }
+
+        nextEscapeOutcomeRetryAt = gameClock.Time + 5f;
+        bool success = escapeRuntime.TryCommitNextPendingPhysicalEscape(
+            captives,
+            out _,
+            out string failureReason);
+        if (success)
+        {
+            lastEscapeOutcomeRetryFailure = string.Empty;
+            return;
+        }
+        if (string.Equals(
+                failureReason,
+                lastEscapeOutcomeRetryFailure,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+        lastEscapeOutcomeRetryFailure = failureReason;
+        Debug.LogWarning(
+            "포로 탈출 원장 기록을 재시도합니다: " + failureReason);
+    }
+
+    private void TickRansomOutcomeRecovery()
+    {
+        if (aggregateRootStore.IsRestoreStaging
+            || gameClock.Time + 0.001f < nextRansomOutcomeRetryAt)
+        {
+            return;
+        }
+
+        nextRansomOutcomeRetryAt = gameClock.Time + 5f;
+        bool success = ransomRuntime.TryFinalizeNextPending(
+            captives,
+            out _,
+            out string failureReason);
+        if (success)
+        {
+            lastRansomOutcomeRetryFailure = string.Empty;
+            return;
+        }
+        if (string.Equals(
+                failureReason,
+                lastRansomOutcomeRetryFailure,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+        lastRansomOutcomeRetryFailure = failureReason;
+        Debug.LogWarning(
+            "포로 몸값 마무리를 재시도합니다: " + failureReason);
     }
 
     private void TickCarePriority(CaptiveState state, CharacterActor actor)
@@ -1336,130 +1482,18 @@ public bool IsWorkAllowed(
     public bool TryBreakMinionControl(
         string minionId,
         string reason,
-        out string failureReason)
-    {
-        failureReason = string.Empty;
-        CaptiveState state = FindState(minionId);
-        CharacterActor actor = FindActor(minionId);
-        if (state?.IsMinion != true || actor == null)
-        {
-            failureReason = "통제 이탈 대상인 하수인을 찾을 수 없습니다.";
-            return false;
-        }
-
-        CharacterType previousActorType = actor.characterType;
-        CharacterType previousIdentityType = actor.Identity?.CharacterType
-            ?? previousActorType;
-        CharacterLifecycleState previousLifecycle = actor.CurrentLifecycleState;
-        bool previousAiPaused = actor.IsAiPaused();
-        EmploymentStandingState employmentSnapshot =
-            employmentStanding.CaptureStandingState(state.captiveId);
-        CharacterSettlementStandingTransaction populationTransaction = null;
-        try
-        {
-            populationTransaction = characterPopulation
-                .BeginSettlementStandingTransition(
-                    actor,
-                    CharacterSettlementStanding.PreparedCandidate);
-            employmentStanding.ApplyStanding(
-                state.captiveId,
-                CharacterSettlementStanding.PreparedCandidate);
-            actor.characterType = CharacterType.Intruder;
-            actor.Identity?.SetCharacterType(CharacterType.Intruder);
-            actor.SetLifecycleState(CharacterLifecycleState.Active);
-            actor.SetAiPaused(false);
-            actor.Brain?.RequestImmediateReplan(clearFailures: true);
-            doorSubjectRegistry.SetCaptive(state.captiveId, false);
-            characterPopulation.CompleteSettlementStandingTransition(
-                populationTransaction);
-            CaptivityStateTransitionRules.ClearRehabilitationState(state);
-            state.status = CaptivityStatus.Escaped;
-            state.lastResult = string.IsNullOrWhiteSpace(reason)
-                ? "통제에서 벗어남"
-                : reason.Trim();
-            gameEventBus.Publish(new CaptiveEscapedEvent(
-                state.captiveId,
-                state.lastResult,
-                betrayal: true));
-            return true;
-        }
-        catch (Exception exception)
-        {
-            employmentStanding.RestoreStandingState(employmentSnapshot);
-            if (populationTransaction?.IsActive == true)
-            {
-                characterPopulation.RollbackSettlementStandingTransition(
-                    populationTransaction);
-            }
-            actor.characterType = previousActorType;
-            actor.Identity?.SetCharacterType(previousIdentityType);
-            actor.SetLifecycleState(previousLifecycle);
-            actor.SetAiPaused(previousAiPaused);
-            failureReason = "통제 이탈 상태를 적용하지 못했습니다: "
-                + exception.Message;
-            return false;
-        }
-    }
+        out string failureReason) => defectionRuntime.TryBreakMinionControl(
+        minionId,
+        reason,
+        out failureReason);
 
     public bool TryRansom(
         string captiveId,
         out int paidAmount,
-        out string failureReason)
-    {
-        paidAmount = 0;
-        failureReason = string.Empty;
-        CaptiveState state = FindState(captiveId);
-        CharacterActor actor = FindActor(captiveId);
-        CaptivePolicyData policy = state != null
-            ? policyRuntime.Find(state.policyId)
-            : null;
-        if (state == null || actor == null || !state.IsInCustody)
-        {
-            failureReason = "포로를 찾을 수 없습니다.";
-            return false;
-        }
-
-        if (policy?.allowRansom != true)
-        {
-            failureReason = "현재 수용 정책은 몸값 협상을 허용하지 않습니다.";
-            return false;
-        }
-
-        if (state.status is CaptivityStatus.Escorting
-            or CaptivityStatus.Interaction
-            or CaptivityStatus.Performer
-            or CaptivityStatus.EscapeAttempt)
-        {
-            failureReason = "현재 진행 중인 포로 작업을 먼저 끝내야 합니다.";
-            return false;
-        }
-
-        if (!TryPrepareTerminalPhysicalInputs(state, out failureReason))
-        {
-            return false;
-        }
-        paidAmount = state.CalculateRansomValue(GetHealthPercent(actor));
-        state.status = CaptivityStatus.Ransom;
-        state.retaliationPressure = ClampStat(
-            state.retaliationPressure + state.grudge * 0.35f);
-        money.Add(
-            paidAmount,
-            new EconomyTransactionContext(
-                EconomyTransactionKind.RansomIncome,
-                state.captiveId,
-                actor.Identity?.PersistentId ?? state.captiveId,
-                "포로 몸값"));
-        PublishPrisonerDecision(actor, "ransom");
-        FinalizeReleaseCaptive(
-            state,
-            actor,
-            $"몸값 {paidAmount:N0}을 받고 석방");
-        gameEventBus.Publish(new CaptiveRansomedEvent(
-            state.captiveId,
-            paidAmount,
-            state.retaliationPressure));
-        return true;
-    }
+        out string failureReason) => ransomRuntime.TryRansom(
+        captiveId,
+        out paidAmount,
+        out failureReason);
 
     public bool TryRelease(string captiveId, out string failureReason)
     {
@@ -1668,62 +1702,10 @@ public bool IsWorkAllowed(
     public bool TryTriggerBetrayal(
         string captiveId,
         string trigger,
-        out string failureReason)
-    {
-        failureReason = string.Empty;
-        CaptiveState state = FindState(captiveId);
-        CharacterActor actor = FindActor(captiveId);
-        if (state == null || actor == null || !state.IsInCustody)
-        {
-            failureReason = "포로를 찾을 수 없습니다.";
-            return false;
-        }
-
-        if (!state.falseCompliance)
-        {
-            failureReason = "거짓 복종 상태가 아닙니다.";
-            return false;
-        }
-
-        if (state.status is CaptivityStatus.Escorting
-            or CaptivityStatus.Stabilizing
-            or CaptivityStatus.AwaitingEscort
-            or CaptivityStatus.Interaction
-            or CaptivityStatus.EscapeAttempt)
-        {
-            failureReason = "현재 상태에서는 배신 행동을 시작할 수 없습니다.";
-            return false;
-        }
-
-        float betrayalChance = Mathf.Clamp01(
-            0.25f
-            + state.grudge * 0.005f
-            + state.escapeRisk * 0.003f);
-        if (!random.Chance(betrayalChance))
-        {
-            failureReason = "배신할 기회를 엿보고 있습니다.";
-            return false;
-        }
-
-        state.status = CaptivityStatus.Escaped;
-        state.restrained = false;
-        state.betrayalTrigger = string.IsNullOrWhiteSpace(trigger)
-            ? "기회 포착"
-            : trigger.Trim();
-        state.retaliationPressure = ClampStat(
-            state.retaliationPressure + 20f + state.grudge * 0.25f);
-        state.lastResult = $"{state.betrayalTrigger} 중 복종을 깨고 배신";
-        actor.characterType = CharacterType.Intruder;
-        actor.SetLifecycleState(CharacterLifecycleState.Active);
-        actor.SetAiPaused(false);
-        actor.Brain?.RequestImmediateReplan(clearFailures: true);
-        doorSubjectRegistry.SetCaptive(state.captiveId, false);
-        gameEventBus.Publish(new CaptiveEscapedEvent(
-            state.captiveId,
-            state.betrayalTrigger,
-            betrayal: true));
-        return true;
-    }
+        out string failureReason) => defectionRuntime.TryTriggerBetrayal(
+        captiveId,
+        trigger,
+        out failureReason);
 
     public bool TryAssignPerformer(
         string captiveId,
@@ -1733,13 +1715,26 @@ public bool IsWorkAllowed(
         return performerRuntime.TryAssign(captiveId, assigned, out failureReason);
     }
 
-    public void RecordPerformance(
+    public bool RecordPerformance(
         string captiveId,
         float fameGain,
         float skillGain,
-        bool injured)
+        bool injured,
+        out string failureReason)
     {
-        performerRuntime.Record(captiveId, fameGain, skillGain, injured);
+        if (!performerRuntime.TryRecord(
+                captiveId,
+                fameGain,
+                skillGain,
+                injured,
+                out failureReason))
+        {
+            return false;
+        }
+        return performerMilestoneOutcomeRuntime.TryCommitEligibleMilestones(
+            FindState(captiveId),
+            CurrentAbsoluteDay,
+            out failureReason);
     }
 
     public bool TryResolvePerformerMilestone(
@@ -1831,10 +1826,15 @@ public bool IsWorkAllowed(
         return escapeRuntime.BeginEscapePass(actor, captiveId);
     }
 
-    public void CompleteEscape(string captiveId, CharacterActor actor)
-    {
-        escapeRuntime.CompleteEscape(captiveId, actor);
-    }
+    public bool CompleteEscape(
+        string captiveId,
+        CharacterActor actor,
+        string trigger,
+        out string failureReason) => escapeRuntime.CompleteEscape(
+        captiveId,
+        actor,
+        trigger,
+        out failureReason);
 
     public void FailEscape(
         string captiveId,

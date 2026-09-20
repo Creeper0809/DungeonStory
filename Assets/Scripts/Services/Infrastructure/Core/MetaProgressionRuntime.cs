@@ -17,6 +17,8 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
     private IGameClock gameClock;
     private IMetaRunResultBuilder runResultBuilder;
     private IMetaRuntimeApplicationPort applicationPort;
+    private IMetaUpgradePurchaseOutcomeTransaction outcomeTransactions;
+    private IMetaRunResultOutcomeTransaction runResultOutcomeTransactions;
     private MetaRunProgressTracker runProgress;
     private DungeonRuntimeAggregateRootStore aggregateRootStore;
 
@@ -49,6 +51,23 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
         if (isActiveAndEnabled) this.applicationPort.Bind(this);
     }
 
+    [Inject]
+    public void ConstructOutcomeTransactions(
+        IMetaUpgradePurchaseOutcomeTransaction outcomeTransactions)
+    {
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+    }
+
+    [Inject]
+    public void ConstructRunResultOutcomeTransactions(
+        IMetaRunResultOutcomeTransaction runResultOutcomeTransactions)
+    {
+        this.runResultOutcomeTransactions = runResultOutcomeTransactions
+            ?? throw new ArgumentNullException(
+                nameof(runResultOutcomeTransactions));
+    }
+
     public void SetShowRunResultPanel(bool value) => showRunResultPanel = value;
     public void StartNewRun() { RunProgress.StartNewRun(gameClock.Time); aggregateRootStore.Replace(new MetaRunLifecycleAggregateState()); }
     public void RestoreRunState(bool ended, RunResultSnapshot result) => aggregateRootStore.Replace(new MetaRunLifecycleAggregateState { Ended = ended, LatestResult = result });
@@ -61,9 +80,80 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
 
     public bool TryPurchaseUpgrade(string id, out string message)
     {
-        bool success = State.TryPurchaseUpgrade(id, out message);
-        if (success) applicationPort.PublishUpgradePurchased(new MetaUpgradePurchasedEvent(id), message);
-        return success;
+        MetaUpgradeDefinition definition = State.Catalog.Get(id);
+        if (definition == null)
+        {
+            return State.TryPurchaseUpgrade(id, out message);
+        }
+
+        if (outcomeTransactions == null)
+        {
+            message = "강화 구매 결과 기록이 준비되지 않았습니다.";
+            Debug.LogError("meta-upgrade-purchase-outcome-transaction-unavailable");
+            return false;
+        }
+
+        string upgradeId = definition.id;
+        if (!outcomeTransactions.TryReserve(
+                upgradeId,
+                Math.Max(1, RunProgress.CurrentDay),
+                out IMetaUpgradePurchaseOutcomeReservation prepared,
+                out string reserveFailure))
+        {
+            message = "강화 구매 결과를 예약하지 못했습니다.";
+            Debug.LogError(
+                "meta-upgrade-purchase-outcome-reservation-failed:"
+                + reserveFailure);
+            return false;
+        }
+
+        PurchaseRollbackSnapshot rollback = CapturePurchaseSnapshot();
+        int previousLevel = State.GetUpgradeLevel(upgradeId);
+        bool success;
+        try
+        {
+            success = State.TryPurchaseUpgrade(upgradeId, out message);
+        }
+        catch
+        {
+            CancelPurchaseAndRestore(prepared, rollback);
+            throw;
+        }
+
+        if (!success)
+        {
+            CancelPurchaseAndRestore(prepared, rollback);
+            return false;
+        }
+
+        MetaUpgradePurchaseOutcomeCommitResult committed;
+        try
+        {
+            committed = outcomeTransactions.Commit(
+                prepared,
+                definition.title,
+                previousLevel,
+                State.GetUpgradeLevel(upgradeId),
+                definition.cost);
+        }
+        catch
+        {
+            CancelPurchaseAndRestore(prepared, rollback);
+            throw;
+        }
+
+        if (!committed.DurablyCommitted)
+        {
+            RestorePurchaseSnapshot(rollback);
+            message = "강화 구매 결과를 확정하지 못했습니다.";
+            Debug.LogError(
+                "meta-upgrade-purchase-outcome-commit-failed:"
+                + committed.DetailCode);
+            return false;
+        }
+
+        PublishPostCommitUpgradeEvent(upgradeId, message);
+        return true;
     }
 
     public int GetStartingFacilityCandidateBonus() => MetaProgressionEffects.GetIntegerBonus(State, MetaUpgradeEffectIds.StartingFacilityCandidates);
@@ -96,14 +186,170 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
         MetaRunEnvironmentSnapshot environment = applicationPort.CaptureRunEnvironment();
         RunResultSnapshot result = runResultBuilder.Build(RunProgress.CreateResultContext(ownerName, reason, environment, outcome));
         result = result.WithLegacyCurrency(MetaProgressionCalculator.CalculateLegacyCurrency(result));
-        WritableLifecycle.Ended = true;
-        State.AddCurrency(result.legacyCurrency); State.RecordRunCompleted();
-        int slots = MetaProgressionEffects.GetIntegerBonus(State, MetaUpgradeEffectIds.PreservedRecipeSlots);
-        State.PreserveRecipes(RunProgress.UnlockedRecipeIds.OrderBy(id => id, StringComparer.Ordinal), slots);
-        WritableLifecycle.LatestResult = result;
-        applicationPort.PublishRunResult(new RunResultReadyEvent(result));
-        if (showRunResultPanel) applicationPort.ShowRunResult(result);
+
+        if (runResultOutcomeTransactions == null)
+            throw Missing(nameof(IMetaRunResultOutcomeTransaction));
+        int runSequence = checked(State.CompletedRunCount + 1);
+        if (!runResultOutcomeTransactions.TryReserve(
+                runSequence,
+                Math.Max(1, RunProgress.CurrentDay),
+                out IMetaRunResultOutcomeReservation prepared,
+                out string reserveFailure))
+        {
+            throw new InvalidOperationException(
+                "Run result outcome reservation failed: " + reserveFailure);
+        }
+
+        PurchaseRollbackSnapshot stateBefore = CapturePurchaseSnapshot();
+        MetaRunLifecycleAggregateState lifecycleBefore = new()
+        {
+            Ended = Lifecycle.Ended,
+            LatestResult = Lifecycle.LatestResult
+        };
+        try
+        {
+            WritableLifecycle.Ended = true;
+            State.AddCurrency(result.legacyCurrency);
+            State.RecordRunCompleted();
+            int slots = MetaProgressionEffects.GetIntegerBonus(
+                State,
+                MetaUpgradeEffectIds.PreservedRecipeSlots);
+            State.PreserveRecipes(
+                RunProgress.UnlockedRecipeIds.OrderBy(
+                    id => id,
+                    StringComparer.Ordinal),
+                slots);
+            WritableLifecycle.LatestResult = result;
+
+            MetaRunResultOutcomeCommitResult committed =
+                runResultOutcomeTransactions.Commit(prepared, result);
+            if (!committed.DurablyCommitted)
+            {
+                RestorePurchaseSnapshot(stateBefore);
+                aggregateRootStore.Replace(lifecycleBefore);
+                throw new InvalidOperationException(
+                    "Run result outcome commit failed: "
+                    + committed.DetailCode);
+            }
+        }
+        catch
+        {
+            runResultOutcomeTransactions.Cancel(prepared);
+            RestorePurchaseSnapshot(stateBefore);
+            aggregateRootStore.Replace(lifecycleBefore);
+            throw;
+        }
+
+        PublishPostCommitRunResult(result);
         return result;
+    }
+
+    private void PublishPostCommitRunResult(RunResultSnapshot result)
+    {
+        try
+        {
+            applicationPort.PublishRunResult(new RunResultReadyEvent(result));
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "meta-run-result-post-commit-observer:"
+                + exception.GetType().Name);
+        }
+
+        if (!showRunResultPanel)
+            return;
+        try
+        {
+            applicationPort.ShowRunResult(result);
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "meta-run-result-panel-post-commit-observer:"
+                + exception.GetType().Name);
+        }
+    }
+
+    private void PublishPostCommitUpgradeEvent(string upgradeId, string message)
+    {
+        try
+        {
+            applicationPort.PublishUpgradePurchased(
+                new MetaUpgradePurchasedEvent(upgradeId),
+                message);
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "meta-upgrade-purchase-post-commit-observer:"
+                + exception.GetType().Name);
+        }
+    }
+
+    private void CancelPurchaseAndRestore(
+        IMetaUpgradePurchaseOutcomeReservation prepared,
+        PurchaseRollbackSnapshot rollback)
+    {
+        try
+        {
+            outcomeTransactions.Cancel(prepared);
+        }
+        finally
+        {
+            RestorePurchaseSnapshot(rollback);
+        }
+    }
+
+    private PurchaseRollbackSnapshot CapturePurchaseSnapshot() => new(
+        State.LifetimeEarnedCurrency,
+        State.SpentCurrency,
+        State.UpgradeLevels.ToArray(),
+        State.PreservedRecipeIds.ToArray(),
+        State.CompletedRunCount);
+
+    private void RestorePurchaseSnapshot(PurchaseRollbackSnapshot snapshot)
+    {
+        if (snapshot == null)
+            throw new ArgumentNullException(nameof(snapshot));
+        State.Restore(
+            snapshot.LifetimeEarnedCurrency,
+            snapshot.SpentCurrency,
+            snapshot.UpgradeLevels,
+            snapshot.PreservedRecipeIds,
+            snapshot.CompletedRunCount);
+    }
+
+    private sealed class PurchaseRollbackSnapshot
+    {
+        internal PurchaseRollbackSnapshot(
+            int lifetimeEarnedCurrency,
+            int spentCurrency,
+            IReadOnlyList<KeyValuePair<string, int>> upgradeLevels,
+            IReadOnlyList<string> preservedRecipeIds,
+            int completedRunCount)
+        {
+            LifetimeEarnedCurrency = lifetimeEarnedCurrency;
+            SpentCurrency = spentCurrency;
+            UpgradeLevels = upgradeLevels ?? Array.Empty<KeyValuePair<string, int>>();
+            PreservedRecipeIds = preservedRecipeIds ?? Array.Empty<string>();
+            CompletedRunCount = completedRunCount;
+        }
+
+        internal int LifetimeEarnedCurrency { get; }
+        internal int SpentCurrency { get; }
+        internal IReadOnlyList<KeyValuePair<string, int>> UpgradeLevels { get; }
+        internal IReadOnlyList<string> PreservedRecipeIds { get; }
+        internal int CompletedRunCount { get; }
     }
 
     private static InvalidOperationException Missing(string dependency) => new InvalidOperationException($"{nameof(MetaProgressionRuntime)} requires {dependency} injection.");

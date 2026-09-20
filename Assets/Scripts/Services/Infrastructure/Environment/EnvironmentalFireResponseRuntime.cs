@@ -463,7 +463,8 @@ public sealed class EnvironmentalFireResponseRuntime :
             work.Mode,
             expectedWork.RequiredWork,
             leaseId,
-            work.RequiredWater);
+            work.RequiredWater,
+            actor.Identity?.DisplayName);
         attempt = new EnvironmentalFireSuppressionAttempt(
             command,
             work.Fire.Intensity,

@@ -2508,7 +2508,10 @@ public static class SurgeryDebugScenarios
                         EditorNullItemMarkerPresenter.Instance),
                     mass,
                     catalog,
-                    EditorNullItemMarkerPresenter.Instance),
+                    EditorNullItemMarkerPresenter.Instance,
+                    new FixedGameSessionStateProvider(),
+                    new MigratedProducerOutcomeEditorFixture(
+                        "run:surgery-physical-transform").Transaction),
                 itemDefinitions,
                 mass,
                 claims,

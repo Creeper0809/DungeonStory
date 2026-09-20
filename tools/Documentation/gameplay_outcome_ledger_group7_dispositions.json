@@ -1,0 +1,235 @@
+{
+  "schema": "gameplay-outcome-ledger-producer-dispositions@1",
+  "scope": "pre-existing-runtime-candidate/domain_group=7",
+  "entries": [
+    {
+      "type": "CertifiedSeedPlanExecutionReceipt",
+      "definition_path": "Assets/Scripts/Services/Economy/CertifiedSeedRuntime.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative certified-seed plan completion with exact input, output, facility and order identities.",
+      "integration_reason": "The exact receipt participates in the outcome-aware physical output transaction before the order advances to OutputPublished, then the owner acknowledges and finalizes it.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/CertifiedSeedRuntime.cs:660-691,694-724",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/CertifiedSeedOutputOutcomeParticipant.cs:19-112"
+      ]
+    },
+    {
+      "type": "CharacterInfectionBurdenReductionRequestedEvent",
+      "definition_path": "Assets/Scripts/Services/Survival/DarkSurvivalModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Command/request transport signal; it does not assert that burden reduction completed.",
+      "integration_reason": "The medical/treatment terminal operation and persisted deprivation aggregate own the resulting state transition.",
+      "replacement_authority": "CharacterMedicalRuntime terminal treatment result plus CharacterDeprivationRuntime persisted infection-burden state",
+      "evidence": [
+        "Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:862-870",
+        "Assets/Scripts/Services/Survival/CharacterDeprivationRuntime.cs:185-191"
+      ]
+    },
+    {
+      "type": "CharacterInfectionBurdenRequestedEvent",
+      "definition_path": "Assets/Scripts/Services/Survival/DarkSurvivalModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Command/request transport signal; it does not assert that infection burden was applied.",
+      "integration_reason": "The originating medical operation and persisted deprivation aggregate own the resulting state transition.",
+      "replacement_authority": "CharacterMedicalRuntime terminal medical result plus CharacterDeprivationRuntime persisted infection-burden state",
+      "evidence": [
+        "Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:690-701,913-925",
+        "Assets/Scripts/Services/Survival/CharacterDeprivationRuntime.cs:181-191"
+      ]
+    },
+    {
+      "type": "CropHarvestEcologyResult",
+      "definition_path": "Assets/Scripts/Models/Economy/Content/CropEcologyDomain.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Prepared ecology subresult of one crop harvest, not a separate terminal operation.",
+      "integration_reason": "The crop owner fingerprints, commits and acknowledges this subresult before projecting the terminal crop-plan outcome.",
+      "replacement_authority": "CropPlanExecutionReceipt via CropPlanGameplayOutcomeReceipt",
+      "evidence": [
+        "Assets/Scripts/Models/Economy/Content/CropEcologyDomain.cs:504-544,935-944",
+        "Assets/Scripts/Services/Economy/CropPlotRuntime.cs:1491-1554,1566-1603"
+      ]
+    },
+    {
+      "type": "CropIrrigationSupplyResult",
+      "definition_path": "Assets/Scripts/Services/Infrastructure/Industrial/CropIrrigationRuntime.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative successful clean-water consumption and plot irrigation result.",
+      "integration_reason": "The plot owner reserves the typed outcome before staging the exact fluid mutation, credits plot water, commits/reconciles the same result key, and either commits the supply cooldown stamps or restores plot and fluid state.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/Industrial/CropIrrigationRuntime.cs:138-294",
+        "Assets/Scripts/Services/Economy/CropPlotRuntime.cs:2615-2742",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeReceiptFactory.cs:843-920",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260919-r15/focused-runtime-report.json"
+      ]
+    },
+    {
+      "type": "CropPlanExecutionReceipt",
+      "definition_path": "Assets/Scripts/Services/Economy/CropPlanExecutionReceipt.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative terminal crop-cycle result with exact sow, harvest, physical input and output provenance.",
+      "integration_reason": "The crop owner projects the terminal receipt only after physical and ecology commits, requires canonical ledger acknowledgement, and retains owner pending state on failure.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/CropPlanExecutionReceipt.cs:5-99,181-243",
+        "Assets/Scripts/Services/Economy/CropPlotRuntime.cs:1566-1660"
+      ]
+    },
+    {
+      "type": "EnvironmentalFireDamageResult",
+      "definition_path": "Assets/Scripts/Models/Environment/Core/EnvironmentalFireDomain.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative per-step building or character damage result with a stable fire operation ID.",
+      "integration_reason": "A save-owned damage authority reserves the typed outcome before mutation, commits nonlethal building and character damage with rollback on failure, and joins lethal building removal through the seven-participant destructive-drain journal before post-removal finalization.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalFireApplicationAdapters.cs:243-414,786-895",
+        "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalFireDamageOutcomeAuthority.cs:64-550,607-820",
+        "Assets/Scripts/Services/Infrastructure/Environment/Editor/EnvironmentalFireFocusedDebugScenarios.cs:456-568",
+        "Assets/Scripts/Services/Economy/Editor/ProductionFacilityDestructiveDrainParticipantRegistryDebugScenarios.cs:181-253"
+      ]
+    },
+    {
+      "type": "EnvironmentalFireFuelLossReceipt",
+      "definition_path": "Assets/Scripts/Models/Environment/Core/EnvironmentalFireDomain.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative exact physical fuel-loss receipt used by self-heating ignition.",
+      "integration_reason": "The outcome-aware physical sink prepares and commits the typed fuel-loss outcome with the exact quantity, mass and commit ID, then ignition acknowledges it.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalFireApplicationAdapters.cs:321-437",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentalFirePhysicalOutcomeParticipants.cs:12-121"
+      ]
+    },
+    {
+      "type": "EnvironmentalFireIgnitionResult",
+      "definition_path": "Assets/Scripts/Models/Environment/Core/EnvironmentalFireDomain.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative processed ignition disposition, including both accepted fire creation and meaningful resolved failures.",
+      "integration_reason": "The fire runtime reserves the typed ignition result, creates a save-owned pending fire/cause before any physical fuel commit, adopts the exact fuel receipt, commits/reconciles the parent outcome once, and resumes the same result key after retry or restore.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalFireRuntime.cs:330-546,1578-1758",
+        "Assets/Scripts/Models/Environment/Core/EnvironmentalFireDomain.cs:644-711,755-1103",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeReceiptFactory.cs:923-987",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FireGroup7-20260919-r5/environmental-fire-focused.txt"
+      ]
+    },
+    {
+      "type": "EnvironmentalFireSuppressionResult",
+      "definition_path": "Assets/Scripts/Models/Environment/Core/EnvironmentalFireDomain.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative suppression result that changes fire intensity or ends the fire and records labor and optional water consumption.",
+      "integration_reason": "The fire runtime creates a persisted Prepared suppression owner before water, adopts the exact water receipt, applies the fire effect once, commits/reconciles the parent outcome, and retains Prepared/WaterCommitted/Applied pending phases for deterministic retry and restore.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalFireRuntime.cs:576-777,1335-1567,1760-1938",
+        "Assets/Scripts/Models/Environment/Core/EnvironmentalFireDomain.cs:713-739,755-908,1105-1205",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeReceiptFactory.cs:990-1057",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FireGroup7-20260919-r5/environmental-fire-focused.txt"
+      ]
+    },
+    {
+      "type": "EnvironmentalFireWaterReceipt",
+      "definition_path": "Assets/Scripts/Models/Environment/Core/EnvironmentalFireDomain.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative exact physical water-consumption receipt for fire suppression.",
+      "integration_reason": "The outcome-aware reserved physical sink commits the typed water outcome with the suppression operation, lease, quantity and commit ID before acknowledgement.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalFireApplicationAdapters.cs:542-666",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentalFirePhysicalOutcomeParticipants.cs:124-227"
+      ]
+    },
+    {
+      "type": "FiberCropResourceResult",
+      "definition_path": "Assets/Scripts/Services/Economy/FiberCropQualityRules.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Pure deterministic resource-multiplier projection with no gameplay mutation or operation identity.",
+      "integration_reason": "The later crop/production owner that consumes the projected multipliers owns any terminal result.",
+      "replacement_authority": "Concrete crop or production terminal transaction consuming FiberCropResourceRules output",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/FiberCropQualityRules.cs:5-42"
+      ]
+    },
+    {
+      "type": "PopulationDiseaseRouteExposureEvent",
+      "definition_path": "Assets/Scripts/Models/Species/Core/PopulationHealthDomain.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative disease-route exposure that mutates population health for one character.",
+      "integration_reason": "The owner prepares the typed receipt, snapshots health state, records exposure, commits at the resulting health version, and restores/cancels after noncanonical failure.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Character/PopulationHealthRuntime.cs:517-600",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeReceiptFactory.cs:762-849"
+      ]
+    },
+    {
+      "type": "ProcessAccidentFireReceipt",
+      "definition_path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalFireProducerAdapters.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Follow-up ignition command derived from an already committed work-accident injury, not a second terminal result.",
+      "integration_reason": "The work accident outcome owns the injury; this receipt only requests a separately classified environmental-fire ignition result when the facility has authored support.",
+      "replacement_authority": "ProcessAccidentOutcomeReceipt plus EnvironmentalFireIgnitionResult",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs:3890-3985",
+        "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalFireProducerAdapters.cs:10-125"
+      ]
+    },
+    {
+      "type": "RoomConditionChangedEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative per-observer room-cleanliness transition.",
+      "integration_reason": "The room owner prepares the typed condition receipt, updates the persisted observation, commits/reconciles, rolls the observation back on failure, and only then publishes the event.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/Rooms/RoomEnvironmentExperienceAdapter.cs:269-340",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentRoomOutcomePersistence.cs:41-71"
+      ]
+    },
+    {
+      "type": "RoomEnvironmentExperienceEvent",
+      "definition_path": "Assets/Scripts/Services/Infrastructure/Rooms/RoomEnvironmentExperienceAdapter.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative room-impression and cleanliness mood application for work, shopping or facility use.",
+      "integration_reason": "The owner prepares the typed experience receipt, snapshots mood state, applies factors, commits/reconciles and restores mood on noncanonical failure.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/Rooms/RoomEnvironmentExperienceAdapter.cs:90-240",
+        "Assets/Scripts/Services/Character/Core/CharacterBuildingVisitorPort.cs:491-500",
+        "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs:934-946"
+      ]
+    },
+    {
+      "type": "SpeciesIncidentTriggeredEvent",
+      "definition_path": "Assets/Scripts/Models/Species/Core/CharacterSpeciesRuntimeContracts.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative species-discontent incident with exact actor, species, incident and location data.",
+      "integration_reason": "The species owner reserves before execution, captures rollback state, writes and commits the typed receipt, restores on failure, and publishes only after durable commit.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Character/SpeciesRuntime.cs:905-1031",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentOutcomeReceiptFactory.cs:354-438"
+      ]
+    }
+  ]
+}

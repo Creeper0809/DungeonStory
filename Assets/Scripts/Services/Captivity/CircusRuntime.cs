@@ -608,11 +608,16 @@ public sealed class CircusRuntime :
 
         foreach (string captiveId in order.performerIds)
         {
-            captivityCommands.RecordPerformance(
+            if (!captivityCommands.RecordPerformance(
                 captiveId,
                 settlement.Fame,
                 1.5f,
-                settlement.TreatmentRequired);
+                settlement.TreatmentRequired,
+                out string milestoneFailure))
+            {
+                Debug.LogWarning(
+                    $"공연 '{order.orderId}'의 공연자 '{captiveId}' 이정표 원장 기록이 보류되었습니다: {milestoneFailure}");
+            }
         }
 
         if (order.cleanupRequired)

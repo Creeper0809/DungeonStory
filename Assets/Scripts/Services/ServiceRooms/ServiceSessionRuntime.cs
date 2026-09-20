@@ -85,7 +85,9 @@ public sealed class ServiceSessionRuntime :
             IGameMoneyAccount money,
             IPowerInfrastructureQuery power,
             IServiceRoomResearchQuery research,
-            ICoreSessionRulesProvider rulesProvider)
+            ICoreSessionRulesProvider rulesProvider,
+            IGameSessionStateProvider gameDataProvider,
+            IMigratedProducerOutcomeTransaction outcomeTransactions)
         {
             Clock = clock ?? throw new ArgumentNullException(nameof(clock));
             Money = money ?? throw new ArgumentNullException(nameof(money));
@@ -97,6 +99,10 @@ public sealed class ServiceSessionRuntime :
                 .CoreSessionRules
                 ?? throw new InvalidOperationException(
                     "Core-session rules are not authored.");
+            GameDataProvider = gameDataProvider
+                ?? throw new ArgumentNullException(nameof(gameDataProvider));
+            OutcomeTransactions = outcomeTransactions
+                ?? throw new ArgumentNullException(nameof(outcomeTransactions));
         }
 
         public IGameClock Clock { get; }
@@ -104,6 +110,8 @@ public sealed class ServiceSessionRuntime :
         public IPowerInfrastructureQuery Power { get; }
         public IServiceRoomResearchQuery Research { get; }
         public CoreSessionRulesDefinition Rules { get; }
+        public IGameSessionStateProvider GameDataProvider { get; }
+        public IMigratedProducerOutcomeTransaction OutcomeTransactions { get; }
     }
 
     private readonly IBuildingWorldQuery buildings;
@@ -114,6 +122,8 @@ public sealed class ServiceSessionRuntime :
     private readonly IPowerInfrastructureQuery power;
     private readonly IServiceRoomResearchQuery research;
     private readonly CoreSessionRulesDefinition rules;
+    private readonly IGameSessionStateProvider gameDataProvider;
+    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
     private readonly ICharacterWorldPersistenceIdentityQuery persistentCharacters;
@@ -146,6 +156,8 @@ public sealed class ServiceSessionRuntime :
         power = dependencies.Power;
         research = dependencies.Research;
         rules = dependencies.Rules;
+        gameDataProvider = dependencies.GameDataProvider;
+        outcomeTransactions = dependencies.OutcomeTransactions;
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.restoreWorldCandidates = restoreWorldCandidates
@@ -299,7 +311,8 @@ public sealed class ServiceSessionRuntime :
         ServiceOperationMode mode)
     {
         BuildingServiceHubAbility ability = hub.GetServiceHubAbility();
-        ServiceOperationMode previous = ResolveMode(GetHubId(hub));
+        string hubId = GetHubId(hub);
+        ServiceOperationMode previous = ResolveMode(hubId);
         if (!IsOperational(hub) || ability == null)
         {
             return Failure(
@@ -330,8 +343,60 @@ public sealed class ServiceSessionRuntime :
             return Failure(previous, mode, failure);
         }
 
-        Aggregate.SetMode(GetHubId(hub), mode, out _);
-        SubscribeToHub(hub);
+        if (!TryGetCurrentAbsoluteDay(out int absoluteDay)
+            || !outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.ServiceModeChangeResult,
+                CreateModeChangeOwnerIdentity(hubId, mode),
+                absoluteDay,
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out _))
+        {
+            return Failure(
+                previous,
+                mode,
+                new DomainFailure(FailureCode.ServiceHubUnavailable));
+        }
+
+        ServiceSessionAggregate.ServiceModeMutationSnapshot before =
+            Aggregate.CaptureModeMutationSnapshot(hubId);
+        if (!Aggregate.SetMode(hubId, mode, out _))
+        {
+            outcomeTransactions.Cancel(prepared);
+            return Success(previous, mode);
+        }
+
+        MigratedProducerOutcomeCommitResult commit =
+            outcomeTransactions.CommitSingleSubject(
+                prepared,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.FacilityKind,
+                    hubId,
+                    GetHubDisplayName(hub, hubId),
+                    MigratedProducerOutcomeIds.FacilityRole),
+                CreateModeChangeSummary(hub, hubId, previous, mode));
+        if (!commit.DurablyCommitted)
+        {
+            Aggregate.RestoreModeMutationSnapshot(before);
+            return Failure(
+                previous,
+                mode,
+                new DomainFailure(FailureCode.ServiceHubUnavailable));
+        }
+
+        try
+        {
+            SubscribeToHub(hub);
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            UnityEngine.Debug.LogError(
+                "service-mode-change-post-commit-subscription:"
+                + exception.GetType().Name);
+        }
         return Success(previous, mode);
     }
 
@@ -838,6 +903,39 @@ public sealed class ServiceSessionRuntime :
 
     internal static string GetHubId(BuildableObject hub) =>
         hub.RequirePersistentInstanceId().Value;
+
+    private bool TryGetCurrentAbsoluteDay(out int absoluteDay)
+    {
+        absoluteDay = 0;
+        return gameDataProvider.TryGetSessionState(
+                   out GameSessionState gameData)
+            && gameData?.day != null
+            && (absoluteDay = gameData.day.Value) >= 0;
+    }
+
+    private static string CreateModeChangeOwnerIdentity(
+        string hubId,
+        ServiceOperationMode requestedMode) =>
+        "service-mode-change:hub=" + hubId
+        + ":command=set-mode:" + requestedMode;
+
+    private static string CreateModeChangeSummary(
+        BuildableObject hub,
+        string hubId,
+        ServiceOperationMode previous,
+        ServiceOperationMode requested) =>
+        GetHubDisplayName(hub, hubId)
+        + " 운영 모드를 " + previous
+        + "에서 " + requested + "으로 변경했습니다.";
+
+    private static string GetHubDisplayName(
+        BuildableObject hub,
+        string hubId)
+    {
+        string displayName = hub?.BuildingData?.objectName?.Trim()
+            ?? string.Empty;
+        return displayName.Length > 0 ? displayName : hubId;
+    }
 
     private static ServiceModeChangeResult Success(
         ServiceOperationMode previous,

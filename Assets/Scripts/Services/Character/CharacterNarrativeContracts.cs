@@ -306,7 +306,8 @@ public sealed class WorkCompletionIdentityDeliveryCursorSaveData
 public enum WorkCompletionIdentityDeliveryDisposition
 {
     EffectsApplied = 0,
-    TerminalRecipientUnavailable = 1
+    TerminalRecipientUnavailable = 1,
+    EffectsAppliedWithOutcome = 2
 }
 
 [Serializable]

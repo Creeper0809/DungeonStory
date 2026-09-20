@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using DungeonStory.Foundation;
 using DungeonStory.Operation;
 using System.Collections.Generic;
 using System.Linq;
@@ -131,6 +132,23 @@ public static class DungeonGameSaveDebugScenarios
             scope.Container.Resolve<ICharacterProficiencyCommand>();
         ICharacterProficiencyQuery proficiencyQuery =
             scope.Container.Resolve<ICharacterProficiencyQuery>();
+        IKnowledgeResidueProcessingRuntime knowledgeProcessing =
+            scope.Container.Resolve<IKnowledgeResidueProcessingRuntime>();
+        IKnowledgeResidueDestinationRuntime knowledgeDestinations =
+            scope.Container.Resolve<IKnowledgeResidueDestinationRuntime>();
+        BlueprintResearchOutcomeTransaction researchOutcomes =
+            scope.Container.Resolve<BlueprintResearchOutcomeTransaction>();
+        KnowledgeResidueCompletionTransaction knowledgeCompletion =
+            scope.Container.Resolve<KnowledgeResidueCompletionTransaction>();
+        IPhysicalFacilityItemSinkGateway physicalSinks =
+            scope.Container.Resolve<IPhysicalFacilityItemSinkGateway>();
+        IOffenseRegionRuntime offenseRegions =
+            scope.Container.Resolve<IOffenseRegionRuntime>();
+        DungeonRuntimeAggregateRootStore aggregateRoots =
+            scope.Container.Resolve<DungeonRuntimeAggregateRootStore>();
+        GameplayOutcomeLedger outcomeLedger =
+            scope.Container.Resolve<GameplayOutcomeLedger>();
+        IGameClock gameClock = scope.Container.Resolve<IGameClock>();
 
         Require(gameDataProvider.TryGetSessionState(out GameSessionState gameData), "GameSessionState runtime is missing.");
         BlueprintResearchRuntime research = progressionRuntimes.BlueprintResearch;
@@ -169,6 +187,10 @@ public static class DungeonGameSaveDebugScenarios
         InvasionDirectorRuntime invasionDirector = invasionRuntimes.Director;
         Require(invasionThreat != null, "Invasion threat runtime is missing.");
         Require(invasionDirector != null, "Invasion director runtime is missing.");
+        Require(knowledgeProcessing != null,
+            "Knowledge residue runtime is missing.");
+        Require(physicalSinks is IOutcomeAwarePhysicalFacilityItemSinkGateway,
+            "Knowledge residue save QA requires the outcome-aware physical sink gateway.");
 
         DungeonGameSaveData baseline = saveService.Capture();
         try
@@ -375,11 +397,9 @@ public static class DungeonGameSaveDebugScenarios
 
             const string EquipmentWeaponMarker = "weapon:dagger";
             const string EquipmentArmorMarker = "armor:gambeson";
-            const string EquipmentCraftMarker = "weapon:dagger";
             const string EquipmentWeaponInstanceMarker = "item-instance:qa-save-weapon-equipped";
-            const string EquipmentSpareWeaponInstanceMarker = "item-instance:qa-save-weapon-stored";
+            const string EquipmentSpareWeaponInstanceMarker = "item-instance:qa-save-weapon-loose";
             const string EquipmentArmorInstanceMarker = "item-instance:qa-save-armor-equipped";
-            const string EquipmentCraftOrderMarker = "qa-save-craft-order";
             const float ExpeditionStressMarker = 42f;
             string equipmentStaffId = characterIdRegistry.GetOrAssignPersistentId(expeditionMember);
             expeditionMember.Progression?.AddExperience(CharacterProgression.GetExperienceRequired(1));
@@ -412,39 +432,32 @@ public static class DungeonGameSaveDebugScenarios
                     worldState = CombatEquipmentWorldState.Equipped,
                     ownerCharacterId = equipmentStaffId
                 };
-            CombatEquipmentInstance storedWeapon = new CombatEquipmentInstance
+            CombatEquipmentInstance looseWeapon = new CombatEquipmentInstance
                 {
                     instanceId = EquipmentSpareWeaponInstanceMarker,
                     definitionId = EquipmentWeaponMarker,
                     quality = CombatEquipmentQuality.Normal,
                     durabilityRatio = 1f,
-                    worldState = CombatEquipmentWorldState.Stored
+                    worldState = CombatEquipmentWorldState.Loose
                 };
-            itemInstances.EquipmentInstances[EquipmentSpareWeaponInstanceMarker] = storedWeapon;
+            itemInstances.EquipmentInstances[EquipmentSpareWeaponInstanceMarker] = looseWeapon;
             Require(equipmentCatalog.TryGet(
                     EquipmentWeaponMarker,
-                    out CombatEquipmentDefinitionSO storedWeaponDefinition),
-                "The stored QA weapon has no authored equipment definition.");
-            float equipmentCraftRequiredWork =
-                storedWeaponDefinition.RequiredCraftWork;
-            float equipmentCraftCompletedWork = Mathf.Min(
-                6.75f,
-                equipmentCraftRequiredWork * 0.5f);
-            float equipmentCraftRemainingWork =
-                equipmentCraftRequiredWork - equipmentCraftCompletedWork;
+                    out CombatEquipmentDefinitionSO looseWeaponDefinition),
+                "The loose QA weapon has no authored equipment definition.");
             Require(itemStackRuntime.SpawnExistingUniqueItemAt(
-                    storedWeaponDefinition.ItemId,
+                    looseWeaponDefinition.ItemId,
                     (ItemInstanceId)EquipmentSpareWeaponInstanceMarker,
                     savedOwnerPosition,
-                    WorldItemStackState.Stored,
+                    WorldItemStackState.Loose,
                     string.Empty,
-                    out string storedWeaponStackId),
-                "The stored QA weapon could not be materialized as a physical item.");
+                    out string looseWeaponStackId),
+                "The loose QA weapon could not be materialized as a physical item.");
             Require(itemInstances.TryLinkEquipmentToStack(
                     EquipmentSpareWeaponInstanceMarker,
-                    storedWeaponStackId,
-                    CombatEquipmentWorldState.Stored),
-                "The stored QA weapon could not be linked to its physical stack.");
+                    looseWeaponStackId,
+                    CombatEquipmentWorldState.Loose),
+                "The loose QA weapon could not be linked to its physical stack.");
             itemInstances.EquipmentInstances[EquipmentArmorInstanceMarker] =
                 new CombatEquipmentInstance
                 {
@@ -484,29 +497,7 @@ public static class DungeonGameSaveDebugScenarios
                         }
                     }
                 },
-                craftOrders = new List<CombatEquipmentCraftOrderSaveData>
-                {
-                    new CombatEquipmentCraftOrderSaveData
-                    {
-                        orderId = EquipmentCraftOrderMarker,
-                        definitionId = EquipmentCraftMarker,
-                        materialId = "material:iron",
-                        requiredWork = equipmentCraftRequiredWork,
-                        completedWork = equipmentCraftCompletedWork,
-                        materialsReady = true,
-                        materialDestinationId =
-                            "facility-input:qa-save-craft-order",
-                        qualityRoll = new CraftQualityRollSaveData
-                        {
-                            attemptIndex = 0,
-                            randomA = -3,
-                            randomB = 1,
-                            randomC = 4
-                        },
-                        qualityStage = QualityTargetPipelineStage.Working,
-                        craftWorkPerAttempt = equipmentCraftRequiredWork
-                    }
-                }
+                craftOrders = new List<CombatEquipmentCraftOrderSaveData>()
             }));
             expeditionMember.Lifecycle?.RestoreExpeditionRecovery(new CharacterExpeditionRecoveryState
             {
@@ -619,6 +610,141 @@ public static class DungeonGameSaveDebugScenarios
                 2f,
                 new InvasionThreatFactors(5f, 4f, 3f, 2f)));
 
+            // Hold one real knowledge completion at the durable joint-commit
+            // point: reward/task/material/outbox are committed, but delivery
+            // and acknowledgement have not run yet. The sealed full save must
+            // restore this exact continuation without replaying its reward.
+            Require(knowledgeProcessing.Tasks.Count == 0,
+                "Knowledge residue save QA requires an empty task queue baseline.");
+            Require(codex.TryGetNextMemoryResidueClue(out string knowledgeClue),
+                "No Codex memory-residue clue remains for the save QA marker.");
+            Require(knowledgeProcessing.TryQueueCodexAnalysis(
+                    out string knowledgeQueueMessage),
+                "Knowledge residue save QA could not queue Codex analysis: "
+                + knowledgeQueueMessage);
+            KnowledgeResidueAggregateState knowledgeState = aggregateRoots
+                .GetOrCreateWritable(
+                    () => new KnowledgeResidueAggregateState(),
+                    state => state.DeepClone());
+            KnowledgeResidueTaskSaveData knowledgeTask =
+                knowledgeState.FirstTask;
+            Require(knowledgeTask != null
+                    && string.Equals(
+                        knowledgeTask.codexCluePayload,
+                        knowledgeClue,
+                        StringComparison.Ordinal),
+                "Queued knowledge task did not retain its exact Codex clue.");
+            BuildableObject knowledgeFacility = (buildingWorld.Buildings
+                    ?? Array.Empty<BuildableObject>())
+                .Where(candidate => candidate != null
+                    && !candidate.isDestroy
+                    && candidate.SupportsWork(BuiltInWorkTypeIds.Research))
+                .OrderBy(candidate => candidate.id)
+                .ThenBy(candidate => candidate.centerPos.x)
+                .ThenBy(candidate => candidate.centerPos.y)
+                .FirstOrDefault();
+            Require(knowledgeFacility != null,
+                "No live research facility exists for the knowledge save QA marker.");
+            Require(knowledgeDestinations.TryEnsure(
+                    knowledgeTask,
+                    knowledgeFacility,
+                    out string knowledgeDestinationFailure),
+                "Knowledge residue destination setup failed: "
+                + knowledgeDestinationFailure);
+            int knowledgeDay = Math.Max(
+                0,
+                (int)(gameClock.Time / GameCalendarRules.SecondsPerDay));
+            Require(researchOutcomes.TryApplyKnowledgeProgress(
+                    aggregateRoots,
+                    knowledgeTask.requiredWork,
+                    knowledgeDay,
+                    "도감 단서 분석",
+                    string.Empty,
+                    string.Empty,
+                    knowledgeTask.facilityInstanceId,
+                    FacilityShopService.GetBuildingName(
+                        knowledgeFacility.BuildingData),
+                    null,
+                    out BlueprintResearchWorkResult knowledgeProgress)
+                && knowledgeProgress.Success
+                && !knowledgeProgress.Completed
+                && Mathf.Approximately(
+                    knowledgeProgress.TotalProgress,
+                    knowledgeProgress.RequiredWork),
+                "Knowledge residue work did not reach its committed pre-completion boundary.");
+            knowledgeTask = aggregateRoots
+                .GetOrCreate(() => new KnowledgeResidueAggregateState())
+                .FirstTask;
+            Require(knowledgeTask != null
+                    && knowledgeTask.dispositionPhase ==
+                        KnowledgeResidueDispositionPhase.AwaitingInput
+                    && knowledgeTask.completedWork + .001f
+                        >= knowledgeTask.requiredWork,
+                "Knowledge residue progress owner did not retain its completed work.");
+            Require(itemStackRuntime.SpawnItemAt(
+                    KnowledgeResidueDestinationAuthority.MemoryResidueItemId,
+                    1,
+                    knowledgeFacility.centerPos,
+                    WorldItemStackState.FacilityBuffer,
+                    knowledgeTask.destinationId,
+                    out int spawnedKnowledgeResidue)
+                && spawnedKnowledgeResidue == 1,
+                "The memory-residue input could not be materialized at its live facility destination.");
+            IOutcomeAwarePhysicalFacilityItemSinkGateway jointPhysicalSinks =
+                (IOutcomeAwarePhysicalFacilityItemSinkGateway)physicalSinks;
+            KnowledgeResidueCompletionTransaction.Participant
+                knowledgeParticipant = knowledgeCompletion.Prepare(
+                    aggregateRoots,
+                    knowledgeTask,
+                    codex,
+                    offenseRegions,
+                    knowledgeDay,
+                    FacilityShopService.GetBuildingName(
+                        knowledgeFacility.BuildingData));
+            Require(jointPhysicalSinks.TryCommitSinkPending(
+                    knowledgeTask.destinationId,
+                    KnowledgeResidueDestinationAuthority.MemoryResidueItemId,
+                    1,
+                    knowledgeTask.sinkOperationId,
+                    knowledgeTask.sinkReasonCode,
+                    knowledgeParticipant,
+                    out PhysicalItemBatchDispositionReceipt knowledgeReceipt,
+                    out string knowledgeCommitFailure),
+                "Knowledge residue joint commit failed: "
+                + knowledgeCommitFailure);
+            knowledgeParticipant.NotifyCommitted();
+            knowledgeTask = aggregateRoots
+                .GetOrCreate(() => new KnowledgeResidueAggregateState())
+                .FirstTask;
+            string knowledgeTaskId = knowledgeTask?.taskId ?? string.Empty;
+            string knowledgeOperationId =
+                knowledgeTask?.sinkOperationId ?? string.Empty;
+            long knowledgeOwnerRevision =
+                knowledgeTask?.completionOwnerRevision ?? 0L;
+            int knowledgeNextTaskSequence =
+                knowledgeProcessing.NextTaskSequence;
+            int knowledgeTaskGeneration =
+                knowledgeProcessing.TaskIdentityGeneration;
+            Require(knowledgeTask != null
+                    && knowledgeTask.dispositionPhase ==
+                        KnowledgeResidueDispositionPhase.OutcomePublished
+                    && knowledgeOwnerRevision == knowledgeReceipt.OwnerRevision
+                    && knowledgeOwnerRevision > 0
+                    && codex.State.HasInfo(
+                        CodexEntryCategory.Invasion,
+                        "memory-residue",
+                        knowledgeClue),
+                "Knowledge residue joint commit did not retain its exact task owner and Codex reward.");
+            GameplayOutcomeLedgerSaveData committedKnowledgeLedger =
+                outcomeLedger.CaptureGameplayOutcomes();
+            Require(committedKnowledgeLedger.outbox.Count(value =>
+                        value != null
+                        && value.producerId ==
+                            KnowledgeCompletionOutcomeIds.ProducerId
+                        && value.operationId == knowledgeOperationId
+                        && value.commitRevision == knowledgeOwnerRevision) == 1,
+                "Knowledge residue completion was not held in the durable outbox before save capture.");
+
             // Event-producing setup above is intentional; pin the ledger marker last.
             settlement.RestorePersistentState(new OperatingDaySettlementPersistenceState(
                 12,
@@ -658,6 +784,18 @@ public static class DungeonGameSaveDebugScenarios
                 DungeonSaveSectionPayload.ReadOrNew<DungeonPhysicalItemSaveData>(
                     parsed,
                     PhysicalItemsSaveSection.Id);
+            DungeonResearchSaveData parsedResearch =
+                DungeonSaveSectionPayload.ReadOrNew<DungeonResearchSaveData>(
+                    parsed,
+                    BlueprintResearchSaveSection.Id);
+            GameplayOutcomeLedgerSaveData parsedOutcomeLedger =
+                DungeonSaveSectionPayload.ReadOrNew<GameplayOutcomeLedgerSaveData>(
+                    parsed,
+                    GameplayOutcomeLedgerSaveSection.Id);
+            DungeonCodexSaveData parsedCodex =
+                DungeonSaveSectionPayload.ReadOrNew<DungeonCodexSaveData>(
+                    parsed,
+                    CodexSaveSection.Id);
             CharacterNarrativeWorldSaveData parsedNarratives =
                 DungeonSaveSectionPayload.ReadOrNew<CharacterNarrativeWorldSaveData>(
                     parsed,
@@ -701,14 +839,35 @@ public static class DungeonGameSaveDebugScenarios
                                 EquipmentArmorInstanceMarker)))
                     && parsedPhysicalItems.uniqueItems.Count(entry => entry != null
                         && (entry.itemInstanceId == EquipmentWeaponInstanceMarker
-                            || entry.itemInstanceId == EquipmentSpareWeaponInstanceMarker)) == 2
-                    && parsedEquipment.craftOrders.Any(order => order != null
-                        && order.orderId == EquipmentCraftOrderMarker
-                        && order.definitionId == EquipmentCraftMarker
-                        && Mathf.Approximately(
-                            order.RemainingWork,
-                            equipmentCraftRemainingWork)),
-                "Combat equipment instances, loadout, or work queue were not captured.");
+                            || entry.itemInstanceId == EquipmentSpareWeaponInstanceMarker)) == 2,
+                "Combat equipment instances or loadout were not captured.");
+            Require(parsedResearch.knowledgeTasks.Count(value => value != null
+                        && value.taskId == knowledgeTaskId
+                        && value.sinkOperationId == knowledgeOperationId
+                        && value.completionOwnerRevision
+                            == knowledgeOwnerRevision
+                        && value.dispositionPhase ==
+                            KnowledgeResidueDispositionPhase.OutcomePublished)
+                    == 1
+                && parsedPhysicalItems.pendingBatchDispositions.Count(value =>
+                        value != null
+                        && value.operationId == knowledgeOperationId
+                        && value.outcomeOwnerRevision
+                            == knowledgeOwnerRevision
+                        && value.gameplayOutcomeExpected
+                        && value.gameplayOutcome != null) == 1
+                && parsedOutcomeLedger.outbox.Count(value => value != null
+                        && value.producerId ==
+                            KnowledgeCompletionOutcomeIds.ProducerId
+                        && value.operationId == knowledgeOperationId
+                        && value.commitRevision
+                            == knowledgeOwnerRevision) == 1
+                && parsedCodex.entries.Any(entry => entry != null
+                    && entry.category == CodexEntryCategory.Invasion
+                    && entry.entryId == "memory-residue"
+                    && entry.lines.Any(line => line != null
+                        && line.text == knowledgeClue)),
+                "The sealed save did not capture one joined knowledge task, material receipt, outbox result, and Codex reward.");
 
             gameData.holdingMoney.Value = 1;
             research.ReplaceWithEmptyStateForDebug();
@@ -727,6 +886,25 @@ public static class DungeonGameSaveDebugScenarios
                 Array.Empty<string>());
             customers.ReplaceWithEmptyStateForDebug();
             codex.ReplaceWithEmptyStateForDebug();
+            knowledgeProcessing.Restore(
+                knowledgeProcessing.PrepareRestore(
+                    Array.Empty<KnowledgeResidueTaskSaveData>(),
+                    1,
+                    KnowledgeResidueTaskIdentity.OriginalGeneration));
+            DungeonPhysicalItemSaveData withoutKnowledgePending =
+                JsonUtility.FromJson<DungeonPhysicalItemSaveData>(
+                    JsonUtility.ToJson(itemStackRuntime.Capture()));
+            withoutKnowledgePending.pendingBatchDispositions.RemoveAll(
+                value => value != null
+                    && value.operationId == knowledgeOperationId);
+            itemStackRuntime.Restore(withoutKnowledgePending);
+            GameplayOutcomeLedgerSaveData baselineOutcomeLedger =
+                DungeonSaveSectionPayload.ReadOrNew<GameplayOutcomeLedgerSaveData>(
+                    baseline,
+                    GameplayOutcomeLedgerSaveSection.Id);
+            PublishGameplayOutcomeRestoreForDebug(
+                outcomeLedger,
+                baselineOutcomeLedger);
             alerts.RestoreHistory(Array.Empty<EventAlertRecordSnapshot>());
             settlement.RestorePersistentState(new OperatingDaySettlementPersistenceState(
                 1,
@@ -797,6 +975,61 @@ public static class DungeonGameSaveDebugScenarios
                 CodexEntryCategory.Facility,
                 CodexMarker,
                 "Round trip marker"), "Codex state did not round-trip.");
+            KnowledgeResidueTaskSaveData restoredKnowledgeTask =
+                knowledgeProcessing.Capture().SingleOrDefault(value =>
+                    value != null && value.taskId == knowledgeTaskId);
+            DungeonPhysicalItemSaveData restoredKnowledgePhysical =
+                itemStackRuntime.Capture();
+            GameplayOutcomeLedgerSaveData restoredKnowledgeLedger =
+                outcomeLedger.CaptureGameplayOutcomes();
+            Require(restoredKnowledgeTask != null
+                    && restoredKnowledgeTask.dispositionPhase ==
+                        KnowledgeResidueDispositionPhase.OutcomePublished
+                    && restoredKnowledgeTask.completionOwnerRevision
+                        == knowledgeOwnerRevision
+                    && restoredKnowledgePhysical.pendingBatchDispositions
+                        .Count(value => value != null
+                            && value.operationId == knowledgeOperationId
+                            && value.outcomeOwnerRevision
+                                == knowledgeOwnerRevision) == 1
+                    && restoredKnowledgeLedger.outbox.Count(value =>
+                        value != null
+                        && value.producerId ==
+                            KnowledgeCompletionOutcomeIds.ProducerId
+                        && value.operationId == knowledgeOperationId
+                        && value.commitRevision
+                            == knowledgeOwnerRevision) == 1
+                    && codex.State.HasInfo(
+                        CodexEntryCategory.Invasion,
+                        "memory-residue",
+                        knowledgeClue),
+                "Full save restore lost the joined knowledge task, material receipt, outbox result, or Codex reward.");
+            ((KnowledgeResidueProcessingRuntime)knowledgeProcessing).Tick();
+            GameplayOutcomeLedgerSaveData finalizedKnowledgeLedger =
+                outcomeLedger.CaptureGameplayOutcomes();
+            Require(knowledgeProcessing.Tasks.Count == 0
+                    && itemStackRuntime.Capture().pendingBatchDispositions
+                        .All(value => value == null
+                            || value.operationId != knowledgeOperationId)
+                    && finalizedKnowledgeLedger.outbox.All(value =>
+                        value == null
+                        || value.operationId != knowledgeOperationId)
+                    && finalizedKnowledgeLedger.exactOutcomes.Count(value =>
+                        value != null
+                        && value.producerId ==
+                            KnowledgeCompletionOutcomeIds.ProducerId
+                        && value.operationId == knowledgeOperationId
+                        && value.commitRevision
+                            == knowledgeOwnerRevision) == 1
+                    && knowledgeProcessing.NextTaskSequence
+                        == knowledgeNextTaskSequence
+                    && knowledgeProcessing.TaskIdentityGeneration
+                        == knowledgeTaskGeneration
+                    && codex.State.GetSnapshot(
+                            CodexEntryCategory.Invasion,
+                            "memory-residue")?.lines.Count(line =>
+                                line.Text == knowledgeClue) == 1,
+                "Restored knowledge completion did not deliver and clean up exactly once.");
             Require(ownerManager.CurrentOwnerActor != null, "Owner was not recreated during restore.");
             CharacterActor restoredOwner = ownerManager.CurrentOwnerActor;
             Require(report.RestoredCharacterCount == savedCharacterCount,
@@ -892,15 +1125,16 @@ public static class DungeonGameSaveDebugScenarios
                         == EquipmentWeaponInstanceMarker
                     && restoredLoadout.armorInstanceIds.Contains(
                         EquipmentArmorInstanceMarker)
-                    && equipmentRuntime.GetAvailableCount(EquipmentWeaponMarker) == 1
-                    && equipmentRuntime.GetAvailableCount(EquipmentArmorMarker) == 0
-                    && equipmentRuntime.CraftQueue.Any(order => order != null
-                        && order.orderId == EquipmentCraftOrderMarker
-                        && order.definitionId == EquipmentCraftMarker
-                        && Mathf.Approximately(
-                            order.RemainingWork,
-                            equipmentCraftRemainingWork)),
-                "Combat equipment instances, ownership, or work queue did not round-trip.");
+                    && equipmentRuntime.Instances.Any(instance =>
+                        instance != null
+                        && instance.instanceId
+                            == EquipmentSpareWeaponInstanceMarker
+                        && instance.definitionId == EquipmentWeaponMarker
+                        && instance.worldState
+                            == CombatEquipmentWorldState.Loose)
+                    && equipmentRuntime.GetAvailableCount(EquipmentWeaponMarker) == 0
+                    && equipmentRuntime.GetAvailableCount(EquipmentArmorMarker) == 0,
+                "Combat equipment instances or ownership did not round-trip.");
             Require(expeditions.ResultHistory.Any(result => result.expeditionId == ExpeditionResultMarker
                 && result.success
                 && result.members.Count == 1
@@ -973,7 +1207,7 @@ public static class DungeonGameSaveDebugScenarios
                     legacyWithoutDoctrine,
                     RunVariableSaveSection.Id);
             legacyRunVariables.version =
-                DungeonRunVariableSaveData.CurrentVersion - 1;
+                DungeonRunVariableSaveData.CurrentVersion - 2;
             legacyRunVariables.startVariables.ownerDoctrineId = string.Empty;
             DungeonSaveSectionPayload.Write(
                 legacyWithoutDoctrine,
@@ -981,6 +1215,8 @@ public static class DungeonGameSaveDebugScenarios
                 DungeonRunVariableSaveData.CurrentVersion,
                 DungeonSaveRestorePhase.Foundation,
                 legacyRunVariables);
+            legacyWithoutDoctrine.manifest = DungeonSaveManifest.Capture(
+                legacyWithoutDoctrine.sections);
             Require(
                 !saveService.TryRestore(
                     legacyWithoutDoctrine,
@@ -1021,6 +1257,7 @@ public static class DungeonGameSaveDebugScenarios
                 + $"buildings={report.RestoredBuildingCount} characters={report.RestoredCharacterCount} "
                 + $"expeditions={report.RestoredExpeditionCount} "
                 + $"intruders={report.RestoredIntruderCount} "
+                + "knowledgeContinuation=PASS "
                 + $"warnings={report.Warnings.Count}");
         }
         finally
@@ -1029,6 +1266,27 @@ public static class DungeonGameSaveDebugScenarios
             {
                 Debug.LogError("Save QA baseline restore failed: " + string.Join(" | ", cleanupReport.Errors));
             }
+        }
+    }
+
+    private static void PublishGameplayOutcomeRestoreForDebug(
+        GameplayOutcomeLedger ledger,
+        GameplayOutcomeLedgerSaveData payload)
+    {
+        GameplayOutcomeLedgerRestoreCandidate candidate =
+            ledger.PrepareGameplayOutcomeRestore(payload);
+        ledger.BeginRestoreCandidate();
+        try
+        {
+            ledger.PublishGameplayOutcomeRestore(candidate);
+            ledger.PublishRestoreCandidate();
+            ledger.CompleteRestoreCandidate();
+        }
+        catch
+        {
+            ledger.RollbackPublishedRestoreCandidate();
+            candidate.Discard();
+            throw;
         }
     }
 

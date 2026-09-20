@@ -189,7 +189,8 @@ internal static class ConveyorPersistence
                         ? Mathf.Max(0f, currentTime - payload.StalledSince)
                         : 0f,
                     routeVersion = payload.RouteVersion,
-                    stallReason = payload.StallReason
+                    stallReason = payload.StallReason,
+                    overflowApproved = payload.OverflowApproved
                 })
                 .ToList()
         };
@@ -273,7 +274,8 @@ internal static class ConveyorPersistence
                     ? currentTime - saved.stalledSince
                     : 0f,
                 RouteVersion = 0,
-                StallReason = saved.stallReason
+                StallReason = saved.stallReason,
+                OverflowApproved = saved.overflowApproved
             };
         }
 

@@ -329,6 +329,7 @@ public sealed class ConveyorPayloadSaveData
     public float stalledSince;
     public int routeVersion;
     public ConveyorStallReason stallReason;
+    public bool overflowApproved;
 }
 
 [Serializable]
@@ -346,7 +347,7 @@ public sealed class ConveyorNodeSaveData
 [Serializable]
 public sealed class DungeonConveyorInfrastructureSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
     public int version = CurrentVersion;
     public int nextPayloadSequence = 1;
     public List<ConveyorNodeSaveData> nodes =
@@ -578,6 +579,27 @@ public interface IFluidInfrastructureTransaction
         string destinationId,
         float amount,
         out DomainFailure failure);
+}
+
+public readonly struct FluidInfrastructureMutationToken
+{
+    internal FluidInfrastructureMutationToken(
+        FluidNetworkAggregateState before,
+        int expectedMutatedVersion)
+    {
+        Before = before;
+        ExpectedMutatedVersion = expectedMutatedVersion;
+    }
+
+    internal FluidNetworkAggregateState Before { get; }
+    internal int ExpectedMutatedVersion { get; }
+    public bool IsValid => Before != null && ExpectedMutatedVersion >= 0;
+}
+
+public interface IFluidInfrastructureMutationTransaction
+{
+    FluidInfrastructureMutationToken CaptureMutation();
+    void RestoreMutation(in FluidInfrastructureMutationToken token);
 }
 
 public interface IManualWaterAvailabilityQuery

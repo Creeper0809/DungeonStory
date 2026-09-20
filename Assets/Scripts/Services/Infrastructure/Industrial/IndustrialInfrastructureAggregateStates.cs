@@ -129,3 +129,24 @@ internal sealed class ConveyorAggregateState
         return clone;
     }
 }
+
+internal sealed class InfrastructureCommandOutcomeAggregateState
+{
+    public long NextOwnerRevision = 1L;
+    public readonly SortedDictionary<long, InfrastructureCommandOutcomeOutboxSaveData>
+        Pending = new();
+
+    public InfrastructureCommandOutcomeAggregateState DeepClone()
+    {
+        InfrastructureCommandOutcomeAggregateState clone = new()
+        {
+            NextOwnerRevision = NextOwnerRevision
+        };
+        foreach (KeyValuePair<long, InfrastructureCommandOutcomeOutboxSaveData>
+                 pair in Pending)
+        {
+            clone.Pending.Add(pair.Key, pair.Value.Clone());
+        }
+        return clone;
+    }
+}

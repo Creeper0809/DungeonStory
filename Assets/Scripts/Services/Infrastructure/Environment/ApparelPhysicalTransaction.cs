@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 
 public enum ApparelPhysicalTransactionStatus
 {
@@ -52,7 +53,11 @@ public interface IApparelPhysicalTransaction
         BuildableObject facility,
         string outputItemId,
         ItemInstanceComponentSaveData frozenOutputComponent,
-        bool markForSale);
+        bool markForSale,
+        string makerCharacterId,
+        string makerDisplayName,
+        CraftsmanshipQualityTier quality,
+        bool rejectedBelowMinimum);
 
     ApparelPhysicalTransactionResult ExecuteRejectedDismantleOrResume(
         ApparelWorkOrderSaveData order,
@@ -74,7 +79,8 @@ public interface IApparelPhysicalTransaction
 /// </summary>
 public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
 {
-    private const string OutcomeSchema = "apparel-craft-output@2";
+    private const string LegacyOutcomeSchema = "apparel-craft-output@2";
+    private const string OutcomeSchema = "apparel-craft-output@3";
     public const string OutputLineId = "output:apparel-crafted-item";
     public const string RejectedRecoveryOutputLineId =
         "output:apparel-rejected-recovery";
@@ -93,7 +99,10 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
     private readonly IItemInstanceRepository instances;
     private readonly IProductionOutputCapabilityRegistry outputCapabilities;
     private readonly IProductionOutputMaximumMassRegistry outputMaximumMass;
+    private readonly IApparelPhysicalOutcomeCommitter outcomeCommitter;
+    private readonly IGameClock gameClock;
 
+#if UNITY_EDITOR
     public ApparelPhysicalTransaction(
         IWorldItemStackRuntime items,
         IPhysicalItemBatchDispositionService dispositions,
@@ -106,7 +115,27 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
         IFacilityBufferPlannedOutputPublicationService publication,
         IItemInstanceRepository instances,
         IProductionOutputCapabilityRegistry outputCapabilities,
-        IProductionOutputMaximumMassRegistry outputMaximumMass)
+        IProductionOutputMaximumMassRegistry outputMaximumMass) =>
+        throw new InvalidOperationException(
+            "Apparel physical transactions require their mandatory gameplay outcome committer and game clock.");
+#endif
+
+    [Inject]
+    public ApparelPhysicalTransaction(
+        IWorldItemStackRuntime items,
+        IPhysicalItemBatchDispositionService dispositions,
+        IReservedPhysicalItemBatchDispositionService reservedDispositions,
+        IItemQuantityReservationService quantityReservations,
+        IProductionFacilityHandleQuery facilityHandles,
+        IProductionOutputDestinationAuthorityRuntime destinations,
+        IProductionOutputBufferCapacityProjector capacityProjector,
+        IFacilityBufferMassAdmissionService admission,
+        IFacilityBufferPlannedOutputPublicationService publication,
+        IItemInstanceRepository instances,
+        IProductionOutputCapabilityRegistry outputCapabilities,
+        IProductionOutputMaximumMassRegistry outputMaximumMass,
+        IApparelPhysicalOutcomeCommitter outcomeCommitter,
+        IGameClock gameClock)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.dispositions = dispositions
@@ -131,6 +160,9 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
             ?? throw new ArgumentNullException(nameof(outputCapabilities));
         this.outputMaximumMass = outputMaximumMass
             ?? throw new ArgumentNullException(nameof(outputMaximumMass));
+        this.outcomeCommitter = outcomeCommitter
+            ?? throw new ArgumentNullException(nameof(outcomeCommitter));
+        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
     }
 
     public bool TryValidateCraftOutputCapability(
@@ -174,6 +206,7 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
     [GameplayInternalOnly(
         "Apparel craft completion publishes one admitted physical output and owns the matching pending material debit.",
         "ApparelWorkOrderRuntime craft resolver only")]
+#if UNITY_EDITOR
     public ApparelPhysicalTransactionResult ExecuteCraftOrResume(
         ApparelWorkOrderSaveData order,
         BuildableObject facility,
@@ -181,22 +214,65 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
         ItemInstanceComponentSaveData frozenOutputComponent,
         bool markForSale)
     {
+        CraftsmanshipQualityTier quality =
+            ApparelItemStateCodec.TryRead(
+                new[] { frozenOutputComponent },
+                out ApparelInstanceState state)
+                ? state.craftsmanshipQuality
+                : CraftsmanshipQualityTier.Normal;
+        return ExecuteCraftOrResume(
+            order,
+            facility,
+            outputItemId,
+            frozenOutputComponent,
+            markForSale,
+            "character:qa:apparel-maker",
+            "시험 재봉사",
+            quality,
+            markForSale);
+    }
+#endif
+
+    public ApparelPhysicalTransactionResult ExecuteCraftOrResume(
+        ApparelWorkOrderSaveData order,
+        BuildableObject facility,
+        string outputItemId,
+        ItemInstanceComponentSaveData frozenOutputComponent,
+        bool markForSale,
+        string makerCharacterId,
+        string makerDisplayName,
+        CraftsmanshipQualityTier quality,
+        bool rejectedBelowMinimum)
+    {
+        bool legacyFrozen = order != null
+            && !string.IsNullOrEmpty(order.craftOutputBatchCommitId)
+            && order.craftQualityOutcomeSchemaVersion == 0;
         if (order == null
             || facility == null
             || order.kind != ApparelWorkOrderKind.Craft
             || !Canonical(order.orderId)
             || !Canonical(outputItemId)
-            || frozenOutputComponent == null)
+            || frozenOutputComponent == null
+            || !legacyFrozen
+                && (!GameplayOutcomeStableIdSyntax.IsValid(makerCharacterId)
+                    || string.IsNullOrWhiteSpace(makerDisplayName)
+                    || !Enum.IsDefined(
+                        typeof(CraftsmanshipQualityTier), quality)))
         {
             return Conflict("apparel-craft-physical-request-invalid");
         }
 
+        ReservedEvolutionOutcome reservedOutcome = default;
+        bool reservationConsumed = false;
         try
         {
             ProductionFacilityHandle handle = facilityHandles.CaptureFacility(facility);
             if (handle == null
                 || handle.IsDestroyed
                 || !handle.InstanceId.IsValid
+                || !GameplayOutcomeStableIdSyntax.IsValid(handle.InstanceId.Value)
+                || !GameplayOutcomeStableIdSyntax.IsValid(order.orderId)
+                || !GameplayOutcomeStableIdSyntax.IsValid(outputItemId)
                 || !string.Equals(
                     handle.InstanceId.Value,
                     order.facilityInstanceId,
@@ -276,7 +352,23 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
                 componentFingerprint,
                 outputCapability.Fingerprint,
                 markForSale,
-                outputMassGrams);
+                outputMassGrams,
+                makerCharacterId,
+                makerDisplayName,
+                quality,
+                rejectedBelowMinimum);
+            int absoluteDay = CurrentAbsoluteDay();
+            if (!outcomeCommitter.TryReserve(
+                    batchCommitId,
+                    order.qualityAttemptIndex,
+                    absoluteDay,
+                    legacyFrozen ? 0 : 1,
+                    out reservedOutcome,
+                    out string outcomeReserveFailure))
+            {
+                return Pending(
+                    "apparel-craft-outcome-reserve:" + outcomeReserveFailure);
+            }
             if (!AdoptFrozenAuthority(
                     order,
                     batchCommitId,
@@ -286,6 +378,10 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
                     maximumMassProof,
                     capacity,
                     outputMassGrams,
+                    makerCharacterId,
+                    makerDisplayName,
+                    quality,
+                    rejectedBelowMinimum,
                     out string frozenFailure))
             {
                 return Conflict(frozenFailure);
@@ -293,11 +389,23 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
 
             if (order.craftOutputAcknowledged)
             {
-                return TryReturnTerminalReplay(
+                ApparelPhysicalTransactionResult replay = TryReturnTerminalReplay(
                     order,
                     outputItemId,
                     handle,
                     markForSale);
+                return replay.IsCompleted
+                    ? FinalizeOutcome(
+                        order,
+                        handle.InstanceId.Value,
+                        FacilityShopService.GetBuildingName(facility.BuildingData),
+                        outputItemId,
+                        replay,
+                        batchCommitId,
+                        absoluteDay,
+                        reservedOutcome,
+                        ref reservationConsumed)
+                    : replay;
             }
 
             FacilityBufferPlannedOutputToken token;
@@ -450,19 +558,34 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
                 order.craftMarketRouted = true;
             }
 
-            return new ApparelPhysicalTransactionResult(
+            ApparelPhysicalTransactionResult completed = new(
                 ApparelPhysicalTransactionStatus.Completed,
                 output.StackId,
                 output.ItemInstanceId,
                 order.craftInputMassGrams,
                 order.craftOutputMassGrams,
                 string.Empty);
+            return FinalizeOutcome(
+                order,
+                handle.InstanceId.Value,
+                FacilityShopService.GetBuildingName(facility.BuildingData),
+                outputItemId,
+                completed,
+                batchCommitId,
+                absoluteDay,
+                reservedOutcome,
+                ref reservationConsumed);
         }
         catch (Exception exception) when (exception is ArgumentException
                                            or InvalidOperationException
                                            or OverflowException)
         {
             return Conflict("apparel-craft-physical-exception:" + exception.Message);
+        }
+        finally
+        {
+            if (reservedOutcome.IsValid && !reservationConsumed)
+                outcomeCommitter.Cancel(reservedOutcome);
         }
     }
 
@@ -490,12 +613,17 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
             return Conflict("apparel-rejected-physical-request-invalid");
         }
 
+        ReservedEvolutionOutcome reservedOutcome = default;
+        bool reservationConsumed = false;
         try
         {
             ProductionFacilityHandle handle = facilityHandles.CaptureFacility(facility);
             if (handle == null
                 || handle.IsDestroyed
                 || !handle.InstanceId.IsValid
+                || !GameplayOutcomeStableIdSyntax.IsValid(handle.InstanceId.Value)
+                || !GameplayOutcomeStableIdSyntax.IsValid(order.orderId)
+                || !GameplayOutcomeStableIdSyntax.IsValid(recoveryItemId)
                 || !string.Equals(
                     handle.InstanceId.Value,
                     order.facilityInstanceId,
@@ -595,6 +723,18 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
                 recoveryItemId,
                 quantity,
                 outputMassGrams);
+            int absoluteDay = CurrentAbsoluteDay();
+            if (!outcomeCommitter.TryReserve(
+                    inputOperationId,
+                    order.qualityAttemptIndex,
+                    absoluteDay,
+                    0,
+                    out reservedOutcome,
+                    out string outcomeReserveFailure))
+            {
+                return Pending(
+                    "apparel-rejected-outcome-reserve:" + outcomeReserveFailure);
+            }
 
             if (order.rejectedRecoveryOutputAcknowledged)
             {
@@ -609,10 +749,23 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
                     return Conflict(
                         "apparel-rejected-maximum-mass-proof-drift");
                 }
-                return TryReturnRejectedTerminalReplay(
+                ApparelPhysicalTransactionResult replay =
+                    TryReturnRejectedTerminalReplay(
                     order,
                     recoveryItemId,
                     outputMassGrams);
+                return replay.IsCompleted
+                    ? FinalizeOutcome(
+                        order,
+                        handle.InstanceId.Value,
+                        FacilityShopService.GetBuildingName(facility.BuildingData),
+                        recoveryItemId,
+                        replay,
+                        inputOperationId,
+                        absoluteDay,
+                        reservedOutcome,
+                        ref reservationConsumed)
+                    : replay;
             }
 
             FacilityBufferPlannedOutputToken token = default;
@@ -808,7 +961,7 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
                 order.rejectedDismantleAcknowledged = true;
             }
 
-            return new ApparelPhysicalTransactionResult(
+            ApparelPhysicalTransactionResult completed = new(
                 ApparelPhysicalTransactionStatus.Completed,
                 order.rejectedRecoveryStackIds?.FirstOrDefault()
                     ?? string.Empty,
@@ -816,6 +969,16 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
                 order.rejectedDismantleInputMassGrams,
                 order.rejectedRecoveryOutputMassGrams,
                 string.Empty);
+            return FinalizeOutcome(
+                order,
+                handle.InstanceId.Value,
+                FacilityShopService.GetBuildingName(facility.BuildingData),
+                recoveryItemId,
+                completed,
+                inputOperationId,
+                absoluteDay,
+                reservedOutcome,
+                ref reservationConsumed);
         }
         catch (Exception exception) when (exception is ArgumentException
                                            or InvalidOperationException
@@ -823,6 +986,11 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
         {
             return Conflict(
                 "apparel-rejected-physical-exception:" + exception.Message);
+        }
+        finally
+        {
+            if (reservedOutcome.IsValid && !reservationConsumed)
+                outcomeCommitter.Cancel(reservedOutcome);
         }
     }
 
@@ -1315,6 +1483,11 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
         order.craftOutputBatchCommitId = string.Empty;
         order.craftOutcomeFingerprint = string.Empty;
         order.craftOutputComponentFingerprint = string.Empty;
+        order.craftQualityOutcomeSchemaVersion = 0;
+        order.craftMakerCharacterId = string.Empty;
+        order.craftMakerDisplayName = string.Empty;
+        order.craftResolvedQuality = CraftsmanshipQualityTier.Normal;
+        order.craftRejectedBelowMinimum = false;
         order.craftOutputCapability = new ProductionOutputCapabilitySaveData();
         order.craftAdmissionTokenId = string.Empty;
         order.craftMaximumMassProofDigest = string.Empty;
@@ -1373,10 +1546,14 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
         {
             bool emptyCapability = order.craftOutputCapability == null
                 || order.craftOutputCapability.IsEmpty;
-            failureReason = emptyCapability
+            bool emptyQuality = order.craftQualityOutcomeSchemaVersion == 0
+                && string.IsNullOrEmpty(order.craftMakerCharacterId)
+                && string.IsNullOrEmpty(order.craftMakerDisplayName)
+                && !order.craftRejectedBelowMinimum;
+            failureReason = emptyCapability && emptyQuality
                 ? string.Empty
-                : "apparel-craft-owner-capability-without-attempt";
-            return emptyCapability;
+                : "apparel-craft-owner-authority-without-attempt";
+            return emptyCapability && emptyQuality;
         }
         ProductionOutputCapabilitySaveData capability =
             order.craftOutputCapability;
@@ -1407,8 +1584,17 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
                 StringComparison.Ordinal);
         bool outputIdsPaired = string.IsNullOrEmpty(order.craftOutputStackId)
             == string.IsNullOrEmpty(order.craftOutputInstanceId);
+        bool qualityShapeValid = order.craftQualityOutcomeSchemaVersion == 0
+            || order.craftQualityOutcomeSchemaVersion == 1
+                && GameplayOutcomeStableIdSyntax.IsValid(
+                    order.craftMakerCharacterId)
+                && !string.IsNullOrWhiteSpace(order.craftMakerDisplayName)
+                && Enum.IsDefined(
+                    typeof(CraftsmanshipQualityTier),
+                    order.craftResolvedQuality);
         bool valid = order.kind == ApparelWorkOrderKind.Craft
             && capabilityShapeValid
+            && qualityShapeValid
             && IsSha256(order.craftMaximumMassProofDigest)
             && order.craftMaximumBatchMassGrams > 0L
             && order.craftOutputMassGrams
@@ -1604,6 +1790,10 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
         ProductionOutputBatchMaximumMassProof maximumMassProof,
         ProductionOutputBufferCapacitySourceSnapshot capacity,
         long outputMassGrams,
+        string makerCharacterId,
+        string makerDisplayName,
+        CraftsmanshipQualityTier quality,
+        bool rejectedBelowMinimum,
         out string failureReason)
     {
         bool empty = string.IsNullOrEmpty(order.craftOutputBatchCommitId);
@@ -1629,7 +1819,19 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
                     capacity.SourceDigest, StringComparison.Ordinal)
                 || order.craftRequiredMinimumCapacityGrams
                     != capacity.RequiredMinimumCapacityGrams
-                || order.craftOutputMassGrams != outputMassGrams))
+                || order.craftOutputMassGrams != outputMassGrams
+                || order.craftQualityOutcomeSchemaVersion == 1
+                    && (!string.Equals(
+                            order.craftMakerCharacterId,
+                            makerCharacterId,
+                            StringComparison.Ordinal)
+                        || !string.Equals(
+                            order.craftMakerDisplayName,
+                            makerDisplayName,
+                            StringComparison.Ordinal)
+                        || order.craftResolvedQuality != quality
+                        || order.craftRejectedBelowMinimum
+                            != rejectedBelowMinimum)))
         {
             failureReason = "apparel-craft-frozen-output-drift";
             return false;
@@ -1646,6 +1848,14 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
         order.craftRequiredMinimumCapacityGrams =
             capacity.RequiredMinimumCapacityGrams;
         order.craftOutputMassGrams = outputMassGrams;
+        if (empty)
+        {
+            order.craftQualityOutcomeSchemaVersion = 1;
+            order.craftMakerCharacterId = makerCharacterId.Trim();
+            order.craftMakerDisplayName = makerDisplayName.Trim();
+            order.craftResolvedQuality = quality;
+            order.craftRejectedBelowMinimum = rejectedBelowMinimum;
+        }
         failureReason = string.Empty;
         return true;
     }
@@ -1848,6 +2058,56 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
             string.Empty);
     }
 
+    private ApparelPhysicalTransactionResult FinalizeOutcome(
+        ApparelWorkOrderSaveData order,
+        string facilityPersistentId,
+        string facilityDisplayName,
+        string outputItemId,
+        in ApparelPhysicalTransactionResult completed,
+        string operationId,
+        int absoluteDay,
+        in ReservedEvolutionOutcome reserved,
+        ref bool reservationConsumed)
+    {
+        ApparelPhysicalOutcomeReceipt receipt = new(
+            operationId,
+            order.qualityAttemptIndex,
+            facilityPersistentId,
+            facilityDisplayName,
+            order.orderId,
+            outputItemId,
+            completed,
+            absoluteDay,
+            order.craftQualityOutcomeSchemaVersion,
+            order.craftMakerCharacterId,
+            order.craftMakerDisplayName,
+            order.craftResolvedQuality,
+            order.qualityAttemptIndex,
+            order.craftRejectedBelowMinimum);
+        bool written = outcomeCommitter.TryWriteReserved(
+            receipt,
+            reserved,
+            out PreparedEvolutionOutcome prepared,
+            out string writeFailure);
+        reservationConsumed = true;
+        if (!written)
+        {
+            return Pending("apparel-physical-outcome-write:" + writeFailure);
+        }
+        if (!outcomeCommitter.TryCommit(
+                prepared,
+                order.qualityAttemptIndex,
+                out string commitFailure))
+        {
+            return Pending("apparel-physical-outcome-commit:" + commitFailure);
+        }
+        return completed;
+    }
+
+    private int CurrentAbsoluteDay() => Mathf.Max(
+        0,
+        Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
+
     private void ReleaseUnpublishedToken(
         ApparelWorkOrderSaveData order,
         FacilityBufferPlannedOutputToken token)
@@ -1878,10 +2138,17 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
         string componentFingerprint,
         string capabilityFingerprint,
         bool markForSale,
-        long outputMassGrams)
+        long outputMassGrams,
+        string makerCharacterId,
+        string makerDisplayName,
+        CraftsmanshipQualityTier quality,
+        bool rejectedBelowMinimum)
     {
         CanonicalSemanticDigestBuilder digest = new();
-        digest.Append(OutcomeSchema);
+        bool legacyFrozen = !string.IsNullOrEmpty(
+                order.craftOutputBatchCommitId)
+            && order.craftQualityOutcomeSchemaVersion == 0;
+        digest.Append(legacyFrozen ? LegacyOutcomeSchema : OutcomeSchema);
         digest.Append(order.orderId);
         digest.Append(order.qualityAttemptIndex);
         digest.Append(outputItemId);
@@ -1890,6 +2157,13 @@ public sealed class ApparelPhysicalTransaction : IApparelPhysicalTransaction
         digest.Append(capabilityFingerprint);
         digest.Append(markForSale);
         digest.Append(outputMassGrams);
+        if (!legacyFrozen)
+        {
+            digest.Append(makerCharacterId);
+            digest.Append(makerDisplayName);
+            digest.Append((int)quality);
+            digest.Append(rejectedBelowMinimum);
+        }
         return digest.ComputeSha256();
     }
 

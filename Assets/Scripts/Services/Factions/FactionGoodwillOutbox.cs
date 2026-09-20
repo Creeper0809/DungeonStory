@@ -67,6 +67,37 @@ public static class FactionGoodwillOutbox
         out bool domainAppliedNow,
         out string failureReason)
     {
+        if (!TryApplyPending(
+                faction,
+                batchDispositions,
+                campaignQuery,
+                campaignCommand,
+                acceptGoodwill,
+                out domainAppliedNow,
+                out failureReason))
+        {
+            return false;
+        }
+        if (TryAcknowledgeCompleted(
+                faction,
+                batchDispositions,
+                out failureReason))
+        {
+            return true;
+        }
+        faction.goodwillTransferCompleted = false;
+        return false;
+    }
+
+    public static bool TryApplyPending(
+        DungeonFactionState faction,
+        IPhysicalItemBatchDispositionService batchDispositions,
+        IFactionCampaignQuery campaignQuery,
+        IFactionCampaignCommand campaignCommand,
+        Action<DungeonFactionState> acceptGoodwill,
+        out bool domainAppliedNow,
+        out string failureReason)
+    {
         domainAppliedNow = false;
         failureReason = string.Empty;
         if (faction == null
@@ -111,9 +142,7 @@ public static class FactionGoodwillOutbox
             {
                 return false;
             }
-            return !pending || batchDispositions.Acknowledge(
-                faction.goodwillTransferCommitId,
-                out failureReason);
+            return true;
         }
         if (!pending)
         {
@@ -158,14 +187,38 @@ public static class FactionGoodwillOutbox
         }
 
         faction.goodwillTransferCompleted = true;
-        if (!batchDispositions.Acknowledge(
-                faction.goodwillTransferCommitId,
-                out failureReason))
+        return true;
+    }
+
+    public static bool TryAcknowledgeCompleted(
+        DungeonFactionState faction,
+        IPhysicalItemBatchDispositionService batchDispositions,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (faction == null
+            || batchDispositions == null
+            || !HasProvenance(faction)
+            || !faction.goodwillTransferCompleted)
         {
-            faction.goodwillTransferCompleted = false;
+            failureReason = "faction-goodwill-outbox-not-completed";
             return false;
         }
-        return true;
+
+        if (!batchDispositions.TryGetPending(
+                faction.goodwillTransferOperationId,
+                out PhysicalItemBatchDispositionReceipt receipt))
+        {
+            return true;
+        }
+        if (!ReceiptMatches(faction, receipt))
+        {
+            failureReason = "faction-goodwill-outbox-receipt-mismatch";
+            return false;
+        }
+        return batchDispositions.Acknowledge(
+            faction.goodwillTransferCommitId,
+            out failureReason);
     }
 
     public static void ClearCompleted(DungeonFactionState faction)

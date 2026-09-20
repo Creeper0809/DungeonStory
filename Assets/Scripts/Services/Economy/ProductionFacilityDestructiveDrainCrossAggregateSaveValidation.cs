@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using DungeonStory.Environment;
 using UnityEngine;
 
 /// <summary>
@@ -92,11 +93,17 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                     WorkOrdersSaveSection.Id,
                     out DungeonWorkOrderSaveData orphanWorkOrders)
                 && HasAnyWorkOrderDestructiveDrainOwner(orphanWorkOrders);
+            bool hasFireDamageOwner = DungeonSaveSectionPayload.TryRead(
+                    saveData,
+                    EnvironmentalFireSaveSection.Id,
+                    out DungeonEnvironmentalFireSaveData orphanFire)
+                && HasAnyFireDamageDestructiveDrainOwner(orphanFire);
             if (hasPhysicalProducer
                 || hasGenericProducer
                 || hasCombatProducer
                 || hasApparelProducer
-                || hasWorkOrderOwner)
+                || hasWorkOrderOwner
+                || hasFireDamageOwner)
             {
                 report.AddError(
                     "Production destructive-drain producer exists without its journal section.");
@@ -137,6 +144,9 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                 RequirePayload<DungeonCharacterEnvironmentSaveData>(
                     saveData,
                     CharacterEnvironmentSaveSection.Id),
+                RequirePayload<DungeonEnvironmentalFireSaveData>(
+                    saveData,
+                    EnvironmentalFireSaveSection.Id),
                 RequirePayload<
                     DungeonProductionGenericBillTerminalDrainSaveData>(
                     saveData,
@@ -209,11 +219,19 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                     Parse<DungeonWorkOrderSaveData>(
                         workOrdersEnvelope,
                         WorkOrdersSaveSection.Id));
+            bool hasFireDamageOwner = envelopes.TryGetValue(
+                    EnvironmentalFireSaveSection.Id,
+                    out DungeonSaveSectionEnvelope fireEnvelope)
+                && HasAnyFireDamageDestructiveDrainOwner(
+                    Parse<DungeonEnvironmentalFireSaveData>(
+                        fireEnvelope,
+                        EnvironmentalFireSaveSection.Id));
             if (hasPhysicalProducer
                 || hasGenericProducer
                 || hasCombatProducer
                 || hasApparelProducer
-                || hasWorkOrderOwner)
+                || hasWorkOrderOwner
+                || hasFireDamageOwner)
             {
                 report.AddError(
                     "Production destructive-drain producer exists without its registry journal section.");
@@ -258,6 +276,9 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                 RequirePayload<DungeonCharacterEnvironmentSaveData>(
                     envelopes,
                     CharacterEnvironmentSaveSection.Id),
+                RequirePayload<DungeonEnvironmentalFireSaveData>(
+                    envelopes,
+                    EnvironmentalFireSaveSection.Id),
                 RequirePayload<
                     DungeonProductionGenericBillTerminalDrainSaveData>(
                     envelopes,
@@ -301,6 +322,7 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
             bundle.Combat,
             bundle.Maintenance,
             bundle.Environment,
+            bundle.Fire,
             genericTerminalDrains ?? throw new InvalidOperationException(
                 "Production destructive-drain restore requires the generic terminal producer candidate."),
             combatTerminalDrains ?? throw new InvalidOperationException(
@@ -319,11 +341,14 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
         DungeonCombatEquipmentSaveData combat,
         CombatEquipmentMaintenanceSaveData maintenance,
         DungeonCharacterEnvironmentSaveData environment,
+        DungeonEnvironmentalFireSaveData fire,
         DungeonProductionGenericBillTerminalDrainSaveData genericTerminalDrains,
         DungeonCombatEquipmentTerminalDrainSaveData combatTerminalDrains,
         DungeonProductionApparelOrderTerminalDrainSaveData apparelTerminalDrains,
         DungeonProductionFacilityDestructiveDrainSaveData drain)
     {
+        drain = ProductionFacilityDestructiveDrainJournal
+            .MigrateV3Payload(drain);
         if (drain?.entries == null
             || drain.version !=
                 DungeonProductionFacilityDestructiveDrainSaveData.CurrentVersion
@@ -370,6 +395,8 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
             new(StringComparer.Ordinal);
         HashSet<string> joinedStockSensorChildSteps =
             new(StringComparer.Ordinal);
+        HashSet<string> joinedFireDamageOperations =
+            new(StringComparer.Ordinal);
         foreach (ProductionFacilityDestructiveDrainEntrySaveData entry in
                  drain.entries
                      .Where(value => value != null)
@@ -397,7 +424,8 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                     environment,
                     items,
                     characters,
-                    routing)
+                    routing,
+                    fire)
                 : ProjectPresentContributors(
                     facilityId,
                     world,
@@ -408,7 +436,8 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                     environment,
                     items,
                     characters,
-                    routing);
+                    routing,
+                    fire);
             ValidateParticipants(entry, contributors);
             ValidatePhysicalCustodyProducerJoin(
                 entry,
@@ -437,6 +466,10 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                 production,
                 items.pendingProductionInputDestinationDrains,
                 joinedStockSensorChildSteps);
+            ValidateFireDamageOutcomeJoin(
+                entry,
+                fire?.damageOperations,
+                joinedFireDamageOperations);
             if (entry.phase == ProductionFacilityDestructiveDrainPhase.Prepared)
             {
                 ValidatePreparedOwnerBijection(
@@ -450,7 +483,8 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                             environment,
                             items,
                             characters,
-                            routing));
+                            routing,
+                            fire));
             }
             else if (worldRemoved
                 && entry.participants.Any(participant =>
@@ -479,7 +513,8 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                         environment,
                         items,
                         characters,
-                        routing);
+                        routing,
+                        fire);
                 if (!string.Equals(
                         projected,
                         absentProjection,
@@ -576,6 +611,77 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                 "production-destructive-drain-stock-sensor-child-orphan: "
                 + orphanStockSensorChild.stepOperationId);
         }
+        EnvironmentalFireDamageOutcomeSaveRecord orphanFireDamage =
+            (fire?.damageOperations
+                ?? new List<EnvironmentalFireDamageOutcomeSaveRecord>())
+            .FirstOrDefault(value => value != null
+                && value.phase ==
+                    EnvironmentalFireDamageOutcomePhase.AwaitingWorldRemoval
+                && !joinedFireDamageOperations.Contains(
+                    value.operationId ?? string.Empty));
+        if (orphanFireDamage != null)
+        {
+            throw new InvalidOperationException(
+                "production-destructive-drain-fire-damage-owner-orphan: "
+                + orphanFireDamage.operationId);
+        }
+    }
+
+    private static void ValidateFireDamageOutcomeJoin(
+        ProductionFacilityDestructiveDrainEntrySaveData entry,
+        IReadOnlyList<EnvironmentalFireDamageOutcomeSaveRecord> operations,
+        ISet<string> joined)
+    {
+        ProductionFacilityDestructiveDrainParticipantSaveData row = entry
+            .participants.Single(value => value != null
+                && string.Equals(
+                    value.participantId,
+                    ProductionFacilityDestructiveDrainParticipantIds
+                        .EnvironmentalFireDamageOutcome,
+                    StringComparison.Ordinal));
+        foreach (ProductionFacilityDestructiveDrainOwnerSaveData owner in
+                 row.owners)
+        {
+            const string Prefix = "fire-damage:";
+            if (owner == null
+                || !owner.ownerStableId.StartsWith(Prefix,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "production-destructive-drain-fire-damage-owner-invalid");
+            }
+            string operationId = owner.ownerStableId.Substring(Prefix.Length);
+            EnvironmentalFireDamageOutcomeSaveRecord operation = (operations
+                    ?? Array.Empty<EnvironmentalFireDamageOutcomeSaveRecord>())
+                .SingleOrDefault(value => value != null
+                    && string.Equals(value.operationId, operationId,
+                        StringComparison.Ordinal));
+            if (operation == null
+                || operation.targetKind !=
+                    (int)EnvironmentalFireTargetKind.Building
+                || !string.Equals(operation.targetId, entry.facilityId,
+                    StringComparison.Ordinal)
+                || !string.Equals(operation.requestFingerprint,
+                    owner.requestFingerprint, StringComparison.Ordinal)
+                || operation.phase ==
+                    EnvironmentalFireDamageOutcomePhase.Prepared
+                || operation.phase ==
+                        EnvironmentalFireDamageOutcomePhase.OutcomeCommitted
+                    && (owner.phase !=
+                            ProductionFacilityDestructiveDrainStepPhase
+                                .OwnerAcknowledged
+                        || entry.phase is not
+                            ProductionFacilityDestructiveDrainPhase
+                                .AwaitingWorldRemoval
+                            and not ProductionFacilityDestructiveDrainPhase
+                                .WorldRemovedAwaitingCheckpointGc)
+                || !joined.Add(operationId))
+            {
+                throw new InvalidOperationException(
+                    "production-destructive-drain-fire-damage-owner-mismatch: "
+                    + operationId);
+            }
+        }
     }
 
     private static bool HasAnyDestructiveDrainProducer(
@@ -603,6 +709,14 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
             && (!string.IsNullOrEmpty(order.destructiveDrainOperationId)
                 || order.facilityRemovedForRetry
                 || order.cancelRebuildAfterDestructiveDrain));
+
+    private static bool HasAnyFireDamageDestructiveDrainOwner(
+        DungeonEnvironmentalFireSaveData payload) =>
+        (payload?.damageOperations
+                ?? new List<EnvironmentalFireDamageOutcomeSaveRecord>())
+            .Any(value => value != null
+                && value.phase ==
+                    EnvironmentalFireDamageOutcomePhase.AwaitingWorldRemoval);
 
     private void ValidateWorkOrderDestructiveDrainJoins(
         DungeonWorkOrderSaveData workOrders,
@@ -1795,7 +1909,8 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
         DungeonCharacterEnvironmentSaveData environment,
         DungeonPhysicalItemSaveData items,
         DungeonCharacterWorldSaveData characters,
-        ProductionPreparedOutputRoutingSaveData routing)
+        ProductionPreparedOutputRoutingSaveData routing,
+        DungeonEnvironmentalFireSaveData fire)
     {
         ProductionOutputCapacityDurableProjection capacity =
             ProductionOutputDestinationDurableSaveProjector
@@ -1819,6 +1934,7 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
             environment,
             items,
             characters,
+            fire,
             capacity.Fingerprint);
     }
 
@@ -1830,9 +1946,10 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
             DungeonCombatEquipmentSaveData combat,
             CombatEquipmentMaintenanceSaveData maintenance,
             DungeonCharacterEnvironmentSaveData environment,
-            DungeonPhysicalItemSaveData items,
-            DungeonCharacterWorldSaveData characters,
-            ProductionPreparedOutputRoutingSaveData routing)
+        DungeonPhysicalItemSaveData items,
+        DungeonCharacterWorldSaveData characters,
+        ProductionPreparedOutputRoutingSaveData routing,
+        DungeonEnvironmentalFireSaveData fire)
     {
         ProductionOutputDestinationDurableSaveProjector
             .ProjectAbsentFacilityAggregateFromSave(
@@ -1844,7 +1961,8 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                 environment,
                 items,
                 characters,
-                routing);
+                routing,
+                fire);
         string capacity = ProductionOutputDestinationDurableSaveProjector
             .ProjectCapacityRouting(
                 facilityId,
@@ -1860,6 +1978,7 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
             environment,
             items,
             characters,
+            fire,
             capacity);
     }
 
@@ -1871,6 +1990,7 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
         DungeonCharacterEnvironmentSaveData environment,
         DungeonPhysicalItemSaveData items,
         DungeonCharacterWorldSaveData characters,
+        DungeonEnvironmentalFireSaveData fire,
         string capacityFingerprint) =>
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -1887,6 +2007,12 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                     facilityId,
                     combat,
                     maintenance),
+            [ProductionOutputDestinationDurableSaveProjector
+                .FireDamageContributorId] =
+                EnvironmentalFireDamageOutcomeAuthority
+                    .ProjectFacilityContribution(
+                        facilityId,
+                        fire?.damageOperations),
             [ProductionOutputDestinationDurableSaveProjector
                 .GenericBillsContributorId] =
                 ProductionOutputDestinationDurableSaveProjector.ProjectGenericBills(

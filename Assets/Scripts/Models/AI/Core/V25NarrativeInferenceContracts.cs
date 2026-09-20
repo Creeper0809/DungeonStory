@@ -150,7 +150,11 @@ public static class NarrativeExactKeyContract
     {
         "presentationId", "displayName", "narrativeFlavor"
     };
-    private static readonly string[] CharacterSkillModuleSelectionRootKeys =
+    private static readonly string[] CharacterSkillModuleSelectionBatchRootKeys =
+    {
+        "candidates"
+    };
+    private static readonly string[] ModuleSelectionItemKeys =
     {
         "selectionId", "positiveModuleIds", "drawbackModuleIds", "evidenceFactIds",
         "displayName", "narrativeFlavor"
@@ -185,17 +189,17 @@ public static class NarrativeExactKeyContract
         new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal)
         {
             ["CharacterSkill"] = CharacterSkillRootKeys,
-            ["CharacterSkillModuleSelection"] = CharacterSkillModuleSelectionRootKeys,
+            ["CharacterSkillModuleSelection"] = CharacterSkillModuleSelectionBatchRootKeys,
             ["CharacterSkillLegacyV2"] = CharacterSkillLegacyRootKeys,
             ["FacilityEvolution"] = PresentationRootKeys,
-            ["FacilityEvolutionModuleSelection"] = CharacterSkillModuleSelectionRootKeys,
+            ["FacilityEvolutionModuleSelection"] = ModuleSelectionItemKeys,
             ["FacilityEvolutionLegacyV2"] = FacilityEvolutionLegacyRootKeys,
             ["EquipmentChoiceLegacyV2"] = EquipmentChoiceLegacyRootKeys,
-            ["EquipmentEvolutionModuleSelection"] = CharacterSkillModuleSelectionRootKeys,
+            ["EquipmentEvolutionModuleSelection"] = ModuleSelectionItemKeys,
             ["EvolutionHistory"] = PresentationRootKeys,
             ["EvolutionHistoryLegacyV2"] = EvolutionHistoryLegacyRootKeys,
             ["AcquiredTrait"] = PresentationRootKeys,
-            ["AcquiredTraitModuleSelection"] = CharacterSkillModuleSelectionRootKeys,
+            ["AcquiredTraitModuleSelection"] = ModuleSelectionItemKeys,
             ["AcquiredTraitLegacyV2"] = AcquiredTraitLegacyRootKeys,
             ["Persona"] = PersonaRootKeys
         };
@@ -251,6 +255,38 @@ public static class NarrativeExactKeyContract
                 CharacterSkillLegacyCandidateKeys,
                 "CharacterSkillLegacyV2",
                 out error);
+        }
+        if (string.Equals(
+                normalizedProfile,
+                "CharacterSkillModuleSelection",
+                StringComparison.Ordinal))
+        {
+            return TryValidateExactArrayObjects(
+                json,
+                "candidates",
+                ModuleSelectionItemKeys,
+                "CharacterSkillModuleSelection",
+                out error);
+        }
+        return true;
+    }
+
+    public static bool TryValidateModuleSelectionItem(
+        string response,
+        out string json,
+        out string error)
+    {
+        json = string.Empty;
+        error = string.Empty;
+        if (!StrictJsonReader.TryReadSingleObject(
+                response,
+                out json,
+                out _,
+                out error)
+            || !TryValidateExactObject(json, ModuleSelectionItemKeys, out error))
+        {
+            error = "CharacterSkillModuleSelection item: " + error;
+            return false;
         }
         return true;
     }

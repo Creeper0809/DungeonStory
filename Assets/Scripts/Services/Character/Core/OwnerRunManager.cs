@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using DungeonStory.Content.CoreSession;
 using DungeonStory.Foundation;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -21,6 +23,10 @@ public class OwnerRunManager : SerializedMonoBehaviour
     private IOwnerCandidateCatalog ownerCandidateCatalog;
     private IOwnerCharacterFactory ownerCharacterFactory;
     private IGameEventBus gameEventBus;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private IRunSeedProvider runSeedProvider;
+    private DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private CoreSessionRulesDefinition coreSessionRules;
     private IDisposable deathSubscription;
     private IReadOnlyList<CharacterSO> ownerCandidatesView;
     private OwnerRestorePublication pendingRestorePublication;
@@ -40,17 +46,37 @@ public class OwnerRunManager : SerializedMonoBehaviour
         selectedOwnerData ??= new Data<CharacterSO>();
     }
 
+    public void ConstructOwnerRunManager(
+        IOwnerCandidateCatalog ownerCandidateCatalog,
+        IOwnerCharacterFactory ownerCharacterFactory,
+        IGameEventBus gameEventBus) => ConstructOwnerRunManager(
+        ownerCandidateCatalog,
+        ownerCharacterFactory,
+        gameEventBus,
+        null,
+        null,
+        null,
+        null);
+
     [Inject]
     public void ConstructOwnerRunManager(
         IOwnerCandidateCatalog ownerCandidateCatalog,
         IOwnerCharacterFactory ownerCharacterFactory,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        IRunSeedProvider runSeedProvider,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        ICoreSessionRulesProvider rulesProvider)
     {
         this.ownerCandidateCatalog = ownerCandidateCatalog
             ?? throw new ArgumentNullException(nameof(ownerCandidateCatalog));
         this.ownerCharacterFactory = ownerCharacterFactory
             ?? throw new ArgumentNullException(nameof(ownerCharacterFactory));
         this.gameEventBus = gameEventBus;
+        this.outcomeTransactions = outcomeTransactions;
+        this.runSeedProvider = runSeedProvider;
+        this.aggregateRootStore = aggregateRootStore;
+        coreSessionRules = rulesProvider?.CoreSessionRules;
         SubscribeToEvents();
         EnsureOwnerCandidates();
     }
@@ -271,22 +297,171 @@ public class OwnerRunManager : SerializedMonoBehaviour
             return false;
         }
 
-        IsRunEnded = true;
         string resolvedReason = string.IsNullOrWhiteSpace(reason)
             ? outcome == DungeonRunOutcome.Victory ? "오펜스를 완수해 던전의 진실을 밝혔습니다" : "사장 사망"
             : reason.Trim();
-        gameEventBus?.ShowNotice(
-            outcome == DungeonRunOutcome.Victory
-                ? $"런 승리: {resolvedReason}"
-                : $"런 패배: {resolvedReason}",
-            outcome == DungeonRunOutcome.Victory
-                ? NoticeFeedEvent.Grade.NONE
-                : NoticeFeedEvent.Grade.DANGER);
-        OnRunEnded?.Invoke(currentOwnerActor, resolvedReason);
-        (gameEventBus
-            ?? throw new InvalidOperationException($"{nameof(OwnerRunManager)} requires {nameof(IGameEventBus)} injection."))
-            .Publish(new OwnerRunEndedEvent(currentOwnerActor, resolvedReason, outcome));
+        if (gameEventBus == null)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(OwnerRunManager)} requires {nameof(IGameEventBus)} injection.");
+        }
+
+        PreparedMigratedProducerOutcome prepared = default;
+        bool reserved = false;
+        CharacterId ownerId = default;
+        DungeonRunFlowAggregateState previousFlow = null;
+        DungeonRunFlowTransition terminalTransition = null;
+        if (outcomeTransactions != null)
+        {
+            if (runSeedProvider == null
+                || runSeedProvider.RunSeed == 0
+                || aggregateRootStore == null
+                || coreSessionRules == null
+                || !CharacterPersistentIdentity.TryGet(
+                    currentOwnerActor,
+                    out ownerId))
+            {
+                Debug.LogError(
+                    "Owner-run completion outcome identity is unavailable.");
+                return false;
+            }
+            DungeonRunFlowAggregateState currentFlow =
+                aggregateRootStore.GetOrCreate(
+                    () => new DungeonRunFlowAggregateState());
+            previousFlow = CloneRunFlow(currentFlow);
+            terminalTransition = DungeonRunFlowReducer.Reduce(
+                currentFlow,
+                DungeonRunFlowEvent.OwnerRunEnded(outcome),
+                coreSessionRules);
+            string operationIdentity = string.Join(":", new[]
+            {
+                "owner-run-ended",
+                runSeedProvider.RunSeed.ToString(CultureInfo.InvariantCulture),
+                ownerId.Value
+            });
+            if (!outcomeTransactions.TryReserveSingleSubject(
+                    MigratedProducerOutcomeKind.OwnerRunEndedEvent,
+                    operationIdentity,
+                    Math.Max(1, currentFlow.CurrentDay),
+                    outcome == DungeonRunOutcome.Victory
+                        ? GameplayOutcomeStatus.Succeeded
+                        : GameplayOutcomeStatus.Failed,
+                    out prepared,
+                    out string failureReason))
+            {
+                Debug.LogError(
+                    "Owner-run completion outcome reservation failed: "
+                    + failureReason);
+                return false;
+            }
+            reserved = true;
+        }
+
+        bool previousRunEnded = IsRunEnded;
+        IsRunEnded = true;
+        if (terminalTransition?.StateChanged == true)
+        {
+            aggregateRootStore.Replace(terminalTransition.State);
+        }
+        try
+        {
+            if (reserved)
+            {
+                MigratedProducerOutcomeCommitResult committed =
+                    outcomeTransactions.CommitSingleSubject(
+                        prepared,
+                        new MigratedProducerOutcomeSubject(
+                            MigratedProducerOutcomeIds.CharacterKind,
+                            ownerId.Value,
+                            currentOwnerActor.Identity?.DisplayName
+                                ?? ownerId.Value,
+                            MigratedProducerOutcomeIds.ActorRole),
+                        string.Join("|", new[]
+                        {
+                            "owner-run-ended@1",
+                            runSeedProvider.RunSeed.ToString(
+                                CultureInfo.InvariantCulture),
+                            ownerId.Value,
+                            ((int)outcome).ToString(
+                                CultureInfo.InvariantCulture),
+                            previousFlow.CurrentDay.ToString(
+                                CultureInfo.InvariantCulture),
+                            resolvedReason
+                        }));
+                if (!committed.DurablyCommitted)
+                {
+                    IsRunEnded = previousRunEnded;
+                    aggregateRootStore.Replace(previousFlow);
+                    Debug.LogError(
+                        "Owner-run completion outcome commit was rejected: "
+                        + committed.DetailCode);
+                    return false;
+                }
+            }
+        }
+        catch
+        {
+            if (reserved) outcomeTransactions.Cancel(prepared);
+            IsRunEnded = previousRunEnded;
+            if (previousFlow != null)
+            {
+                aggregateRootStore.Replace(previousFlow);
+            }
+            throw;
+        }
+
+        PublishRunEndedObservers(resolvedReason, outcome);
         return true;
+    }
+
+    private static DungeonRunFlowAggregateState CloneRunFlow(
+        DungeonRunFlowAggregateState source) => new()
+    {
+        Phase = source.Phase,
+        Outcome = source.Outcome,
+        CurrentDay = source.CurrentDay,
+        BossCycle = source.BossCycle,
+        BossArmed = source.BossArmed,
+        BossActive = source.BossActive
+    };
+
+    private void PublishRunEndedObservers(
+        string resolvedReason,
+        DungeonRunOutcome outcome)
+    {
+        PublishObserver(
+            () => gameEventBus.ShowNotice(
+                outcome == DungeonRunOutcome.Victory
+                    ? $"런 승리: {resolvedReason}"
+                    : $"런 패배: {resolvedReason}",
+                outcome == DungeonRunOutcome.Victory
+                    ? NoticeFeedEvent.Grade.NONE
+                    : NoticeFeedEvent.Grade.DANGER),
+            "owner-run-ended-notice");
+        PublishObserver(
+            () => OnRunEnded?.Invoke(currentOwnerActor, resolvedReason),
+            "owner-run-ended-delegate");
+        PublishObserver(
+            () => gameEventBus.Publish(new OwnerRunEndedEvent(
+                currentOwnerActor,
+                resolvedReason,
+                outcome)),
+            "owner-run-ended-event");
+    }
+
+    private static void PublishObserver(Action observer, string label)
+    {
+        try
+        {
+            observer?.Invoke();
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(label + ":" + exception.GetType().Name);
+        }
     }
 
     public void RestoreRunEnded(bool value)

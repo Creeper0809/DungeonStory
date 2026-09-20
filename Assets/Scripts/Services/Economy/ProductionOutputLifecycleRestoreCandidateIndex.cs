@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Environment;
 using UnityEngine;
 
 public interface IProductionOutputLifecycleRestoreCandidatePublisher
@@ -18,6 +19,7 @@ public interface IProductionOutputLifecycleRestoreCandidatePublisher
     void SetApparelTerminalDrains(
         DungeonProductionApparelOrderTerminalDrainSaveData payload);
     void SetDrain(DungeonProductionFacilityDestructiveDrainSaveData payload);
+    void SetFire(DungeonEnvironmentalFireSaveData payload);
 }
 
 public interface IProductionOutputLifecycleRestoreCandidateQuery
@@ -48,7 +50,7 @@ public interface IProductionFacilityDestructiveDrainCandidateValidator
 }
 
 /// <summary>
-/// Immutable, normalized eight-section input to destructive-drain restore
+/// Immutable, normalized nine-section input to destructive-drain restore
 /// validation. DTO references are private to the assembly and are cloned at
 /// publication, so later section publication cannot mutate this snapshot.
 /// </summary>
@@ -62,7 +64,8 @@ public sealed class ProductionOutputLifecycleRestoreCandidateBundle
         ProductionPreparedOutputRoutingSaveData routing,
         DungeonCombatEquipmentSaveData combat,
         CombatEquipmentMaintenanceSaveData maintenance,
-        DungeonCharacterEnvironmentSaveData environment)
+        DungeonCharacterEnvironmentSaveData environment,
+        DungeonEnvironmentalFireSaveData fire)
     {
         World = world ?? throw new ArgumentNullException(nameof(world));
         Characters = characters
@@ -77,11 +80,12 @@ public sealed class ProductionOutputLifecycleRestoreCandidateBundle
             ?? throw new ArgumentNullException(nameof(maintenance));
         Environment = environment
             ?? throw new ArgumentNullException(nameof(environment));
+        Fire = fire ?? throw new ArgumentNullException(nameof(fire));
         ManifestFingerprint = ComputeManifestFingerprint();
     }
 
     public const string Schema =
-        "production-output-lifecycle-restore-candidates@3";
+        "production-output-lifecycle-restore-candidates@4";
 
     internal ModularFacilityWorldSaveData World { get; }
     internal DungeonCharacterWorldSaveData Characters { get; }
@@ -91,6 +95,7 @@ public sealed class ProductionOutputLifecycleRestoreCandidateBundle
     internal DungeonCombatEquipmentSaveData Combat { get; }
     internal CombatEquipmentMaintenanceSaveData Maintenance { get; }
     internal DungeonCharacterEnvironmentSaveData Environment { get; }
+    internal DungeonEnvironmentalFireSaveData Fire { get; }
 
     public string ManifestFingerprint { get; }
 
@@ -106,6 +111,7 @@ public sealed class ProductionOutputLifecycleRestoreCandidateBundle
         Append(digest, CombatEquipmentSaveSection.Id, Combat);
         Append(digest, EquipmentMaintenanceSaveSection.Id, Maintenance);
         Append(digest, CharacterEnvironmentSaveSection.Id, Environment);
+        Append(digest, EnvironmentalFireSaveSection.Id, Fire);
         return digest.ComputeSha256();
     }
 
@@ -121,7 +127,7 @@ public sealed class ProductionOutputLifecycleRestoreCandidateBundle
 }
 
 /// <summary>
-/// Transaction-scoped normalized DTO index. All eight source sections publish
+/// Transaction-scoped normalized DTO index. All nine source sections publish
 /// exactly once from their real Commit path. The drain section can validate
 /// only after the complete source set exists. Complete, rollback, and discard
 /// erase every reference so no candidate can leak into the next restore.
@@ -145,6 +151,7 @@ public sealed class ProductionOutputLifecycleRestoreCandidateIndex :
     private DungeonCombatEquipmentSaveData combat;
     private CombatEquipmentMaintenanceSaveData maintenance;
     private DungeonCharacterEnvironmentSaveData environment;
+    private DungeonEnvironmentalFireSaveData fire;
     private DungeonProductionGenericBillTerminalDrainSaveData
         genericTerminalDrains;
     private DungeonCombatEquipmentTerminalDrainSaveData combatTerminalDrains;
@@ -181,7 +188,8 @@ public sealed class ProductionOutputLifecycleRestoreCandidateIndex :
         + (routing != null ? 1 : 0)
         + (combat != null ? 1 : 0)
         + (maintenance != null ? 1 : 0)
-        + (environment != null ? 1 : 0);
+        + (environment != null ? 1 : 0)
+        + (fire != null ? 1 : 0);
 
     public void BeginRestoreCandidate()
     {
@@ -247,6 +255,12 @@ public sealed class ProductionOutputLifecycleRestoreCandidateIndex :
         environment = SetExactlyOnce(
             CharacterEnvironmentSaveSection.Id,
             environment,
+            payload);
+
+    public void SetFire(DungeonEnvironmentalFireSaveData payload) =>
+        fire = SetExactlyOnce(
+            EnvironmentalFireSaveSection.Id,
+            fire,
             payload);
 
     public void SetGenericTerminalDrains(
@@ -316,7 +330,7 @@ public sealed class ProductionOutputLifecycleRestoreCandidateIndex :
     public bool TryCapture(
         out ProductionOutputLifecycleRestoreCandidateBundle bundle)
     {
-        if (!active || PublishedSourceCount != 8)
+        if (!active || PublishedSourceCount != 9)
         {
             bundle = null;
             return false;
@@ -330,7 +344,8 @@ public sealed class ProductionOutputLifecycleRestoreCandidateIndex :
             routing,
             combat,
             maintenance,
-            environment);
+            environment,
+            fire);
         return true;
     }
 
@@ -382,10 +397,10 @@ public sealed class ProductionOutputLifecycleRestoreCandidateIndex :
     public void PublishRestoreCandidate()
     {
         RequireActive(ParticipantId);
-        if (PublishedSourceCount != 8)
+        if (PublishedSourceCount != 9)
         {
             throw new InvalidOperationException(
-                $"Production-output lifecycle restore index is incomplete: {PublishedSourceCount}/8.");
+                $"Production-output lifecycle restore index is incomplete: {PublishedSourceCount}/9.");
         }
         if (drain != null && !drainValidated)
         {
@@ -407,7 +422,7 @@ public sealed class ProductionOutputLifecycleRestoreCandidateIndex :
         if (!TryCapture(out ProductionOutputLifecycleRestoreCandidateBundle bundle))
         {
             throw new InvalidOperationException(
-                $"Production destructive-drain restore requires all eight normalized source candidates; found {PublishedSourceCount}/8.");
+                $"Production destructive-drain restore requires all nine normalized source candidates; found {PublishedSourceCount}/9.");
         }
 
         return bundle;
@@ -471,6 +486,7 @@ public sealed class ProductionOutputLifecycleRestoreCandidateIndex :
         combat = null;
         maintenance = null;
         environment = null;
+        fire = null;
         genericTerminalDrains = null;
         combatTerminalDrains = null;
         apparelTerminalDrains = null;
@@ -509,5 +525,6 @@ public static class ProductionOutputLifecycleRestoreCandidatePublisher
             DungeonProductionApparelOrderTerminalDrainSaveData payload) { }
         public void SetDrain(
             DungeonProductionFacilityDestructiveDrainSaveData payload) { }
+        public void SetFire(DungeonEnvironmentalFireSaveData payload) { }
     }
 }

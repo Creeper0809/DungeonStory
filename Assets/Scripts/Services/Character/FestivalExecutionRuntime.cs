@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
 using DungeonStory.Operation;
@@ -318,6 +319,16 @@ public sealed class FestivalExecutionRuntime :
         internal long MovementEpoch;
     }
 
+    private sealed class FestivalResolutionRollbackSnapshot
+    {
+        internal FestivalExecutionOccurrenceSaveData Occurrence;
+        internal CharacterPsychosocialWorldSaveData Psychosocial;
+        internal FactionCampaignWorldSaveData Factions;
+        internal IReadOnlyList<CharacterIdentityRuntimeStateSaveData> IdentityStates;
+        internal IReadOnlyDictionary<CharacterActor,
+            CharacterMoodDeliveryTransactionSnapshot> Moods;
+    }
+
     private enum FestivalMovementStatus
     {
         Reached,
@@ -339,8 +350,11 @@ public sealed class FestivalExecutionRuntime :
     private readonly IGameEventBus events;
     private readonly IPsychosocialPersistence psychosocial;
     private readonly IFactionCampaignQuery factions;
-    private readonly V20CampaignRuntime campaign;
+    private readonly IFactionCampaignCommand campaignCommand;
+    private readonly IV20CampaignPersistence campaignPersistence;
     private readonly ICharacterRitualFastingCommand ritualFasting;
+    private readonly CharacterIdentityStateStore identityStates;
+    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
     private readonly IEconomyProjectInputOwnerPort inputOwners;
     private readonly IWorldItemStackRuntime items;
     private readonly IPhysicalFacilityItemBatchSinkGateway materialSink;
@@ -375,7 +389,9 @@ public sealed class FestivalExecutionRuntime :
         IWorldItemStackRuntime items,
         IPhysicalFacilityItemBatchSinkGateway materialSink,
         IWorkAmountCalculator workAmounts,
-        ICharacterRitualFastingCommand ritualFasting = null)
+        ICharacterRitualFastingCommand ritualFasting = null,
+        CharacterIdentityStateStore identityStates = null,
+        IMigratedProducerOutcomeTransaction outcomeTransactions = null)
     {
         this.festivals = festivals ?? throw new ArgumentNullException(nameof(festivals));
         this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
@@ -391,7 +407,8 @@ public sealed class FestivalExecutionRuntime :
         this.psychosocial = psychosocial
             ?? throw new ArgumentNullException(nameof(psychosocial));
         this.factions = factions ?? throw new ArgumentNullException(nameof(factions));
-        this.campaign = campaign ?? throw new ArgumentNullException(nameof(campaign));
+        campaignCommand = campaign ?? throw new ArgumentNullException(nameof(campaign));
+        campaignPersistence = campaign;
         this.inputOwners = inputOwners
             ?? throw new ArgumentNullException(nameof(inputOwners));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
@@ -400,6 +417,54 @@ public sealed class FestivalExecutionRuntime :
         this.workAmounts = workAmounts
             ?? throw new ArgumentNullException(nameof(workAmounts));
         this.ritualFasting = ritualFasting;
+        this.identityStates = identityStates;
+        this.outcomeTransactions = outcomeTransactions;
+        if (outcomeTransactions != null
+            && ritualFasting != null
+            && identityStates == null)
+        {
+            throw new InvalidOperationException(
+                "Festival outcome transactions require the ritual-fasting identity-state rollback authority.");
+        }
+    }
+
+    internal FestivalExecutionRuntime(
+        IFestivalDefinitionCatalog festivals,
+        ICharacterWorldQuery characters,
+        IGameCalendar calendar,
+        IGameEventBus events,
+        IPsychosocialPersistence psychosocial,
+        IFactionCampaignQuery factions,
+        IFactionCampaignCommand campaignCommand,
+        IV20CampaignPersistence campaignPersistence,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
+    {
+        this.festivals = festivals ?? throw new ArgumentNullException(nameof(festivals));
+        this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
+        venues = null;
+        narratives = null;
+        standings = null;
+        combat = null;
+        hazards = null;
+        grids = null;
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        clock = null;
+        this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.psychosocial = psychosocial
+            ?? throw new ArgumentNullException(nameof(psychosocial));
+        this.factions = factions ?? throw new ArgumentNullException(nameof(factions));
+        this.campaignCommand = campaignCommand
+            ?? throw new ArgumentNullException(nameof(campaignCommand));
+        this.campaignPersistence = campaignPersistence
+            ?? throw new ArgumentNullException(nameof(campaignPersistence));
+        inputOwners = null;
+        items = null;
+        materialSink = null;
+        workAmounts = null;
+        ritualFasting = null;
+        identityStates = null;
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
     }
 
     public IReadOnlyList<FestivalExecutionOccurrenceSaveData> Occurrences =>
@@ -1314,59 +1379,10 @@ public sealed class FestivalExecutionRuntime :
             FestivalResolutionGrade.Partial => festival.partialOutcome,
             _ => festival.failureOutcome
         };
-        PsychosocialAggregateState candidate = psychosocial.PrepareRestore(
-            psychosocial.Capture());
-        foreach (FestivalAttendanceProgressSaveData attendance in valid)
-        {
-            CharacterId participant = new(attendance.characterId);
-            CharacterGriefAggregate griefState = candidate.Require(participant);
-            griefState.RecordFestivalAttendance(festival.StableId, state.occurrenceYear);
-            float ratio = FestivalExecutionRules.AttendanceRatio(
-                attendance.attendedSeconds,
-                state.plannedDurationSeconds);
-            float griefDelta = FestivalExecutionRules.ScalePersonalNumericBenefit(
-                outcome.griefConversionPercent,
-                ratio);
-            if (griefDelta > 0f)
-                griefState.ApplyGriefConversion(griefDelta);
-        }
-        psychosocial.PublishRestore(candidate);
-        foreach (FestivalAttendanceProgressSaveData attendance in valid)
-        {
-            CharacterActor actor = FindActor(new CharacterId(attendance.characterId));
-            if (actor == null)
-                continue;
-            float ratio = FestivalExecutionRules.AttendanceRatio(
-                attendance.attendedSeconds,
-                state.plannedDurationSeconds);
-            float moodDelta = FestivalExecutionRules.ScalePersonalNumericBenefit(
-                outcome.moodDelta,
-                ratio);
-            if (Mathf.Abs(moodDelta) > 0.0001f)
-            {
-                actor.ApplyMoodFactor(
-                    $"festival:{festival.StableId}:{state.occurrenceYear}",
-                    festival.displayName,
-                    moodDelta,
-                    Math.Max(1, outcome.moodDurationDays)
-                        * GameCalendarRules.SecondsPerDay,
-                    1);
-            }
-        }
-        if (outcome.factionRapportDelta != 0)
-        {
-            foreach (FactionCampaignStateSaveData faction in factions.Factions)
-                campaign.ApplyFactionChange(
-                    faction.factionId,
-                    outcome.factionRapportDelta,
-                    0,
-                    0);
-        }
-
         CharacterId[] validIds = valid
             .Select(value => new CharacterId(value.characterId))
             .ToArray();
-        events.Publish(new FestivalCelebratedEvent(
+        FestivalCelebratedEvent celebrated = new(
             festival.StableId,
             calendar.Day,
             validIds,
@@ -1375,25 +1391,125 @@ public sealed class FestivalExecutionRuntime :
             state.venueCapacity,
             state.plannedDurationSeconds,
             state.elapsedFestivalSeconds,
-            stopped));
-        CompleteParticipantFasts(validIds);
-        state.effectsApplied = true;
-        state.phase = stopped
-            ? FestivalExecutionPhase.Stopped
-            : FestivalExecutionPhase.Resolved;
-        state.resultGrade = grade;
-        state.resultReason = reason ?? string.Empty;
+            stopped);
         float attendanceRate = state.attendance.Count == 0
             ? 0f
             : state.attendance.Sum(value => FestivalExecutionRules.AttendanceRatio(
                     value.attendedSeconds,
                     state.plannedDurationSeconds))
                 / state.attendance.Count;
-        state.resultSummary = $"{DescribeGrade(grade)} · 유효 참석 {valid.Length}/{state.attendance.Count}명"
+        string resultSummary = $"{DescribeGrade(grade)} · 유효 참석 {valid.Length}/{state.attendance.Count}명"
             + $" · 평균 참석률 {attendanceRate * 100f:0}%"
             + $" · 장소 정원 {state.venueCapacity}명"
             + (stopped ? " · 현장 위험으로 중단" : string.Empty);
-        state.lastStatus = state.resultSummary;
+
+        PreparedMigratedProducerOutcome prepared = default;
+        if (outcomeTransactions != null
+            && !outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.FestivalCelebratedEvent,
+                state.occurrenceId,
+                calendar.Day,
+                FestivalOutcomeStatus(grade),
+                out prepared,
+                out string reserveFailure))
+        {
+            throw new InvalidOperationException(
+                "Festival outcome reservation failed before festival resolution: "
+                + reserveFailure);
+        }
+
+        FestivalResolutionRollbackSnapshot rollback = null;
+        try
+        {
+            rollback = CaptureFestivalResolutionRollback(state, validIds);
+            PsychosocialAggregateState candidate = psychosocial.PrepareRestore(
+                rollback.Psychosocial);
+            foreach (FestivalAttendanceProgressSaveData attendance in valid)
+            {
+                CharacterId participant = new(attendance.characterId);
+                CharacterGriefAggregate griefState = candidate.Require(participant);
+                griefState.RecordFestivalAttendance(
+                    festival.StableId,
+                    state.occurrenceYear);
+                float ratio = FestivalExecutionRules.AttendanceRatio(
+                    attendance.attendedSeconds,
+                    state.plannedDurationSeconds);
+                float griefDelta = FestivalExecutionRules.ScalePersonalNumericBenefit(
+                    outcome.griefConversionPercent,
+                    ratio);
+                if (griefDelta > 0f)
+                    griefState.ApplyGriefConversion(griefDelta);
+            }
+            psychosocial.PublishRestore(candidate);
+            foreach (FestivalAttendanceProgressSaveData attendance in valid)
+            {
+                CharacterActor actor = FindActor(new CharacterId(attendance.characterId));
+                if (actor == null)
+                    continue;
+                float ratio = FestivalExecutionRules.AttendanceRatio(
+                    attendance.attendedSeconds,
+                    state.plannedDurationSeconds);
+                float moodDelta = FestivalExecutionRules.ScalePersonalNumericBenefit(
+                    outcome.moodDelta,
+                    ratio);
+                if (Mathf.Abs(moodDelta) > 0.0001f)
+                {
+                    actor.ApplyMoodFactor(
+                        $"festival:{festival.StableId}:{state.occurrenceYear}",
+                        festival.displayName,
+                        moodDelta,
+                        Math.Max(1, outcome.moodDurationDays)
+                            * GameCalendarRules.SecondsPerDay,
+                        1);
+                }
+            }
+            if (outcome.factionRapportDelta != 0)
+            {
+                foreach (FactionCampaignStateSaveData faction in factions.Factions)
+                {
+                    campaignCommand.ApplyFactionChange(
+                        faction.factionId,
+                        outcome.factionRapportDelta,
+                        0,
+                        0);
+                }
+            }
+
+            CompleteParticipantFasts(validIds);
+            state.effectsApplied = true;
+            state.phase = stopped
+                ? FestivalExecutionPhase.Stopped
+                : FestivalExecutionPhase.Resolved;
+            state.resultGrade = grade;
+            state.resultReason = reason ?? string.Empty;
+            state.resultSummary = resultSummary;
+            state.lastStatus = state.resultSummary;
+
+            if (outcomeTransactions != null)
+            {
+                MigratedProducerOutcomeCommitResult committed = outcomeTransactions
+                    .CommitSingleSubject(
+                        prepared,
+                        CreateFestivalOutcomeSubject(state, festival),
+                        CreateFestivalOutcomeSummary(state, celebrated));
+                if (!committed.DurablyCommitted)
+                {
+                    throw new InvalidOperationException(
+                        "Festival outcome durable commit was rejected: "
+                        + committed.DetailCode);
+                }
+            }
+        }
+        catch
+        {
+            if (prepared.IsValid)
+                outcomeTransactions.Cancel(prepared);
+            if (rollback != null)
+                RestoreFestivalResolutionRollback(rollback);
+            throw;
+        }
+
+        PublishFestivalCelebratedObserver(celebrated);
         ReleaseOccurrenceRuntime(state.occurrenceId);
         AdvanceTerminalCleanup(state);
     }
@@ -1657,7 +1773,6 @@ public sealed class FestivalExecutionRuntime :
             && alertFingerprints.TryGetValue(state.occurrenceId, out string current)
             && string.Equals(current, fingerprint, StringComparison.Ordinal))
             return;
-        alertFingerprints[state.occurrenceId] = fingerprint;
         bool terminal = state.phase is FestivalExecutionPhase.Cancelled
             or FestivalExecutionPhase.Stopped
             or FestivalExecutionPhase.Resolved
@@ -1672,21 +1787,34 @@ public sealed class FestivalExecutionRuntime :
             + $"준비: {state.completedPreparationWork:0.0}/{state.requiredPreparationWork:0.0} WU\n"
             + $"개최/마감: {state.deadlineAbsoluteDay}일 {state.deadlineHour}:00 · 예정 {state.plannedDurationSeconds / GameCalendarRules.SecondsPerGameHour:0}시간\n"
             + $"실제 참석: {attendance}\n상태: {state.lastStatus}";
-        events.Publish(new EventAlertRequestedEvent(new EventAlertRequest(
-            festival.displayName,
-            detail,
-            state.phase == FestivalExecutionPhase.Running
-                ? EventAlertImportance.High
-                : EventAlertImportance.Medium,
-            "V21 축제",
-            Array.Empty<EventAlertChoice>(),
-            state.occurrenceId,
-            isResolved: terminal,
-            resultSummary: terminal
-                ? string.IsNullOrWhiteSpace(state.resultSummary)
-                    ? state.lastStatus
-                    : state.resultSummary
-                : string.Empty)));
+        try
+        {
+            events.Publish(new EventAlertRequestedEvent(new EventAlertRequest(
+                festival.displayName,
+                detail,
+                state.phase == FestivalExecutionPhase.Running
+                    ? EventAlertImportance.High
+                    : EventAlertImportance.Medium,
+                "V21 축제",
+                Array.Empty<EventAlertChoice>(),
+                state.occurrenceId,
+                isResolved: terminal,
+                resultSummary: terminal
+                    ? string.IsNullOrWhiteSpace(state.resultSummary)
+                        ? state.lastStatus
+                        : state.resultSummary
+                    : string.Empty)));
+            alertFingerprints[state.occurrenceId] = fingerprint;
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "festival-alert-post-commit-observer:"
+                + exception.GetType().Name);
+        }
     }
 
     private bool ValidateOccurrence(FestivalExecutionOccurrenceSaveData state)
@@ -2051,6 +2179,110 @@ public sealed class FestivalExecutionRuntime :
                      .OrderBy(value => value.Identity?.PersistentId,
                          StringComparer.Ordinal))
             ritualFasting.TryComplete(actor, out _);
+    }
+
+    private FestivalResolutionRollbackSnapshot CaptureFestivalResolutionRollback(
+        FestivalExecutionOccurrenceSaveData state,
+        IReadOnlyCollection<CharacterId> participantIds)
+    {
+        var participantSet = new HashSet<CharacterId>(
+            participantIds ?? Array.Empty<CharacterId>());
+        var moods = new Dictionary<CharacterActor,
+            CharacterMoodDeliveryTransactionSnapshot>();
+        foreach (CharacterActor actor in characters.Characters
+                     .Where(value => value != null
+                         && value.Stats != null
+                         && CharacterPersistentIdentity.TryGet(
+                             value,
+                             out CharacterId characterId)
+                         && participantSet.Contains(characterId))
+                     .OrderBy(value => value.Identity?.PersistentId,
+                         StringComparer.Ordinal))
+        {
+            moods[actor] = actor.Stats.CaptureMoodDeliveryTransactionState();
+        }
+        return new FestivalResolutionRollbackSnapshot
+        {
+            Occurrence = state.Clone(),
+            Psychosocial = psychosocial.Capture(),
+            Factions = campaignPersistence.CaptureFactions(),
+            IdentityStates = identityStates?.Capture(),
+            Moods = moods
+        };
+    }
+
+    private void RestoreFestivalResolutionRollback(
+        FestivalResolutionRollbackSnapshot snapshot)
+    {
+        byOccurrence[snapshot.Occurrence.occurrenceId] =
+            snapshot.Occurrence.Clone();
+        psychosocial.PublishRestore(
+            psychosocial.PrepareRestore(snapshot.Psychosocial));
+        campaignPersistence.PublishFactions(
+            campaignPersistence.PrepareFactions(snapshot.Factions));
+        if (snapshot.IdentityStates != null)
+            identityStates.RestoreTrustedTransactionSnapshot(snapshot.IdentityStates);
+        foreach (KeyValuePair<CharacterActor,
+                     CharacterMoodDeliveryTransactionSnapshot> row in snapshot.Moods)
+        {
+            row.Key.Stats?.RestoreMoodDeliveryTransactionState(row.Value);
+        }
+    }
+
+    private static GameplayOutcomeStatus FestivalOutcomeStatus(
+        FestivalResolutionGrade grade) => grade switch
+    {
+        FestivalResolutionGrade.Success => GameplayOutcomeStatus.Succeeded,
+        FestivalResolutionGrade.Partial => GameplayOutcomeStatus.PartiallySucceeded,
+        _ => GameplayOutcomeStatus.Failed
+    };
+
+    private static MigratedProducerOutcomeSubject CreateFestivalOutcomeSubject(
+        FestivalExecutionOccurrenceSaveData state,
+        FestivalDefinitionSO festival) => new(
+        MigratedProducerOutcomeIds.OperationKind,
+        state.occurrenceId,
+        string.IsNullOrWhiteSpace(festival.displayName)
+            ? festival.StableId
+            : festival.displayName,
+        MigratedProducerOutcomeIds.OperationRole);
+
+    private static string CreateFestivalOutcomeSummary(
+        FestivalExecutionOccurrenceSaveData state,
+        in FestivalCelebratedEvent celebrated) =>
+        "축제 개최: occurrence=" + state.occurrenceId
+        + "; festival=" + celebrated.FestivalId
+        + "; day=" + celebrated.AbsoluteDay.ToString(CultureInfo.InvariantCulture)
+        + "; grade=" + celebrated.Grade
+        + "; participants=["
+        + string.Join(",", celebrated.ParticipantIds.Select(value => value.Value))
+        + "]; assigned="
+        + celebrated.AssignedParticipantCount.ToString(CultureInfo.InvariantCulture)
+        + "; capacity="
+        + celebrated.VenueCapacity.ToString(CultureInfo.InvariantCulture)
+        + "; planned-seconds="
+        + celebrated.PlannedDurationSeconds.ToString("R", CultureInfo.InvariantCulture)
+        + "; elapsed-seconds="
+        + celebrated.ElapsedFestivalSeconds.ToString("R", CultureInfo.InvariantCulture)
+        + "; hazard-stop="
+        + (celebrated.StoppedByVenueHazard ? "true" : "false");
+
+    private void PublishFestivalCelebratedObserver(
+        in FestivalCelebratedEvent celebrated)
+    {
+        try
+        {
+            events.Publish(celebrated);
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "festival-celebrated-post-commit-observer:"
+                + exception.GetType().Name);
+        }
     }
 
     private static string RuntimeKey(string occurrenceId, CharacterId characterId) =>

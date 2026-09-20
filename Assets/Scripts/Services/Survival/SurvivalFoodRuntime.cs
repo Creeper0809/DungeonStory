@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 using VContainer.Unity;
 
 public interface ISurvivalTreatmentCompletionCommand
@@ -113,6 +115,7 @@ public sealed partial class SurvivalFoodRuntime :
     private readonly SurvivalMealLedger mealLedger;
     private readonly SurvivalEnvironmentRiskEvaluator environmentRisks;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
     private IDisposable operatingDayStartedSubscription;
     private IDisposable stockConsumedSubscription;
     private IDisposable physicalMealConsumedSubscription;
@@ -188,6 +191,14 @@ public sealed partial class SurvivalFoodRuntime :
             dependencies.GridSystemProvider,
             this.worldRegistry,
             worldThreatModifiers);
+    }
+
+    [Inject]
+    public void ConstructMealMissedOutcomeTransactions(
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
+    {
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
     }
 
     public int GetStoredStockCount(StockCategory category)
@@ -333,13 +344,12 @@ public sealed partial class SurvivalFoodRuntime :
     {
         EnsureStateLists();
         consumables?.ProcessOperatingDay(day);
-        PublishMissedMealEvents(day);
         AnnounceDangerousWeatherIfChanged();
         spoilageRuntime.Process(
             state,
             CurrentWeather,
             advanceTime: true);
-        RefreshDailyFoodForecast(day);
+        CommitMissedMealOutcomesAndRefreshFoodForecast(day);
         ConsumeDailyWater(day);
         RefreshSurvivalRisks();
         ApplyHealthConsequences();
@@ -849,22 +859,172 @@ public sealed partial class SurvivalFoodRuntime :
         return tags.ToArray();
     }
 
-    private void PublishMissedMealEvents(int currentDay)
+    private void CommitMissedMealOutcomesAndRefreshFoodForecast(int currentDay)
     {
         int completedDay = Math.Max(0, currentDay - 1);
         if (completedDay <= 0)
-            return;
-        foreach (CharacterActor actor in GetSurvivalConsumers())
         {
-            if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId)
-                || GetMealsConsumed(characterId.Value, completedDay) > 0)
-                continue;
-            gameEventBus.Publish(new MealMissedEvent(
-                characterId,
-                consecutiveMisses: 1,
-                currentDay));
+            RefreshDailyFoodForecast(currentDay);
+            return;
+        }
+
+        MealMissedEvent[] missedEvents = GetSurvivalConsumers()
+            .Select(actor =>
+            {
+                if (!CharacterPersistentIdentity.TryGet(
+                        actor,
+                        out CharacterId characterId)
+                    || GetMealsConsumed(characterId.Value, completedDay) > 0)
+                {
+                    return (MealMissedEvent?)null;
+                }
+
+                return new MealMissedEvent(
+                    characterId,
+                    consecutiveMisses: 1,
+                    currentDay);
+            })
+            .Where(item => item.HasValue)
+            .Select(item => item.Value)
+            .GroupBy(item => item.Character.Value, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .OrderBy(item => item.Character.Value, StringComparer.Ordinal)
+            .ToArray();
+        if (missedEvents.Length == 0)
+        {
+            RefreshDailyFoodForecast(currentDay);
+            return;
+        }
+
+        if (outcomeTransactions == null)
+        {
+            throw new InvalidOperationException(
+                "Meal-missed outcome transaction is unavailable.");
+        }
+
+        SurvivalFoodRestoreCandidate rollback = BuildRestoreCandidate(Capture());
+        List<PreparedMigratedProducerOutcome> prepared = new(
+            missedEvents.Length);
+        MigratedProducerOutcomeSubject[] subjects =
+            new MigratedProducerOutcomeSubject[missedEvents.Length];
+        string[] summaries = new string[missedEvents.Length];
+        try
+        {
+            for (int index = 0; index < missedEvents.Length; index++)
+            {
+                MealMissedEvent missed = missedEvents[index];
+                if (!outcomeTransactions.TryReserveSingleSubject(
+                        MigratedProducerOutcomeKind.MealMissedEvent,
+                        CreateMealMissedOutcomeIdentity(
+                            missed,
+                            completedDay),
+                        currentDay,
+                        GameplayOutcomeStatus.Succeeded,
+                        out PreparedMigratedProducerOutcome reservation,
+                        out string failureReason))
+                {
+                    throw new InvalidOperationException(
+                        "Meal-missed outcome reservation failed: "
+                        + failureReason);
+                }
+
+                prepared.Add(reservation);
+                subjects[index] = new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    missed.Character.Value,
+                    missed.Character.Value,
+                    MigratedProducerOutcomeIds.ActorRole);
+                summaries[index] = CreateMealMissedOutcomeSummary(
+                    missed,
+                    completedDay);
+            }
+
+            // The persisted day/food summary changes only after every affected
+            // character outcome has a reservation.
+            RefreshDailyFoodForecast(currentDay);
+            var results = new MigratedProducerOutcomeCommitResult[
+                missedEvents.Length];
+            if (!outcomeTransactions.CommitSingleSubjectBatch(
+                    prepared.ToArray(),
+                    subjects,
+                    summaries,
+                    results,
+                    out string commitFailure))
+            {
+                throw new InvalidOperationException(
+                    "Meal-missed outcome batch commit was rejected: "
+                    + commitFailure);
+            }
+        }
+        catch
+        {
+            CancelMealMissedOutcomesAndRestore(prepared, rollback);
+            throw;
+        }
+
+        // Identity, UI, and alert listeners are downstream observers. Once the
+        // batch is durable, their failures must not reverse food-state success.
+        for (int index = 0; index < missedEvents.Length; index++)
+        {
+            PublishPostCommitMealMissedEvent(missedEvents[index]);
         }
     }
+
+    private void CancelMealMissedOutcomesAndRestore(
+        IReadOnlyList<PreparedMigratedProducerOutcome> prepared,
+        SurvivalFoodRestoreCandidate rollback)
+    {
+        try
+        {
+            for (int index = 0; index < prepared.Count; index++)
+            {
+                outcomeTransactions.Cancel(prepared[index]);
+            }
+        }
+        finally
+        {
+            PublishRestoreCandidate(rollback);
+        }
+    }
+
+    private void PublishPostCommitMealMissedEvent(
+        in MealMissedEvent missed)
+    {
+        try
+        {
+            gameEventBus.Publish(missed);
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "meal-missed-outcome-post-commit-observer:"
+                + exception.GetType().Name);
+        }
+    }
+
+    private static string CreateMealMissedOutcomeIdentity(
+        in MealMissedEvent missed,
+        int completedDay) => string.Join("|", new[]
+    {
+        "meal-missed@1",
+        missed.AbsoluteDay.ToString(CultureInfo.InvariantCulture),
+        Math.Max(0, completedDay).ToString(CultureInfo.InvariantCulture),
+        missed.Character.Value,
+        missed.ConsecutiveMisses.ToString(CultureInfo.InvariantCulture)
+    });
+
+    private static string CreateMealMissedOutcomeSummary(
+        in MealMissedEvent missed,
+        int completedDay) => string.Join("|", new[]
+    {
+        "meal-missed@1",
+        missed.Character.Value,
+        Math.Max(0, completedDay).ToString(CultureInfo.InvariantCulture),
+        missed.ConsecutiveMisses.ToString(CultureInfo.InvariantCulture)
+    });
 
     private void AnnounceDangerousWeatherIfChanged()
     {

@@ -4,7 +4,7 @@ using System.Linq;
 
 /// <summary>
 /// Current-format section for apparel order terminal producers.
-/// The base-eight aggregate restore is complete before its exact producer
+/// The base-nine aggregate restore is complete before its exact producer
 /// records are validated and published.
 /// </summary>
 public sealed class ProductionApparelOrderTerminalDrainSaveSection :
@@ -24,7 +24,8 @@ public sealed class ProductionApparelOrderTerminalDrainSaveSection :
         ProductionPreparedOutputRoutingSaveSection.Id,
         CombatEquipmentSaveSection.Id,
         EquipmentMaintenanceSaveSection.Id,
-        CharacterEnvironmentSaveSection.Id
+        CharacterEnvironmentSaveSection.Id,
+        EnvironmentalFireSaveSection.Id
     };
 
     private readonly IProductionApparelOrderTerminalDrainQuery query;
@@ -88,8 +89,8 @@ public sealed class ProductionApparelOrderTerminalDrainSaveSection :
         if (!lifecycle.TryCapture(out _))
         {
             throw new InvalidOperationException(
-                "Apparel order terminal-drain staged commit requires all eight lifecycle candidates; found "
-                + lifecycle.PublishedSourceCount + "/8.");
+                "Apparel order terminal-drain staged commit requires all nine lifecycle candidates; found "
+                + lifecycle.PublishedSourceCount + "/9.");
         }
         if (!command.TryRestoreCurrentFormat(
                 candidate.Payload.entries,

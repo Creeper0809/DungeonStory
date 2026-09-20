@@ -238,7 +238,7 @@ public sealed class DurableFacilityEquipmentUseRuntime :
         {
             effectCommitted = effect.TryCommit(context, out effectFailure);
         }
-        catch (Exception exception)
+        catch (Exception exception) when (IsRecoverable(exception))
         {
             RollbackOrThrow(
                 selected.StackId,
@@ -264,20 +264,31 @@ public sealed class DurableFacilityEquipmentUseRuntime :
                     : "durable-equipment-effect-commit-failed");
         }
 
-        if (projection.ExhaustedAfter)
+        // The effect and its outcome are committed. Drain/readback faults cannot
+        // convert this result to a failed use or undo only its physical wear.
+        DurableFacilityEquipmentUseStatus appliedStatus = projection.ExhaustedAfter
+            ? DurableFacilityEquipmentUseStatus.AppliedDrainPending
+            : DurableFacilityEquipmentUseStatus.Applied;
+        try
         {
-            DurableFacilityEquipmentSlotResult close = slotCommands.TryClose(
-                key,
-                "equipment-exhausted");
-            return Applied(
-                DurableFacilityEquipmentUseStatus.AppliedDrainPending,
-                close.Snapshot ?? CaptureLatest(key, slot),
-                selected.StackId);
+            if (projection.ExhaustedAfter)
+            {
+                DurableFacilityEquipmentSlotResult close = slotCommands.TryClose(key, "equipment-exhausted");
+                if (!close.Succeeded)
+                    return AppliedWithFault(appliedStatus, close.Snapshot ?? slot, selected.StackId,
+                        "durable-equipment-post-commit-close:" + close.FailureReason);
+                return Applied(appliedStatus, close.Snapshot, selected.StackId);
+            }
+            if (slots.TryCapture(key, out DurableFacilityEquipmentSlotSnapshot latest) && latest != null)
+                return Applied(appliedStatus, latest, selected.StackId);
+            return AppliedWithFault(appliedStatus, slot, selected.StackId,
+                "durable-equipment-post-commit-slot-missing");
         }
-        return Applied(
-            DurableFacilityEquipmentUseStatus.Applied,
-            CaptureLatest(key, slot),
-            selected.StackId);
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            return AppliedWithFault(appliedStatus, slot, selected.StackId,
+                "durable-equipment-post-commit-finalization:" + exception.GetType().Name);
+        }
     }
 
     private void RollbackOrThrow(
@@ -320,6 +331,24 @@ public sealed class DurableFacilityEquipmentUseRuntime :
         DurableFacilityEquipmentUseStatus status,
         DurableFacilityEquipmentSlotSnapshot slot,
         string stackId) => new(status, slot, stackId, string.Empty);
+
+    private static DurableFacilityEquipmentUseResult AppliedWithFault(
+        DurableFacilityEquipmentUseStatus status,
+        DurableFacilityEquipmentSlotSnapshot lastObservedSlot, string stackId, string code)
+    {
+        // Snapshot is the last confirmed observation, not a fabricated current slot.
+        DurableFacilityEquipmentUseResult result = new(status, lastObservedSlot, stackId, string.Empty, code);
+        try { UnityEngine.Debug.LogWarning(code + " · " + stackId); }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            // A log observer also cannot invalidate a committed effect; the typed
+            // result still carries the fault even if the logging sink is unavailable.
+        }
+        return result;
+    }
+
+    private static bool IsRecoverable(Exception exception) => exception is not
+        OutOfMemoryException and not StackOverflowException and not AccessViolationException;
 
     private static DurableFacilityEquipmentUseResult Failure(
         DurableFacilityEquipmentUseStatus status,

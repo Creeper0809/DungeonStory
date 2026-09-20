@@ -561,6 +561,43 @@ public sealed partial class GameplayOutcomeLedger
         }
     }
 
+    [GameplayInternalOnly(
+        "Reverses an exact influence use whose save guard was sealed immediately before a paired joint outcome failed.",
+        "PreparedGameplayOutcomeEvidenceUse joint outcome rollback")]
+    public InfluenceUseRollbackResult RollbackCompletedInfluenceUse(
+        in InfluenceUseRollbackToken rollback)
+    {
+        lock (gate)
+        {
+            if (rollback.WorldEpoch != state.WorldEpoch)
+                return new InfluenceUseRollbackResult(
+                    InfluenceUseRollbackCode.WorldMismatch);
+            GameplayOutcomeValuePage page = state.Pool.Get(rollback.PageIndex);
+            if (page == null || page.Generation != rollback.PageGeneration
+                || !IsPublished(page) || page.InfluenceReservationActive
+                || page.InfluenceReservationNonce != rollback.ReservationNonce
+                || rollback.SubjectIndex < 0
+                || rollback.SubjectIndex >= page.SubjectCount)
+            {
+                return new InfluenceUseRollbackResult(
+                    InfluenceUseRollbackCode.InvalidToken);
+            }
+            GameplayOutcomeSubjectLink current =
+                page.Subjects[rollback.SubjectIndex];
+            if (current.SubjectId != rollback.SubjectId
+                || current.InfluenceRevision != rollback.CommittedRevision
+                || current.InfluenceUseCount != rollback.CommittedUseCount)
+            {
+                return new InfluenceUseRollbackResult(
+                    InfluenceUseRollbackCode.Stale);
+            }
+            page.Subjects[rollback.SubjectIndex] = rollback.PreviousSubject;
+            state.Revision++;
+            return new InfluenceUseRollbackResult(
+                InfluenceUseRollbackCode.RolledBack);
+        }
+    }
+
     private bool MatchesInfluenceReservation(
         GameplayOutcomeValuePage page,
         in PreparedInfluenceUseToken prepared) => page != null

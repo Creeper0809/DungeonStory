@@ -503,6 +503,7 @@ public static class RunVariableDebugScenarios
     private sealed class ScenarioRuntime : IDisposable
     {
         private readonly GameObject runtimeObject;
+        private readonly MigratedProducerOutcomeEditorFixture outcomeFixture;
 
         public RunVariableRuntime Runtime { get; }
         public DungeonStory.Foundation.IGameEventBus GameEvents { get; }
@@ -519,6 +520,8 @@ public static class RunVariableDebugScenarios
             runtimeObject = new GameObject("Run Variable Scenario Runtime");
             try
             {
+                outcomeFixture = new MigratedProducerOutcomeEditorFixture(
+                    "run:run-variable-debug");
                 Runtime = runtimeObject.AddComponent<RunVariableRuntime>();
                 GameEvents = new DungeonStory.Foundation.GameEventBus();
                 Runtime.Construct(
@@ -529,7 +532,8 @@ public static class RunVariableDebugScenarios
                     GameEvents,
                     variableCatalog,
                     doctrineCatalog,
-                    new DungeonRuntimeAggregateRootStore());
+                    outcomeFixture.AggregateRootStore,
+                    outcomeFixture.Transaction);
                 Runtime.StartRun(999, null, InvasionThreatDifficulty.Normal);
             }
             catch

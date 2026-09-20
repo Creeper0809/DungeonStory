@@ -57,6 +57,7 @@ namespace DungeonStory.Infrastructure
         public bool progressExternallyPersisted;
         public float inlineCompletedWork;
         public float inlineRequiredWork;
+        public long outcomeOwnerRevision;
     }
 
     [Serializable]
@@ -336,6 +337,7 @@ namespace DungeonStory.Operation
                     || suspended.alertEpochId <= 0L
                     || suspended.alertEpochId > threatAlert.alertEpochId
                     || suspended.suspendedAtAbsoluteHour < 0L
+                    || suspended.outcomeOwnerRevision < 0L
                     || (!suspended.progressExternallyPersisted
                         && (!IsFinite(suspended.inlineCompletedWork)
                             || !IsFinite(suspended.inlineRequiredWork)

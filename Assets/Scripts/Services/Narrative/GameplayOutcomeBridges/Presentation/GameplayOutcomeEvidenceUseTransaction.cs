@@ -33,6 +33,7 @@ public sealed class PreparedGameplayOutcomeEvidenceUse : IDisposable
     private readonly InfluenceUseRollbackToken[] influenceRollbackTokens;
     private readonly bool[] pendingInfluenceCancellations;
     private int committedCount;
+    private bool ownerCommitSealedForJointOutcome;
     private bool terminal;
     public bool IsTerminal => terminal;
 
@@ -129,6 +130,22 @@ public sealed class PreparedGameplayOutcomeEvidenceUse : IDisposable
     {
         if (terminal)
             throw new InvalidOperationException("Evidence-use transaction is already terminal.");
+        if (!TrySealOwnerCommitForJointOutcome(out string failureCode))
+        {
+            throw new InvalidOperationException(
+                "Evidence influence-use completion failed: " + failureCode);
+        }
+        CompleteJointOutcomeCommit();
+    }
+
+    internal bool TrySealOwnerCommitForJointOutcome(out string failureCode)
+    {
+        failureCode = string.Empty;
+        if (terminal || ownerCommitSealedForJointOutcome)
+        {
+            failureCode = "evidence-use-already-terminal-or-sealed";
+            return false;
+        }
         bool hasCommittedInfluence = false;
         for (int index = 0; index < influenceRollbackTokens.Length; index++)
             hasCommittedInfluence |= influenceRollbackTokens[index].IsValid;
@@ -137,14 +154,20 @@ public sealed class PreparedGameplayOutcomeEvidenceUse : IDisposable
             InfluenceUseCommitResult completed =
                 commands.CompleteInfluenceUses(influenceRollbackTokens);
             if (!completed.Success)
-                throw new InvalidOperationException(
-                    "Evidence influence-use completion failed: "
-                    + completed.Code);
-            Array.Clear(
-                influenceRollbackTokens,
-                0,
-                influenceRollbackTokens.Length);
+            {
+                failureCode = completed.Code.ToString();
+                return false;
+            }
         }
+        ownerCommitSealedForJointOutcome = true;
+        return true;
+    }
+
+    internal void CompleteJointOutcomeCommit()
+    {
+        // The fallible influence-guard release is completed by the seal. This
+        // terminal transition deliberately performs no external work so a
+        // jointly committed outcome cannot be followed by an owner failure.
         terminal = true;
     }
 
@@ -190,9 +213,9 @@ public sealed class PreparedGameplayOutcomeEvidenceUse : IDisposable
         bool success = true;
         for (int index = rollbackTokens.Length - 1; index >= 0; index--)
         {
-            // Roll back the anchor while the matching influence reservation
-            // still blocks save/consolidation. If the anchor rollback cannot
-            // complete, retain both tokens and the guard for reconciliation.
+            // Before a joint seal the matching influence reservation blocks
+            // save/consolidation. After a seal, exact revision/nonce matching
+            // keeps this rollback exclusive until the outcome decision.
             if (rollbackTokens[index].IsValid)
             {
                 EvidenceAnchorRollbackResult anchor =
@@ -214,8 +237,10 @@ public sealed class PreparedGameplayOutcomeEvidenceUse : IDisposable
             if (index < influenceRollbackTokens.Length
                 && influenceRollbackTokens[index].IsValid)
             {
-                InfluenceUseRollbackResult influence =
-                    commands.RollbackInfluenceUse(
+                InfluenceUseRollbackResult influence = ownerCommitSealedForJointOutcome
+                    ? commands.RollbackCompletedInfluenceUse(
+                        influenceRollbackTokens[index])
+                    : commands.RollbackInfluenceUse(
                         influenceRollbackTokens[index]);
                 if (!influence.Success)
                 {

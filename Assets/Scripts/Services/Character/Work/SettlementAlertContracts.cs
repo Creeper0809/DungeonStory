@@ -49,7 +49,8 @@ public readonly struct SettlementSuspendedWorkSnapshot
         long suspendedAtAbsoluteHour,
         bool progressExternallyPersisted,
         float inlineCompletedWork = 0f,
-        float inlineRequiredWork = 0f)
+        float inlineRequiredWork = 0f,
+        long outcomeOwnerRevision = 0L)
     {
         CharacterId = characterId?.Trim() ?? string.Empty;
         WorkTypeId = workTypeId;
@@ -59,6 +60,7 @@ public readonly struct SettlementSuspendedWorkSnapshot
         ProgressExternallyPersisted = progressExternallyPersisted;
         InlineCompletedWork = inlineCompletedWork;
         InlineRequiredWork = inlineRequiredWork;
+        OutcomeOwnerRevision = outcomeOwnerRevision;
     }
 
     public string CharacterId { get; }
@@ -69,6 +71,7 @@ public readonly struct SettlementSuspendedWorkSnapshot
     public bool ProgressExternallyPersisted { get; }
     public float InlineCompletedWork { get; }
     public float InlineRequiredWork { get; }
+    public long OutcomeOwnerRevision { get; }
     public bool HasInlineProgress => InlineRequiredWork > 0f
         && InlineCompletedWork >= 0f
         && InlineCompletedWork < InlineRequiredWork

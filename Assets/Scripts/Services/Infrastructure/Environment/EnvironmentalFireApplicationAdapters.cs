@@ -23,12 +23,6 @@ public sealed class EnvironmentalFireWorldAdapter :
     public const string FuelLossSinkReasonCode =
         "environmental-fire-fuel-loss";
 
-    private sealed class DamageCommit
-    {
-        public string Fingerprint;
-        public EnvironmentalFireDamageResult Result;
-    }
-
     private readonly IBuildingWorldQuery buildings;
     private readonly ICharacterWorldQuery characters;
     private readonly IGridSystemProvider gridProvider;
@@ -47,8 +41,8 @@ public sealed class EnvironmentalFireWorldAdapter :
     private readonly IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics;
     private readonly IGameCalendar calendar;
     private readonly ICharacterEnvironmentProtectionResolver protection;
-    private readonly Dictionary<string, DamageCommit> damageCommits =
-        new(StringComparer.Ordinal);
+    private readonly IEnvironmentalFireDamageOutcomeAuthority damageOutcomes;
+    private readonly ICharacterBodyHealthMutationTransaction bodyHealthMutation;
 
     public EnvironmentalFireWorldAdapter(
         IBuildingWorldQuery buildings,
@@ -68,6 +62,8 @@ public sealed class EnvironmentalFireWorldAdapter :
         IEnvironmentGameplayOutcomeCommitter environmentOutcomes,
         IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics,
         IGameCalendar calendar,
+        IEnvironmentalFireDamageOutcomeAuthority damageOutcomes,
+        ICharacterBodyHealthMutationTransaction bodyHealthMutation,
         ICharacterEnvironmentProtectionResolver protection = null)
     {
         this.buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
@@ -93,6 +89,10 @@ public sealed class EnvironmentalFireWorldAdapter :
         this.outcomeDiagnostics = outcomeDiagnostics
             ?? throw new ArgumentNullException(nameof(outcomeDiagnostics));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.damageOutcomes = damageOutcomes
+            ?? throw new ArgumentNullException(nameof(damageOutcomes));
+        this.bodyHealthMutation = bodyHealthMutation
+            ?? throw new ArgumentNullException(nameof(bodyHealthMutation));
         this.protection = protection;
     }
 
@@ -113,7 +113,8 @@ public sealed class EnvironmentalFireWorldAdapter :
                 false,
                 false,
                 null,
-                EnvironmentalFireIgnitionSources.None);
+                EnvironmentalFireIgnitionSources.None,
+                actor.Identity?.DisplayName);
             return true;
         }
         if (target.Kind == EnvironmentalFireTargetKind.ItemStack)
@@ -134,7 +135,8 @@ public sealed class EnvironmentalFireWorldAdapter :
                 false,
                 false,
                 null,
-                EnvironmentalFireIgnitionSources.None);
+                EnvironmentalFireIgnitionSources.None,
+                stack.ItemId);
             return true;
         }
 
@@ -158,7 +160,8 @@ public sealed class EnvironmentalFireWorldAdapter :
             hasElectricalHazard,
             profile,
             ability?.acceptedSources
-                ?? EnvironmentalFireIgnitionSources.None);
+                ?? EnvironmentalFireIgnitionSources.None,
+            FacilityShopService.GetBuildingName(building.BuildingData));
         return true;
     }
 
@@ -242,21 +245,33 @@ public sealed class EnvironmentalFireWorldAdapter :
         out EnvironmentalFireDamageResult result)
     {
         string operationId = command.OperationId?.Trim() ?? string.Empty;
-        string fingerprint = CreateDamageFingerprint(command);
-        if (damageCommits.TryGetValue(operationId, out DamageCommit known))
+        if (damageOutcomes.TryGet(
+                operationId,
+                out EnvironmentalFireDamageOutcomeSaveRecord known))
         {
-            if (!string.Equals(known.Fingerprint, fingerprint, StringComparison.Ordinal))
+            if (!damageOutcomes.TryBegin(
+                    command,
+                    known.targetDisplayName,
+                    known.absoluteDay,
+                    out known,
+                    out string replayFailure))
             {
                 result = new EnvironmentalFireDamageResult(
                     false,
                     0f,
                     true,
-                    "environmental-fire-damage-operation-conflict");
+                    replayFailure);
                 return false;
             }
-
-            result = known.Result;
-            return result.Committed;
+            if (known.phase ==
+                EnvironmentalFireDamageOutcomePhase.OutcomeCommitted)
+            {
+                result = new EnvironmentalFireDamageResult(
+                    true,
+                    known.appliedDamage,
+                    known.targetRemainsCombustible);
+                return true;
+            }
         }
 
         if (operationId.Length == 0
@@ -278,7 +293,6 @@ public sealed class EnvironmentalFireWorldAdapter :
             return TryApplyCharacterDamage(
                 command,
                 operationId,
-                fingerprint,
                 out result);
         }
         if (command.Target.Kind != EnvironmentalFireTargetKind.Building
@@ -291,6 +305,55 @@ public sealed class EnvironmentalFireWorldAdapter :
                 0f,
                 false,
                 "environmental-fire-damage-invalid-target-or-amount");
+            return false;
+        }
+
+        string targetDisplayName = FacilityShopService.GetBuildingName(
+            building.BuildingData);
+        if (!damageOutcomes.TryBegin(
+                command,
+                targetDisplayName,
+                calendar.Day,
+                out _,
+                out string prepareFailure))
+        {
+            result = new EnvironmentalFireDamageResult(
+                false,
+                0f,
+                true,
+                prepareFailure);
+            return false;
+        }
+
+        if (!structuralIntegrity.TryGet(
+                building,
+                out BuildingStructuralIntegritySnapshot before))
+        {
+            damageOutcomes.CancelUncommitted(operationId);
+            result = new EnvironmentalFireDamageResult(
+                false,
+                0f,
+                true,
+                "building-structural-integrity-missing");
+            return false;
+        }
+        bool lethal = command.RequestedDamage >= before.CurrentHitPoints;
+        BuildingStructuralIntegrity component = lethal
+            ? null
+            : building.GetComponent<BuildingStructuralIntegrity>();
+        string rollbackState = component?.CaptureState();
+        if (lethal
+            && !damageOutcomes.TryStageAwaitingWorldRemoval(
+                operationId,
+                Math.Min(command.RequestedDamage, before.CurrentHitPoints),
+                out string stagingFailure))
+        {
+            damageOutcomes.CancelUncommitted(operationId);
+            result = new EnvironmentalFireDamageResult(
+                false,
+                0f,
+                true,
+                stagingFailure);
             return false;
         }
 
@@ -307,15 +370,53 @@ public sealed class EnvironmentalFireWorldAdapter :
                     : applied.FailureReason);
             return false;
         }
+        if (lethal)
+        {
+            if (!damageOutcomes.TryGet(operationId, out known)
+                || known.phase !=
+                    EnvironmentalFireDamageOutcomePhase.OutcomeCommitted)
+            {
+                result = new EnvironmentalFireDamageResult(
+                    false,
+                    0f,
+                    true,
+                    "environmental-fire-damage-lethal-outcome-not-committed");
+                return false;
+            }
+            result = new EnvironmentalFireDamageResult(
+                true,
+                known.appliedDamage,
+                false);
+            return true;
+        }
 
+        if (damageOutcomes.TryCommitApplied(
+                operationId,
+                applied.Damage,
+                !applied.Destroyed && !building.isDestroy,
+                out result,
+                out string outcomeFailure))
+        {
+            return true;
+        }
+        string rollbackFailure = string.Empty;
+        if (component == null
+            || !component.TryRestoreState(
+                component.CurrentVersion,
+                rollbackState,
+                out rollbackFailure))
+        {
+            throw new InvalidOperationException(
+                "Environmental fire structural rollback failed: "
+                + rollbackFailure);
+        }
+        damageOutcomes.CancelUncommitted(operationId);
         result = new EnvironmentalFireDamageResult(
+            false,
+            0f,
             true,
-            applied.Damage,
-            !applied.Destroyed && !building.isDestroy);
-        damageCommits.Add(
-            operationId,
-            new DamageCommit { Fingerprint = fingerprint, Result = result });
-        return true;
+            outcomeFailure);
+        return false;
     }
 
     public bool TryCommitPending(
@@ -693,7 +794,6 @@ public sealed class EnvironmentalFireWorldAdapter :
     private bool TryApplyCharacterDamage(
         EnvironmentalFireDamageCommand command,
         string operationId,
-        string fingerprint,
         out EnvironmentalFireDamageResult result)
     {
         if (protection == null
@@ -736,19 +836,59 @@ public sealed class EnvironmentalFireWorldAdapter :
             return false;
         }
 
+        string targetDisplayName = actor.Identity?.DisplayName;
+        if (!damageOutcomes.TryBegin(
+                command,
+                targetDisplayName,
+                calendar.Day,
+                out _,
+                out string prepareFailure))
+        {
+            result = new EnvironmentalFireDamageResult(
+                false,
+                0f,
+                true,
+                prepareFailure);
+            return false;
+        }
+
+        CharacterBodyHealthMutationSnapshot rollback =
+            bodyHealthMutation.CaptureCombatMutation(actor);
         float healthBefore = actor.CurrentHealth;
         actor.ApplyDamage(
             requestedDamage,
             string.Concat("environmental-fire:", command.FireId));
         float appliedDamage = Math.Max(0f, healthBefore - actor.CurrentHealth);
+        if (appliedDamage <= 0f)
+        {
+            damageOutcomes.CancelUncommitted(operationId);
+            result = new EnvironmentalFireDamageResult(
+                false,
+                0f,
+                !actor.IsDead,
+                "environmental-fire-body-damage-not-applied");
+            return false;
+        }
+        if (damageOutcomes.TryCommitApplied(
+                operationId,
+                appliedDamage,
+                !actor.IsDead,
+                out result,
+                out string outcomeFailure))
+        {
+            return true;
+        }
+        bodyHealthMutation.RestoreCombatMutation(
+            actor,
+            rollback,
+            "environmental-fire-damage-outcome-rollback");
+        damageOutcomes.CancelUncommitted(operationId);
         result = new EnvironmentalFireDamageResult(
-            true,
-            appliedDamage,
-            !actor.IsDead);
-        damageCommits.Add(
-            operationId,
-            new DamageCommit { Fingerprint = fingerprint, Result = result });
-        return true;
+            false,
+            0f,
+            !actor.IsDead,
+            outcomeFailure);
+        return false;
     }
 
     private static IEnumerable<Vector2Int> LiveFootprint(
@@ -872,17 +1012,6 @@ public sealed class EnvironmentalFireWorldAdapter :
             receipt.ReasonCode,
             WaterSinkReasonCode,
             StringComparison.Ordinal);
-
-    private static string CreateDamageFingerprint(
-        EnvironmentalFireDamageCommand command) => string.Join(
-        "|",
-        command.FireId,
-        (int)command.Target.Kind,
-        command.Target.TargetId,
-        command.Position.x,
-        command.Position.y,
-        command.Intensity.ToString("R", CultureInfo.InvariantCulture),
-        command.RequestedDamage.ToString("R", CultureInfo.InvariantCulture));
 
     private static bool IsFinite(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value);
@@ -1069,7 +1198,9 @@ public sealed class ElectricalEnvironmentalFireProducer : ITickable
                     EnvironmentalFireTargetKind.Building,
                     building.PersistentInstanceId.Value),
                 ability.electricalIgnitionIntensity,
-                evidenceId));
+                evidenceId,
+                targetDisplayName: FacilityShopService.GetBuildingName(
+                    building.BuildingData)));
         if (result.Disposition ==
             EnvironmentalFireIgnitionDisposition.CauseConflict)
         {

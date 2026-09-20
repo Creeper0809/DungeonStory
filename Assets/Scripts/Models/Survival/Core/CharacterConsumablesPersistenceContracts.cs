@@ -321,6 +321,7 @@ public sealed class CharacterMealPlanSaveData
     public long physicalCommitInputMassGrams;
     public bool committedPolicyViolation;
     public bool committedContaminated;
+    public bool primitiveSurvivalOutcomeRequired;
 
     public ConsumableOperationId OperationId =>
         (ConsumableOperationId)planId;

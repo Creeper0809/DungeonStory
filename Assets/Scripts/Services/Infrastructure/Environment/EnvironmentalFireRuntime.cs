@@ -4,6 +4,7 @@ using System.Linq;
 using DungeonStory.Environment;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 
 public interface IEnvironmentalFireTargetQuery
 {
@@ -199,6 +200,8 @@ public sealed class EnvironmentalFireRuntime :
     private readonly IEnvironmentalFireWaterSink water;
     private readonly IEnvironmentalFireExposureTargetQuery exposures;
     private readonly IEnvironmentalFireFuelLossSink fuelLoss;
+    private readonly IEnvironmentGameplayOutcomeCommitter environmentOutcomes;
+    private readonly IGameCalendar calendar;
     private readonly EnvironmentalFireRuntimeSettings settings;
     private readonly IRandomStream spreadRandom;
     private readonly Dictionary<string, FireState> activeById =
@@ -212,9 +215,11 @@ public sealed class EnvironmentalFireRuntime :
     private readonly List<EnvironmentalFireHistorySnapshot> history = new();
 
     private long nextFireSequence = 1;
+    private long nextOutcomeSequence = 1;
     private float accumulator;
     private int version = 1;
 
+    [Inject]
     public EnvironmentalFireRuntime(
         IEnvironmentalFireTargetQuery targets,
         IEnvironmentalFireDamageCommand damage,
@@ -223,6 +228,8 @@ public sealed class EnvironmentalFireRuntime :
         IEnvironmentalFireWaterSink water,
         EnvironmentalFireRuntimeSettings settings,
         IRandomStreamProvider randomStreams,
+        IEnvironmentGameplayOutcomeCommitter environmentOutcomes,
+        IGameCalendar calendar,
         IEnvironmentalFireExposureTargetQuery exposures = null,
         IEnvironmentalFireFuelLossSink fuelLoss = null)
     {
@@ -234,11 +241,29 @@ public sealed class EnvironmentalFireRuntime :
         this.water = water ?? throw new ArgumentNullException(nameof(water));
         this.exposures = exposures;
         this.fuelLoss = fuelLoss;
+        this.environmentOutcomes = environmentOutcomes
+            ?? throw new ArgumentNullException(nameof(environmentOutcomes));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
         spreadRandom = (randomStreams
             ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get(SpreadRandomStreamId);
     }
+
+#if UNITY_EDITOR
+    public EnvironmentalFireRuntime(
+        IEnvironmentalFireTargetQuery targets,
+        IEnvironmentalFireDamageCommand damage,
+        IEnvironmentalFireSuppressionAccessQuery access,
+        IEnvironmentalFireElectricalSafetyQuery electricalSafety,
+        IEnvironmentalFireWaterSink water,
+        EnvironmentalFireRuntimeSettings settings,
+        IRandomStreamProvider randomStreams,
+        IEnvironmentalFireExposureTargetQuery exposures = null,
+        IEnvironmentalFireFuelLossSink fuelLoss = null)
+        => throw new InvalidOperationException(
+            "Environmental fire fixtures require the mandatory gameplay outcome committer and game calendar.");
+#endif
 
     public int Version => version;
 
@@ -280,6 +305,8 @@ public sealed class EnvironmentalFireRuntime :
         if (!IsFinite(elapsedGameTime) || elapsedGameTime < 0f)
             throw new ArgumentOutOfRangeException(nameof(elapsedGameTime));
 
+        ResumePendingOutcomeCommits();
+
         var report = new TickCounters();
         accumulator += elapsedGameTime;
         while (accumulator >= settings.TickInterval)
@@ -301,6 +328,7 @@ public sealed class EnvironmentalFireRuntime :
     {
         if (request == null
             || !request.IsValid
+            || request.Kind == EnvironmentalFireIgnitionKind.Spread
             || request.Target.Kind != EnvironmentalFireTargetKind.Building)
         {
             return new EnvironmentalFireIgnitionResult(
@@ -313,7 +341,9 @@ public sealed class EnvironmentalFireRuntime :
         {
             if (!string.Equals(
                     known.Fingerprint,
-                    request.Fingerprint,
+                    known.LegacyPreOutcome
+                        ? request.LegacyFingerprint
+                        : request.Fingerprint,
                     StringComparison.Ordinal))
             {
                 return new EnvironmentalFireIgnitionResult(
@@ -322,6 +352,32 @@ public sealed class EnvironmentalFireRuntime :
                     "The cause ID was already used with different evidence.");
             }
 
+            if (known.OutcomePending)
+                ResumePendingIgnitionOutcome(request, known);
+
+            var canonicalResult = new EnvironmentalFireIgnitionResult(
+                known.Disposition,
+                known.FireId,
+                known.Reason);
+            if (!known.LegacyPreOutcome)
+            {
+                EnvironmentalFireIgnitionOutcomeReceipt canonicalReceipt =
+                    EnvironmentOutcomeReceiptFactory.CreateFireIgnition(
+                        request,
+                        canonicalResult,
+                        known.TargetDisplayName,
+                        new CoreGridCell(known.Position.x, known.Position.y),
+                        known.AbsoluteDay,
+                        known.OutcomeRevision,
+                        known.AppliedIntensity,
+                        known.HasLocation);
+                if (!environmentOutcomes.IsCanonicalAcknowledgedReplay(
+                        canonicalReceipt,
+                        out string replayFailure))
+                    throw new InvalidOperationException(
+                        "Environmental fire ignition replay is not canonical: "
+                        + replayFailure);
+            }
             return new EnvironmentalFireIgnitionResult(
                 EnvironmentalFireIgnitionDisposition.PreviouslyProcessed,
                 known.FireId,
@@ -331,32 +387,35 @@ public sealed class EnvironmentalFireRuntime :
         if (!targets.TryGetTarget(request.Target, out var target)
             || !target.Exists)
         {
-            return RecordIgnitionOutcome(
-                request.CauseId,
-                request.Fingerprint,
+            return CommitIgnitionOutcome(
+                request,
                 EnvironmentalFireIgnitionDisposition.TargetMissing,
                 string.Empty,
-                "The authored target no longer exists.");
+                "The authored target no longer exists.",
+                default,
+                hasLocation: false);
         }
 
         if (!target.CanBurn || !target.Accepts(request.Kind))
         {
-            return RecordIgnitionOutcome(
-                request.CauseId,
-                request.Fingerprint,
+            return CommitIgnitionOutcome(
+                request,
                 EnvironmentalFireIgnitionDisposition.TargetNotCombustible,
                 string.Empty,
-                "The authored target is not eligible for this ignition source.");
+                "The authored target is not eligible for this ignition source.",
+                target.Position,
+                hasLocation: true);
         }
 
         if (fireByTarget.TryGetValue(request.Target, out string existingFireId))
         {
-            return RecordIgnitionOutcome(
-                request.CauseId,
-                request.Fingerprint,
+            return CommitIgnitionOutcome(
+                request,
                 EnvironmentalFireIgnitionDisposition.AlreadyBurning,
                 existingFireId,
-                "The target already has an active environmental fire.");
+                "The target already has an active environmental fire.",
+                target.Position,
+                hasLocation: true);
         }
         if (nextFireSequence <= 0 || nextFireSequence == long.MaxValue)
         {
@@ -366,40 +425,32 @@ public sealed class EnvironmentalFireRuntime :
                 "Environmental fire identity sequence is exhausted or invalid.");
         }
 
-        EnvironmentalFireFuelLossReceipt fuelReceipt = default;
-        if (request.FuelLoss != null)
-        {
-            if (fuelLoss == null)
-            {
-                return new EnvironmentalFireIgnitionResult(
-                    EnvironmentalFireIgnitionDisposition.InvalidRequest,
-                    string.Empty,
-                    "The exact environmental-fire fuel-loss port is unavailable.");
-            }
+        long fireSequenceBefore = nextFireSequence;
+        string fireId = string.Concat("environmental-fire:", fireSequenceBefore);
+        var ignitionResult = new EnvironmentalFireIgnitionResult(
+            EnvironmentalFireIgnitionDisposition.Ignited,
+            fireId,
+            "Ignition accepted.");
+        long outcomeRevision = RequireNextOutcomeRevision();
+        EnvironmentalFireIgnitionOutcomeReceipt outcomeReceipt =
+            EnvironmentOutcomeReceiptFactory.CreateFireIgnition(
+                request,
+                ignitionResult,
+                request.TargetDisplayName,
+                new CoreGridCell(target.Position.x, target.Position.y),
+                calendar.Day,
+                outcomeRevision,
+                Math.Min(
+                    request.IgnitionIntensity,
+                    target.Profile.MaximumIntensity));
+        if (!environmentOutcomes.TryPrepare(
+                outcomeReceipt,
+                out PreparedEnvironmentOutcome preparedOutcome,
+                out string prepareFailure))
+            throw new InvalidOperationException(
+                "Environmental fire ignition outcome prepare failed: "
+                + prepareFailure);
 
-            string fuelOperationId = string.Concat(
-                "environmental-fire-fuel-loss:",
-                request.CauseId);
-            if (!fuelLoss.TryCommitPending(
-                    request.FuelLoss,
-                    fuelOperationId,
-                    out fuelReceipt,
-                    out string fuelFailure)
-                || !MatchesFuelLoss(
-                    request.FuelLoss,
-                    fuelOperationId,
-                    fuelReceipt))
-            {
-                return new EnvironmentalFireIgnitionResult(
-                    EnvironmentalFireIgnitionDisposition.FuelUnavailable,
-                    string.Empty,
-                    NormalizeReason(
-                        fuelFailure,
-                        "The exact physical fire fuel could not be sunk."));
-            }
-        }
-
-        string fireId = NextFireId();
         var state = new FireState
         {
             FireId = fireId,
@@ -415,18 +466,104 @@ public sealed class EnvironmentalFireRuntime :
             RemainingFuel = target.Profile.FuelCapacity,
             RequiresElectricalIsolation = target.HasElectricalHazard
                 || request.Kind == EnvironmentalFireIgnitionKind.ElectricalFault,
-            FuelLossReceipt = fuelReceipt
+            FuelLossRequest = request.FuelLoss
         };
+        int versionBefore = version;
+        var ownerRecord = new IgnitionRecord(
+            request.Fingerprint,
+            EnvironmentalFireIgnitionDisposition.Ignited,
+            fireId,
+            "Ignition accepted.",
+            outcomeRevision,
+            request.TargetDisplayName,
+            target.Position,
+            true,
+            calendar.Day,
+            state.Intensity,
+            outcomePending: true);
         activeById.Add(fireId, state);
         fireByTarget.Add(state.Target, fireId);
-        causes.Add(
-            request.CauseId,
-            new IgnitionRecord(
-                request.Fingerprint,
-                EnvironmentalFireIgnitionDisposition.Ignited,
-                fireId,
-                "Ignition accepted."));
+        causes.Add(request.CauseId, ownerRecord);
+        nextFireSequence = checked(fireSequenceBefore + 1L);
+        nextOutcomeSequence = checked(outcomeRevision + 1L);
         BumpVersion();
+
+        EnvironmentalFireFuelLossReceipt fuelReceipt = default;
+        bool fuelCommitAttempted = false;
+        try
+        {
+            if (request.FuelLoss != null)
+            {
+                if (fuelLoss == null)
+                    throw new InvalidOperationException(
+                        "The exact environmental-fire fuel-loss port is unavailable.");
+                string fuelOperationId = string.Concat(
+                    "environmental-fire-fuel-loss:",
+                    request.CauseId);
+                fuelCommitAttempted = true;
+                if (!fuelLoss.TryCommitPending(
+                        request.FuelLoss,
+                        fuelOperationId,
+                        out fuelReceipt,
+                        out string fuelFailure))
+                {
+                    activeById.Remove(fireId);
+                    fireByTarget.Remove(state.Target);
+                    causes.Remove(request.CauseId);
+                    nextFireSequence = fireSequenceBefore;
+                    nextOutcomeSequence = outcomeRevision;
+                    version = versionBefore;
+                    environmentOutcomes.Cancel(preparedOutcome);
+                    return CommitIgnitionOutcome(
+                        request,
+                        EnvironmentalFireIgnitionDisposition.FuelUnavailable,
+                        string.Empty,
+                        NormalizeReason(
+                            fuelFailure,
+                            "The exact physical fire fuel could not be sunk."),
+                        target.Position,
+                        hasLocation: true);
+                }
+                if (!MatchesFuelLoss(
+                        request.FuelLoss,
+                        fuelOperationId,
+                        fuelReceipt))
+                    throw new InvalidOperationException(
+                        "The physical fire-fuel receipt did not match its exact request.");
+                state.FuelLossReceipt = fuelReceipt;
+            }
+
+            EnvironmentOutcomeCommitResult committed =
+                environmentOutcomes.Commit(preparedOutcome, outcomeRevision);
+            if (!committed.DurablyCommitted)
+                throw new InvalidOperationException(
+                    "Environmental fire ignition outcome commit failed: "
+                    + committed.DetailCode);
+            ownerRecord.MarkOutcomeCommitted();
+        }
+        catch
+        {
+            EnvironmentOutcomeCommitResult reconciled =
+                environmentOutcomes.Reconcile(outcomeReceipt.Payload.ResultKey);
+            if (!reconciled.DurablyCommitted)
+            {
+                if (fuelCommitAttempted)
+                {
+                    environmentOutcomes.Cancel(preparedOutcome);
+                    throw new InvalidOperationException(
+                        "Environmental fire ignition is durably pending physical-fuel and parent-outcome reconciliation.");
+                }
+                activeById.Remove(fireId);
+                fireByTarget.Remove(state.Target);
+                causes.Remove(request.CauseId);
+                nextFireSequence = fireSequenceBefore;
+                nextOutcomeSequence = outcomeRevision;
+                version = versionBefore;
+                environmentOutcomes.Cancel(preparedOutcome);
+                throw;
+            }
+            ownerRecord.MarkOutcomeCommitted();
+        }
 
         if (fuelReceipt.IsCommitted
             && fuelLoss.TryAcknowledge(
@@ -437,10 +574,7 @@ public sealed class EnvironmentalFireRuntime :
             BumpVersion();
         }
 
-        return new EnvironmentalFireIgnitionResult(
-            EnvironmentalFireIgnitionDisposition.Ignited,
-            fireId,
-            "Ignition accepted.");
+        return ignitionResult;
     }
 
     [GameplayEntryPoint(
@@ -459,7 +593,9 @@ public sealed class EnvironmentalFireRuntime :
         {
             if (!string.Equals(
                     known.Fingerprint,
-                    command.Fingerprint,
+                    known.LegacyPreOutcome
+                        ? command.LegacyFingerprint
+                        : command.Fingerprint,
                     StringComparison.Ordinal))
             {
                 return SuppressionFailure(
@@ -467,6 +603,31 @@ public sealed class EnvironmentalFireRuntime :
                     "The operation ID was already used by another command.");
             }
 
+            if (known.OutcomePending)
+                ResumePendingSuppressionOutcome(known);
+
+            if (!known.LegacyPreOutcome
+                && known.Phase == EnvironmentalFireSuppressionPhase.Applied)
+            {
+                EnvironmentalFireSuppressionResult canonical =
+                    CanonicalSuppressionResult(known);
+                Vector2Int outcomePosition = FindFirePosition(
+                    known.Command.FireId);
+                EnvironmentalFireSuppressionOutcomeReceipt receipt =
+                    EnvironmentOutcomeReceiptFactory.CreateFireSuppression(
+                        known.Command,
+                        canonical,
+                        known.Command.WorkerDisplayName,
+                        new CoreGridCell(outcomePosition.x, outcomePosition.y),
+                        known.AbsoluteDay,
+                        known.OutcomeRevision);
+                if (!environmentOutcomes.IsCanonicalAcknowledgedReplay(
+                        receipt,
+                        out string replayFailure))
+                    throw new InvalidOperationException(
+                        "Environmental fire suppression replay is not canonical: "
+                        + replayFailure);
+            }
             return ResultForKnownOperation(known);
         }
 
@@ -490,46 +651,21 @@ public sealed class EnvironmentalFireRuntime :
                     fire.Intensity);
             }
 
-            var operation = SuppressionOperation.Create(command, fire.Intensity);
-            suppressions.Add(command.OperationId, operation);
-            return ApplySuppressionContribution(
-                operation,
+            return CommitSuppressionOutcome(
+                command,
                 fire,
+                target,
                 command.ApprovedWork
-                * settings.InitialAttackSuppressionPerWork,
-                0,
-                string.Empty);
+                    * settings.InitialAttackSuppressionPerWork,
+                commitWater: false);
         }
 
-        var waterOperation = SuppressionOperation.Create(command, fire.Intensity);
-        suppressions.Add(command.OperationId, waterOperation);
-        if (!water.TryCommitReservedWaterPending(
-                command.WaterLeaseId,
-                command.WaterQuantity,
-                command.OperationId,
-                command.WorkerId,
-                command.FireId,
-                command.StandPosition,
-                target.Position,
-                out EnvironmentalFireWaterReceipt receipt,
-                out string waterFailure))
-        {
-            suppressions.Remove(command.OperationId);
-            return SuppressionFailure(
-                EnvironmentalFireSuppressionDisposition.WaterUnavailable,
-                NormalizeReason(waterFailure, "Physical water was unavailable."),
-                fire.Intensity);
-        }
-
-        RequireMatchingReceipt(command, receipt);
-
-        waterOperation.SetWaterCommitted(receipt);
-        return ApplySuppressionContribution(
-            waterOperation,
+        return CommitSuppressionOutcome(
+            command,
             fire,
-            receipt.Quantity * target.Profile.WaterSuppressionPerUnit,
-            receipt.Quantity,
-            receipt.CommitId);
+            target,
+            command.WaterQuantity * target.Profile.WaterSuppressionPerUnit,
+            commitWater: true);
     }
 
     [GameplayEntryPoint(
@@ -560,6 +696,12 @@ public sealed class EnvironmentalFireRuntime :
                 operation.IntensityBefore);
         }
 
+        if (operation.OutcomePending)
+            return SuppressionFailure(
+                EnvironmentalFireSuppressionDisposition.OperationInProgress,
+                "Cancellation is unavailable while the joint physical-water and outcome commit is pending.",
+                operation.IntensityBefore);
+
         if (operation.Phase != EnvironmentalFireSuppressionPhase.Prepared)
         {
             return ResultAfterCommittedCancellation(operation);
@@ -588,6 +730,7 @@ public sealed class EnvironmentalFireRuntime :
     public IReadOnlyList<EnvironmentalFireSuppressionResult>
         ResumePendingSuppressions()
     {
+        ResumePendingOutcomeCommits();
         ResumePendingFuelLosses();
         var results = new List<EnvironmentalFireSuppressionResult>();
         foreach (SuppressionOperation operation in suppressions.Values
@@ -599,6 +742,29 @@ public sealed class EnvironmentalFireRuntime :
 
             if (operation.Phase == EnvironmentalFireSuppressionPhase.Applied)
             {
+                if (!operation.LegacyPreOutcome)
+                {
+                    EnvironmentalFireSuppressionResult canonical =
+                        CanonicalSuppressionResult(operation);
+                    Vector2Int outcomePosition = FindFirePosition(
+                        operation.Command.FireId);
+                    EnvironmentalFireSuppressionOutcomeReceipt outcomeReceipt =
+                        EnvironmentOutcomeReceiptFactory.CreateFireSuppression(
+                            operation.Command,
+                            canonical,
+                            operation.Command.WorkerDisplayName,
+                            new CoreGridCell(
+                                outcomePosition.x,
+                                outcomePosition.y),
+                            operation.AbsoluteDay,
+                            operation.OutcomeRevision);
+                    if (!environmentOutcomes.IsCanonicalAcknowledgedReplay(
+                            outcomeReceipt,
+                            out string replayFailure))
+                        throw new InvalidOperationException(
+                            "Environmental fire suppression resume is not canonical: "
+                            + replayFailure);
+                }
                 if (operation.Command.Mode == EnvironmentalFireSuppressionMode.Water
                     && !operation.WaterAcknowledged
                     && operation.WaterReceipt.IsCommitted)
@@ -881,7 +1047,40 @@ public sealed class EnvironmentalFireRuntime :
         if (causes.ContainsKey(causeId) || fireByTarget.ContainsKey(target.Target))
             return false;
 
-        string fireId = NextFireId();
+        var request = new EnvironmentalFireIgnitionRequest(
+            causeId,
+            EnvironmentalFireIgnitionKind.Spread,
+            source.FireId,
+            target.Target,
+            requestedIntensity,
+            string.Concat("spread-step:", source.StepIndex),
+            targetDisplayName: target.DisplayName);
+        if (!request.IsValid)
+            throw new InvalidOperationException(
+                "Environmental fire spread requires an immutable target display snapshot.");
+        long fireSequenceBefore = nextFireSequence;
+        string fireId = string.Concat("environmental-fire:", fireSequenceBefore);
+        long outcomeRevision = RequireNextOutcomeRevision();
+        var result = new EnvironmentalFireIgnitionResult(
+            EnvironmentalFireIgnitionDisposition.Ignited,
+            fireId,
+            "Deterministic direct-neighbour spread accepted.");
+        EnvironmentalFireIgnitionOutcomeReceipt receipt =
+            EnvironmentOutcomeReceiptFactory.CreateFireIgnition(
+                request,
+                result,
+                target.DisplayName,
+                new CoreGridCell(target.Position.x, target.Position.y),
+                calendar.Day,
+                outcomeRevision,
+                Math.Min(requestedIntensity, target.Profile.MaximumIntensity));
+        if (!environmentOutcomes.TryPrepare(
+                receipt,
+                out PreparedEnvironmentOutcome prepared,
+                out string prepareFailure))
+            throw new InvalidOperationException(
+                "Environmental fire spread outcome prepare failed: "
+                + prepareFailure);
         var state = new FireState
         {
             FireId = fireId,
@@ -897,16 +1096,50 @@ public sealed class EnvironmentalFireRuntime :
             RemainingFuel = target.Profile.FuelCapacity,
             RequiresElectricalIsolation = target.HasElectricalHazard
         };
-        activeById.Add(fireId, state);
-        fireByTarget.Add(state.Target, fireId);
-        causes.Add(
-            causeId,
-            new IgnitionRecord(
-                fingerprint,
-                EnvironmentalFireIgnitionDisposition.Ignited,
-                fireId,
-                "Deterministic direct-neighbour spread accepted."));
-        BumpVersion();
+        int versionBefore = version;
+        try
+        {
+            activeById.Add(fireId, state);
+            fireByTarget.Add(state.Target, fireId);
+            causes.Add(
+                causeId,
+                new IgnitionRecord(
+                    fingerprint,
+                    EnvironmentalFireIgnitionDisposition.Ignited,
+                    fireId,
+                    "Deterministic direct-neighbour spread accepted.",
+                    outcomeRevision,
+                    target.DisplayName,
+                    target.Position,
+                    true,
+                    calendar.Day,
+                    state.Intensity));
+            nextFireSequence = checked(fireSequenceBefore + 1L);
+            nextOutcomeSequence = checked(outcomeRevision + 1L);
+            BumpVersion();
+            EnvironmentOutcomeCommitResult committed =
+                environmentOutcomes.Commit(prepared, outcomeRevision);
+            if (!committed.DurablyCommitted)
+                throw new InvalidOperationException(
+                    "Environmental fire spread outcome commit failed: "
+                    + committed.DetailCode);
+        }
+        catch
+        {
+            EnvironmentOutcomeCommitResult reconciled =
+                environmentOutcomes.Reconcile(receipt.Payload.ResultKey);
+            if (!reconciled.DurablyCommitted)
+            {
+                activeById.Remove(fireId);
+                fireByTarget.Remove(state.Target);
+                causes.Remove(causeId);
+                nextFireSequence = fireSequenceBefore;
+                nextOutcomeSequence = outcomeRevision;
+                version = versionBefore;
+                environmentOutcomes.Cancel(prepared);
+                throw;
+            }
+        }
         return true;
     }
 
@@ -915,6 +1148,7 @@ public sealed class EnvironmentalFireRuntime :
         var result = new DungeonEnvironmentalFireSaveData
         {
             nextFireSequence = nextFireSequence,
+            nextOutcomeSequence = nextOutcomeSequence,
             accumulator = accumulator
         };
         foreach (FireState fire in activeById.Values.OrderBy(
@@ -943,7 +1177,16 @@ public sealed class EnvironmentalFireRuntime :
                 fingerprint = entry.Value.Fingerprint,
                 disposition = (int)entry.Value.Disposition,
                 fireId = entry.Value.FireId,
-                reason = entry.Value.Reason
+                reason = entry.Value.Reason,
+                outcomeRevision = entry.Value.OutcomeRevision,
+                targetDisplayName = entry.Value.TargetDisplayName,
+                positionX = entry.Value.Position.x,
+                positionY = entry.Value.Position.y,
+                hasLocation = entry.Value.HasLocation,
+                absoluteDay = entry.Value.AbsoluteDay,
+                appliedIntensity = entry.Value.AppliedIntensity,
+                legacyPreOutcome = entry.Value.LegacyPreOutcome,
+                outcomePending = entry.Value.OutcomePending
             });
         }
 
@@ -974,6 +1217,7 @@ public sealed class EnvironmentalFireRuntime :
         history.Clear();
 
         nextFireSequence = data.nextFireSequence;
+        nextOutcomeSequence = data.nextOutcomeSequence;
         accumulator = data.accumulator;
         foreach (EnvironmentalFireSaveRecord record in data.activeFires)
         {
@@ -999,7 +1243,15 @@ public sealed class EnvironmentalFireRuntime :
                     record.fingerprint,
                     (EnvironmentalFireIgnitionDisposition)record.disposition,
                     record.fireId,
-                    record.reason));
+                    record.reason,
+                    record.outcomeRevision,
+                    record.targetDisplayName,
+                    new Vector2Int(record.positionX, record.positionY),
+                    record.hasLocation,
+                    record.absoluteDay,
+                    record.appliedIntensity,
+                    record.legacyPreOutcome,
+                    record.outcomePending));
         }
 
         foreach (EnvironmentalFireSuppressionSaveRecord record
@@ -1046,7 +1298,6 @@ public sealed class EnvironmentalFireRuntime :
             return false;
         }
 
-        fire.Position = target.Position;
         if (!access.CanSuppress(
                 command.WorkerId,
                 command.StandPosition,
@@ -1080,6 +1331,201 @@ public sealed class EnvironmentalFireRuntime :
         failure = default;
         return true;
     }
+
+    private EnvironmentalFireSuppressionResult CommitSuppressionOutcome(
+        EnvironmentalFireSuppressionCommand command,
+        FireState fire,
+        EnvironmentalFireTargetSnapshot target,
+        float reduction,
+        bool commitWater)
+    {
+        float intensityAfter = Math.Max(0f, fire.Intensity - reduction);
+        EnvironmentalFireSuppressionDisposition disposition =
+            intensityAfter <= Epsilon
+                ? EnvironmentalFireSuppressionDisposition.Extinguished
+                : EnvironmentalFireSuppressionDisposition.Applied;
+        var predicted = new EnvironmentalFireSuppressionResult(
+            disposition,
+            fire.Intensity,
+            intensityAfter,
+            commitWater ? command.WaterQuantity : 0,
+            string.Empty,
+            disposition == EnvironmentalFireSuppressionDisposition.Extinguished
+                ? "The fire was extinguished."
+                : "Suppression contribution applied.");
+        long outcomeRevision = RequireNextOutcomeRevision();
+        EnvironmentalFireSuppressionOutcomeReceipt outcomeReceipt =
+            EnvironmentOutcomeReceiptFactory.CreateFireSuppression(
+                command,
+                predicted,
+                command.WorkerDisplayName,
+                new CoreGridCell(target.Position.x, target.Position.y),
+                calendar.Day,
+                outcomeRevision);
+        if (!environmentOutcomes.TryPrepare(
+                outcomeReceipt,
+                out PreparedEnvironmentOutcome preparedOutcome,
+                out string prepareFailure))
+            throw new InvalidOperationException(
+                "Environmental fire suppression outcome prepare failed: "
+                + prepareFailure);
+
+        FireState before = CloneState(fire);
+        int versionBefore = version;
+        var operation = SuppressionOperation.Create(
+            command,
+            fire.Intensity,
+            outcomeRevision,
+            calendar.Day);
+        suppressions.Add(command.OperationId, operation);
+        nextOutcomeSequence = checked(outcomeRevision + 1L);
+        BumpVersion();
+
+        EnvironmentalFireWaterReceipt waterReceipt = default;
+        string waterFailure = string.Empty;
+        bool waterCommitted;
+        try
+        {
+            waterCommitted = !commitWater
+                || water.TryCommitReservedWaterPending(
+                    command.WaterLeaseId,
+                    command.WaterQuantity,
+                    command.OperationId,
+                    command.WorkerId,
+                    command.FireId,
+                    command.StandPosition,
+                    target.Position,
+                    out waterReceipt,
+                    out waterFailure);
+            if (commitWater && waterCommitted)
+                RequireMatchingReceipt(command, waterReceipt);
+        }
+        catch
+        {
+            if (commitWater)
+            {
+                operation.MarkOutcomePending();
+                environmentOutcomes.Cancel(preparedOutcome);
+                throw new InvalidOperationException(
+                    "Environmental fire suppression is durably pending physical-water reconciliation.");
+            }
+            suppressions.Remove(command.OperationId);
+            nextOutcomeSequence = outcomeRevision;
+            version = versionBefore;
+            environmentOutcomes.Cancel(preparedOutcome);
+            throw;
+        }
+        if (!waterCommitted)
+        {
+            suppressions.Remove(command.OperationId);
+            nextOutcomeSequence = outcomeRevision;
+            version = versionBefore;
+            environmentOutcomes.Cancel(preparedOutcome);
+            return SuppressionFailure(
+                EnvironmentalFireSuppressionDisposition.WaterUnavailable,
+                NormalizeReason(waterFailure, "Physical water was unavailable."),
+                fire.Intensity);
+        }
+        if (commitWater)
+        {
+            operation.SetWaterCommitted(waterReceipt);
+            BumpVersion();
+        }
+        EnvironmentalFireSuppressionResult applied;
+        try
+        {
+            fire.Position = target.Position;
+            applied = ApplySuppressionContribution(
+                operation,
+                fire,
+                reduction,
+                waterReceipt.Quantity,
+                waterReceipt.CommitId);
+            EnvironmentOutcomeCommitResult committed =
+                environmentOutcomes.Commit(preparedOutcome, outcomeRevision);
+            if (!committed.DurablyCommitted)
+                throw new InvalidOperationException(
+                    "Environmental fire suppression outcome commit failed: "
+                    + committed.DetailCode);
+        }
+        catch
+        {
+            EnvironmentOutcomeCommitResult reconciled =
+                environmentOutcomes.Reconcile(outcomeReceipt.Payload.ResultKey);
+            if (!reconciled.DurablyCommitted)
+            {
+                if (waterReceipt.IsCommitted)
+                {
+                    RestoreFireState(before);
+                    operation.ResetForOutcomeRetry();
+                    operation.MarkOutcomePending();
+                    nextOutcomeSequence = checked(outcomeRevision + 1L);
+                    version = versionBefore;
+                    BumpVersion();
+                    environmentOutcomes.Cancel(preparedOutcome);
+                    throw new InvalidOperationException(
+                        "Environmental fire suppression is durably pending its parent outcome commit.");
+                }
+                RestoreFireState(before);
+                suppressions.Remove(command.OperationId);
+                nextOutcomeSequence = outcomeRevision;
+                version = versionBefore;
+                environmentOutcomes.Cancel(preparedOutcome);
+                throw;
+            }
+            nextOutcomeSequence = checked(outcomeRevision + 1L);
+            applied = predicted;
+        }
+
+        if (!commitWater)
+            return applied;
+        if (water.TryAcknowledge(waterReceipt.CommitId, out string failureReason))
+        {
+            operation.MarkAcknowledged();
+            BumpVersion();
+            return applied;
+        }
+        operation.SetResult(
+            EnvironmentalFireSuppressionDisposition
+                .AppliedAwaitingWaterAcknowledgement,
+            NormalizeReason(
+                failureReason,
+                "Water contribution is applied; acknowledgement remains pending."));
+        BumpVersion();
+        return ResultForKnownOperation(operation);
+    }
+
+    private void RestoreFireState(FireState before)
+    {
+        history.RemoveAll(entry => entry?.Fire != null
+            && string.Equals(
+                entry.Fire.FireId,
+                before.FireId,
+                StringComparison.Ordinal));
+        activeById[before.FireId] = before;
+        fireByTarget[before.Target] = before.FireId;
+    }
+
+    private static FireState CloneState(FireState source) => new()
+    {
+        FireId = source.FireId,
+        CauseId = source.CauseId,
+        IgnitionKind = source.IgnitionKind,
+        ProducerId = source.ProducerId,
+        EvidenceId = source.EvidenceId,
+        Target = source.Target,
+        Position = source.Position,
+        Intensity = source.Intensity,
+        RemainingFuel = source.RemainingFuel,
+        StepIndex = source.StepIndex,
+        TotalDamage = source.TotalDamage,
+        TotalSuppressionWork = source.TotalSuppressionWork,
+        TotalWaterConsumed = source.TotalWaterConsumed,
+        RequiresElectricalIsolation = source.RequiresElectricalIsolation,
+        FuelLossReceipt = source.FuelLossReceipt,
+        FuelLossRequest = source.FuelLossRequest,
+        FuelLossAcknowledged = source.FuelLossAcknowledged
+    };
 
     private EnvironmentalFireSuppressionResult ApplySuppressionContribution(
         SuppressionOperation operation,
@@ -1120,45 +1566,404 @@ public sealed class EnvironmentalFireRuntime :
                 string.Empty,
                 operation.ResultReason);
         }
+        return new EnvironmentalFireSuppressionResult(
+            disposition,
+            before,
+            operation.IntensityAfter,
+            waterConsumed,
+            waterCommitId,
+            operation.ResultReason);
+    }
 
-        if (water.TryAcknowledge(waterCommitId, out string failureReason))
-        {
-            operation.MarkAcknowledged();
-            BumpVersion();
-            return new EnvironmentalFireSuppressionResult(
+    private EnvironmentalFireIgnitionResult CommitIgnitionOutcome(
+        EnvironmentalFireIgnitionRequest request,
+        EnvironmentalFireIgnitionDisposition disposition,
+        string fireId,
+        string reason,
+        Vector2Int position,
+        bool hasLocation)
+    {
+        var result = new EnvironmentalFireIgnitionResult(
+            disposition,
+            fireId,
+            reason);
+        long outcomeRevision = RequireNextOutcomeRevision();
+        EnvironmentalFireIgnitionOutcomeReceipt receipt =
+            EnvironmentOutcomeReceiptFactory.CreateFireIgnition(
+                request,
+                result,
+                request.TargetDisplayName,
+                new CoreGridCell(position.x, position.y),
+                calendar.Day,
+                outcomeRevision,
+                0f,
+                hasLocation);
+        if (!environmentOutcomes.TryPrepare(
+                receipt,
+                out PreparedEnvironmentOutcome prepared,
+                out string prepareFailure))
+            throw new InvalidOperationException(
+                "Environmental fire ignition outcome prepare failed: "
+                + prepareFailure);
+        int versionBefore = version;
+        causes.Add(
+            request.CauseId,
+            new IgnitionRecord(
+                request.Fingerprint,
                 disposition,
-                before,
-                operation.IntensityAfter,
-                waterConsumed,
-                waterCommitId,
-                operation.ResultReason);
+                fireId,
+                reason,
+                outcomeRevision,
+                request.TargetDisplayName,
+                position,
+                hasLocation,
+                calendar.Day,
+                0f));
+        nextOutcomeSequence = checked(outcomeRevision + 1L);
+        BumpVersion();
+        try
+        {
+            EnvironmentOutcomeCommitResult committed =
+                environmentOutcomes.Commit(prepared, outcomeRevision);
+            if (!committed.DurablyCommitted)
+                throw new InvalidOperationException(
+                    "Environmental fire ignition outcome commit failed: "
+                    + committed.DetailCode);
+        }
+        catch
+        {
+            EnvironmentOutcomeCommitResult reconciled =
+                environmentOutcomes.Reconcile(receipt.Payload.ResultKey);
+            if (!reconciled.DurablyCommitted)
+            {
+                causes.Remove(request.CauseId);
+                nextOutcomeSequence = outcomeRevision;
+                version = versionBefore;
+                environmentOutcomes.Cancel(prepared);
+                throw;
+            }
+        }
+        return result;
+    }
+
+    private void ResumePendingOutcomeCommits()
+    {
+        foreach (KeyValuePair<string, IgnitionRecord> entry in causes
+                     .Where(pair => pair.Value.OutcomePending)
+                     .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                     .ToArray())
+        {
+            if (!activeById.TryGetValue(entry.Value.FireId, out FireState fire))
+                throw new InvalidOperationException(
+                    "A pending ignition outcome lost its active fire owner.");
+            EnvironmentalFireFuelLossRequest fuelRequest =
+                fire.FuelLossReceipt.IsCommitted
+                    ? new EnvironmentalFireFuelLossRequest(
+                        fire.FuelLossReceipt.Target,
+                        fire.FuelLossReceipt.Quantity)
+                    : fire.FuelLossRequest;
+            var request = new EnvironmentalFireIgnitionRequest(
+                fire.CauseId,
+                fire.IgnitionKind,
+                fire.ProducerId,
+                fire.Target,
+                Math.Max(Epsilon, entry.Value.AppliedIntensity),
+                fire.EvidenceId,
+                fuelRequest,
+                entry.Value.TargetDisplayName);
+            ResumePendingIgnitionOutcome(request, entry.Value);
         }
 
+        foreach (SuppressionOperation operation in suppressions.Values
+                     .Where(value => value.OutcomePending)
+                     .OrderBy(value => value.Command.OperationId, StringComparer.Ordinal)
+                     .ToArray())
+        {
+            ResumePendingSuppressionOutcome(operation);
+        }
+        ResumePendingFuelLosses();
+    }
+
+    private void ResumePendingIgnitionOutcome(
+        EnvironmentalFireIgnitionRequest request,
+        IgnitionRecord pending)
+    {
+        if (pending.LegacyPreOutcome || !pending.OutcomePending)
+            return;
+        if (!activeById.TryGetValue(pending.FireId, out FireState owner))
+            throw new InvalidOperationException(
+                "A pending ignition outcome lost its active fire owner.");
+        if (owner.FuelLossRequest != null
+            && !owner.FuelLossReceipt.IsCommitted)
+        {
+            if (fuelLoss == null)
+                throw new InvalidOperationException(
+                    "The exact environmental-fire fuel-loss port is unavailable.");
+            string operationId = string.Concat(
+                "environmental-fire-fuel-loss:",
+                owner.CauseId);
+            if (!fuelLoss.TryCommitPending(
+                    owner.FuelLossRequest,
+                    operationId,
+                    out EnvironmentalFireFuelLossReceipt resumedFuel,
+                    out string fuelFailure))
+                throw new InvalidOperationException(
+                    "Pending environmental fire fuel commit failed: "
+                    + NormalizeReason(
+                        fuelFailure,
+                        "The exact physical fire fuel remains unavailable."));
+            if (!MatchesFuelLoss(
+                    owner.FuelLossRequest,
+                    operationId,
+                    resumedFuel))
+                throw new InvalidOperationException(
+                    "The resumed physical fire-fuel receipt did not match its exact request.");
+            owner.FuelLossReceipt = resumedFuel;
+            BumpVersion();
+        }
+        var result = new EnvironmentalFireIgnitionResult(
+            pending.Disposition,
+            pending.FireId,
+            pending.Reason);
+        EnvironmentalFireIgnitionOutcomeReceipt receipt =
+            EnvironmentOutcomeReceiptFactory.CreateFireIgnition(
+                request,
+                result,
+                pending.TargetDisplayName,
+                new CoreGridCell(pending.Position.x, pending.Position.y),
+                pending.AbsoluteDay,
+                pending.OutcomeRevision,
+                pending.AppliedIntensity,
+                pending.HasLocation);
+        EnvironmentOutcomeCommitResult reconciled =
+            environmentOutcomes.Reconcile(receipt.Payload.ResultKey);
+        if (!reconciled.DurablyCommitted)
+        {
+            if (!environmentOutcomes.TryPrepare(
+                    receipt,
+                    out PreparedEnvironmentOutcome prepared,
+                    out string prepareFailure))
+                throw new InvalidOperationException(
+                    "Pending environmental fire ignition outcome prepare failed: "
+                    + prepareFailure);
+            EnvironmentOutcomeCommitResult committed =
+                environmentOutcomes.Commit(prepared, pending.OutcomeRevision);
+            if (!committed.DurablyCommitted)
+                throw new InvalidOperationException(
+                    "Pending environmental fire ignition outcome commit failed: "
+                    + committed.DetailCode);
+        }
+        pending.MarkOutcomeCommitted();
+        BumpVersion();
+    }
+
+    private void ResumePendingSuppressionOutcome(SuppressionOperation pending)
+    {
+        if (pending.LegacyPreOutcome || !pending.OutcomePending)
+            return;
+        if (pending.Phase == EnvironmentalFireSuppressionPhase.Prepared
+            || pending.Phase == EnvironmentalFireSuppressionPhase.WaterCommitted)
+        {
+            if (!TryValidateSuppression(
+                    pending.Command,
+                    out FireState fire,
+                    out EnvironmentalFireTargetSnapshot target,
+                    out EnvironmentalFireSuppressionResult failure))
+                throw new InvalidOperationException(
+                    "Pending environmental fire suppression owner cannot resume: "
+                    + failure.Reason);
+            if (pending.Command.Mode == EnvironmentalFireSuppressionMode.Water
+                && pending.Phase == EnvironmentalFireSuppressionPhase.Prepared)
+            {
+                EnvironmentalFireWaterReceipt waterReceipt;
+                if (!water.TryGetPending(
+                        pending.Command.OperationId,
+                        pending.Command.WaterLeaseId,
+                        out waterReceipt)
+                    && !water.TryCommitReservedWaterPending(
+                        pending.Command.WaterLeaseId,
+                        pending.Command.WaterQuantity,
+                        pending.Command.OperationId,
+                        pending.Command.WorkerId,
+                        pending.Command.FireId,
+                        pending.Command.StandPosition,
+                        target.Position,
+                        out waterReceipt,
+                        out string waterFailure))
+                    throw new InvalidOperationException(
+                        "Pending environmental fire suppression water commit failed: "
+                        + NormalizeReason(
+                            waterFailure,
+                            "Physical water remains unavailable."));
+                RequireMatchingReceipt(pending.Command, waterReceipt);
+                pending.SetWaterCommitted(waterReceipt);
+                BumpVersion();
+            }
+            float reduction = pending.Command.Mode
+                == EnvironmentalFireSuppressionMode.InitialAttack
+                    ? pending.Command.ApprovedWork
+                        * settings.InitialAttackSuppressionPerWork
+                    : pending.WaterReceipt.Quantity
+                        * target.Profile.WaterSuppressionPerUnit;
+            float intensityAfter = Math.Max(0f, fire.Intensity - reduction);
+            var predicted = new EnvironmentalFireSuppressionResult(
+                intensityAfter <= Epsilon
+                    ? EnvironmentalFireSuppressionDisposition.Extinguished
+                    : EnvironmentalFireSuppressionDisposition.Applied,
+                fire.Intensity,
+                intensityAfter,
+                pending.Command.Mode == EnvironmentalFireSuppressionMode.Water
+                    ? pending.WaterReceipt.Quantity
+                    : 0,
+                pending.Command.Mode == EnvironmentalFireSuppressionMode.Water
+                    ? pending.WaterReceipt.CommitId
+                    : string.Empty,
+                intensityAfter <= Epsilon
+                    ? "The fire was extinguished."
+                    : "Suppression contribution applied.");
+            EnvironmentalFireSuppressionOutcomeReceipt pendingReceipt =
+                EnvironmentOutcomeReceiptFactory.CreateFireSuppression(
+                    pending.Command,
+                    predicted,
+                    pending.Command.WorkerDisplayName,
+                    new CoreGridCell(target.Position.x, target.Position.y),
+                    pending.AbsoluteDay,
+                    pending.OutcomeRevision);
+            EnvironmentOutcomeCommitResult existing =
+                environmentOutcomes.Reconcile(pendingReceipt.Payload.ResultKey);
+            if (existing.DurablyCommitted)
+            {
+                ApplySuppressionContribution(
+                    pending,
+                    fire,
+                    reduction,
+                    pending.Command.Mode == EnvironmentalFireSuppressionMode.Water
+                        ? pending.WaterReceipt.Quantity
+                        : 0,
+                    pending.Command.Mode == EnvironmentalFireSuppressionMode.Water
+                        ? pending.WaterReceipt.CommitId
+                        : string.Empty);
+                pending.MarkOutcomeCommitted();
+                TryAcknowledgeSuppressionWater(pending);
+                BumpVersion();
+                return;
+            }
+            if (!environmentOutcomes.TryPrepare(
+                    pendingReceipt,
+                    out PreparedEnvironmentOutcome preparedOwner,
+                    out string ownerPrepareFailure))
+                throw new InvalidOperationException(
+                    "Pending environmental fire suppression outcome prepare failed: "
+                    + ownerPrepareFailure);
+
+            FireState before = CloneState(fire);
+            int versionBefore = version;
+            try
+            {
+                ApplySuppressionContribution(
+                    pending,
+                    fire,
+                    reduction,
+                    pending.Command.Mode == EnvironmentalFireSuppressionMode.Water
+                        ? pending.WaterReceipt.Quantity
+                        : 0,
+                    pending.Command.Mode == EnvironmentalFireSuppressionMode.Water
+                        ? pending.WaterReceipt.CommitId
+                        : string.Empty);
+                EnvironmentOutcomeCommitResult committed =
+                    environmentOutcomes.Commit(
+                        preparedOwner,
+                        pending.OutcomeRevision);
+                if (!committed.DurablyCommitted)
+                    throw new InvalidOperationException(
+                        "Pending environmental fire suppression outcome commit failed: "
+                        + committed.DetailCode);
+            }
+            catch
+            {
+                EnvironmentOutcomeCommitResult reconciledOwner =
+                    environmentOutcomes.Reconcile(
+                        pendingReceipt.Payload.ResultKey);
+                if (!reconciledOwner.DurablyCommitted)
+                {
+                    RestoreFireState(before);
+                    pending.ResetForOutcomeRetry();
+                    pending.MarkOutcomePending();
+                    version = versionBefore;
+                    BumpVersion();
+                    environmentOutcomes.Cancel(preparedOwner);
+                    throw;
+                }
+            }
+            pending.MarkOutcomeCommitted();
+            TryAcknowledgeSuppressionWater(pending);
+            BumpVersion();
+            return;
+        }
+        if (pending.Phase != EnvironmentalFireSuppressionPhase.Applied)
+            throw new InvalidOperationException(
+                "A pending native suppression outcome has no completed owner mutation.");
+        EnvironmentalFireSuppressionResult result =
+            CanonicalSuppressionResult(pending);
+        Vector2Int position = FindFirePosition(pending.Command.FireId);
+        EnvironmentalFireSuppressionOutcomeReceipt receipt =
+            EnvironmentOutcomeReceiptFactory.CreateFireSuppression(
+                pending.Command,
+                result,
+                pending.Command.WorkerDisplayName,
+                new CoreGridCell(position.x, position.y),
+                pending.AbsoluteDay,
+                pending.OutcomeRevision);
+        EnvironmentOutcomeCommitResult reconciled =
+            environmentOutcomes.Reconcile(receipt.Payload.ResultKey);
+        if (!reconciled.DurablyCommitted)
+        {
+            if (!environmentOutcomes.TryPrepare(
+                    receipt,
+                    out PreparedEnvironmentOutcome prepared,
+                    out string prepareFailure))
+                throw new InvalidOperationException(
+                    "Pending environmental fire suppression outcome prepare failed: "
+                    + prepareFailure);
+            EnvironmentOutcomeCommitResult committed =
+                environmentOutcomes.Commit(prepared, pending.OutcomeRevision);
+            if (!committed.DurablyCommitted)
+                throw new InvalidOperationException(
+                    "Pending environmental fire suppression outcome commit failed: "
+                    + committed.DetailCode);
+        }
+        pending.MarkOutcomeCommitted();
+        TryAcknowledgeSuppressionWater(pending);
+        BumpVersion();
+    }
+
+    private void TryAcknowledgeSuppressionWater(SuppressionOperation operation)
+    {
+        if (operation.Command.Mode != EnvironmentalFireSuppressionMode.Water
+            || operation.WaterAcknowledged
+            || !operation.WaterReceipt.IsCommitted)
+            return;
+        if (water.TryAcknowledge(
+                operation.WaterReceipt.CommitId,
+                out string failureReason))
+        {
+            operation.MarkAcknowledged();
+            return;
+        }
         operation.SetResult(
             EnvironmentalFireSuppressionDisposition
                 .AppliedAwaitingWaterAcknowledgement,
             NormalizeReason(
                 failureReason,
                 "Water contribution is applied; acknowledgement remains pending."));
-        BumpVersion();
-        return ResultForKnownOperation(operation);
     }
 
-    private EnvironmentalFireIgnitionResult RecordIgnitionOutcome(
-        string causeId,
-        string fingerprint,
-        EnvironmentalFireIgnitionDisposition disposition,
-        string fireId,
-        string reason)
+    private long RequireNextOutcomeRevision()
     {
-        causes.Add(
-            causeId,
-            new IgnitionRecord(fingerprint, disposition, fireId, reason));
-        BumpVersion();
-        return new EnvironmentalFireIgnitionResult(
-            disposition,
-            fireId,
-            reason);
+        if (nextOutcomeSequence <= 0L || nextOutcomeSequence == long.MaxValue)
+            throw new InvalidOperationException(
+                "Environmental fire outcome sequence is exhausted or invalid.");
+        return nextOutcomeSequence;
     }
 
     private void EndFire(FireState fire, EnvironmentalFireEndReason reason)
@@ -1209,6 +2014,35 @@ public sealed class EnvironmentalFireRuntime :
             operation.WaterReceipt.Quantity,
             operation.WaterReceipt.CommitId,
             operation.ResultReason);
+    }
+
+    private static EnvironmentalFireSuppressionResult
+        CanonicalSuppressionResult(SuppressionOperation operation)
+    {
+        EnvironmentalFireSuppressionDisposition disposition =
+            operation.IntensityAfter <= Epsilon
+                ? EnvironmentalFireSuppressionDisposition.Extinguished
+                : EnvironmentalFireSuppressionDisposition.Applied;
+        return new EnvironmentalFireSuppressionResult(
+            disposition,
+            operation.IntensityBefore,
+            operation.IntensityAfter,
+            operation.WaterReceipt.Quantity,
+            operation.WaterReceipt.CommitId,
+            operation.ResultReason);
+    }
+
+    private Vector2Int FindFirePosition(string fireId)
+    {
+        if (activeById.TryGetValue(fireId, out FireState active))
+            return active.Position;
+        EnvironmentalFireHistorySnapshot ended = history.LastOrDefault(value =>
+            value?.Fire != null
+            && string.Equals(value.Fire.FireId, fireId, StringComparison.Ordinal));
+        if (ended?.Fire != null)
+            return ended.Fire.Position;
+        throw new InvalidOperationException(
+            "A suppression outcome lost its owning fire state.");
     }
 
     private static EnvironmentalFireSuppressionResult
@@ -1348,9 +2182,19 @@ public sealed class EnvironmentalFireRuntime :
             TotalSuppressionWork = fire.TotalSuppressionWork,
             TotalWaterConsumed = fire.TotalWaterConsumed,
             RequiresElectricalIsolation = fire.RequiresElectricalIsolation,
-            FuelLossTarget = fire.FuelLossReceipt.Target,
-            FuelLossOperationId = fire.FuelLossReceipt.OperationId,
-            FuelLossQuantity = fire.FuelLossReceipt.Quantity,
+            FuelLossTarget = fire.FuelLossReceipt.IsCommitted
+                ? fire.FuelLossReceipt.Target
+                : fire.FuelLossRequest?.Target ?? default,
+            FuelLossOperationId = fire.FuelLossReceipt.IsCommitted
+                ? fire.FuelLossReceipt.OperationId
+                : fire.FuelLossRequest == null
+                    ? string.Empty
+                    : string.Concat(
+                        "environmental-fire-fuel-loss:",
+                        fire.CauseId),
+            FuelLossQuantity = fire.FuelLossReceipt.IsCommitted
+                ? fire.FuelLossReceipt.Quantity
+                : fire.FuelLossRequest?.Quantity ?? 0,
             FuelLossMassGrams = fire.FuelLossReceipt.InputMassGrams,
             FuelLossCommitId = fire.FuelLossReceipt.CommitId,
             FuelLossAcknowledged = fire.FuelLossAcknowledged
@@ -1409,13 +2253,27 @@ public sealed class EnvironmentalFireRuntime :
             totalSuppressionWork = fire.TotalSuppressionWork,
             totalWaterConsumed = fire.TotalWaterConsumed,
             requiresElectricalIsolation = fire.RequiresElectricalIsolation,
-            fuelLossTargetKind = (int)fire.FuelLossReceipt.Target.Kind,
-            fuelLossTargetId = fire.FuelLossReceipt.Target.TargetId,
-            fuelLossOperationId = fire.FuelLossReceipt.OperationId,
-            fuelLossQuantity = fire.FuelLossReceipt.Quantity,
+            fuelLossTargetKind = (int)(fire.FuelLossReceipt.IsCommitted
+                ? fire.FuelLossReceipt.Target.Kind
+                : fire.FuelLossRequest?.Target.Kind ?? default),
+            fuelLossTargetId = fire.FuelLossReceipt.IsCommitted
+                ? fire.FuelLossReceipt.Target.TargetId
+                : fire.FuelLossRequest?.Target.TargetId ?? string.Empty,
+            fuelLossOperationId = fire.FuelLossReceipt.IsCommitted
+                ? fire.FuelLossReceipt.OperationId
+                : fire.FuelLossRequest == null
+                    ? string.Empty
+                    : string.Concat(
+                        "environmental-fire-fuel-loss:",
+                        fire.CauseId),
+            fuelLossQuantity = fire.FuelLossReceipt.IsCommitted
+                ? fire.FuelLossReceipt.Quantity
+                : fire.FuelLossRequest?.Quantity ?? 0,
             fuelLossMassGrams = fire.FuelLossReceipt.InputMassGrams,
             fuelLossCommitId = fire.FuelLossReceipt.CommitId,
-            fuelLossAcknowledged = fire.FuelLossAcknowledged
+            fuelLossAcknowledged = fire.FuelLossAcknowledged,
+            fuelLossPending = fire.FuelLossRequest != null
+                && !fire.FuelLossReceipt.IsCommitted
         };
 
     private static EnvironmentalFireSaveRecord ToSaveRecord(
@@ -1467,6 +2325,7 @@ public sealed class EnvironmentalFireRuntime :
             TotalWaterConsumed = record.totalWaterConsumed,
             RequiresElectricalIsolation = record.requiresElectricalIsolation,
             FuelLossReceipt = record.fuelLossQuantity > 0
+                && !record.fuelLossPending
                 ? new EnvironmentalFireFuelLossReceipt(
                     new EnvironmentalFireTargetRef(
                         (EnvironmentalFireTargetKind)record.fuelLossTargetKind,
@@ -1476,6 +2335,13 @@ public sealed class EnvironmentalFireRuntime :
                     record.fuelLossMassGrams,
                     record.fuelLossCommitId)
                 : default,
+            FuelLossRequest = record.fuelLossPending
+                ? new EnvironmentalFireFuelLossRequest(
+                    new EnvironmentalFireTargetRef(
+                        (EnvironmentalFireTargetKind)record.fuelLossTargetKind,
+                        record.fuelLossTargetId),
+                    record.fuelLossQuantity)
+                : null,
             FuelLossAcknowledged = record.fuelLossAcknowledged
         };
 
@@ -1500,7 +2366,12 @@ public sealed class EnvironmentalFireRuntime :
             waterCommitId = operation.WaterReceipt.CommitId,
             waterCommittedQuantity = operation.WaterReceipt.Quantity,
             waterAcknowledged = operation.WaterAcknowledged,
-            resultReason = operation.ResultReason
+            resultReason = operation.ResultReason,
+            workerDisplayName = operation.Command.WorkerDisplayName,
+            outcomeRevision = operation.OutcomeRevision,
+            absoluteDay = operation.AbsoluteDay,
+            legacyPreOutcome = operation.LegacyPreOutcome,
+            outcomePending = operation.OutcomePending
         };
 
     private sealed class FireState
@@ -1520,6 +2391,7 @@ public sealed class EnvironmentalFireRuntime :
         public int TotalWaterConsumed;
         public bool RequiresElectricalIsolation;
         public EnvironmentalFireFuelLossReceipt FuelLossReceipt;
+        public EnvironmentalFireFuelLossRequest FuelLossRequest;
         public bool FuelLossAcknowledged;
     }
 
@@ -1529,18 +2401,45 @@ public sealed class EnvironmentalFireRuntime :
             string fingerprint,
             EnvironmentalFireIgnitionDisposition disposition,
             string fireId,
-            string reason)
+            string reason,
+            long outcomeRevision,
+            string targetDisplayName,
+            Vector2Int position,
+            bool hasLocation,
+            int absoluteDay,
+            float appliedIntensity,
+            bool legacyPreOutcome = false,
+            bool outcomePending = false)
         {
             Fingerprint = fingerprint;
             Disposition = disposition;
             FireId = fireId;
             Reason = reason;
+            OutcomeRevision = outcomeRevision;
+            TargetDisplayName = targetDisplayName;
+            Position = position;
+            HasLocation = hasLocation;
+            AbsoluteDay = absoluteDay;
+            AppliedIntensity = appliedIntensity;
+            LegacyPreOutcome = legacyPreOutcome;
+            OutcomePending = outcomePending;
         }
 
         public string Fingerprint { get; }
         public EnvironmentalFireIgnitionDisposition Disposition { get; }
         public string FireId { get; }
         public string Reason { get; }
+        public long OutcomeRevision { get; }
+        public string TargetDisplayName { get; }
+        public Vector2Int Position { get; }
+        public bool HasLocation { get; }
+        public int AbsoluteDay { get; }
+        public float AppliedIntensity { get; }
+        public bool LegacyPreOutcome { get; }
+        public bool OutcomePending { get; private set; }
+
+        public void MarkOutcomePending() => OutcomePending = true;
+        public void MarkOutcomeCommitted() => OutcomePending = false;
     }
 
     private sealed class SuppressionOperation
@@ -1554,7 +2453,11 @@ public sealed class EnvironmentalFireRuntime :
             float intensityAfter,
             EnvironmentalFireWaterReceipt waterReceipt,
             bool waterAcknowledged,
-            string resultReason)
+            string resultReason,
+            long outcomeRevision,
+            int absoluteDay,
+            bool legacyPreOutcome,
+            bool outcomePending)
         {
             Command = command;
             Fingerprint = fingerprint;
@@ -1565,6 +2468,10 @@ public sealed class EnvironmentalFireRuntime :
             WaterReceipt = waterReceipt;
             WaterAcknowledged = waterAcknowledged;
             ResultReason = resultReason;
+            OutcomeRevision = outcomeRevision;
+            AbsoluteDay = absoluteDay;
+            LegacyPreOutcome = legacyPreOutcome;
+            OutcomePending = outcomePending;
         }
 
         public EnvironmentalFireSuppressionCommand Command { get; }
@@ -1577,10 +2484,16 @@ public sealed class EnvironmentalFireRuntime :
         public EnvironmentalFireWaterReceipt WaterReceipt { get; private set; }
         public bool WaterAcknowledged { get; private set; }
         public string ResultReason { get; private set; }
+        public long OutcomeRevision { get; }
+        public int AbsoluteDay { get; }
+        public bool LegacyPreOutcome { get; }
+        public bool OutcomePending { get; private set; }
 
         public static SuppressionOperation Create(
             EnvironmentalFireSuppressionCommand command,
-            float intensityBefore) =>
+            float intensityBefore,
+            long outcomeRevision,
+            int absoluteDay) =>
             new(
                 command,
                 command.Fingerprint,
@@ -1590,7 +2503,11 @@ public sealed class EnvironmentalFireRuntime :
                 intensityBefore,
                 default,
                 false,
-                "Suppression operation prepared.");
+                "Suppression operation prepared.",
+                outcomeRevision,
+                absoluteDay,
+                false,
+                false);
 
         public static SuppressionOperation FromSaveRecord(
             EnvironmentalFireSuppressionSaveRecord record)
@@ -1603,7 +2520,8 @@ public sealed class EnvironmentalFireRuntime :
                 (EnvironmentalFireSuppressionMode)record.mode,
                 record.approvedWork,
                 record.waterLeaseId,
-                record.waterQuantity);
+                record.waterQuantity,
+                record.workerDisplayName);
             var receipt = record.waterCommittedQuantity > 0
                 ? new EnvironmentalFireWaterReceipt(
                     record.operationId,
@@ -1620,7 +2538,11 @@ public sealed class EnvironmentalFireRuntime :
                 record.intensityAfter,
                 receipt,
                 record.waterAcknowledged,
-                record.resultReason);
+                record.resultReason,
+                record.outcomeRevision,
+                record.absoluteDay,
+                record.legacyPreOutcome,
+                record.outcomePending);
         }
 
         public void SetWaterCommitted(EnvironmentalFireWaterReceipt receipt)
@@ -1652,6 +2574,22 @@ public sealed class EnvironmentalFireRuntime :
             ResultReason = IntensityAfter <= Epsilon
                 ? "The fire was extinguished."
                 : "Suppression contribution applied.";
+        }
+
+        public void MarkOutcomePending() => OutcomePending = true;
+        public void MarkOutcomeCommitted() => OutcomePending = false;
+
+        public void ResetForOutcomeRetry()
+        {
+            Phase = WaterReceipt.IsCommitted
+                ? EnvironmentalFireSuppressionPhase.WaterCommitted
+                : EnvironmentalFireSuppressionPhase.Prepared;
+            IntensityAfter = IntensityBefore;
+            ResultDisposition =
+                EnvironmentalFireSuppressionDisposition.OperationInProgress;
+            ResultReason = WaterReceipt.IsCommitted
+                ? "Physical water is committed pending contribution."
+                : "Suppression operation prepared.";
         }
 
         public void SetResult(

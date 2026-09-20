@@ -44,7 +44,10 @@ public sealed class RegularCustomerPersistenceAdapter :
                 isRecruitCandidate = record.IsRecruitCandidate,
                 isRecruited = record.IsRecruited,
                 recruitedAbsoluteDay = record.RecruitedAbsoluteDay,
-                recruitCapabilities = record.RecruitCapabilities
+                recruitCapabilities = record.RecruitCapabilities,
+                recruitDeliveryPending = record.RecruitDeliveryPending,
+                recruitDeliveryKind = record.RecruitDeliveryKind,
+                pendingMercenaryRolePremium = record.PendingMercenaryRolePremium
             })
             .ToList()
     };
@@ -82,7 +85,10 @@ public sealed class RegularCustomerPersistenceAdapter :
                 saved.isRecruitCandidate,
                 saved.isRecruited,
                 saved.recruitedAbsoluteDay,
-                saved.recruitCapabilities);
+                saved.recruitCapabilities,
+                saved.recruitDeliveryPending,
+                saved.recruitDeliveryKind,
+                saved.pendingMercenaryRolePremium);
         }));
         return new PreparedRestoreCandidate(
             records,

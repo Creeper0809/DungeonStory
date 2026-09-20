@@ -62,6 +62,7 @@ internal sealed class ConveyorPayloadRuntimeState
     public IReadOnlyList<string> Route = Array.Empty<string>();
     public int RouteIndex;
     public float NextRouteRetryAt;
+    public bool OverflowApproved;
 
     public ConveyorPayloadRuntimeState DeepClone()
     {
@@ -79,7 +80,8 @@ internal sealed class ConveyorPayloadRuntimeState
             StackId = StackId,
             Route = Route == null ? Array.Empty<string>() : new List<string>(Route),
             RouteIndex = RouteIndex,
-            NextRouteRetryAt = NextRouteRetryAt
+            NextRouteRetryAt = NextRouteRetryAt,
+            OverflowApproved = OverflowApproved
         };
     }
 }

@@ -36,6 +36,7 @@ public interface IOffenseWorldSimulation
         out float totalCost);
     int GetMinimumStepDistance(OffenseHexCoord start, OffenseHexCoord goal);
     OffenseWorldSaveData Capture();
+    void Restore(OffenseWorldSaveData snapshot);
 }
 
 public interface IWorldThreatModifierQuery
@@ -590,6 +591,9 @@ public sealed class OffenseHexWorldSimulation :
                 .ToList()
         };
     }
+
+    public void Restore(OffenseWorldSaveData snapshot) =>
+        PublishRestore(PrepareRestore(snapshot));
 
     internal OffenseHexWorldRestoreCandidate PrepareRestore(
         OffenseWorldSaveData saveData)

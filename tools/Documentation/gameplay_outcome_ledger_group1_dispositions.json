@@ -1,0 +1,1127 @@
+{
+  "schema": "gameplay-outcome-ledger-producer-dispositions@1",
+  "scope": "pre-existing-runtime-candidate/domain_group=1",
+  "entries": [
+    {
+      "type": "BlueprintResearchCompletedEvent",
+      "definition_path": "Assets/Scripts/Services/Infrastructure/BlueprintResearchContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Post-commit application notification of completion and unlocks already frozen in the canonical research-work outcome receipt.",
+      "integration_reason": "BlueprintResearchOutcomeTransaction commits progress, completion, unlock rows and the same prepared outcome before BlueprintResearchRuntime publishes this observer event.",
+      "replacement_authority": "ResearchWorkOutcomeReceipt",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchContracts.cs#BlueprintResearchCompletedEvent",
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchOutcomeTransaction.cs:73-233",
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs:220-253",
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs:893-905"
+      ]
+    },
+    {
+      "type": "BlueprintResearchUnlockResult",
+      "definition_path": "Assets/Scripts/Models/FacilityShop/Core/BlueprintUnlock.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Applied-unlock child value embedded in the canonical research-work outcome receipt.",
+      "integration_reason": "The research transaction commits the same exact unlock set with progress/completion; the later completion event is only an observer notification.",
+      "replacement_authority": "ResearchWorkOutcomeReceipt",
+      "evidence": [
+        "Assets/Scripts/Models/FacilityShop/Core/BlueprintUnlock.cs#BlueprintResearchUnlockResult",
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchOutcomeTransaction.cs:97-167",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/ResearchWorkOutcomeDefinition.cs:251-318"
+      ]
+    },
+    {
+      "type": "BlueprintResearchWorkResult",
+      "definition_path": "Assets/Scripts/Services/Infrastructure/BlueprintResearchContracts.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative research-work result containing the exact progress delta, total, required work and completion flag.",
+      "integration_reason": "BlueprintResearchOutcomeTransaction prepares ResearchWorkOutcomeReceipt before mutation, publishes detached research/shop state and commits the same token with rollback on failure, then delivers and acknowledges idempotently without rerunning gameplay.",
+      "replacement_authority": "ResearchWorkOutcomeReceipt",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchContracts.cs#BlueprintResearchWorkResult",
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchOutcomeTransaction.cs:73-233",
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchOutcomeTransaction.cs:318-335",
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs:220-253",
+        "Assets/Scripts/Services/Research/Editor/ResearchOutcomeTransactionDebugScenarios.cs"
+      ]
+    },
+    {
+      "type": "BufferAggregationReceipt",
+      "definition_path": "Assets/Scripts/Services/Items/BufferStackAggregationService.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Physical admission/routing/publication transaction receipt below the caller-domain semantic result.",
+      "integration_reason": "The receipt participates in idempotent physical custody but does not independently describe why the gameplay operation occurred.",
+      "replacement_authority": "Owning production or caller-domain terminal result",
+      "evidence": [
+        "Assets/Scripts/Services/Items/BufferStackAggregationService.cs#BufferAggregationReceipt"
+      ]
+    },
+    {
+      "type": "BuildingDestructiveLossResult",
+      "definition_path": "Assets/Scripts/Services/Buildings/BuildingDestructiveLossRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Shared facade projection over the production destructive-drain removal result.",
+      "integration_reason": "The initiating explicit demolition, fire, defense or combat operation owns the semantic outcome.",
+      "replacement_authority": "BuildingDemolitionOutcomeReceipt or cause-specific fire/defense/combat result",
+      "evidence": [
+        "Assets/Scripts/Services/Buildings/BuildingDestructiveLossRuntime.cs#BuildingDestructiveLossResult",
+        "Assets/Scripts/Services/Buildings/BuildingDestructiveLossRuntime.cs:46-72"
+      ]
+    },
+    {
+      "type": "BuildingFeatureCommandResult",
+      "definition_path": "Assets/Scripts/Views/UI/BuildingFeatureSurfacePresenter.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "UI facade response that wraps room inspection, selection and delegated synthesis/evolution commands.",
+      "integration_reason": "The delegated domain result owns any committed gameplay change; selection/inspection responses are presentation state.",
+      "replacement_authority": "FacilitySynthesisResult, facility-evolution result, or resident-evacuation domain result",
+      "evidence": [
+        "Assets/Scripts/Views/UI/BuildingFeatureSurfacePresenter.cs#BuildingFeatureCommandResult"
+      ]
+    },
+    {
+      "type": "BuildingStateModuleRestoreResult",
+      "definition_path": "Assets/Scripts/Services/Buildings/BuildingStateModule.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Save-restore validation report for building modules.",
+      "integration_reason": "Restore diagnostics do not represent a new in-world gameplay result.",
+      "replacement_authority": "Building module saved state and restore diagnostics",
+      "evidence": [
+        "Assets/Scripts/Services/Buildings/BuildingStateModule.cs#BuildingStateModuleRestoreResult"
+      ]
+    },
+    {
+      "type": "BuildingStructuralDamageResult",
+      "definition_path": "Assets/Scripts/Services/Buildings/BuildingStructuralIntegrityRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Low-level shared structural mutation result consumed by fire, invasion, defense and demolition owners.",
+      "integration_reason": "Each initiating domain owns the semantic damage/destruction outcome; recording both would duplicate one hit.",
+      "replacement_authority": "EnvironmentalFireDamageResult, defense/invasion result, combat result, or BuildingDemolitionOutcomeReceipt",
+      "evidence": [
+        "Assets/Scripts/Services/Buildings/BuildingStructuralIntegrityRuntime.cs#BuildingStructuralDamageResult",
+        "Assets/Scripts/Services/Buildings/BuildingStructuralIntegrityRuntime.cs:417-480"
+      ]
+    },
+    {
+      "type": "CanonicalProductionOutputResolution",
+      "definition_path": "Assets/Scripts/Models/Economy/Content/CanonicalProductionOutputResolver.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Pure deterministic output calculation explicitly documented as non-mutating and non-publishing.",
+      "integration_reason": "The completed physical production transaction owns the terminal fact.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt / ProductionRecipeExecutionReceipt",
+      "evidence": [
+        "Assets/Scripts/Models/Economy/Content/CanonicalProductionOutputResolver.cs#CanonicalProductionOutputResolution",
+        "Assets/Scripts/Models/Economy/Content/CanonicalProductionOutputResolver.cs:85-101"
+      ]
+    },
+    {
+      "type": "ConstructionSafetyResult",
+      "definition_path": "Assets/Scripts/Services/Grid/Building/ConstructionSafetyPlanner.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Pre-execution construction safety assessment/forced-warning result.",
+      "integration_reason": "It is a planner query and does not assert that construction or demolition completed.",
+      "replacement_authority": "Construction completion, repair completion, or GridBuildingDestroyRequestResult",
+      "evidence": [
+        "Assets/Scripts/Services/Grid/Building/ConstructionSafetyPlanner.cs#ConstructionSafetyResult"
+      ]
+    },
+    {
+      "type": "CraftQualityResolution",
+      "definition_path": "Assets/Scripts/Services/Foundation/V23CraftingPrimitives.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Pure deterministic quality calculation before the owning craft operation persists/applies the result.",
+      "integration_reason": "Only the resolved quality frozen by the owning apparel or equipment transaction is a gameplay outcome.",
+      "replacement_authority": "ApparelPhysicalOutcomeReceipt or ProductQualityOutcomeReceipt",
+      "evidence": [
+        "Assets/Scripts/Services/Foundation/V23CraftingPrimitives.cs#CraftQualityResolution"
+      ]
+    },
+    {
+      "type": "CraftWorkProgressResult",
+      "definition_path": "Assets/Scripts/Models/Work/CraftWorkExecutionHandler.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Execution-handler progress wrapper used to coordinate persistent work.",
+      "integration_reason": "The owning facility/equipment/production/research domain produces the semantic progress or completion result.",
+      "replacement_authority": "Owning domain terminal result",
+      "evidence": [
+        "Assets/Scripts/Models/Work/CraftWorkExecutionHandler.cs#CraftWorkProgressResult"
+      ]
+    },
+    {
+      "type": "DungeonSpaceExpansionResult",
+      "definition_path": "Assets/Scripts/Services/Infrastructure/DungeonSpaceExpansionRuntime.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Independent committed dungeon-grid expansion result with previous/current interior columns and grid width.",
+      "integration_reason": "The exact expansion receipt is prepared before grid publication. A rejected outcome commit republishes the preserved live grid, while a durable commit retains the domain change and leaves delivery or acknowledgement recovery to the outbox. The interior-column count is the persisted monotonic owner revision. A failed prepare remains observable and retries deterministically from persisted completed-research state; the save-restore completion hook reconciles the highest completed expansion without depending on the one-shot observer event.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/DungeonSpaceExpansionRuntime.cs#DungeonSpaceExpansionResult",
+        "Assets/Scripts/Services/Infrastructure/DungeonSpaceExpansionRuntime.cs#DungeonSpaceExpansionRuntime.TryApply",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Infrastructure/DungeonSpaceExpansionOutcomeDefinition.cs#DungeonSpaceExpansionOutcomeReceipt",
+        "Assets/Scripts/Services/Infrastructure/Editor/DungeonSpaceExpansionOutcomeDebugScenarios.cs",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260919-r53/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260919-r21/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "EmergencyAccountingReconciliationResult",
+      "definition_path": "Assets/Scripts/Services/Character/Work/EmergencyWorkAccountingContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Emergency reserve audit/reconciliation diagnostic.",
+      "integration_reason": "Correction and health data support save/runtime integrity and are not new gameplay events.",
+      "replacement_authority": "Emergency accounting aggregate and diagnostics",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Work/EmergencyWorkAccountingContracts.cs#EmergencyAccountingReconciliationResult"
+      ]
+    },
+    {
+      "type": "EmergencyAccountingResult",
+      "definition_path": "Assets/Scripts/Services/Character/Work/EmergencyWorkAccountingContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal emergency-ledger command acknowledgement.",
+      "integration_reason": "It reports bookkeeping success/failure, not a standalone in-world outcome.",
+      "replacement_authority": "EmergencyWorkSuspensionReceipt or the specific incident/alert owner",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Work/EmergencyWorkAccountingContracts.cs#EmergencyAccountingResult"
+      ]
+    },
+    {
+      "type": "EmergencyWorkSuspensionReceipt",
+      "definition_path": "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Exact committed safe-checkpoint suspension result preserving work identity, target, alert epoch and resumable progress.",
+      "integration_reason": "SettlementAlertRuntime now prepares the exact typed suspension outcome before changing its persisted suspended-work journal, commits journal and outbox against the row's persisted owner revision, rolls the journal back on definite rejection, and keeps delivery faults durable. CharacterAlarmResponseRuntime restores a consumed executor receipt when the joint record is rejected.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs#EmergencyWorkSuspensionReceipt",
+        "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs:3370-3465",
+        "Assets/Scripts/Services/Character/AI/CharacterAlarmResponseRuntime.cs#RecordSuspendedWorkOrRestore",
+        "Assets/Scripts/Services/Character/Work/SettlementAlertRuntime.cs#RecordSuspendedWork",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/ProductionCombat/EmergencyWorkSuspensionOutcomeDefinition.cs",
+        "Assets/Scripts/Services/Character/Work/Editor/EmergencyWorkSuspensionOutcomeDebugScenarios.cs",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260919-r52/focused-runtime-report.json#emergency-work-suspension-outcome"
+      ]
+    },
+    {
+      "type": "FacilityBufferDestinationCustodyDrainResult",
+      "definition_path": "Assets/Scripts/Models/Items/Core/FacilityBufferDestinationCustodyDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal durable custody/drain participant result inside a higher destructive or production transaction.",
+      "integration_reason": "Participant commit/ack/recovery stages are provenance for the upper semantic operation, not separate memories.",
+      "replacement_authority": "Cause-specific terminal result plus ProductionFacilityDestructiveDrain journal",
+      "evidence": [
+        "Assets/Scripts/Models/Items/Core/FacilityBufferDestinationCustodyDrainContracts.cs#FacilityBufferDestinationCustodyDrainResult"
+      ]
+    },
+    {
+      "type": "FacilityBufferMassAdmissionReceipt",
+      "definition_path": "Assets/Scripts/Services/Items/FacilityBufferMassAdmissionService.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Physical admission/routing/publication transaction receipt below the caller-domain semantic result.",
+      "integration_reason": "The receipt participates in idempotent physical custody but does not independently describe why the gameplay operation occurred.",
+      "replacement_authority": "Owning production or caller-domain terminal result",
+      "evidence": [
+        "Assets/Scripts/Services/Items/FacilityBufferMassAdmissionService.cs#FacilityBufferMassAdmissionReceipt"
+      ]
+    },
+    {
+      "type": "FacilityBufferPlannedOutputPublicationReceipt",
+      "definition_path": "Assets/Scripts/Services/Items/FacilityBufferMassAdmissionService.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Physical admission/routing/publication transaction receipt below the caller-domain semantic result.",
+      "integration_reason": "The receipt participates in idempotent physical custody but does not independently describe why the gameplay operation occurred.",
+      "replacement_authority": "Owning production or caller-domain terminal result",
+      "evidence": [
+        "Assets/Scripts/Services/Items/FacilityBufferMassAdmissionService.cs#FacilityBufferPlannedOutputPublicationReceipt"
+      ]
+    },
+    {
+      "type": "FacilityBufferPlannedOutputReceipt",
+      "definition_path": "Assets/Scripts/Services/Items/FacilityBufferMassAdmissionService.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Physical admission/routing/publication transaction receipt below the caller-domain semantic result.",
+      "integration_reason": "The receipt participates in idempotent physical custody but does not independently describe why the gameplay operation occurred.",
+      "replacement_authority": "Owning production or caller-domain terminal result",
+      "evidence": [
+        "Assets/Scripts/Services/Items/FacilityBufferMassAdmissionService.cs#FacilityBufferPlannedOutputReceipt"
+      ]
+    },
+    {
+      "type": "FacilityBufferPublishedOutputStackReceipt",
+      "definition_path": "Assets/Scripts/Services/Items/FacilityBufferMassAdmissionService.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Per-line or per-stack physical child receipt embedded in an aggregate production/output result.",
+      "integration_reason": "The aggregate outcome already preserves this exact provenance; separate recording would duplicate one operation.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt / ProductionRecipeExecutionReceipt",
+      "evidence": [
+        "Assets/Scripts/Services/Items/FacilityBufferMassAdmissionService.cs#FacilityBufferPublishedOutputStackReceipt"
+      ]
+    },
+    {
+      "type": "FacilityOutputExactRouteDestructiveRetireResult",
+      "definition_path": "Assets/Scripts/Services/Items/FacilityOutputExactRouteDestructiveRetireContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal destructive-drain, routing or recovery state-machine result.",
+      "integration_reason": "It proves forward recovery/acknowledgement for the upper cause-specific operation and must not create a second narrative result.",
+      "replacement_authority": "GridBuildingDestroyRequestResult, EnvironmentalFireDamageResult, or other cause-specific terminal result",
+      "evidence": [
+        "Assets/Scripts/Services/Items/FacilityOutputExactRouteDestructiveRetireContracts.cs#FacilityOutputExactRouteDestructiveRetireResult"
+      ]
+    },
+    {
+      "type": "FacilityOutputExactRouteReceipt",
+      "definition_path": "Assets/Scripts/Models/Items/Core/FacilityOutputExactRoutePort.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Physical admission/routing/publication transaction receipt below the caller-domain semantic result.",
+      "integration_reason": "The receipt participates in idempotent physical custody but does not independently describe why the gameplay operation occurred.",
+      "replacement_authority": "Owning production or caller-domain terminal result",
+      "evidence": [
+        "Assets/Scripts/Models/Items/Core/FacilityOutputExactRoutePort.cs#FacilityOutputExactRouteReceipt"
+      ]
+    },
+    {
+      "type": "FacilityOutputExactRouteSliceReceipt",
+      "definition_path": "Assets/Scripts/Models/Items/Core/FacilityOutputExactRoutePort.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Per-line or per-stack physical child receipt embedded in an aggregate production/output result.",
+      "integration_reason": "The aggregate outcome already preserves this exact provenance; separate recording would duplicate one operation.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt / ProductionRecipeExecutionReceipt",
+      "evidence": [
+        "Assets/Scripts/Models/Items/Core/FacilityOutputExactRoutePort.cs#FacilityOutputExactRouteSliceReceipt"
+      ]
+    },
+    {
+      "type": "FacilitySynthesisCompletedEvent",
+      "definition_path": "Assets/Scripts/Services/Synthesis/FacilitySynthesisSystem.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Post-result event envelope containing an already completed FacilitySynthesisResult.",
+      "integration_reason": "The synthesis command result is the single semantic authority; this event only notifies UI/Codex/meta consumers.",
+      "replacement_authority": "FacilitySynthesisResult",
+      "evidence": [
+        "Assets/Scripts/Services/Synthesis/FacilitySynthesisSystem.cs#FacilitySynthesisCompletedEvent",
+        "Assets/Scripts/Services/Synthesis/FacilitySynthesisRuntime.cs:149-160"
+      ]
+    },
+    {
+      "type": "FacilitySynthesisResult",
+      "definition_path": "Assets/Scripts/Services/Synthesis/FacilitySynthesisSystem.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative facility-synthesis command result after atomic material replacement, with recipe, result building and inherited level.",
+      "integration_reason": "The command freezes the exact material/result receipt and reserves ledger capacity before mutation, persists an incremented synthesis outcome revision on the surviving facility, commits the outbox while the world and production-retarget replacement can still roll back, restores every material on definite outcome rejection, and treats delivery faults as durable pending delivery before emitting callbacks.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Synthesis/FacilitySynthesisSystem.cs#FacilitySynthesisResult",
+        "Assets/Scripts/Services/Synthesis/FacilitySynthesisRuntime.cs#TrySynthesize",
+        "Assets/Scripts/Services/Synthesis/FacilitySynthesisRuntime.cs#TryReplaceMaterialsAtomically",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/FacilitySynthesis/FacilitySynthesisOutcomeDefinition.cs",
+        "Assets/Scripts/Services/Synthesis/Editor/FacilitySynthesisDebugScenarios.cs#VerifyOutcomeCommitFailureRestoresAllMaterials",
+        "Assets/Scripts/Services/Synthesis/Editor/FacilitySynthesisOutcomeDebugScenarios.cs",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260919-r48/focused-runtime-report.json#facility-synthesis-outcome"
+      ]
+    },
+    {
+      "type": "GridBuildingDestroyRequestResult",
+      "definition_path": "Assets/Scripts/Services/Grid/Building/GridBuildingRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Transient request-status wrapper for conflict, deferred acceptance or immediate removal; it is not the durable demolition fact.",
+      "integration_reason": "The destructive-drain journal now freezes the exact building definition, Korean display snapshot source, grid position, day and owner revision before effects. Its dedicated eighth participant prepares, commits and acknowledges BuildingDemolitionOutcomeReceipt before authority revoke; replay and delivery recovery use the same saved snapshot, while pre-v5 rows do not invent history.",
+      "replacement_authority": "BuildingDemolitionOutcomeReceipt",
+      "evidence": [
+        "Assets/Scripts/Services/Grid/Building/GridBuildingRuntime.cs#GridBuildingDestroyRequestResult",
+        "Assets/Scripts/Services/Buildings/ProductionFacilityDestructiveDrainRecoveryRuntime.cs#RequestAndDrive",
+        "Assets/Scripts/Services/Economy/ProductionFacilityDestructiveDrainJournal.cs#MigrateLegacyPayload",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Infrastructure/BuildingDemolitionOutcomeDefinition.cs#BuildingDemolitionOutcomeReceipt,BuildingDemolitionDestructiveDrainParticipant",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomes/Editor/BuildingDemolitionOutcomeDebugScenarios.cs#RunAll",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260919-r57/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260919-r24/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "InfoFeedEvent",
+      "definition_path": "Assets/Scripts/Views/UI/BuildingSummaryInfo.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "UI-only request to show an information target.",
+      "integration_reason": "It commits no gameplay mutation.",
+      "replacement_authority": "Building/character query state",
+      "evidence": [
+        "Assets/Scripts/Views/UI/BuildingSummaryInfo.cs#InfoFeedEvent"
+      ]
+    },
+    {
+      "type": "InfrastructureCommandResult",
+      "definition_path": "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureModels.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative result shared by committed power, fluid, conveyor and automation mutations including breaker reset, blockage/leak repair and maintenance.",
+      "integration_reason": "All 13 state-changing commands now prepare frozen target/action context before mutation and commit through one persisted infrastructure-command owner sequence/outbox; definite rejection rolls back reversible domain state, irreversible-adjacent conveyor approval queues before discharge, and successful no-ops consume neither sequence nor outcome.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureModels.cs#InfrastructureCommandResult",
+        "Assets/Scripts/Services/Infrastructure/Industrial/InfrastructureCommandOutcomeRuntime.cs",
+        "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureSaveSections.cs#InfrastructureCommandOutcomeSaveSection",
+        "Assets/Scripts/Services/Infrastructure/Industrial/ElectricalNetworkRuntime.cs",
+        "Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkRuntime.cs",
+        "Assets/Scripts/Services/Infrastructure/Industrial/ConveyorRuntime.cs",
+        "Assets/Scripts/Services/Infrastructure/Industrial/AutomationRuntime.cs",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260919-r65/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80IndustrialCommands-20260919-r4/producer-runtime-report.txt",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260919-r27/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "ManualWaterTransferReceipt",
+      "definition_path": "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Exact physical input/output component receipt consumed by a larger production or stock-sensor operation.",
+      "integration_reason": "The parent operation records the consumption/result once with these values as provenance.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt or ProductionBillCommandResult",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureModels.cs#ManualWaterTransferReceipt"
+      ]
+    },
+    {
+      "type": "NarrativeQualityResult",
+      "definition_path": "Assets/Scripts/Models/AI/Core/NarrativeStructuredOutputCore.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Structured-narrative validation output; it reports model-response quality and commits no gameplay mutation.",
+      "integration_reason": "Validation diagnostics are outside the gameplay-result ledger.",
+      "replacement_authority": "Narrative structured-output validation diagnostics",
+      "evidence": [
+        "Assets/Scripts/Models/AI/Core/NarrativeStructuredOutputCore.cs#NarrativeQualityResult"
+      ]
+    },
+    {
+      "type": "ObservedProductionLossLifeEventReceipt",
+      "definition_path": "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Mentorship-scoped observation receipt derived from an already completed production loss.",
+      "integration_reason": "The observation is committed through the V20 resolved-event aggregate; the original production outcome already owns the loss metric.",
+      "replacement_authority": "V20ResolvedEventResult and ProductionCompletedOutcomeReceipt",
+      "evidence": [
+        "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs#ObservedProductionLossLifeEventReceipt",
+        "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs:304-390",
+        "Assets/Scripts/Services/Run/V20ContentResolutionService.cs:1076-1135"
+      ]
+    },
+    {
+      "type": "PreparedOutputCheckpointGcResult",
+      "definition_path": "Assets/Scripts/Models/Production/Core/PreparedOutputCheckpointGcContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Checkpoint garbage-collection result for already acknowledged durable state.",
+      "integration_reason": "GC changes recovery bookkeeping only; the semantic outcome was committed earlier.",
+      "replacement_authority": "Previously committed production/destructive terminal result",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/PreparedOutputCheckpointGcContracts.cs#PreparedOutputCheckpointGcResult"
+      ]
+    },
+    {
+      "type": "ProductionBillCommandResult",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative production-order command result for committed add, remove/cancel, suspension, policy and stock-sensor mutations.",
+      "integration_reason": "ProductionBillRuntime prepares an exact typed outcome before reversible mutations and rolls back on definite rejection. Irreversible bill removal and stock-sensor transitions advance the persisted owner revision and retain a frozen pending outbox row until delivery commits, including save/restore retry without rerunning gameplay.",
+      "replacement_authority": "ProductionCommandOutcomeReceipt",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs#ProductionBillCommandResult",
+        "Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs#QueueCommittedCommandOutcome",
+        "Assets/Scripts/Models/Production/Core/ProductionAggregateState.cs#ProductionCommandOutcomeOutboxSaveData",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/ProductionCombat/ProductionCommandOutcomeDefinition.cs",
+        "Assets/Scripts/Services/Economy/Editor/ProductionPreparedOutputFullPersistenceDebugScenarios.cs#VerifyProductionCommandOutcomeTransactions",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260919-r62/focused-runtime-report.json#production-command-owner-transaction",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260919-r25/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "ProductionCapacityRoutingActorQuiescenceResult",
+      "definition_path": "Assets/Scripts/Services/Items/ProductionCapacityRoutingActorQuiescence.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal destructive-drain, routing or recovery state-machine result.",
+      "integration_reason": "It proves forward recovery/acknowledgement for the upper cause-specific operation and must not create a second narrative result.",
+      "replacement_authority": "GridBuildingDestroyRequestResult, EnvironmentalFireDamageResult, or other cause-specific terminal result",
+      "evidence": [
+        "Assets/Scripts/Services/Items/ProductionCapacityRoutingActorQuiescence.cs#ProductionCapacityRoutingActorQuiescenceResult"
+      ]
+    },
+    {
+      "type": "ProductionCapacityRoutingDrainResult",
+      "definition_path": "Assets/Scripts/Models/Items/Core/ProductionCapacityRoutingDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal durable custody/drain participant result inside a higher destructive or production transaction.",
+      "integration_reason": "Participant commit/ack/recovery stages are provenance for the upper semantic operation, not separate memories.",
+      "replacement_authority": "Cause-specific terminal result plus ProductionFacilityDestructiveDrain journal",
+      "evidence": [
+        "Assets/Scripts/Models/Items/Core/ProductionCapacityRoutingDrainContracts.cs#ProductionCapacityRoutingDrainResult"
+      ]
+    },
+    {
+      "type": "ProductionDeclaredLossCycleReceipt",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionRecipeExecutionReceiptContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Declared-loss observation source derived from a completed production batch.",
+      "integration_reason": "Declared loss mass is already captured by ProductionCompletedOutcomeReceipt; mentorship observation resolves through the V20 terminal result.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt and V20ResolvedEventResult",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionRecipeExecutionReceiptContracts.cs#ProductionDeclaredLossCycleReceipt",
+        "Assets/Scripts/Services/Economy/ProductionRecipeExecutionReceiptAuthority.cs:270-325",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/ProductionCombat/ProductionCombatOutcomeBridges.cs:303-405"
+      ]
+    },
+    {
+      "type": "ProductionDomainOutputPublicationResult",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionDomainOutputPublicationService.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Shared physical-output publication transaction status below a domain-owned producer.",
+      "integration_reason": "The caller-domain outcome participant supplies the semantic result and commits it with publication.",
+      "replacement_authority": "Owning caller-domain terminal result",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/ProductionDomainOutputPublicationService.cs#ProductionDomainOutputPublicationResult",
+        "Assets/Scripts/Services/Economy/ProductionDomainOutputPublicationService.cs:1-143"
+      ]
+    },
+    {
+      "type": "ProductionFacilityDestructiveDrainAuthorityConvergenceResult",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionFacilityDestructiveDrainAuthorityRevoker.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal destructive-drain, routing or recovery state-machine result.",
+      "integration_reason": "It proves forward recovery/acknowledgement for the upper cause-specific operation and must not create a second narrative result.",
+      "replacement_authority": "GridBuildingDestroyRequestResult, EnvironmentalFireDamageResult, or other cause-specific terminal result",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/ProductionFacilityDestructiveDrainAuthorityRevoker.cs#ProductionFacilityDestructiveDrainAuthorityConvergenceResult"
+      ]
+    },
+    {
+      "type": "ProductionFacilityDestructiveDrainCheckpointGcResult",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionFacilityDestructiveDrainCheckpointGcContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Checkpoint garbage-collection result for already acknowledged durable state.",
+      "integration_reason": "GC changes recovery bookkeeping only; the semantic outcome was committed earlier.",
+      "replacement_authority": "Previously committed production/destructive terminal result",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionFacilityDestructiveDrainCheckpointGcContracts.cs#ProductionFacilityDestructiveDrainCheckpointGcResult"
+      ]
+    },
+    {
+      "type": "ProductionFacilityDestructiveDrainDriveResult",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionFacilityDestructiveDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal destructive-drain, routing or recovery state-machine result.",
+      "integration_reason": "It proves forward recovery/acknowledgement for the upper cause-specific operation and must not create a second narrative result.",
+      "replacement_authority": "GridBuildingDestroyRequestResult, EnvironmentalFireDamageResult, or other cause-specific terminal result",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionFacilityDestructiveDrainContracts.cs#ProductionFacilityDestructiveDrainDriveResult"
+      ]
+    },
+    {
+      "type": "ProductionFacilityDestructiveDrainRecoveryResult",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionFacilityDestructiveDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal destructive-drain, routing or recovery state-machine result.",
+      "integration_reason": "It proves forward recovery/acknowledgement for the upper cause-specific operation and must not create a second narrative result.",
+      "replacement_authority": "GridBuildingDestroyRequestResult, EnvironmentalFireDamageResult, or other cause-specific terminal result",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionFacilityDestructiveDrainContracts.cs#ProductionFacilityDestructiveDrainRecoveryResult"
+      ]
+    },
+    {
+      "type": "ProductionFacilityDestructiveDrainStartPreflightResult",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionFacilityDestructiveDrainStartPreflight.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal destructive-drain, routing or recovery state-machine result.",
+      "integration_reason": "It proves forward recovery/acknowledgement for the upper cause-specific operation and must not create a second narrative result.",
+      "replacement_authority": "GridBuildingDestroyRequestResult, EnvironmentalFireDamageResult, or other cause-specific terminal result",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/ProductionFacilityDestructiveDrainStartPreflight.cs#ProductionFacilityDestructiveDrainStartPreflightResult"
+      ]
+    },
+    {
+      "type": "ProductionFacilityDestructiveDrainStepResult",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionFacilityDestructiveDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal destructive-drain, routing or recovery state-machine result.",
+      "integration_reason": "It proves forward recovery/acknowledgement for the upper cause-specific operation and must not create a second narrative result.",
+      "replacement_authority": "GridBuildingDestroyRequestResult, EnvironmentalFireDamageResult, or other cause-specific terminal result",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionFacilityDestructiveDrainContracts.cs#ProductionFacilityDestructiveDrainStepResult"
+      ]
+    },
+    {
+      "type": "ProductionFacilityDestructiveRemovalResult",
+      "definition_path": "Assets/Scripts/Services/Buildings/ProductionFacilityDestructiveDrainRecoveryRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Forward-only destructive lifecycle result below a cause-specific building-loss operation.",
+      "integration_reason": "The upper operation supplies cause and player meaning; removal is transaction evidence.",
+      "replacement_authority": "GridBuildingDestroyRequestResult or cause-specific fire/defense/combat result",
+      "evidence": [
+        "Assets/Scripts/Services/Buildings/ProductionFacilityDestructiveDrainRecoveryRuntime.cs#ProductionFacilityDestructiveRemovalResult"
+      ]
+    },
+    {
+      "type": "ProductionFacilityWorldRemovalResult",
+      "definition_path": "Assets/Scripts/Services/Buildings/ProductionFacilityDestructiveDrainRecoveryRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Forward-only destructive lifecycle result below a cause-specific building-loss operation.",
+      "integration_reason": "The upper operation supplies cause and player meaning; removal is transaction evidence.",
+      "replacement_authority": "GridBuildingDestroyRequestResult or cause-specific fire/defense/combat result",
+      "evidence": [
+        "Assets/Scripts/Services/Buildings/ProductionFacilityDestructiveDrainRecoveryRuntime.cs#ProductionFacilityWorldRemovalResult"
+      ]
+    },
+    {
+      "type": "ProductionGenericBillTerminalDrainResult",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionGenericBillTerminalDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal destructive-drain, routing or recovery state-machine result.",
+      "integration_reason": "It proves forward recovery/acknowledgement for the upper cause-specific operation and must not create a second narrative result.",
+      "replacement_authority": "GridBuildingDestroyRequestResult, EnvironmentalFireDamageResult, or other cause-specific terminal result",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionGenericBillTerminalDrainContracts.cs#ProductionGenericBillTerminalDrainResult"
+      ]
+    },
+    {
+      "type": "ProductionInputDestinationCustodyDrainResult",
+      "definition_path": "Assets/Scripts/Models/Items/Core/ProductionInputDestinationCustodyDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal durable custody/drain participant result inside a higher destructive or production transaction.",
+      "integration_reason": "Participant commit/ack/recovery stages are provenance for the upper semantic operation, not separate memories.",
+      "replacement_authority": "Cause-specific terminal result plus ProductionFacilityDestructiveDrain journal",
+      "evidence": [
+        "Assets/Scripts/Models/Items/Core/ProductionInputDestinationCustodyDrainContracts.cs#ProductionInputDestinationCustodyDrainResult"
+      ]
+    },
+    {
+      "type": "ProductionOutputClearanceMeasurementPlanResult",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionOutputClearanceMeasurementPlanRegistry.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Read-only throughput, maximum-rate, contributor or measurement calculation.",
+      "integration_reason": "It changes no gameplay state and exists to validate/plan execution.",
+      "replacement_authority": "Authored production rules and subsequent terminal production result",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/ProductionOutputClearanceMeasurementPlanRegistry.cs#ProductionOutputClearanceMeasurementPlanResult"
+      ]
+    },
+    {
+      "type": "ProductionPhysicalCustodyDrainResult",
+      "definition_path": "Assets/Scripts/Models/Items/Core/ProductionPhysicalCustodyDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal durable custody/drain participant result inside a higher destructive or production transaction.",
+      "integration_reason": "Participant commit/ack/recovery stages are provenance for the upper semantic operation, not separate memories.",
+      "replacement_authority": "Cause-specific terminal result plus ProductionFacilityDestructiveDrain journal",
+      "evidence": [
+        "Assets/Scripts/Models/Items/Core/ProductionPhysicalCustodyDrainContracts.cs#ProductionPhysicalCustodyDrainResult"
+      ]
+    },
+    {
+      "type": "ProductionPreparedOutputCapacityResult",
+      "definition_path": "Assets/Scripts/Models/Economy/Content/ProductionPreparedOutputExecutionPort.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Read-only output-capacity assessment used to decide whether a production cycle may proceed.",
+      "integration_reason": "Capacity waiting is operational flow control and must not be narrated as a committed gameplay outcome.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt or the owning command failure",
+      "evidence": [
+        "Assets/Scripts/Models/Economy/Content/ProductionPreparedOutputExecutionPort.cs#ProductionPreparedOutputCapacityResult"
+      ]
+    },
+    {
+      "type": "ProductionPreparedOutputDeliveryCoordinationResult",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionPreparedOutputRoutingContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal destructive-drain, routing or recovery state-machine result.",
+      "integration_reason": "It proves forward recovery/acknowledgement for the upper cause-specific operation and must not create a second narrative result.",
+      "replacement_authority": "GridBuildingDestroyRequestResult, EnvironmentalFireDamageResult, or other cause-specific terminal result",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionPreparedOutputRoutingContracts.cs#ProductionPreparedOutputDeliveryCoordinationResult"
+      ]
+    },
+    {
+      "type": "ProductionPreparedOutputExactRouteLifecycleResult",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionPreparedOutputRoutingContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal destructive-drain, routing or recovery state-machine result.",
+      "integration_reason": "It proves forward recovery/acknowledgement for the upper cause-specific operation and must not create a second narrative result.",
+      "replacement_authority": "GridBuildingDestroyRequestResult, EnvironmentalFireDamageResult, or other cause-specific terminal result",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionPreparedOutputRoutingContracts.cs#ProductionPreparedOutputExactRouteLifecycleResult"
+      ]
+    },
+    {
+      "type": "ProductionPreparedOutputExecutionResult",
+      "definition_path": "Assets/Scripts/Models/Economy/Content/ProductionPreparedOutputExecutionPort.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Prepared-output state-machine return value for an in-progress physical publication/release/disposition, not an independent semantic outcome.",
+      "integration_reason": "The prepared-output transaction reserves and commits one ProductionCompletedOutcomeReceipt; recording this lower stage would duplicate it.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt through ProductionCompletedOutcomeBridge",
+      "evidence": [
+        "Assets/Scripts/Models/Economy/Content/ProductionPreparedOutputExecutionPort.cs#ProductionPreparedOutputExecutionResult",
+        "Assets/Scripts/Services/Economy/ProductionPreparedOutputExecutionAdapter.cs:520-675"
+      ]
+    },
+    {
+      "type": "ProductionPreparedOutputPhysicalRouteReceipt",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionPreparedOutputRoutingContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Physical admission/routing/publication transaction receipt below the caller-domain semantic result.",
+      "integration_reason": "The receipt participates in idempotent physical custody but does not independently describe why the gameplay operation occurred.",
+      "replacement_authority": "Owning production or caller-domain terminal result",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionPreparedOutputRoutingContracts.cs#ProductionPreparedOutputPhysicalRouteReceipt"
+      ]
+    },
+    {
+      "type": "ProductionPreparedOutputPhysicalRouteSliceReceipt",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionPreparedOutputRoutingContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Per-line or per-stack physical child receipt embedded in an aggregate production/output result.",
+      "integration_reason": "The aggregate outcome already preserves this exact provenance; separate recording would duplicate one operation.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt / ProductionRecipeExecutionReceipt",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionPreparedOutputRoutingContracts.cs#ProductionPreparedOutputPhysicalRouteSliceReceipt"
+      ]
+    },
+    {
+      "type": "ProductionPreparedOutputReleaseResult",
+      "definition_path": "Assets/Scripts/Models/Economy/Content/ProductionPreparedOutputExecutionPort.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Prepared-output state-machine return value for an in-progress physical publication/release/disposition, not an independent semantic outcome.",
+      "integration_reason": "The prepared-output transaction reserves and commits one ProductionCompletedOutcomeReceipt; recording this lower stage would duplicate it.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt through ProductionCompletedOutcomeBridge",
+      "evidence": [
+        "Assets/Scripts/Models/Economy/Content/ProductionPreparedOutputExecutionPort.cs#ProductionPreparedOutputReleaseResult",
+        "Assets/Scripts/Services/Economy/ProductionPreparedOutputExecutionAdapter.cs:520-675"
+      ]
+    },
+    {
+      "type": "ProductionProcessFluidReceipt",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Exact physical input/output component receipt consumed by a larger production or stock-sensor operation.",
+      "integration_reason": "The parent operation records the consumption/result once with these values as provenance.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt or ProductionBillCommandResult",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs#ProductionProcessFluidReceipt"
+      ]
+    },
+    {
+      "type": "ProductionRecipeExecutionOutputLineReceipt",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionRecipeExecutionReceiptContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Per-line or per-stack physical child receipt embedded in an aggregate production/output result.",
+      "integration_reason": "The aggregate outcome already preserves this exact provenance; separate recording would duplicate one operation.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt / ProductionRecipeExecutionReceipt",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionRecipeExecutionReceiptContracts.cs#ProductionRecipeExecutionOutputLineReceipt"
+      ]
+    },
+    {
+      "type": "ProductionRecipeExecutionPhysicalSliceReceipt",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionRecipeExecutionReceiptContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Per-line or per-stack physical child receipt embedded in an aggregate production/output result.",
+      "integration_reason": "The aggregate outcome already preserves this exact provenance; separate recording would duplicate one operation.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt / ProductionRecipeExecutionReceipt",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionRecipeExecutionReceiptContracts.cs#ProductionRecipeExecutionPhysicalSliceReceipt"
+      ]
+    },
+    {
+      "type": "ProductionRecipeExecutionReceipt",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionRecipeExecutionReceiptContracts.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Immutable exact terminal production-cycle witness with bill, facility, inputs, outputs, physical slices and canonical fingerprints.",
+      "integration_reason": "The bill finalizes the exact receipt, the receipt authority passes that same instance to ProductionCompletedOutcomeBridge.TryCommitExact, and resolved output state is not cleared unless the canonical outcome is durably committed.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionRecipeExecutionReceiptContracts.cs#ProductionRecipeExecutionReceipt",
+        "Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs:1475-1553",
+        "Assets/Scripts/Services/Economy/ProductionRecipeExecutionReceiptAuthority.cs:487-546",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/ProductionCombat/ProductionCombatOutcomeBridges.cs:175-284"
+      ]
+    },
+    {
+      "type": "ProductionRecipeThroughputBranchQueryResult",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionAuthoredThroughputEnvelopeAuthority.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Read-only throughput, maximum-rate, contributor or measurement calculation.",
+      "integration_reason": "It changes no gameplay state and exists to validate/plan execution.",
+      "replacement_authority": "Authored production rules and subsequent terminal production result",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/ProductionAuthoredThroughputEnvelopeAuthority.cs#ProductionRecipeThroughputBranchQueryResult"
+      ]
+    },
+    {
+      "type": "ProductionRecipeThroughputProjectionResult",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionAuthoredThroughputEnvelopeAuthority.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Read-only throughput, maximum-rate, contributor or measurement calculation.",
+      "integration_reason": "It changes no gameplay state and exists to validate/plan execution.",
+      "replacement_authority": "Authored production rules and subsequent terminal production result",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/ProductionAuthoredThroughputEnvelopeAuthority.cs#ProductionRecipeThroughputProjectionResult"
+      ]
+    },
+    {
+      "type": "ProductionRecipeWorkRateMaximumAuthorityResult",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionRecipeWorkRateMaximumAuthority.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Read-only throughput, maximum-rate, contributor or measurement calculation.",
+      "integration_reason": "It changes no gameplay state and exists to validate/plan execution.",
+      "replacement_authority": "Authored production rules and subsequent terminal production result",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/ProductionRecipeWorkRateMaximumAuthority.cs#ProductionRecipeWorkRateMaximumAuthorityResult"
+      ]
+    },
+    {
+      "type": "ProductionRecipeWorkRateMaximumQueryResult",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionAuthoredThroughputEnvelopeAuthority.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Read-only throughput, maximum-rate, contributor or measurement calculation.",
+      "integration_reason": "It changes no gameplay state and exists to validate/plan execution.",
+      "replacement_authority": "Authored production rules and subsequent terminal production result",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/ProductionAuthoredThroughputEnvelopeAuthority.cs#ProductionRecipeWorkRateMaximumQueryResult"
+      ]
+    },
+    {
+      "type": "ProductionRuinedBatchExecutionResult",
+      "definition_path": "Assets/Scripts/Models/Economy/Content/ProductionRuinedBatchExecutionPort.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Prepared-output state-machine return value for an in-progress physical publication/release/disposition, not an independent semantic outcome.",
+      "integration_reason": "The prepared-output transaction reserves and commits one ProductionCompletedOutcomeReceipt; recording this lower stage would duplicate it.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt through ProductionCompletedOutcomeBridge",
+      "evidence": [
+        "Assets/Scripts/Models/Economy/Content/ProductionRuinedBatchExecutionPort.cs#ProductionRuinedBatchExecutionResult",
+        "Assets/Scripts/Services/Economy/ProductionPreparedOutputExecutionAdapter.cs:520-675"
+      ]
+    },
+    {
+      "type": "ProductionSpecialThroughputContributorResult",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionSpecialThroughputContributorRegistry.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Read-only throughput, maximum-rate, contributor or measurement calculation.",
+      "integration_reason": "It changes no gameplay state and exists to validate/plan execution.",
+      "replacement_authority": "Authored production rules and subsequent terminal production result",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/ProductionSpecialThroughputContributorRegistry.cs#ProductionSpecialThroughputContributorResult"
+      ]
+    },
+    {
+      "type": "ProductionStockSensorPhysicalReceipt",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Exact physical input/output component receipt consumed by a larger production or stock-sensor operation.",
+      "integration_reason": "The parent operation records the consumption/result once with these values as provenance.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt or ProductionBillCommandResult",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs#ProductionStockSensorPhysicalReceipt"
+      ]
+    },
+    {
+      "type": "ProductionStockSensorRemovalReceipt",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Exact physical input/output component receipt consumed by a larger production or stock-sensor operation.",
+      "integration_reason": "The parent operation records the consumption/result once with these values as provenance.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt or ProductionBillCommandResult",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs#ProductionStockSensorRemovalReceipt"
+      ]
+    },
+    {
+      "type": "ProductionWipInputReceipt",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Exact physical input/output component receipt consumed by a larger production or stock-sensor operation.",
+      "integration_reason": "The parent operation records the consumption/result once with these values as provenance.",
+      "replacement_authority": "ProductionCompletedOutcomeReceipt or ProductionBillCommandResult",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs#ProductionWipInputReceipt"
+      ]
+    },
+    {
+      "type": "ProductionWorkAvailabilityResult",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Read-only production availability query.",
+      "integration_reason": "It neither commits work nor changes gameplay state.",
+      "replacement_authority": "Subsequent ProductionRecipeExecutionReceipt or command result",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs#ProductionWorkAvailabilityResult"
+      ]
+    },
+    {
+      "type": "ProductionWorkBeginResult",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Work-start admission result used to select a bill and initialize execution.",
+      "integration_reason": "A start/admission signal is not a completed result; later execution or completion owns the fact.",
+      "replacement_authority": "ProductionRecipeExecutionReceipt / WorkCompletedIdentityEvent",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs#ProductionWorkBeginResult"
+      ]
+    },
+    {
+      "type": "ProductionWorkExecutionResult",
+      "definition_path": "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Per-work-application control result consumed inside persistent work loops.",
+      "integration_reason": "Cycle completion is already committed by the exact production outcome, while ordinary partial-loop control is not an independent narrative event.",
+      "replacement_authority": "ProductionRecipeExecutionReceipt / ProductionCompletedOutcomeReceipt",
+      "evidence": [
+        "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs#ProductionWorkExecutionResult",
+        "Assets/Scripts/Services/Infrastructure/BuildingCraftWorkAdapters.cs:191-325"
+      ]
+    },
+    {
+      "type": "ProductionWorkRateMaximumContributorResult",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionRecipeWorkRateMaximumAuthority.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Read-only throughput, maximum-rate, contributor or measurement calculation.",
+      "integration_reason": "It changes no gameplay state and exists to validate/plan execution.",
+      "replacement_authority": "Authored production rules and subsequent terminal production result",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/ProductionRecipeWorkRateMaximumAuthority.cs#ProductionWorkRateMaximumContributorResult"
+      ]
+    },
+    {
+      "type": "ProductQualityResolvedEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Post-commit identity and mood notification emitted only after the authoritative apparel-physical or equipment product-quality outcome has been durably committed.",
+      "integration_reason": "Apparel freezes maker, quality, attempt and rejection state in its existing physical transaction receipt; equipment delivers the same exact tuple from the persisted resolved craft order before physical output publication. Recording this notification again would duplicate one quality result.",
+      "replacement_authority": "ApparelPhysicalOutcomeReceipt or ProductQualityOutcomeReceipt",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs#ProductQualityResolvedEvent",
+        "Assets/Scripts/Services/Combat/CombatEquipmentCraftingRuntime.cs#ResolveAttemptOutcome",
+        "Assets/Scripts/Services/Combat/CombatEquipmentCraftOutputTransaction.cs#TryEnsureQualityOutcome",
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs#ResolveCraft",
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelPhysicalTransaction.cs#FinalizeOutcome",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Evolution/EvolutionOutcomeReceipts.cs#ApparelPhysicalOutcomeReceipt,ProductQualityOutcomeReceipt",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260919-r55/focused-runtime-report.json#apparel-physical-transaction,product-quality-outcome,combat-product-quality-gate"
+      ]
+    },
+    {
+      "type": "ResearchOutcomeEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Post-commit identity notification projected from the canonical research-work result; it does not own a second research mutation.",
+      "integration_reason": "ResearchWorkOutcomeReceipt already commits the researcher, exact progress/completion and forbidden-leap outcome/hash/fraction/aftermath before this identity event is published.",
+      "replacement_authority": "ResearchWorkOutcomeReceipt",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs#ResearchOutcomeEvent",
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchOutcomeTransaction.cs:41-63",
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchOutcomeTransaction.cs:152-233",
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs:266-315",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/ResearchWorkOutcomeDefinition.cs:279-318"
+      ]
+    },
+    {
+      "type": "ResearchProgressEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Post-mutation identity projection of a research progress delta.",
+      "integration_reason": "The authoritative BlueprintResearchWorkResult carries the exact delta, total, required work and completion state; recording both would duplicate one work application.",
+      "replacement_authority": "BlueprintResearchWorkResult",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs#ResearchProgressEvent",
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs:158-254,320-355"
+      ]
+    },
+    {
+      "type": "ResearchQueueCommandResult",
+      "definition_path": "Assets/Scripts/Models/Research/Core/ResearchQueueSystem.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Research queue configuration acknowledgement for enqueue/remove/reorder operations.",
+      "integration_reason": "Queue administration is not a research progress/completion fact; later research work and completion own narrative outcomes.",
+      "replacement_authority": "BlueprintResearchWorkResult / BlueprintResearchCompletedEvent",
+      "evidence": [
+        "Assets/Scripts/Models/Research/Core/ResearchQueueSystem.cs#ResearchQueueCommandResult"
+      ]
+    },
+    {
+      "type": "ResearchWorkProgressResult",
+      "definition_path": "Assets/Scripts/Models/Work/ResearchWorkExecutionHandler.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Execution-handler progress wrapper used to coordinate persistent work.",
+      "integration_reason": "The owning facility/equipment/production/research domain produces the semantic progress or completion result.",
+      "replacement_authority": "Owning domain terminal result",
+      "evidence": [
+        "Assets/Scripts/Models/Work/ResearchWorkExecutionHandler.cs#ResearchWorkProgressResult"
+      ]
+    },
+    {
+      "type": "SettlementActiveIncidentsChangedEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Work/SettlementAlertContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Derived settlement-alert invalidation/coordination notification consumed by alarm-response AI.",
+      "integration_reason": "Specific incident results and the persisted alert aggregate own the underlying facts; this event only fans out the recomputed state.",
+      "replacement_authority": "Specific incident terminal result plus SettlementAlertRuntime persisted aggregate",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Work/SettlementAlertContracts.cs#SettlementActiveIncidentsChangedEvent",
+        "Assets/Scripts/Services/Character/Work/SettlementAlertRuntime.cs:470-565,635-642"
+      ]
+    },
+    {
+      "type": "SettlementCommittedAlertChangedEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Work/SettlementAlertContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Derived settlement-alert invalidation/coordination notification consumed by alarm-response AI.",
+      "integration_reason": "Specific incident results and the persisted alert aggregate own the underlying facts; this event only fans out the recomputed state.",
+      "replacement_authority": "Specific incident terminal result plus SettlementAlertRuntime persisted aggregate",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Work/SettlementAlertContracts.cs#SettlementCommittedAlertChangedEvent",
+        "Assets/Scripts/Services/Character/Work/SettlementAlertRuntime.cs:470-565,635-642"
+      ]
+    },
+    {
+      "type": "StaffRebellionResponseResult",
+      "definition_path": "Assets/Scripts/Services/Character/Work/StaffDiscontentSystem.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative committed response result for calming, isolating, or suppressing a rebellious staff member, with the exact before/after persisted discontent state.",
+      "integration_reason": "StaffDiscontentRuntime now reserves exact ledger capacity before mutation, commits the staff owner's persisted monotonic revision with the immutable receipt and outbox, restores discontent plus mood state on definite rejection, and retains state when delivery is durably pending. AutoSuppress assignment no longer constructs a discarded StaffRebellionResponseResult because that multi-AbilityWork command requires its own owner contract.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Work/StaffDiscontentSystem.cs#StaffRebellionResponseResult",
+        "Assets/Scripts/Services/Character/Work/StaffDiscontentRuntime.cs#TryIsolateRebel,TryCalmStaff,ResolveSuppressedRebel",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/StaffDiscontentOutcomeDefinition.cs#StaffDiscontentOutcomeReceipt,StaffDiscontentGameplayOutcomeBridge,StaffDiscontentOutcomeDescriptor",
+        "Assets/Scripts/Services/Character/Work/StaffDiscontentSaveSection.cs#CapturePayload,BuildRestoreCandidate",
+        "Assets/Scripts/Services/Character/AI/Editor/StaffRebellionResponseDebugScenarios.cs#RunAll",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260919-r43/focused-runtime-report.json"
+      ]
+    },
+    {
+      "type": "WorkCompletedIdentityEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Cross-domain terminal work-completion fact carrying the persistent worker, work identity, product/outcome and command origin.",
+      "integration_reason": "Character identity now owns a monotonic direct-event stream and reuses the autonomous-harvest delivery identity. The adapter prepares an exact frozen receipt before identity effects, rolls identity/mood/progression back on definite rejection, commits the gameplay outcome before the durable cursor, reconciles replays without duplicate effects, and records terminal recipient absence without fabricating an outcome. This boundary records only the character reaction and does not claim atomic ownership of the upstream work-domain mutation.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs#WorkCompletedIdentityEvent",
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs#WorkCompletionIdentityDeliveryLedger",
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityDomainAdapters.cs#WorkIdentityEventAdapter",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/ProductionCombat/WorkCompletionIdentityOutcomeDefinition.cs#WorkCompletionIdentityOutcomeReceipt,WorkCompletionIdentityGameplayOutcomeBridge,WorkCompletionIdentityOutcomeDescriptor",
+        "Assets/Scripts/Services/Infrastructure/Registration/DungeonCharacterRegistration.cs#RegisterDungeonCharacterSystems",
+        "Assets/Scripts/Services/Character/Editor/V26FounderTraitAuditScenario.cs#VerifyWorkCompletionDeliveryTransaction",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r120/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r67/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r28/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "WorkCompletionIdentityDeliveryResult",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Idempotent identity-effect delivery status for a work-completion request.",
+      "integration_reason": "Applied/already/deferred/conflict describes delivery bookkeeping, while the work completion itself is the semantic result.",
+      "replacement_authority": "WorkCompletedIdentityEvent",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs#WorkCompletionIdentityDeliveryResult"
+      ]
+    },
+    {
+      "type": "WorkExecutionResult",
+      "definition_path": "Assets/Scripts/Services/Character/Work/WorkExecutionRegistry.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Mutable execution-handler control object used by WorkTaskExecutor.",
+      "integration_reason": "It coordinates success/failure and already-applied effects; the domain receipt or WorkCompletedIdentityEvent owns the semantic result.",
+      "replacement_authority": "WorkCompletedIdentityEvent or owning domain terminal result",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Work/WorkExecutionRegistry.cs#WorkExecutionResult"
+      ]
+    },
+    {
+      "type": "WorkStartedIdentityEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Work-start notification used to apply immediate identity/mood context.",
+      "integration_reason": "Starting work is not completion; the terminal work event or domain receipt owns the result.",
+      "replacement_authority": "WorkCompletedIdentityEvent or owning domain terminal result",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs#WorkStartedIdentityEvent"
+      ]
+    }
+  ]
+}

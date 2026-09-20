@@ -258,11 +258,12 @@ public static class DungeonFullWorldRoundTripPlayModeFacade
 
 public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
 {
-    private const int ExpectedSectionCount = 74;
     private const float RuntimeReadyTimeoutSeconds = 45f;
 
     private readonly List<string> warnings = new();
     private readonly List<string> errors = new();
+    private CharacterSpawner pausedSpawner;
+    private bool spawnerWasPaused;
 
     private void Awake()
     {
@@ -303,6 +304,17 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
         int postRoundTripSections = 0;
         if (scope != null)
         {
+            ICharacterSpawnerProvider spawnerProvider =
+                scope.Container.Resolve<ICharacterSpawnerProvider>();
+            if (spawnerProvider.TryGetSpawner(out pausedSpawner)
+                && pausedSpawner != null)
+            {
+                spawnerWasPaused = pausedSpawner
+                    .DeterministicSimulationPausedForDiagnostics;
+                pausedSpawner.ConfigureDeterministicSimulationForDiagnostics(
+                    paused: true);
+            }
+
             OwnerRunManager ownerManager = FindFirstObjectByType<OwnerRunManager>();
             if (ownerManager == null || ownerManager.CurrentOwnerActor == null)
             {
@@ -361,12 +373,11 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
                 .GetSnapshot(baselineOwnerManager.CurrentOwnerActor);
             DungeonGameSaveData baseline = saves.Capture();
             capturedSections = baseline.sections?.Count ?? 0;
-            if (registeredSections != ExpectedSectionCount
-                || capturedSections != ExpectedSectionCount)
+            if (registeredSections <= 0
+                || capturedSections != registeredSections)
             {
                 throw new InvalidOperationException(
-                    "Live save manifest did not contain exactly "
-                    + $"{ExpectedSectionCount} sections: registered="
+                    "Live save manifest and captured save-section counts differ: registered="
                     + $"{registeredSections}; captured={capturedSections}.");
             }
 
@@ -419,11 +430,12 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
 
             DungeonGameSaveData afterRoundTrip = saves.Capture();
             postRoundTripSections = afterRoundTrip.sections?.Count ?? 0;
-            if (postRoundTripSections != ExpectedSectionCount)
+            if (postRoundTripSections != registeredSections)
             {
                 errors.Add(
                     "Baseline restoration changed the live save-section count: "
-                    + postRoundTripSections + ".");
+                    + $"registered={registeredSections}; "
+                    + $"captured={postRoundTripSections}.");
             }
             canonicalBaselineMatched = string.Equals(
                 baselineCanonical,
@@ -471,7 +483,7 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
                 && warnings.Count == 0
                 && errors.Count == 0;
             detail = passed
-                ? "Live 74-section full-world round trip and baseline restoration passed."
+                ? $"Live {registeredSections}-section full-world round trip and baseline restoration passed."
                 : "The round trip emitted Console warnings or errors.";
         }
         catch (Exception exception)
@@ -504,6 +516,11 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
         string characterProgressionDetail)
     {
         Application.logMessageReceived -= CaptureLog;
+        if (pausedSpawner != null)
+        {
+            pausedSpawner.ConfigureDeterministicSimulationForDiagnostics(
+                spawnerWasPaused);
+        }
         DungeonFullWorldRoundTripPlayModeFacade.CleanupTransientArtifacts();
         Directory.CreateDirectory("Artifacts/QA");
         List<string> report = new()
@@ -595,9 +612,36 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
             builder.Append(section.sectionVersion).Append('\n');
             builder.Append((int)section.restorePhase).Append('\n');
             builder.Append(section.optional ? '1' : '0').Append('\n');
-            AppendField(builder, section.payloadJson);
+            AppendField(builder, CanonicalizeSectionPayload(section));
         }
         return builder.ToString();
+    }
+
+    private static string CanonicalizeSectionPayload(
+        DungeonSaveSectionEnvelope section)
+    {
+        if (!string.Equals(
+                section.sectionId,
+                GameplayOutcomeLedgerSaveSection.Id,
+                StringComparison.Ordinal))
+        {
+            return section.payloadJson;
+        }
+
+        // A successful load advances the ledger epoch so stale workers cannot
+        // publish into the restored world. It is deliberately volatile and is
+        // not part of the durable-state equality asserted by this verifier.
+        GameplayOutcomeLedgerSaveData ledger = JsonUtility.FromJson<
+            GameplayOutcomeLedgerSaveData>(section.payloadJson);
+        ledger.worldEpoch = 0L;
+        foreach (GameplayOutcomeConsolidationJobSnapshot job in
+                 ledger.consolidationJobs
+                 ?? new List<GameplayOutcomeConsolidationJobSnapshot>())
+        {
+            if (job != null)
+                job.worldEpoch = 0L;
+        }
+        return JsonUtility.ToJson(ledger);
     }
 
     private static string DescribeSaveDifferences(

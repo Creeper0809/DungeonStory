@@ -374,6 +374,55 @@ internal sealed class CharacterBodyHealthStateRules
         SyncLegacySurfaceNode(state, node.nodeId);
     }
 
+    public float HealSurfaceParts(
+        CharacterBodyHealthState state,
+        float amount,
+        bool stopBleeding)
+    {
+        float remaining = Mathf.Max(0f, amount);
+        float restoredTotal = 0f;
+        if (state.anatomyNodes != null && state.anatomyNodes.Count > 0)
+        {
+            // Spend the budget once per authoritative surface, not once per
+            // compatibility alias. Internal/missing organs are not regenerated.
+            var surfaces = state.parts
+                .Select(part => GetSurfaceNodeId(state.anatomyProfileId, part.bodyPart))
+                .Distinct(StringComparer.Ordinal)
+                .Select(id => FindAnatomyNode(state, id))
+                .Where(node => node != null && !node.missing)
+                .OrderBy(node => node.HealthRatio);
+            foreach (AnatomyNodeHealthState node in surfaces)
+            {
+                float restored = Mathf.Min(remaining, node.maxHealth - node.currentHealth);
+                node.currentHealth += restored;
+                remaining -= restored;
+                restoredTotal += restored;
+                if (stopBleeding)
+                    node.bleedingPerSecond = 0f;
+                // All aliases must agree before aggregate-healing callbacks or
+                // a subsequent GetSnapshot can rebuild the anatomy projection.
+                SyncLegacySurfaceNode(state, node.nodeId);
+                if (remaining <= 0f)
+                    break;
+            }
+            return restoredTotal;
+        }
+
+        // Legacy states without authored anatomy retain their original units.
+        foreach (CharacterBodyPartHealthState part in state.parts.OrderBy(part => part.HealthRatio))
+        {
+            float restored = Mathf.Min(remaining, part.maxHealth - part.currentHealth);
+            part.currentHealth += restored;
+            remaining -= restored;
+            restoredTotal += restored;
+            if (stopBleeding)
+                part.bleedingPerSecond = 0f;
+            if (remaining <= 0f)
+                break;
+        }
+        return restoredTotal;
+    }
+
     public void SyncAnatomySurfaceNodesFromLegacy(CharacterBodyHealthState state)
     {
         if (state?.anatomyNodes == null || state.anatomyNodes.Count == 0)

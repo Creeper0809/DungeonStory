@@ -393,13 +393,20 @@ public abstract class ExteriorIncidentHandlerBase : IExteriorIncidentHandler
 {
     protected readonly IExteriorIncidentActorService Actors;
     protected readonly IGameEventBus EventBus;
+    private readonly IGameCalendar calendar;
+    private readonly IMigratedProducerOutcomeTransaction outcomeTransaction;
 
     protected ExteriorIncidentHandlerBase(
         IExteriorIncidentActorService actors,
-        IGameEventBus eventBus)
+        IGameEventBus eventBus,
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransaction)
     {
         Actors = actors ?? throw new ArgumentNullException(nameof(actors));
         EventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.outcomeTransaction = outcomeTransaction
+            ?? throw new ArgumentNullException(nameof(outcomeTransaction));
     }
 
     public abstract ExteriorIncidentKind Kind { get; }
@@ -490,26 +497,129 @@ public abstract class ExteriorIncidentHandlerBase : IExteriorIncidentHandler
             return false;
         }
 
-        state.receptionApplied = true;
-        state.progress = Mathf.Clamp(
-            state.progress + Mathf.Lerp(5f, 25f, zone.ReceptionReadiness / 100f),
-            0f,
-            100f);
-        if (Actors.TryFind(visitorId, out CharacterActor visitor))
+        if (!Actors.TryFind(visitorId, out CharacterActor visitor)
+            || visitor?.Stats == null)
         {
+            return false;
+        }
+
+        if (!outcomeTransaction.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.ExteriorVisitorReceptionAppliedEvent,
+                state.incidentId,
+                Math.Max(1, calendar.Day),
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out _))
+        {
+            return false;
+        }
+
+        ExteriorIncidentRuntimeState incidentBefore = null;
+        CharacterMoodDeliveryTransactionSnapshot moodBefore = null;
+        try
+        {
+            incidentBefore = state.Clone();
+            moodBefore = visitor.Stats.CaptureMoodDeliveryTransactionState();
+            string factorId = $"exterior:reception:{state.incidentId}";
+
+            state.receptionApplied = true;
+            state.progress = Mathf.Clamp(
+                state.progress + Mathf.Lerp(
+                    5f,
+                    25f,
+                    zone.ReceptionReadiness / 100f),
+                0f,
+                100f);
             visitor.ApplyMoodFactor(
-                $"exterior:reception:{state.incidentId}",
+                factorId,
                 "입구에서 제대로 응대받음",
                 Mathf.Lerp(1f, 4f, zone.ReceptionReadiness / 100f),
                 180f,
                 1);
+
+            string displayName = visitor.Identity?.DisplayName;
+            MigratedProducerOutcomeCommitResult committed = outcomeTransaction
+                .CommitSingleSubject(
+                    prepared,
+                    new MigratedProducerOutcomeSubject(
+                        MigratedProducerOutcomeIds.CharacterKind,
+                        visitorId,
+                        string.IsNullOrWhiteSpace(displayName)
+                            ? visitorId
+                            : displayName,
+                        MigratedProducerOutcomeIds.ActorRole),
+                    "외부 방문객 응대 적용: incident=" + state.incidentId
+                    + "; visitor=" + visitorId
+                    + "; factor=" + factorId);
+            if (!committed.DurablyCommitted)
+            {
+                RestoreReceptionState(
+                    state,
+                    incidentBefore,
+                    visitor.Stats,
+                    moodBefore);
+                return false;
+            }
+        }
+        catch
+        {
+            outcomeTransaction.Cancel(prepared);
+            if (incidentBefore != null && moodBefore != null)
+            {
+                RestoreReceptionState(
+                    state,
+                    incidentBefore,
+                    visitor.Stats,
+                    moodBefore);
+            }
+            throw;
         }
 
-        EventBus.Publish(new ExteriorVisitorReceptionAppliedEvent(
-            state.incidentId,
-            visitorId,
-            zone.ReceptionReadiness));
+        try
+        {
+            EventBus.Publish(new ExteriorVisitorReceptionAppliedEvent(
+                state.incidentId,
+                visitorId,
+                zone.ReceptionReadiness));
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "exterior-reception-post-commit-observer:"
+                + exception.GetType().Name);
+        }
         return true;
+    }
+
+    private static void RestoreReceptionState(
+        ExteriorIncidentRuntimeState destination,
+        ExteriorIncidentRuntimeState snapshot,
+        CharacterStats stats,
+        CharacterMoodDeliveryTransactionSnapshot moodSnapshot)
+    {
+        destination.incidentId = snapshot.incidentId;
+        destination.kind = snapshot.kind;
+        destination.zoneId = snapshot.zoneId;
+        destination.text = snapshot.text;
+        destination.stage = snapshot.stage;
+        destination.outcome = snapshot.outcome;
+        destination.durationSeconds = snapshot.durationSeconds;
+        destination.remainingSeconds = snapshot.remainingSeconds;
+        destination.progress = snapshot.progress;
+        destination.receptionApplied = snapshot.receptionApplied;
+        destination.actorIds = new List<string>(
+            snapshot.actorIds ?? new List<string>());
+        destination.wildlifeIds = new List<string>(
+            snapshot.wildlifeIds ?? new List<string>());
+        destination.itemStackIds = new List<string>(
+            snapshot.itemStackIds ?? new List<string>());
+        destination.stolenItemId = snapshot.stolenItemId;
+        destination.stolenItemQuantity = snapshot.stolenItemQuantity;
+        destination.offerPrice = snapshot.offerPrice;
+        stats.RestoreMoodDeliveryTransactionState(moodSnapshot);
     }
 }
 
@@ -527,9 +637,11 @@ public sealed class MerchantCartExteriorIncidentHandler :
         IWorldItemStackRuntime items,
         IPhysicalItemExactSourcePublicationService exactSources,
         IGameEventBus eventBus,
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransaction,
         IGameMoneyAccount money,
         IDungeonDebugRuleQuery debugRules)
-        : base(actors, eventBus)
+        : base(actors, eventBus, calendar, outcomeTransaction)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.exactSources = exactSources
@@ -792,8 +904,10 @@ public sealed class InformantExteriorIncidentHandler : ExteriorIncidentHandlerBa
     public InformantExteriorIncidentHandler(
         IExteriorIncidentActorService actors,
         IOffenseRegionRuntime regions,
-        IGameEventBus eventBus)
-        : base(actors, eventBus)
+        IGameEventBus eventBus,
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransaction)
+        : base(actors, eventBus, calendar, outcomeTransaction)
     {
         this.regions = regions ?? throw new ArgumentNullException(nameof(regions));
     }
@@ -870,8 +984,10 @@ public sealed class ThiefExteriorIncidentHandler : ExteriorIncidentHandlerBase
     public ThiefExteriorIncidentHandler(
         IExteriorIncidentActorService actors,
         IWorldItemStackRuntime items,
-        IGameEventBus eventBus)
-        : base(actors, eventBus)
+        IGameEventBus eventBus,
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransaction)
+        : base(actors, eventBus, calendar, outcomeTransaction)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
     }
@@ -949,8 +1065,10 @@ public sealed class InjuredReturneeExteriorIncidentHandler : ExteriorIncidentHan
 {
     public InjuredReturneeExteriorIncidentHandler(
         IExteriorIncidentActorService actors,
-        IGameEventBus eventBus)
-        : base(actors, eventBus)
+        IGameEventBus eventBus,
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransaction)
+        : base(actors, eventBus, calendar, outcomeTransaction)
     {
     }
 
@@ -988,8 +1106,10 @@ public sealed class PredatorApproachExteriorIncidentHandler :
     public PredatorApproachExteriorIncidentHandler(
         IExteriorIncidentActorService actors,
         IGameEventBus eventBus,
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransaction,
         IWildlifeRuntime wildlife)
-        : base(actors, eventBus)
+        : base(actors, eventBus, calendar, outcomeTransaction)
     {
         this.wildlife = wildlife ?? throw new ArgumentNullException(nameof(wildlife));
     }
@@ -1063,8 +1183,10 @@ public sealed class CargoDamageExteriorIncidentHandler :
         IExteriorIncidentActorService actors,
         IWorldItemStackRuntime items,
         IPhysicalItemTransformService physicalTransforms,
-        IGameEventBus eventBus)
-        : base(actors, eventBus)
+        IGameEventBus eventBus,
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransaction)
+        : base(actors, eventBus, calendar, outcomeTransaction)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.physicalTransforms = physicalTransforms

@@ -35,12 +35,13 @@ public static class Wim016IrrigationContractDebugScenarios
                 new ControlledResearch(),
                 fluid,
                 fluid,
+                fluid,
                 clock);
             var request = new CropIrrigationRequest(first, true, 0, 2, false);
 
             Require(runtime.Assess(request).Status == CropIrrigationStatus.WaterUnavailable,
                 "Empty finite source did not report water unavailable.");
-            Require(!runtime.TrySupply(request).Succeeded && fluid.Consumed == 0,
+            Require(!runtime.TryPrepareSupply(request, out _) && fluid.Consumed == 0,
                 "Empty source supplied water.");
             fluid.Water = 3;
             for (int i = 0; i < 10; ++i)
@@ -54,10 +55,20 @@ public static class Wim016IrrigationContractDebugScenarios
             lines.Add("[PASS] finite shortage; readonly query; manual owner/capacity/no-demand/range rejection no debit");
 
             fluid.FailNextCommit = true;
-            Require(!runtime.TrySupply(request).Succeeded && fluid.Water == 3 && fluid.Consumed == 0,
+            Require(!runtime.TryPrepareSupply(request, out _)
+                && fluid.Water == 3 && fluid.Consumed == 0,
                 "Commit rejection changed finite source.");
             Require(runtime.Assess(request).CanSupply, "Failed commit advanced cooldown.");
-            var firstResult = runtime.TrySupply(request);
+
+            Require(runtime.TryPrepareSupply(request, out PreparedCropIrrigationSupply rolledBack),
+                "Eligible supply could not be prepared for rollback.");
+            Require(fluid.Water == 2 && fluid.Consumed == 1,
+                "Prepared supply did not stage exactly one finite-water debit.");
+            runtime.RollbackPreparedSupply(rolledBack);
+            Require(fluid.Water == 3 && fluid.Consumed == 0 && runtime.Assess(request).CanSupply,
+                "Prepared supply rollback did not restore water and leave cooldown untouched.");
+
+            CropIrrigationSupplyResult firstResult = PrepareAndCommit(request);
             Require(firstResult.Succeeded && firstResult.SuppliedWaterUnits == 1
                 && firstResult.ConsumedQuality == WorldWaterQuality.Clean
                 && firstResult.Assessment.IrrigatorId.Equals(a.PersistentInstanceId)
@@ -65,7 +76,8 @@ public static class Wim016IrrigationContractDebugScenarios
                 "First successful command did not debit exactly one from selected source.");
             Reject(request, CropIrrigationStatus.RateLimited);
             // A is cooling down, but B must remain usable for a different plot.
-            var secondResult = runtime.TrySupply(new CropIrrigationRequest(second, true, 0, 2, false));
+            CropIrrigationSupplyResult secondResult = PrepareAndCommit(
+                new CropIrrigationRequest(second, true, 0, 2, false));
             Require(secondResult.Succeeded && secondResult.SuppliedWaterUnits == 1
                 && secondResult.Assessment.IrrigatorId.Equals(b.PersistentInstanceId)
                 && fluid.Water == 1 && fluid.Consumed == 2,
@@ -73,7 +85,7 @@ public static class Wim016IrrigationContractDebugScenarios
             lines.Add("[PASS] rejected commit atomic; same-plot replay limited; fresh second supplier serves second plot");
 
             clock.Now = 1;
-            var third = runtime.TrySupply(request);
+            CropIrrigationSupplyResult third = PrepareAndCommit(request);
             Require(third.Succeeded && fluid.Water == 0 && fluid.Consumed == 3,
                 "One-second recovery did not consume remaining finite unit exactly.");
             clock.Now = 2;
@@ -91,11 +103,20 @@ public static class Wim016IrrigationContractDebugScenarios
                 float before = fluid.Water;
                 int count = fluid.Consumed;
                 var assessment = runtime.Assess(value);
-                var result = runtime.TrySupply(value);
-                Require(assessment.Status == status && !result.Succeeded
-                    && result.Assessment.Status == status
+                bool prepared = runtime.TryPrepareSupply(value, out PreparedCropIrrigationSupply result);
+                Require(assessment.Status == status && !prepared
+                    && (result == null || result.Result.Assessment.Status == status)
                     && fluid.Water == before && fluid.Consumed == count,
                     "Rejected operation changed source or wrong reason: " + status + "/" + assessment.Status);
+            }
+
+            CropIrrigationSupplyResult PrepareAndCommit(CropIrrigationRequest value)
+            {
+                Require(runtime.TryPrepareSupply(value, out PreparedCropIrrigationSupply prepared),
+                    "Eligible supply could not be prepared: " + runtime.Assess(value).Status);
+                CropIrrigationSupplyResult result = prepared.Result;
+                runtime.CommitPreparedSupply(prepared);
+                return result;
             }
 
             BuildableObject Create(string name, int id, int x, bool irrigation)
@@ -168,8 +189,11 @@ public static class Wim016IrrigationContractDebugScenarios
     }
     private sealed class ControlledFluid :
         IFluidInfrastructureQuery,
-        IFluidInfrastructureTransaction
+        IFluidInfrastructureTransaction,
+        IFluidInfrastructureMutationTransaction
     {
+        private readonly Dictionary<FluidNetworkAggregateState, MutationSnapshot> mutations =
+            new();
         private float water;
         private int version;
 
@@ -236,6 +260,39 @@ public static class Wim016IrrigationContractDebugScenarios
         }
         public bool TryAdd(BuildableObject producer, WorldWaterQuality quality, float amount, out float accepted) => throw new NotSupportedException();
         public bool TryConsumeManualContainer(BuildableObject consumer, string destination, float amount, out DomainFailure failure) => throw new NotSupportedException();
+
+        public FluidInfrastructureMutationToken CaptureMutation()
+        {
+            var marker = new FluidNetworkAggregateState { Version = version };
+            mutations.Add(marker, new MutationSnapshot(water, Consumed, version));
+            return new FluidInfrastructureMutationToken(marker, checked(version + 1));
+        }
+
+        public void RestoreMutation(in FluidInfrastructureMutationToken token)
+        {
+            Require(token.IsValid && token.ExpectedMutatedVersion == version,
+                "Fluid rollback token did not match the exact staged mutation.");
+            Require(mutations.TryGetValue(token.Before, out MutationSnapshot snapshot),
+                "Fluid rollback token was not issued by this fixture.");
+            water = snapshot.Water;
+            Consumed = snapshot.Consumed;
+            version = snapshot.Version;
+            mutations.Remove(token.Before);
+        }
+
+        private readonly struct MutationSnapshot
+        {
+            public MutationSnapshot(float water, int consumed, int version)
+            {
+                Water = water;
+                Consumed = consumed;
+                Version = version;
+            }
+
+            public float Water { get; }
+            public int Consumed { get; }
+            public int Version { get; }
+        }
     }
 }
 #endif

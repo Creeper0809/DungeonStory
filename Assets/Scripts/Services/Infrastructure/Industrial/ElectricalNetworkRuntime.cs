@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 using VContainer.Unity;
 
 internal sealed class ElectricalNodeState
@@ -75,6 +76,7 @@ internal sealed class ElectricalNetworkRuntime :
     private readonly IFacilityBufferDestinationReleaseService bufferRelease;
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly ISeasonalEventQuery seasonalEvents;
+    private readonly IInfrastructureCommandOutcomeTransaction commandOutcomes;
     private readonly Dictionary<string, float> nextFuelRequestAt =
         new Dictionary<string, float>(StringComparer.Ordinal);
     private readonly Dictionary<string, ElectricalNetworkSummaryState>
@@ -120,6 +122,40 @@ internal sealed class ElectricalNetworkRuntime :
         IFacilityBufferDestinationReleaseService bufferRelease,
         ISeasonalEventQuery seasonalEvents,
         IMilestoneGameplayModifierQuery milestoneModifiers = null)
+        : this(
+            topologyRuntime,
+            gridSystemProvider,
+            restoreWorldCandidates,
+            clock,
+            items,
+            physicalFuel,
+            automationPowerDemand,
+            aggregateRootStore,
+            bufferLifecycle,
+            bufferClaims,
+            bufferRelease,
+            seasonalEvents,
+            milestoneModifiers,
+            null)
+    {
+    }
+
+    [Inject]
+    public ElectricalNetworkRuntime(
+        IIndustrialInfrastructureTopologyRuntime topologyRuntime,
+        IGridSystemProvider gridSystemProvider,
+        IRestoreWorldCandidateQuery restoreWorldCandidates,
+        IGameClock clock,
+        IWorldItemStackRuntime items,
+        IPhysicalFacilityItemSinkGateway physicalFuel,
+        AutomationPowerDemandRegistry automationPowerDemand,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IFacilityBufferDestinationLifecycleCommand bufferLifecycle,
+        IFacilityBufferDestinationClaimQuery bufferClaims,
+        IFacilityBufferDestinationReleaseService bufferRelease,
+        ISeasonalEventQuery seasonalEvents,
+        IMilestoneGameplayModifierQuery milestoneModifiers,
+        IInfrastructureCommandOutcomeTransaction commandOutcomes)
     {
         this.topologyRuntime = topologyRuntime
             ?? throw new ArgumentNullException(nameof(topologyRuntime));
@@ -145,6 +181,7 @@ internal sealed class ElectricalNetworkRuntime :
             ?? throw new ArgumentNullException(nameof(seasonalEvents));
         this.milestoneModifiers = milestoneModifiers
             ?? NeutralMilestoneGameplayModifierQuery.Instance;
+        this.commandOutcomes = commandOutcomes;
         projectedRestoreRevision =
             this.aggregateRootStore.PublishedRestoreRevision;
     }
@@ -215,11 +252,35 @@ internal sealed class ElectricalNetworkRuntime :
     public InfrastructureCommandResult SetConnectionEnabled(BuildableObject building, bool enabled)
     {
         EnsureTopology();
-        if (!TryResolve(building, out _, out IndustrialNodeDescriptor node)
+        if (!TryResolve(building, out string nodeId, out IndustrialNodeDescriptor node)
             || !HasPowerConnection(node))
             return InfrastructureCommandResult.Failed(FailureCode.PowerConsumerUnavailable);
-        EnsureState(node).ConnectionEnabled = enabled;
-        EvaluateNetworks(0f);
+        ElectricalNodeState state = EnsureState(node);
+        if (state.ConnectionEnabled == enabled)
+            return InfrastructureCommandResult.Success();
+        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+                commandOutcomes,
+                InfrastructureCommandOutcomeKind.PowerConnectionChanged,
+                nodeId,
+                node.Building,
+                InfrastructureCommandOutcomeExecution.Bool(
+                    state.ConnectionEnabled),
+                InfrastructureCommandOutcomeExecution.Bool(enabled),
+                out IPreparedInfrastructureCommandOutcome prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        ElectricalNetworkAggregateState before = State.DeepClone();
+        state.ConnectionEnabled = enabled;
+        InfrastructureCommandOutcomeCommitResult commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (!commit.DurablyCommitted)
+        {
+            RestoreRejectedCommand(before);
+            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+        }
+        RefreshAfterCommittedCommand();
         return InfrastructureCommandResult.Success();
     }
 
@@ -237,9 +298,32 @@ internal sealed class ElectricalNetworkRuntime :
                 FailureCode.PowerConsumerUnavailable);
         }
 
-        EnsureState(node).Priority = priority;
+        ElectricalNodeState state = EnsureState(node);
+        if (state.Priority == priority)
+            return InfrastructureCommandResult.Success();
+        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+                commandOutcomes,
+                InfrastructureCommandOutcomeKind.PowerPriorityChanged,
+                nodeId,
+                node.Building,
+                state.Priority.ToString(),
+                priority.ToString(),
+                out IPreparedInfrastructureCommandOutcome prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        ElectricalNetworkAggregateState before = State.DeepClone();
+        state.Priority = priority;
         Touch();
-        EvaluateNetworks(0f);
+        InfrastructureCommandOutcomeCommitResult commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (!commit.DurablyCommitted)
+        {
+            RestoreRejectedCommand(before);
+            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+        }
+        RefreshAfterCommittedCommand();
         return InfrastructureCommandResult.Success();
     }
 
@@ -263,11 +347,71 @@ internal sealed class ElectricalNetworkRuntime :
                 state.Heat.ToString("0.###"));
         }
 
+        float nextFault = Mathf.Max(0f, state.Fault - 10f);
+        if (!state.BreakerTripped && Mathf.Approximately(state.Fault, nextFault))
+            return InfrastructureCommandResult.Success();
+        string beforeValue = "breaker="
+            + InfrastructureCommandOutcomeExecution.Bool(state.BreakerTripped)
+            + ";fault="
+            + InfrastructureCommandOutcomeExecution.Float(state.Fault);
+        string afterValue = "breaker=false;fault="
+            + InfrastructureCommandOutcomeExecution.Float(nextFault);
+        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+                commandOutcomes,
+                InfrastructureCommandOutcomeKind.PowerBreakerReset,
+                nodeId,
+                node.Building,
+                beforeValue,
+                afterValue,
+                out IPreparedInfrastructureCommandOutcome prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        ElectricalNetworkAggregateState before = State.DeepClone();
         state.BreakerTripped = false;
-        state.Fault = Mathf.Max(0f, state.Fault - 10f);
+        state.Fault = nextFault;
         Touch();
-        EvaluateNetworks(0f);
+        InfrastructureCommandOutcomeCommitResult commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (!commit.DurablyCommitted)
+        {
+            RestoreRejectedCommand(before);
+            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+        }
+        RefreshAfterCommittedCommand();
         return InfrastructureCommandResult.Success();
+    }
+
+    private void RestoreRejectedCommand(ElectricalNetworkAggregateState before)
+    {
+        aggregateRootStore.Replace(before);
+        try
+        {
+            ResetProjectionAfterRestore();
+            EnsureTopology();
+            EvaluateNetworks(0f);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                "Power projection refresh failed after infrastructure command rollback: "
+                + exception);
+        }
+    }
+
+    private void RefreshAfterCommittedCommand()
+    {
+        try
+        {
+            EvaluateNetworks(0f);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                "Power projection refresh failed after committed infrastructure command: "
+                + exception);
+        }
     }
 
     public DungeonPowerInfrastructureSaveData Capture()

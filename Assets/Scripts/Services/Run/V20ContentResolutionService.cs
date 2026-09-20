@@ -962,6 +962,40 @@ public sealed class V20ContentResolutionService :
     private readonly IEconomyProjectInputOwnerPort factionContractInputOwners;
     private readonly RunAdministrativeSealDurableEquipmentRuntime
         administrativeSealEquipment;
+    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
+
+    private sealed class CharacterEffectOwnerSnapshot
+    {
+        internal CharacterEffectOwnerSnapshot(CharacterActor actor)
+        {
+            Actor = actor ?? throw new ArgumentNullException(nameof(actor));
+            Stats = actor.Stats?.CaptureMoodDeliveryTransactionState();
+            Progression = actor.Progression?.CapturePersistentState();
+            Social = actor.SocialMemory?.CaptureSnapshot();
+        }
+
+        internal CharacterActor Actor { get; }
+        internal CharacterMoodDeliveryTransactionSnapshot Stats { get; }
+        internal CharacterProgressionSnapshot Progression { get; }
+        internal CharacterSocialMemorySnapshot Social { get; }
+    }
+
+    private sealed class EffectOwnerSnapshot
+    {
+        internal SeasonalEventWorldSaveData Seasonal;
+        internal SocietyEventWorldSaveData Society;
+        internal FactionCampaignWorldSaveData Factions;
+        internal RunMilestoneWorldSaveData Milestones;
+        internal DungeonPhysicalItemSaveData Items;
+        internal int MoneyBalance;
+        internal CharacterCareerWorldSaveData Careers;
+        internal DungeonCharacterBodyHealthSaveData BodyHealth;
+        internal CharacterPsychosocialWorldSaveData Psychosocial;
+        internal PopulationHealthWorldSaveData PopulationHealth;
+        internal CharacterNarrativeWorldSaveData Narrative;
+        internal CharacterEffectOwnerSnapshot[] Characters =
+            Array.Empty<CharacterEffectOwnerSnapshot>();
+    }
 
     public V20ContentResolutionService(
         V20CampaignRuntime live,
@@ -991,7 +1025,8 @@ public sealed class V20ContentResolutionService :
         IPhysicalItemBatchDispositionService physicalDispositions,
         IPhysicalFacilityItemBatchTransferGateway factionContractTransfers,
         IEconomyProjectInputOwnerPort factionContractInputOwners,
-        RunAdministrativeSealDurableEquipmentRuntime administrativeSealEquipment)
+        RunAdministrativeSealDurableEquipmentRuntime administrativeSealEquipment,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
     {
         this.live = live ?? throw new ArgumentNullException(nameof(live));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -1034,6 +1069,182 @@ public sealed class V20ContentResolutionService :
             ?? throw new ArgumentNullException(nameof(factionContractInputOwners));
         this.administrativeSealEquipment = administrativeSealEquipment
             ?? throw new ArgumentNullException(nameof(administrativeSealEquipment));
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+    }
+
+    internal V20ContentResolutionService(
+        V20CampaignRuntime live,
+        V20StoryContentCatalog catalog,
+        IContentRequirementEvaluator requirements,
+        ICharacterWorldQuery characters,
+        IStockQuery stock,
+        IAtomicItemConsumptionService atomicItems,
+        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        ICharacterNarrativeCommand narrative = null)
+    {
+        this.live = live ?? throw new ArgumentNullException(nameof(live));
+        this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        narrativeCatalog = null;
+        this.requirements = requirements
+            ?? throw new ArgumentNullException(nameof(requirements));
+        this.characters = characters
+            ?? throw new ArgumentNullException(nameof(characters));
+        careers = null;
+        careerQuery = null;
+        calendar = null;
+        milestoneWorld = null;
+        narrativeQuery = null;
+        proficiencyQuery = null;
+        this.narrative = narrative;
+        grief = null;
+        bodyHealth = null;
+        populationHealth = null;
+        diseases = null;
+        this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
+        reservations = null;
+        this.atomicItems = atomicItems
+            ?? throw new ArgumentNullException(nameof(atomicItems));
+        items = null;
+        exactSources = null;
+        dropZones = null;
+        money = null;
+        facilities = null;
+        physicalDispositions = null;
+        factionContractTransfers = null;
+        factionContractInputOwners = null;
+        administrativeSealEquipment = null;
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+    }
+
+    private EffectOwnerSnapshot CaptureEffectOwners(
+        IReadOnlyList<V20ResolvedEventResult> resolutions)
+    {
+        V20ResolvedEventResult[] concrete = (resolutions
+                ?? Array.Empty<V20ResolvedEventResult>())
+            .ToArray();
+        HashSet<string> participantIds = concrete
+            .SelectMany(value => value.ParticipantCharacterIds)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .ToHashSet(StringComparer.Ordinal);
+        CharacterEffectOwnerSnapshot[] actorSnapshots = characters.Characters
+            .Where(actor => actor?.Identity != null
+                && participantIds.Contains(actor.Identity.PersistentId))
+            .GroupBy(actor => actor.Identity.PersistentId, StringComparer.Ordinal)
+            .Select(group => new CharacterEffectOwnerSnapshot(group.First()))
+            .ToArray();
+
+        bool HasEffect(V20ContentEffectKind kind) => concrete.Any(value =>
+            value.Effects.Any(effect => effect?.kind == kind));
+        ICharacterBodyHealthPersistence bodyPersistence =
+            bodyHealth as ICharacterBodyHealthPersistence;
+        IPsychosocialPersistence psychosocialPersistence =
+            grief as IPsychosocialPersistence;
+        IPopulationHealthPersistence populationPersistence =
+            populationHealth as IPopulationHealthPersistence;
+        ICharacterNarrativePersistence narrativePersistence =
+            narrative as ICharacterNarrativePersistence;
+        bool requiresNarrative = HasEffect(V20ContentEffectKind.AmbitionProgress)
+            || concrete.Any(value =>
+                value.DefinitionId.StartsWith(
+                    "life-event:",
+                    StringComparison.Ordinal)
+                || value.DefinitionId.StartsWith(
+                    "practice:",
+                    StringComparison.Ordinal));
+        if (HasEffect(V20ContentEffectKind.Health) && bodyPersistence == null
+            || HasEffect(V20ContentEffectKind.Trauma)
+                && psychosocialPersistence == null
+            || HasEffect(V20ContentEffectKind.DiseaseExposure)
+                && populationPersistence == null
+            || requiresNarrative && narrativePersistence == null)
+        {
+            throw new InvalidOperationException(
+                "V20 content effects require rollback-capable persistence owners.");
+        }
+
+        return new EffectOwnerSnapshot
+        {
+            Seasonal = live.CaptureSeasonal(),
+            Society = live.CaptureSociety(),
+            Factions = live.CaptureFactions(),
+            Milestones = live.CaptureMilestones(),
+            Items = items?.Capture(),
+            MoneyBalance = money?.Balance ?? 0,
+            Careers = careers?.Capture(),
+            BodyHealth = bodyPersistence?.Capture(),
+            Psychosocial = psychosocialPersistence?.Capture(),
+            PopulationHealth = populationPersistence?.Capture(),
+            Narrative = narrativePersistence?.Capture(),
+            Characters = actorSnapshots
+        };
+    }
+
+    private void RestoreEffectOwners(
+        EffectOwnerSnapshot snapshot,
+        string operationId)
+    {
+        snapshot = snapshot
+            ?? throw new ArgumentNullException(nameof(snapshot));
+        if (snapshot.Items != null)
+            items.Restore(snapshot.Items);
+        if (money != null)
+        {
+            money.SetBalance(
+                snapshot.MoneyBalance,
+                new EconomyTransactionContext(
+                    EconomyTransactionKind.LegacyExpense,
+                    "content-rollback:" + (operationId?.Trim() ?? string.Empty),
+                    description: "v20-content-resolution-rollback"));
+        }
+        foreach (CharacterEffectOwnerSnapshot character in
+                 snapshot.Characters)
+        {
+            if (character.Stats != null)
+                character.Actor.Stats?.RestoreMoodDeliveryTransactionState(
+                    character.Stats);
+            if (character.Progression != null)
+                character.Actor.Progression?.RestorePersistentState(
+                    character.Progression);
+            if (character.Social != null)
+                character.Actor.SocialMemory?.RestoreSnapshot(character.Social);
+        }
+        if (snapshot.BodyHealth != null
+            && bodyHealth is ICharacterBodyHealthPersistence bodyPersistence)
+        {
+            bodyPersistence.PublishRestore(
+                bodyPersistence.PrepareRestore(snapshot.BodyHealth));
+        }
+        if (snapshot.Psychosocial != null
+            && grief is IPsychosocialPersistence psychosocialPersistence)
+        {
+            psychosocialPersistence.PublishRestore(
+                psychosocialPersistence.PrepareRestore(
+                    snapshot.Psychosocial));
+        }
+        if (snapshot.PopulationHealth != null
+            && populationHealth is IPopulationHealthPersistence
+                populationPersistence)
+        {
+            populationPersistence.PublishRestore(
+                populationPersistence.PrepareRestore(
+                    snapshot.PopulationHealth));
+        }
+        if (snapshot.Narrative != null
+            && narrative is ICharacterNarrativePersistence
+                narrativePersistence)
+        {
+            narrativePersistence.PublishRestore(
+                narrativePersistence.PrepareRestore(snapshot.Narrative));
+        }
+        if (snapshot.Careers != null && careers != null)
+            careers.PublishRestore(careers.PrepareRestore(snapshot.Careers));
+        live.PublishContentResolution(
+            live.PrepareSeasonal(snapshot.Seasonal),
+            live.PrepareSociety(snapshot.Society),
+            live.PrepareFactions(snapshot.Factions),
+            live.PrepareMilestones(snapshot.Milestones));
     }
 
     public bool CanScheduleRetirement(CharacterId characterId)
@@ -1175,11 +1386,58 @@ public sealed class V20ContentResolutionService :
                 award,
                 absoluteDay,
                 ResolveGeneration(absoluteDay));
-            stateChanged = CommitObservedPendingLifeEvent(
-                receipt.SourceOperationId,
-                receipt.AbsoluteDay,
-                candidate => candidate.RecordObservedLastLessonLifeEvent(
-                    receipt));
+            var observedOutcomes = new ObservedLifeEventOutcomeCoordinator(
+                outcomeTransactions);
+            if (!observedOutcomes.TryReserveLastLesson(
+                    receipt,
+                    out PreparedMigratedProducerOutcome prepared,
+                    out string reservationFailure))
+            {
+                failureReason =
+                    "observed-last-lesson-outcome-reservation-failed:"
+                    + reservationFailure;
+                return false;
+            }
+
+            SocietyEventWorldSaveData societyBefore = live.CaptureSociety();
+            bool mutationAttempted = false;
+            try
+            {
+                mutationAttempted = true;
+                stateChanged = CommitObservedPendingLifeEvent(
+                    receipt.SourceOperationId,
+                    receipt.AbsoluteDay,
+                    candidate => candidate.RecordObservedLastLessonLifeEvent(
+                        receipt));
+                if (!stateChanged)
+                {
+                    outcomeTransactions.Cancel(prepared);
+                    return true;
+                }
+
+                MigratedProducerOutcomeCommitResult committed =
+                    observedOutcomes.CommitLastLesson(
+                        prepared,
+                        receipt);
+                if (!committed.DurablyCommitted)
+                {
+                    RestoreObservedSociety(societyBefore);
+                    mutationAttempted = false;
+                    stateChanged = false;
+                    failureReason =
+                        "observed-last-lesson-outcome-commit-rejected:"
+                        + committed.DetailCode;
+                    return false;
+                }
+                mutationAttempted = false;
+            }
+            catch
+            {
+                outcomeTransactions.Cancel(prepared);
+                if (mutationAttempted)
+                    RestoreObservedSociety(societyBefore);
+                throw;
+            }
             return true;
         }
         catch (Exception exception) when (exception is ArgumentException
@@ -1252,11 +1510,111 @@ public sealed class V20ContentResolutionService :
                 source,
                 absoluteDay,
                 ResolveGeneration(absoluteDay));
-            stateChanged = CommitObservedPendingLifeEvent(
-                receipt.SourceOperationId,
-                receipt.AbsoluteDay,
-                candidate => candidate.RecordObservedQuietPromotionLifeEvent(
-                    receipt));
+            LifeEventDefinitionSO definition = catalog.LifeEvents.Single(
+                value => string.Equals(
+                    value.StableId,
+                    "life-event:quiet-promotion",
+                    StringComparison.Ordinal));
+            if (!definition.automatic
+                || definition.automaticEffects == null
+                || definition.automaticEffects.Count == 0
+                || definition.automaticEffects.Any(value => value == null
+                    || !value.IsValid
+                    || value.kind != V20ContentEffectKind.Mood))
+            {
+                throw new InvalidOperationException(
+                    "Quiet-promotion transactional effects must remain mood-only.");
+            }
+
+            SocietyEventWorldSaveData societyBefore = live.CaptureSociety();
+            CharacterActor owner = characters.Characters.SingleOrDefault(
+                value => value != null
+                    && value.Identity != null
+                    && string.Equals(
+                        value.Identity.PersistentId,
+                        receipt.CharacterId.Value,
+                        StringComparison.Ordinal));
+            if (owner?.Stats == null)
+            {
+                failureReason =
+                    "observed-quiet-promotion-owner-unavailable";
+                return false;
+            }
+            CharacterMoodDeliveryTransactionSnapshot moodBefore =
+                owner.Stats.CaptureMoodDeliveryTransactionState();
+            ICharacterNarrativePersistence narrativePersistence =
+                narrative as ICharacterNarrativePersistence;
+            if (narrativePersistence == null)
+            {
+                failureReason =
+                    "observed-quiet-promotion-narrative-owner-unavailable";
+                return false;
+            }
+            CharacterNarrativeWorldSaveData narrativeBefore =
+                narrativePersistence.Capture();
+            var observedOutcomes = new ObservedLifeEventOutcomeCoordinator(
+                outcomeTransactions);
+            if (!observedOutcomes.TryReserveQuietPromotion(
+                    receipt,
+                    out PreparedMigratedProducerOutcome prepared,
+                    out string reservationFailure))
+            {
+                failureReason =
+                    "observed-quiet-promotion-outcome-reservation-failed:"
+                    + reservationFailure;
+                return false;
+            }
+
+            bool mutationAttempted = false;
+            try
+            {
+                mutationAttempted = true;
+                stateChanged = CommitObservedPendingLifeEvent(
+                    receipt.SourceOperationId,
+                    receipt.AbsoluteDay,
+                    candidate => candidate
+                        .RecordObservedQuietPromotionLifeEvent(receipt));
+                if (!stateChanged)
+                {
+                    outcomeTransactions.Cancel(prepared);
+                    return true;
+                }
+
+                MigratedProducerOutcomeCommitResult committed =
+                    observedOutcomes.CommitQuietPromotion(
+                        prepared,
+                        receipt);
+                if (!committed.DurablyCommitted)
+                {
+                    RestoreQuietPromotionOwner(
+                        societyBefore,
+                        owner,
+                        moodBefore,
+                        narrativePersistence,
+                        narrativeBefore);
+                    mutationAttempted = false;
+                    stateChanged = false;
+                    failureReason =
+                        "observed-quiet-promotion-outcome-commit-rejected:"
+                        + committed.DetailCode;
+                    return false;
+                }
+                mutationAttempted = false;
+            }
+            catch
+            {
+                outcomeTransactions.Cancel(prepared);
+                if (mutationAttempted)
+                {
+                    RestoreQuietPromotionOwner(
+                        societyBefore,
+                        owner,
+                        moodBefore,
+                        narrativePersistence,
+                        narrativeBefore);
+                }
+                throw;
+            }
             return true;
         }
         catch (Exception exception) when (exception is ArgumentException
@@ -1287,6 +1645,66 @@ public sealed class V20ContentResolutionService :
                 return new[] { result };
             });
         return stateChanged;
+    }
+
+    private static MigratedProducerOutcomeSubject CreateLastLessonSubject(
+        in ObservedLastLessonLifeEventReceipt receipt) => new(
+        MigratedProducerOutcomeIds.CharacterKind,
+        receipt.MentorCharacterId.Value,
+        receipt.MentorCharacterId.Value,
+        MigratedProducerOutcomeIds.ActorRole);
+
+    private static string BuildLastLessonSummary(
+        in ObservedLastLessonLifeEventReceipt receipt) =>
+        "마지막 가르침 목격: mentor=" + receipt.MentorCharacterId.Value
+        + "; student=" + receipt.StudentCharacterId.Value
+        + "; academy=" + receipt.AcademyBuildingId.Value
+        + "; proficiency=" + receipt.ProficiencyId.Value
+        + "; equipment=" + receipt.ProtectiveEquipmentInstanceId
+        + "; award=" + receipt.AwardLedgerStackId
+        + "; revision=" + receipt.AwardBeforeContentRevision
+        + "->" + receipt.AwardAfterContentRevision
+        + "; day=" + receipt.AbsoluteDay
+        + "; generation=" + receipt.Generation;
+
+    private static MigratedProducerOutcomeSubject CreateQuietPromotionSubject(
+        in ObservedQuietPromotionLifeEventReceipt receipt) => new(
+        MigratedProducerOutcomeIds.CharacterKind,
+        receipt.CharacterId.Value,
+        receipt.CharacterId.Value,
+        MigratedProducerOutcomeIds.ActorRole);
+
+    private static string BuildQuietPromotionSummary(
+        in ObservedQuietPromotionLifeEventReceipt receipt) =>
+        "조용한 승진 목격: character=" + receipt.CharacterId.Value
+        + "; proficiency=" + receipt.ProficiencyId.Value
+        + "; rank=" + receipt.BeforeRank + "->" + receipt.AfterRank
+        + "; current=" + receipt.BeforeCurrentMilliExperience
+        + "->" + receipt.AfterCurrentMilliExperience
+        + "; lifetime=" + receipt.BeforeLifetimeMilliExperience
+        + "->" + receipt.AfterLifetimeMilliExperience
+        + "; hour=" + receipt.AbsoluteHour
+        + "; day=" + receipt.AbsoluteDay
+        + "; generation=" + receipt.Generation;
+
+    private void RestoreObservedSociety(SocietyEventWorldSaveData snapshot) =>
+        live.PublishSociety(live.PrepareSociety(
+            snapshot ?? throw new ArgumentNullException(nameof(snapshot))));
+
+    private void RestoreQuietPromotionOwner(
+        SocietyEventWorldSaveData societyBefore,
+        CharacterActor owner,
+        CharacterMoodDeliveryTransactionSnapshot moodBefore,
+        ICharacterNarrativePersistence narrativePersistence,
+        CharacterNarrativeWorldSaveData narrativeBefore)
+    {
+        RestoreObservedSociety(societyBefore);
+        owner.Stats.RestoreMoodDeliveryTransactionState(
+            moodBefore ?? throw new ArgumentNullException(nameof(moodBefore)));
+        narrativePersistence.PublishRestore(
+            narrativePersistence.PrepareRestore(
+                narrativeBefore
+                ?? throw new ArgumentNullException(nameof(narrativeBefore))));
     }
 
     private int ResolveGeneration(int absoluteDay)
@@ -1340,18 +1758,34 @@ public sealed class V20ContentResolutionService :
             live.PrepareFactions(candidate.CaptureFactions());
         RunMilestoneAggregateState milestones =
             live.PrepareMilestones(candidate.CaptureMilestones());
-        if (!TryCommitEffects(
-                request,
-                resolutions,
-                plan,
-                out DomainFailure effectFailure))
-            throw new InvalidOperationException(
-                $"Observed life-event effect commit failed: {effectFailure.Code}.");
-        live.PublishContentResolution(
-            seasonal,
-            society,
-            factions,
-            milestones);
+        EffectOwnerSnapshot ownersBefore = CaptureEffectOwners(resolutions);
+        try
+        {
+            if (!TryCommitEffects(
+                    request,
+                    resolutions,
+                    plan,
+                    out DomainFailure effectFailure))
+            {
+                throw new InvalidOperationException(
+                    $"Observed life-event effect commit failed: {effectFailure.Code}.");
+            }
+            live.PublishContentResolution(
+                seasonal,
+                society,
+                factions,
+                milestones);
+            CommitResolvedEventOutcomes(
+                operationId,
+                absoluteDay,
+                resolutions);
+        }
+        catch
+        {
+            RestoreEffectOwners(ownersBefore, operationId);
+            plan.Release(reservations);
+            throw;
+        }
         return resolutions;
     }
 
@@ -1505,88 +1939,121 @@ public sealed class V20ContentResolutionService :
             throw;
         }
 
-        DomainFailure effectFailure = DomainFailure.None;
-        bool effectsCommitted;
-        if (administrationOffice != null)
-        {
-            effectsCommitted = administrativeSealEquipment.TryCommitResolution(
-                administrationOffice.RequirePersistentInstanceId(),
-                administrationOffice.centerPos,
-                () => TryCommitEffects(
-                    request,
-                    resolved,
-                    plan,
-                    out effectFailure),
-                out _);
-        }
-        else
-        {
-            effectsCommitted = TryCommitEffects(
-                request,
-                resolved,
-                plan,
-                out effectFailure);
-        }
-        if (!effectsCommitted)
-        {
-            CompensateAcceptedMaterialOwnerOrThrow(
-                acceptedMaterialOwnerEnsured,
-                acceptedMaterialDestinationId,
-                "effect-commit-failed");
-            failure = effectFailure.IsFailure
-                ? effectFailure
-                : new DomainFailure(
-                    FailureCode.ServiceFeatureMissing,
-                    DurableToolItemRules.AdministrativeSeal);
-            plan.Release(reservations);
-            return false;
-        }
-
+        EffectOwnerSnapshot ownersBefore;
         try
         {
-            if (retirementPlan.IsRequired)
-            {
-                CharacterCareerAggregate latestCareer = careers.PrepareRestore(
-                    careers.Capture());
-                string retirementFailure =
-                    "character is no longer an eligible living elder";
-                if (!IsEligibleLivingElder(retirementPlan.CharacterId)
-                    || !latestCareer.TryScheduleRetirement(
-                        retirementPlan.CharacterId,
-                        retirementPlan.EventId,
-                        retirementPlan.ChoiceId,
-                        retirementPlan.DecisionAbsoluteDay,
-                        retirementPlan.DueAbsoluteDay,
-                        out retirementFailure))
-                {
-                    throw new InvalidOperationException(
-                        "Retirement eligibility changed after external effects; "
-                        + "latest career state was preserved. "
-                        + retirementFailure);
-                }
-                live.PublishContentResolution(
-                    seasonal,
-                    society,
-                    factions,
-                    milestones,
-                    latestCareer);
-            }
-            else
-            {
-                live.PublishContentResolution(
-                    seasonal,
-                    society,
-                    factions,
-                    milestones);
-            }
+            ownersBefore = CaptureEffectOwners(resolved);
         }
         catch
         {
             CompensateAcceptedMaterialOwnerOrThrow(
                 acceptedMaterialOwnerEnsured,
                 acceptedMaterialDestinationId,
-                "candidate-publish-failed");
+                "effect-owner-capture-failed");
+            plan.Release(reservations);
             throw;
+        }
+
+        DomainFailure effectFailure = DomainFailure.None;
+        Exception transactionFailure = null;
+        bool CommitResolution()
+        {
+            try
+            {
+                if (!TryCommitEffects(
+                        request,
+                        resolved,
+                        plan,
+                        out effectFailure))
+                {
+                    return false;
+                }
+
+                if (retirementPlan.IsRequired)
+                {
+                    CharacterCareerAggregate latestCareer =
+                        careers.PrepareRestore(careers.Capture());
+                    string retirementFailure =
+                        "character is no longer an eligible living elder";
+                    if (!IsEligibleLivingElder(retirementPlan.CharacterId)
+                        || !latestCareer.TryScheduleRetirement(
+                            retirementPlan.CharacterId,
+                            retirementPlan.EventId,
+                            retirementPlan.ChoiceId,
+                            retirementPlan.DecisionAbsoluteDay,
+                            retirementPlan.DueAbsoluteDay,
+                            out retirementFailure))
+                    {
+                        throw new InvalidOperationException(
+                            "Retirement eligibility changed after external effects; "
+                            + "latest career state was preserved. "
+                            + retirementFailure);
+                    }
+                    live.PublishContentResolution(
+                        seasonal,
+                        society,
+                        factions,
+                        milestones,
+                        latestCareer);
+                }
+                else
+                {
+                    live.PublishContentResolution(
+                        seasonal,
+                        society,
+                        factions,
+                        milestones);
+                }
+                CommitResolvedEventOutcomes(
+                    request.ActionId,
+                    request.AbsoluteDay,
+                    resolved);
+                return true;
+            }
+            catch (Exception exception)
+            {
+                transactionFailure = exception;
+                return false;
+            }
+        }
+
+        bool transactionCommitted;
+        try
+        {
+            transactionCommitted = administrationOffice != null
+                ? administrativeSealEquipment.TryCommitResolution(
+                    administrationOffice.RequirePersistentInstanceId(),
+                    administrationOffice.centerPos,
+                    CommitResolution,
+                    out _)
+                : CommitResolution();
+        }
+        catch (Exception exception)
+        {
+            transactionFailure ??= exception;
+            transactionCommitted = false;
+        }
+
+        if (!transactionCommitted)
+        {
+            RestoreEffectOwners(ownersBefore, request.ActionId);
+            CompensateAcceptedMaterialOwnerOrThrow(
+                acceptedMaterialOwnerEnsured,
+                acceptedMaterialDestinationId,
+                "content-transaction-failed");
+            plan.Release(reservations);
+            if (transactionFailure != null)
+            {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo
+                    .Capture(transactionFailure)
+                    .Throw();
+            }
+            failure = effectFailure.IsFailure
+                ? effectFailure
+                : new DomainFailure(
+                    FailureCode.ServiceFeatureMissing,
+                    DurableToolItemRules.AdministrativeSeal);
+            return false;
         }
         result = new ContentResolutionResult
         {
@@ -1602,6 +2069,97 @@ public sealed class V20ContentResolutionService :
                 Math.Max(1, request.AbsoluteDay),
                 request.Requirements);
         return true;
+    }
+
+    private void CommitResolvedEventOutcomes(
+        string operationId,
+        int absoluteDay,
+        IReadOnlyList<V20ResolvedEventResult> resolutions)
+    {
+        V20ResolvedEventResult[] concrete = (resolutions
+                ?? Array.Empty<V20ResolvedEventResult>())
+            .ToArray();
+        if (concrete.Length == 0)
+            return;
+
+        var prepared = new PreparedMigratedProducerOutcome[concrete.Length];
+        var subjects = new MigratedProducerOutcomeSubject[concrete.Length];
+        var summaries = new string[concrete.Length];
+        int reservedCount = 0;
+        try
+        {
+            for (int index = 0; index < concrete.Length; index++)
+            {
+                V20ResolvedEventResult resolution = concrete[index];
+                string childIdentity = (operationId?.Trim() ?? string.Empty)
+                    + ":resolution:" + index.ToString("D4");
+                if (!outcomeTransactions.TryReserveSingleSubject(
+                        MigratedProducerOutcomeKind.V20ResolvedEventResult,
+                        childIdentity,
+                        Math.Max(1, absoluteDay),
+                        GameplayOutcomeStatus.Succeeded,
+                        out prepared[index],
+                        out string reservationFailure))
+                {
+                    throw new InvalidOperationException(
+                        "V20 resolved-event outcome reservation failed: "
+                        + reservationFailure);
+                }
+                reservedCount++;
+
+                string characterId = resolution.ParticipantCharacterIds
+                    .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+                if (!string.IsNullOrWhiteSpace(characterId))
+                {
+                    subjects[index] = new MigratedProducerOutcomeSubject(
+                        MigratedProducerOutcomeIds.CharacterKind,
+                        characterId,
+                        characterId,
+                        MigratedProducerOutcomeIds.ActorRole);
+                }
+                else if (!string.IsNullOrWhiteSpace(resolution.ContextFactionId))
+                {
+                    subjects[index] = new MigratedProducerOutcomeSubject(
+                        MigratedProducerOutcomeIds.FactionKind,
+                        resolution.ContextFactionId,
+                        resolution.ContextFactionId,
+                        MigratedProducerOutcomeIds.FactionRole);
+                }
+                else
+                {
+                    subjects[index] = new MigratedProducerOutcomeSubject(
+                        MigratedProducerOutcomeIds.OperationKind,
+                        childIdentity,
+                        string.IsNullOrWhiteSpace(resolution.DisplayName)
+                            ? resolution.DefinitionId
+                            : resolution.DisplayName,
+                        MigratedProducerOutcomeIds.OperationRole);
+                }
+
+                summaries[index] =
+                    $"definition={resolution.DefinitionId}; resolution={resolution.ResolutionId}; instance={resolution.InstanceId}; occurrence={resolution.OccurrenceInstanceId}; faction={resolution.ContextFactionId}; participants={string.Join(",", resolution.ParticipantCharacterIds)}; effects={string.Join(",", resolution.Effects.Where(value => value != null).Select(value => value.kind.ToString()))}; narrative={resolution.TerminalOutcomeNarrative}";
+            }
+
+            var results = new MigratedProducerOutcomeCommitResult[
+                concrete.Length];
+            if (!outcomeTransactions.CommitSingleSubjectBatch(
+                    prepared,
+                    subjects,
+                    summaries,
+                    results,
+                    out string commitFailure))
+            {
+                throw new InvalidOperationException(
+                    "V20 resolved-event outcome batch commit failed: "
+                    + commitFailure);
+            }
+        }
+        catch
+        {
+            for (int index = 0; index < reservedCount; index++)
+                outcomeTransactions.Cancel(prepared[index]);
+            throw;
+        }
     }
 
     private static bool RequiresAdministrativeSeal(

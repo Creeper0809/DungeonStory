@@ -153,6 +153,21 @@ public static class ResearchArcaneIndexEquipmentDebugScenarios
             physical.CurrentDurability,
             beforeDurability - ApprovedWork * 0.01d,
             "Arcane-index wear was not exactly approvedWU * 0.01.");
+        Require(
+            service.LastEquipmentContext != null
+            && string.Equals(
+                service.LastEquipmentContext.Before.StackId,
+                "stack:qa-research-arcane-index",
+                StringComparison.Ordinal)
+            && string.Equals(
+                service.LastEquipmentContext.After.StackId,
+                "stack:qa-research-arcane-index",
+                StringComparison.Ordinal)
+            && Math.Abs(ReadDurability(service.LastEquipmentContext.Before)
+                - beforeDurability) <= 0.000001d
+            && Math.Abs(ReadDurability(service.LastEquipmentContext.After)
+                - physical.CurrentDurability) <= 0.000001d,
+            "Boosted research did not receive the exact durable-equipment context.");
 
         // Wear projection rejection must not invoke the research effect or mutate
         // the durable component.
@@ -324,6 +339,7 @@ public static class ResearchArcaneIndexEquipmentDebugScenarios
     {
         internal float TotalAppliedWu { get; private set; }
         internal bool RejectNext { get; set; }
+        internal DurableFacilityEquipmentUseContext LastEquipmentContext { get; private set; }
 
         public bool HasResearchWorkFor(BuildableObject facility) => facility != null;
 
@@ -338,8 +354,10 @@ public static class ResearchArcaneIndexEquipmentDebugScenarios
         public BlueprintResearchWorkResult ApplyApprovedResearchWork(
             CharacterActor researcher,
             BuildableObject researchFacility,
-            float approvedWorkUnits)
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null)
         {
+            LastEquipmentContext = equipment;
             if (RejectNext)
             {
                 RejectNext = false;
@@ -943,5 +961,16 @@ public static class ResearchArcaneIndexEquipmentDebugScenarios
             value.key,
             key,
             StringComparison.Ordinal)).decimalValue;
+
+    private static double ReadDurability(
+        DurableFacilityEquipmentUseSubject subject) => subject.Components
+        .Single(value => string.Equals(
+            value.ComponentTypeId,
+            ItemInstanceComponentIds.Durability,
+            StringComparison.Ordinal))
+        .Values.Single(value => string.Equals(
+            value.Key,
+            "current",
+            StringComparison.Ordinal)).DecimalValue;
 }
 #endif

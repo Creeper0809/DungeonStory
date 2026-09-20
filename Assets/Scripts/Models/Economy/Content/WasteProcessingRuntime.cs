@@ -435,12 +435,14 @@ public sealed class WasteProcessingRuntime :
         DungeonWasteProcessingSaveData saveData)
     {
         ValidateSaveData(saveData);
+        WastePolicyOutcomeCommitSaveData pendingPolicyOutcome =
+            NormalizePendingPolicyOutcome(saveData.pendingPolicyOutcome);
         WasteProcessingAggregateState restored = new()
         {
             Version = state.Version + 1,
             NextTickAt = clock.Time + rules.TickIntervalSeconds,
             NextOutcomeSequence = saveData.nextOutcomeSequence,
-            PendingPolicyOutcome = saveData.pendingPolicyOutcome?.Clone()
+            PendingPolicyOutcome = pendingPolicyOutcome?.Clone()
         };
         foreach (WastePolicyData policy in saveData.policies)
         {
@@ -546,17 +548,41 @@ public sealed class WasteProcessingRuntime :
 
     private void ValidateSaveData(DungeonWasteProcessingSaveData saveData)
     {
-        if (saveData == null
-            || saveData.version != DungeonWasteProcessingSaveData.CurrentVersion
-            || saveData.policies == null
-            || saveData.policies.Count != rules.Origins.Count
-            || saveData.nextOutcomeSequence <= 0L
-            || !IsValidPendingPolicyOutcome(
-                saveData.pendingPolicyOutcome,
+        if (saveData == null)
+        {
+            throw new InvalidOperationException(
+                "Waste-processing payload is missing.");
+        }
+        if (saveData.version != DungeonWasteProcessingSaveData.CurrentVersion)
+        {
+            throw new InvalidOperationException(
+                "Waste-processing payload version is unsupported: "
+                + $"actual={saveData.version}; "
+                + $"expected={DungeonWasteProcessingSaveData.CurrentVersion}.");
+        }
+        if (saveData.policies == null
+            || saveData.policies.Count != rules.Origins.Count)
+        {
+            throw new InvalidOperationException(
+                "Waste-processing payload has a missing or incomplete policy set: "
+                + $"actual={saveData.policies?.Count ?? -1}; "
+                + $"expected={rules.Origins.Count}.");
+        }
+        if (saveData.nextOutcomeSequence <= 0L)
+        {
+            throw new InvalidOperationException(
+                "Waste-processing next outcome sequence must be positive: "
+                + saveData.nextOutcomeSequence + ".");
+        }
+        WastePolicyOutcomeCommitSaveData pendingPolicyOutcome =
+            NormalizePendingPolicyOutcome(saveData.pendingPolicyOutcome);
+        if (!IsValidPendingPolicyOutcome(
+                pendingPolicyOutcome,
                 saveData.nextOutcomeSequence))
         {
             throw new InvalidOperationException(
-                "Waste-processing payload has an unsupported version or missing policy set.");
+                "Waste-processing pending policy outcome is invalid for next sequence "
+                + saveData.nextOutcomeSequence + ".");
         }
         WasteOriginKind[] expected = rules.Origins.OrderBy(origin => origin).ToArray();
         for (int index = 0; index < expected.Length; index++)
@@ -760,6 +786,46 @@ public sealed class WasteProcessingRuntime :
             && restoredAttachment.ResultKey.Equals(expected)
             && (phase != WastePolicyOutcomeCommitPhase.PublishedAcknowledged
                 || restoredAttachment.AcknowledgementProven);
+    }
+
+    private static WastePolicyOutcomeCommitSaveData
+        NormalizePendingPolicyOutcome(
+            WastePolicyOutcomeCommitSaveData pending)
+    {
+        if (pending == null)
+            return null;
+
+        // Unity's JsonUtility can inflate an explicitly serialized null nested
+        // reference into a field-default shell during a JSON round trip. Accept
+        // only that exact shell as the absence of an owner row; any populated
+        // phase or identity remains subject to the strict validation below.
+        bool emptyAttachment = pending.gameplayOutcome == null
+            || pending.gameplayOutcome.commitRevision == 0L
+                && pending.gameplayOutcome.localResultIndex == 0
+                && pending.gameplayOutcome.outcomeSequence == 0L
+                && pending.gameplayOutcome.replayState == 0
+                && string.IsNullOrEmpty(pending.gameplayOutcome.producerId)
+                && string.IsNullOrEmpty(pending.gameplayOutcome.operationId)
+                && string.IsNullOrEmpty(pending.gameplayOutcome.outcomeRunId)
+                && string.IsNullOrEmpty(
+                    pending.gameplayOutcome.canonicalPayloadHash);
+        bool empty = pending.phase == (int)WastePolicyOutcomeCommitPhase.None
+            && pending.ownerRevision == 0L
+            && pending.origin == WasteOriginKind.Unknown
+            && pending.beforeDisposition == default
+            && !pending.beforeEnabled
+            && pending.beforeMaximumFeedContamination == 0f
+            && pending.afterDisposition == default
+            && !pending.afterEnabled
+            && pending.afterMaximumFeedContamination == 0f
+            && pending.expectedCommitRevision == 0L
+            && pending.expectedLocalResultIndex == 0
+            && string.IsNullOrEmpty(pending.operationId)
+            && string.IsNullOrEmpty(pending.displayName)
+            && string.IsNullOrEmpty(pending.expectedProducerId)
+            && string.IsNullOrEmpty(pending.expectedOperationId)
+            && emptyAttachment;
+        return empty ? null : pending;
     }
 
     private static string FormatWasteOrigin(WasteOriginKind origin) => origin switch

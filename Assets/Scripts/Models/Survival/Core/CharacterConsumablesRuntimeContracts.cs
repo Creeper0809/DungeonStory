@@ -955,6 +955,7 @@ public sealed class CharacterMealPlan
     public long physicalCommitInputMassGrams;
     public bool committedPolicyViolation;
     public bool committedContaminated;
+    public bool primitiveSurvivalOutcomeRequired;
 }
 
 public enum CharacterSubstanceUsePlanPhase
@@ -1024,6 +1025,59 @@ public interface ICharacterConsumablesEventPort
 public interface ICharacterConsumablesWorkforcePort
 {
     void RequestOneHaulerToReplan(CharacterId requestingCharacterId);
+}
+
+public enum CharacterConsumablesOutcomeKind
+{
+    Meal,
+    Substance,
+    Detox
+}
+
+public interface ICharacterConsumablesOutcomeReservation
+{
+}
+
+public readonly struct CharacterConsumablesOutcomeCommitResult
+{
+    public CharacterConsumablesOutcomeCommitResult(
+        bool durablyCommitted,
+        string detailCode)
+    {
+        DurablyCommitted = durablyCommitted;
+        DetailCode = detailCode ?? string.Empty;
+    }
+
+    public bool DurablyCommitted { get; }
+    public string DetailCode { get; }
+}
+
+public interface ICharacterConsumablesOutcomeTransaction
+{
+    bool TryReserve(
+        CharacterConsumablesOutcomeKind kind,
+        string operationIdentity,
+        out ICharacterConsumablesOutcomeReservation reservation,
+        out string failureReason);
+    CharacterConsumablesOutcomeCommitResult Commit(
+        ICharacterConsumablesOutcomeReservation reservation,
+        CharacterId characterId,
+        string summary);
+    void Cancel(ICharacterConsumablesOutcomeReservation reservation);
+}
+
+public interface ICharacterConsumablesPrimitiveOutcomeTransaction
+{
+    bool TryReservePrimitiveSurvival(
+        CharacterId characterId,
+        out ICharacterConsumablesOutcomeReservation reservation,
+        out string failureReason);
+    CharacterConsumablesOutcomeCommitResult CommitMealAndPrimitiveSurvival(
+        ICharacterConsumablesOutcomeReservation mealReservation,
+        ICharacterConsumablesOutcomeReservation primitiveReservation,
+        CharacterId characterId,
+        string mealSummary,
+        string primitiveSummary);
 }
 
 public static class CharacterSubstanceEffectMultiplierAuthority

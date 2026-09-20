@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using DungeonStory.Factions;
 using DungeonStory.Foundation;
 using UnityEditor;
@@ -32,14 +33,23 @@ public static class CharacterProgressionDebugScenarios
         Run("formula presentation response validation",
             VerifyFormulaPresentationContract,
             errors);
+        Run("module-selection exact-count batch atomicity",
+            VerifyModuleSelectionBatchContract,
+            errors);
         Run("management passive reachable-effect legality",
             VerifyManagementPassiveReachability,
             errors);
         Run("empty-ledger skill generation fails closed",
             VerifyEmptyLedgerSkillPublicContextFallback,
             errors);
+        Run("unpublished composition defers empty-ledger generation",
+            VerifyUnpublishedCompositionDefersSkillGeneration,
+            errors);
         Run("acquired-trait experience score", VerifyAcquiredTraitExperienceScore, errors);
         Run("acquired-trait milestone lifecycle", VerifyAcquiredTraitMilestoneLifecycle, errors);
+        Run("acquired-trait outcome failure rolls back and retries",
+            VerifyAcquiredTraitOutcomeFailureRollback,
+            errors);
         Run("acquired-trait formula v2 compositional drawbacks",
             VerifyAcquiredTraitFormulaV2Composition,
             errors);
@@ -53,6 +63,12 @@ public static class CharacterProgressionDebugScenarios
             VerifyAcquiredTraitWholeRootSaveRoundTrip,
             errors);
         Run("memory-erasure seal atomicity", VerifyMemoryErasureSealAtomicity, errors);
+        Run("provider startup wait does not consume accepted timeout",
+            VerifyProviderStartupWaitDoesNotConsumeAcceptedTimeout,
+            errors);
+        Run("completion-owning provider controls accepted lifetime",
+            VerifyCompletionOwningProviderControlsAcceptedLifetime,
+            errors);
         Run("in-flight generation timeout awaits narrative retry", VerifyInFlightGenerationTimeout, errors);
         Run("provider timeout circuit preserves queued requests",
             VerifyProviderCircuitDrainsQueuedRequests,
@@ -85,6 +101,106 @@ public static class CharacterProgressionDebugScenarios
 
     public static bool RunGenerationTimeoutScenario() =>
         VerifyInFlightGenerationTimeout();
+
+    public static bool RunProviderStartupReadinessScenario() =>
+        VerifyProviderStartupWaitDoesNotConsumeAcceptedTimeout();
+
+    public static bool RunCompletionOwnerScenario() =>
+        VerifyCompletionOwningProviderControlsAcceptedLifetime();
+
+    public static void RunPromptSizeDiagnostics()
+    {
+        CharacterSkillSystemSettingsSO settings =
+            EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
+        using ActorFixture actor = new ActorFixture(
+            994,
+            "프롬프트 크기 검증자",
+            "human");
+        try
+        {
+            TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
+            CharacterSkillGenerationService service = new CharacterSkillGenerationService(
+                settingsProvider,
+                new MissingLlmRuntimeProvider(),
+                new MutableUiClock());
+            CharacterProgression progression = actor.Actor.Progression;
+            progression.ConstructCharacterProgression(
+                service,
+                settingsProvider,
+                gameEventBus: new GameEventBus(),
+                profileProjector: new CharacterProgressionProfileProjector(
+                    new ResourceGameContentCatalog(new UnityGameContentRootLoader()),
+                    new CharacterRuntimeProfileFactory(
+                        new ResourceGameContentCatalog(
+                            new UnityGameContentRootLoader()))));
+            progression.RecordNarrative(
+                CharacterNarrativeDomain.Survival,
+                "origin:prompt-size",
+                "character:prompt-size",
+                CharacterActivityOutcomes.Completed,
+                day: 0);
+            progression.RecordNarrative(
+                CharacterNarrativeDomain.Work,
+                "history:prompt-size",
+                "facility:prompt-size",
+                CharacterActivityOutcomes.Completed,
+                day: 0);
+
+            CharacterSkillDraft active = service.CreateDraft(
+                progression,
+                CharacterSkillKind.Active,
+                1);
+            CharacterSkillDraft passive = service.CreateDraft(
+                progression,
+                CharacterSkillKind.Passive,
+                1);
+            NarrativePublicContextMaterial publicMaterial =
+                CharacterSkillPromptBuilder.BuildPublicMaterial(progression);
+            string activePrompt = CharacterSkillPromptBuilder.BuildEnvelope(
+                progression,
+                active,
+                settings,
+                publicMaterial,
+                batchModuleSelection: true).Prompt;
+            string passivePrompt = CharacterSkillPromptBuilder.BuildEnvelope(
+                progression,
+                passive,
+                settings,
+                publicMaterial,
+                batchModuleSelection: true).Prompt;
+            string activeTransportPrompt =
+                BuildCharacterSkillTransportPromptForDiagnostics(activePrompt);
+            string passiveTransportPrompt =
+                BuildCharacterSkillTransportPromptForDiagnostics(passivePrompt);
+            Debug.Log(
+                "CHARACTER_SKILL_PROMPT_DIAGNOSTIC "
+                + $"activeChars={activePrompt.Length}; "
+                + $"activeTransportChars={activeTransportPrompt.Length}; "
+                + $"activePacketChars={CharacterSkillPromptBuilder.BuildModuleSelectionBatchPacket(active, settings).Length}; "
+                + $"activeOffers={active.moduleSelectionOffers[0].positiveModuleIds.Count}; "
+                + $"passiveChars={passivePrompt.Length}; "
+                + $"passiveTransportChars={passiveTransportPrompt.Length}; "
+                + $"passivePacketChars={CharacterSkillPromptBuilder.BuildModuleSelectionBatchPacket(passive, settings).Length}; "
+                + $"passiveOffers={passive.moduleSelectionOffers[0].positiveModuleIds.Count}");
+            Debug.Log(
+                "CHARACTER_SKILL_ACTIVE_TRANSPORT_PROMPT_BASE64="
+                + Convert.ToBase64String(Encoding.UTF8.GetBytes(activeTransportPrompt)));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(settings);
+        }
+    }
+
+    private static string BuildCharacterSkillTransportPromptForDiagnostics(string prompt)
+    {
+        System.Reflection.MethodInfo method = typeof(NarrativeRequestContext).GetMethod(
+            "ToModelPromptWithoutCanonicalPublicPayload",
+            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+        Require(method != null,
+            "The CharacterSkill transport prompt projection is unavailable.");
+        return (string)method.Invoke(null, new object[] { prompt });
+    }
 
     public static bool RunProviderCircuitScenario() =>
         VerifyProviderCircuitDrainsQueuedRequests();
@@ -892,13 +1008,137 @@ public static class CharacterProgressionDebugScenarios
             NarrativeInferenceTimestamp.FromGameTick(milestone));
     }
 
+    private static bool VerifyAcquiredTraitOutcomeFailureRollback()
+    {
+        using ActorFixture actor = new ActorFixture(
+            812505,
+            "Acquired Trait Outcome Rollback Fixture",
+            "human");
+        using AcquiredTraitContentFixture content =
+            new AcquiredTraitContentFixture();
+        CharacterProgression progression = actor.Actor.Progression;
+        string targetId = actor.Actor.Identity.PersistentId;
+        string[] evidence =
+        {
+            "work:outcome-rollback-a",
+            "work:outcome-rollback-b",
+            "work:outcome-rollback-c",
+            "work:outcome-rollback-d"
+        };
+        foreach (string factId in evidence)
+        {
+            for (int count = 0; count < 50; count++)
+            {
+                progression.RecordNarrative(
+                    CharacterNarrativeDomain.Work,
+                    factId,
+                    $"target:{factId}:{count}",
+                    "completed",
+                    1f,
+                    count / 10);
+            }
+        }
+
+        CharacterAcquiredTraitInferenceService service = new(
+            content.Settings,
+            content.Modules);
+        CharacterAcquiredTraitInferenceCommandResult submission =
+            service.SubmitMilestone(
+                progression,
+                BuildAcquiredSubmission(
+                    progression,
+                    targetId,
+                    3,
+                    0,
+                    evidence,
+                    "outcome-rollback"));
+        Require(submission.Succeeded && submission.Packet != null,
+            "The outcome rollback fixture could not submit its milestone.");
+
+        CharacterAcquiredTraitAggregateState before = progression
+            .CaptureAcquiredTraitState();
+        int[] influenceBefore = progression.NarrativeLedger.facts
+            .Select(fact => fact.influenceUseCount)
+            .ToArray();
+        EvolutionGameplayOutcomeEditorFixture outcomes = new(
+            "run:trait-outcome-fault-editor");
+        FailOnceAcquiredTraitInferenceOutcomeCommitter committer = new(
+            outcomes.Bridge);
+
+        bool threw = false;
+        try
+        {
+            CompleteAcquiredMilestone(
+                service,
+                progression,
+                targetId,
+                submission,
+                1,
+                committer);
+        }
+        catch (InvalidOperationException exception)
+        {
+            threw = exception.Message.Contains(
+                "mandatory outcome commit failed",
+                StringComparison.Ordinal);
+        }
+
+        CharacterAcquiredTraitAggregateState afterFailure = progression
+            .CaptureAcquiredTraitState();
+        GameplayOutcomeLedgerDiagnostics failedDiagnostics = outcomes.Ledger
+            .GetDiagnostics();
+        Require(
+            threw
+            && committer.CancelCount == 1
+            && afterFailure.revision == before.revision
+            && afterFailure.ActiveCount == before.ActiveCount
+            && afterFailure.pendingRequests.Count == before.pendingRequests.Count
+            && progression.NarrativeLedger.facts
+                .Select(fact => fact.influenceUseCount)
+                .SequenceEqual(influenceBefore)
+            && failedDiagnostics.ReservedCount == 0
+            && failedDiagnostics.ActiveAnchorReservationCount == 0
+            && failedDiagnostics.ActiveInfluenceReservationCount == 0,
+            "A failed acquired-trait outcome commit left state, evidence, or a reservation behind.");
+
+        CharacterAcquiredTraitInferenceCommandResult retry =
+            CompleteAcquiredMilestone(
+                service,
+                progression,
+                targetId,
+                submission,
+                1,
+                committer);
+        CharacterAcquiredTraitAggregateState completed = progression
+            .CaptureAcquiredTraitState();
+        GameplayResultKey expectedKey = new(
+            EvolutionOutcomeIds.TraitInferenceProducerId,
+            new GameplayOperationId(
+                "trait-inference:" + targetId + ":revision:00000002"),
+            2L,
+            0);
+        Require(
+            retry.Succeeded
+            && completed.revision == 2
+            && completed.ActiveCount == 1
+            && completed.pendingRequests.Count == 0
+            && outcomes.Ledger.TryGetResultIdentity(
+                expectedKey,
+                out GameplayOutcomeReplayIdentity identity)
+            && identity.State == GameplayOutcomeReplayState.PublishedAcknowledged
+            && outcomes.Ledger.GetDiagnostics().KnownResultKeyCount == 1,
+            "The identical acquired-trait retry did not produce exactly one state mutation and outcome.");
+        return true;
+    }
+
     private static CharacterAcquiredTraitInferenceCommandResult
         CompleteAcquiredMilestone(
             CharacterAcquiredTraitInferenceService service,
             CharacterProgression progression,
             string targetId,
             CharacterAcquiredTraitInferenceCommandResult submission,
-            int expectedRevision)
+            int expectedRevision,
+            IAcquiredTraitInferenceOutcomeCommitter outcomeCommitter = null)
     {
         CharacterAcquiredTraitRequestPacketDto packet = submission.Packet;
         CharacterAcquiredTraitAggregateState state = progression
@@ -956,6 +1196,10 @@ public static class CharacterProgressionDebugScenarios
                 evidenceFactIds = new List<string> { packet.evidenceFactIds[0] }
             });
         }
+        EvolutionGameplayOutcomeEditorFixture outcomes = outcomeCommitter == null
+            ? new EvolutionGameplayOutcomeEditorFixture(
+                "run:trait-progression-editor:" + targetId + ":" + expectedRevision)
+            : null;
         return service.CompleteMilestone(
             progression,
             new CharacterAcquiredTraitCompletionCommand(
@@ -968,7 +1212,8 @@ public static class CharacterProgressionDebugScenarios
                 response,
                 NarrativeInferenceTimestamp.FromGameTick(
                     packet.manifestationMilestone + 1L)),
-            packet);
+            packet,
+            outcomeCommitter ?? outcomes.Bridge);
     }
 
     private static void CompleteNextAcquiredMilestone(
@@ -1174,6 +1419,8 @@ public static class CharacterProgressionDebugScenarios
             out CharacterAcquiredTraitModuleSO[] modules);
         CharacterProgressionSnapshot pendingSnapshot;
         const string PersistentId = "character:qa-acquired-producer-resume";
+        EvolutionGameplayOutcomeEditorFixture outcomes = new(
+            "run:trait-producer-resume-editor");
         using (ActorFixture source = new(
                    812508,
                    "Acquired Producer Source",
@@ -1201,9 +1448,10 @@ public static class CharacterProgressionDebugScenarios
                 new FixedCharacterWorld(source.Actor),
                 new TestLlmRuntimeProvider(transport),
                 new FixedGameCalendar(day: 17, hour: 4),
-                new MutableUiClock(),
-                new GameEventBus(),
-                EmptyGameplayOutcomeNarrativeEvidenceQuery.Instance);
+                 new MutableUiClock(),
+                 new GameEventBus(),
+                 EmptyGameplayOutcomeNarrativeEvidenceQuery.Instance,
+                 outcomes.Bridge);
             runtime.Start();
             runtime.Tick();
             CharacterAcquiredTraitAggregateState pending = source.Actor
@@ -1230,9 +1478,10 @@ public static class CharacterProgressionDebugScenarios
             new FixedCharacterWorld(restored.Actor),
             new TestLlmRuntimeProvider(resumedTransport),
             new FixedGameCalendar(day: 17, hour: 5),
-            new MutableUiClock(),
-            new GameEventBus(),
-            EmptyGameplayOutcomeNarrativeEvidenceQuery.Instance);
+             new MutableUiClock(),
+             new GameEventBus(),
+             EmptyGameplayOutcomeNarrativeEvidenceQuery.Instance,
+             outcomes.Bridge);
         resumedRuntime.Start();
         resumedRuntime.Tick();
         Require(
@@ -2790,10 +3039,18 @@ public static class CharacterProgressionDebugScenarios
             Require(passivePrompt.Contains("selectionId=", StringComparison.Ordinal)
                     && passivePrompt.Contains("positiveModules:", StringComparison.Ordinal)
                     && passivePrompt.Contains(
-                        "positiveModuleIds, drawbackModuleIds, evidenceFactIds",
+                        "positiveModuleIds에는 positiveModules의 ID만",
+                        StringComparison.Ordinal)
+                    && passivePrompt.Contains(
+                        "drawbackModuleIds에는 drawbackModules의 ID만",
+                        StringComparison.Ordinal)
+                    && passivePrompt.Contains(
+                        "evidenceFactIds에는 evidenceFactIds의 ID만 1~2개",
+                        StringComparison.Ordinal)
+                    && passivePrompt.Contains(
+                        "48자 이하 간결한 한국어 한 문장",
                         StringComparison.Ordinal)
                     && passivePrompt.Contains("수치와 비용은 응답 후 C#이 계산", StringComparison.Ordinal)
-                    && passivePrompt.Contains("선택적 해로운 모듈", StringComparison.Ordinal)
                     && !passivePrompt.Contains("selectedIndex", StringComparison.Ordinal),
                 "The formula prompt does not expose the post-selection allocation contract.");
             Require(service.TryValidateResponse(
@@ -2812,6 +3069,218 @@ public static class CharacterProgressionDebugScenarios
                     out _,
                     out _),
                 "A legacy candidate-selection response was accepted for new formula generation.");
+            return true;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(settings);
+        }
+    }
+
+    private static bool VerifyModuleSelectionBatchContract()
+    {
+        CharacterSkillSystemSettingsSO settings =
+            EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
+        settings.formulaPolicy.formulaVersion =
+            CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion;
+        CharacterSkillFormulaCatalogAssetBuilder.Populate(settings);
+        using ActorFixture actor = new ActorFixture(7718, "묶음 검증자", "human");
+        try
+        {
+            TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
+            MutableUiClock clock = new MutableUiClock();
+            BatchSkillLlmRuntime runtime = new BatchSkillLlmRuntime();
+            CharacterSkillGenerationService service = new CharacterSkillGenerationService(
+                settingsProvider,
+                new TestLlmRuntimeProvider(runtime),
+                clock);
+            CharacterProgression progression = actor.Actor.Progression;
+            progression.ConstructCharacterProgression(
+                service,
+                settingsProvider,
+                gameEventBus: new GameEventBus(),
+                profileProjector: new CharacterProgressionProfileProjector(
+                    new ResourceGameContentCatalog(new UnityGameContentRootLoader()),
+                    new CharacterRuntimeProfileFactory(
+                        new ResourceGameContentCatalog(
+                            new UnityGameContentRootLoader()))));
+            progression.RecordNarrative(
+                CharacterNarrativeDomain.Work,
+                "work:module-selection-batch",
+                "facility:module-selection-batch",
+                CharacterActivityOutcomes.Completed,
+                day: 1);
+
+            CharacterSkillDraft successDraft = service.CreateDraft(
+                progression,
+                CharacterSkillKind.Active,
+                1);
+            string successJson = BuildValidModuleSelectionBatchJson(
+                service,
+                successDraft,
+                "묶음 검증자");
+            CharacterSkillModuleSelectionBatchResponseDto qualityPayload =
+                JsonUtility.FromJson<CharacterSkillModuleSelectionBatchResponseDto>(
+                    successJson);
+            qualityPayload.candidates[0].selectionId =
+                "selection:skill:deadf12beef";
+            string qualityPrompt = CharacterSkillPromptBuilder.BuildEnvelope(
+                progression,
+                successDraft,
+                settings,
+                CharacterSkillPromptBuilder.BuildPublicMaterial(progression),
+                batchModuleSelection: true).Prompt;
+            LlmStaticSchemaDefinition moduleSelectionSchema =
+                LlmStaticSchemaCatalog.Require(
+                    LocalLlmRequestProfiles.CharacterSkillModuleSelection.Id);
+            Require(moduleSelectionSchema.Version == 6
+                    && moduleSelectionSchema.Json.Contains(
+                        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$",
+                        StringComparison.Ordinal)
+                    && moduleSelectionSchema.Json.Contains(
+                        "^character-skill:drawback:[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+                        StringComparison.Ordinal)
+                    && moduleSelectionSchema.Json.Contains(
+                        "\"evidenceFactIds\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":2",
+                        StringComparison.Ordinal)
+                    && moduleSelectionSchema.Json.Contains(
+                        "\"narrativeFlavor\":{\"type\":\"string\"",
+                        StringComparison.Ordinal)
+                    && moduleSelectionSchema.Json.Contains(
+                        "\"maxLength\":48",
+                        StringComparison.Ordinal),
+                "The v6 module-selection schema does not constrain field namespaces and response size.");
+            CharacterSkillModuleSelectionResponseDto invalidCardinality =
+                BuildValidModuleSelectionDto(successDraft, "묶음 검증자");
+            invalidCardinality.evidenceFactIds = new List<string>
+            {
+                successDraft.moduleSelectionOffers[0].evidenceFactIds[0],
+                successDraft.moduleSelectionOffers[0].evidenceFactIds[0],
+                successDraft.moduleSelectionOffers[0].evidenceFactIds[0]
+            };
+            Require(!invalidCardinality.Validate(out _),
+                "A module-selection response with more than two evidence IDs passed DTO validation.");
+            CharacterSkillModuleSelectionResponseDto multilinePresentation =
+                BuildValidModuleSelectionDto(successDraft, "묶음 검증자");
+            multilinePresentation.narrativeFlavor = "첫 문장\n둘째 문장";
+            Require(!multilinePresentation.Validate(out _),
+                "A multiline module-selection narrative passed DTO validation.");
+            CharacterSkillModuleSelectionResponseDto fieldConfusion =
+                BuildValidModuleSelectionDto(successDraft, "묶음 검증자");
+            fieldConfusion.positiveModuleIds[0] =
+                successDraft.moduleSelectionOffers[0].evidenceFactIds[0];
+            Require(!service.TryValidateResponse(
+                    successDraft,
+                    JsonUtility.ToJson(fieldConfusion),
+                    out _,
+                    out _),
+                "An evidence ID placed in positiveModuleIds passed C# offered-ID validation.");
+            NarrativeTextQualityGate qualityGate = new NarrativeTextQualityGate();
+            NarrativeQualityResult hashCollision = qualityGate.Evaluate(
+                LocalLlmRequestProfiles.CharacterSkillModuleSelection,
+                qualityPrompt,
+                JsonUtility.ToJson(qualityPayload));
+            Require(hashCollision.Verdict != NarrativeQualityVerdict.HardReject,
+                "An Fxx-like substring inside an opaque selection id was treated as an inline reference.");
+            qualityPayload.candidates[0].narrativeFlavor += " F99";
+            NarrativeQualityResult unknownStandalone = qualityGate.Evaluate(
+                LocalLlmRequestProfiles.CharacterSkillModuleSelection,
+                qualityPrompt,
+                JsonUtility.ToJson(qualityPayload));
+            Require(unknownStandalone.Verdict == NarrativeQualityVerdict.HardReject,
+                "An unknown standalone F99 reference was not rejected.");
+            using (UnityEngine.Networking.UnityWebRequest transportRequest =
+                   new DungeonStoryHostStructuredChatBackend().BuildRequest(
+                       "http://127.0.0.1:1",
+                       "test-model",
+                       LocalLlmRequestProfiles.CharacterSkillModuleSelection,
+                       LlmStaticSchemaCatalog.Require(
+                           LocalLlmRequestProfiles.CharacterSkillModuleSelection.Id),
+                       qualityPrompt))
+            {
+                string transportBody = Encoding.UTF8.GetString(
+                    transportRequest.uploadHandler.data);
+                Require(!qualityPrompt.Contains("/no_think", StringComparison.Ordinal)
+                        && transportBody.Contains("/no_think", StringComparison.Ordinal),
+                    "CharacterSkill transport did not add non-thinking mode without mutating the audit prompt.");
+            }
+            service.RequestDraft(progression, successDraft);
+            service.Tick();
+            Require(runtime.BatchCallCount == 1
+                    && runtime.HasPendingCallback
+                    && runtime.LastPrompt.Contains("candidateCount=3", StringComparison.Ordinal)
+                    && runtime.LastPrompt.Contains(
+                        "positiveModuleIds 조합을 중복하지 않는다",
+                        StringComparison.Ordinal),
+                "An active draft was not submitted as one exact-count batch request.");
+            runtime.Complete(new LocalLlmResult(
+                LocalLlmRequestStatus.Succeeded,
+                successJson,
+                string.Empty,
+                string.Empty));
+            Require(successDraft.isReady
+                    && successDraft.candidates.Count == 3
+                    && successDraft.frozenMechanics.Count == 3
+                    && successDraft.nextPresentationIndex == 3
+                    && service.PendingRequestCount == 0,
+                "One valid active batch did not atomically commit all three candidates.");
+
+            CharacterSkillDraft countDraft = service.CreateDraft(
+                progression,
+                CharacterSkillKind.Active,
+                10);
+            CharacterSkillModuleSelectionBatchResponseDto countPayload =
+                JsonUtility.FromJson<CharacterSkillModuleSelectionBatchResponseDto>(
+                    BuildValidModuleSelectionBatchJson(
+                        service,
+                        countDraft,
+                        "묶음 검증자"));
+            countPayload.candidates.RemoveAt(countPayload.candidates.Count - 1);
+            service.RequestDraft(progression, countDraft);
+            service.Tick();
+            Require(runtime.BatchCallCount == 2 && runtime.HasPendingCallback,
+                "The exact-count rejection fixture was not submitted once.");
+            runtime.Complete(new LocalLlmResult(
+                LocalLlmRequestStatus.Succeeded,
+                JsonUtility.ToJson(countPayload),
+                string.Empty,
+                string.Empty));
+            Require(!countDraft.isReady
+                    && countDraft.candidates.Count == 0
+                    && countDraft.frozenMechanics.Count == 0
+                    && countDraft.nextPresentationIndex == 0
+                    && countDraft.presentationFailureCount == 1
+                    && service.LastDiagnostic.Contains("required count", StringComparison.Ordinal),
+                "A short batch was accepted or partially mutated the active draft.");
+            service.CancelRequests(progression);
+
+            CharacterSkillDraft invalidDraft = service.CreateDraft(
+                progression,
+                CharacterSkillKind.Active,
+                20);
+            CharacterSkillModuleSelectionBatchResponseDto invalidPayload =
+                JsonUtility.FromJson<CharacterSkillModuleSelectionBatchResponseDto>(
+                    BuildValidModuleSelectionBatchJson(
+                        service,
+                        invalidDraft,
+                        "묶음 검증자"));
+            invalidPayload.candidates[1].selectionId =
+                "selection:skill:" + new string('0', 64);
+            service.RequestDraft(progression, invalidDraft);
+            service.Tick();
+            Require(runtime.BatchCallCount == 3 && runtime.HasPendingCallback,
+                "The atomic rejection fixture was not submitted once.");
+            runtime.Complete(new LocalLlmResult(
+                LocalLlmRequestStatus.Succeeded,
+                JsonUtility.ToJson(invalidPayload),
+                string.Empty,
+                string.Empty));
+            Require(!invalidDraft.isReady
+                    && invalidDraft.candidates.Count == 0
+                    && invalidDraft.frozenMechanics.Count == 0
+                    && invalidDraft.nextPresentationIndex == 0
+                    && invalidDraft.presentationFailureCount == 1,
+                "One illegal batch item partially committed earlier legal candidates.");
             return true;
         }
         finally
@@ -3213,7 +3682,7 @@ public static class CharacterProgressionDebugScenarios
             {
                 runtime.Enqueue(new LocalLlmResult(
                     LocalLlmRequestStatus.Succeeded,
-                    BuildValidFormulaPresentationJson(
+                    BuildValidModuleSelectionJson(
                         restoredDraft,
                         restored.GrowthState.displayName),
                     string.Empty,
@@ -3221,13 +3690,99 @@ public static class CharacterProgressionDebugScenarios
                 service.Tick();
                 expectedCalls++;
                 Require(runtime.CharacterSkillCallCount == expectedCalls,
-                    "A restored formula presentation slot was not submitted exactly once.");
+                    "A restored formula presentation slot was not submitted exactly once. "
+                    + $"actualCalls={runtime.CharacterSkillCallCount}, expectedCalls={expectedCalls}, "
+                    + $"pending={service.PendingRequestCount}, index={restoredDraft.nextPresentationIndex}, "
+                    + $"state={restoredDraft.presentationState}, diagnostic={service.LastDiagnostic}");
             }
             Require(restoredDraft.isReady && restoredDraft.requestKey == requestKey,
                 "The restored request changed key or failed to commit its prepared result.");
             Require(restoredDraft.candidates.Count == 3
                     && restoredDraft.nextPresentationIndex == 3,
                 "The restored active draft did not complete all three frozen presentations.");
+            return true;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(settings);
+        }
+    }
+
+    private static bool VerifyProviderStartupWaitDoesNotConsumeAcceptedTimeout()
+    {
+        CharacterSkillSystemSettingsSO settings =
+            EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
+        settings.initialRetrySeconds = 1f;
+        settings.maximumRetrySeconds = 2f;
+        using ActorFixture actor = new ActorFixture(
+            991,
+            "기동 대기 검증자",
+            "human");
+        try
+        {
+            TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
+            MutableUiClock clock = new MutableUiClock();
+            ReadinessControlledLlmRuntime runtime =
+                new ReadinessControlledLlmRuntime();
+            CharacterSkillGenerationService service = new CharacterSkillGenerationService(
+                settingsProvider,
+                new TestLlmRuntimeProvider(runtime),
+                clock);
+            CharacterProgression progression = actor.Actor.Progression;
+            progression.ConstructCharacterProgression(
+                service,
+                settingsProvider,
+                gameEventBus: new GameEventBus(),
+                profileProjector: new CharacterProgressionProfileProjector(
+                    new ResourceGameContentCatalog(new UnityGameContentRootLoader()),
+                    new CharacterRuntimeProfileFactory(
+                        new ResourceGameContentCatalog(
+                            new UnityGameContentRootLoader()))));
+            progression.RecordNarrative(
+                CharacterNarrativeDomain.Work,
+                "work:provider-startup-wait",
+                "facility:provider-startup-wait",
+                CharacterActivityOutcomes.Completed,
+                day: 1);
+            CharacterSkillDraft draft = service.CreateDraft(
+                progression,
+                CharacterSkillKind.Passive,
+                1);
+            service.RequestDraft(progression, draft);
+
+            service.Tick();
+            Require(runtime.CharacterSkillCallCount == 0
+                    && draft.presentationFailureCount == 0
+                    && service.PendingRequestCount == 1
+                    && service.ProviderCircuitTripCount == 0
+                    && service.LastDiagnostic.Contains(
+                        "provider-starting",
+                        StringComparison.Ordinal),
+                "Bundled-host startup was treated as an accepted or failed request.");
+
+            clock.Advance(service.RequestTimeoutSeconds * 3f);
+            service.Tick();
+            Require(runtime.CharacterSkillCallCount == 0
+                    && draft.presentationFailureCount == 0
+                    && service.PendingRequestCount == 1
+                    && service.ProviderCircuitTripCount == 0,
+                "Waiting longer than the accepted-request timeout consumed a retry during host startup.");
+
+            runtime.SetReady();
+            service.Tick();
+            Require(runtime.CharacterSkillCallCount == 1
+                    && draft.presentationFailureCount == 0
+                    && service.PendingRequestCount == 1,
+                "A ready provider did not dispatch the preserved request exactly once.");
+
+            clock.Advance(service.RequestTimeoutSeconds + 0.1f);
+            service.Tick();
+            Require(draft.presentationFailureCount == 1
+                    && service.ProviderCircuitTripCount == 1
+                    && service.LastDiagnostic.Contains(
+                        "accepted-request-timeout",
+                        StringComparison.Ordinal),
+                "The accepted-request timeout did not begin after real dispatch.");
             return true;
         }
         finally
@@ -3514,6 +4069,81 @@ public static class CharacterProgressionDebugScenarios
         return rule;
     }
 
+    private static bool VerifyCompletionOwningProviderControlsAcceptedLifetime()
+    {
+        CharacterSkillSystemSettingsSO settings =
+            EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
+        settings.initialRetrySeconds = 1f;
+        settings.maximumRetrySeconds = 2f;
+        using ActorFixture actor = new ActorFixture(
+            993,
+            "완료 소유권 검증자",
+            "human");
+        try
+        {
+            TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
+            MutableUiClock clock = new MutableUiClock();
+            CompletionOwningLlmRuntime runtime = new CompletionOwningLlmRuntime();
+            CharacterSkillGenerationService service = new CharacterSkillGenerationService(
+                settingsProvider,
+                new TestLlmRuntimeProvider(runtime),
+                clock);
+            CharacterProgression progression = actor.Actor.Progression;
+            progression.ConstructCharacterProgression(
+                service,
+                settingsProvider,
+                gameEventBus: new GameEventBus(),
+                profileProjector: new CharacterProgressionProfileProjector(
+                    new ResourceGameContentCatalog(new UnityGameContentRootLoader()),
+                    new CharacterRuntimeProfileFactory(
+                        new ResourceGameContentCatalog(
+                            new UnityGameContentRootLoader()))));
+            progression.RecordNarrative(
+                CharacterNarrativeDomain.Work,
+                "work:completion-owner",
+                "facility:completion-owner",
+                CharacterActivityOutcomes.Completed,
+                day: 1);
+            CharacterSkillDraft draft = service.CreateDraft(
+                progression,
+                CharacterSkillKind.Passive,
+                1);
+            service.RequestDraft(progression, draft);
+            service.Tick();
+            Require(runtime.CharacterSkillCallCount == 1
+                    && runtime.HasPendingCallback
+                    && draft.presentationFailureCount == 0,
+                "The completion-owning runtime did not accept exactly one request.");
+
+            clock.Advance(service.RequestTimeoutSeconds * 3f);
+            service.Tick();
+            Require(runtime.CharacterSkillCallCount == 1
+                    && runtime.HasPendingCallback
+                    && draft.presentationFailureCount == 0
+                    && service.ProviderCircuitTripCount == 0
+                    && service.PendingRequestCount == 1,
+                "The service watchdog raced a completion-owning runtime.");
+
+            runtime.Complete(new LocalLlmResult(
+                LocalLlmRequestStatus.TimedOut,
+                string.Empty,
+                "owned transport timeout",
+                string.Empty));
+            Require(draft.presentationFailureCount == 1
+                    && service.ProviderCircuitTripCount == 1
+                    && !runtime.HasPendingCallback
+                    && service.LastDiagnostic.Contains(
+                        "accepted-request-timeout",
+                        StringComparison.Ordinal),
+                "A completion-owner timeout callback did not enter the visible fail-loud path.");
+            return true;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(settings);
+        }
+    }
+
     private static void VerifyManagementReachabilityRuntimePaths()
     {
         using ActorFixture fixture = new ActorFixture(
@@ -3725,6 +4355,34 @@ public static class CharacterProgressionDebugScenarios
         string characterName) =>
         JsonUtility.ToJson(BuildValidModuleSelectionDto(draft, characterName));
 
+    private static string BuildValidModuleSelectionBatchJson(
+        CharacterSkillGenerationService service,
+        CharacterSkillDraft draft,
+        string characterName)
+    {
+        Require(service != null && draft != null,
+            "The module-selection batch fixture is incomplete.");
+        CharacterSkillDraft scratch = draft.Clone();
+        CharacterSkillModuleSelectionBatchResponseDto payload = new();
+        while (scratch.nextPresentationIndex < scratch.moduleSelectionOffers.Count)
+        {
+            CharacterSkillModuleSelectionResponseDto candidate =
+                BuildValidModuleSelectionDto(scratch, characterName);
+            Require(service.TryValidateResponse(
+                    scratch,
+                    JsonUtility.ToJson(candidate),
+                    out List<CharacterSkillInstance> resolved,
+                    out string error)
+                    && resolved.Count == 1,
+                "The fixture could not resolve a legal batch candidate: " + error);
+            payload.candidates.Add(candidate);
+            scratch.candidates.Add(resolved[0].Clone());
+            scratch.frozenMechanics.Add(resolved[0].Clone());
+            scratch.nextPresentationIndex++;
+        }
+        return JsonUtility.ToJson(payload);
+    }
+
     private static CharacterSkillModuleSelectionResponseDto BuildValidModuleSelectionDto(
         CharacterSkillDraft draft,
         string characterName)
@@ -3736,10 +4394,20 @@ public static class CharacterProgressionDebugScenarios
             "The formula fixture has no pending module-selection offer.");
         CharacterSkillModuleOfferState offer =
             draft.moduleSelectionOffers[draft.nextPresentationIndex];
+        HashSet<string> usedPrimaryModules = (draft.candidates
+                ?? new List<CharacterSkillInstance>())
+            .Where(candidate => candidate != null)
+            .Select(candidate => candidate.combinationId)
+            .Where(moduleId => !string.IsNullOrWhiteSpace(moduleId))
+            .ToHashSet(StringComparer.Ordinal);
+        string positiveModuleId = offer.positiveModuleIds
+            .FirstOrDefault(moduleId => !usedPrimaryModules.Contains(moduleId));
+        Require(!string.IsNullOrWhiteSpace(positiveModuleId),
+            "The formula fixture has no unused positive module for the active draft.");
         return new CharacterSkillModuleSelectionResponseDto
         {
             selectionId = offer.selectionId,
-            positiveModuleIds = new List<string> { offer.positiveModuleIds[0] },
+            positiveModuleIds = new List<string> { positiveModuleId },
             drawbackModuleIds = new List<string>(),
             evidenceFactIds = new List<string> { offer.evidenceFactIds[0] },
             displayName = characterName + " 감각",
@@ -3877,6 +4545,52 @@ public static class CharacterProgressionDebugScenarios
                     $"QA content expected one {typeof(T).Name}, found {values.Count}.");
             }
             return values[0];
+        }
+    }
+
+    private sealed class FailOnceAcquiredTraitInferenceOutcomeCommitter :
+        IAcquiredTraitInferenceOutcomeCommitter
+    {
+        private readonly IAcquiredTraitInferenceOutcomeCommitter inner;
+        private bool failNextCommit = true;
+
+        internal FailOnceAcquiredTraitInferenceOutcomeCommitter(
+            IAcquiredTraitInferenceOutcomeCommitter inner)
+        {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        }
+
+        internal int CancelCount { get; private set; }
+
+        public bool TryPrepare(
+            in AcquiredTraitInferenceOutcomeReceipt receipt,
+            out PreparedEvolutionOutcome prepared,
+            out string failureReason) => inner.TryPrepare(
+            receipt,
+            out prepared,
+            out failureReason);
+
+        public void Cancel(in PreparedEvolutionOutcome prepared)
+        {
+            CancelCount++;
+            inner.Cancel(prepared);
+        }
+
+        public bool TryCommit(
+            in PreparedEvolutionOutcome prepared,
+            long expectedOwnerRevision,
+            out string failureReason)
+        {
+            if (failNextCommit)
+            {
+                failNextCommit = false;
+                failureReason = "editor-injected-outcome-commit-failure";
+                return false;
+            }
+            return inner.TryCommit(
+                prepared,
+                expectedOwnerRevision,
+                out failureReason);
         }
     }
 
@@ -4094,7 +4808,7 @@ public static class CharacterProgressionDebugScenarios
                 starvationService.Tick();
                 Require(starvation != null
                         && starvation.Message.Contains(
-                            "frozen formula mechanics",
+                            "legacy variants are load-only",
                             StringComparison.Ordinal)
                         && starvationRuntime.CharacterSkillCallCount == 0
                         && starvationService.PendingRequestCount == 0,
@@ -4137,6 +4851,63 @@ public static class CharacterProgressionDebugScenarios
 
             VerifyManagementReachabilityRuntimePaths();
             VerifyInstalledLegacyManagementPassivePreservation();
+            return true;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(settings);
+        }
+    }
+
+    private static bool VerifyUnpublishedCompositionDefersSkillGeneration()
+    {
+        CharacterSkillSystemSettingsSO settings =
+            EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
+        using ActorFixture fixture = new ActorFixture(
+            91772,
+            "준비 중인 원장 검증자",
+            "human",
+            unpublishedComposition: true);
+        try
+        {
+            CharacterActor actor = fixture.Actor;
+            CharacterProgression progression = actor.Progression;
+            progression.GrowthState.drafts.Clear();
+            progression.GrowthState.activeSkills.Clear();
+            progression.GrowthState.passiveSkills.Clear();
+            progression.NarrativeLedger.facts.Clear();
+            TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
+            CharacterSkillGenerationService service = new CharacterSkillGenerationService(
+                settingsProvider,
+                new MissingLlmRuntimeProvider(),
+                CharacterAiEditorTestDependencies.UiClock);
+            progression.ConstructCharacterProgression(
+                service,
+                settingsProvider,
+                gameEventBus: new GameEventBus(),
+                profileProjector: new CharacterProgressionProfileProjector(
+                    new ResourceGameContentCatalog(new UnityGameContentRootLoader()),
+                    new CharacterRuntimeProfileFactory(
+                        new ResourceGameContentCatalog(new UnityGameContentRootLoader()))));
+
+            actor.Initialize(actor.Identity.Data);
+            Require(progression.Drafts.Count == 0
+                    && service.PendingRequestCount == 0
+                    && progression.NarrativeLedger.facts.Count == 0,
+                "Unpublished character composition generated skills or fabricated evidence before restore.");
+
+            progression.RecordNarrative(
+                CharacterNarrativeDomain.Work,
+                "qa:composition:completed-work",
+                actor.Identity.PersistentId,
+                "success",
+                1f,
+                1,
+                triggerPassives: false);
+            Require(progression.Drafts.Count > 0
+                    && progression.NarrativeLedger.facts.Count == 1,
+                "Authoritative narrative installation did not resume skill draft generation.");
+            service.CancelRequests(progression);
             return true;
         }
         finally
@@ -4188,10 +4959,13 @@ public static class CharacterProgressionDebugScenarios
             }
 
             Require(failure != null
+                    && failure.Message.Contains(
+                        "at least one meaningful narrative evidence fact",
+                        StringComparison.Ordinal)
                     && runtime.CharacterSkillCallCount == 0
                     && service.PendingRequestCount == 0
                     && progression.ActiveSkills.Count == 0,
-                "CharacterSkill invented or submitted mechanics without narrative evidence.");
+                "CharacterSkill did not fail clearly before inventing or submitting mechanics without narrative evidence.");
             return true;
         }
         finally
@@ -4355,7 +5129,8 @@ public static class CharacterProgressionDebugScenarios
             string displayName,
             string speciesTag,
             bool publishComposition = false,
-            string persistentId = null)
+            string persistentId = null,
+            bool unpublishedComposition = false)
         {
             settings = EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
             data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
@@ -4369,7 +5144,7 @@ public static class CharacterProgressionDebugScenarios
             Actor = actorObject.AddComponent<CharacterActor>();
             actorObject.AddComponent<AbilityMove>();
             actorObject.AddComponent<AbilityWork>();
-            if (publishComposition)
+            if (publishComposition || unpublishedComposition)
                 Actor.PrepareForComposition();
             Actor.EnsureRuntimeState();
             CharacterAiEditorTestDependencies.Inject(actorObject);
@@ -4883,7 +5658,9 @@ public static class CharacterProgressionDebugScenarios
         }
     }
 
-    private sealed class SequencedLlmRuntime : ILocalLlmRuntime
+    private sealed class SequencedLlmRuntime :
+        ILocalLlmRuntime,
+        ICharacterSkillModuleSelectionLlmRuntime
     {
         private readonly Queue<LocalLlmResult> results = new Queue<LocalLlmResult>();
 
@@ -4903,6 +5680,12 @@ public static class CharacterProgressionDebugScenarios
             return true;
         }
 
+        public bool GenerateCharacterSkillModuleSelectionAsync(
+            string requestKey,
+            string prompt,
+            Action<LocalLlmResult> callback) =>
+            GenerateCharacterSkillAsync(prompt, callback);
+
         public bool GeneratePersonaAsync(string prompt, Action<LocalLlmResult> callback) => false;
         public bool GenerateMacroGoalAsync(string prompt, Action<LocalLlmResult> callback) => false;
         public bool GenerateMoodImpulseAsync(string prompt, Action<LocalLlmResult> callback) => false;
@@ -4912,7 +5695,9 @@ public static class CharacterProgressionDebugScenarios
         public bool GenerateBubbleLineAsync(string prompt, string originalText, Action<LocalLlmResult> callback) => false;
     }
 
-    private sealed class NeverCompletingLlmRuntime : ILocalLlmRuntime
+    private sealed class NeverCompletingLlmRuntime :
+        ILocalLlmRuntime,
+        ICharacterSkillModuleSelectionLlmRuntime
     {
         public int CharacterSkillCallCount { get; private set; }
 
@@ -4924,6 +5709,12 @@ public static class CharacterProgressionDebugScenarios
             return true;
         }
 
+        public bool GenerateCharacterSkillModuleSelectionAsync(
+            string requestKey,
+            string prompt,
+            Action<LocalLlmResult> callback) =>
+            GenerateCharacterSkillAsync(prompt, callback);
+
         public bool GeneratePersonaAsync(string prompt, Action<LocalLlmResult> callback) => false;
         public bool GenerateMacroGoalAsync(string prompt, Action<LocalLlmResult> callback) => false;
         public bool GenerateMoodImpulseAsync(string prompt, Action<LocalLlmResult> callback) => false;
@@ -4933,7 +5724,135 @@ public static class CharacterProgressionDebugScenarios
         public bool GenerateBubbleLineAsync(string prompt, string originalText, Action<LocalLlmResult> callback) => false;
     }
 
-    private sealed class DelayedSkillLlmRuntime : ILocalLlmRuntime
+    private sealed class BatchSkillLlmRuntime :
+        ILocalLlmRuntime,
+        ICharacterSkillModuleSelectionBatchLlmRuntime
+    {
+        private Action<LocalLlmResult> callback;
+
+        public int BatchCallCount { get; private set; }
+        public bool HasPendingCallback => callback != null;
+        public string LastPrompt { get; private set; } = string.Empty;
+
+        public bool GenerateCharacterSkillModuleSelectionBatchAsync(
+            string requestKey,
+            string prompt,
+            Action<LocalLlmResult> resultCallback)
+        {
+            BatchCallCount++;
+            LastPrompt = prompt ?? string.Empty;
+            callback = resultCallback;
+            return true;
+        }
+
+        public void Complete(LocalLlmResult result)
+        {
+            Action<LocalLlmResult> pending = callback;
+            callback = null;
+            pending?.Invoke(result);
+        }
+
+        public bool GenerateCharacterSkillAsync(string prompt, Action<LocalLlmResult> resultCallback) => false;
+        public bool GeneratePersonaAsync(string prompt, Action<LocalLlmResult> resultCallback) => false;
+        public bool GenerateMacroGoalAsync(string prompt, Action<LocalLlmResult> resultCallback) => false;
+        public bool GenerateMoodImpulseAsync(string prompt, Action<LocalLlmResult> resultCallback) => false;
+        public bool GenerateSocialRumorAsync(string prompt, Action<LocalLlmResult> resultCallback) => false;
+        public bool GenerateFacilityEvolutionAsync(string prompt, Action<LocalLlmResult> resultCallback) => false;
+        public bool GenerateCharacterRecordAsync(string prompt, string originalText, Action<LocalLlmResult> resultCallback) => false;
+        public bool GenerateBubbleLineAsync(string prompt, string originalText, Action<LocalLlmResult> resultCallback) => false;
+    }
+
+    private sealed class ReadinessControlledLlmRuntime :
+        ILocalLlmRuntime,
+        ILocalLlmRuntimeReadiness,
+        ICharacterSkillModuleSelectionLlmRuntime
+    {
+        private LocalLlmRuntimeReadinessState state =
+            LocalLlmRuntimeReadinessState.Starting;
+
+        public int CharacterSkillCallCount { get; private set; }
+
+        public LocalLlmRuntimeReadinessSnapshot CaptureReadiness() =>
+            new LocalLlmRuntimeReadinessSnapshot(state);
+
+        public void SetReady()
+        {
+            state = LocalLlmRuntimeReadinessState.Ready;
+        }
+
+        public bool GenerateCharacterSkillAsync(
+            string prompt,
+            Action<LocalLlmResult> callback)
+        {
+            CharacterSkillCallCount++;
+            return true;
+        }
+
+        public bool GenerateCharacterSkillModuleSelectionAsync(
+            string requestKey,
+            string prompt,
+            Action<LocalLlmResult> callback) =>
+            GenerateCharacterSkillAsync(prompt, callback);
+
+        public bool GeneratePersonaAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateMacroGoalAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateMoodImpulseAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateSocialRumorAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateFacilityEvolutionAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateCharacterRecordAsync(string prompt, string originalText, Action<LocalLlmResult> callback) => false;
+        public bool GenerateBubbleLineAsync(string prompt, string originalText, Action<LocalLlmResult> callback) => false;
+    }
+
+    private sealed class CompletionOwningLlmRuntime :
+        ILocalLlmRuntime,
+        ILocalLlmRuntimeReadiness,
+        ILocalLlmAcceptedRequestCompletionOwner,
+        ICharacterSkillModuleSelectionLlmRuntime
+    {
+        private Action<LocalLlmResult> callback;
+
+        public int CharacterSkillCallCount { get; private set; }
+        public bool HasPendingCallback => callback != null;
+        public bool OwnsAcceptedRequestCompletion => true;
+
+        public LocalLlmRuntimeReadinessSnapshot CaptureReadiness() =>
+            new LocalLlmRuntimeReadinessSnapshot(
+                LocalLlmRuntimeReadinessState.Ready);
+
+        public bool GenerateCharacterSkillAsync(
+            string prompt,
+            Action<LocalLlmResult> resultCallback)
+        {
+            CharacterSkillCallCount++;
+            callback = resultCallback;
+            return true;
+        }
+
+        public bool GenerateCharacterSkillModuleSelectionAsync(
+            string requestKey,
+            string prompt,
+            Action<LocalLlmResult> resultCallback) =>
+            GenerateCharacterSkillAsync(prompt, resultCallback);
+
+        public void Complete(LocalLlmResult result)
+        {
+            Action<LocalLlmResult> pending = callback;
+            callback = null;
+            pending?.Invoke(result);
+        }
+
+        public bool GeneratePersonaAsync(string prompt, Action<LocalLlmResult> resultCallback) => false;
+        public bool GenerateMacroGoalAsync(string prompt, Action<LocalLlmResult> resultCallback) => false;
+        public bool GenerateMoodImpulseAsync(string prompt, Action<LocalLlmResult> resultCallback) => false;
+        public bool GenerateSocialRumorAsync(string prompt, Action<LocalLlmResult> resultCallback) => false;
+        public bool GenerateFacilityEvolutionAsync(string prompt, Action<LocalLlmResult> resultCallback) => false;
+        public bool GenerateCharacterRecordAsync(string prompt, string originalText, Action<LocalLlmResult> resultCallback) => false;
+        public bool GenerateBubbleLineAsync(string prompt, string originalText, Action<LocalLlmResult> resultCallback) => false;
+    }
+
+    private sealed class DelayedSkillLlmRuntime :
+        ILocalLlmRuntime,
+        ICharacterSkillModuleSelectionLlmRuntime
     {
         private readonly List<Action<LocalLlmResult>> acceptedCallbacks =
             new List<Action<LocalLlmResult>>();
@@ -4950,6 +5869,12 @@ public static class CharacterProgressionDebugScenarios
             acceptedCallbacks.Add(callback);
             return true;
         }
+
+        public bool GenerateCharacterSkillModuleSelectionAsync(
+            string requestKey,
+            string prompt,
+            Action<LocalLlmResult> callback) =>
+            GenerateCharacterSkillAsync(prompt, callback);
 
         public void CompleteAcceptedCallbacks(LocalLlmResult result)
         {

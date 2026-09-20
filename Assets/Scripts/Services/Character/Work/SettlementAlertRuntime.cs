@@ -15,6 +15,7 @@ public sealed class SettlementAlertRuntime :
     private readonly IGameEventBus events;
     private readonly IEmergencyWorkAccountingReconciler accountingReconciler;
     private readonly IEmergencyWorkAccountingService accounting;
+    private readonly IEmergencyWorkSuspensionOutcomeCommitter suspensionOutcomes;
     private readonly Dictionary<string, IncidentState> incidents =
         new Dictionary<string, IncidentState>(StringComparer.Ordinal);
     private readonly Dictionary<string, ContextTransitionState> contextTransitions =
@@ -44,13 +45,16 @@ public sealed class SettlementAlertRuntime :
         IGameCalendar calendar,
         IGameEventBus events,
         IEmergencyWorkAccountingReconciler accountingReconciler,
-        IEmergencyWorkAccountingService accounting)
+        IEmergencyWorkAccountingService accounting,
+        IEmergencyWorkSuspensionOutcomeCommitter suspensionOutcomes)
     {
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.accountingReconciler = accountingReconciler
             ?? throw new ArgumentNullException(nameof(accountingReconciler));
         this.accounting = accounting ?? throw new ArgumentNullException(nameof(accounting));
+        this.suspensionOutcomes = suspensionOutcomes
+            ?? throw new ArgumentNullException(nameof(suspensionOutcomes));
         levelEnteredAbsoluteHour = 0L;
     }
 
@@ -139,7 +143,8 @@ public sealed class SettlementAlertRuntime :
                     suspendedAtAbsoluteHour = value.SuspendedAtAbsoluteHour,
                     progressExternallyPersisted = value.ProgressExternallyPersisted,
                     inlineCompletedWork = value.InlineCompletedWork,
-                    inlineRequiredWork = value.InlineRequiredWork
+                    inlineRequiredWork = value.InlineRequiredWork,
+                    outcomeOwnerRevision = value.OutcomeOwnerRevision
                 });
         }
         result.suspendedWork.Sort((left, right) =>
@@ -213,7 +218,8 @@ public sealed class SettlementAlertRuntime :
                     source.suspendedAtAbsoluteHour,
                     source.progressExternallyPersisted,
                     source.inlineCompletedWork,
-                    source.inlineRequiredWork));
+                    source.inlineRequiredWork,
+                    source.outcomeOwnerRevision));
         }
         TouchSnapshot();
 
@@ -375,6 +381,7 @@ public sealed class SettlementAlertRuntime :
             || string.IsNullOrWhiteSpace(value.TargetBuildingId)
             || value.AlertEpochId != alertEpochId
             || value.SuspendedAtAbsoluteHour < 0L
+            || value.OutcomeOwnerRevision <= 0L
             || (!value.ProgressExternallyPersisted && !value.HasInlineProgress))
         {
             return EmergencyAccountingResult.Fail(
@@ -382,8 +389,45 @@ public sealed class SettlementAlertRuntime :
                 "Suspended work requires a character, work type, target, current epoch and externally persisted progress.");
         }
 
+        if (!suspensionOutcomes.TryPrepare(
+                value,
+                Math.Max(1, calendar.Day),
+                out PreparedEmergencyWorkSuspensionOutcome prepared,
+                out string failureReason))
+        {
+            return EmergencyAccountingResult.Fail(
+                "SettlementSuspendedWorkOutcomePrepareFailed",
+                failureReason);
+        }
+
+        bool hadPrevious = suspendedWork.TryGetValue(
+            value.CharacterId,
+            out SettlementSuspendedWorkSnapshot previous);
+        if (prepared.IsReplay)
+        {
+            suspensionOutcomes.Cancel(prepared);
+            return hadPrevious && Matches(previous, value)
+                ? EmergencyAccountingResult.Ok("suspended-work-already-recorded")
+                : EmergencyAccountingResult.Fail(
+                    "SettlementSuspendedWorkReplayStateMissing",
+                    "The suspension outcome is durable but its exact owner state is absent.");
+        }
+
         suspendedWork[value.CharacterId] = value;
         TouchSnapshot();
+        OwnerOutcomeCommitResult committed = suspensionOutcomes.Commit(prepared);
+        if (!committed.DurablyCommitted)
+        {
+            if (hadPrevious)
+                suspendedWork[value.CharacterId] = previous;
+            else
+                suspendedWork.Remove(value.CharacterId);
+            TouchSnapshot();
+            suspensionOutcomes.Cancel(prepared);
+            return EmergencyAccountingResult.Fail(
+                "SettlementSuspendedWorkOutcomeCommitRejected",
+                committed.DetailCode);
+        }
         return EmergencyAccountingResult.Ok("suspended-work-recorded");
     }
 
@@ -513,7 +557,8 @@ public sealed class SettlementAlertRuntime :
                         previousWork.SuspendedAtAbsoluteHour,
                         previousWork.ProgressExternallyPersisted,
                         previousWork.InlineCompletedWork,
-                        previousWork.InlineRequiredWork);
+                        previousWork.InlineRequiredWork,
+                        previousWork.OutcomeOwnerRevision);
             }
         }
         levelEnteredAbsoluteHour = calendar.AbsoluteHour;
@@ -526,6 +571,22 @@ public sealed class SettlementAlertRuntime :
             alertEpochId,
             levelEnteredAbsoluteHour));
     }
+
+    private static bool Matches(
+        in SettlementSuspendedWorkSnapshot left,
+        in SettlementSuspendedWorkSnapshot right) =>
+        string.Equals(left.CharacterId, right.CharacterId, StringComparison.Ordinal)
+        && left.WorkTypeId == right.WorkTypeId
+        && string.Equals(
+            left.TargetBuildingId,
+            right.TargetBuildingId,
+            StringComparison.Ordinal)
+        && left.AlertEpochId == right.AlertEpochId
+        && left.SuspendedAtAbsoluteHour == right.SuspendedAtAbsoluteHour
+        && left.ProgressExternallyPersisted == right.ProgressExternallyPersisted
+        && left.InlineCompletedWork.Equals(right.InlineCompletedWork)
+        && left.InlineRequiredWork.Equals(right.InlineRequiredWork)
+        && left.OutcomeOwnerRevision == right.OutcomeOwnerRevision;
 
     private void AdvanceThreatDowngrade(long now)
     {

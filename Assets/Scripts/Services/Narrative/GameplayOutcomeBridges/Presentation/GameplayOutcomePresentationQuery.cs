@@ -6,6 +6,8 @@ using DungeonStory.Narrative.Korean;
 public sealed class GameplayOutcomePresentationQuery :
     IGameplayOutcomePresentationQuery
 {
+    private static readonly GameplayEntityKindId ExpeditionEntityKind =
+        new("expedition");
     private readonly IGameplayOutcomeQuery query;
     private readonly IGameplayOutcomeDisplayNameQuery names;
     private readonly IKoreanJosaFormatter josa;
@@ -61,19 +63,22 @@ public sealed class GameplayOutcomePresentationQuery :
             string.Empty);
     }
 
-    public GameplayOutcomePresentationPage GetOperationPage(
+    public GameplayOutcomePresentationPage GetExpeditionPage(
+        GameplayEntityId expeditionId,
         GameplayOperationId operationId,
         OutcomeCursor cursor,
         OutcomeFilter filter,
         string locale = "ko-KR")
     {
-        if (!operationId.IsValid)
+        if (!expeditionId.IsValid
+            || !expeditionId.Kind.Equals(ExpeditionEntityKind)
+            || !operationId.IsValid)
         {
             return new GameplayOutcomePresentationPage(
                 Array.Empty<GameplayOutcomePresentationRow>(),
                 cursor,
                 "원정 기록",
-                "presentation-operation-invalid");
+                "presentation-expedition-or-operation-invalid");
         }
 
         // The core operation query is intentionally bounded to one operation.
@@ -82,8 +87,8 @@ public sealed class GameplayOutcomePresentationQuery :
         return RenderPage(
             FilterOperationPage(source, cursor, filter),
             new NarrativePerspectiveContext(
-                default,
-                NarrativePerspectiveKind.Global,
+                expeditionId,
+                NarrativePerspectiveKind.Expedition,
                 locale),
             "원정 확정 기록",
             string.Empty);

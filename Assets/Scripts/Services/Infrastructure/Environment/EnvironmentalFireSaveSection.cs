@@ -8,7 +8,8 @@ public sealed class EnvironmentalFireSaveSection :
     IDungeonSaveSection,
     IDungeonSaveSectionPreflight,
     IDungeonStagedSaveSection,
-    IDungeonRollbackFreeSaveSection
+    IDungeonRollbackFreeSaveSection,
+    IDungeonSaveSectionVersionCompatibility
 {
     public const string Id = "environment.fire";
     private static readonly string[] Dependencies =
@@ -23,15 +24,26 @@ public sealed class EnvironmentalFireSaveSection :
 
     private readonly IEnvironmentalFirePersistence persistence;
     private readonly IPhysicalItemRestoreCandidateQuery physicalCandidates;
+    private readonly IEnvironmentalFireDamageOutcomePersistence damageOutcomes;
+    private readonly IProductionOutputLifecycleRestoreCandidatePublisher
+        lifecycleRestoreCandidates;
 
     public EnvironmentalFireSaveSection(
         IEnvironmentalFirePersistence persistence,
-        IPhysicalItemRestoreCandidateQuery physicalCandidates)
+        IPhysicalItemRestoreCandidateQuery physicalCandidates,
+        IEnvironmentalFireDamageOutcomePersistence damageOutcomes,
+        IProductionOutputLifecycleRestoreCandidatePublisher
+            lifecycleRestoreCandidates)
     {
         this.persistence = persistence
             ?? throw new ArgumentNullException(nameof(persistence));
         this.physicalCandidates = physicalCandidates
             ?? throw new ArgumentNullException(nameof(physicalCandidates));
+        this.damageOutcomes = damageOutcomes
+            ?? throw new ArgumentNullException(nameof(damageOutcomes));
+        this.lifecycleRestoreCandidates = lifecycleRestoreCandidates
+            ?? throw new ArgumentNullException(
+                nameof(lifecycleRestoreCandidates));
     }
 
     public string SectionId => Id;
@@ -40,7 +52,17 @@ public sealed class EnvironmentalFireSaveSection :
         DungeonSaveRestorePhase.LateRuntimeState;
     public IReadOnlyList<string> DependsOn => Dependencies;
 
-    public string Capture() => JsonUtility.ToJson(persistence.Capture());
+    public string Capture()
+    {
+        DungeonEnvironmentalFireSaveData payload = persistence.Capture();
+        payload.damageOperations = damageOutcomes.Capture()
+            .Select(value => value.Clone())
+            .ToList();
+        return JsonUtility.ToJson(payload);
+    }
+
+    public bool CanRestoreVersion(int sectionVersion) =>
+        sectionVersion is 2 or 3;
 
     public void ValidatePayload(
         string payloadJson,
@@ -70,10 +92,16 @@ public sealed class EnvironmentalFireSaveSection :
         DungeonEnvironmentalFireSaveData payload = Parse(payloadJson);
         EnvironmentalFireRestoreCandidate candidate =
             persistence.PrepareRestore(payload);
+        DungeonEnvironmentalFireSaveData canonical = candidate.Capture();
         ValidatePhysicalRestoreCandidate(payload, physicalCandidates);
         return new DungeonDelegateSaveRestoreStage(
             SectionId,
-            _ => persistence.Restore(candidate));
+            _ =>
+            {
+                lifecycleRestoreCandidates.SetFire(canonical);
+                persistence.Restore(candidate);
+                damageOutcomes.Restore(canonical.damageOperations);
+            });
     }
 
     public static void ValidatePhysicalRestoreCandidate(
@@ -257,18 +285,29 @@ public sealed class EnvironmentalFireSaveSection :
         if (string.IsNullOrWhiteSpace(payloadJson))
             throw new InvalidOperationException(
                 "Environmental-fire payload is empty.");
-        if (sectionVersion != SectionVersion)
+        if (sectionVersion != SectionVersion
+            && !CanRestoreVersion(sectionVersion))
             throw new InvalidOperationException(
                 $"Environmental-fire section version {sectionVersion} is unsupported; expected {SectionVersion}.");
-        DungeonStrictJsonShape.RequireTopLevelArrays(
-            SectionId,
-            payloadJson,
-            new[]
+        string[] requiredArrays = sectionVersion >= 4
+            ? new[]
+            {
+                "activeFires",
+                "history",
+                "processedCauses",
+                "suppressionOperations",
+                "damageOperations"
+            }
+            : new[]
             {
                 "activeFires",
                 "history",
                 "processedCauses",
                 "suppressionOperations"
-            });
+            };
+        DungeonStrictJsonShape.RequireTopLevelArrays(
+            SectionId,
+            payloadJson,
+            requiredArrays);
     }
 }

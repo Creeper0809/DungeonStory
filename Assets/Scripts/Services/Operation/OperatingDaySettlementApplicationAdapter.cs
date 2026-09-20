@@ -74,6 +74,10 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
     private IGameMoneyAccount moneyAccount;
     private IStockCategoryDefinitionCatalog stockCategoryCatalog;
     private IBuildingCategoryDefinitionCatalog buildingCategoryCatalog;
+    private IGameSessionStateProvider gameDataProvider;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private IGameSessionStateStore gameSessionState;
+    private TreasuryEconomyAggregateStateStore treasuryState;
     private IDisposable stockSupplySubscription;
     private IDisposable facilityVisitSubscription;
     private IDisposable facilityRevenueSubscription;
@@ -202,7 +206,7 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(facilityShopCatalog));
         this.runVariableReader = runVariableReader
             ?? throw new ArgumentNullException(nameof(runVariableReader));
-        _ = gameDataProvider
+        this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
@@ -224,6 +228,20 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
         SubscribeToScopedEvents();
     }
 
+    [Inject]
+    public void ConstructOutcomeTransactions(
+        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        IGameSessionStateStore gameSessionState,
+        TreasuryEconomyAggregateStateStore treasuryState)
+    {
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.gameSessionState = gameSessionState
+            ?? throw new ArgumentNullException(nameof(gameSessionState));
+        this.treasuryState = treasuryState
+            ?? throw new ArgumentNullException(nameof(treasuryState));
+    }
+
     public void OnTriggerEvent(OperatingDayStartedEvent eventType)
     {
         RequireDomain().BeginDay(eventType.day);
@@ -233,32 +251,175 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
     {
         OperatingDaySettlementDomain<OperatingDayReport, StockSupplyResult>
             domain = RequireDomain();
-        if (!domain.TryBeginSettlement(
-                eventType.day,
-                out OperatingDaySettlementRequest<StockSupplyResult> request))
+        if (outcomeTransactions == null
+            || gameSessionState == null
+            || treasuryState == null
+            || gameDataProvider == null
+            || !gameDataProvider.TryGetSessionState(out GameSessionState gameData)
+            || gameData?.day == null)
         {
+            throw new InvalidOperationException(
+                "Operating-day report outcome requires transaction, session, treasury, and current day authorities.");
+        }
+
+        int absoluteDay = Mathf.Max(0, gameData.day.Value);
+        string identity = "operating-day-report:day="
+            + Mathf.Max(1, eventType.day);
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.OperatingDayReportEvent,
+                identity,
+                absoluteDay,
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reserveFailure))
+        {
+            throw new InvalidOperationException(
+                "Operating-day report outcome reservation failed: "
+                + reserveFailure);
+        }
+
+        OperatingDaySettlementAggregateState<
+            OperatingDayReport,
+            StockSupplyResult> domainBefore;
+        GameSessionSnapshot sessionBefore;
+        TreasuryEconomyAggregateState treasuryBefore;
+        try
+        {
+            domainBefore = domain.CaptureOwnerState();
+            sessionBefore = gameData.Capture();
+            treasuryBefore = treasuryState.Current.Copy();
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            throw;
+        }
+        OperatingDaySettlementRequest<StockSupplyResult> request;
+        bool settlementStarted;
+        try
+        {
+            settlementStarted = domain.TryBeginSettlement(
+                eventType.day,
+                out request);
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            RestoreSettlementOwners(
+                domain,
+                domainBefore,
+                sessionBefore,
+                treasuryBefore);
+            throw;
+        }
+        if (!settlementStarted)
+        {
+            outcomeTransactions.Cancel(prepared);
             return;
         }
 
-        OperatingDayEconomyApplication economy = ApplyOperatingCostPorts(
-            request.Day);
-        OperatingDayCostTransition costs = domain.ResolveCostTransition(
-            request,
-            economy);
+        OperatingDaySettlementEffect<OperatingDayReport> effect;
+        OperatingDayCostTransition costs;
+        bool outcomeCommitted = false;
+        bool rollbackAttempted = false;
+        try
+        {
+            OperatingDayEconomyApplication economy = ApplyOperatingCostPorts(
+                request.Day);
+            costs = domain.ResolveCostTransition(request, economy);
+            request = domain.RefreshSettlementRequest(request);
+            OperatingDayReport report = BuildReport(request, costs);
+            effect = domain.CompleteSettlement(request, report, costs);
+            domain.FinishSettlement(request);
+
+            MigratedProducerOutcomeCommitResult committed =
+                outcomeTransactions.CommitSingleSubject(
+                    prepared,
+                    new MigratedProducerOutcomeSubject(
+                        MigratedProducerOutcomeIds.OperationKind,
+                        prepared.ResultKey.OperationId.Value,
+                        "영업일 " + request.Day,
+                        MigratedProducerOutcomeIds.OperationRole),
+                    CreateOperatingDayOutcomeSummary(effect.Report, costs));
+            if (!committed.DurablyCommitted)
+            {
+                rollbackAttempted = true;
+                RestoreSettlementOwners(
+                    domain,
+                    domainBefore,
+                    sessionBefore,
+                    treasuryBefore);
+                throw new InvalidOperationException(
+                    "Operating-day report outcome commit failed: "
+                    + committed.DetailCode);
+            }
+            outcomeCommitted = true;
+        }
+        catch
+        {
+            if (!outcomeCommitted && !rollbackAttempted)
+            {
+                outcomeTransactions.Cancel(prepared);
+                RestoreSettlementOwners(
+                    domain,
+                    domainBefore,
+                    sessionBefore,
+                    treasuryBefore);
+            }
+            throw;
+        }
+
         if (costs.HasWageShortfall)
         {
-            gameEventBus.RaiseAlert(
-                "\uC784\uAE08 \uCCB4\uBD88",
-                $"\uBBF8\uC9C0\uAE09 \uC784\uAE08 {costs.CarriedDebt}\uC774 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4. \uC9C1\uC6D0 \uBD88\uB9CC\uC774 \uC99D\uAC00\uD569\uB2C8\uB2E4.",
-                EventAlertImportance.High,
-                "\uACBD\uC81C");
+            PublishPostCommit(
+                () => gameEventBus.RaiseAlert(
+                    "\uC784\uAE08 \uCCB4\uBD88",
+                    $"\uBBF8\uC9C0\uAE09 \uC784\uAE08 {costs.CarriedDebt}\uC774 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4. \uC9C1\uC6D0 \uBD88\uB9CC\uC774 \uC99D\uAC00\uD569\uB2C8\uB2E4.",
+                    EventAlertImportance.High,
+                    "\uACBD\uC81C"),
+                "operating-day-wage-alert");
         }
-        request = domain.RefreshSettlementRequest(request);
-        OperatingDayReport report = BuildReport(request, costs);
-        OperatingDaySettlementEffect<OperatingDayReport> effect =
-            domain.CompleteSettlement(request, report, costs);
-        gameEventBus.Publish(new OperatingDayReportEvent(effect.Report));
-        domain.FinishSettlement(request);
+        PublishPostCommit(
+            () => gameEventBus.Publish(
+                new OperatingDayReportEvent(effect.Report)),
+            "operating-day-report-event");
+    }
+
+    private void RestoreSettlementOwners(
+        OperatingDaySettlementDomain<OperatingDayReport, StockSupplyResult> domain,
+        OperatingDaySettlementAggregateState<
+            OperatingDayReport,
+            StockSupplyResult> domainBefore,
+        GameSessionSnapshot sessionBefore,
+        TreasuryEconomyAggregateState treasuryBefore)
+    {
+        domain.RestoreOwnerState(domainBefore);
+        gameSessionState.Restore(sessionBefore);
+        treasuryState.Replace(treasuryBefore
+            ?? throw new ArgumentNullException(nameof(treasuryBefore)));
+    }
+
+    private static string CreateOperatingDayOutcomeSummary(
+        OperatingDayReport report,
+        OperatingDayCostTransition costs) =>
+        "영업일 정산 확정: day=" + (report?.day ?? 0)
+        + "; paid=" + costs.PaidAmount
+        + "; debt=" + costs.CarriedDebt
+        + "; closing-balance=" + costs.ClosingBalance;
+
+    private static void PublishPostCommit(Action observer, string label)
+    {
+        try
+        {
+            observer?.Invoke();
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(label + ":" + exception.GetType().Name);
+        }
     }
 
     public bool TryTakeEmergencyFunding(out string message)

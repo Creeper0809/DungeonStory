@@ -129,12 +129,6 @@ public sealed class DungeonSpaceExpansionPlayModeVerificationRunner : MonoBehavi
             TestGridAuthority gridAuthority =
                 new TestGridAuthority(CreateInitialGrid());
             events = new GameEventBus();
-            expansion = new DungeonSpaceExpansionRuntime(
-                events,
-                gridAuthority,
-                gridAuthority);
-            expansion.Start();
-
             researchRoot = new GameObject("Expansion Research Runtime Fixture");
             researchRoot.SetActive(false);
             BlueprintResearchRuntime research =
@@ -161,6 +155,15 @@ public sealed class DungeonSpaceExpansionPlayModeVerificationRunner : MonoBehavi
                 aggregateRootStore: new DungeonRuntimeAggregateRootStore(),
                 debugRules: DisabledDungeonDebugRuleQuery.Instance,
                 uiClock: new UnityUiClock());
+
+            expansion = new DungeonSpaceExpansionRuntime(
+                events,
+                gridAuthority,
+                gridAuthority,
+                EditorFixedGameCalendar.Instance,
+                new EditorDungeonSpaceExpansionOutcomeCommitter(),
+                new EditorBlueprintResearchStateService(research.State));
+            expansion.Start();
 
             facilityRoot = new GameObject("Expansion Research Facility Fixture");
             facilityRoot.SetActive(false);

@@ -328,9 +328,50 @@ public static class CombatEquipmentCraftTransactionFixture
             facility.RestorePersistentIdentity(
                 (BuildingInstanceId)"building:qa:combat-common-output");
             string facilityId = facility.RequirePersistentInstanceId().Value;
+            EvolutionGameplayOutcomeEditorFixture outcomes = new(
+                "run:combat-craft-quality-editor");
 
             ProductionDomainOutputPublicationDebugScenarios.DomainFixture unique =
                 new(runtimeObject: facility);
+            DeferringProductQualityOutcomeCommitter deferredQuality = new();
+            CombatEquipmentCraftOutputTransaction deferredTransaction = new(
+                new CombatEquipmentRuntimeStateStore(
+                    new DungeonRuntimeAggregateRootStore()),
+                new FixedBuildingWorld(facility),
+                ProductionDomainOutputPublicationDebugScenarios.Service(unique),
+                new FixedRejectedSaleDestination(
+                    new Vector2Int(14, 6),
+                    unique.Claims),
+                UnavailableEquipmentPhysicalItemGateway.Instance,
+                deferredQuality);
+            CombatEquipmentCraftOrderSaveData deferredOrder = new()
+            {
+                orderId = "combat-craft:quality-deferred",
+                definitionId = "weapon:dagger",
+                facilityPersistentId = facilityId,
+                qualityAttemptIndex = 0,
+                attemptOutcomeResolved = true,
+                resolvedQuality = CombatEquipmentQuality.Good,
+                resolvedMakerCharacterId = "character:qa:smith",
+                resolvedMakerDisplayName = "시험 대장장이",
+                resolvedAbsoluteDay = 4,
+                qualityOutcomeSchemaVersion = 1,
+                outputOperationId = CombatEquipmentCraftOutputOutbox
+                    .FormatOperationId(
+                        "combat-craft:quality-deferred",
+                        0),
+                outputPhase = CombatEquipmentCraftOutputPhase
+                    .ResolvedWaitingForPublication
+            };
+            ProductionDomainOutputPublicationResult deferred =
+                deferredTransaction.EnsureCommitted(deferredOrder);
+            if (deferred.Status != ProductionDomainOutputPublicationStatus.Pending
+                || deferredQuality.PrepareCalls != 1
+                || deferredOrder.qualityOutcomeCommitted
+                || unique.Query.GetAllStacks().Count != 0)
+            {
+                return false;
+            }
             CombatEquipmentCraftOutputTransaction uniqueTransaction = new(
                 new CombatEquipmentRuntimeStateStore(
                     new DungeonRuntimeAggregateRootStore()),
@@ -339,7 +380,8 @@ public static class CombatEquipmentCraftTransactionFixture
                 new FixedRejectedSaleDestination(
                     new Vector2Int(14, 6),
                     unique.Claims),
-                UnavailableEquipmentPhysicalItemGateway.Instance);
+                UnavailableEquipmentPhysicalItemGateway.Instance,
+                outcomes.Bridge);
             const string InstanceId =
                 "item-instance:combat-common-output:dagger:001";
             CombatEquipmentInstance prepared = new()
@@ -363,9 +405,17 @@ public static class CombatEquipmentCraftTransactionFixture
                 qualityAttemptIndex = 0,
                 attemptOutcomeResolved = true,
                 resolvedQuality = CombatEquipmentQuality.Normal,
+                resolvedMakerCharacterId = "character:qa:smith",
+                resolvedMakerDisplayName = "시험 대장장이",
+                resolvedAbsoluteDay = 4,
+                qualityOutcomeSchemaVersion = 1,
                 minimumQuality = CraftsmanshipQualityTier.Good,
                 rejectedDisposition = RejectedOutputDisposition.MarkForSale,
                 outputItemId = PhysicalItemIds.ForEquipment("weapon:dagger"),
+                outputOperationId = CombatEquipmentCraftOutputOutbox
+                    .FormatOperationId(
+                        "combat-craft:common-equipment",
+                        0),
                 outputQuantity = 1,
                 outputCapability = FreezeCapability(
                     CombatEquipmentCraftOutputCapability.OutputLineId,
@@ -425,7 +475,8 @@ public static class CombatEquipmentCraftTransactionFixture
                 new FixedRejectedSaleDestination(
                     new Vector2Int(14, 6),
                     ammo.Claims),
-                UnavailableEquipmentPhysicalItemGateway.Instance);
+                UnavailableEquipmentPhysicalItemGateway.Instance,
+                outcomes.Bridge);
             CombatEquipmentCraftOrderSaveData ammoOrder = new()
             {
                 orderId = "combat-craft:common-ammunition",
@@ -434,7 +485,15 @@ public static class CombatEquipmentCraftTransactionFixture
                 qualityAttemptIndex = 0,
                 attemptOutcomeResolved = true,
                 resolvedQuality = CombatEquipmentQuality.Normal,
+                resolvedMakerCharacterId = "character:qa:fletcher",
+                resolvedMakerDisplayName = "시험 화살장이",
+                resolvedAbsoluteDay = 4,
+                qualityOutcomeSchemaVersion = 1,
                 outputItemId = "item:qa:a",
+                outputOperationId = CombatEquipmentCraftOutputOutbox
+                    .FormatOperationId(
+                        "combat-craft:common-ammunition",
+                        0),
                 outputQuantity = 5,
                 outputCapability = FreezeCapability(
                     CombatAmmunitionCraftOutputCapability.OutputLineId,
@@ -450,6 +509,8 @@ public static class CombatEquipmentCraftTransactionFixture
             ProductionDomainOutputPublicationResult ammoCommit =
                 ammoTransaction.EnsureCommitted(ammoOrder);
             return ammoCommit.IsCommitted
+                && equipmentOrder.qualityOutcomeCommitted
+                && ammoOrder.qualityOutcomeCommitted
                 && ammoOrder.outputPublication.stacks.Count == 3
                 && !ammoOrder.outputPublication.releaseHasDestination
                 && ammoOrder.outputPublication.stacks.All(value =>
@@ -580,6 +641,34 @@ public static class CombatEquipmentCraftTransactionFixture
                 operationId,
                 StringComparison.Ordinal));
             return value != null;
+        }
+    }
+
+    private sealed class DeferringProductQualityOutcomeCommitter :
+        IProductQualityOutcomeCommitter
+    {
+        public int PrepareCalls { get; private set; }
+
+        public bool TryPrepare(
+            in ProductQualityOutcomeReceipt receipt,
+            out PreparedEvolutionOutcome prepared,
+            out string failureReason)
+        {
+            PrepareCalls++;
+            prepared = default;
+            failureReason = "injected-product-quality-capacity-deferral";
+            return false;
+        }
+
+        public void Cancel(in PreparedEvolutionOutcome prepared) { }
+
+        public bool TryCommit(
+            in PreparedEvolutionOutcome prepared,
+            long expectedOwnerRevision,
+            out string failureReason)
+        {
+            failureReason = "unexpected-product-quality-commit";
+            return false;
         }
     }
 

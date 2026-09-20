@@ -12,7 +12,8 @@ public sealed class ProductionBillOrderDependencies
         ProductionAggregateStateStore stateStore,
         IProductionInputDestinationClaimRuntime inputDestinationClaims,
         IProductionFacilityMutationEpochQuery facilityMutationEpoch,
-        IRecipeBalanceWorkCalculator balanceWorkCalculator = null)
+        IRecipeBalanceWorkCalculator balanceWorkCalculator = null,
+        IProductionCommandOutcomeCommitter commandOutcomes = null)
     {
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         Bridge = bridge ?? throw new ArgumentNullException(nameof(bridge));
@@ -25,6 +26,8 @@ public sealed class ProductionBillOrderDependencies
         FacilityMutationEpoch = facilityMutationEpoch
             ?? throw new ArgumentNullException(nameof(facilityMutationEpoch));
         BalanceWorkCalculator = balanceWorkCalculator;
+        CommandOutcomes = commandOutcomes
+            ?? MissingProductionCommandOutcomeCommitter.Instance;
     }
 
     public IResourceEconomyContentCatalog Catalog { get; }
@@ -34,6 +37,48 @@ public sealed class ProductionBillOrderDependencies
     public IProductionInputDestinationClaimRuntime InputDestinationClaims { get; }
     public IProductionFacilityMutationEpochQuery FacilityMutationEpoch { get; }
     public IRecipeBalanceWorkCalculator BalanceWorkCalculator { get; }
+    public IProductionCommandOutcomeCommitter CommandOutcomes { get; }
+}
+
+internal sealed class MissingProductionCommandOutcomeCommitter :
+    IProductionCommandOutcomeCommitter
+{
+    internal static readonly MissingProductionCommandOutcomeCommitter Instance =
+        new();
+
+    private MissingProductionCommandOutcomeCommitter()
+    {
+    }
+
+    public bool TryPrepare(
+        in ProductionCommandOutcomeSource source,
+        long ownerRevision,
+        out IPreparedProductionCommandOutcome prepared,
+        out string failureReason)
+    {
+        prepared = null;
+        failureReason = "production-command-outcome-committer-missing";
+        return false;
+    }
+
+    public ProductionCommandOutcomeCommitResult Commit(
+        IPreparedProductionCommandOutcome prepared) => new(
+        false,
+        "production-command-outcome-committer-missing");
+
+    public bool TryPreparePending(
+        ProductionCommandOutcomeOutboxSaveData pending,
+        out IPreparedProductionCommandOutcome prepared,
+        out string failureReason)
+    {
+        prepared = null;
+        failureReason = "production-command-outcome-committer-missing";
+        return false;
+    }
+
+    public void Cancel(IPreparedProductionCommandOutcome prepared)
+    {
+    }
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

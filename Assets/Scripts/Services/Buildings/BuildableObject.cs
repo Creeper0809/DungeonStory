@@ -116,6 +116,7 @@ public class BuildableObject : MonoBehaviour,
         spatialQuery ??= new BuildableObjectSpatialQuery(transform, this);
     public int CurrentUserCount => Occupancy.CurrentUserCount;
     public FacilityRuntimeState FacilityState => facilityState ??= new FacilityRuntimeState();
+    public long SynthesisOutcomeRevision => FacilityState.synthesisOutcomeRevision;
     internal IBuildingWorldRegistryPort WorldRegistry => worldRegistry;
     internal IBuildingItemStackPort WorldItemStackRuntime => worldItemStackRuntime;
     internal IBuildingAbilityRuntimeDispatcher AbilityRuntimeDispatcher =>
@@ -837,6 +838,11 @@ public class BuildableObject : MonoBehaviour,
     public void RestoreFacilityState(FacilityRuntimeState state) =>
         StateAndCapabilities.RestoreFacilityState(FacilityState, state);
 
+    public void SetSynthesisOutcomeRevision(long revision) =>
+        StateAndCapabilities.SetSynthesisOutcomeRevision(
+            FacilityState,
+            revision);
+
     public void RecordCompletedWorkCycle() =>
         StateAndCapabilities.RecordCompletedWorkCycle(FacilityState);
 
@@ -1286,15 +1292,25 @@ public class BuildableObject : MonoBehaviour,
 
     internal void RecordFacilityUse(IBuildingCharacterPort visitor)
     {
-        FacilityState.completedUses++;
+        (visitEvents ?? throw new InvalidOperationException(
+                $"{nameof(BuildableObject)} requires {nameof(IBuildingVisitEventPort)} injection."))
+            .CommitVisit(visitor, this);
+    }
+
+    internal void ApplyFacilityUseMutation()
+    {
+        if (FacilityState.completedUses == int.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"Facility '{RequirePersistentInstanceId().Value}' cannot record more visits.");
+        }
+
+        FacilityState.completedUses = checked(FacilityState.completedUses + 1);
         FacilityState.cleanliness = Mathf.Clamp(
             FacilityState.cleanliness - 1.5f,
             0f,
             100f);
         MarkFacilityDynamicStateDirty();
-        (visitEvents ?? throw new InvalidOperationException(
-                $"{nameof(BuildableObject)} requires {nameof(IBuildingVisitEventPort)} injection."))
-            .PublishVisit(visitor, this);
     }
 
     protected IGameClock GameClock => gameClock

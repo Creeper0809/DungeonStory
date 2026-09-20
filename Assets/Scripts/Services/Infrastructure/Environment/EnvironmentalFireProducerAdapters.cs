@@ -108,7 +108,9 @@ public sealed class ProcessAccidentEnvironmentalFireProducer :
                     EnvironmentalFireTargetKind.Building,
                     receipt.Facility.PersistentInstanceId.Value),
                 source.ignitionIntensity,
-                evidenceId));
+                evidenceId,
+                targetDisplayName: FacilityShopService.GetBuildingName(
+                    receipt.Facility.BuildingData)));
         if (result.Disposition ==
             EnvironmentalFireIgnitionDisposition.CauseConflict)
         {
@@ -330,7 +332,9 @@ public sealed class ActiveHeatEnvironmentalFireProducer : ITickable
                     EnvironmentalFireTargetKind.Building,
                     targetBuilding.PersistentInstanceId.Value),
                 source.ignitionIntensity,
-                evidenceId));
+                evidenceId,
+                targetDisplayName: FacilityShopService.GetBuildingName(
+                    targetBuilding.BuildingData)));
         if (result.Disposition ==
             EnvironmentalFireIgnitionDisposition.CauseConflict)
         {
@@ -438,7 +442,9 @@ public sealed class AuthoredFlameImpactEnvironmentalFireProducer :
                     ":position=",
                     report.TargetPosition.x,
                     ",",
-                    report.TargetPosition.y)));
+                    report.TargetPosition.y),
+                targetDisplayName: FacilityShopService.GetBuildingName(
+                    target.BuildingData)));
         if (result.Disposition ==
             EnvironmentalFireIgnitionDisposition.CauseConflict)
         {
@@ -565,7 +571,8 @@ public sealed class SeasonalFeedSelfHeatingEnvironmentalFireProducer :
                     new EnvironmentalFireTargetRef(
                         EnvironmentalFireTargetKind.ItemStack,
                         candidate.StackId),
-                    candidate.Quantity)));
+                    candidate.Quantity),
+                candidate.FacilityDisplayName));
         if (result.Disposition ==
             EnvironmentalFireIgnitionDisposition.CauseConflict)
         {

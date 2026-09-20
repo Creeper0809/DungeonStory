@@ -250,8 +250,12 @@ internal sealed class CaptiveEscapeAbilityUnityPort :
             out failureReason);
     }
 
-    public void CompleteEscape(string captiveId) =>
-        runtime.CompleteEscape(captiveId, Actor);
+    public bool CompleteEscape(string captiveId, out string failureReason) =>
+        runtime.CompleteEscape(
+            captiveId,
+            Actor,
+            string.Empty,
+            out failureReason);
 
     public void FailEscape(string captiveId, string reason) =>
         runtime.FailEscape(captiveId, Actor, reason);

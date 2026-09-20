@@ -32,13 +32,15 @@ public readonly struct FacilitySynthesisResult
         FacilitySynthesisRecipeSO recipe,
         BuildableObject resultBuilding,
         int inheritedLevel,
-        string message)
+        string message,
+        long outcomeOwnerRevision = 0L)
     {
         Success = success;
         Recipe = recipe;
         ResultBuilding = resultBuilding;
         InheritedLevel = Mathf.Max(1, inheritedLevel);
         Message = message ?? string.Empty;
+        OutcomeOwnerRevision = Math.Max(0L, outcomeOwnerRevision);
     }
 
     public bool Success { get; }
@@ -46,6 +48,7 @@ public readonly struct FacilitySynthesisResult
     public BuildableObject ResultBuilding { get; }
     public int InheritedLevel { get; }
     public string Message { get; }
+    public long OutcomeOwnerRevision { get; }
 }
 
 public struct FacilitySynthesisCompletedEvent

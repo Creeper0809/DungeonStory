@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -51,6 +52,7 @@ public sealed class ProductionBillRuntime :
     private readonly IProductionFacilityMutationEpochQuery facilityMutationEpoch;
     private readonly IGameClock clock;
     private readonly IRecipeBalanceWorkCalculator balanceWorkCalculator;
+    private readonly IProductionCommandOutcomeCommitter commandOutcomes;
     private WipTerminalCheckpointGcCandidate activeWipCheckpointGcCandidate;
     private int lastOutputAuthorityBuildingVersion = int.MinValue;
     private IReadOnlyList<ProductionBillRecord> bills => stateStore.Bills;
@@ -92,6 +94,7 @@ public sealed class ProductionBillRuntime :
         facilityMutationEpoch = order.FacilityMutationEpoch;
         clock = execution.Clock;
         balanceWorkCalculator = order.BalanceWorkCalculator;
+        commandOutcomes = order.CommandOutcomes;
     }
 
     public int Version => stateStore.BillVersion;
@@ -110,10 +113,27 @@ public sealed class ProductionBillRuntime :
                 ResolveFacility(record), items, outputPlanning, 100f) < 0))
             return ProductionBillCommandResult.Failed(new DomainFailure(FailureCode.ProductionBillUnavailable,
                 "quality-target-invalid-unsupported-or-cycle-in-progress"));
-        record.SetMinimumCraftQuality(minimumTier);
-        record.SetBlockedFailure(DomainFailure.None);
-        Touch(recipe.WorkTypeId, requestWorker: true);
-        return ProductionBillCommandResult.Success(billId);
+        if (record.minimumCraftQuality == minimumTier
+            && !record.blockedFailure.IsFailure)
+        {
+            return ProductionBillCommandResult.Success(billId);
+        }
+        IProductionBillConfigurationState snapshot =
+            record.CaptureConfigurationState();
+        return ExecuteRecordedBillCommand(
+            record,
+            recipe,
+            ProductionCommandOutcomeKind.MinimumCraftQualityChanged,
+            $"tier={record.minimumCraftQuality};blocked={(int)record.blockedFailure.Code}",
+            $"tier={minimumTier};blocked=0",
+            () =>
+            {
+                record.SetMinimumCraftQuality(minimumTier);
+                record.SetBlockedFailure(DomainFailure.None);
+            },
+            () => record.RestoreConfigurationState(snapshot),
+            recipe.WorkTypeId,
+            requestWorker: true);
     }
 
     private DomainFailure CheckQualityTarget(ProductionBillRecord record, ProductionRecipeSO recipe,
@@ -566,6 +586,32 @@ public sealed class ProductionBillRuntime :
                 : ProductionBatchStage.None,
             DestinationPrefix + billId.Value);
         record.SetOutputDestination(ResolveOutputDestinationId(facility));
+        long ownerRevision = stateStore.NextCommandOutcomeSequence;
+        if (ownerRevision <= 0L || ownerRevision == long.MaxValue)
+        {
+            return ProductionBillCommandResult.Failed(new DomainFailure(
+                FailureCode.ProductionBillUnavailable,
+                billId.Value,
+                "production-command-owner-revision-exhausted"));
+        }
+        ProductionCommandOutcomeSource outcomeSource = new(
+            ProductionCommandOutcomeKind.BillAdded,
+            billId.Value,
+            recipe.RecipeId,
+            recipe.DisplayName,
+            facilityId.Value,
+            facility.Position.x,
+            facility.Position.y,
+            "absent",
+            DescribeBillState(record));
+        if (!commandOutcomes.TryPrepare(
+                outcomeSource,
+                ownerRevision,
+                out IPreparedProductionCommandOutcome preparedOutcome,
+                out string outcomePrepareFailure))
+        {
+            return CommandOutcomeFailure(billId, outcomePrepareFailure);
+        }
         bool requiresInputDestination = RequiresPhysicalInputDestination(
             record,
             recipe,
@@ -580,6 +626,7 @@ public sealed class ProductionBillRuntime :
                     inputBufferMassGrams,
                     out string claimFailure))
             {
+                commandOutcomes.Cancel(preparedOutcome);
                 return ProductionBillCommandResult.Failed(
                     new DomainFailure(
                         FailureCode.ProductionBillUnavailable,
@@ -593,19 +640,26 @@ public sealed class ProductionBillRuntime :
             nextBillSequence = sequence + 1;
             stateStore.AddBill(record);
             RequestMissingInputs(record, recipe, facility);
-            Touch(recipe.WorkTypeId, requestWorker: false);
+            QueueCommittedCommandOutcome(
+                outcomeSource,
+                ownerRevision,
+                preparedOutcome);
         }
         catch
         {
+            stateStore.RemovePendingCommandOutcome(ownerRevision);
             items.ReleaseDestination(record.materialDestinationId, facility.Position);
             stateStore.RemoveBill(record);
             nextBillSequence = sequence;
+            stateStore.NextCommandOutcomeSequence = ownerRevision;
+            commandOutcomes.Cancel(preparedOutcome);
             RevokeInputDestinationClaimOrThrow(
                 record,
                 requiresInputDestination,
                 "rolled back after add failure");
             throw;
         }
+        Touch(recipe.WorkTypeId, requestWorker: false);
         return ProductionBillCommandResult.Success(
             billId,
             ProductionBillOutcomeCode.BillAdded);
@@ -657,73 +711,126 @@ public sealed class ProductionBillRuntime :
                     "prepared-output-routing-pending"));
         }
 
-        if (usesPreparedOutput)
+        long ownerRevision = stateStore.NextCommandOutcomeSequence;
+        if (inputFacility == null
+            || ownerRevision <= 0L
+            || ownerRevision == long.MaxValue)
         {
-            if (HasLegacyOutputAuthority(record))
+            return ProductionBillCommandResult.Failed(new DomainFailure(
+                FailureCode.ProductionBillUnavailable,
+                billId.Value,
+                inputFacility == null
+                    ? "production-command-facility-missing"
+                    : "production-command-owner-revision-exhausted"));
+        }
+        ProductionCommandOutcomeSource outcomeSource = new(
+            ProductionCommandOutcomeKind.BillRemoved,
+            record.billId.Value,
+            inputRecipe.RecipeId,
+            inputRecipe.DisplayName,
+            inputFacility.InstanceId.Value,
+            inputFacility.Position.x,
+            inputFacility.Position.y,
+            DescribeBillState(record),
+            "absent");
+        if (!commandOutcomes.TryPrepare(
+                outcomeSource,
+                ownerRevision,
+                out IPreparedProductionCommandOutcome preparedOutcome,
+                out string outcomePrepareFailure))
+        {
+            return CommandOutcomeFailure(billId, outcomePrepareFailure);
+        }
+
+        bool domainCommitted = false;
+        try
+        {
+            if (usesPreparedOutput)
             {
-                return ProductionBillCommandResult.Failed(
-                    PreparedOutputAuthorityConflict(record));
+                if (HasLegacyOutputAuthority(record))
+                {
+                    return ProductionBillCommandResult.Failed(
+                        PreparedOutputAuthorityConflict(record));
+                }
+                ProductionPreparedOutputReleaseResult release =
+                    preparedOutputExecution.Release(
+                        record,
+                        ProductionWipTerminalReason.Cancelled);
+                if (!release.IsValid
+                    || !release.Released
+                    || record.preparedOutput?.phase !=
+                        ProductionPreparedOutputPhase.Unresolved)
+                {
+                    DomainFailure preparedReleaseFailure = release.IsValid
+                        && release.Failure.IsFailure
+                            ? release.Failure
+                            : new DomainFailure(
+                                FailureCode.ProductionOutputUnavailable,
+                                record.billId.Value,
+                                release.IsValid && release.PhysicalBatchCommitted
+                                    ? "prepared-output-physical-batch-retained"
+                                    : release.IsValid && release.Released
+                                        ? "prepared-output-release-state-mismatch"
+                                        : "prepared-output-release-invalid-result");
+                    return ProductionBillCommandResult.Failed(
+                        preparedReleaseFailure);
+                }
             }
-            ProductionPreparedOutputReleaseResult release =
-                preparedOutputExecution.Release(
+
+            if (record.materialsConsumed
+                && !TryCommitWipTerminalDisposition(
                     record,
-                    ProductionWipTerminalReason.Cancelled);
-            if (!release.IsValid
-                || !release.Released
-                || record.preparedOutput?.phase !=
-                    ProductionPreparedOutputPhase.Unresolved)
+                    ProductionWipTerminalReason.Cancelled))
             {
-                DomainFailure preparedReleaseFailure = release.IsValid
-                    && release.Failure.IsFailure
-                        ? release.Failure
-                        : new DomainFailure(
-                            FailureCode.ProductionOutputUnavailable,
-                            record.billId.Value,
-                            release.IsValid && release.PhysicalBatchCommitted
-                                ? "prepared-output-physical-batch-retained"
-                                : release.IsValid && release.Released
-                                    ? "prepared-output-release-state-mismatch"
-                                    : "prepared-output-release-invalid-result");
                 return ProductionBillCommandResult.Failed(
-                    preparedReleaseFailure);
+                    new DomainFailure(
+                        FailureCode.ProductionBillUnavailable,
+                        billId.Value,
+                        "wip-terminal-receipt-conflict"));
             }
-        }
 
-        if (record.materialsConsumed
-            && !TryCommitWipTerminalDisposition(
+            if (requiresInputDestination
+                && !items.TryReleaseDestinationAtomically(
+                    record.materialDestinationId,
+                    ResolveFacility(record)?.Position ?? Vector2Int.zero,
+                    out _,
+                    out string releaseFailure))
+            {
+                return ProductionBillCommandResult.Failed(
+                    new DomainFailure(
+                        FailureCode.ProductionBillUnavailable,
+                        billId.Value,
+                        releaseFailure));
+            }
+
+            RevokeInputDestinationClaimOrThrow(
                 record,
-                ProductionWipTerminalReason.Cancelled))
-        {
-            return ProductionBillCommandResult.Failed(
-                new DomainFailure(
-                    FailureCode.ProductionBillUnavailable,
-                    billId.Value,
-                    "wip-terminal-receipt-conflict"));
+                requiresInputDestination,
+                "revoked during removal");
+            QueueCommittedCommandOutcome(
+                outcomeSource,
+                ownerRevision,
+                preparedOutcome,
+                deliverImmediately: false);
+            if (!stateStore.RemoveBill(record))
+            {
+                stateStore.RemovePendingCommandOutcome(ownerRevision);
+                stateStore.NextCommandOutcomeSequence = ownerRevision;
+                throw new InvalidOperationException(
+                    $"Production bill '{billId.Value}' vanished during removal commit.");
+            }
+            domainCommitted = true;
+            DeliverPendingCommandOutcome(ownerRevision, preparedOutcome);
+            Touch(default, requestWorker: false);
+            return ProductionBillCommandResult.Success(
+                billId,
+                ProductionBillOutcomeCode.BillRemoved);
         }
-
-        if (requiresInputDestination
-            && !items.TryReleaseDestinationAtomically(
-                record.materialDestinationId,
-                ResolveFacility(record)?.Position ?? Vector2Int.zero,
-                out _,
-                out string releaseFailure))
+        finally
         {
-            return ProductionBillCommandResult.Failed(
-                new DomainFailure(
-                    FailureCode.ProductionBillUnavailable,
-                    billId.Value,
-                    releaseFailure));
+            if (!domainCommitted)
+                commandOutcomes.Cancel(preparedOutcome);
         }
-
-        RevokeInputDestinationClaimOrThrow(
-            record,
-            requiresInputDestination,
-            "revoked during removal");
-        stateStore.RemoveBill(record);
-        Touch(default, requestWorker: false);
-        return ProductionBillCommandResult.Success(
-            billId,
-            ProductionBillOutcomeCode.BillRemoved);
     }
 
     public ProductionBillCommandResult MoveBill(
@@ -753,12 +860,20 @@ public sealed class ProductionBillRuntime :
         }
 
         ProductionBillRecord anchor = facilityBills[clampedTarget];
-        stateStore.MoveBill(
+        ProductionRecipeSO recipe = ResolveRecipe(record);
+        return ExecuteRecordedBillCommand(
             record,
-            anchor,
-            insertAfter: currentLocalIndex < clampedTarget);
-        Touch(default, requestWorker: false);
-        return ProductionBillCommandResult.Success(billId);
+            recipe,
+            ProductionCommandOutcomeKind.BillPriorityChanged,
+            $"local-index={currentLocalIndex}",
+            $"local-index={clampedTarget}",
+            () => stateStore.MoveBill(
+                record,
+                anchor,
+                insertAfter: currentLocalIndex < clampedTarget),
+            () => RestoreFacilityBillIndex(record, currentLocalIndex),
+            default,
+            requestWorker: false);
     }
 
     public ProductionBillCommandResult SetSuspended(
@@ -776,9 +891,24 @@ public sealed class ProductionBillRuntime :
         if (TryGetFrozenMutationFailure(record, out var frozen))
             return frozen;
 
-        record.SetSuspended(suspended);
-        Touch(ResolveRecipe(record)?.WorkTypeId ?? default, requestWorker: !suspended);
-        return ProductionBillCommandResult.Success(billId);
+        if (record.suspended == suspended
+            && string.IsNullOrEmpty(record.reservedWorkerId))
+        {
+            return ProductionBillCommandResult.Success(billId);
+        }
+        ProductionRecipeSO recipe = ResolveRecipe(record);
+        IProductionBillConfigurationState snapshot =
+            record.CaptureConfigurationState();
+        return ExecuteRecordedBillCommand(
+            record,
+            recipe,
+            ProductionCommandOutcomeKind.SuspensionChanged,
+            $"suspended={Bool(record.suspended)};reserved-worker={Optional(record.reservedWorkerId)}",
+            $"suspended={Bool(suspended)};reserved-worker=none",
+            () => record.SetSuspended(suspended),
+            () => record.RestoreConfigurationState(snapshot),
+            recipe?.WorkTypeId ?? default,
+            requestWorker: !suspended);
     }
 
     public ProductionBillCommandResult SetStockPolicy(
@@ -806,10 +936,41 @@ public sealed class ProductionBillRuntime :
                     record.buildingInstanceId.Value));
         }
 
-        record.SetStockPolicy(minimumReserve, targetStock);
-        QueueOrApplyModeTransition(record, ProductionOrderMode.MaintainStock);
-        Touch(ResolveRecipe(record)?.WorkTypeId ?? default, requestWorker: true);
-        return ProductionBillCommandResult.Success(billId);
+        int normalizedMinimum = Math.Max(0, minimumReserve);
+        int normalizedTarget = Math.Max(normalizedMinimum, targetStock);
+        bool transitionChanges = WouldModeTransitionChange(
+            record,
+            ProductionOrderMode.MaintainStock);
+        if (record.minimumReserve == normalizedMinimum
+            && record.targetStock == normalizedTarget
+            && !transitionChanges)
+        {
+            return ProductionBillCommandResult.Success(billId);
+        }
+        ProductionRecipeSO recipe = ResolveRecipe(record);
+        IProductionBillConfigurationState snapshot =
+            record.CaptureConfigurationState();
+        return ExecuteRecordedBillCommand(
+            record,
+            recipe,
+            ProductionCommandOutcomeKind.StockPolicyChanged,
+            DescribeOrderState(record),
+            DescribeOrderStateAfter(
+                record,
+                ProductionOrderMode.MaintainStock,
+                record.remainingCycles,
+                normalizedMinimum,
+                normalizedTarget),
+            () =>
+            {
+                record.SetStockPolicy(minimumReserve, targetStock);
+                QueueOrApplyModeTransition(
+                    record,
+                    ProductionOrderMode.MaintainStock);
+            },
+            () => record.RestoreConfigurationState(snapshot),
+            recipe?.WorkTypeId ?? default,
+            requestWorker: true);
     }
 
     public ProductionBillCommandResult SetOrderMode(
@@ -837,21 +998,57 @@ public sealed class ProductionBillRuntime :
                     record.buildingInstanceId.Value));
         }
 
+        int normalizedRemaining = record.remainingCycles;
+        int normalizedMinimum = record.minimumReserve;
+        int normalizedTarget = record.targetStock;
         if (mode == ProductionOrderMode.RepeatCount)
-        {
-            record.SetRepeatCount(Mathf.Max(1, amount));
-        }
+            normalizedRemaining = Mathf.Max(1, amount);
         else if (mode == ProductionOrderMode.MaintainStock)
         {
-            int target = Mathf.Max(1, amount);
-            record.SetStockPolicy(
-                Mathf.Min(record.minimumReserve, target),
-                target);
+            normalizedTarget = Mathf.Max(1, amount);
+            normalizedMinimum = Mathf.Min(record.minimumReserve, normalizedTarget);
+        }
+        if (record.remainingCycles == normalizedRemaining
+            && record.minimumReserve == normalizedMinimum
+            && record.targetStock == normalizedTarget
+            && !WouldModeTransitionChange(record, mode))
+        {
+            return ProductionBillCommandResult.Success(billId);
         }
 
-        QueueOrApplyModeTransition(record, mode);
-        Touch(ResolveRecipe(record)?.WorkTypeId ?? default, requestWorker: true);
-        return ProductionBillCommandResult.Success(billId);
+        ProductionRecipeSO recipe = ResolveRecipe(record);
+        IProductionBillConfigurationState snapshot =
+            record.CaptureConfigurationState();
+        return ExecuteRecordedBillCommand(
+            record,
+            recipe,
+            ProductionCommandOutcomeKind.OrderModeChanged,
+            DescribeOrderState(record),
+            DescribeOrderStateAfter(
+                record,
+                mode,
+                normalizedRemaining,
+                normalizedMinimum,
+                normalizedTarget),
+            () =>
+            {
+                if (mode == ProductionOrderMode.RepeatCount)
+                {
+                    record.SetRepeatCount(Mathf.Max(1, amount));
+                }
+                else if (mode == ProductionOrderMode.MaintainStock)
+                {
+                    int target = Mathf.Max(1, amount);
+                    record.SetStockPolicy(
+                        Mathf.Min(record.minimumReserve, target),
+                        target);
+                }
+
+                QueueOrApplyModeTransition(record, mode);
+            },
+            () => record.RestoreConfigurationState(snapshot),
+            recipe?.WorkTypeId ?? default,
+            requestWorker: true);
     }
 
     public ProductionBillCommandResult SetDistributionPolicy(
@@ -870,14 +1067,33 @@ public sealed class ProductionBillRuntime :
         if (TryGetFrozenMutationFailure(record, out var frozen))
             return frozen;
 
-        record.ReplaceDistributionPolicy(mode, (routes
+        ProductionConsumerRoutePolicy[] normalizedRoutes = (routes
                 ?? Array.Empty<ProductionConsumerRoutePolicy>())
             .Where(route => route != null
                 && !string.IsNullOrWhiteSpace(route.consumerId))
             .GroupBy(route => route.consumerId.Trim(), StringComparer.Ordinal)
-            .Select(group => group.First().Clone()));
-        Touch(default, requestWorker: false);
-        return ProductionBillCommandResult.Success(billId);
+            .Select(group => group.First().Clone())
+            .ToArray();
+        string beforePolicy = DescribeDistributionPolicy(
+            record.distributionMode,
+            record.routePolicies);
+        string afterPolicy = DescribeDistributionPolicy(mode, normalizedRoutes);
+        if (string.Equals(beforePolicy, afterPolicy, StringComparison.Ordinal))
+            return ProductionBillCommandResult.Success(billId);
+
+        ProductionRecipeSO recipe = ResolveRecipe(record);
+        IProductionBillConfigurationState snapshot =
+            record.CaptureConfigurationState();
+        return ExecuteRecordedBillCommand(
+            record,
+            recipe,
+            ProductionCommandOutcomeKind.DistributionPolicyChanged,
+            beforePolicy,
+            afterPolicy,
+            () => record.ReplaceDistributionPolicy(mode, normalizedRoutes),
+            () => record.RestoreConfigurationState(snapshot),
+            default,
+            requestWorker: false);
     }
 
     public ProductionBillCommandResult SetWorkerPolicy(
@@ -892,10 +1108,32 @@ public sealed class ProductionBillRuntime :
         }
         if (TryGetFrozenMutationFailure(record, out var frozen))
             return frozen;
-        record.SetWorkerPolicy(policy);
-        record.SetReservedWorker(string.Empty);
-        Touch(ResolveRecipe(record)?.WorkTypeId ?? default, requestWorker: true);
-        return ProductionBillCommandResult.Success(billId);
+        WorkerSelectionPolicySaveData normalized = policy?.CloneNormalized()
+            ?? WorkerSelectionPolicySaveData.Anyone();
+        string beforePolicy = DescribeWorkerPolicy(
+            record.workerPolicy,
+            record.reservedWorkerId);
+        string afterPolicy = DescribeWorkerPolicy(normalized, string.Empty);
+        if (string.Equals(beforePolicy, afterPolicy, StringComparison.Ordinal))
+            return ProductionBillCommandResult.Success(billId);
+
+        ProductionRecipeSO recipe = ResolveRecipe(record);
+        IProductionBillConfigurationState snapshot =
+            record.CaptureConfigurationState();
+        return ExecuteRecordedBillCommand(
+            record,
+            recipe,
+            ProductionCommandOutcomeKind.WorkerPolicyChanged,
+            beforePolicy,
+            afterPolicy,
+            () =>
+            {
+                record.SetWorkerPolicy(normalized);
+                record.SetReservedWorker(string.Empty);
+            },
+            () => record.RestoreConfigurationState(snapshot),
+            recipe?.WorkTypeId ?? default,
+            requestWorker: true);
     }
 
     public ProductionBillCommandResult SetEmergencyWorker(
@@ -925,19 +1163,43 @@ public sealed class ProductionBillRuntime :
                     normalized));
         }
 
-        record.SetEmergencyWorker(normalized);
-        if (normalized.Length > 0)
-        {
-            record.SetWorkerPolicy(new WorkerSelectionPolicySaveData
+        WorkerSelectionPolicySaveData resultingPolicy = normalized.Length > 0
+            ? new WorkerSelectionPolicySaveData
             {
                 mode = WorkerSelectionMode.SpecificCharacters,
                 sortMode = WorkerCandidateSortMode.SpecificThenBestExpectedQuality,
                 specificCharacterIds = new List<string> { normalized }
-            });
-        }
-        record.SetReservedWorker(string.Empty);
-        Touch(ResolveRecipe(record)?.WorkTypeId ?? default, requestWorker: true);
-        return ProductionBillCommandResult.Success(billId);
+            }.CloneNormalized()
+            : record.workerPolicy?.CloneNormalized()
+                ?? WorkerSelectionPolicySaveData.Anyone();
+        string beforeState = "emergency=" + Optional(record.emergencyWorkerId)
+            + ";" + DescribeWorkerPolicy(
+                record.workerPolicy,
+                record.reservedWorkerId);
+        string afterState = "emergency=" + Optional(normalized)
+            + ";" + DescribeWorkerPolicy(resultingPolicy, string.Empty);
+        if (string.Equals(beforeState, afterState, StringComparison.Ordinal))
+            return ProductionBillCommandResult.Success(billId);
+
+        ProductionRecipeSO recipe = ResolveRecipe(record);
+        IProductionBillConfigurationState snapshot =
+            record.CaptureConfigurationState();
+        return ExecuteRecordedBillCommand(
+            record,
+            recipe,
+            ProductionCommandOutcomeKind.EmergencyWorkerChanged,
+            beforeState,
+            afterState,
+            () =>
+            {
+                record.SetEmergencyWorker(normalized);
+                if (normalized.Length > 0)
+                    record.SetWorkerPolicy(resultingPolicy);
+                record.SetReservedWorker(string.Empty);
+            },
+            () => record.RestoreConfigurationState(snapshot),
+            recipe?.WorkTypeId ?? default,
+            requestWorker: true);
     }
 
     public bool HasStockSensor(ProductionFacilityHandle facility)
@@ -950,9 +1212,35 @@ public sealed class ProductionBillRuntime :
     {
         if (TryGetFrozenMutationFailure(facility, out var frozen))
             return frozen;
+        bool wasInstalled = stockSensors.Has(facility);
+        if (wasInstalled)
+            return stockSensors.RequestInstallation(facility);
+        if (!TryPrepareFacilityCommandOutcome(
+                facility,
+                ProductionCommandOutcomeKind.StockSensorInstalled,
+                "not-installed",
+                "installed",
+                out ProductionCommandOutcomeSource outcomeSource,
+                out long ownerRevision,
+                out IPreparedProductionCommandOutcome prepared,
+                out ProductionBillCommandResult prepareFailure))
+        {
+            return prepareFailure;
+        }
         int version = stockSensors.Version;
         ProductionBillCommandResult result =
             stockSensors.RequestInstallation(facility);
+        if (!wasInstalled && stockSensors.Has(facility))
+        {
+            QueueCommittedCommandOutcome(
+                outcomeSource,
+                ownerRevision,
+                prepared);
+        }
+        else
+        {
+            commandOutcomes.Cancel(prepared);
+        }
         if (stockSensors.Version != version)
         {
             Touch(default, requestWorker: false);
@@ -966,8 +1254,34 @@ public sealed class ProductionBillRuntime :
     {
         if (TryGetFrozenMutationFailure(facility, out var frozen))
             return frozen;
+        bool wasInstalled = stockSensors.Has(facility);
+        if (!wasInstalled)
+            return stockSensors.Remove(facility);
+        if (!TryPrepareFacilityCommandOutcome(
+                facility,
+                ProductionCommandOutcomeKind.StockSensorRemoved,
+                "installed",
+                "removed",
+                out ProductionCommandOutcomeSource outcomeSource,
+                out long ownerRevision,
+                out IPreparedProductionCommandOutcome prepared,
+                out ProductionBillCommandResult prepareFailure))
+        {
+            return prepareFailure;
+        }
         int version = stockSensors.Version;
         ProductionBillCommandResult result = stockSensors.Remove(facility);
+        if (wasInstalled && !stockSensors.Has(facility))
+        {
+            QueueCommittedCommandOutcome(
+                outcomeSource,
+                ownerRevision,
+                prepared);
+        }
+        else
+        {
+            commandOutcomes.Cancel(prepared);
+        }
         if (stockSensors.Version != version)
         {
             Touch(default, requestWorker: false);
@@ -981,8 +1295,34 @@ public sealed class ProductionBillRuntime :
     {
         if (TryGetFrozenMutationFailure(facility, out var frozen))
             return frozen;
+        bool wasAcknowledged = stockSensors.IsAcknowledged(facility);
+        if (wasAcknowledged)
+            return stockSensors.Acknowledge(facility);
+        if (!TryPrepareFacilityCommandOutcome(
+                facility,
+                ProductionCommandOutcomeKind.StockSensorUnlockAcknowledged,
+                "unacknowledged",
+                "acknowledged",
+                out ProductionCommandOutcomeSource outcomeSource,
+                out long ownerRevision,
+                out IPreparedProductionCommandOutcome prepared,
+                out ProductionBillCommandResult prepareFailure))
+        {
+            return prepareFailure;
+        }
         int version = stockSensors.Version;
         ProductionBillCommandResult result = stockSensors.Acknowledge(facility);
+        if (!wasAcknowledged && stockSensors.IsAcknowledged(facility))
+        {
+            QueueCommittedCommandOutcome(
+                outcomeSource,
+                ownerRevision,
+                prepared);
+        }
+        else
+        {
+            commandOutcomes.Cancel(prepared);
+        }
         if (stockSensors.Version != version)
         {
             Touch(default, requestWorker: false);
@@ -1663,6 +2003,7 @@ public sealed class ProductionBillRuntime :
 
     public void Tick()
     {
+        FlushPendingCommandOutcomes();
         ReconcileOutputDestinationAuthorities();
         if (clock.IsPaused || clock.DeltaTime <= 0f)
         {
@@ -2161,10 +2502,44 @@ public sealed class ProductionBillRuntime :
 
     private void FinalizeDeliveredStockSensors()
     {
+        HashSet<string> installedBefore = stockSensors.InstalledFacilityIds
+            .ToHashSet(StringComparer.Ordinal);
         int version = stockSensors.Version;
         stockSensors.FinalizeDeliveredSensors();
         if (stockSensors.Version != version)
         {
+            HashSet<string> installedAfter = stockSensors.InstalledFacilityIds
+                .ToHashSet(StringComparer.Ordinal);
+            Dictionary<string, ProductionFacilityHandle> facilities =
+                (items.Facilities ?? Array.Empty<ProductionFacilityHandle>())
+                .Where(value => value != null && value.InstanceId.IsValid)
+                .GroupBy(value => value.InstanceId.Value, StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.First(),
+                    StringComparer.Ordinal);
+            foreach (string facilityId in installedAfter
+                         .Except(installedBefore, StringComparer.Ordinal)
+                         .OrderBy(value => value, StringComparer.Ordinal))
+            {
+                RecordCommittedSensorOutcomeAfterDomain(
+                    facilities,
+                    facilityId,
+                    ProductionCommandOutcomeKind.StockSensorInstalled,
+                    "not-installed",
+                    "installed");
+            }
+            foreach (string facilityId in installedBefore
+                         .Except(installedAfter, StringComparer.Ordinal)
+                         .OrderBy(value => value, StringComparer.Ordinal))
+            {
+                RecordCommittedSensorOutcomeAfterDomain(
+                    facilities,
+                    facilityId,
+                    ProductionCommandOutcomeKind.StockSensorRemoved,
+                    "installed",
+                    "removed");
+            }
             Touch(default, requestWorker: false);
         }
     }
@@ -2667,6 +3042,8 @@ public sealed class ProductionBillRuntime :
     {
         return ProductionBillStateCodec.Capture(
             nextBillSequence,
+            stateStore.NextCommandOutcomeSequence,
+            stateStore.PendingCommandOutcomes,
             bills,
             stockSensors.InstalledFacilityIds,
             stockSensors.AcknowledgedFacilityIds,
@@ -3018,6 +3395,419 @@ public sealed class ProductionBillRuntime :
             { get; }
         internal bool Published { get; set; }
     }
+
+    private void RestoreFacilityBillIndex(
+        ProductionBillRecord record,
+        int targetLocalIndex)
+    {
+        List<ProductionBillRecord> facilityBills = bills
+            .Where(candidate => candidate.buildingInstanceId.Equals(
+                record.buildingInstanceId))
+            .ToList();
+        int currentLocalIndex = facilityBills.IndexOf(record);
+        int clampedTarget = Mathf.Clamp(
+            targetLocalIndex,
+            0,
+            facilityBills.Count - 1);
+        if (currentLocalIndex == clampedTarget) return;
+        ProductionBillRecord anchor = facilityBills[clampedTarget];
+        stateStore.MoveBill(
+            record,
+            anchor,
+            insertAfter: currentLocalIndex < clampedTarget);
+    }
+
+    private static bool WouldModeTransitionChange(
+        ProductionBillRecord record,
+        ProductionOrderMode target)
+    {
+        if (IsCycleActive(record))
+        {
+            return !record.hasPendingModeTransition
+                || record.pendingMode != target;
+        }
+        return record.mode != target || record.hasPendingModeTransition;
+    }
+
+    private static bool IsCycleActive(ProductionBillRecord record) =>
+        record.materialsConsumed
+        || record.completedWork > 0f
+        || record.batchStage is ProductionBatchStage.Processing
+            or ProductionBatchStage.Finishing;
+
+    private static string DescribeOrderState(ProductionBillRecord record) =>
+        DescribeOrderState(
+            record.mode,
+            record.remainingCycles,
+            record.minimumReserve,
+            record.targetStock,
+            record.hasPendingModeTransition,
+            record.pendingMode);
+
+    private static string DescribeOrderStateAfter(
+        ProductionBillRecord record,
+        ProductionOrderMode requestedMode,
+        int remainingCycles,
+        int minimumReserve,
+        int targetStock)
+    {
+        bool active = IsCycleActive(record);
+        return DescribeOrderState(
+            active ? record.mode : requestedMode,
+            remainingCycles,
+            minimumReserve,
+            targetStock,
+            active,
+            active ? requestedMode : record.pendingMode);
+    }
+
+    private static string DescribeOrderState(
+        ProductionOrderMode mode,
+        int remainingCycles,
+        int minimumReserve,
+        int targetStock,
+        bool hasPendingMode,
+        ProductionOrderMode pendingMode) =>
+        $"mode={(int)mode};remaining={remainingCycles};minimum={minimumReserve};target={targetStock};pending={Bool(hasPendingMode)};pending-mode={(hasPendingMode ? (int)pendingMode : -1)}";
+
+    private static string DescribeBillState(ProductionBillRecord record) =>
+        string.Join(";",
+            DescribeOrderState(record),
+            "suspended=" + Bool(record.suspended),
+            "minimum-quality=" + record.minimumCraftQuality,
+            "distribution=" + (int)record.distributionMode,
+            "worker-mode=" + (int)(record.workerPolicy?.mode
+                ?? WorkerSelectionMode.Anyone),
+            "emergency-worker=" + Optional(record.emergencyWorkerId));
+
+    private static string DescribeDistributionPolicy(
+        ProductionDistributionMode mode,
+        IEnumerable<ProductionConsumerRoutePolicy> routes)
+    {
+        string values = string.Join(",", (routes
+                ?? Array.Empty<ProductionConsumerRoutePolicy>())
+            .Where(value => value != null)
+            .Select(value => value.Clone())
+            .Select(value => string.Join("|",
+                value.consumerId,
+                Bool(value.enabled),
+                value.minimumReserve,
+                value.targetStock,
+                value.priority,
+                value.weight,
+                value.waitingSeconds.ToString("R", CultureInfo.InvariantCulture))));
+        return $"mode={(int)mode};routes=[{values}]";
+    }
+
+    private static string DescribeWorkerPolicy(
+        WorkerSelectionPolicySaveData policy,
+        string reservedWorkerId)
+    {
+        WorkerSelectionPolicySaveData value = policy?.CloneNormalized()
+            ?? WorkerSelectionPolicySaveData.Anyone();
+        return string.Join(";",
+            $"mode={(int)value.mode}",
+            $"match={(int)value.matchMode}",
+            $"sort={(int)value.sortMode}",
+            "specific=" + string.Join(",", value.specificCharacterIds),
+            "excluded=" + string.Join(",", value.excludedCharacterIds),
+            "skill=" + Optional(value.minimumSkillId),
+            $"skill-xp={value.minimumSkillExperience}",
+            $"career={value.minimumCareerRank}",
+            "required-traits=" + string.Join(",", value.requiredTraitIds),
+            "excluded-traits=" + string.Join(",", value.excludedTraitIds),
+            "reserved-worker=" + Optional(reservedWorkerId));
+    }
+
+    private static string Bool(bool value) => value ? "true" : "false";
+    private static string Optional(string value) =>
+        string.IsNullOrWhiteSpace(value) ? "none" : value.Trim();
+
+    private void QueueCommittedCommandOutcome(
+        in ProductionCommandOutcomeSource source,
+        long ownerRevision,
+        IPreparedProductionCommandOutcome prepared,
+        bool deliverImmediately = true)
+    {
+        if (prepared == null
+            || prepared.OwnerRevision != ownerRevision
+            || ownerRevision != stateStore.NextCommandOutcomeSequence
+            || ownerRevision == long.MaxValue
+            || stateStore.TryGetPendingCommandOutcome(ownerRevision, out _))
+        {
+            throw new InvalidOperationException(
+                "Production command outcome outbox owner revision is stale or conflicting.");
+        }
+        ProductionCommandOutcomeOutboxSaveData pending =
+            ProductionCommandOutcomeOutboxSaveData.Create(
+                source,
+                ownerRevision,
+                prepared.FrozenContext);
+        stateStore.SetPendingCommandOutcome(pending);
+        stateStore.NextCommandOutcomeSequence = checked(ownerRevision + 1L);
+        if (deliverImmediately)
+            DeliverPendingCommandOutcome(ownerRevision, prepared);
+    }
+
+    private bool TryPrepareFacilityCommandOutcome(
+        ProductionFacilityHandle facility,
+        ProductionCommandOutcomeKind kind,
+        string beforeValue,
+        string afterValue,
+        out ProductionCommandOutcomeSource source,
+        out long ownerRevision,
+        out IPreparedProductionCommandOutcome prepared,
+        out ProductionBillCommandResult failure)
+    {
+        source = default;
+        prepared = null;
+        ownerRevision = stateStore.NextCommandOutcomeSequence;
+        if (facility == null
+            || facility.IsDestroyed
+            || !facility.InstanceId.IsValid
+            || ownerRevision <= 0L
+            || ownerRevision == long.MaxValue)
+        {
+            failure = ProductionBillCommandResult.Failed(new DomainFailure(
+                FailureCode.ProductionBillUnavailable,
+                facility?.InstanceId.Value ?? string.Empty,
+                facility == null || facility.IsDestroyed
+                    ? "production-command-facility-missing"
+                    : "production-command-owner-revision-exhausted"));
+            return false;
+        }
+        try
+        {
+            source = new ProductionCommandOutcomeSource(
+                kind,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                facility.InstanceId.Value,
+                facility.Position.x,
+                facility.Position.y,
+                beforeValue,
+                afterValue);
+            if (!commandOutcomes.TryPrepare(
+                    source,
+                    ownerRevision,
+                    out prepared,
+                    out string prepareFailure))
+            {
+                failure = CommandOutcomeFailure(default, prepareFailure);
+                return false;
+            }
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            failure = CommandOutcomeFailure(
+                default,
+                "production-command-prepare-exception:"
+                + exception.GetType().Name);
+            return false;
+        }
+        failure = null;
+        return true;
+    }
+
+    private void RecordCommittedSensorOutcomeAfterDomain(
+        IReadOnlyDictionary<string, ProductionFacilityHandle> facilities,
+        string facilityId,
+        ProductionCommandOutcomeKind kind,
+        string beforeValue,
+        string afterValue)
+    {
+        ProductionBillCommandResult failure = null;
+        if (facilities == null
+            || !facilities.TryGetValue(
+                facilityId,
+                out ProductionFacilityHandle facility)
+            || !TryPrepareFacilityCommandOutcome(
+                facility,
+                kind,
+                beforeValue,
+                afterValue,
+                out ProductionCommandOutcomeSource source,
+                out long ownerRevision,
+                out IPreparedProductionCommandOutcome prepared,
+                out failure))
+        {
+            Debug.LogError(
+                "Committed stock-sensor state has no production command outcome: "
+                + facilityId + ":"
+                + (failure != null && failure.Failure.Parameters.Length > 0
+                    ? failure.Failure.Parameters[0]
+                    : "facility-or-outcome-preparation-missing"));
+            return;
+        }
+        QueueCommittedCommandOutcome(source, ownerRevision, prepared);
+    }
+
+    private void DeliverPendingCommandOutcome(
+        long ownerRevision,
+        IPreparedProductionCommandOutcome prepared = null)
+    {
+        if (!stateStore.TryGetPendingCommandOutcome(
+                ownerRevision,
+                out ProductionCommandOutcomeOutboxSaveData pending))
+        {
+            return;
+        }
+        try
+        {
+            IPreparedProductionCommandOutcome token = prepared;
+            if (token == null
+                && !commandOutcomes.TryPreparePending(
+                    pending,
+                    out token,
+                    out string prepareFailure))
+            {
+                Debug.LogError(
+                    "Production command outcome remains pending: "
+                    + ownerRevision + ":" + prepareFailure);
+                return;
+            }
+            ProductionCommandOutcomeCommitResult result =
+                commandOutcomes.Commit(token);
+            if (result.DurablyCommitted)
+            {
+                stateStore.RemovePendingCommandOutcome(ownerRevision);
+                return;
+            }
+            Debug.LogError(
+                "Production command outcome remains pending after commit rejection: "
+                + ownerRevision + ":" + result.DetailCode);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                "Production command outcome delivery threw and remains pending: "
+                + ownerRevision + ":" + exception.GetType().Name);
+        }
+    }
+
+    private void FlushPendingCommandOutcomes()
+    {
+        foreach (ProductionCommandOutcomeOutboxSaveData pending in
+                 stateStore.PendingCommandOutcomes
+                     .OrderBy(value => value.ownerRevision)
+                     .Select(value => value.Clone())
+                     .ToArray())
+        {
+            DeliverPendingCommandOutcome(pending.ownerRevision);
+        }
+    }
+
+    private ProductionBillCommandResult ExecuteRecordedBillCommand(
+        ProductionBillRecord record,
+        ProductionRecipeSO recipe,
+        ProductionCommandOutcomeKind kind,
+        string beforeValue,
+        string afterValue,
+        Action mutation,
+        Action rollback,
+        WorkTypeId workTypeId,
+        bool requestWorker,
+        ProductionBillOutcomeCode outcome = ProductionBillOutcomeCode.BillUpdated)
+    {
+        if (record == null
+            || recipe == null
+            || mutation == null
+            || rollback == null)
+        {
+            return ProductionBillCommandResult.Failed(new DomainFailure(
+                FailureCode.ProductionBillUnavailable,
+                "production-command-transaction-input-invalid"));
+        }
+        ProductionFacilityHandle facility = ResolveFacility(record);
+        long ownerRevision = stateStore.NextCommandOutcomeSequence;
+        if (facility == null
+            || ownerRevision <= 0L
+            || ownerRevision == long.MaxValue)
+        {
+            return ProductionBillCommandResult.Failed(new DomainFailure(
+                FailureCode.ProductionBillUnavailable,
+                record.billId.Value,
+                facility == null
+                    ? "production-command-facility-missing"
+                    : "production-command-owner-revision-exhausted"));
+        }
+
+        IPreparedProductionCommandOutcome prepared;
+        string prepareFailure;
+        try
+        {
+            ProductionCommandOutcomeSource source = new(
+                kind,
+                record.billId.Value,
+                recipe.RecipeId,
+                recipe.DisplayName,
+                facility.InstanceId.Value,
+                facility.Position.x,
+                facility.Position.y,
+                beforeValue,
+                afterValue);
+            if (!commandOutcomes.TryPrepare(
+                    source,
+                    ownerRevision,
+                    out prepared,
+                    out prepareFailure))
+            {
+                return CommandOutcomeFailure(record.billId, prepareFailure);
+            }
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            return CommandOutcomeFailure(
+                record.billId,
+                "production-command-prepare-exception:"
+                + exception.GetType().Name);
+        }
+
+        try
+        {
+            mutation();
+            stateStore.NextCommandOutcomeSequence = checked(ownerRevision + 1L);
+            ProductionCommandOutcomeCommitResult committed =
+                commandOutcomes.Commit(prepared);
+            if (!committed.DurablyCommitted)
+            {
+                rollback();
+                stateStore.NextCommandOutcomeSequence = ownerRevision;
+                return CommandOutcomeFailure(
+                    record.billId,
+                    committed.DetailCode.Length == 0
+                        ? "production-command-outcome-commit-rejected"
+                        : committed.DetailCode);
+            }
+        }
+        catch (Exception exception)
+        {
+            rollback();
+            stateStore.NextCommandOutcomeSequence = ownerRevision;
+            commandOutcomes.Cancel(prepared);
+            return CommandOutcomeFailure(
+                record.billId,
+                "production-command-transaction-exception:"
+                + exception.GetType().Name);
+        }
+
+        Touch(workTypeId, requestWorker);
+        return ProductionBillCommandResult.Success(record.billId, outcome);
+    }
+
+    private static ProductionBillCommandResult CommandOutcomeFailure(
+        ProductionBillId billId,
+        string detail) => ProductionBillCommandResult.Failed(new DomainFailure(
+        FailureCode.ProductionBillUnavailable,
+        billId.Value,
+        string.IsNullOrWhiteSpace(detail)
+            ? "production-command-outcome-failed"
+            : detail));
 
     private void Touch(WorkTypeId workTypeId, bool requestWorker)
     {

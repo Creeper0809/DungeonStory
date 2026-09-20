@@ -61,6 +61,7 @@ public class OffenseExpeditionRuntime :
     private IOffenseFieldMobilityService fieldMobility;
     private ICharacterPerformanceQuery performance;
     private ICharacterSettlementStandingQuery settlementStandings;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
     private IDisposable arrivalResolvedSubscription;
     private BlueprintResearchRuntime expeditionResearchRuntime;
     private BlueprintResearchState expeditionResearchState;
@@ -71,6 +72,15 @@ public class OffenseExpeditionRuntime :
     public IReadOnlyList<OffenseExpeditionResult> ResultHistory =>
         resultHistoryView ??= resultHistory.AsReadOnly();
     public event Action StateChanged;
+
+    internal void ConstructOutcomeTransaction(
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
+    {
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+    }
 
     public void Construct(
         IOffenseExpeditionMemberQuery memberQuery,
@@ -148,6 +158,7 @@ public class OffenseExpeditionRuntime :
         IOffenseFieldMedicalRuntime fieldMedical,
         IOffenseFieldMobilityService fieldMobility,
         IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransactions = null,
         ICharacterPerformanceQuery performance = null,
         ICharacterSettlementStandingQuery settlementStandings = null)
     {
@@ -171,6 +182,7 @@ public class OffenseExpeditionRuntime :
             ?? throw new ArgumentNullException(nameof(fieldMobility));
         this.calendar = calendar
             ?? throw new ArgumentNullException(nameof(calendar));
+        this.outcomeTransactions = outcomeTransactions;
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
         this.settlementStandings = settlementStandings
@@ -506,11 +518,58 @@ public class OffenseExpeditionRuntime :
         }
 
         OffenseRouteNode resolvedNode = expedition.CurrentNode;
+        if (outcomeTransactions == null || calendar == null)
+        {
+            throw new InvalidOperationException(
+                "Offense expedition-node outcome transaction is unavailable.");
+        }
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.OffenseExpeditionNodeResult,
+                "offense-expedition-node:" + expedition.ExpeditionId,
+                Math.Max(1, calendar.Day),
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reservationFailure))
+        {
+            throw new InvalidOperationException(
+                "Offense expedition-node outcome reservation failed: "
+                + reservationFailure);
+        }
+        OffenseExpeditionRun.NodeResolutionSnapshot nodeBefore =
+            expedition.CaptureNodeResolutionSnapshot();
         bool resolved = expedition.TryResolveCurrentNode(useSupply, out result, out message);
         if (resolved)
         {
+            try
+            {
+                MigratedProducerOutcomeCommitResult committed =
+                    outcomeTransactions.CommitSingleSubject(
+                        prepared,
+                        new MigratedProducerOutcomeSubject(
+                            MigratedProducerOutcomeIds.ExpeditionKind,
+                            expedition.ExpeditionId,
+                            expedition.Target?.title ?? expedition.ExpeditionId,
+                            MigratedProducerOutcomeIds.ExpeditionRole),
+                        $"node={resolvedNode?.Id}; kind={resolvedNode?.Kind}; usedSupply={result?.UsedSupply == true}; gainedLoot={result?.GainedLoot == true}; message={result?.Message}");
+                if (!committed.DurablyCommitted)
+                {
+                    throw new InvalidOperationException(
+                        "Offense expedition-node outcome commit failed: "
+                        + committed.DetailCode);
+                }
+            }
+            catch
+            {
+                expedition.RestoreNodeResolutionSnapshot(nodeBefore);
+                outcomeTransactions.Cancel(prepared);
+                throw;
+            }
             ExperienceRules.AwardNodeExperience(expedition, resolvedNode);
             StateChanged?.Invoke();
+        }
+        else
+        {
+            outcomeTransactions.Cancel(prepared);
         }
 
         return resolved;

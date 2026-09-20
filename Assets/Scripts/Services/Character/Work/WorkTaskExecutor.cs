@@ -84,7 +84,8 @@ public readonly struct EmergencyWorkSuspensionReceipt
         long alertEpochId,
         bool progressExternallyPersisted,
         float inlineCompletedWork = 0f,
-        float inlineRequiredWork = 0f)
+        float inlineRequiredWork = 0f,
+        long outcomeOwnerRevision = 1L)
     {
         WorkTypeId = workTypeId;
         TargetBuildingId = targetBuildingId?.Trim() ?? string.Empty;
@@ -92,6 +93,7 @@ public readonly struct EmergencyWorkSuspensionReceipt
         ProgressExternallyPersisted = progressExternallyPersisted;
         InlineCompletedWork = inlineCompletedWork;
         InlineRequiredWork = inlineRequiredWork;
+        OutcomeOwnerRevision = outcomeOwnerRevision;
     }
 
     public WorkTypeId WorkTypeId { get; }
@@ -100,12 +102,14 @@ public readonly struct EmergencyWorkSuspensionReceipt
     public bool ProgressExternallyPersisted { get; }
     public float InlineCompletedWork { get; }
     public float InlineRequiredWork { get; }
+    public long OutcomeOwnerRevision { get; }
     public bool HasInlineProgress => InlineRequiredWork > 0f
         && InlineCompletedWork >= 0f
         && InlineCompletedWork < InlineRequiredWork;
     public bool IsValid => WorkTypeId.IsValid
         && !string.IsNullOrWhiteSpace(TargetBuildingId)
         && AlertEpochId > 0L
+        && OutcomeOwnerRevision > 0L
         && (ProgressExternallyPersisted || HasInlineProgress);
 }
 
@@ -3951,6 +3955,30 @@ public sealed class WorkTaskExecutor
             injured.nodeId,
             appliedDamage);
         return true;
+    }
+
+    public void RestoreEmergencySuspensionReceipt(
+        in EmergencyWorkSuspensionReceipt receipt)
+    {
+        if (!receipt.IsValid)
+        {
+            throw new ArgumentException(
+                "A valid emergency suspension receipt is required.",
+                nameof(receipt));
+        }
+        if (pendingSuspensionReceipt.IsValid)
+        {
+            throw new InvalidOperationException(
+                "An emergency suspension receipt is already pending.");
+        }
+        if (!emergencySuspended || work.isWorking)
+        {
+            throw new InvalidOperationException(
+                "Only an already-suspended work action can restore its receipt.");
+        }
+
+        pendingSuspensionReceipt = receipt;
+        requestedEmergencyEpochId = receipt.AlertEpochId;
     }
 
     private void PublishProcessAccidentFireAfterCanonicalInjury(

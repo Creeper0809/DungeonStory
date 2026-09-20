@@ -206,7 +206,8 @@ public static class DungeonCoreInfrastructureRegistration
             .As<ICharacterWorldPersistenceIdentityQuery>()
             .As<ICharacterConsumablesPersistentActorQuery>()
             .As<ICharacterHaulDeliveryRestoreQuery>()
-            .As<IDungeonRestoreTransactionParticipant>();
+            .As<IDungeonRestoreTransactionParticipant>()
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<HaulDeliveryIntentRestoreCoordinator>(Lifetime.Singleton)
             .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<OperatingDaySettlementSaveService>(Lifetime.Singleton)

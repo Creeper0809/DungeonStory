@@ -154,7 +154,9 @@ public sealed class OffenseReturnArrivalRuntime :
     private readonly ICombatEquipmentRuntime equipment;
     private readonly IBuildingWorldQuery buildingWorld;
     private readonly IGameClock clock;
+    private readonly IGameCalendar calendar;
     private readonly IGameEventBus eventBus;
+    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
 
     private OffenseReturnArrivalAggregateState aggregateState =>
@@ -207,7 +209,25 @@ public sealed class OffenseReturnArrivalRuntime :
         enemyIndividuals = requiredDomain.EnemyIndividuals;
         equipment = requiredDomain.Equipment;
         clock = requiredDomain.Clock;
+        calendar = requiredDomain.Calendar;
         eventBus = requiredDomain.EventBus;
+        outcomeTransactions = requiredDomain.OutcomeTransactions;
+    }
+
+    internal OffenseReturnArrivalRuntime(
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IGameClock clock,
+        IGameCalendar calendar,
+        IGameEventBus eventBus,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
+    {
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
     }
 
     public IReadOnlyList<OffenseReturnArrivalState> Arrivals => arrivals;
@@ -821,20 +841,128 @@ public sealed class OffenseReturnArrivalRuntime :
             return false;
         }
 
-        arrival.stage = escaped > 0
-            ? OffenseReturnArrivalStage.Escaped
-            : OffenseReturnArrivalStage.Secured;
-        arrival.settledMaterializedAmount = arrival.materializedIds.Count;
-        arrival.settledSecuredAmount = secured;
-        arrival.settledEscapedAmount = escaped;
-        arrival.escapeRisk = 0f;
-        arrival.lastStatus = escaped > 0
-            ? $"{escaped}개 대상이 수용 전에 달아났습니다."
-            : "수용 절차가 완료되었습니다.";
-        eventBus.Publish(new OffenseExpeditionArrivalResolvedEvent(
-            arrival.expeditionId,
-            GetSettlementReceipts(arrival.expeditionId)));
+        GameplayOutcomeStatus status = escaped == 0
+            ? GameplayOutcomeStatus.Succeeded
+            : secured > 0
+                ? GameplayOutcomeStatus.PartiallySucceeded
+                : GameplayOutcomeStatus.Failed;
+        int absoluteDay = calendar.Day;
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.OffenseExpeditionArrivalReceipt,
+                arrival.arrivalId,
+                absoluteDay,
+                status,
+                out PreparedMigratedProducerOutcome prepared,
+                out _))
+        {
+            // All subjects are already terminal. Keep the arrival pending and
+            // retry the reservation next tick without advancing escape work.
+            return true;
+        }
+
+        ArrivalTerminalSnapshot before = new ArrivalTerminalSnapshot(arrival);
+        try
+        {
+            arrival.stage = escaped > 0
+                ? OffenseReturnArrivalStage.Escaped
+                : OffenseReturnArrivalStage.Secured;
+            arrival.settledMaterializedAmount = arrival.materializedIds.Count;
+            arrival.settledSecuredAmount = secured;
+            arrival.settledEscapedAmount = escaped;
+            arrival.escapeRisk = 0f;
+            arrival.lastStatus = escaped > 0
+                ? $"{escaped}개 대상이 수용 전에 달아났습니다."
+                : "수용 절차가 완료되었습니다.";
+
+            OffenseExpeditionArrivalReceipt receipt =
+                CreateSettlementReceipt(arrival);
+            MigratedProducerOutcomeCommitResult committed =
+                outcomeTransactions.CommitSingleSubject(
+                    prepared,
+                    new MigratedProducerOutcomeSubject(
+                        MigratedProducerOutcomeIds.ExpeditionKind,
+                        arrival.expeditionId,
+                        arrival.expeditionId,
+                        MigratedProducerOutcomeIds.ExpeditionRole),
+                    BuildArrivalOutcomeSummary(receipt));
+            if (!committed.DurablyCommitted)
+            {
+                RestoreArrival(arrival, before);
+                // The ledger rejected the terminal owner mutation. Preserve
+                // the exact before-state and retry without further mutation.
+                return true;
+            }
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            RestoreArrival(arrival, before);
+            throw;
+        }
+
+        try
+        {
+            eventBus.Publish(new OffenseExpeditionArrivalResolvedEvent(
+                arrival.expeditionId,
+                GetSettlementReceipts(arrival.expeditionId)));
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception);
+        }
         return true;
+    }
+
+    private static string BuildArrivalOutcomeSummary(
+        OffenseExpeditionArrivalReceipt receipt) =>
+        "원정대 귀환 도착: arrival=" + receipt.arrivalId
+        + "; kind=" + receipt.kind
+        + "; requested=" + receipt.requestedAmount
+        + "; materialized=" + receipt.materializedAmount
+        + "; secured=" + receipt.securedAmount
+        + "; escaped=" + receipt.escapedAmount
+        + "; resolution=" + receipt.resolution;
+
+    private static void RestoreArrival(
+        OffenseReturnArrivalState target,
+        ArrivalTerminalSnapshot snapshot)
+    {
+        if (target == null)
+        {
+            throw new ArgumentNullException(nameof(target));
+        }
+        target.stage = snapshot.Stage;
+        target.settledMaterializedAmount =
+            snapshot.SettledMaterializedAmount;
+        target.settledSecuredAmount = snapshot.SettledSecuredAmount;
+        target.settledEscapedAmount = snapshot.SettledEscapedAmount;
+        target.escapeRisk = snapshot.EscapeRisk;
+        target.lastStatus = snapshot.LastStatus;
+    }
+
+    private readonly struct ArrivalTerminalSnapshot
+    {
+        public ArrivalTerminalSnapshot(OffenseReturnArrivalState source)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            Stage = source.stage;
+            SettledMaterializedAmount = source.settledMaterializedAmount;
+            SettledSecuredAmount = source.settledSecuredAmount;
+            SettledEscapedAmount = source.settledEscapedAmount;
+            EscapeRisk = source.escapeRisk;
+            LastStatus = source.lastStatus;
+        }
+
+        public OffenseReturnArrivalStage Stage { get; }
+        public int SettledMaterializedAmount { get; }
+        public int SettledSecuredAmount { get; }
+        public int SettledEscapedAmount { get; }
+        public float EscapeRisk { get; }
+        public string LastStatus { get; }
     }
 
     private OffenseExpeditionArrivalReceipt CreateSettlementReceipt(
@@ -1024,7 +1152,14 @@ public sealed class OffenseReturnArrivalRuntime :
             return false;
         }
 
-        escapeRuntime.CompleteEscape(captiveId, actor);
+        if (!escapeRuntime.CompleteEscape(
+                captiveId,
+                actor,
+                "귀환 수용 전 이탈",
+                out failureReason))
+        {
+            return false;
+        }
         if (!captivity.TryGetCaptive(captiveId, out CaptiveState escaped)
             || escaped.status != CaptivityStatus.Escaped
             || escaped.IsInCustody

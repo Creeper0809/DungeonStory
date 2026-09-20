@@ -15,6 +15,7 @@ public static class DungeonCharacterRegistration
 
         builder.RegisterSocialLifeGameplayOutcomeBridges();
         builder.RegisterEnvironmentGameplayOutcomeBridges();
+        builder.RegisterWorkCompletionIdentityGameplayOutcomes();
 
         builder.RegisterInstance(runtimeReferences
             ?? throw new ArgumentNullException(nameof(runtimeReferences)));

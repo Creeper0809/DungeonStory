@@ -813,6 +813,62 @@ public sealed class CharacterLifeRestoreCandidate
     internal CharacterLifeAggregateState State { get; }
 }
 
+public readonly struct CharacterLifeStageTransition
+{
+    public CharacterLifeStageTransition(
+        CharacterId characterId,
+        CharacterLifeStage previous,
+        CharacterLifeStage current)
+    {
+        CharacterId = characterId;
+        Previous = previous;
+        Current = current;
+    }
+
+    public CharacterId CharacterId { get; }
+    public CharacterLifeStage Previous { get; }
+    public CharacterLifeStage Current { get; }
+}
+
+public sealed class CharacterLifeDailyAdvanceCandidate
+{
+    internal CharacterLifeDailyAdvanceCandidate(
+        CharacterLifeAggregateState previousState,
+        CharacterLifeAggregateState nextState,
+        int previousVersion,
+        int nextVersion,
+        ulong previousAgingRandomState,
+        ulong nextAgingRandomState,
+        int agingRandomDrawCount,
+        IReadOnlyList<AgeConditionChange> ageConditionChanges,
+        IReadOnlyList<CharacterLifeStageTransition> lifeStageTransitions)
+    {
+        PreviousState = previousState
+            ?? throw new ArgumentNullException(nameof(previousState));
+        NextState = nextState ?? throw new ArgumentNullException(nameof(nextState));
+        PreviousVersion = previousVersion;
+        NextVersion = nextVersion;
+        PreviousAgingRandomState = previousAgingRandomState;
+        NextAgingRandomState = nextAgingRandomState;
+        AgingRandomDrawCount = agingRandomDrawCount;
+        AgeConditionChanges = ageConditionChanges
+            ?? throw new ArgumentNullException(nameof(ageConditionChanges));
+        LifeStageTransitions = lifeStageTransitions
+            ?? throw new ArgumentNullException(nameof(lifeStageTransitions));
+    }
+
+    public IReadOnlyList<AgeConditionChange> AgeConditionChanges { get; }
+    public IReadOnlyList<CharacterLifeStageTransition> LifeStageTransitions { get; }
+    internal CharacterLifeAggregateState PreviousState { get; }
+    internal CharacterLifeAggregateState NextState { get; }
+    internal int PreviousVersion { get; }
+    internal int NextVersion { get; }
+    internal ulong PreviousAgingRandomState { get; }
+    internal ulong NextAgingRandomState { get; }
+    internal int AgingRandomDrawCount { get; }
+    internal bool Published { get; set; }
+}
+
 internal sealed class CharacterLifeAggregateState
 {
     internal Dictionary<CharacterId, CharacterLifeRecord> Characters { get; } = new();
@@ -882,6 +938,7 @@ public sealed class CharacterLifeRuntime :
     private readonly ICharacterLifeDefinitionCatalog definitions;
     private readonly IRandomStream agingRandom;
     private int version = 1;
+    private CharacterLifeDailyAdvanceCandidate activeDailyAdvance;
 
     public CharacterLifeRuntime(
         DungeonRuntimeAggregateRootStore rootStore,
@@ -964,6 +1021,145 @@ public sealed class CharacterLifeRuntime :
             hereditaryAgingMultiplier);
         version = unchecked(version + 1);
         return changes;
+    }
+
+    public CharacterLifeDailyAdvanceCandidate PrepareDailyAdvance(
+        IReadOnlyDictionary<CharacterId, double> hereditaryAgingMultipliers)
+    {
+        if (hereditaryAgingMultipliers == null)
+            throw new ArgumentNullException(nameof(hereditaryAgingMultipliers));
+        if (activeDailyAdvance != null)
+        {
+            throw new InvalidOperationException(
+                "A character-life daily advance candidate is already active.");
+        }
+
+        CharacterLifeAggregateState previousState = Current;
+        CharacterLifeAggregateState nextState = previousState.DeepClone(definitions);
+        ulong previousRandomState = agingRandom.State;
+        int projectedRandomDrawCount = 0;
+        ulong nextRandomState = previousRandomState;
+        List<AgeConditionChange> changes = new();
+        List<CharacterLifeStageTransition> transitions = new();
+        CharacterId[] ids = previousState.Characters.Keys
+            .OrderBy(value => value.Value, StringComparer.Ordinal)
+            .ToArray();
+        try
+        {
+            foreach (CharacterId characterId in ids)
+            {
+                if (!hereditaryAgingMultipliers.TryGetValue(
+                        characterId,
+                        out double hereditaryAgingMultiplier))
+                {
+                    throw new InvalidOperationException(
+                        $"Daily aging multiplier is missing for '{characterId.Value}'.");
+                }
+
+                CharacterLifeRecord record = nextState.Characters[characterId];
+                CharacterLifeStage previousStage = record.LifeStage;
+                SpeciesLifeHistoryDefinition history =
+                    definitions.RequireLifeHistory(record.PhenotypeSpeciesId);
+                changes.AddRange(record.AdvanceOneChronologicalDayWithCare(
+                    history,
+                    definitions.GetAgeConditions(history.Construct),
+                    () =>
+                    {
+                        projectedRandomDrawCount++;
+                        return agingRandom.NextFloat();
+                    },
+                    hereditaryAgingMultiplier));
+                if (previousStage != record.LifeStage)
+                {
+                    transitions.Add(new CharacterLifeStageTransition(
+                        characterId,
+                        previousStage,
+                        record.LifeStage));
+                }
+            }
+            nextRandomState = agingRandom.State;
+        }
+        finally
+        {
+            agingRandom.Restore(previousRandomState);
+        }
+
+        activeDailyAdvance = new CharacterLifeDailyAdvanceCandidate(
+            previousState,
+            nextState,
+            version,
+            unchecked(version + ids.Length),
+            previousRandomState,
+            nextRandomState,
+            projectedRandomDrawCount,
+            changes.ToArray(),
+            transitions.ToArray());
+        return activeDailyAdvance;
+    }
+
+    public void PublishDailyAdvance(CharacterLifeDailyAdvanceCandidate candidate)
+    {
+        RequireActiveDailyAdvance(candidate);
+        if (candidate.Published
+            || !ReferenceEquals(Current, candidate.PreviousState)
+            || version != candidate.PreviousVersion)
+        {
+            throw new InvalidOperationException(
+                "The character-life daily advance candidate is stale.");
+        }
+
+        rootStore.Replace(candidate.NextState);
+        version = candidate.NextVersion;
+        candidate.Published = true;
+        try
+        {
+            for (int index = 0; index < candidate.AgingRandomDrawCount; index++)
+                agingRandom.NextFloat();
+            if (agingRandom.State != candidate.NextAgingRandomState)
+            {
+                throw new InvalidOperationException(
+                    "The character-life aging random projection drifted.");
+            }
+        }
+        catch
+        {
+            rootStore.Replace(candidate.PreviousState);
+            version = candidate.PreviousVersion;
+            agingRandom.Restore(candidate.PreviousAgingRandomState);
+            candidate.Published = false;
+            throw;
+        }
+    }
+
+    public void RollbackDailyAdvance(CharacterLifeDailyAdvanceCandidate candidate)
+    {
+        RequireActiveDailyAdvance(candidate);
+        if (candidate.Published)
+        {
+            if (!ReferenceEquals(Current, candidate.NextState))
+            {
+                throw new InvalidOperationException(
+                    "The published character-life daily advance was superseded.");
+            }
+            rootStore.Replace(candidate.PreviousState);
+            version = candidate.PreviousVersion;
+        }
+        agingRandom.Restore(candidate.PreviousAgingRandomState);
+        activeDailyAdvance = null;
+    }
+
+    public void CompleteDailyAdvance(CharacterLifeDailyAdvanceCandidate candidate)
+    {
+        RequireActiveDailyAdvance(candidate);
+        if (!candidate.Published
+            || !ReferenceEquals(Current, candidate.NextState)
+            || version != candidate.NextVersion
+            || agingRandom.State != candidate.NextAgingRandomState)
+        {
+            throw new InvalidOperationException(
+                "The character-life daily advance candidate was not published.");
+        }
+        activeDailyAdvance = null;
     }
 
     public IReadOnlyList<AgeConditionChange> AdvanceAllOneDay()
@@ -1103,6 +1299,16 @@ public sealed class CharacterLifeRuntime :
             ? record
             : throw new KeyNotFoundException(
                 $"Character life state '{characterId.Value}' is not registered.");
+    }
+
+    private void RequireActiveDailyAdvance(
+        CharacterLifeDailyAdvanceCandidate candidate)
+    {
+        if (candidate == null || !ReferenceEquals(activeDailyAdvance, candidate))
+        {
+            throw new InvalidOperationException(
+                "The character-life daily advance candidate is not active.");
+        }
     }
 
     public CharacterLifeWorldSaveData Capture() => new()

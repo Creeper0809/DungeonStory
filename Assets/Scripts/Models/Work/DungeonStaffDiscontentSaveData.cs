@@ -63,6 +63,7 @@ public sealed class DungeonStaffDiscontentSaveData
     public const int CurrentVersion = 1;
 
     public int version = CurrentVersion;
+    public long outcomeRevision;
     public List<DungeonStaffDiscontentRecordSaveData> records =
         new List<DungeonStaffDiscontentRecordSaveData>();
 }

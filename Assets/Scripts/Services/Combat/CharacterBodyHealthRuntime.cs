@@ -4,6 +4,7 @@ using System.Linq;
 using DungeonStory.Foundation;
 using Unity.Profiling;
 using UnityEngine;
+using VContainer;
 using VContainer.Unity;
 public sealed class CharacterBodyHealthRuntime :
     ICharacterBodyHealthQuery,
@@ -27,6 +28,7 @@ public sealed class CharacterBodyHealthRuntime :
     private readonly IDynamicFrameWorkBudget frameWorkBudget;
     private readonly CharacterBodyHealthStateRules stateRules;
     private readonly CharacterVitalsAuthority vitalsAuthority;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
     private readonly Dictionary<CharacterId, CharacterActor> trackedActors =
         new Dictionary<CharacterId, CharacterActor>();
     private readonly Dictionary<CharacterId, float> lastTickAt =
@@ -59,6 +61,12 @@ public sealed class CharacterBodyHealthRuntime :
             stateRules);
         observedAggregateRevision = vitalsAuthority.PublishedRestoreRevision;
     }
+
+    [Inject]
+    public void ConfigureOutcomeTransactions(
+        IMigratedProducerOutcomeTransaction outcomeTransactions) =>
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
 
     private CharacterVitalsAggregateState ReadState => vitalsAuthority.ReadState;
 
@@ -516,7 +524,173 @@ public sealed class CharacterBodyHealthRuntime :
             return;
         }
 
-        vitalsAuthority.Kill(actor, GetOrCreate(actor), cause, reasonCode);
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        if (state.currentHealth <= 0f)
+            return;
+        if (outcomeTransactions == null)
+        {
+            vitalsAuthority.Kill(actor, state, cause, reasonCode);
+            return;
+        }
+
+        CharacterBodyHealthMutationSnapshot before = CaptureCombatMutation(actor);
+        int absoluteDay = Mathf.Max(
+            0,
+            Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
+        MigratedProducerOutcomeKind[] kinds =
+        {
+            MigratedProducerOutcomeKind.CharacterDeathEvent,
+            MigratedProducerOutcomeKind.HealthThresholdCrossedEvent,
+            MigratedProducerOutcomeKind.CharacterBodyHealthDownedEvent
+        };
+        var prepared = new PreparedMigratedProducerOutcome[kinds.Length];
+        for (int index = 0; index < kinds.Length; index++)
+        {
+            if (outcomeTransactions.TryReserve(
+                    kinds[index],
+                    before.CharacterId.Value,
+                    absoluteDay,
+                    GameplayOutcomeStatus.Succeeded,
+                    participantCount: 1,
+                    metricCount: 0,
+                    subjectCount: 1,
+                    additionalFactCount: 1,
+                    out prepared[index],
+                    out string reserveFailure))
+            {
+                continue;
+            }
+            for (int cancelIndex = 0; cancelIndex < index; cancelIndex++)
+                outcomeTransactions.Cancel(prepared[cancelIndex]);
+            throw new InvalidOperationException(
+                "character-death-outcome-reserve-failed:" + reserveFailure);
+        }
+
+        float previousRatio = HealthRatio(state);
+        bool wasDowned = state.downed;
+        try
+        {
+            state.currentHealth = 0f;
+            state.injurySeverity = 1f;
+            stateRules.UpdateDowned(state);
+            vitalsAuthority.Project(actor, state);
+        }
+        catch
+        {
+            RestoreCombatMutation(
+                actor,
+                before,
+                "character-death-mutation-exception-rollback");
+            for (int index = 0; index < prepared.Length; index++)
+                outcomeTransactions.Cancel(prepared[index]);
+            throw;
+        }
+
+        bool[] include =
+        {
+            true,
+            previousRatio > 0.20f,
+            !wasDowned && state.downed
+        };
+        var selected = new List<PreparedMigratedProducerOutcome>(3);
+        var receipts = new List<MigratedProducerOutcomeReceipt>(3);
+        try
+        {
+            for (int index = 0; index < prepared.Length; index++)
+            {
+                if (!include[index])
+                {
+                    outcomeTransactions.Cancel(prepared[index]);
+                    continue;
+                }
+                selected.Add(prepared[index]);
+                MigratedProducerOutcomePayloadBuilder builder =
+                    outcomeTransactions.CreatePayloadBuilder(prepared[index]);
+                var subject = new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    before.CharacterId.Value,
+                    actor.Identity?.DisplayName ?? actor.name,
+                    MigratedProducerOutcomeIds.TargetRole);
+                string summary = index switch
+                {
+                    0 => $"{actor.Identity?.DisplayName ?? actor.name}이(가) 사망했다.",
+                    1 => $"{actor.Identity?.DisplayName ?? actor.name}의 건강이 치명 임계치를 넘었다.",
+                    _ => $"{actor.Identity?.DisplayName ?? actor.name}이(가) 전투 불능이 됐다."
+                };
+                string detail = index switch
+                {
+                    0 => $"cause={cause};reason={reasonCode ?? string.Empty}",
+                    1 => $"beforeRatio={previousRatio:0.###};afterRatio=0",
+                    _ => $"beforeDowned={wasDowned};afterDowned={state.downed}"
+                };
+                if (!builder.AddParticipant(new GameplayOutcomeParticipant(
+                        subject.EntityId,
+                        subject.Role,
+                        GameplayParticipationKind.Direct,
+                        true,
+                        subject.DisplayName))
+                    || !builder.AddSubject(new GameplayOutcomeSubjectLink(
+                        subject.EntityId,
+                        prepared[index].Salience,
+                        prepared[index].Tier,
+                        prepared[index].Tier == NarrativeMemoryTier.Core,
+                        false,
+                        0))
+                    || !builder.AddFact(new GameplayOutcomeFact(
+                        MigratedProducerOutcomeIds.SummaryFact,
+                        summary))
+                    || !builder.AddFact(new GameplayOutcomeFact(
+                        MigratedProducerOutcomeIds.DetailFact,
+                        detail)))
+                {
+                    throw new InvalidOperationException(
+                        "The character death payload exceeded its reserved capacity.");
+                }
+                receipts.Add(builder.Build());
+            }
+        }
+        catch
+        {
+            RestoreCombatMutation(
+                actor,
+                before,
+                "character-death-receipt-rollback");
+            for (int index = 0; index < selected.Count; index++)
+                outcomeTransactions.Cancel(selected[index]);
+            throw;
+        }
+
+        var results = new MigratedProducerOutcomeCommitResult[selected.Count];
+        if (!outcomeTransactions.CommitBatch(
+                selected.ToArray(),
+                receipts.ToArray(),
+                results,
+                out string commitFailure))
+        {
+            RestoreCombatMutation(
+                actor,
+                before,
+                "character-death-outcome-rollback");
+            throw new InvalidOperationException(
+                "character-death-outcome-commit-failed:" + commitFailure);
+        }
+
+        try
+        {
+            actor.Stats?.NotifyAggregateDeath(cause, reasonCode);
+            PublishHealthTransition(
+                actor,
+                previousRatio,
+                0f,
+                cause,
+                reasonCode);
+            SyncLifecycle(actor, state, wasDowned);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "Committed character death observer failed: " + exception);
+        }
     }
 
     public CharacterBodyHealthSnapshot GetSnapshot(string characterId)
@@ -675,6 +849,107 @@ public sealed class CharacterBodyHealthRuntime :
                 reason);
         }
         SyncLifecycle(actor, state, previous.downed);
+    }
+
+    [GameplayInternalOnly(
+        "Stages exact aggregate damage without publishing damage, death or threshold observers before the owning outcome commits.",
+        "CaptivityInteractionRuntime")]
+    public CharacterPreparedAggregateDamageReceipt ApplyPreparedAggregateDamage(
+        CharacterActor actor,
+        float amount,
+        CharacterDeathCauseCode deathCause,
+        string reasonCode,
+        bool allowDeath)
+    {
+        if (actor == null)
+            throw new ArgumentNullException(nameof(actor));
+        if (!float.IsFinite(amount) || amount <= 0f)
+            throw new ArgumentOutOfRangeException(nameof(amount));
+        string reason = reasonCode?.Trim() ?? string.Empty;
+        if (reason.Length == 0)
+            throw new ArgumentException(
+                "Prepared aggregate damage requires a canonical reason code.",
+                nameof(reasonCode));
+
+        CharacterId characterId = GetId(actor);
+        if (!characterId.IsValid)
+        {
+            throw new InvalidOperationException(
+                "Prepared aggregate damage requires a persistent character ID.");
+        }
+
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        float before = state.currentHealth;
+        if (before <= 0f)
+        {
+            throw new InvalidOperationException(
+                "Prepared aggregate damage cannot target an already-dead body.");
+        }
+        float after = Mathf.Max(
+            allowDeath ? 0f : 1f,
+            before - amount);
+        state.currentHealth = after;
+        state.injurySeverity = Mathf.Clamp01(
+            1f - after / Mathf.Max(1f, state.maxHealth));
+        vitalsAuthority.Project(actor, state);
+        return new CharacterPreparedAggregateDamageReceipt(
+            characterId,
+            amount,
+            before,
+            after,
+            state.maxHealth,
+            deathCause,
+            reason,
+            allowDeath);
+    }
+
+    [GameplayInternalOnly(
+        "Publishes prepared aggregate-damage observers only after the owning outcome commits; observer failures are isolated from the committed gameplay state.",
+        "CaptivityInteractionRuntime")]
+    public void CompletePreparedAggregateDamage(
+        CharacterActor actor,
+        in CharacterPreparedAggregateDamageReceipt receipt)
+    {
+        if (actor == null || !receipt.IsValid)
+            return;
+        CharacterId characterId = GetId(actor);
+        if (!characterId.Equals(receipt.CharacterId))
+        {
+            throw new InvalidOperationException(
+                "Prepared aggregate-damage receipt belongs to another character.");
+        }
+
+        try
+        {
+            actor.Stats?.NotifyAggregateDamage(
+                receipt.RequestedDamage,
+                receipt.ReasonCode,
+                receipt.AllowDeath && receipt.ResultingHealth <= 0f,
+                receipt.DeathCause);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "Committed aggregate-damage observer failed: " + exception);
+        }
+
+        try
+        {
+            PublishHealthTransition(
+                actor,
+                Mathf.Clamp01(
+                    receipt.PreviousHealth / receipt.MaximumHealth),
+                Mathf.Clamp01(
+                    receipt.ResultingHealth / receipt.MaximumHealth),
+                receipt.DeathCause,
+                receipt.ReasonCode);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "Committed aggregate-damage health transition observer failed: "
+                + exception);
+        }
     }
 
     public void ApplyPreparedSuppressionReduction(
@@ -877,29 +1152,181 @@ public sealed class CharacterBodyHealthRuntime :
         }
 
         CharacterBodyHealthState state = GetOrCreate(target);
-        float remaining = amount;
-        foreach (CharacterBodyPartHealthState part in state.parts.OrderBy(part => part.HealthRatio))
+        if (outcomeTransactions == null)
         {
-            float restored = Mathf.Min(remaining, part.maxHealth - part.currentHealth);
-            part.currentHealth += restored;
-            remaining -= restored;
-            if (stopBleeding)
-            {
-                part.bleedingPerSecond = 0f;
-            }
+            stateRules.HealSurfaceParts(state, amount, stopBleeding);
+            state.bloodLoss = Mathf.Max(0f, state.bloodLoss - amount * 0.5f);
+            bool legacyWasDowned = state.downed;
+            ApplyAggregateHealing(target, state, amount);
+            stateRules.UpdateDowned(state);
+            SyncLifecycle(target, state, legacyWasDowned);
+            return;
+        }
 
-            if (remaining <= 0f)
+        CharacterBodyHealthMutationSnapshot before = CaptureCombatMutation(target);
+        int absoluteDay = Mathf.Max(
+            0,
+            Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
+        var prepared = new PreparedMigratedProducerOutcome[2];
+        MigratedProducerOutcomeKind[] kinds =
+        {
+            MigratedProducerOutcomeKind.HealthThresholdCrossedEvent,
+            MigratedProducerOutcomeKind.CharacterBodyHealthRecoveredEvent
+        };
+        for (int index = 0; index < kinds.Length; index++)
+        {
+            if (outcomeTransactions.TryReserve(
+                    kinds[index],
+                    before.CharacterId.Value,
+                    absoluteDay,
+                    GameplayOutcomeStatus.Succeeded,
+                    participantCount: 1,
+                    metricCount: 0,
+                    subjectCount: 1,
+                    additionalFactCount: 1,
+                    out prepared[index],
+                    out string reserveFailure))
             {
-                break;
+                continue;
+            }
+            for (int cancelIndex = 0; cancelIndex < index; cancelIndex++)
+                outcomeTransactions.Cancel(prepared[cancelIndex]);
+            throw new InvalidOperationException(
+                "character-healing-outcome-reserve-failed:" + reserveFailure);
+        }
+
+        float previousRatio = HealthRatio(state);
+        bool wasDowned = state.downed;
+        float healthBefore = state.currentHealth;
+        try
+        {
+            stateRules.HealSurfaceParts(state, amount, stopBleeding);
+            state.bloodLoss = Mathf.Max(0f, state.bloodLoss - amount * 0.5f);
+            if (state.currentHealth > 0f)
+            {
+                state.currentHealth = Mathf.Min(
+                    state.maxHealth,
+                    state.currentHealth + amount);
+                state.injurySeverity = Mathf.Clamp01(
+                    1f - state.currentHealth / Mathf.Max(1f, state.maxHealth));
+            }
+            stateRules.UpdateDowned(state);
+            vitalsAuthority.Project(target, state);
+        }
+        catch
+        {
+            RestoreCombatMutation(
+                target,
+                before,
+                "character-healing-mutation-exception-rollback");
+            for (int index = 0; index < prepared.Length; index++)
+                outcomeTransactions.Cancel(prepared[index]);
+            throw;
+        }
+
+        float currentRatio = HealthRatio(state);
+        bool thresholdCrossed = (previousRatio > 0.20f && currentRatio <= 0.20f)
+            || (previousRatio <= 0.20f && currentRatio > 0.20f);
+        bool recovered = wasDowned && !state.downed;
+        bool[] include = { thresholdCrossed, recovered };
+        var selected = new List<PreparedMigratedProducerOutcome>(2);
+        var receipts = new List<MigratedProducerOutcomeReceipt>(2);
+        try
+        {
+            for (int index = 0; index < prepared.Length; index++)
+            {
+                if (!include[index])
+                {
+                    outcomeTransactions.Cancel(prepared[index]);
+                    continue;
+                }
+                selected.Add(prepared[index]);
+                MigratedProducerOutcomePayloadBuilder builder =
+                    outcomeTransactions.CreatePayloadBuilder(prepared[index]);
+                var subject = new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    before.CharacterId.Value,
+                    target.Identity?.DisplayName ?? target.name,
+                    MigratedProducerOutcomeIds.TargetRole);
+                string summary = index == 0
+                    ? $"{target.Identity?.DisplayName ?? target.name}의 건강이 임계치를 회복했다."
+                    : $"{target.Identity?.DisplayName ?? target.name}이(가) 전투 불능에서 회복했다.";
+                string detail = index == 0
+                    ? $"beforeRatio={previousRatio:0.###};afterRatio={currentRatio:0.###}"
+                    : $"beforeDowned={wasDowned};afterDowned={state.downed}";
+                if (!builder.AddParticipant(new GameplayOutcomeParticipant(
+                        subject.EntityId,
+                        subject.Role,
+                        GameplayParticipationKind.Direct,
+                        true,
+                        subject.DisplayName))
+                    || !builder.AddSubject(new GameplayOutcomeSubjectLink(
+                        subject.EntityId,
+                        prepared[index].Salience,
+                        prepared[index].Tier,
+                        prepared[index].Tier == NarrativeMemoryTier.Core,
+                        false,
+                        0))
+                    || !builder.AddFact(new GameplayOutcomeFact(
+                        MigratedProducerOutcomeIds.SummaryFact,
+                        summary))
+                    || !builder.AddFact(new GameplayOutcomeFact(
+                        MigratedProducerOutcomeIds.DetailFact,
+                        detail)))
+                {
+                    throw new InvalidOperationException(
+                        "The healing transition payload exceeded its reserved capacity.");
+                }
+                receipts.Add(builder.Build());
+            }
+        }
+        catch
+        {
+            RestoreCombatMutation(
+                target,
+                before,
+                "character-healing-receipt-rollback");
+            for (int index = 0; index < selected.Count; index++)
+                outcomeTransactions.Cancel(selected[index]);
+            throw;
+        }
+
+        if (selected.Count > 0)
+        {
+            var results = new MigratedProducerOutcomeCommitResult[selected.Count];
+            if (!outcomeTransactions.CommitBatch(
+                    selected.ToArray(),
+                    receipts.ToArray(),
+                    results,
+                    out string commitFailure))
+            {
+                RestoreCombatMutation(
+                    target,
+                    before,
+                    "character-healing-outcome-rollback");
+                throw new InvalidOperationException(
+                    "character-healing-outcome-commit-failed:" + commitFailure);
             }
         }
 
-        stateRules.SyncAnatomySurfaceNodesFromLegacy(state);
-        state.bloodLoss = Mathf.Max(0f, state.bloodLoss - amount * 0.5f);
-        bool wasDowned = state.downed;
-        ApplyAggregateHealing(target, state, amount);
-        stateRules.UpdateDowned(state);
-        SyncLifecycle(target, state, wasDowned);
+        try
+        {
+            float applied = Mathf.Max(0f, state.currentHealth - healthBefore);
+            if (applied > 0f)
+                target.Stats?.NotifyAggregateHealing(applied);
+            PublishHealthTransition(
+                target,
+                previousRatio,
+                currentRatio,
+                CharacterDeathCauseCode.Unknown,
+                "healing");
+            SyncLifecycle(target, state, wasDowned);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "Committed character healing observer failed: " + exception);
+        }
     }
 
     public float GetTotalBleeding(CharacterActor target)
@@ -987,21 +1414,8 @@ public sealed class CharacterBodyHealthRuntime :
         }
 
         CharacterBodyHealthState state = GetOrCreate(target);
-        float remaining = Mathf.Max(0f, partHealthAmount);
-        float restoredTotal = 0f;
-        foreach (CharacterBodyPartHealthState part in state.parts.OrderBy(part => part.HealthRatio))
-        {
-            float restored = Mathf.Min(remaining, part.maxHealth - part.currentHealth);
-            part.currentHealth += restored;
-            remaining -= restored;
-            restoredTotal += restored;
-            if (remaining <= 0f)
-            {
-                break;
-            }
-        }
-
-        stateRules.SyncAnatomySurfaceNodesFromLegacy(state);
+        float restoredTotal = stateRules.HealSurfaceParts(
+            state, partHealthAmount, stopBleeding: false);
         float previousBloodLoss = state.bloodLoss;
         state.bloodLoss = Mathf.Max(0f, state.bloodLoss - Mathf.Max(0f, bloodLossReduction));
         bool wasDowned = state.downed;
@@ -1119,20 +1533,21 @@ public sealed class CharacterBodyHealthRuntime :
 #if UNITY_EDITOR
         if (creationDiagnosticsEnabledForEditor)
         {
+            bool hasActorContext = actorContext != null;
             string callStack = Environment.StackTrace
                 .Replace("\r", string.Empty)
                 .Replace("\n", " <- ");
             creationDiagnosticsForEditor.Add(
-                $"id={characterId.Value};actor={actorContext?.name ?? "none"};"
-                + $"type={actorContext?.Identity?.CharacterType.ToString() ?? "none"};"
-                + $"owner={actorContext?.IsOwner ?? false};"
+                $"id={characterId.Value};actor={(hasActorContext ? actorContext.name : "none")};"
+                + $"type={(hasActorContext ? actorContext.Identity?.CharacterType.ToString() ?? "none" : "none")};"
+                + $"owner={(hasActorContext && actorContext.IsOwner)};"
                 // Do not query IsDead while diagnosing creation: for an active
                 // actor it reads the body-health projection and would
                 // recursively enter this exact missing-state path.
-                + $"despawned={actorContext?.CurrentLifecycleState == CharacterLifecycleState.Despawned};"
-                + $"lifecycle={actorContext?.CurrentLifecycleState.ToString() ?? "none"};"
-                + $"activeSelf={actorContext?.gameObject.activeSelf ?? false};"
-                + $"activeInHierarchy={actorContext?.gameObject.activeInHierarchy ?? false};"
+                + $"despawned={hasActorContext && actorContext.CurrentLifecycleState == CharacterLifecycleState.Despawned};"
+                + $"lifecycle={(hasActorContext ? actorContext.CurrentLifecycleState.ToString() : "none")};"
+                + $"activeSelf={(hasActorContext && actorContext.gameObject.activeSelf)};"
+                + $"activeInHierarchy={(hasActorContext && actorContext.gameObject.activeInHierarchy)};"
                 + $"stack={callStack}");
         }
 #endif

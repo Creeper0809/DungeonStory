@@ -10,6 +10,13 @@ public static class DungeonWorkRegistration
         builder.Register<EmergencyWorkAccountingRuntime>(Lifetime.Singleton)
             .AsSelf()
             .AsImplementedInterfaces();
+        builder.Register<EmergencyWorkSuspensionGameplayOutcomeBridge>(
+                Lifetime.Singleton)
+            .As<IEmergencyWorkSuspensionOutcomeCommitter>();
+        builder.Register<EmergencyWorkSuspensionOutcomeAdapter>(Lifetime.Singleton)
+            .As<IGameplayOutcomeAdapterRegistration>();
+        builder.Register<EmergencyWorkSuspensionOutcomeDescriptor>(Lifetime.Singleton)
+            .As<IGameplayOutcomeDescriptor>();
         builder.Register<SettlementAlertRuntime>(Lifetime.Singleton)
             .AsSelf()
             .AsImplementedInterfaces();

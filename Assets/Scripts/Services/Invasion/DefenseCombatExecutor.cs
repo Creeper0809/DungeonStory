@@ -79,7 +79,8 @@ public sealed class DefenseCombatSupportServices
         IWorldItemStackRuntime worldItems,
         InvasionDefenseKitSupplyRuntime defenseKitSupply,
         ICharacterProficiencyCommand proficiencyCommands,
-        DefenseCompanionCombatRuntime companionCombat)
+        DefenseCompanionCombatRuntime companionCombat,
+        CombatCommandResultApplier resultApplier)
     {
         WorldThreatModifiers = worldThreatModifiers
             ?? throw new ArgumentNullException(nameof(worldThreatModifiers));
@@ -102,6 +103,8 @@ public sealed class DefenseCombatSupportServices
             ?? throw new ArgumentNullException(nameof(proficiencyCommands));
         CompanionCombat = companionCombat
             ?? throw new ArgumentNullException(nameof(companionCombat));
+        ResultApplier = resultApplier
+            ?? throw new ArgumentNullException(nameof(resultApplier));
     }
 
     public IWorldThreatModifierQuery WorldThreatModifiers { get; }
@@ -115,6 +118,7 @@ public sealed class DefenseCombatSupportServices
     public InvasionDefenseKitSupplyRuntime DefenseKitSupply { get; }
     public ICharacterProficiencyCommand ProficiencyCommands { get; }
     public DefenseCompanionCombatRuntime CompanionCombat { get; }
+    public CombatCommandResultApplier ResultApplier { get; }
 }
 
 public sealed class DefenseCompanionCombatRuntime
@@ -249,11 +253,14 @@ public sealed class DefenseCompanionCombatRuntime
         CharacterActor attacker,
         CombatDamageType damageType)
     {
+        string attackerDisplayName = attacker != null
+            ? attacker.Identity?.DisplayName ?? attacker.name
+            : string.Empty;
         resultApplier.Apply(
             target,
             result,
             attacker,
-            attacker?.Identity?.DisplayName ?? attacker?.name ?? string.Empty,
+            attackerDisplayName,
             damageType);
         resultApplier.ApplyArmorDurabilityDamage(result);
     }
@@ -272,9 +279,9 @@ public sealed class DefenseCompanionCombatRuntime
 public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
 {
     private readonly ICombatResolutionService combatResolution;
+    private readonly ICombatResolutionTransactionService combatResolutionTransaction;
     private readonly ICombatEquipmentRuntime combatEquipment;
     private readonly ICharacterBodyHealthQuery bodyHealthQuery;
-    private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly CombatCoverServices coverServices;
     private readonly IWorldItemStackRuntime itemStackRuntime;
     private readonly IWorldThreatModifierQuery worldThreatModifiers;
@@ -288,12 +295,12 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
     private readonly ICharacterProficiencyCommand proficiencyCommands;
     private readonly ICharacterPerformanceQuery performance;
     private readonly DefenseCompanionCombatRuntime companionCombat;
+    private readonly CombatCommandResultApplier resultApplier;
 
     public DefenseCombatExecutor(
         ICombatResolutionService combatResolution,
         ICombatEquipmentRuntime combatEquipment,
         ICharacterBodyHealthQuery bodyHealthQuery,
-        ICharacterBodyHealthCommand bodyHealthCommands,
         CombatCoverServices coverServices,
         IWorldItemStackRuntime itemStackRuntime,
         DefenseCombatSupportServices supportServices,
@@ -301,12 +308,15 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
     {
         this.combatResolution = combatResolution
             ?? throw new ArgumentNullException(nameof(combatResolution));
+        combatResolutionTransaction = combatResolution
+            as ICombatResolutionTransactionService
+            ?? throw new ArgumentException(
+                "Defense combat requires a transactional combat resolution service.",
+                nameof(combatResolution));
         this.combatEquipment = combatEquipment
             ?? throw new ArgumentNullException(nameof(combatEquipment));
         this.bodyHealthQuery = bodyHealthQuery
             ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
-        this.bodyHealthCommands = bodyHealthCommands
-            ?? throw new ArgumentNullException(nameof(bodyHealthCommands));
         this.coverServices = coverServices
             ?? throw new ArgumentNullException(nameof(coverServices));
         this.itemStackRuntime = itemStackRuntime
@@ -323,6 +333,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         defenseKitSupply = requiredSupport.DefenseKitSupply;
         proficiencyCommands = requiredSupport.ProficiencyCommands;
         companionCombat = requiredSupport.CompanionCombat;
+        resultApplier = requiredSupport.ResultApplier;
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
     }
@@ -537,8 +548,11 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         CharacterBodyHealthSnapshot defenderBody = target.IsCharacter
             ? bodyHealthQuery.GetSnapshot(target.Character)
             : default;
-        CombatAttackResult result = combatResolution.Resolve(new CombatAttackRequest(
-            engagement.Id + ":exchange:" + (engagement.ExchangeCount + 1),
+        long attackRevision = engagement.ExchangeCount;
+        string attackOperationId =
+            engagement.Id + ":exchange:" + (attackRevision + 1L);
+        CombatAttackRequest attackRequest = new CombatAttackRequest(
+            attackOperationId,
             attackerId,
             defenderId,
             CreateCombatStats(attacker, attackerBody),
@@ -566,28 +580,100 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
                 ? combatEquipment.GetShield(defenderId)
                 : default,
             defenderConstruct: target.IsCharacter
-                && IsConstruct(target.Character)));
+                && IsConstruct(target.Character));
+        CombatAttackResult result;
+        ReservedCombatDamageOutcome reservedDamage = default;
+        if (target.IsCharacter)
+        {
+            if (!resultApplier.TryReserveDamageOutcome(
+                    target,
+                    attackOperationId,
+                    attackRevision,
+                    out reservedDamage,
+                    out _,
+                    out string reserveFailure))
+            {
+                return new DefenseCombatExecutionResult(
+                    false,
+                    target.IsDead,
+                    reserveFailure);
+            }
+            if (!TryResolveDetachedAttack(
+                    attackRequest,
+                    reservedDamage,
+                    out result,
+                    out string resolutionFailure))
+            {
+                return new DefenseCombatExecutionResult(
+                    false,
+                    target.IsDead,
+                    resolutionFailure);
+            }
+        }
+        else
+        {
+            result = combatResolution.Resolve(attackRequest);
+        }
         if (!result.Executed)
         {
+            if (target.IsCharacter)
+            {
+                resultApplier.CancelDamageOutcome(reservedDamage);
+                if (!combatResolutionTransaction.TryApplyResolvedResultMutation(
+                        attackRequest,
+                        result,
+                        out string mutationFailure))
+                {
+                    return new DefenseCombatExecutionResult(
+                        false,
+                        target.IsDead,
+                        mutationFailure);
+                }
+                combatResolutionTransaction.CompleteResolvedResultMutation(
+                    attackRequest);
+            }
             return new DefenseCombatExecutionResult(
                 false,
                 target.IsDead,
                 result.FailureReason);
         }
 
-        PresentAttack(attacker, target, weapon);
-        ConsumeAttackResource(weapon, result, target.GridPosition);
         if (target.IsCharacter)
         {
-            ApplyResult(
-                attacker,
-                target.Character,
-                weapon,
+            CombatOutcomeMechanicalMutation mechanicalMutation =
+                CreateDefenseCombatMechanicalMutation(
+                    attackRequest,
+                    result,
+                    weapon,
+                    target.GridPosition);
+            CombatOutcomeApplyResult apply = resultApplier.Apply(
+                target,
                 result,
-                "던전 방어 교전");
+                attacker,
+                attacker.Identity?.DisplayName ?? attacker.name,
+                weapon?.Verb?.damageType ?? CombatDamageType.Slash,
+                attackOperationId,
+                attackRevision,
+                reservedDamage,
+                mechanicalMutation,
+                $"던전 방어 교전: {attacker.Identity?.DisplayName ?? attacker.name}",
+                CharacterCommandOrigin.Autonomous);
+            if (!apply.Succeeded)
+            {
+                return new DefenseCombatExecutionResult(
+                    false,
+                    target.IsDead,
+                    apply.FailureReason);
+            }
+            PresentAttack(attacker, target, weapon);
         }
         else
         {
+            PresentAttack(attacker, target, weapon);
+            ConsumeAttackResource(
+                weapon,
+                result,
+                target.GridPosition);
             companionCombat.ApplyWildlifeResult(
                 target,
                 result,
@@ -649,8 +735,25 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         string defenderId = GetPersistentId(defender);
         CharacterBodyHealthSnapshot attackerBody = bodyHealthQuery.GetSnapshot(attacker);
         CharacterBodyHealthSnapshot defenderBody = bodyHealthQuery.GetSnapshot(defender);
-        CombatAttackResult result = combatResolution.Resolve(new CombatAttackRequest(
-            engagement.Id + ":ranged:" + (engagement.ExchangeCount + 1),
+        long attackRevision = engagement.ExchangeCount;
+        string attackOperationId =
+            engagement.Id + ":ranged:" + (attackRevision + 1L);
+        CombatParticipantRef target = new CombatParticipantRef(defender);
+        if (!resultApplier.TryReserveDamageOutcome(
+                target,
+                attackOperationId,
+                attackRevision,
+                out ReservedCombatDamageOutcome reservedDamage,
+                out _,
+                out string reserveFailure))
+        {
+            return new DefenseCombatExecutionResult(
+                false,
+                defender.IsDead,
+                reserveFailure);
+        }
+        CombatAttackRequest attackRequest = new CombatAttackRequest(
+            attackOperationId,
             attackerId,
             defenderId,
             CreateCombatStats(attacker, attackerBody),
@@ -678,44 +781,69 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
                 * ResolveAccordSupportMultiplier(attackerIsGuard: true),
             defenderArmor: combatEquipment.GetArmor(defenderId),
             defenderShield: combatEquipment.GetShield(defenderId),
-            defenderConstruct: IsConstruct(defender)));
+            defenderConstruct: IsConstruct(defender));
+        if (!TryResolveDetachedAttack(
+                attackRequest,
+                reservedDamage,
+                out CombatAttackResult result,
+                out string resolutionFailure))
+        {
+            return new DefenseCombatExecutionResult(
+                false,
+                defender.IsDead,
+                resolutionFailure);
+        }
         if (!result.Executed)
         {
+            resultApplier.CancelDamageOutcome(reservedDamage);
+            if (!combatResolutionTransaction.TryApplyResolvedResultMutation(
+                    attackRequest,
+                    result,
+                    out string mutationFailure))
+            {
+                return new DefenseCombatExecutionResult(
+                    false,
+                    defender.IsDead,
+                    mutationFailure);
+            }
+            combatResolutionTransaction.CompleteResolvedResultMutation(
+                attackRequest);
             return new DefenseCombatExecutionResult(
                 false,
                 defender.IsDead,
                 result.FailureReason);
         }
 
+        string status = result.CoverBlocked
+            ? "엄폐물에 막힘"
+            : result.ShieldBlocked ? "방패에 막힘" : "원거리 교전";
+        CombatOutcomeMechanicalMutation mechanicalMutation =
+            CreateDefenseCombatMechanicalMutation(
+                attackRequest,
+                result,
+                weapon,
+                defender.GetNowXY());
+        CombatOutcomeApplyResult apply = resultApplier.Apply(
+            target,
+            result,
+            attacker,
+            attacker.Identity?.DisplayName ?? attacker.name,
+            weapon.Verb?.damageType ?? CombatDamageType.Pierce,
+            attackOperationId,
+            attackRevision,
+            reservedDamage,
+            mechanicalMutation,
+            $"원거리 방어 사격: {attacker.Identity?.DisplayName ?? attacker.name}",
+            CharacterCommandOrigin.Autonomous);
+        if (!apply.Succeeded)
+        {
+            return new DefenseCombatExecutionResult(
+                false,
+                defender.IsDead,
+                apply.FailureReason);
+        }
         PresentProjectile(attacker, defender, weapon);
         PresentAttack(attacker, defender, weapon);
-        ConsumeAttackResource(weapon, result, defender.GetNowXY());
-
-        string status;
-        if (result.CoverBlocked)
-        {
-            coverServices.Durability.TryApplyDamage(
-                result.CoverSourceId,
-                result.CoverDamage);
-            CombatImpactPresentation.Play(
-                defender.transform.position,
-                weapon.Verb?.damageType ?? CombatDamageType.Pierce,
-                defender.GameClock ?? attacker.GameClock,
-                worldUiHierarchy,
-                coverHit: true);
-            bodyHealthCommands.AddSuppression(defender, result.Suppression);
-            status = "엄폐물에 막힘";
-        }
-        else
-        {
-            ApplyResult(
-                attacker,
-                defender,
-                weapon,
-                result,
-                "원거리 방어 사격");
-            status = result.ShieldBlocked ? "방패에 막힘" : "원거리 교전";
-        }
 
         AwardCombatExperience(
             attacker,
@@ -838,40 +966,96 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             absoluteHour: calendar.AbsoluteHour);
     }
 
-    private void ApplyResult(
-        CharacterActor attacker,
-        CharacterActor defender,
-        CombatWeaponSnapshot weapon,
-        CombatAttackResult result,
-        string source)
+    private bool TryResolveDetachedAttack(
+        CombatAttackRequest request,
+        in ReservedCombatDamageOutcome reservedDamage,
+        out CombatAttackResult result,
+        out string failureReason)
     {
-        if ((result.SpecialEffects & CombatSpecialEffectFlags.SignalSupport) != 0)
+        result = default;
+        failureReason = string.Empty;
+        try
         {
-            bodyHealthCommands.ReduceSuppression(
-                attacker,
-                result.StatusPotency * 100f);
+            result = combatResolutionTransaction.ResolveDetached(request);
+            return true;
         }
-        if (result.Hit)
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
         {
-            CombatDamageType damageType =
-                weapon?.Verb?.damageType ?? CombatDamageType.Slash;
-            CombatAttackResult appliedResult = damageType == CombatDamageType.Blunt
-                ? result.WithAppliedDamageMultiplier(
-                    defender.GetDetailedStatMultiplier("damage:blunt-taken"))
-                : result;
-            bodyHealthCommands.ApplyCombatResult(
-                defender,
-                appliedResult,
-                $"{source}: {attacker.Identity?.DisplayName ?? attacker.name}");
-            DefenseCombatPresentation.Ensure(defender)?.PlayHit(
-                appliedResult.AppliedDamage,
-                damageType,
-                worldUiHierarchy);
-            ApplyArmorDurabilityDamage(result);
-            return;
+            resultApplier.CancelDamageOutcome(reservedDamage);
+            failureReason = "defense-combat-resolution-failed:"
+                + exception.GetType().Name;
+            return false;
         }
+    }
 
-        bodyHealthCommands.AddSuppression(defender, result.Suppression);
+    private CombatOutcomeMechanicalMutation CreateDefenseCombatMechanicalMutation(
+        CombatAttackRequest request,
+        CombatAttackResult result,
+        CombatWeaponSnapshot weapon,
+        Vector2Int impactPosition)
+    {
+        bool resolutionPending = true;
+        bool capturesPhysicalItems = weapon?.Verb?.DropsWeaponOnUse == true;
+        DungeonPhysicalItemSaveData physicalItemsBefore = null;
+        return new CombatOutcomeMechanicalMutation(
+            apply: () =>
+            {
+                if (capturesPhysicalItems)
+                    physicalItemsBefore = itemStackRuntime.Capture();
+                if (!combatResolutionTransaction.TryApplyResolvedResultMutation(
+                        request,
+                        result,
+                        out string resolutionFailure))
+                {
+                    resolutionPending = false;
+                    return resolutionFailure;
+                }
+                if (!TryConsumeAttackResource(
+                        weapon,
+                        result,
+                        impactPosition,
+                        out string resourceFailure))
+                {
+                    return resourceFailure;
+                }
+                if (!resultApplier.TryApplyArmorDurabilityDamage(
+                        result,
+                        out string durabilityFailure))
+                {
+                    return durabilityFailure;
+                }
+                return string.Empty;
+            },
+            rollback: () =>
+            {
+                if (resolutionPending
+                    && !combatResolutionTransaction
+                        .TryRollbackResolvedResultMutation(
+                            request,
+                            out string rollbackFailure))
+                {
+                    Debug.LogError(
+                        "Defense combat resolution rollback failed: "
+                        + rollbackFailure);
+                }
+                resolutionPending = false;
+                if (physicalItemsBefore != null)
+                    itemStackRuntime.Restore(physicalItemsBefore);
+                physicalItemsBefore = null;
+            },
+            complete: () =>
+            {
+                if (resolutionPending)
+                {
+                    combatResolutionTransaction
+                        .CompleteResolvedResultMutation(request);
+                    resolutionPending = false;
+                }
+                physicalItemsBefore = null;
+            });
     }
 
     private static bool IsConstruct(CharacterActor actor)
@@ -989,60 +1173,74 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         CombatAttackResult result,
         Vector2Int impactPosition)
     {
+        TryConsumeAttackResource(
+            weapon,
+            result,
+            impactPosition,
+            out _);
+    }
+
+    private bool TryConsumeAttackResource(
+        CombatWeaponSnapshot weapon,
+        CombatAttackResult result,
+        Vector2Int impactPosition,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
         if (weapon == null)
         {
-            return;
+            return true;
         }
 
         if (weapon.RequiresAmmo && !string.IsNullOrWhiteSpace(weapon.InstanceId))
         {
-            combatEquipment.TryConsumeLoadedAmmo(
-                weapon.InstanceId,
-                Mathf.Max(1, result.AmmunitionConsumed));
+            if (!combatEquipment.TryConsumeLoadedAmmo(
+                    weapon.InstanceId,
+                    Mathf.Max(1, result.AmmunitionConsumed)))
+            {
+                failureReason = "defense-combat-ammunition-consume-failed";
+                return false;
+            }
         }
         else if (weapon.Verb?.DropsWeaponOnUse == true)
         {
-            DropRecoverableWeapon(weapon, impactPosition);
+            if (!TryDropRecoverableWeapon(
+                    weapon,
+                    impactPosition,
+                    out failureReason))
+            {
+                return false;
+            }
         }
+        return true;
     }
 
-    private void DropRecoverableWeapon(
+    private bool TryDropRecoverableWeapon(
         CombatWeaponSnapshot weapon,
-        Vector2Int impactPosition)
+        Vector2Int impactPosition,
+        out string failureReason)
     {
+        failureReason = string.Empty;
         if (weapon == null
-            || string.IsNullOrWhiteSpace(weapon.InstanceId)
-            || !combatEquipment.TryDropExistingEquipmentToWorld(
+            || string.IsNullOrWhiteSpace(weapon.InstanceId))
+        {
+            failureReason = "defense-combat-recoverable-weapon-id-missing";
+            return false;
+        }
+        if (!combatEquipment.TryDropExistingEquipmentToWorld(
                 weapon.InstanceId,
                 impactPosition,
                 out _,
-                out _))
+                out failureReason))
         {
-            return;
-        }
-    }
-
-    private void ApplyArmorDurabilityDamage(CombatAttackResult result)
-    {
-        if (result.ArmorDurabilityHits.Count > 0)
-        {
-            for (int i = 0; i < result.ArmorDurabilityHits.Count; i++)
+            if (string.IsNullOrWhiteSpace(failureReason))
             {
-                CombatArmorDurabilityHit hit = result.ArmorDurabilityHits[i];
-                combatEquipment.TryApplyDurabilityDamage(
-                    hit.InstanceId,
-                    hit.Damage);
+                failureReason =
+                    "defense-combat-recoverable-weapon-drop-failed";
             }
-
-            return;
+            return false;
         }
-
-        if (!string.IsNullOrWhiteSpace(result.ArmorInstanceId))
-        {
-            combatEquipment.TryApplyDurabilityDamage(
-                result.ArmorInstanceId,
-                result.ArmorDurabilityDamage);
-        }
+        return true;
     }
 
     private CombatStatSnapshot CreateCombatStats(

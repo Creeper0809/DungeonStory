@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Environment;
 
 /// <summary>
 /// Detached, save-only projection of the active source owners that must be
@@ -17,7 +18,27 @@ public static class ProductionFacilityDestructiveDrainPlannedOwnerSaveProjection
         DungeonCharacterEnvironmentSaveData environment,
         DungeonPhysicalItemSaveData items,
         DungeonCharacterWorldSaveData characters,
-        ProductionPreparedOutputRoutingSaveData routing)
+        ProductionPreparedOutputRoutingSaveData routing) => Project(
+            facilityId,
+            production,
+            combat,
+            maintenance,
+            environment,
+            items,
+            characters,
+            routing,
+            fire: null);
+
+    public static IReadOnlyDictionary<string, IReadOnlyList<string>> Project(
+        BuildingInstanceId facilityId,
+        DungeonProductionBillSaveData production,
+        DungeonCombatEquipmentSaveData combat,
+        CombatEquipmentMaintenanceSaveData maintenance,
+        DungeonCharacterEnvironmentSaveData environment,
+        DungeonPhysicalItemSaveData items,
+        DungeonCharacterWorldSaveData characters,
+        ProductionPreparedOutputRoutingSaveData routing,
+        DungeonEnvironmentalFireSaveData fire)
     {
         if (!facilityId.IsValid)
             throw new ArgumentException(
@@ -130,7 +151,27 @@ public static class ProductionFacilityDestructiveDrainPlannedOwnerSaveProjection
                                     .StockSensor(facilityId.Value)
                             }
                             : Array.Empty<string>(),
-                        "stock sensor")
+                        "stock sensor"),
+                [ProductionFacilityDestructiveDrainParticipantIds
+                    .EnvironmentalFireDamageOutcome] = ProjectUnique(
+                        (fire?.damageOperations
+                                ?? new List<
+                                    EnvironmentalFireDamageOutcomeSaveRecord>())
+                            .Where(value => value != null
+                                && value.targetKind ==
+                                    (int)EnvironmentalFireTargetKind.Building
+                                && string.Equals(
+                                    value.targetId,
+                                    facilityId.Value,
+                                    StringComparison.Ordinal)
+                                && value.phase !=
+                                    EnvironmentalFireDamageOutcomePhase
+                                        .OutcomeCommitted)
+                            .Select(value =>
+                                ProductionFacilityDestructiveDrainOwnerStableIds
+                                    .EnvironmentalFireDamage(
+                                        value.operationId)),
+                        "environmental fire damage outcome")
             };
         return result;
     }

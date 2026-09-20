@@ -201,6 +201,7 @@ public sealed class CropPlotRuntime :
     IDisposable
 {
     public const string WaterRefillOperationPrefix = "crop-water-refill:";
+    public const string IrrigationOperationPrefix = "crop-irrigation:";
 
     private const float MaterialRequestInterval = 0.5f;
     public const string HarvestOutputBatchCommitPrefix =
@@ -228,6 +229,7 @@ public sealed class CropPlotRuntime :
     private readonly IGameplayEffectResultBoundsQuery effectBounds;
     private readonly IFacilityCapabilityQuery facilities;
     private readonly ICropIrrigationRuntime irrigation;
+    private readonly ICropIrrigationSupplyTransaction irrigationTransactions;
     private readonly IGameClock gameClock;
     private readonly BlueprintResearchRuntime research;
     private readonly ISurvivalEnvironmentQuery environmentQuery;
@@ -599,6 +601,10 @@ public sealed class CropPlotRuntime :
         effectBounds = world.EffectBounds;
         facilities = world.Facilities;
         irrigation = world.Irrigation;
+        irrigationTransactions = world.Irrigation as
+                ICropIrrigationSupplyTransaction
+            ?? throw new InvalidOperationException(
+                $"{nameof(CropPlotRuntime)} requires the exact irrigation supply transaction.");
         facilityCandidates = world.FacilityCandidates;
         workforce = world.Workforce;
         gameClock = simulation.GameClock;
@@ -2267,7 +2273,7 @@ public sealed class CropPlotRuntime :
             float capacityBefore = state.WaterCapacity;
             CropIrrigationSupplyResult supply = !gameClock.IsPaused
                     && gameClock.DeltaTime > 0f
-                ? irrigation.TrySupply(request)
+                ? TryCommitAutomaticIrrigation(state, request)
                 : new CropIrrigationSupplyResult(
                     irrigation.Assess(request),
                     succeeded: false,
@@ -2277,7 +2283,6 @@ public sealed class CropPlotRuntime :
             {
                 if (supply.SuppliedWaterUnits
                         != CropWaterRules.RefillQuantity
-                    || state.CurrentWater != waterBefore
                     || state.WaterCapacity != capacityBefore
                     || state.WaterRefill.phase != CropWaterRefillPhase.None
                     || waterBefore + supply.SuppliedWaterUnits
@@ -2287,10 +2292,9 @@ public sealed class CropPlotRuntime :
                         "Synchronous crop irrigation violated its preflight publication contract.");
                 }
 
-                // Fluid consumption has no callback. Publish the preflighted exact
-                // unit immediately, before any save or other gameplay call can run.
-                state.CurrentWater = waterBefore + supply.SuppliedWaterUnits;
-                MarkChanged();
+                if (state.CurrentWater != waterBefore + supply.SuppliedWaterUnits)
+                    throw new InvalidOperationException(
+                        "Committed crop irrigation did not publish its exact plot-water credit.");
             }
             else if (ShouldBeginManualWaterRefill(
                          supply.Assessment.Status))
@@ -2606,6 +2610,135 @@ public sealed class CropPlotRuntime :
             state.NextSowOperationSequence);
         state.BlockedReason = string.Empty;
         MarkChanged();
+    }
+
+    private CropIrrigationSupplyResult TryCommitAutomaticIrrigation(
+        CropPlotState state,
+        CropIrrigationRequest request)
+    {
+        CropIrrigationAssessment assessment = irrigation.Assess(request);
+        if (!assessment.CanSupply)
+        {
+            return new CropIrrigationSupplyResult(
+                assessment,
+                false,
+                0f,
+                WorldWaterQuality.Clean);
+        }
+
+        int sequence = state.NextWaterRefillOperationSequence;
+        long ownerRevision = checked((long)sequence + 1L);
+        string operationId = IrrigationOperationPrefix
+            + state.PlotId.Value + ":"
+            + sequence.ToString(
+                "D6",
+                System.Globalization.CultureInfo.InvariantCulture);
+        var resultKey = new GameplayResultKey(
+            EnvironmentOutcomeIds.CropIrrigationProducer,
+            new GameplayOperationId(operationId),
+            ownerRevision,
+            0);
+        var reservationSpec = new EnvironmentOutcomeReservationSpec(
+            resultKey,
+            EnvironmentOutcomeIds.CropIrrigationSupplied,
+            CurrentAbsoluteDay,
+            GameplayOutcomeStatus.Succeeded,
+            ownerRevision,
+            participantCount: 2,
+            metricCount: 2,
+            subjectCount: 1,
+            tagCount: 1,
+            provenanceCount: 1,
+            factCount: 3);
+        if (!environmentOutcomes.TryReserve(
+                reservationSpec,
+                out ReservedEnvironmentOutcome reserved,
+                out string reserveFailure))
+            throw new InvalidOperationException(
+                "Crop irrigation outcome reservation failed: " + reserveFailure);
+
+        PreparedCropIrrigationSupply preparedSupply = null;
+        PreparedEnvironmentOutcome preparedOutcome = default;
+        float waterBefore = state.CurrentWater;
+        bool ownerMutated = false;
+        try
+        {
+            if (!irrigationTransactions.TryPrepareSupply(
+                    request,
+                    out preparedSupply))
+            {
+                environmentOutcomes.Cancel(reserved);
+                return preparedSupply?.Result ?? new CropIrrigationSupplyResult(
+                    irrigation.Assess(request),
+                    false,
+                    0f,
+                    WorldWaterQuality.Clean);
+            }
+
+            CropIrrigationSupplyResult supplied = preparedSupply.Result;
+            if (supplied.SuppliedWaterUnits != CropWaterRules.RefillQuantity
+                || waterBefore + supplied.SuppliedWaterUnits > state.WaterCapacity)
+                throw new InvalidOperationException(
+                    "Prepared crop irrigation drifted from its preflight quantity.");
+            CropIrrigationSupplyOutcomeReceipt receipt =
+                EnvironmentOutcomeReceiptFactory.CreateCropIrrigationSupply(
+                    supplied,
+                    operationId,
+                    ownerRevision,
+                    preparedSupply.PlotDisplayName,
+                    preparedSupply.IrrigatorDisplayName,
+                    new CoreGridCell(
+                        state.LastKnownPosition.x,
+                        state.LastKnownPosition.y),
+                    CurrentAbsoluteDay);
+
+            state.CurrentWater = waterBefore + supplied.SuppliedWaterUnits;
+            ownerMutated = true;
+            if (!environmentOutcomes.TryWriteReserved(
+                    receipt,
+                    reserved,
+                    out preparedOutcome,
+                    out string writeFailure))
+                throw new InvalidOperationException(
+                    "Crop irrigation outcome write failed: " + writeFailure);
+
+            EnvironmentOutcomeCommitResult committed =
+                environmentOutcomes.Commit(preparedOutcome, ownerRevision);
+            if (!committed.DurablyCommitted)
+                throw new InvalidOperationException(
+                    "Crop irrigation outcome commit failed: "
+                    + committed.DetailCode);
+
+            irrigationTransactions.CommitPreparedSupply(preparedSupply);
+            state.NextWaterRefillOperationSequence = checked(sequence + 1);
+            MarkChanged();
+            return supplied;
+        }
+        catch
+        {
+            EnvironmentOutcomeCommitResult reconciled =
+                environmentOutcomes.Reconcile(resultKey);
+            if (reconciled.DurablyCommitted)
+            {
+                if (preparedSupply?.IsPending == true)
+                    irrigationTransactions.CommitPreparedSupply(preparedSupply);
+                state.NextWaterRefillOperationSequence = checked(sequence + 1);
+                MarkChanged();
+                return preparedSupply?.Result
+                    ?? throw new InvalidOperationException(
+                        "A committed irrigation outcome has no matching supply result.");
+            }
+
+            if (ownerMutated)
+                state.CurrentWater = waterBefore;
+            if (preparedSupply?.IsPending == true)
+                irrigationTransactions.RollbackPreparedSupply(preparedSupply);
+            if (preparedOutcome.IsValid)
+                environmentOutcomes.Cancel(preparedOutcome);
+            else if (reserved.IsValid)
+                environmentOutcomes.Cancel(reserved);
+            throw;
+        }
     }
 
     public static string FormatWaterRefillOperationId(

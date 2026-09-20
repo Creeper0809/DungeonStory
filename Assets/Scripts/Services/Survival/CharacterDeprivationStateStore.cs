@@ -1,8 +1,10 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 
 /// <summary>
 /// The sole mutable owner of per-character deprivation state. The dictionary is
@@ -203,27 +205,82 @@ public sealed class CharacterDeprivationAuthorityDependencies
                 diagnostics,
                 consequences,
                 PrimitiveSurvival.FieldMeals,
-                events));
+                events,
+                PrimitiveSurvival.Calendar,
+                PrimitiveSurvival.OutcomeTransactions));
     }
 }
 
 public sealed class CharacterPrimitiveSurvivalDependencies
 {
+    [Inject]
     public CharacterPrimitiveSurvivalDependencies(
         IFieldMealConsumptionCommand fieldMeals,
         IItemQuantityReservationService quantityReservations,
-        IReservedItemTransferService reservedTransfers)
+        IReservedItemTransferService reservedTransfers,
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        : this(
+            fieldMeals,
+            quantityReservations,
+            reservedTransfers,
+            calendar,
+            outcomeTransactions,
+            null)
+    {
+    }
+
+    public CharacterPrimitiveSurvivalDependencies(
+        IFieldMealConsumptionCommand fieldMeals,
+        IItemQuantityReservationService quantityReservations,
+        IReservedItemTransferService reservedTransfers,
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        ICharacterPrimitiveSurvivalCoroutineScheduler coroutineScheduler)
     {
         FieldMeals = fieldMeals ?? throw new ArgumentNullException(nameof(fieldMeals));
         QuantityReservations = quantityReservations
             ?? throw new ArgumentNullException(nameof(quantityReservations));
         ReservedTransfers = reservedTransfers
             ?? throw new ArgumentNullException(nameof(reservedTransfers));
+        Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        OutcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        CoroutineScheduler = coroutineScheduler
+            ?? UnityCharacterPrimitiveSurvivalCoroutineScheduler.Instance;
     }
 
     public IFieldMealConsumptionCommand FieldMeals { get; }
     public IItemQuantityReservationService QuantityReservations { get; }
     public IReservedItemTransferService ReservedTransfers { get; }
+    public IGameCalendar Calendar { get; }
+    public IMigratedProducerOutcomeTransaction OutcomeTransactions { get; }
+    public ICharacterPrimitiveSurvivalCoroutineScheduler CoroutineScheduler { get; }
+}
+
+public interface ICharacterPrimitiveSurvivalCoroutineScheduler
+{
+    void Start(CharacterActor owner, IEnumerator routine);
+}
+
+internal sealed class UnityCharacterPrimitiveSurvivalCoroutineScheduler :
+    ICharacterPrimitiveSurvivalCoroutineScheduler
+{
+    internal static readonly UnityCharacterPrimitiveSurvivalCoroutineScheduler Instance =
+        new();
+
+    private UnityCharacterPrimitiveSurvivalCoroutineScheduler()
+    {
+    }
+
+    public void Start(CharacterActor owner, IEnumerator routine)
+    {
+        if (owner == null)
+            throw new ArgumentNullException(nameof(owner));
+        if (routine == null)
+            throw new ArgumentNullException(nameof(routine));
+        owner.StartCoroutine(routine);
+    }
 }
 
 public sealed class CharacterDeprivationStateStore
@@ -330,6 +387,14 @@ public sealed class CharacterDeprivationStateStore
             .Select(pair => CloneState(pair.Value, clearTransientTarget: true))
             .ToList();
     }
+
+    internal CharacterDeprivationAggregateState CaptureTransactionState() =>
+        ReadState.Clone();
+
+    internal void RestoreTransactionState(
+        CharacterDeprivationAggregateState snapshot) =>
+        aggregateRootStore.Replace(
+            snapshot ?? throw new ArgumentNullException(nameof(snapshot)));
 
     internal void Restore(
         IEnumerable<CharacterDeprivationState> savedStates,

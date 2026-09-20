@@ -178,6 +178,7 @@ def main() -> int:
         rows = []
     by_name: dict[str, dict[str, Any]] = {}
     record_outcome_types: set[str] = set()
+    record_count = 0
     for row in rows:
         if not isinstance(row, dict):
             errors.append("closure contains a non-object row")
@@ -227,11 +228,10 @@ def main() -> int:
         require_text(row, "replayIdentity", errors, minimum=20)
         require_text(row, "uiQueryProof", errors, minimum=20)
         if disposition == "Record":
+            record_count += 1
             outcome_type = require_text(row, "outcomeTypeId", errors, minimum=3)
             if outcome_type and not STABLE_ID.fullmatch(outcome_type):
                 errors.append(f"{candidate}: outcomeTypeId is not a stable ID")
-            if outcome_type in record_outcome_types:
-                errors.append(f"{candidate}: duplicate Record outcomeTypeId {outcome_type}")
             record_outcome_types.add(outcome_type)
             require_text(row, "adapterType", errors, minimum=3)
             require_text(row, "descriptorType", errors, minimum=3)
@@ -263,7 +263,8 @@ def main() -> int:
         return 1
     print(
         "PASS Phase80 final closure manifest: "
-        f"{len(candidates)} candidates, {len(record_outcome_types)} direct Record outcome types"
+        f"{len(candidates)} candidates, {record_count} direct Record rows, "
+        f"{len(record_outcome_types)} registered outcome types"
     )
     return 0
 

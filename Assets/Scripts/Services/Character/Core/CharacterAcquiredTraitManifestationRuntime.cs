@@ -690,6 +690,7 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
     private readonly IUiClock uiClock;
     private readonly IGameEventBus events;
     private readonly IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery;
+    private readonly IAcquiredTraitInferenceOutcomeCommitter outcomeCommitter;
     private readonly CharacterAcquiredTraitSettingsSO settings;
     private readonly CharacterAcquiredTraitModuleSO[] modules;
     private readonly CharacterAcquiredTraitInferenceService inference;
@@ -708,7 +709,8 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         IGameCalendar calendar,
         IUiClock uiClock,
         IGameEventBus events,
-        IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery)
+        IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery,
+        IAcquiredTraitInferenceOutcomeCommitter outcomeCommitter)
     {
         if (content == null)
             throw new ArgumentNullException(nameof(content));
@@ -720,6 +722,8 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.outcomeEvidenceQuery = outcomeEvidenceQuery
             ?? throw new ArgumentNullException(nameof(outcomeEvidenceQuery));
+        this.outcomeCommitter = outcomeCommitter
+            ?? throw new ArgumentNullException(nameof(outcomeCommitter));
 
         settings = content.RequireSingle<CharacterAcquiredTraitSettingsSO>()
             ?? throw new InvalidOperationException(
@@ -1401,7 +1405,8 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
                     expectedRevision,
                     result.Content,
                     CurrentTimestamp()),
-                pending.Packet);
+                pending.Packet,
+                outcomeCommitter);
         if (completion.Succeeded)
         {
             observation.Pending = null;

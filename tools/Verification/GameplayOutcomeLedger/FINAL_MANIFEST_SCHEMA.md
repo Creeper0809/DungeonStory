@@ -28,6 +28,11 @@ row to `VERIFIED`.
 descriptor, projector, joint commit boundary, save-backed outbox owner, canonical
 replay identity, and UI/query proof.
 
+Different Records may intentionally share one registered outcome type when a
+dynamic adapter uses the receipt shape and canonical replay identity to
+distinguish operations. Candidate rows remain unique; an outcome type ID is a
+schema family, not a per-producer primary key.
+
 `ExactSubstitute` proves that a higher result from the same operation preserves
 all committed facts and provides the same transaction/save/replay/UI fields.
 Lower-level results cannot be dropped merely because their name looks internal.

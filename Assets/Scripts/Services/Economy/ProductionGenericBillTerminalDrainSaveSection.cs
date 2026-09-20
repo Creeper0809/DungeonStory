@@ -25,7 +25,8 @@ public sealed class ProductionGenericBillTerminalDrainSaveSection :
         ProductionPreparedOutputRoutingSaveSection.Id,
         CombatEquipmentSaveSection.Id,
         EquipmentMaintenanceSaveSection.Id,
-        CharacterEnvironmentSaveSection.Id
+        CharacterEnvironmentSaveSection.Id,
+        EnvironmentalFireSaveSection.Id
     };
 
     private readonly IProductionGenericBillTerminalDrainQuery query;
@@ -107,8 +108,8 @@ public sealed class ProductionGenericBillTerminalDrainSaveSection :
                 out ProductionOutputLifecycleRestoreCandidateBundle lifecycle))
         {
             throw new InvalidOperationException(
-                "Generic terminal-drain staged commit requires all eight lifecycle candidates; found "
-                + lifecycleCandidates.PublishedSourceCount + "/8.");
+                "Generic terminal-drain staged commit requires all nine lifecycle candidates; found "
+                + lifecycleCandidates.PublishedSourceCount + "/9.");
         }
         if (!inputDrainCandidates.IsCandidateAvailable)
         {

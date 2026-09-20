@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 using VContainer.Unity;
 
 internal sealed class ConveyorRuntime :
@@ -27,8 +28,7 @@ internal sealed class ConveyorRuntime :
     private readonly ConveyorPayloadAdmissionPolicy admissionPolicy;
     private readonly ConveyorSnapshotProjector snapshotProjector = new();
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
-    private readonly HashSet<string> approvedOverflowPayloads =
-        new HashSet<string>(StringComparer.Ordinal);
+    private readonly IInfrastructureCommandOutcomeTransaction commandOutcomes;
     private IReadOnlyList<ConveyorNetworkSnapshot> networks =
         Array.Empty<ConveyorNetworkSnapshot>();
     private int topologyVersion = int.MinValue;
@@ -77,6 +77,32 @@ internal sealed class ConveyorRuntime :
         ISurvivalFoodQuery food,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         IResourceEconomyContentCatalog materialCatalog)
+        : this(
+            topologyRuntime,
+            power,
+            catalog,
+            items,
+            clock,
+            equipment,
+            food,
+            aggregateRootStore,
+            materialCatalog,
+            null)
+    {
+    }
+
+    [Inject]
+    public ConveyorRuntime(
+        IIndustrialInfrastructureTopologyRuntime topologyRuntime,
+        IPowerInfrastructureQuery power,
+        IDungeonItemCatalogProvider catalog,
+        ConveyorItemGateway items,
+        IGameClock clock,
+        ICombatEquipmentRuntime equipment,
+        ISurvivalFoodQuery food,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IResourceEconomyContentCatalog materialCatalog,
+        IInfrastructureCommandOutcomeTransaction commandOutcomes)
     {
         this.topologyRuntime = topologyRuntime
             ?? throw new ArgumentNullException(nameof(topologyRuntime));
@@ -87,6 +113,7 @@ internal sealed class ConveyorRuntime :
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.commandOutcomes = commandOutcomes;
         projectedRestoreRevision =
             this.aggregateRootStore.PublishedRestoreRevision;
         admissionPolicy = new ConveyorPayloadAdmissionPolicy(
@@ -266,14 +293,41 @@ internal sealed class ConveyorRuntime :
         BuildableObject segment,
         bool enabled)
     {
-        if (!TryResolveNode(segment, out _, out IndustrialNodeDescriptor node))
+        if (!TryResolveNode(
+                segment,
+                out string nodeId,
+                out IndustrialNodeDescriptor node))
         {
             return InfrastructureCommandResult.Failed(
                 FailureCode.IndustrialBuildingUnavailable);
         }
 
-        GetNodeState(node).Enabled = enabled;
+        ConveyorNodeRuntimeState state = GetNodeState(node);
+        if (state.Enabled == enabled)
+            return InfrastructureCommandResult.Success();
+        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+                commandOutcomes,
+                InfrastructureCommandOutcomeKind.ConveyorNodeEnabledChanged,
+                nodeId,
+                node.Building,
+                InfrastructureCommandOutcomeExecution.Bool(state.Enabled),
+                InfrastructureCommandOutcomeExecution.Bool(enabled),
+                out IPreparedInfrastructureCommandOutcome prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        ConveyorAggregateState before = State.DeepClone();
+        int previousRouteVersion = routeVersion;
+        state.Enabled = enabled;
         InvalidateRoutes();
+        InfrastructureCommandOutcomeCommitResult commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (!commit.DurablyCommitted)
+        {
+            RestoreRejectedCommand(before, previousRouteVersion);
+            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+        }
         return InfrastructureCommandResult.Success();
     }
 
@@ -314,7 +368,7 @@ internal sealed class ConveyorRuntime :
         EnsureTopology();
         if (!TryResolveNode(
                 port,
-                out _,
+                out string nodeId,
                 out IndustrialNodeDescriptor node)
             || node.ConveyorPort == null)
         {
@@ -326,8 +380,37 @@ internal sealed class ConveyorRuntime :
             || (destinationId.Length > 0 && !GetDestinationChoices(port).Any(value =>
                 string.Equals(value.DestinationId, destinationId, StringComparison.Ordinal))))
             return InfrastructureCommandResult.Failed(FailureCode.ConveyorDestinationUnavailable);
-        GetNodeState(node).DestinationId = destinationId;
+        ConveyorNodeRuntimeState state = GetNodeState(node);
+        if (string.Equals(
+                state.DestinationId,
+                destinationId,
+                StringComparison.Ordinal))
+        {
+            return InfrastructureCommandResult.Success();
+        }
+        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+                commandOutcomes,
+                InfrastructureCommandOutcomeKind.ConveyorDestinationChanged,
+                nodeId,
+                node.Building,
+                OptionalSnapshot(state.DestinationId),
+                OptionalSnapshot(destinationId),
+                out IPreparedInfrastructureCommandOutcome prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        ConveyorAggregateState before = State.DeepClone();
+        int previousRouteVersion = routeVersion;
+        state.DestinationId = destinationId;
         InvalidateRoutes();
+        InfrastructureCommandOutcomeCommitResult commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (!commit.DurablyCommitted)
+        {
+            RestoreRejectedCommand(before, previousRouteVersion);
+            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+        }
         return InfrastructureCommandResult.Success();
     }
 
@@ -340,7 +423,7 @@ internal sealed class ConveyorRuntime :
         if (!Enum.IsDefined(typeof(ConveyorOverflowPolicy), policy)
             || !TryResolveNode(
                 segment,
-                out _,
+                out string nodeId,
                 out IndustrialNodeDescriptor node)
             || node.Overflow == null)
         {
@@ -354,9 +437,41 @@ internal sealed class ConveyorRuntime :
                 string.Equals(choice.DestinationId, reserveWarehouseId, StringComparison.Ordinal))))
             return InfrastructureCommandResult.Failed(FailureCode.ConveyorDestinationUnavailable);
         ConveyorNodeRuntimeState state = GetNodeState(node);
+        if (state.OverflowPolicy == policy
+            && string.Equals(
+                state.ReserveWarehouseId,
+                reserveWarehouseId,
+                StringComparison.Ordinal))
+        {
+            return InfrastructureCommandResult.Success();
+        }
+        string beforeValue = OverflowPolicySnapshot(state);
+        string afterValue = "policy=" + policy
+            + ";warehouse=" + OptionalSnapshot(reserveWarehouseId);
+        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+                commandOutcomes,
+                InfrastructureCommandOutcomeKind.ConveyorOverflowPolicyChanged,
+                nodeId,
+                node.Building,
+                beforeValue,
+                afterValue,
+                out IPreparedInfrastructureCommandOutcome prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        ConveyorAggregateState before = State.DeepClone();
+        int previousRouteVersion = routeVersion;
         state.OverflowPolicy = policy;
         state.ReserveWarehouseId = reserveWarehouseId;
         Touch();
+        InfrastructureCommandOutcomeCommitResult commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (!commit.DurablyCommitted)
+        {
+            RestoreRejectedCommand(before, previousRouteVersion);
+            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+        }
         return InfrastructureCommandResult.Success();
     }
 
@@ -382,7 +497,10 @@ internal sealed class ConveyorRuntime :
         BuildableObject segment,
         ConveyorFilterCriteria criteria)
     {
-        if (!TryResolveNode(segment, out _, out IndustrialNodeDescriptor node))
+        if (!TryResolveNode(
+                segment,
+                out string nodeId,
+                out IndustrialNodeDescriptor node))
         {
             return InfrastructureCommandResult.Failed(
                 FailureCode.IndustrialBuildingUnavailable);
@@ -391,7 +509,40 @@ internal sealed class ConveyorRuntime :
         if (!ConveyorPayloadAdmissionPolicy.IsValidCriteria(criteria, itemCatalog, materialCatalog))
             return InfrastructureCommandResult.Failed(FailureCode.IndustrialCommandInvalid);
         ConveyorNodeRuntimeState state = GetNodeState(node);
-        ConveyorFilterCriteria source = criteria;
+        ConveyorNodeRuntimeState desired = state.DeepClone();
+        ApplyFilter(desired, criteria);
+        if (FilterEquals(state, desired))
+            return InfrastructureCommandResult.Success();
+        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+                commandOutcomes,
+                InfrastructureCommandOutcomeKind.ConveyorFilterChanged,
+                nodeId,
+                node.Building,
+                FilterSnapshot(state),
+                FilterSnapshot(desired),
+                out IPreparedInfrastructureCommandOutcome prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        ConveyorAggregateState before = State.DeepClone();
+        int previousRouteVersion = routeVersion;
+        CopyFilter(desired, state);
+        InvalidateRoutes();
+        InfrastructureCommandOutcomeCommitResult commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (!commit.DurablyCommitted)
+        {
+            RestoreRejectedCommand(before, previousRouteVersion);
+            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+        }
+        return InfrastructureCommandResult.Success();
+    }
+
+    private static void ApplyFilter(
+        ConveyorNodeRuntimeState state,
+        ConveyorFilterCriteria source)
+    {
         state.ItemIds.Clear();
         foreach (string itemId in source.itemIds ?? new List<string>())
         {
@@ -440,23 +591,148 @@ internal sealed class ConveyorRuntime :
         }
 
         state.AllowContaminated = source.allowContaminated;
-        InvalidateRoutes();
-        return InfrastructureCommandResult.Success();
     }
+
+    private static void CopyFilter(
+        ConveyorNodeRuntimeState source,
+        ConveyorNodeRuntimeState destination)
+    {
+        destination.ItemIds.Clear();
+        destination.ItemIds.UnionWith(source.ItemIds);
+        destination.StockCategories.Clear();
+        destination.StockCategories.UnionWith(source.StockCategories);
+        destination.MaterialIds.Clear();
+        destination.MaterialIds.UnionWith(source.MaterialIds);
+        destination.AllowForbidden = source.AllowForbidden;
+        destination.FilterQuality = source.FilterQuality;
+        destination.MinimumQuality = source.MinimumQuality;
+        destination.MaximumQuality = source.MaximumQuality;
+        destination.FilterFreshness = source.FilterFreshness;
+        destination.MinimumFreshness01 = source.MinimumFreshness01;
+        destination.MaximumFreshness01 = source.MaximumFreshness01;
+        destination.AllowContaminated = source.AllowContaminated;
+    }
+
+    private static bool FilterEquals(
+        ConveyorNodeRuntimeState left,
+        ConveyorNodeRuntimeState right) =>
+        left.ItemIds.SetEquals(right.ItemIds)
+        && left.StockCategories.SetEquals(right.StockCategories)
+        && left.MaterialIds.SetEquals(right.MaterialIds)
+        && left.AllowForbidden == right.AllowForbidden
+        && left.FilterQuality == right.FilterQuality
+        && left.MinimumQuality == right.MinimumQuality
+        && left.MaximumQuality == right.MaximumQuality
+        && left.FilterFreshness == right.FilterFreshness
+        && Mathf.Approximately(
+            left.MinimumFreshness01,
+            right.MinimumFreshness01)
+        && Mathf.Approximately(
+            left.MaximumFreshness01,
+            right.MaximumFreshness01)
+        && left.AllowContaminated == right.AllowContaminated;
+
+    private static string FilterSnapshot(ConveyorNodeRuntimeState state) =>
+        "items=" + string.Join(
+            ",",
+            state.ItemIds.OrderBy(value => value, StringComparer.Ordinal))
+        + ";categories=" + string.Join(
+            ",",
+            state.StockCategories
+                .Select(value => ((int)value).ToString())
+                .OrderBy(value => value, StringComparer.Ordinal))
+        + ";materials=" + string.Join(
+            ",",
+            state.MaterialIds.OrderBy(value => value, StringComparer.Ordinal))
+        + ";forbidden="
+        + InfrastructureCommandOutcomeExecution.Bool(state.AllowForbidden)
+        + ";quality="
+        + InfrastructureCommandOutcomeExecution.Bool(state.FilterQuality)
+        + ":" + state.MinimumQuality + ":" + state.MaximumQuality
+        + ";freshness="
+        + InfrastructureCommandOutcomeExecution.Bool(state.FilterFreshness)
+        + ":"
+        + InfrastructureCommandOutcomeExecution.Float(
+            state.MinimumFreshness01)
+        + ":"
+        + InfrastructureCommandOutcomeExecution.Float(
+            state.MaximumFreshness01)
+        + ";contaminated="
+        + InfrastructureCommandOutcomeExecution.Bool(state.AllowContaminated);
+
+    private static string OverflowPolicySnapshot(
+        ConveyorNodeRuntimeState state) =>
+        "policy=" + state.OverflowPolicy
+        + ";warehouse=" + OptionalSnapshot(state.ReserveWarehouseId);
+
+    private static string OptionalSnapshot(string value) =>
+        string.IsNullOrWhiteSpace(value) ? "none" : value;
 
     public InfrastructureCommandResult ApproveOverflow(string payloadId)
     {
+        EnsureTopology();
         string normalized = payloadId?.Trim() ?? string.Empty;
-        if (!payloads.ContainsKey(normalized))
+        if (!payloads.TryGetValue(
+                normalized,
+                out ConveyorPayloadRuntimeState payload))
         {
             return InfrastructureCommandResult.Failed(
                 FailureCode.ConveyorPayloadMissing,
                 normalized);
         }
 
-        approvedOverflowPayloads.Add(normalized);
-        ResolveOverflow();
+        if (payload.OverflowApproved)
+            return InfrastructureCommandResult.Success();
+        if (!topologyRuntime.Current.Nodes.TryGetValue(
+                payload.SegmentNodeId,
+                out IndustrialNodeDescriptor node))
+        {
+            return InfrastructureCommandResult.Failed(
+                FailureCode.IndustrialBuildingUnavailable,
+                payload.SegmentNodeId);
+        }
+        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+                commandOutcomes,
+                InfrastructureCommandOutcomeKind.ConveyorOverflowApproved,
+                payload.PayloadId,
+                node.Building,
+                "false",
+                "true",
+                out IPreparedInfrastructureCommandOutcome prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        ConveyorAggregateState before = State.DeepClone();
+        int previousRouteVersion = routeVersion;
+        payload.OverflowApproved = true;
         Touch();
+        try
+        {
+            commandOutcomes.QueueCommitted(prepared);
+        }
+        catch (Exception exception)
+        {
+            RestoreRejectedCommand(before, previousRouteVersion);
+            commandOutcomes.Cancel(prepared);
+            return InfrastructureCommandResult.Failed(
+                FailureCode.IndustrialCommandInvalid,
+                "infrastructure-command-outbox-queue-failed",
+                exception.GetType().Name);
+        }
+
+        commandOutcomes.DeliverQueued(prepared.OwnerRevision, prepared);
+        try
+        {
+            ResolveOverflow();
+            Touch();
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                "Overflow discharge failed after committed approval: "
+                + exception);
+        }
         return InfrastructureCommandResult.Success();
     }
 
@@ -714,7 +990,6 @@ internal sealed class ConveyorRuntime :
         }
 
         RemovePayload(payload);
-        approvedOverflowPayloads.Remove(payload.PayloadId);
         return true;
     }
 
@@ -810,7 +1085,7 @@ internal sealed class ConveyorRuntime :
                 ConveyorNodeRuntimeState state = GetNodeState(gate);
                 if (state.OverflowPolicy
                         == ConveyorOverflowPolicy.ManualApproval
-                    && !approvedOverflowPayloads.Contains(payload.PayloadId))
+                    && !payload.OverflowApproved)
                 {
                     continue;
                 }
@@ -855,7 +1130,7 @@ internal sealed class ConveyorRuntime :
         // to spill into the world. Only an explicit ground policy/approval permits it.
         if (state.OverflowPolicy != ConveyorOverflowPolicy.LooseOnly
             && !(state.OverflowPolicy == ConveyorOverflowPolicy.ManualApproval
-                && approvedOverflowPayloads.Contains(payload.PayloadId)))
+                && payload.OverflowApproved))
             return false;
 
         Vector2Int dropPosition = items.ResolveNodeDropPosition(gate);
@@ -876,7 +1151,6 @@ internal sealed class ConveyorRuntime :
     private void CompleteOverflow(ConveyorPayloadRuntimeState payload)
     {
         RemovePayload(payload);
-        approvedOverflowPayloads.Remove(payload.PayloadId);
     }
 
     private bool IsOverflowEligible(ConveyorPayloadRuntimeState payload)
@@ -1025,14 +1299,6 @@ internal sealed class ConveyorRuntime :
 
     private int CompareOverflowCandidates(string leftId, string rightId)
     {
-        int approvalComparison =
-            approvedOverflowPayloads.Contains(rightId).CompareTo(
-                approvedOverflowPayloads.Contains(leftId));
-        if (approvalComparison != 0)
-        {
-            return approvalComparison;
-        }
-
         if (!payloads.TryGetValue(
                 leftId,
                 out ConveyorPayloadRuntimeState left))
@@ -1045,6 +1311,13 @@ internal sealed class ConveyorRuntime :
                 out ConveyorPayloadRuntimeState right))
         {
             return -1;
+        }
+
+        int approvalComparison = right.OverflowApproved.CompareTo(
+            left.OverflowApproved);
+        if (approvalComparison != 0)
+        {
+            return approvalComparison;
         }
 
         int stalledComparison =
@@ -1224,6 +1497,16 @@ internal sealed class ConveyorRuntime :
         }
     }
 
+    private void RestoreRejectedCommand(
+        ConveyorAggregateState before,
+        int previousRouteVersion)
+    {
+        aggregateRootStore.Replace(before);
+        ResetProjectionAfterRestore();
+        routeVersion = previousRouteVersion;
+        EnsureTopology();
+    }
+
     private void EnsureRestoreProjectionCurrent()
     {
         int revision = aggregateRootStore.PublishedRestoreRevision;
@@ -1240,7 +1523,6 @@ internal sealed class ConveyorRuntime :
     {
         topologyVersion = int.MinValue;
         accumulated = 0f;
-        approvedOverflowPayloads.Clear();
         payloadCountsByNode.Clear();
         foreach (ConveyorPayloadRuntimeState payload in payloads.Values)
         {

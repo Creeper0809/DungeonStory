@@ -659,41 +659,88 @@ public sealed class OffenseExpeditionReturnCoordinator :
             }
 
             expedition.ReturnFinalizing = true;
-            List<OffenseExpeditionMemberSnapshot> members = new();
-            foreach (var participant in participants)
+            var participantStatesBefore = participants
+                .Where(participant => participant.actor != null)
+                .GroupBy(
+                    participant => CharacterPersistentIdentity
+                        .Require(participant.actor)
+                        .Value,
+                    StringComparer.Ordinal)
+                .Select(group => new
+                {
+                    Actor = group.First().actor,
+                    Recovery = group.First().actor.Lifecycle
+                        ?.ExpeditionRecovery?.Clone(),
+                    Progression = group.First().actor.Progression
+                        ?.CapturePersistentState()
+                })
+                .ToArray();
+            try
             {
-                var actor = participant.actor;
-                bool survived = actor != null && !actor.IsDead;
-                actor?.Lifecycle?.RecordExpeditionReturn(participant.stress, survived);
-                if (success && survived && participant.awardExperience)
-                    actor.Progression?.AddExperience(
-                        OffenseExpeditionRuntime.CalculateSuccessfulReturnExperience(expedition));
-                actor?.EnsureRuntimeState();
-                members.Add(new OffenseExpeditionMemberSnapshot(
-                    actor != null ? actor.Identity?.DisplayName ?? actor.name : string.Empty,
-                    actor != null ? actor.Identity?.SpeciesTag ?? string.Empty : string.Empty,
-                    actor != null ? OffenseExpeditionService.CalculateMemberPower(actor, performance) : 0f,
-                    survived, participant.damage));
+                List<OffenseExpeditionMemberSnapshot> members = new();
+                foreach (var participant in participants)
+                {
+                    var actor = participant.actor;
+                    bool survived = actor != null && !actor.IsDead;
+                    actor?.Lifecycle?.RecordExpeditionReturn(
+                        participant.stress,
+                        survived);
+                    if (success && survived && participant.awardExperience)
+                        actor.Progression?.AddExperience(
+                            OffenseExpeditionRuntime
+                                .CalculateSuccessfulReturnExperience(expedition));
+                    actor?.EnsureRuntimeState();
+                    members.Add(new OffenseExpeditionMemberSnapshot(
+                        actor != null
+                            ? actor.Identity?.DisplayName ?? actor.name
+                            : string.Empty,
+                        actor != null
+                            ? actor.Identity?.SpeciesTag ?? string.Empty
+                            : string.Empty,
+                        actor != null
+                            ? OffenseExpeditionService.CalculateMemberPower(
+                                actor,
+                                performance)
+                            : 0f,
+                        survived,
+                        participant.damage));
+                }
+                var pendingResult = new OffenseExpeditionResult(
+                    expedition.ExpeditionId, expedition.Target.id, expedition.Target.title, success,
+                    expedition.TotalPower, expedition.Target.requiredPower, expedition.Target.danger,
+                    expedition.TotalDurationSeconds - expedition.RemainingSeconds, members,
+                    success ? expedition.Target.rewards?.Where(reward => reward != null)
+                        .Select(reward => reward.ToSummaryText()).ToArray() ?? Array.Empty<string>() : Array.Empty<string>());
+                pendingResult = pendingResult.WithSettlement(
+                    frozenItems,
+                    expedition.TreatmentReceipts);
+                pendingResult = pendingResult
+                    .WithAdditionalItemReceipts(release?.ItemReceipts)
+                    .WithAdditionalCurrencyReceipts(release?.CurrencyReceipts);
+                pendingResult = resultFinalizer.Finalize(
+                    expedition,
+                    pendingResult,
+                    resultHistory,
+                    () => returnPort.Seal(expedition.ExpeditionId));
+                expedition.ReturnFinalized = true;
             }
-            var pendingResult = new OffenseExpeditionResult(
-                expedition.ExpeditionId, expedition.Target.id, expedition.Target.title, success,
-                expedition.TotalPower, expedition.Target.requiredPower, expedition.Target.danger,
-                expedition.TotalDurationSeconds - expedition.RemainingSeconds, members,
-                success ? expedition.Target.rewards?.Where(reward => reward != null)
-                    .Select(reward => reward.ToSummaryText()).ToArray() ?? Array.Empty<string>() : Array.Empty<string>());
-            pendingResult = pendingResult.WithSettlement(
-                frozenItems,
-                expedition.TreatmentReceipts);
-            pendingResult = pendingResult
-                .WithAdditionalItemReceipts(release?.ItemReceipts)
-                .WithAdditionalCurrencyReceipts(release?.CurrencyReceipts);
-            pendingResult = resultFinalizer.Finalize(
-                expedition,
-                pendingResult,
-                resultHistory);
-            returnPort.Seal(expedition.ExpeditionId);
-            expedition.ReturnFinalized = true;
-            expedition.ReturnFinalizing = false;
+            catch
+            {
+                foreach (var before in participantStatesBefore)
+                {
+                    if (before.Recovery != null)
+                        before.Actor.Lifecycle?.RestoreExpeditionRecovery(
+                            before.Recovery);
+                    if (before.Progression != null)
+                        before.Actor.Progression?.RestorePersistentState(
+                            before.Progression);
+                }
+                throw;
+            }
+            finally
+            {
+                expedition.ReturnFinalizing = false;
+            }
             stateChanged?.Invoke();
             if (!string.IsNullOrWhiteSpace(message))
             {

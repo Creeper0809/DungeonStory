@@ -130,9 +130,14 @@ public interface IOffenseRegionRuntime
         string regionId,
         float amount,
         out float appliedAmount);
+    bool TryPrepareReconnaissance(string regionId, float amount,
+        out OffenseRegionRuntime.ReconnaissancePreparation preparation);
     OffenseStrategicPressureSnapshot GetPressureForTarget(OffenseTargetDefinition target);
     OffenseStrategicPressureSnapshot GetFactionPressure(string factionId);
     DungeonOffenseRegionSaveData Capture();
+    OffenseRegionRestoreCandidate BuildRestoreCandidate(
+        DungeonOffenseRegionSaveData saveData);
+    void PublishRestoreCandidate(OffenseRegionRestoreCandidate candidate);
 }
 
 public sealed class OffenseRegionRestoreCandidate
@@ -202,6 +207,49 @@ public sealed class OffenseRegionRuntime :
         region.AddDamage(axis, requestedAmount);
         appliedAmount = region.GetDamage(axis) - before;
         return appliedAmount > 0f;
+    }
+
+    public bool TryPrepareReconnaissance(string regionId, float amount,
+        out ReconnaissancePreparation preparation)
+    {
+        preparation = null;
+        var region = regions.FirstOrDefault(value => value.regionId == regionId);
+        if (region == null || !float.IsFinite(amount) || amount <= 0
+            || !float.IsFinite(region.intelligenceDamage) || region.intelligenceDamage < 0
+            || region.intelligenceDamage >= 100) return false;
+        preparation = new ReconnaissancePreparation(this, region, Math.Min(100, region.intelligenceDamage + amount));
+        return true;
+    }
+
+    public sealed class ReconnaissancePreparation
+    {
+        private readonly OffenseRegionRuntime owner;
+        private readonly OffenseRegionState region;
+        private readonly string regionId, regionName;
+        private bool published;
+        internal ReconnaissancePreparation(OffenseRegionRuntime owner, OffenseRegionState region, float after)
+        { this.owner = owner; this.region = region; regionId = region.regionId; regionName = region.displayName;
+          Before = region.intelligenceDamage; After = after; }
+        public string RegionId => regionId;
+        public string RegionName => regionName;
+        public float Before { get; }
+        public float After { get; }
+        public bool TryPublish()
+        {
+            if (published || !owner.regions.Contains(region) || region.intelligenceDamage != Before
+                || region.regionId != regionId || region.displayName != regionName) return false;
+            region.intelligenceDamage = After;
+            published = true;
+            return true;
+        }
+        public void Rollback()
+        {
+            if (!published) return;
+            if (!owner.regions.Contains(region) || region.intelligenceDamage != After)
+                throw new InvalidOperationException("knowledge-region-rollback-conflict");
+            region.intelligenceDamage = Before;
+            published = false;
+        }
     }
 
     public bool TryApplyReconnaissance(
@@ -308,10 +356,12 @@ public sealed class OffenseRegionRuntime :
     public bool TryBeginMemoryErasureSealAward(
         string regionId,
         out string operationId,
+        out string regionDisplayName,
         out bool alreadyPublished,
         out string failureReason)
     {
         operationId = string.Empty;
+        regionDisplayName = string.Empty;
         alreadyPublished = false;
         failureReason = string.Empty;
         string requiredRegionId = regionId?.Trim() ?? string.Empty;
@@ -329,6 +379,14 @@ public sealed class OffenseRegionRuntime :
             return false;
         }
 
+        regionDisplayName = region.displayName?.Trim() ?? string.Empty;
+        if (regionDisplayName.Length == 0)
+        {
+            failureReason =
+                "memory-erasure-seal-region-display-name-missing:"
+                + requiredRegionId;
+            return false;
+        }
         string expectedOperation =
             MemoryErasureSealBossAwardRules.BuildOperationId(requiredRegionId);
         string existing =

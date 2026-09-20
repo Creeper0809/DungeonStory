@@ -231,7 +231,9 @@ public sealed class SeasonalManaLightningApplicationAdapter : ITickable
                     EnvironmentalFireTargetKind.Building,
                     building.PersistentInstanceId.Value),
                 profile.ignitionIntensity,
-                evidenceId));
+                evidenceId,
+                targetDisplayName: FacilityShopService.GetBuildingName(
+                    building.BuildingData)));
         if (result.Disposition ==
             EnvironmentalFireIgnitionDisposition.CauseConflict)
             throw new InvalidOperationException(

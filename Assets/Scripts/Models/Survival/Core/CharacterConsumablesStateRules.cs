@@ -319,7 +319,9 @@ internal static class CharacterConsumablesStateRules
         physicalCommitQuantity = source?.physicalCommitQuantity ?? 0,
         physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L,
         committedPolicyViolation = source?.committedPolicyViolation ?? false,
-        committedContaminated = source?.committedContaminated ?? false
+        committedContaminated = source?.committedContaminated ?? false,
+        primitiveSurvivalOutcomeRequired =
+            source?.primitiveSurvivalOutcomeRequired ?? false
     };
 
     internal static CharacterMealPlanSaveData ToSaveData(
@@ -344,7 +346,9 @@ internal static class CharacterConsumablesStateRules
         physicalCommitQuantity = source?.physicalCommitQuantity ?? 0,
         physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L,
         committedPolicyViolation = source?.committedPolicyViolation ?? false,
-        committedContaminated = source?.committedContaminated ?? false
+        committedContaminated = source?.committedContaminated ?? false,
+        primitiveSurvivalOutcomeRequired =
+            source?.primitiveSurvivalOutcomeRequired ?? false
     };
 
     internal static CharacterMealPlan FromSaveData(
@@ -373,7 +377,9 @@ internal static class CharacterConsumablesStateRules
         physicalCommitQuantity = source?.physicalCommitQuantity ?? 0,
         physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L,
         committedPolicyViolation = source?.committedPolicyViolation ?? false,
-        committedContaminated = source?.committedContaminated ?? false
+        committedContaminated = source?.committedContaminated ?? false,
+        primitiveSurvivalOutcomeRequired =
+            source?.primitiveSurvivalOutcomeRequired ?? false
     };
 
     internal static CharacterDietPolicyState Clone(CharacterDietPolicyState source) =>

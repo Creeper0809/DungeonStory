@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 using VContainer.Unity;
 
 public interface IKnowledgeResidueProcessingRuntime
 {
     IReadOnlyList<KnowledgeResidueTaskSnapshot> Tasks { get; }
+    int NextTaskSequence { get; }
+    int TaskIdentityGeneration { get; }
     bool TryQueueCodexAnalysis(out string message);
     bool TryQueueRegionReconnaissance(string regionId, out string message);
     bool HasProcessingWorkFor(BuildableObject facility);
@@ -18,10 +21,13 @@ public interface IKnowledgeResidueProcessingRuntime
     BlueprintResearchWorkResult ApplyApprovedWork(
         CharacterActor researcher,
         BuildableObject facility,
-        float approvedWorkUnits);
+        float approvedWorkUnits,
+        DurableFacilityEquipmentUseContext equipment = null);
     IReadOnlyList<KnowledgeResidueTaskSaveData> Capture();
     KnowledgeResidueRestoreCandidate PrepareRestore(
-        IEnumerable<KnowledgeResidueTaskSaveData> tasks);
+        IEnumerable<KnowledgeResidueTaskSaveData> tasks,
+        int nextTaskSequence = 0,
+        int taskIdentityGeneration = 0);
     void Restore(KnowledgeResidueRestoreCandidate candidate);
 }
 
@@ -64,6 +70,16 @@ public sealed class KnowledgeResidueProcessingRuntime :
     private readonly IGameClock gameClock;
     private readonly IDungeonDebugRuleQuery debugRules;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private BlueprintResearchOutcomeTransaction gameplayOutcomes;
+    private KnowledgeResidueCompletionTransaction completionOutcomes;
+
+    [Inject]
+    public void ConstructCompletionOutcomes(KnowledgeResidueCompletionTransaction outcomes) =>
+        completionOutcomes = outcomes ?? throw new ArgumentNullException(nameof(outcomes));
+
+    [Inject]
+    public void ConstructGameplayOutcomes(BlueprintResearchOutcomeTransaction outcomes) =>
+        gameplayOutcomes = outcomes ?? throw new ArgumentNullException(nameof(outcomes));
 
     public KnowledgeResidueProcessingRuntime(
         IWorldItemStackRuntime items,
@@ -104,6 +120,9 @@ public sealed class KnowledgeResidueProcessingRuntime :
         CurrentState.Tasks
             .Select(task => new KnowledgeResidueTaskSnapshot(task))
             .ToArray();
+    public int NextTaskSequence => CurrentState.CaptureNextTaskSequence;
+    public int TaskIdentityGeneration =>
+        CurrentState.CaptureTaskIdentityGeneration;
 
     private KnowledgeResidueAggregateState CurrentState =>
         aggregateRootStore.GetOrCreate(
@@ -116,6 +135,7 @@ public sealed class KnowledgeResidueProcessingRuntime :
 
     public bool TryQueueCodexAnalysis(out string message)
     {
+        if (!CanAllocateTask(out message)) return false;
         if (codex == null)
         {
             message = "도감 시스템을 불러오지 못했습니다.";
@@ -142,6 +162,7 @@ public sealed class KnowledgeResidueProcessingRuntime :
 
     public bool TryQueueRegionReconnaissance(string regionId, out string message)
     {
+        if (!CanAllocateTask(out message)) return false;
         string normalizedRegionId = regionId?.Trim() ?? string.Empty;
         if (normalizedRegionId.Length == 0
             || regions.Regions.FirstOrDefault(region => string.Equals(
@@ -175,6 +196,13 @@ public sealed class KnowledgeResidueProcessingRuntime :
         return true;
     }
 
+    private bool CanAllocateTask(out string message)
+    {
+        message = CurrentState.CanAllocateTaskSequence ? string.Empty
+            : "기억 잔재 작업 번호를 안전하게 발급할 수 없습니다. 구형 저장의 작업 기록 확인 또는 번호 범위 복구가 필요합니다.";
+        return CurrentState.CanAllocateTaskSequence;
+    }
+
     public void Tick()
     {
         KnowledgeResidueAggregateState current = CurrentState;
@@ -189,16 +217,17 @@ public sealed class KnowledgeResidueProcessingRuntime :
         state.ScheduleNextDeliveryCheck(gameClock.Time + DeliveryCheckInterval);
         KnowledgeResidueTaskSaveData task = state.FirstTask;
         if (task.dispositionPhase !=
-            KnowledgeResidueDispositionPhase.AwaitingInput)
+                KnowledgeResidueDispositionPhase.AwaitingInput
+            || task.completedWork + .001f >= task.requiredWork
+                && physicalSinks.TryGetPending(task.sinkOperationId, out _))
         {
             if (!TryFinalizeCommittedTask(
                     state,
                     task,
+                    out _,
                     out string finalizeFailure))
             {
-                throw new InvalidOperationException(
-                    "Knowledge residue committed-task recovery failed: "
-                    + finalizeFailure);
+                ReportFinalizationPending(finalizeFailure);
             }
             return;
         }
@@ -224,6 +253,12 @@ public sealed class KnowledgeResidueProcessingRuntime :
 
         if (HasDeliveredKnowledge(task))
         {
+            if (task.completedWork + .001f >= task.requiredWork)
+            {
+                if (!TryFinalizeCommittedTask(state, task, out _, out string failure))
+                    ReportFinalizationPending(failure);
+                return;
+            }
             if (state.SetReadySignal(task.taskId))
             {
                 workforce.RequestOneWorkerToReplanFor(
@@ -277,9 +312,9 @@ public sealed class KnowledgeResidueProcessingRuntime :
 
         KnowledgeResidueTaskSaveData task = state.FirstTask;
         return IsAssignedFacility(task, facility)
-            && (task.dispositionPhase !=
-                    KnowledgeResidueDispositionPhase.AwaitingInput
-                || HasDeliveredKnowledge(task));
+            && task.dispositionPhase == KnowledgeResidueDispositionPhase.AwaitingInput
+            && task.completedWork + .001f < task.requiredWork
+            && HasDeliveredKnowledge(task);
     }
 
     public BlueprintResearchWorkResult ApplyWork(
@@ -295,26 +330,30 @@ public sealed class KnowledgeResidueProcessingRuntime :
     public BlueprintResearchWorkResult ApplyApprovedWork(
         CharacterActor researcher,
         BuildableObject facility,
-        float approvedWorkUnits) =>
+        float approvedWorkUnits,
+        DurableFacilityEquipmentUseContext equipment = null) =>
         ApplyWorkInternal(
             researcher,
             facility,
             approvedWorkUnits,
-            approvedWorkUnits: true);
+            approvedWorkUnits: true,
+            equipment);
 
     private BlueprintResearchWorkResult ApplyWorkInternal(
         CharacterActor researcher,
         BuildableObject facility,
         float amount,
-        bool approvedWorkUnits)
+        bool approvedWorkUnits,
+        DurableFacilityEquipmentUseContext equipment = null)
     {
         if (!HasProcessingWorkFor(facility))
         {
             return Failure("기억 잔재가 아직 연구 시설에 도착하지 않았습니다.");
         }
 
-        KnowledgeResidueAggregateState state = WritableState;
-        KnowledgeResidueTaskSaveData task = state.FirstTask;
+        if (gameplayOutcomes == null)
+            throw new InvalidOperationException("Knowledge research requires its gameplay-outcome transaction.");
+        KnowledgeResidueTaskSaveData task = CurrentState.FirstTask;
         float added = debugRules.IsEnabled(DungeonDebugCheat.InstantWork)
             ? task.requiredWork
             : approvedWorkUnits
@@ -325,96 +364,38 @@ public sealed class KnowledgeResidueProcessingRuntime :
                     researcher,
                     facility,
                     amount);
-        float before = task.completedWork;
-        task.completedWork = Mathf.Clamp(
-            task.completedWork + Mathf.Max(0f, added),
-            0f,
-            Mathf.Max(1f, task.requiredWork));
-        added = task.completedWork - before;
-        if (task.completedWork + 0.001f < task.requiredWork)
+        string researcherId = string.Empty;
+        if (researcher != null)
         {
-            return new BlueprintResearchWorkResult(
-                true,
-                null,
-                added,
-                task.completedWork,
-                task.requiredWork,
-                false,
-                $"{GetTaskLabel(task)} {Mathf.RoundToInt(task.completedWork / task.requiredWork * 100f)}%");
+            if (!CharacterPersistentIdentity.TryGet(researcher, out CharacterId id))
+                throw new InvalidOperationException("Knowledge researcher requires a persistent identity.");
+            researcherId = id.Value;
         }
+        if (!gameplayOutcomes.TryApplyKnowledgeProgress(aggregateRootStore, added,
+                Mathf.Max(0, Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay)),
+                GetTaskLabel(task), researcherId, researcher?.Identity.DisplayName,
+                facility.RequirePersistentInstanceId().Value,
+                FacilityShopService.GetBuildingName(facility.BuildingData),
+                equipment == null ? null : new ResearchEquipmentOutcomeEvidence(equipment),
+                out BlueprintResearchWorkResult progress))
+            return progress;
+        if (progress.TotalProgress + .001f < progress.RequiredWork)
+            return progress;
 
-        if (!CanApplyResult(task, out string invalidReason))
-        {
-            if (!releases.TryReleaseAtOwnerPosition(
-                    task.destinationId,
-                    facility.centerPos,
-                    "knowledge-residue-task-invalid",
-                    out _,
-                    out string releaseFailure))
-            {
-                return Failure(
-                    "기억 잔재 물리 반환 실패: " + releaseFailure);
-            }
-            if (!destinations.TryRevoke(task, out string revokeFailure))
-            {
-                return Failure(
-                    "기억 잔재 목적지 종료 실패: " + revokeFailure);
-            }
-            state.RemoveFirstTask();
-            state.ClearReadySignal();
-            workforce.RequestIdleWorkersToReplan();
-            return Failure($"{invalidReason} 기억 잔재는 시설 앞에 돌려놓았습니다.");
-        }
-
-        if (!TryCommitOrResumeInput(
-                task,
-                out PhysicalItemBatchDispositionReceipt receipt,
-                out string consumeFailure))
-        {
-            task.completedWork = Mathf.Max(0f, task.requiredWork - 0.01f);
-            return Failure($"기억 잔재 소비 실패: {consumeFailure}");
-        }
-
-        if (task.dispositionPhase ==
-                KnowledgeResidueDispositionPhase.InputCommitted
-            && !ApplyResult(task, out string resultMessage))
-        {
-            return Failure(resultMessage);
-        }
-        else if (task.dispositionPhase ==
-                 KnowledgeResidueDispositionPhase.OutcomePublished)
-        {
-            resultMessage = GetPublishedResultMessage(task);
-        }
-        else
-        {
-            return Failure("기억 잔재 결과 상태가 올바르지 않습니다.");
-        }
-
-        if (!destinations.TryRevoke(task, out string terminalFailure))
-        {
-            return Failure(
-                "기억 잔재 목적지 종료 실패: " + terminalFailure);
-        }
-        if (!physicalSinks.Acknowledge(
-                receipt.CommitId,
-                out string acknowledgeFailure))
-        {
-            return Failure(
-                "기억 잔재 소비 확인 실패: " + acknowledgeFailure);
-        }
-
-        state.RemoveFirstTask();
-        state.ClearReadySignal();
-        workforce.RequestIdleWorkersToReplan();
+        // Progress and the exact equipment use are already committed. Re-query the
+        // detached owner replacement; finalization must never turn them into failed work.
+        KnowledgeResidueAggregateState state = WritableState;
+        task = state.FirstTask;
+        bool finalized = TryFinalizeCommittedTask(state, task, out bool completed, out string resultMessage);
+        if (!finalized) ReportFinalizationPending(resultMessage);
         return new BlueprintResearchWorkResult(
             true,
             null,
-            added,
-            task.requiredWork,
-            task.requiredWork,
-            true,
-            resultMessage);
+            progress.AddedProgress,
+            progress.TotalProgress,
+            progress.RequiredWork,
+            finalized && completed,
+            progress.Message + " · " + (finalized ? resultMessage : "결과 처리 대기: " + resultMessage));
     }
 
     private bool TryCommitOrResumeInput(
@@ -433,18 +414,32 @@ public sealed class KnowledgeResidueProcessingRuntime :
         if (task.dispositionPhase ==
             KnowledgeResidueDispositionPhase.AwaitingInput)
         {
-            if (!physicalSinks.TryCommitSinkPending(
+            if (completionOutcomes == null || physicalSinks is not IOutcomeAwarePhysicalFacilityItemSinkGateway joint)
+            { failureReason = "knowledge-joint-completion-unavailable"; return false; }
+            var participant = completionOutcomes.Prepare(aggregateRootStore, task, codex, regions,
+                Math.Max(0, (int)(gameClock.Time / GameCalendarRules.SecondsPerDay)),
+                FacilityShopService.GetBuildingName(ResolveAssignedFacility(task)?.BuildingData));
+            if (!joint.TryCommitSinkPending(
                     task.destinationId,
                     KnowledgeResidueDestinationAuthority.MemoryResidueItemId,
                     1,
                     task.sinkOperationId,
                     task.sinkReasonCode,
+                    participant,
                     out receipt,
                     out failureReason))
             {
                 return false;
             }
-            StoreCommittedReceipt(task, receipt);
+            try
+            {
+                participant.NotifyCommitted();
+                if (task.use == KnowledgeResidueUse.RegionReconnaissance)
+                    eventBus.RaiseAlert("기억 정찰 완료", GetPublishedResultMessage(CurrentState.FirstTask),
+                        EventAlertImportance.Medium, "오펜스");
+            }
+            catch (Exception exception) when (IsRecoverable(exception))
+            { ReportFinalizationPending("knowledge-completion-observer:" + exception.GetType().Name); }
             return true;
         }
 
@@ -461,19 +456,66 @@ public sealed class KnowledgeResidueProcessingRuntime :
                 + task.sinkOperationId;
             return false;
         }
+        if (completionOutcomes == null || !completionOutcomes.IsCommitted(task, receipt))
+        { failureReason = "knowledge-completion-canonical-proof-missing"; return false; }
         return true;
     }
 
     private bool TryFinalizeCommittedTask(
         KnowledgeResidueAggregateState state,
         KnowledgeResidueTaskSaveData task,
+        out bool completed,
         out string failureReason)
     {
+        completed = false;
+        try
+        {
+            return TryFinalizeCommittedTaskCore(state, task, out completed, out failureReason);
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            failureReason = "knowledge-finalization-exception:" + exception.GetType().Name;
+            return false;
+        }
+    }
+
+    private bool TryFinalizeCommittedTaskCore(
+        KnowledgeResidueAggregateState state,
+        KnowledgeResidueTaskSaveData task,
+        out bool completed,
+        out string failureReason)
+    {
+        completed = false;
         failureReason = string.Empty;
         if (state == null || task == null)
         {
             failureReason = "knowledge-residue-committed-task-missing";
             return false;
+        }
+        // Old split-commit saves require explicit reconciliation; do not apply
+        // an uncertain legacy reward again or consume a second input.
+        if (task.dispositionPhase == KnowledgeResidueDispositionPhase.AwaitingInput
+            && physicalSinks.TryGetPending(task.sinkOperationId, out _)
+            || task.dispositionPhase != KnowledgeResidueDispositionPhase.AwaitingInput
+                && task.completionOwnerRevision <= 0)
+        { failureReason = "knowledge-legacy-completion-reconciliation-required"; return false; }
+        if (!CanApplyResult(task, out string invalidReason))
+        {
+            BuildableObject facility = ResolveAssignedFacility(task);
+            if (facility == null)
+            {
+                failureReason = "knowledge-invalid-task-facility-missing";
+                return false;
+            }
+            if (!releases.TryReleaseAtOwnerPosition(task.destinationId, facility.centerPos,
+                    "knowledge-residue-task-invalid", out _, out failureReason)
+                || !destinations.TryRevoke(task, out failureReason))
+                return false;
+            state.RemoveFirstTask();
+            state.ClearReadySignal();
+            NotifyFinalized();
+            failureReason = invalidReason + " 기억 잔재는 시설 앞에 돌려놓았습니다.";
+            return true;
         }
         if (!TryCommitOrResumeInput(
                 task,
@@ -482,35 +524,51 @@ public sealed class KnowledgeResidueProcessingRuntime :
         {
             return false;
         }
-        if (task.dispositionPhase ==
-                KnowledgeResidueDispositionPhase.InputCommitted
-            && !ApplyResult(task, out failureReason))
-        {
-            return false;
-        }
+        state = WritableState;
+        task = state.FirstTask;
         if (task.dispositionPhase !=
             KnowledgeResidueDispositionPhase.OutcomePublished)
         {
             failureReason = "knowledge-residue-outcome-not-published";
             return false;
         }
+        string resultMessage = GetPublishedResultMessage(task);
         if (!destinations.TryRevoke(task, out failureReason))
         {
             return false;
         }
-        if (!physicalSinks.Acknowledge(
+        if (physicalSinks is not IOutcomeAwarePhysicalFacilityItemSinkGateway cleanupGateway)
+        { failureReason = "knowledge-joint-cleanup-unavailable"; return false; }
+        if (!cleanupGateway.Acknowledge(
                 receipt.CommitId,
+                KnowledgeResidueCompletionTransaction.PrepareCleanup(aggregateRootStore, task),
                 out failureReason))
         {
             return false;
         }
-        state.RemoveFirstTask();
-        state.ClearReadySignal();
-        workforce.RequestIdleWorkersToReplan();
+        completed = true;
+        failureReason = resultMessage;
+        NotifyFinalized();
         return true;
     }
 
-    private static void StoreCommittedReceipt(
+    private void NotifyFinalized()
+    {
+        try { workforce.RequestIdleWorkersToReplan(); }
+        catch (Exception exception) when (IsRecoverable(exception))
+        { ReportFinalizationPending("knowledge-post-commit-replan:" + exception.GetType().Name); }
+    }
+
+    private static void ReportFinalizationPending(string reason)
+    {
+        try { Debug.LogWarning("Knowledge residue committed work requires finalization: " + reason); }
+        catch (Exception exception) when (IsRecoverable(exception)) { }
+    }
+
+    private static bool IsRecoverable(Exception exception) => exception is not
+        OutOfMemoryException and not StackOverflowException and not AccessViolationException;
+
+    internal static void StoreCommittedReceipt(
         KnowledgeResidueTaskSaveData task,
         PhysicalItemBatchDispositionReceipt receipt)
     {
@@ -570,7 +628,9 @@ public sealed class KnowledgeResidueProcessingRuntime :
     }
 
     public KnowledgeResidueRestoreCandidate PrepareRestore(
-        IEnumerable<KnowledgeResidueTaskSaveData> savedTasks)
+        IEnumerable<KnowledgeResidueTaskSaveData> savedTasks,
+        int nextTaskSequence = 0,
+        int taskIdentityGeneration = 0)
     {
         if (savedTasks == null)
         {
@@ -589,12 +649,10 @@ public sealed class KnowledgeResidueProcessingRuntime :
                     "Knowledge residue task collection contains null.");
             }
             RequireCanonicalId(saved.taskId, "knowledge task");
-            int taskSequence = ParseSequence(saved.taskId);
-            if (taskSequence < 1
-                || !string.Equals(
+            if (!KnowledgeResidueTaskIdentity.TryParse(
                     saved.taskId,
-                    $"knowledge-{taskSequence:D5}",
-                    StringComparison.Ordinal))
+                    out _,
+                    out _))
             {
                 throw new InvalidOperationException(
                     $"Knowledge residue task id '{saved.taskId}' is not in canonical sequence format.");
@@ -644,6 +702,10 @@ public sealed class KnowledgeResidueProcessingRuntime :
                     $"Knowledge residue task '{saved.taskId}' has non-canonical destination id.");
             }
             ValidatePhysicalContract(saved);
+            if (saved.completionOwnerRevision < 0
+                || saved.completionOwnerRevision > 0
+                    && saved.dispositionPhase != KnowledgeResidueDispositionPhase.OutcomePublished)
+                throw new InvalidOperationException("Knowledge completion phase/identity is invalid: " + saved.taskId);
             if (saved.use == KnowledgeResidueUse.RegionReconnaissance)
             {
                 RequireCanonicalId(saved.regionId, "knowledge region");
@@ -655,9 +717,12 @@ public sealed class KnowledgeResidueProcessingRuntime :
             }
 
             KnowledgeResidueTaskSaveData restoredTask = Clone(saved);
-            restored.AddRestoredTask(restoredTask, taskSequence);
+            restored.AddRestoredTask(restoredTask);
         }
 
+        restored.RestoreAllocationIdentity(
+            nextTaskSequence,
+            taskIdentityGeneration);
         return new KnowledgeResidueRestoreCandidate(restored);
     }
 
@@ -767,7 +832,7 @@ public sealed class KnowledgeResidueProcessingRuntime :
     private void Queue(KnowledgeResidueUse use, string regionId)
     {
         KnowledgeResidueAggregateState state = WritableState;
-        string taskId = $"knowledge-{state.AllocateTaskSequence():D5}";
+        string taskId = state.AllocateTaskId();
         const int initialAssignmentSequence = 1;
         string codexClue = string.Empty;
         if (use == KnowledgeResidueUse.CodexAnalysis
@@ -800,61 +865,6 @@ public sealed class KnowledgeResidueProcessingRuntime :
                 : "연구 시설에서 지역 정찰 기억을 분석할 준비를 시작합니다.",
             EventAlertImportance.Low,
             "연구");
-    }
-
-    private bool ApplyResult(
-        KnowledgeResidueTaskSaveData task,
-        out string message)
-    {
-        switch (task.use)
-        {
-            case KnowledgeResidueUse.CodexAnalysis:
-                if (codex == null)
-                {
-                    message = "도감 시스템을 불러오지 못했습니다.";
-                    return false;
-                }
-
-                if (!codex.TryRecordMemoryResidueClue(
-                        task.codexCluePayload,
-                        out message))
-                {
-                    return false;
-                }
-                task.dispositionPhase =
-                    KnowledgeResidueDispositionPhase.OutcomePublished;
-                return true;
-
-            case KnowledgeResidueUse.RegionReconnaissance:
-                if (!regions.TryApplyReconnaissance(
-                        task.regionId,
-                        10f,
-                        out float applied))
-                {
-                    message = "지역 정찰 결과를 적용하지 못했습니다.";
-                    return false;
-                }
-
-                OffenseRegionState region = regions.Regions.First(candidate =>
-                    string.Equals(
-                        candidate.regionId,
-                        task.regionId,
-                        StringComparison.Ordinal));
-                task.appliedReconnaissanceAmount = applied;
-                task.dispositionPhase =
-                    KnowledgeResidueDispositionPhase.OutcomePublished;
-                message = $"{region.displayName} 정보망 약화 +{applied:0.#}";
-                eventBus.RaiseAlert(
-                    "기억 정찰 완료",
-                    message,
-                    EventAlertImportance.Medium,
-                    "오펜스");
-                return true;
-
-            default:
-                message = "지원하지 않는 기억 잔재 처리 방식입니다.";
-                return false;
-        }
     }
 
     private bool CanApplyResult(
@@ -1094,14 +1104,10 @@ public sealed class KnowledgeResidueProcessingRuntime :
             sinkInputMassGrams = source?.sinkInputMassGrams ?? 0L,
             sinkCommitId = source?.sinkCommitId ?? string.Empty,
             codexCluePayload = source?.codexCluePayload ?? string.Empty,
+            completionOwnerRevision = source?.completionOwnerRevision ?? 0,
             appliedReconnaissanceAmount =
                 source?.appliedReconnaissanceAmount ?? 0f
         };
     }
 
-    private static int ParseSequence(string taskId)
-    {
-        string value = taskId?.Split('-').LastOrDefault() ?? string.Empty;
-        return int.TryParse(value, out int sequence) ? sequence : 0;
-    }
 }

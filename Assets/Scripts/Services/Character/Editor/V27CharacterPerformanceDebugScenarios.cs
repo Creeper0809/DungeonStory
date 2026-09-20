@@ -2345,6 +2345,7 @@ public static class V27CharacterPerformanceDebugScenarios
             scope.Container.Resolve<CharacterMoodStateService>(),
             scope.Container.Resolve<CharacterStatsMaintenanceSchedule>(),
             scope.Container.Resolve<IGameEventBus>(),
+            scope.Container.Resolve<IMigratedProducerOutcomeTransaction>(),
             performance,
             scope.Container.Resolve<CharacterWorkPerformanceContextResolver>(),
             scope.Container.Resolve<ICombatEquipmentRuntime>());

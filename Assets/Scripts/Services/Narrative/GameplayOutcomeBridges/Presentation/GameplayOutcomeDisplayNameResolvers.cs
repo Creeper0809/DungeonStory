@@ -41,7 +41,8 @@ public sealed class CharacterGameplayOutcomeEntityNameResolver :
         name = new KoreanNameSnapshot(
             display,
             "runtime-character-current-v1:" + stableEntityId,
-            KoreanPronunciationHint.AutoHangulDisplay(),
+            KoreanPronunciationHint.AutoHangulDisplay(
+                "runtime-character-pronunciation-v1:" + stableEntityId),
             "ko-KR");
         return true;
     }
@@ -102,7 +103,8 @@ public sealed class FacilityGameplayOutcomeEntityNameResolver :
         name = new KoreanNameSnapshot(
             display,
             "runtime-facility-current-v1:" + stableEntityId,
-            KoreanPronunciationHint.AutoHangulDisplay(),
+            KoreanPronunciationHint.AutoHangulDisplay(
+                "runtime-facility-pronunciation-v1:" + stableEntityId),
             "ko-KR");
         return true;
     }

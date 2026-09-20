@@ -1643,6 +1643,21 @@ public sealed class WimInterrogationInformationRunner : MonoBehaviour
         captive.SetAiPaused(true);
         // Suppression ends the invasion owner. Capture/escort, not an invented
         // Confined save row, must establish the replacement captivity owner.
+        var bodyHealth = scope.Container.Resolve<CharacterBodyHealthRuntime>();
+        CharacterBodyHealthSnapshot captiveBody = bodyHealth.GetSnapshot(captive);
+        var downedParts = captiveBody.Parts.Select(part => new CharacterBodyPartHealthState
+        {
+            bodyPart = part.bodyPart,
+            maxHealth = part.maxHealth,
+            currentHealth = part.bodyPart == CombatBodyPart.LeftLeg
+                || part.bodyPart == CombatBodyPart.RightLeg ? part.maxHealth * 0.18f : part.currentHealth,
+            bleedingPerSecond = part.bleedingPerSecond
+        }).ToArray();
+        bodyHealth.ApplySnapshot(captive, new CharacterBodyHealthSnapshot(downedParts,
+            captiveBody.BloodLoss, captiveBody.Suppression, captiveBody.Consciousness,
+            captiveBody.Manipulation, 0.18f, true), "QA controlled capture-candidate injury");
+        Require(bodyHealth.GetSnapshot(captive).Downed,
+            "Capture fixture did not establish authoritative body-health downing.");
         director.ActiveIntruders.Single().ResolveSuppressedBy(warden);
         Require(director.ActiveIntruders.Count == 0 && !captive.IsDead
                 && captive.CurrentLifecycleState == CharacterLifecycleState.Downed,

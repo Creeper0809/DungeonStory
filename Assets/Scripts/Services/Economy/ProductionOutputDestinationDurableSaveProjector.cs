@@ -58,7 +58,7 @@ internal sealed class ProductionExactDestinationCustodyProjection
 public static class ProductionOutputDestinationDurableSaveProjector
 {
     public const string AggregateSchemaToken =
-        "production-output-durable-lifecycle@2";
+        "production-output-durable-lifecycle@4";
     public const string GenericBillsContributorId =
         ProductionFacilityDestructiveDrainParticipantIds
             .GenericProductionBills;
@@ -77,12 +77,20 @@ public static class ProductionOutputDestinationDurableSaveProjector
     public const string StockSensorContributorId =
         ProductionFacilityDestructiveDrainParticipantIds
             .StockSensorEmbeddedSalvage;
+    public const string FireDamageContributorId =
+        ProductionFacilityDestructiveDrainParticipantIds
+            .EnvironmentalFireDamageOutcome;
+    public const string DemolitionOutcomeContributorId =
+        ProductionFacilityDestructiveDrainParticipantIds
+            .BuildingDemolitionOutcome;
 
     private static readonly string[] RequiredAggregateContributorIds =
     {
         ApparelContributorId,
+        DemolitionOutcomeContributorId,
         CapacityRoutingContributorId,
         EquipmentContributorId,
+        FireDamageContributorId,
         GenericBillsContributorId,
         PhysicalCustodyContributorId,
         StockSensorContributorId
@@ -266,6 +274,35 @@ public static class ProductionOutputDestinationDurableSaveProjector
         BuildingInstanceId facilityId,
         ModularFacilityWorldSaveData worldPayload,
         DungeonProductionBillSaveData productionPayload,
+        DungeonProductionGenericBillTerminalDrainSaveData genericTerminalPayload,
+        DungeonCombatEquipmentSaveData equipmentPayload,
+        CombatEquipmentMaintenanceSaveData maintenancePayload,
+        DungeonCharacterEnvironmentSaveData apparelPayload,
+        DungeonPhysicalItemSaveData itemPayload,
+        DungeonCharacterWorldSaveData characterPayload,
+        ProductionPreparedOutputRoutingSaveData routingPayload,
+        IBuildingDefinitionLookup buildingDefinitions,
+        ProductionOutputBufferCapacityProjector capacityProjector,
+        IPhysicalItemMassQuery massQuery) => ProjectAggregateFromSave(
+            facilityId,
+            worldPayload,
+            productionPayload,
+            genericTerminalPayload,
+            equipmentPayload,
+            maintenancePayload,
+            apparelPayload,
+            itemPayload,
+            characterPayload,
+            routingPayload,
+            firePayload: null,
+            buildingDefinitions,
+            capacityProjector,
+            massQuery);
+
+    public static string ProjectAggregateFromSave(
+        BuildingInstanceId facilityId,
+        ModularFacilityWorldSaveData worldPayload,
+        DungeonProductionBillSaveData productionPayload,
         DungeonProductionGenericBillTerminalDrainSaveData
             genericTerminalPayload,
         DungeonCombatEquipmentSaveData equipmentPayload,
@@ -274,6 +311,7 @@ public static class ProductionOutputDestinationDurableSaveProjector
         DungeonPhysicalItemSaveData itemPayload,
         DungeonCharacterWorldSaveData characterPayload,
         ProductionPreparedOutputRoutingSaveData routingPayload,
+        DungeonStory.Environment.DungeonEnvironmentalFireSaveData firePayload,
         IBuildingDefinitionLookup buildingDefinitions,
         ProductionOutputBufferCapacityProjector capacityProjector,
         IPhysicalItemMassQuery massQuery)
@@ -297,11 +335,19 @@ public static class ProductionOutputDestinationDurableSaveProjector
         KeyValuePair<string, string>[] contributors =
         {
             new(ApparelContributorId, ProjectApparel(facilityId, apparelPayload)),
+            new(DemolitionOutcomeContributorId,
+                BuildingDemolitionOutcomeLifecycle.ProjectContribution(
+                    facilityId)),
             new(CapacityRoutingContributorId, capacity.Fingerprint),
             new(EquipmentContributorId, ProjectEquipment(
                 facilityId,
                 equipmentPayload,
                 maintenancePayload)),
+            new(FireDamageContributorId,
+                EnvironmentalFireDamageOutcomeAuthority
+                    .ProjectFacilityContribution(
+                        facilityId,
+                        firePayload?.damageOperations)),
             new(GenericBillsContributorId, ProjectGenericBills(facilityId, productionPayload)),
             new(PhysicalCustodyContributorId, ProjectPhysicalCustody(
                 facilityId,
@@ -325,7 +371,30 @@ public static class ProductionOutputDestinationDurableSaveProjector
         DungeonCharacterEnvironmentSaveData apparelPayload,
         DungeonPhysicalItemSaveData itemPayload,
         DungeonCharacterWorldSaveData characterPayload,
-        ProductionPreparedOutputRoutingSaveData routingPayload)
+        ProductionPreparedOutputRoutingSaveData routingPayload) =>
+        ProjectAbsentFacilityAggregateFromSave(
+            facilityId,
+            worldPayload,
+            productionPayload,
+            equipmentPayload,
+            maintenancePayload,
+            apparelPayload,
+            itemPayload,
+            characterPayload,
+            routingPayload,
+            firePayload: null);
+
+    public static string ProjectAbsentFacilityAggregateFromSave(
+        BuildingInstanceId facilityId,
+        ModularFacilityWorldSaveData worldPayload,
+        DungeonProductionBillSaveData productionPayload,
+        DungeonCombatEquipmentSaveData equipmentPayload,
+        CombatEquipmentMaintenanceSaveData maintenancePayload,
+        DungeonCharacterEnvironmentSaveData apparelPayload,
+        DungeonPhysicalItemSaveData itemPayload,
+        DungeonCharacterWorldSaveData characterPayload,
+        ProductionPreparedOutputRoutingSaveData routingPayload,
+        DungeonStory.Environment.DungeonEnvironmentalFireSaveData firePayload)
     {
         RequireFacility(facilityId);
         if (worldPayload?.buildings == null)
@@ -360,11 +429,19 @@ public static class ProductionOutputDestinationDurableSaveProjector
         KeyValuePair<string, string>[] contributors =
         {
             new(ApparelContributorId, ProjectApparel(facilityId, apparelPayload)),
+            new(DemolitionOutcomeContributorId,
+                BuildingDemolitionOutcomeLifecycle.ProjectContribution(
+                    facilityId)),
             new(CapacityRoutingContributorId, capacity),
             new(EquipmentContributorId, ProjectEquipment(
                 facilityId,
                 equipmentPayload,
                 maintenancePayload)),
+            new(FireDamageContributorId,
+                EnvironmentalFireDamageOutcomeAuthority
+                    .ProjectFacilityContribution(
+                        facilityId,
+                        firePayload?.damageOperations)),
             new(GenericBillsContributorId, ProjectGenericBills(facilityId, productionPayload)),
             new(PhysicalCustodyContributorId, ProjectPhysicalCustody(
                 facilityId,

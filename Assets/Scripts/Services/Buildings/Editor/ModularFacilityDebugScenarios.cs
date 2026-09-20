@@ -527,7 +527,10 @@ public static class ModularFacilityDebugScenarios
                     placed.ConstructBuildableObjectEventBus(
                         CharacterAiEditorTestDependencies.GameEvents,
                         new BuildingVisitEventPublisher(
-                            CharacterAiEditorTestDependencies.GameEvents),
+                            CharacterAiEditorTestDependencies.GameEvents,
+                            new FixedGameSessionStateProvider(),
+                            new MigratedProducerOutcomeEditorFixture(
+                                "run:modular-facility-placement-visits").Transaction),
                         new BuildingInfoPresentationAdapter(
                             CharacterAiEditorTestDependencies.GameEvents));
                 },
@@ -1632,7 +1635,10 @@ public static class ModularFacilityDebugScenarios
         building.ConstructBuildableObjectEventBus(
             CharacterAiEditorTestDependencies.GameEvents,
             new BuildingVisitEventPublisher(
-                CharacterAiEditorTestDependencies.GameEvents),
+                CharacterAiEditorTestDependencies.GameEvents,
+                new FixedGameSessionStateProvider(),
+                new MigratedProducerOutcomeEditorFixture(
+                    "run:modular-facility-visits").Transaction),
             new BuildingInfoPresentationAdapter(
                 CharacterAiEditorTestDependencies.GameEvents));
         if (building is Facility facility)
@@ -1806,7 +1812,8 @@ public static class ModularFacilityDebugScenarios
         public BlueprintResearchWorkResult ApplyApprovedResearchWork(
             CharacterActor researcher,
             BuildableObject researchFacility,
-            float approvedWorkUnits) =>
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null) =>
             ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 

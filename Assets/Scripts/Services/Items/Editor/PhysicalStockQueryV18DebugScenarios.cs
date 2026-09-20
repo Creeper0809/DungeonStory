@@ -414,12 +414,17 @@ public static class PhysicalStockQueryV18DebugScenarios
     {
         EditorNullItemMarkerPresenter markers =
             EditorNullItemMarkerPresenter.Instance;
+        var outcomeFixture = new MigratedProducerOutcomeEditorFixture(
+            "run:physical-stock-partial-transform");
+        var session = new FixedGameSessionStateProvider();
         PhysicalItemTransformService transforms = new(
             repository,
             new WorldItemSpawner(catalog, repository, markers),
             massQuery,
             catalog,
-            markers);
+            markers,
+            session,
+            outcomeFixture.Transaction);
         long lumberMass = massQuery.GetDefinitionUnitMass(
             (ItemDefinitionId)LumberItemId).Value;
         DungeonItemDefinition output = catalog.All
@@ -583,7 +588,9 @@ public static class PhysicalStockQueryV18DebugScenarios
             new WorldItemSpawner(catalog, repository, markers),
             massQuery,
             catalog,
-            new ThrowOnceItemMarkerPresenter());
+            new ThrowOnceItemMarkerPresenter(),
+            session,
+            outcomeFixture.Transaction);
         int outputBeforeRollback = stockQuery.GetAllStacks()
             .Where(value => value.Position == multiOutputPosition
                 && string.Equals(value.ItemId, output.ItemId,
@@ -1321,12 +1328,16 @@ public static class PhysicalStockQueryV18DebugScenarios
         EditorNullItemMarkerPresenter markers =
             EditorNullItemMarkerPresenter.Instance;
         WorldItemSpawner spawner = new(catalog, repository, markers);
+        var outcomeFixture = new MigratedProducerOutcomeEditorFixture(
+            "run:physical-stock-wildlife-transform");
         PhysicalItemTransformService transforms = new(
             repository,
             spawner,
             massQuery,
             catalog,
-            markers);
+            markers,
+            new FixedGameSessionStateProvider(),
+            outcomeFixture.Transaction);
         Vector2Int position = new(37, 4);
         string sourceStackId = WorldItemRepositoryEditorAccess.AddStack(
             repository,

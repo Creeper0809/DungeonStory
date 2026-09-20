@@ -181,6 +181,7 @@ public interface IReversibleCarriedPhysicalItemBatchDispositionService
 public sealed class PhysicalItemBatchDispositionService :
     IPhysicalItemBatchDispositionService,
     IOutcomeAwarePhysicalItemBatchDispositionService,
+    IOutcomeAwarePhysicalItemDispositionAcknowledgementService,
     IReservedPhysicalItemBatchDispositionService,
     IOutcomeAwareReservedPhysicalItemBatchDispositionService,
     ICarriedPhysicalItemBatchDispositionService,
@@ -1081,6 +1082,18 @@ public sealed class PhysicalItemBatchDispositionService :
     }
 
     public bool Acknowledge(string commitId, out string failureReason)
+        => AcknowledgeCore(commitId, null, out failureReason);
+
+    public bool Acknowledge(string commitId, IPhysicalItemDispositionAcknowledgementParticipant participant,
+        out string failureReason)
+    {
+        if (participant == null)
+        { failureReason = "physical-joint-ack-participant-missing"; return false; }
+        return AcknowledgeCore(commitId, participant, out failureReason);
+    }
+
+    private bool AcknowledgeCore(string commitId, IPhysicalItemDispositionAcknowledgementParticipant participant,
+        out string failureReason)
     {
         failureReason = string.Empty;
         string canonical = commitId ?? string.Empty;
@@ -1089,10 +1102,10 @@ public sealed class PhysicalItemBatchDispositionService :
             failureReason = "physical-batch-disposition-ack-invalid";
             return false;
         }
-        if (repository.TryGetPendingBatchDispositionByCommitId(
-                canonical,
-                out PhysicalItemBatchDispositionSaveData pending)
-            && (pending.gameplayOutcomeExpected
+        bool hasPending = repository.TryGetPendingBatchDispositionByCommitId(canonical, out var pending);
+        if (participant != null && !hasPending)
+        { failureReason = "physical-joint-ack-exact-receipt-missing"; return false; }
+        if (hasPending && (pending.gameplayOutcomeExpected
                 || pending.gameplayOutcome != null))
         {
             if (outcomeDiagnostics == null)
@@ -1143,7 +1156,32 @@ public sealed class PhysicalItemBatchDispositionService :
         // Acknowledgement is deliberately idempotent. The durable consumer may
         // replay it after restore when the previous acknowledgement already
         // completed immediately before the save boundary.
-        repository.AcknowledgePendingBatchDisposition(canonical);
+        if (participant == null)
+        {
+            repository.AcknowledgePendingBatchDisposition(canonical);
+            return true;
+        }
+        try
+        {
+            if (!participant.TryCommit(out failureReason))
+            {
+                participant.Rollback();
+                return false;
+            }
+            if (!repository.AcknowledgePendingBatchDisposition(canonical))
+                throw new InvalidOperationException("physical-joint-ack-receipt-changed");
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            and not StackOverflowException and not AccessViolationException)
+        {
+            // Both publications are synchronous and contain no observers.
+            // Restore the exact pending row as well as the domain cleanup.
+            if (!repository.TryGetPendingBatchDispositionByCommitId(canonical, out _))
+                repository.AddPendingBatchDisposition(pending);
+            participant.Rollback();
+            failureReason = "physical-joint-ack-exception:" + exception.GetType().Name;
+            return false;
+        }
         return true;
     }
 

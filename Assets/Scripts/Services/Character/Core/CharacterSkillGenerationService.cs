@@ -108,6 +108,26 @@ public sealed class CharacterSkillModuleSelectionResponseDto : ILlmJsonPayload
             error = "The six module-selection response fields are required.";
             return false;
         }
+        if (positiveModuleIds.Count is < 1 or > 3
+            || drawbackModuleIds.Count > 1
+            || evidenceFactIds.Count is < 1 or > 2)
+        {
+            error = "Module-selection cardinality must be positive 1..3, drawback 0..1, and evidence 1..2.";
+            return false;
+        }
+        if (displayName.Length > 14 || narrativeFlavor.Length > 48)
+        {
+            error = "Module-selection displayName and narrativeFlavor exceed their 14/48 character limits.";
+            return false;
+        }
+        if (displayName.IndexOf('\r') >= 0
+            || displayName.IndexOf('\n') >= 0
+            || narrativeFlavor.IndexOf('\r') >= 0
+            || narrativeFlavor.IndexOf('\n') >= 0)
+        {
+            error = "Module-selection displayName and narrativeFlavor must be single-line text.";
+            return false;
+        }
         if ((displayName + narrativeFlavor).Any(character =>
             character is >= '0' and <= '9'
             or >= '０' and <= '９'
@@ -116,6 +136,32 @@ public sealed class CharacterSkillModuleSelectionResponseDto : ILlmJsonPayload
         {
             error = "displayName and narrativeFlavor cannot invent or restate mechanical numbers.";
             return false;
+        }
+        return true;
+    }
+}
+
+[Serializable]
+public sealed class CharacterSkillModuleSelectionBatchResponseDto : ILlmJsonPayload
+{
+    public List<CharacterSkillModuleSelectionResponseDto> candidates = new();
+
+    public bool Validate(out string error)
+    {
+        error = string.Empty;
+        if (candidates == null || candidates.Count == 0 || candidates.Count > 3)
+        {
+            error = "Module-selection candidates must contain between one and three items.";
+            return false;
+        }
+        for (int index = 0; index < candidates.Count; index++)
+        {
+            CharacterSkillModuleSelectionResponseDto candidate = candidates[index];
+            if (candidate == null || !candidate.Validate(out error))
+            {
+                error = $"Module-selection candidate {index} is invalid: {error}";
+                return false;
+            }
         }
         return true;
     }
@@ -420,6 +466,8 @@ public sealed class CharacterSkillGenerationService :
         public float nextAttemptAt;
         public float submittedAt;
         public bool inFlight;
+        public bool completionOwnedByRuntime;
+        public bool moduleSelectionBatch;
         public bool cancelled;
         public string correction = string.Empty;
         public string preparedPrompt = string.Empty;
@@ -880,16 +928,112 @@ public sealed class CharacterSkillGenerationService :
             error = "The formula draft has no pending module-selection slot.";
             return false;
         }
-        if (!LlmJsonResponseParser.TryParse(
-                LocalLlmRequestProfiles.CharacterSkillModuleSelection.Id, response,
-                out CharacterSkillModuleSelectionResponseDto payload, out error))
+        if (!TryParseModuleSelectionItem(response, out CharacterSkillModuleSelectionResponseDto payload, out error))
             return false;
+        return TryResolveModuleSelectionPayload(draft, payload, out skills, out error);
+    }
+
+    private bool TryValidateModuleSelectionBatchResponse(
+        CharacterSkillDraft draft,
+        string response,
+        out List<CharacterSkillInstance> skills,
+        out string error)
+    {
+        skills = new List<CharacterSkillInstance>();
+        error = string.Empty;
+        int remainingCount = (draft.moduleSelectionOffers?.Count ?? 0)
+            - draft.nextPresentationIndex;
+        if (remainingCount <= 0)
+        {
+            error = "The formula draft has no pending module-selection slots.";
+            return false;
+        }
+        if (!NarrativeExactKeyContract.TryValidateProfileResponse(
+                LocalLlmRequestProfiles.CharacterSkillModuleSelection.Id,
+                response,
+                out string json,
+                out error)
+            || !LlmJsonResponseParser.TryParse(
+                json,
+                out CharacterSkillModuleSelectionBatchResponseDto payload,
+                out error))
+        {
+            return false;
+        }
+        if (payload.candidates.Count != remainingCount)
+        {
+            error = $"Module-selection response candidate count {payload.candidates.Count} "
+                + $"does not match the required count {remainingCount}.";
+            return false;
+        }
+
+        CharacterSkillDraft scratch = draft.Clone();
+        foreach (CharacterSkillModuleSelectionResponseDto candidate in payload.candidates)
+        {
+            if (!TryResolveModuleSelectionPayload(
+                    scratch,
+                    candidate,
+                    out List<CharacterSkillInstance> resolved,
+                    out error))
+            {
+                skills.Clear();
+                return false;
+            }
+            CharacterSkillInstance skill = resolved[0];
+            skills.Add(skill);
+            scratch.candidates.Add(skill.Clone());
+            scratch.frozenMechanics.Add(skill.Clone());
+            scratch.nextPresentationIndex++;
+        }
+        return true;
+    }
+
+    private static bool TryParseModuleSelectionItem(
+        string response,
+        out CharacterSkillModuleSelectionResponseDto payload,
+        out string error)
+    {
+        payload = null;
+        if (!NarrativeExactKeyContract.TryValidateModuleSelectionItem(
+                response,
+                out string json,
+                out error))
+        {
+            return false;
+        }
+        try
+        {
+            payload = JsonUtility.FromJson<CharacterSkillModuleSelectionResponseDto>(json);
+        }
+        catch (Exception exception)
+        {
+            error = "JSON parse failed: " + exception.Message;
+            return false;
+        }
+        if (payload == null)
+        {
+            error = "JSON parse produced a null module-selection item.";
+            return false;
+        }
+        return payload.Validate(out error);
+    }
+
+    private bool TryResolveModuleSelectionPayload(
+        CharacterSkillDraft draft,
+        CharacterSkillModuleSelectionResponseDto payload,
+        out List<CharacterSkillInstance> skills,
+        out string error)
+    {
+        skills = new List<CharacterSkillInstance>();
+        error = string.Empty;
         string displayName = payload.displayName?.Trim() ?? string.Empty;
         string narrativeFlavor = payload.narrativeFlavor?.Trim() ?? string.Empty;
         if (displayName.Length == 0 || displayName.Length > 14
-            || narrativeFlavor.Length == 0 || narrativeFlavor.Length > 90)
+            || narrativeFlavor.Length == 0 || narrativeFlavor.Length > 48
+            || narrativeFlavor.IndexOf('\r') >= 0
+            || narrativeFlavor.IndexOf('\n') >= 0)
         {
-            error = "Presentation text is missing or exceeds the player-facing length limit.";
+            error = "Presentation text is missing, multiline, or exceeds the player-facing length limit.";
             return false;
         }
         try
@@ -1159,6 +1303,51 @@ public sealed class CharacterSkillGenerationService :
             return;
         }
 
+        // Bundled-host startup permits queue admission, but it is not
+        // an accepted in-flight inference. Start the service timeout only once
+        // the runtime can dispatch the request.
+        if (runtime is ILocalLlmRuntimeReadiness readiness)
+        {
+            LocalLlmRuntimeReadinessSnapshot snapshot =
+                readiness.CaptureReadiness();
+            if (snapshot.State == LocalLlmRuntimeReadinessState.Starting)
+            {
+                LastDiagnostic =
+                    $"provider-starting={request.draft.requestKey}; request-not-submitted";
+                return;
+            }
+            if (snapshot.State == LocalLlmRuntimeReadinessState.Failed)
+            {
+                RegisterPresentationFailure(
+                    request,
+                    "runtime-not-ready: " + snapshot.FailureReason,
+                    removeExisting: false);
+                return;
+            }
+            if (snapshot.State != LocalLlmRuntimeReadinessState.Ready)
+            {
+                throw new InvalidOperationException(
+                    "Local LLM runtime returned an unknown readiness state.");
+            }
+        }
+
+        bool moduleSelection = request.draft.formulaVersion >=
+            CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion;
+        bool useBatchModuleSelection = moduleSelection
+            && runtime is ICharacterSkillModuleSelectionBatchLlmRuntime;
+        if (request.moduleSelectionBatch != useBatchModuleSelection)
+        {
+            request.moduleSelectionBatch = useBatchModuleSelection;
+            request.preparedPrompt = string.Empty;
+            request.transportRequestKey = BuildTransportRequestKey(request);
+        }
+
+        // A completion-owning runtime covers both its internal queue and
+        // transport timeout, so a second service watchdog would race the one
+        // terminal callback that the runtime guarantees.
+        request.completionOwnedByRuntime =
+            runtime is ILocalLlmAcceptedRequestCompletionOwner completionOwner
+            && completionOwner.OwnsAcceptedRequestCompletion;
         request.inFlight = true;
         request.submittedAt = now;
         if (string.IsNullOrEmpty(request.preparedPrompt))
@@ -1168,18 +1357,23 @@ public sealed class CharacterSkillGenerationService :
                 request.draft,
                 settingsProvider.Settings,
                 request.publicMaterial,
-                request.correction).Prompt;
+                request.correction,
+                request.moduleSelectionBatch).Prompt;
         }
 
         string prompt = request.preparedPrompt;
         LastDiagnostic = $"submitted={request.draft.requestKey}; attempt={request.attempts + 1}; prompt={prompt.Length}";
-        bool moduleSelection = request.draft.formulaVersion >=
-            CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion;
         bool accepted;
         if (moduleSelection)
         {
-            accepted = runtime is ICharacterSkillModuleSelectionLlmRuntime selectionRuntime
-                && selectionRuntime.GenerateCharacterSkillModuleSelectionAsync(
+            accepted = useBatchModuleSelection
+                ? ((ICharacterSkillModuleSelectionBatchLlmRuntime)runtime)
+                    .GenerateCharacterSkillModuleSelectionBatchAsync(
+                        request.transportRequestKey,
+                        prompt,
+                        result => HandleResult(request, result))
+                : runtime is ICharacterSkillModuleSelectionLlmRuntime selectionRuntime
+                  && selectionRuntime.GenerateCharacterSkillModuleSelectionAsync(
                     request.transportRequestKey,
                     prompt,
                     result => HandleResult(request, result));
@@ -1197,6 +1391,7 @@ public sealed class CharacterSkillGenerationService :
         {
             request.inFlight = false;
             request.submittedAt = 0f;
+            request.completionOwnedByRuntime = false;
             RecordAudit(
                 request,
                 false,
@@ -1231,14 +1426,21 @@ public sealed class CharacterSkillGenerationService :
 
         request.inFlight = false;
         request.submittedAt = 0f;
+        request.completionOwnedByRuntime = false;
         List<CharacterSkillInstance> skills = null;
         string validationError = string.Empty;
         bool valid = result.IsSuccess
-            && TryValidateResponse(
-                request.draft,
-                result.Content,
-                out skills,
-                out validationError);
+            && (request.moduleSelectionBatch
+                ? TryValidateModuleSelectionBatchResponse(
+                    request.draft,
+                    result.Content,
+                    out skills,
+                    out validationError)
+                : TryValidateResponse(
+                    request.draft,
+                    result.Content,
+                    out skills,
+                    out validationError));
         if (valid
             && !TryValidateNarrativeText(request.progression, skills, out validationError))
         {
@@ -1255,7 +1457,7 @@ public sealed class CharacterSkillGenerationService :
                     request.draft.frozenMechanics.Add(skill.Clone());
             }
             RecordAudit(request, true, string.Empty, false, string.Empty, skills);
-            request.draft.nextPresentationIndex++;
+            request.draft.nextPresentationIndex += skills.Count;
             int expectedCount = request.draft.formulaVersion >=
                     CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion
                 ? request.draft.moduleSelectionOffers.Count
@@ -1349,6 +1551,7 @@ public sealed class CharacterSkillGenerationService :
             throw new InvalidOperationException("Presentation failure lost its owning draft.");
         request.inFlight = false;
         request.submittedAt = 0f;
+        request.completionOwnedByRuntime = false;
         request.draft.presentationFailureCount++;
         request.attempts++;
         request.correction = reason?.Trim() ?? string.Empty;
@@ -1384,10 +1587,17 @@ public sealed class CharacterSkillGenerationService :
     {
         if (request.draft.formulaVersion >= CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion)
         {
-            CharacterSkillModuleOfferState offer =
-                request.draft.moduleSelectionOffers[request.draft.nextPresentationIndex];
+            IEnumerable<string> selectionIds = request.moduleSelectionBatch
+                ? request.draft.moduleSelectionOffers
+                    .Skip(request.draft.nextPresentationIndex)
+                    .Select(value => value.selectionId)
+                : new[]
+                {
+                    request.draft.moduleSelectionOffers[request.draft.nextPresentationIndex]
+                        .selectionId
+                };
             return NarrativePublicContextIdentity.Bind(
-                request.draft.requestKey + ":" + offer.selectionId,
+                request.draft.requestKey + ":" + string.Join("|", selectionIds),
                 request.publicMaterial.SemanticHash);
         }
         CharacterSkillInstance frozen = request.draft.frozenMechanics[request.draft.nextPresentationIndex];
@@ -1398,7 +1608,9 @@ public sealed class CharacterSkillGenerationService :
 
     private bool HasTimedOut(PendingRequest request, float now)
     {
-        if (request == null || !request.inFlight)
+        if (request == null
+            || !request.inFlight
+            || request.completionOwnedByRuntime)
         {
             return false;
         }
@@ -1477,8 +1689,11 @@ public sealed class CharacterSkillGenerationService :
             ?? string.Empty;
         string packet = request.draft.formulaVersion >=
                 CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion
-            ? CharacterSkillPromptBuilder.BuildModuleSelectionPacket(
-                request.draft, settingsProvider.Settings)
+            ? request.moduleSelectionBatch
+                ? CharacterSkillPromptBuilder.BuildModuleSelectionBatchPacket(
+                    request.draft, settingsProvider.Settings)
+                : CharacterSkillPromptBuilder.BuildModuleSelectionPacket(
+                    request.draft, settingsProvider.Settings)
             : CharacterSkillPromptBuilder.BuildPresentationPacket(request.draft);
         string selectedIds = skills == null
             ? string.Empty
@@ -1602,7 +1817,8 @@ public static class CharacterSkillPromptBuilder
         CharacterSkillDraft draft,
         CharacterSkillSystemSettingsSO settings,
         NarrativePublicContextMaterial publicMaterial,
-        string correction = "")
+        string correction = "",
+        bool batchModuleSelection = false)
     {
         if (progression == null) throw new ArgumentNullException(nameof(progression));
         if (draft == null) throw new ArgumentNullException(nameof(draft));
@@ -1651,7 +1867,9 @@ public static class CharacterSkillPromptBuilder
             builder.AppendLine($"이전 응답 거부 이유={compactCorrection}. 이번 응답에서 반드시 고친다.");
         }
         builder.Append(moduleSelection
-            ? BuildModuleSelectionPacket(draft, settings)
+            ? batchModuleSelection
+                ? BuildModuleSelectionBatchPacket(draft, settings)
+                : BuildModuleSelectionPacket(draft, settings)
             : BuildPresentationPacket(draft));
         string characterName = progression.Actor?.Identity?.DisplayName;
         if (string.IsNullOrWhiteSpace(characterName))
@@ -1665,17 +1883,23 @@ public static class CharacterSkillPromptBuilder
         builder.AppendLine($"potential={CharacterSkillDisplay.Potential(progression.GrowthState.potentialGrade)}");
         builder.AppendLine("반드시 JSON 객체 하나만 반환한다.");
         builder.AppendLine(moduleSelection
-            ? "형식: {\"selectionId\":\"제공된 값 그대로\",\"positiveModuleIds\":[\"1~3개\"],\"drawbackModuleIds\":[\"선택적 해로운 모듈 0~1개\"],\"evidenceFactIds\":[\"제공된 근거\"],\"displayName\":\"14자 이하 한국어 이름\",\"narrativeFlavor\":\"90자 이하 획득 서사\"}"
+            ? batchModuleSelection
+                ? "형식: {\"candidates\":[{\"selectionId\":\"제공된 값 그대로\",\"positiveModuleIds\":[\"lowercase_snake_case 1~3개\"],\"drawbackModuleIds\":[\"character-skill:drawback:lowercase-kebab 0~1개\"],\"evidenceFactIds\":[\"제공된 근거 1~2개\"],\"displayName\":\"14자 이하 한국어 이름\",\"narrativeFlavor\":\"48자 이하 간결한 한국어 한 문장\"}]}"
+                : "형식: {\"selectionId\":\"제공된 값 그대로\",\"positiveModuleIds\":[\"lowercase_snake_case 1~3개\"],\"drawbackModuleIds\":[\"character-skill:drawback:lowercase-kebab 0~1개\"],\"evidenceFactIds\":[\"제공된 근거 1~2개\"],\"displayName\":\"14자 이하 한국어 이름\",\"narrativeFlavor\":\"48자 이하 간결한 한국어 한 문장\"}"
             : "형식: {\"presentationId\":\"제공된 값 그대로\",\"displayName\":\"14자 이하 한국어 이름\",\"narrativeFlavor\":\"90자 이하 획득 서사\"}");
         builder.AppendLine("절대 규칙:");
         builder.AppendLine(moduleSelection
-            ? "1. 최상위에는 selectionId, positiveModuleIds, drawbackModuleIds, evidenceFactIds, displayName, narrativeFlavor만 출력한다."
+            ? batchModuleSelection
+                ? "1. 최상위에는 candidates만 출력하고, 제공된 후보 수와 정확히 같은 수의 객체를 제공된 순서대로 출력한다. 각 객체에는 selectionId, positiveModuleIds, drawbackModuleIds, evidenceFactIds, displayName, narrativeFlavor만 출력한다."
+                : "1. 최상위에는 selectionId, positiveModuleIds, drawbackModuleIds, evidenceFactIds, displayName, narrativeFlavor만 출력한다."
             : "1. 최상위에는 presentationId, displayName, narrativeFlavor 세 문자열만 출력한다.");
         builder.AppendLine(moduleSelection
-            ? "2. selectionId는 제공된 값을 한 글자도 바꾸지 않고, 제공되지 않은 모듈이나 근거 ID를 만들지 않는다."
+            ? "2. selectionId는 제공된 값을 한 글자도 바꾸지 않는다. positiveModuleIds에는 positiveModules의 ID만, drawbackModuleIds에는 drawbackModules의 ID만, evidenceFactIds에는 evidenceFactIds의 ID만 1~2개 넣고 서로 섞거나 만들지 않는다."
             : "2. presentationId는 제공된 값을 한 글자도 바꾸지 않는다.");
         builder.AppendLine(moduleSelection
-            ? "3. positiveModuleIds에는 어울리는 이로운 모듈을 최소 1개 선택한다. drawbackModules가 제공되면 부정 사건이 실제 설명에 필요할 때만 최대 1개 선택하고 그 부정 근거 ID를 반드시 함께 인용한다. 단점 설명의 '함께 선택 금지 이로운 기능'과 겹치는 모듈은 고르지 않는다. 수치, 비용, 조합 ID는 출력하지 않는다."
+            ? batchModuleSelection
+                ? "3. 각 후보의 positiveModuleIds에는 어울리는 이로운 모듈을 최소 1개 선택하고, 후보끼리 positiveModuleIds 조합을 중복하지 않는다. drawbackModules가 제공되면 부정 사건이 실제 설명에 필요할 때만 최대 1개 선택하고 그 부정 근거 ID를 반드시 함께 인용한다. 단점 설명의 '함께 선택 금지 이로운 기능'과 겹치는 모듈은 고르지 않는다. narrativeFlavor는 수치나 기계 효과를 설명하지 않는 간결한 한국어 한 문장으로 쓴다. 수치, 비용, 조합 ID는 출력하지 않는다."
+                : "3. positiveModuleIds에는 어울리는 이로운 모듈을 최소 1개 선택한다. drawbackModules가 제공되면 부정 사건이 실제 설명에 필요할 때만 최대 1개 선택하고 그 부정 근거 ID를 반드시 함께 인용한다. 단점 설명의 '함께 선택 금지 이로운 기능'과 겹치는 모듈은 고르지 않는다. narrativeFlavor는 수치나 기계 효과를 설명하지 않는 간결한 한국어 한 문장으로 쓴다. 수치, 비용, 조합 ID는 출력하지 않는다."
             : "3. 조합, 후보, 규칙, 효과, 태그, 선택 인덱스, 수치, 비용 또는 다른 기계 필드를 출력하지 않는다.");
         builder.AppendLine("4. 공개 사실에 없는 사건이나 결과를 만들지 않는다.");
         builder.AppendLine($"5. displayName 또는 narrativeFlavor에 캐릭터 이름 '{characterName}'을 정확히 넣는다.");
@@ -1686,9 +1910,57 @@ public static class CharacterSkillPromptBuilder
         CharacterSkillDraft draft,
         CharacterSkillSystemSettingsSO settings)
     {
+        return BuildModuleSelectionPacket(
+            draft,
+            settings,
+            draft.nextPresentationIndex,
+            appendEvidenceFacts: true);
+    }
+
+    public static string BuildModuleSelectionBatchPacket(
+        CharacterSkillDraft draft,
+        CharacterSkillSystemSettingsSO settings)
+    {
+        if (draft == null || settings == null)
+            throw new ArgumentNullException(draft == null ? nameof(draft) : nameof(settings));
+        int remainingCount = (draft.moduleSelectionOffers?.Count ?? 0)
+            - draft.nextPresentationIndex;
+        if (remainingCount <= 0)
+            throw new InvalidOperationException(
+                "CharacterSkill has no pending module-selection candidates.");
+
+        StringBuilder builder = new StringBuilder(4096);
+        builder.AppendLine($"candidateCount={remainingCount}");
+        for (int offset = 0; offset < remainingCount; offset++)
+        {
+            int index = draft.nextPresentationIndex + offset;
+            builder.AppendLine($"candidate[{offset}]:");
+            builder.Append(BuildModuleSelectionPacket(
+                draft,
+                settings,
+                index,
+                appendEvidenceFacts: false));
+        }
+        builder.AppendLine("sharedEvidenceFacts:");
+        GameplayOutcomeEvidenceFormulaProjection.AppendPromptFacts(
+            builder,
+            draft.outcomeEvidenceBindings);
+        return builder.ToString();
+    }
+
+    private static string BuildModuleSelectionPacket(
+        CharacterSkillDraft draft,
+        CharacterSkillSystemSettingsSO settings,
+        int presentationIndex,
+        bool appendEvidenceFacts)
+    {
+        if (draft == null || settings == null)
+            throw new ArgumentNullException(draft == null ? nameof(draft) : nameof(settings));
+        CharacterSkillDraft indexedDraft = draft.Clone();
+        indexedDraft.nextPresentationIndex = presentationIndex;
         NarrativeFormulaModuleSelectionRequest request =
-            CharacterSkillFormulaGeneration.BuildModuleSelectionRequest(draft, settings);
-        CharacterSkillCandidateRule rule = draft.rules[draft.nextPresentationIndex];
+            CharacterSkillFormulaGeneration.BuildModuleSelectionRequest(indexedDraft, settings);
+        CharacterSkillCandidateRule rule = indexedDraft.rules[presentationIndex];
         StringBuilder builder = new StringBuilder(2048);
         builder.AppendLine($"selectionId={request.SelectionId}");
         builder.AppendLine($"skillKind={draft.kind}; trigger={rule.trigger}; target={rule.target}; targeting={rule.targetingMode}; area={rule.effectArea}; areaSize={rule.areaSize}; ultimateDomain={rule.ultimateDomain}");
@@ -1706,7 +1978,7 @@ public static class CharacterSkillPromptBuilder
             NarrativeFormulaCapabilityDescriptor descriptor = settings
                 .RequireFormulaDescriptor(module);
             if (!CharacterSkillFormulaRuntimeContextPolicy.ConsumesAllAppliedAxes(
-                    draft.kind, rule, module))
+                    indexedDraft.kind, rule, module))
             {
                 throw new InvalidOperationException(
                     "Live module-selection packet contains a capability whose applied axes "
@@ -1714,7 +1986,7 @@ public static class CharacterSkillPromptBuilder
             }
             builder.AppendLine($"- id={offer.ModuleId}; meaning="
                 + CharacterSkillPresentationSemantics.DescribeCapability(
-                    descriptor, rule, draft.kind));
+                    descriptor, rule, indexedDraft.kind));
         }
         builder.AppendLine("drawbackModules:");
         foreach (NarrativeFormulaModuleOffer offer in request.Offers
@@ -1722,9 +1994,12 @@ public static class CharacterSkillPromptBuilder
             builder.AppendLine($"- id={offer.ModuleId}; meaning={offer.SemanticDescription}");
         if (request.MaximumDrawbackModules == 0) builder.AppendLine("- none (return [])");
         builder.AppendLine("evidenceFactIds=" + string.Join(",", request.EvidenceFactIds));
-        GameplayOutcomeEvidenceFormulaProjection.AppendPromptFacts(
-            builder,
-            draft.outcomeEvidenceBindings);
+        if (appendEvidenceFacts)
+        {
+            GameplayOutcomeEvidenceFormulaProjection.AppendPromptFacts(
+                builder,
+                indexedDraft.outcomeEvidenceBindings);
+        }
         return builder.ToString();
     }
 

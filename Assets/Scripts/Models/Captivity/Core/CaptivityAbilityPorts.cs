@@ -33,7 +33,7 @@ public interface ICaptiveEscapeAbilityPort
         out string failureReason);
     IDisposable BeginEscapePass(string captiveId);
     bool TryStartSystemMove(Vector2Int destination, out string failureReason);
-    void CompleteEscape(string captiveId);
+    bool CompleteEscape(string captiveId, out string failureReason);
     void FailEscape(string captiveId, string reason);
     void SetActionPhase(string phase, Vector2Int destination);
 }

@@ -415,7 +415,8 @@ public static class EmergencyLaborDebugScenarios
             calendar,
             eventBus,
             accounting,
-            accounting);
+            accounting,
+            new AcceptingSuspensionOutcomeCommitter());
 
         Require(alert.PublishIncidentSignal(new SettlementIncidentSignal(
             "incident:test-fire",
@@ -443,7 +444,8 @@ public static class EmergencyLaborDebugScenarios
                     "building:test",
                     epoch,
                     calendar.AbsoluteHour,
-                    progressExternallyPersisted: true)).Success,
+                    progressExternallyPersisted: true,
+                    outcomeOwnerRevision: 1L)).Success,
             "Externally persisted work could not enter the suspended-work journal.");
         Require(alert.ResolveIncident("incident:test-fire", 2L).Success,
             "Incident resolution failed.");
@@ -487,7 +489,8 @@ public static class EmergencyLaborDebugScenarios
             calendar,
             eventBus,
             accounting,
-            accounting);
+            accounting,
+            new AcceptingSuspensionOutcomeCommitter());
         restored.RestoreAlertSaveData(saved);
         SettlementAlertSnapshot before = alert.Capture();
         SettlementAlertSnapshot after = restored.Capture();
@@ -557,6 +560,43 @@ public static class EmergencyLaborDebugScenarios
         }
 
         public SettlementEmergencyReserveTargetSnapshot CaptureTarget() => snapshot;
+    }
+
+    private sealed class AcceptingSuspensionOutcomeCommitter :
+        IEmergencyWorkSuspensionOutcomeCommitter
+    {
+        public bool TryPrepare(
+            in SettlementSuspendedWorkSnapshot snapshot,
+            int absoluteDay,
+            out PreparedEmergencyWorkSuspensionOutcome prepared,
+            out string failureReason)
+        {
+            GameplayResultKey key = EmergencyWorkSuspensionOutcomeIds.ResultKey(
+                snapshot.CharacterId,
+                snapshot.AlertEpochId,
+                snapshot.OutcomeOwnerRevision);
+            prepared = new PreparedEmergencyWorkSuspensionOutcome(
+                default,
+                key,
+                snapshot.OutcomeOwnerRevision,
+                false);
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public OwnerOutcomeCommitResult Commit(
+            in PreparedEmergencyWorkSuspensionOutcome prepared) => new(
+            OwnerOutcomeCommitPhase.PublishedAcknowledged,
+            prepared.ResultKey,
+            new GameplayOutcomeId(
+                new GameplayOutcomeRunId("run:emergency-labor-test"),
+                prepared.OwnerRevision),
+            new string('a', 64),
+            string.Empty);
+
+        public void Cancel(in PreparedEmergencyWorkSuspensionOutcome prepared)
+        {
+        }
     }
 }
 #endif

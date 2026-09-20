@@ -239,4 +239,18 @@ internal sealed class FluidNetworkStateStore
     {
         aggregateRootStore.Replace(candidate.State);
     }
+
+    public FluidNetworkAggregateState CaptureMutation() => Current.DeepClone();
+
+    public void RestoreMutation(
+        FluidNetworkAggregateState before,
+        int expectedMutatedVersion)
+    {
+        if (before == null)
+            throw new ArgumentNullException(nameof(before));
+        if (Current.Version != expectedMutatedVersion)
+            throw new InvalidOperationException(
+                "Fluid mutation rollback would overwrite a later authoritative mutation.");
+        aggregateRootStore.Replace(before.DeepClone());
+    }
 }

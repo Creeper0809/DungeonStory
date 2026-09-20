@@ -31,7 +31,28 @@ public sealed class PhysicalItemRestoreCandidateDispositionSnapshot
     public PhysicalItemRestoreCandidateDispositionSnapshot(PhysicalItemBatchDispositionSaveData source)
         : this((PhysicalItemDispositionKind)(source ?? throw new ArgumentNullException(nameof(source))).kind,
             source.operationId, source.reasonCode, source.requestFingerprint,
-            source.sourceStackIds, source.quantity, source.inputMassGrams, source.commitId) { }
+            source.sourceStackIds, source.quantity, source.inputMassGrams, source.commitId)
+    {
+        OutcomeExpected = source.gameplayOutcomeExpected;
+        OutcomeProducerId = source.expectedOutcomeProducerId;
+        OutcomeOperationId = source.expectedOutcomeOperationId;
+        OutcomeCommitRevision = source.expectedOutcomeCommitRevision;
+        OutcomeLocalResultIndex = source.expectedOutcomeLocalResultIndex;
+        OwnerRevision = source.outcomeOwnerRevision;
+        HasMatchingOutcomeAttachment = source.gameplayOutcome != null
+            && string.Equals(
+                source.gameplayOutcome.producerId,
+                source.expectedOutcomeProducerId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                source.gameplayOutcome.operationId,
+                source.expectedOutcomeOperationId,
+                StringComparison.Ordinal)
+            && source.gameplayOutcome.commitRevision
+                == source.expectedOutcomeCommitRevision
+            && source.gameplayOutcome.localResultIndex
+                == source.expectedOutcomeLocalResultIndex;
+    }
 
     public PhysicalItemDispositionKind Kind { get; }
     public string OperationId { get; }
@@ -41,6 +62,13 @@ public sealed class PhysicalItemRestoreCandidateDispositionSnapshot
     public int Quantity { get; }
     public long InputMassGrams { get; }
     public string CommitId { get; }
+    public bool OutcomeExpected { get; }
+    public string OutcomeProducerId { get; }
+    public string OutcomeOperationId { get; }
+    public long OutcomeCommitRevision { get; }
+    public int OutcomeLocalResultIndex { get; }
+    public long OwnerRevision { get; }
+    public bool HasMatchingOutcomeAttachment { get; }
 }
 
 public interface IPhysicalItemRestoreCandidateQuery

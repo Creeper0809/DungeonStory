@@ -68,6 +68,74 @@ public sealed class ForbiddenResearchLeapRuntimeState
     public float aftermathUntilSeconds;
 }
 
+/// <summary>Detached, single-use trait leg of the research command transaction.</summary>
+public sealed class ForbiddenResearchLeapPreparation
+{
+    private readonly CharacterIdentityStateStore states;
+    private readonly string traitId;
+    private readonly CharacterIdentityRuleStateSaveData before;
+    private readonly string after;
+    private bool published;
+
+    internal ForbiddenResearchLeapPreparation(
+        CharacterIdentityStateStore states, string characterId, string traitId,
+        string projectId, CharacterIdentityRuleStateSaveData before, string after,
+        float aftermathUntilSeconds, ExtremeRiskResolution resolution)
+    {
+        this.states = states;
+        CharacterId = characterId;
+        this.traitId = traitId;
+        ProjectId = projectId;
+        this.before = before?.Clone();
+        this.after = after;
+        AftermathUntilSeconds = aftermathUntilSeconds;
+        Resolution = resolution;
+    }
+
+    public string CharacterId { get; }
+    public string ProjectId { get; }
+    public float AftermathUntilSeconds { get; }
+    public ExtremeRiskResolution Resolution { get; }
+
+    public bool IsCurrent
+    {
+        get
+        {
+            states.TryGet(CharacterId, traitId, ExtremeTraitRuntime.ForbiddenLeapRuleId, out var current);
+            return !published && (before == null ? current == null : current != null
+                && before.revision == current.revision
+                && string.Equals(before.statePayload, current.statePayload, StringComparison.Ordinal));
+        }
+    }
+
+    [GameplayInternalOnly("Publish only inside the research/outbox rollback boundary.",
+        "BlueprintResearchOutcomeTransaction")]
+    public bool TryPublish()
+    {
+        if (!IsCurrent) return false;
+        states.Set(CharacterId, traitId, ExtremeTraitRuntime.ForbiddenLeapRuleId, 1, after);
+        published = true;
+        return true;
+    }
+
+    [GameplayInternalOnly("Rollback only an uncommitted research command.",
+        "BlueprintResearchOutcomeTransaction")]
+    public void Rollback()
+    {
+        if (!published) return;
+        states.TryGet(CharacterId, traitId, ExtremeTraitRuntime.ForbiddenLeapRuleId, out var current);
+        if (current == null || current.revision != 1
+            || !string.Equals(current.statePayload, after, StringComparison.Ordinal))
+            throw new InvalidOperationException("research-leap-rollback-conflict");
+        if (before == null)
+            states.RemoveRule(CharacterId, traitId, ExtremeTraitRuntime.ForbiddenLeapRuleId);
+        else
+            states.Set(CharacterId, traitId, ExtremeTraitRuntime.ForbiddenLeapRuleId,
+                before.revision, before.statePayload);
+        published = false;
+    }
+}
+
 [Serializable]
 public sealed class MiracleSurgeryRuntimeState
 {
@@ -211,16 +279,18 @@ public sealed class ExtremeTraitRuntime :
     }
 
     [GameplayInternalOnly(
-        "Research work completion owns the fixed project attempt.",
-        "BlueprintResearchRuntime")]
-    public bool TryResolveForbiddenResearchLeap(
+        "Research jointly commits the prepared trait attempt, progress and outcome.",
+        "BlueprintResearchOutcomeTransaction")]
+    public bool TryPrepareForbiddenResearchLeap(
         CharacterActor actor,
         string projectId,
         ulong runSeed,
         float elapsedSeconds,
-        out ExtremeRiskResolution resolution)
+        out ForbiddenResearchLeapPreparation preparation)
     {
-        resolution = default;
+        preparation = null;
+        if (!float.IsFinite(elapsedSeconds) || elapsedSeconds < 0f)
+            throw new ArgumentOutOfRangeException(nameof(elapsedSeconds));
         ForbiddenResearchLeapRule rule = ResolveRule<ForbiddenResearchLeapRule>(
             actor, 302, ForbiddenLeapRuleId, out CharacterTraitSO trait);
         if (rule == null) return false;
@@ -235,7 +305,7 @@ public sealed class ExtremeTraitRuntime :
             + DaysToSeconds(rule.aftermathDays);
         ulong hash = FixedHash(runSeed, "research", project, ActorId(actor), "302");
         float roll = Roll01(hash);
-        resolution = roll < rule.breakthroughChance
+        ExtremeRiskResolution resolution = roll < rule.breakthroughChance
             ? new ExtremeRiskResolution(
                 ExtremeRiskOutcome.Breakthrough, 1f, 1f,
                 Mathf.Abs(rule.breakthroughProgress), hash)
@@ -244,7 +314,12 @@ public sealed class ExtremeTraitRuntime :
                     ExtremeRiskOutcome.Setback, 1f, 1f,
                     -Mathf.Abs(rule.setbackProgress), hash)
                 : new ExtremeRiskResolution(ExtremeRiskOutcome.Normal, 1f, 1f, 0f, hash);
-        Write(actor, trait, ForbiddenLeapRuleId, state);
+        string characterId = ActorId(actor);
+        string traitId = trait.DefinitionId.Value;
+        states.TryGet(characterId, traitId, ForbiddenLeapRuleId, out var before);
+        preparation = new ForbiddenResearchLeapPreparation(
+            states, characterId, traitId, project, before,
+            JsonUtility.ToJson(state), state.aftermathUntilSeconds, resolution);
         return true;
     }
 

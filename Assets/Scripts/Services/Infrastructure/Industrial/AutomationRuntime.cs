@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 using VContainer.Unity;
 
 public static class AutomationLaborAccountingRules
@@ -116,6 +117,7 @@ internal sealed class AutomationRuntime :
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly ISettlementLaborAccountingService laborAccounting;
     private readonly AutomationStateSession stateSession;
+    private readonly IInfrastructureCommandOutcomeTransaction commandOutcomes;
     private IReadOnlyList<AutomationFacilitySnapshot> facilities =
         Array.Empty<AutomationFacilitySnapshot>();
     private readonly List<BuildableObject> automationFacilities =
@@ -133,6 +135,30 @@ internal sealed class AutomationRuntime :
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         ISettlementLaborAccountingService laborAccounting,
         IMilestoneGameplayModifierQuery milestoneModifiers = null)
+        : this(
+            buildings,
+            power,
+            productionQuery,
+            productionWork,
+            clock,
+            aggregateRootStore,
+            laborAccounting,
+            milestoneModifiers,
+            null)
+    {
+    }
+
+    [Inject]
+    public AutomationRuntime(
+        IBuildingWorldQuery buildings,
+        IPowerInfrastructureQuery power,
+        IProductionBillQuery productionQuery,
+        IProductionBillWorkExecution productionWork,
+        IGameClock clock,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        ISettlementLaborAccountingService laborAccounting,
+        IMilestoneGameplayModifierQuery milestoneModifiers,
+        IInfrastructureCommandOutcomeTransaction commandOutcomes)
     {
         this.buildings = buildings
             ?? throw new ArgumentNullException(nameof(buildings));
@@ -150,6 +176,7 @@ internal sealed class AutomationRuntime :
             ?? NeutralMilestoneGameplayModifierQuery.Instance;
         this.laborAccounting = laborAccounting
             ?? throw new ArgumentNullException(nameof(laborAccounting));
+        this.commandOutcomes = commandOutcomes;
         stateSession = new AutomationStateSession(this.aggregateRootStore);
         projectedRestoreRevision =
             this.aggregateRootStore.PublishedRestoreRevision;
@@ -250,8 +277,33 @@ internal sealed class AutomationRuntime :
                 transitionFailure);
         }
 
-        EnsureState(facilityId).SetMode(mode);
+        AutomationFacilityStateSession state = EnsureState(facilityId);
+        if (state.Mode == mode)
+            return InfrastructureCommandResult.Success();
+        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+                commandOutcomes,
+                InfrastructureCommandOutcomeKind.AutomationModeChanged,
+                facilityId,
+                facility,
+                state.Mode.ToString(),
+                mode.ToString(),
+                out IPreparedInfrastructureCommandOutcome prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        AutomationInfrastructureMutationToken before =
+            stateSession.CaptureMutation();
+        state.SetMode(mode);
         Touch();
+        InfrastructureCommandOutcomeCommitResult commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (!commit.DurablyCommitted)
+        {
+            stateSession.RestoreMutation(before);
+            ResetProjectionAfterRestore();
+            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+        }
         return InfrastructureCommandResult.Success();
     }
 
@@ -276,8 +328,54 @@ internal sealed class AutomationRuntime :
                 FailureCode.AutomationMaintenanceRequired);
         }
 
+        float nextMaintenance = Mathf.Clamp(
+            state.Maintenance + applied,
+            0f,
+            100f);
+        float nextFault = Mathf.Clamp(
+            state.Fault - applied * 0.5f,
+            0f,
+            100f);
+        if (Mathf.Approximately(state.Maintenance, nextMaintenance)
+            && Mathf.Approximately(state.Fault, nextFault)
+            && state.Status.Code == InfrastructureStatusCode.None)
+        {
+            return InfrastructureCommandResult.Success();
+        }
+        string beforeValue = "maintenance="
+            + InfrastructureCommandOutcomeExecution.Float(state.Maintenance)
+            + ";fault="
+            + InfrastructureCommandOutcomeExecution.Float(state.Fault)
+            + ";status=" + state.Status;
+        string afterValue = "maintenance="
+            + InfrastructureCommandOutcomeExecution.Float(nextMaintenance)
+            + ";fault="
+            + InfrastructureCommandOutcomeExecution.Float(nextFault)
+            + ";status=" + InfrastructureStatus.None;
+        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+                commandOutcomes,
+                InfrastructureCommandOutcomeKind.AutomationMaintained,
+                facilityId,
+                facility,
+                beforeValue,
+                afterValue,
+                out IPreparedInfrastructureCommandOutcome prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        AutomationInfrastructureMutationToken before =
+            stateSession.CaptureMutation();
         state.ApplyMaintenance(applied);
         Touch();
+        InfrastructureCommandOutcomeCommitResult commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (!commit.DurablyCommitted)
+        {
+            stateSession.RestoreMutation(before);
+            ResetProjectionAfterRestore();
+            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+        }
         return InfrastructureCommandResult.Success();
     }
 

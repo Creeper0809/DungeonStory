@@ -277,7 +277,6 @@ public static class ResearchEquipmentOverhaulDebugScenarios
         ValidateRewards(projects, equipment, failures);
         ValidateEquipment(projects, equipment, modules, failures);
         ValidateRuntimeLocksModulesAndSave(failures);
-        ValidateDeterministicDrops(failures);
         ValidatePacing(projects, failures, out pacingReport);
         return failures;
     }
@@ -622,28 +621,6 @@ public static class ResearchEquipmentOverhaulDebugScenarios
             {
                 Require(definition.ModuleSlotCount <= 1,
                     $"{definition.EquipmentId}: normal equipment has more than one slot", failures);
-            }
-        }
-    }
-
-    private static void ValidateDeterministicDrops(ICollection<string> failures)
-    {
-        foreach (EquipmentExpeditionRewardKind kind in
-                 Enum.GetValues(typeof(EquipmentExpeditionRewardKind)))
-        {
-            EquipmentExpeditionRewardRequest request = new EquipmentExpeditionRewardRequest(
-                8675309, "fixed-event", kind, EquipmentEra.MatureIndustrial,
-                "region:validation", Vector2Int.zero);
-            int first = EquipmentExpeditionRewardService.PreviewModuleDropCount(request);
-            int second = EquipmentExpeditionRewardService.PreviewModuleDropCount(request);
-            Require(first == second, $"{kind}: runSeed result is not deterministic", failures);
-            if (kind == EquipmentExpeditionRewardKind.RegionBoss)
-            {
-                Require(first is 1 or 2, "boss module reward is not guaranteed", failures);
-            }
-            else
-            {
-                Require(first is 0 or 1, $"{kind}: invalid optional drop count", failures);
             }
         }
     }

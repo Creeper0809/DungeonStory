@@ -225,7 +225,10 @@ public abstract class DungeonStrictJsonSaveSection<TPayload, TRestoreCandidate> 
 
     private void RequireCurrentVersion(int sectionVersion)
     {
-        if (sectionVersion != SectionVersion)
+        if (sectionVersion != SectionVersion
+            && (this is not IDungeonSaveSectionVersionCompatibility
+                compatibility
+                || !compatibility.CanRestoreVersion(sectionVersion)))
         {
             throw new InvalidOperationException(
                 $"Unsupported {SectionId} section version {sectionVersion}; "

@@ -154,6 +154,63 @@ public sealed class CodexRuntime : MonoBehaviour
         return !string.IsNullOrWhiteSpace(clue);
     }
 
+    // Prepared changes have no notifications and can be rolled back by the
+    // physical/reward/outbox coordinator until its canonical commit succeeds.
+    public bool TryPrepareMemoryResidueClue(string expectedClue,
+        out MemoryResidueCluePreparation preparation, out string reason)
+    {
+        preparation = null;
+        if (!TryGetNextMemoryResidueClue(out string next)
+            || !string.Equals(next, expectedClue, StringComparison.Ordinal))
+        {
+            reason = "knowledge-codex-clue-stale";
+            return false;
+        }
+        CodexAggregateState before = state.CaptureAggregate();
+        CodexState candidate = new();
+        candidate.ReplaceAggregate(before.DeepClone());
+        int count = candidate.GetSnapshot(CodexEntryCategory.Invasion, "memory-residue")?.lines.Length ?? 0;
+        candidate.AddInfo(CodexEntryCategory.Invasion, "memory-residue", "기억 잔재",
+            expectedClue, CodexInfoSource.Research);
+        preparation = new MemoryResidueCluePreparation(this, before, candidate.CaptureAggregate(), expectedClue, count);
+        reason = string.Empty;
+        return true;
+    }
+
+    public sealed class MemoryResidueCluePreparation
+    {
+        private readonly CodexRuntime owner;
+        private readonly CodexAggregateState before, after;
+        private bool published;
+        internal MemoryResidueCluePreparation(CodexRuntime owner, CodexAggregateState before,
+            CodexAggregateState after, string clue, int count)
+        { this.owner = owner; this.before = before; this.after = after; Clue = clue; Before = count; }
+        public string Clue { get; }
+        public int Before { get; }
+        public int After => Before + 1;
+        public bool TryPublish()
+        {
+            if (published || !owner.state.MatchesAggregate(before)) return false;
+            owner.state.ReplaceAggregate(after);
+            published = true;
+            return true;
+        }
+        public void Rollback()
+        {
+            if (!published) return;
+            if (!owner.state.MatchesAggregate(after))
+                throw new InvalidOperationException("knowledge-codex-rollback-conflict");
+            owner.state.ReplaceAggregate(before);
+            published = false;
+        }
+        public void NotifyCommitted()
+        {
+            if (!published) throw new InvalidOperationException("knowledge-codex-not-committed");
+            owner.PublishUpdated(CodexEntryCategory.Invasion, "memory-residue");
+            owner.RequireApplicationPort().RaiseAlert(new CodexAlertRequest("기억 잔재 분석", Clue, "월간"));
+        }
+    }
+
     public bool TryRecordMemoryResidueClue(
         string expectedClue,
         out string message)

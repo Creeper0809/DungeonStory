@@ -120,12 +120,14 @@ public static class StartPartyPreparationPlayModeVerifier
             return "Begin failed: " + message;
         }
 
-        foreach (StartPartyMemberPreparation member in preparation.Members)
+        foreach (StartPartyMemberPreparation member in preparation.Members
+                     .Where(candidate => candidate != null
+                         && !candidate.IsOwner
+                         && !candidate.IsReserve))
         {
             CharacterSkillDraft draft = member.Progression.Drafts.First(item => item != null
                 && item.kind == CharacterSkillKind.Active
                 && item.unlockLevel == 1);
-            CharacterSkillCandidateRule rule = draft.rules[0];
             draft.candidates = new List<CharacterSkillInstance>
             {
                 new CharacterSkillInstance
@@ -135,15 +137,15 @@ public static class StartPartyPreparationPlayModeVerifier
                     description = "빠른 커밋 진단 기술",
                     narrativeReason = "테스트 준비",
                     kind = CharacterSkillKind.Active,
-                    rarity = rule.rarity,
-                    trigger = rule.trigger,
-                    target = rule.target,
+                    rarity = CharacterSkillRarity.Advanced,
+                    trigger = CharacterSkillTrigger.ManualCombat,
+                    target = CharacterSkillTarget.Enemy,
                     modules = new List<CharacterSkillModuleSelection>
                     {
                         new CharacterSkillModuleSelection
                         {
-                            moduleId = rule.allowedModuleIds.First(),
-                            variantId = rule.allowedVariantIds.First()
+                            moduleId = "damage",
+                            variantId = "light"
                         }
                     }
                 }

@@ -17,6 +17,17 @@ internal sealed class MetaRunProgressAggregateState
     internal int OffenseSuccessCount { get; set; }
 }
 
+public sealed class MetaRunProgressTransactionSnapshot
+{
+    internal MetaRunProgressTransactionSnapshot(
+        MetaRunProgressAggregateState state)
+    {
+        State = state ?? throw new ArgumentNullException(nameof(state));
+    }
+
+    internal MetaRunProgressAggregateState State { get; }
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class MetaRunProgressTracker
 {
@@ -55,6 +66,15 @@ public sealed class MetaRunProgressTracker
     public void RecordRecipes(IEnumerable<string> recipeIds) { foreach (string id in recipeIds ?? Array.Empty<string>()) RecordRecipe(id); }
     public void RecordSynthesis(string recipeId, int resultBuildingId) { RecordRecipe(recipeId); RecordFacilityDiscovery(resultBuildingId); }
     public void RecordOffenseSuccess() => Writable.OffenseSuccessCount++;
+
+    public MetaRunProgressTransactionSnapshot CaptureTransactionState() =>
+        new(CloneState(State));
+
+    public void RestoreTransactionState(
+        MetaRunProgressTransactionSnapshot snapshot) =>
+        aggregateRootStore.Replace(
+            CloneState((snapshot
+                ?? throw new ArgumentNullException(nameof(snapshot))).State));
 
     public MetaRunResultBuildContext CreateResultContext(string ownerName, string reason, MetaRunEnvironmentSnapshot environment, DungeonRunOutcome outcome)
     {

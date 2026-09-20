@@ -5,6 +5,198 @@ using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer.Unity;
 
+public sealed class CharacterConsumablesOutcomeTransaction :
+    ICharacterConsumablesOutcomeTransaction,
+    ICharacterConsumablesPrimitiveOutcomeTransaction
+{
+    private sealed class Reservation : ICharacterConsumablesOutcomeReservation
+    {
+        internal Reservation(in PreparedMigratedProducerOutcome prepared)
+        {
+            Prepared = prepared;
+        }
+
+        internal PreparedMigratedProducerOutcome Prepared { get; }
+    }
+
+    private readonly IGameSessionStateProvider gameDataProvider;
+    private readonly IMigratedProducerOutcomeTransaction transactions;
+
+    public CharacterConsumablesOutcomeTransaction(
+        IGameSessionStateProvider gameDataProvider,
+        IMigratedProducerOutcomeTransaction transactions)
+    {
+        this.gameDataProvider = gameDataProvider
+            ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        this.transactions = transactions
+            ?? throw new ArgumentNullException(nameof(transactions));
+    }
+
+    public bool TryReserve(
+        CharacterConsumablesOutcomeKind kind,
+        string operationIdentity,
+        out ICharacterConsumablesOutcomeReservation reservation,
+        out string failureReason)
+    {
+        reservation = null;
+        string identity = operationIdentity?.Trim() ?? string.Empty;
+        if (identity.Length == 0)
+        {
+            failureReason = "character-consumables-outcome-identity-invalid";
+            return false;
+        }
+        if (!gameDataProvider.TryGetSessionState(out GameSessionState gameData)
+            || gameData?.day == null)
+        {
+            failureReason = "character-consumables-outcome-day-unavailable";
+            return false;
+        }
+        if (!TryMapKind(kind, out MigratedProducerOutcomeKind migratedKind))
+        {
+            failureReason = "character-consumables-outcome-kind-invalid";
+            return false;
+        }
+        if (!transactions.TryReserveSingleSubject(
+                migratedKind,
+                identity,
+                Math.Max(1, gameData.day.Value),
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out failureReason))
+        {
+            return false;
+        }
+        reservation = new Reservation(prepared);
+        return true;
+    }
+
+    public CharacterConsumablesOutcomeCommitResult Commit(
+        ICharacterConsumablesOutcomeReservation reservation,
+        CharacterId characterId,
+        string summary)
+    {
+        if (reservation is not Reservation owned || !characterId.IsValid)
+        {
+            return new CharacterConsumablesOutcomeCommitResult(
+                false,
+                "character-consumables-outcome-reservation-invalid");
+        }
+        MigratedProducerOutcomeCommitResult committed =
+            transactions.CommitSingleSubject(
+                owned.Prepared,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    characterId.Value,
+                    characterId.Value,
+                    MigratedProducerOutcomeIds.ActorRole),
+                summary);
+        return new CharacterConsumablesOutcomeCommitResult(
+            committed.DurablyCommitted,
+            committed.DetailCode);
+    }
+
+    public void Cancel(ICharacterConsumablesOutcomeReservation reservation)
+    {
+        if (reservation is Reservation owned)
+            transactions.Cancel(owned.Prepared);
+    }
+
+    public bool TryReservePrimitiveSurvival(
+        CharacterId characterId,
+        out ICharacterConsumablesOutcomeReservation reservation,
+        out string failureReason)
+    {
+        reservation = null;
+        if (!characterId.IsValid)
+        {
+            failureReason = "primitive-survival-character-invalid";
+            return false;
+        }
+        if (!gameDataProvider.TryGetSessionState(out GameSessionState gameData)
+            || gameData?.day == null)
+        {
+            failureReason = "primitive-survival-outcome-day-unavailable";
+            return false;
+        }
+        if (!transactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.CharacterPrimitiveSurvivalCompletedEvent,
+                "primitive-survival:" + characterId.Value,
+                Math.Max(1, gameData.day.Value),
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out failureReason))
+        {
+            return false;
+        }
+        reservation = new Reservation(prepared);
+        return true;
+    }
+
+    public CharacterConsumablesOutcomeCommitResult
+        CommitMealAndPrimitiveSurvival(
+            ICharacterConsumablesOutcomeReservation mealReservation,
+            ICharacterConsumablesOutcomeReservation primitiveReservation,
+            CharacterId characterId,
+            string mealSummary,
+            string primitiveSummary)
+    {
+        if (mealReservation is not Reservation meal
+            || primitiveReservation is not Reservation primitive
+            || !characterId.IsValid)
+        {
+            return new CharacterConsumablesOutcomeCommitResult(
+                false,
+                "character-consumables-primitive-batch-invalid");
+        }
+
+        MigratedProducerOutcomeSubject subject =
+            new MigratedProducerOutcomeSubject(
+                MigratedProducerOutcomeIds.CharacterKind,
+                characterId.Value,
+                characterId.Value,
+                MigratedProducerOutcomeIds.ActorRole);
+        MigratedProducerOutcomeCommitResult[] results =
+            new MigratedProducerOutcomeCommitResult[2];
+        bool committed = transactions.CommitSingleSubjectBatch(
+            new[] { meal.Prepared, primitive.Prepared },
+            new[] { subject, subject },
+            new[] { mealSummary, primitiveSummary },
+            results,
+            out string failureReason);
+        if (!committed
+            || results.Any(result => !result.DurablyCommitted))
+        {
+            return new CharacterConsumablesOutcomeCommitResult(
+                false,
+                string.IsNullOrWhiteSpace(failureReason)
+                    ? "character-consumables-primitive-batch-rejected"
+                    : failureReason);
+        }
+        return new CharacterConsumablesOutcomeCommitResult(
+            true,
+            string.Join(",", results.Select(result => result.DetailCode)));
+    }
+
+    private static bool TryMapKind(
+        CharacterConsumablesOutcomeKind kind,
+        out MigratedProducerOutcomeKind migratedKind)
+    {
+        migratedKind = kind switch
+        {
+            CharacterConsumablesOutcomeKind.Meal =>
+                MigratedProducerOutcomeKind.CharacterConsumablesMealResult,
+            CharacterConsumablesOutcomeKind.Substance =>
+                MigratedProducerOutcomeKind.CharacterConsumablesSubstanceResult,
+            CharacterConsumablesOutcomeKind.Detox =>
+                MigratedProducerOutcomeKind.CharacterDetoxTreatmentResult,
+            _ => default
+        };
+        return kind is CharacterConsumablesOutcomeKind.Meal
+            or CharacterConsumablesOutcomeKind.Substance
+            or CharacterConsumablesOutcomeKind.Detox;
+    }
+}
+
 public sealed class CharacterConsumablesApplicationPorts :
     ICharacterConsumablesWorldPort,
     ICharacterConsumablesInventoryPort,
@@ -1366,6 +1558,7 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
     ICharacterConsumablesQuery,
     ICharacterConsumablesCommand,
     IFieldMealConsumptionCommand,
+    IPrimitiveFieldMealConsumptionCommand,
     ICharacterDietPolicyRuntime,
     IMealConsumptionRuntime,
     ICharacterMealOperationCancellation,
@@ -1441,6 +1634,19 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
         out MealConsumptionResult result)
     {
         bool success = runtime.TryConsumeFieldMeal(
+            GetCharacterId(actor),
+            stackId,
+            out CharacterConsumablesMealResult coreResult);
+        result = MealConsumptionResult.FromCore(coreResult);
+        return success;
+    }
+
+    public bool TryConsumePrimitiveFieldMeal(
+        CharacterActor actor,
+        ItemStackId stackId,
+        out MealConsumptionResult result)
+    {
+        bool success = runtime.TryConsumePrimitiveFieldMeal(
             GetCharacterId(actor),
             stackId,
             out CharacterConsumablesMealResult coreResult);

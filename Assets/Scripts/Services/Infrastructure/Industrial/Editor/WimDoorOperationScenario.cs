@@ -441,8 +441,8 @@ internal static class WimDoorOperationScenario
     {
         internal int Count;
         public OffenseExpeditionResult Finalize(OffenseExpeditionRun run, OffenseExpeditionResult result,
-            List<OffenseExpeditionResult> history)
-            { Count++; history.Add(result); return result; }
+            List<OffenseExpeditionResult> history, Action finalizeReturn = null)
+            { Count++; history.Add(result); finalizeReturn?.Invoke(); return result; }
     }
 
     private static IEnumerator VerifyWorldMovement(CharacterActor actor, AbilityMove move, Grid grid, Door door,

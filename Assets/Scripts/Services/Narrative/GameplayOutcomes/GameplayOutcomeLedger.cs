@@ -250,6 +250,117 @@ public sealed partial class GameplayOutcomeLedger :
         }
     }
 
+    internal OutcomeCommitResult CommitPreparedBatchCore(
+        PreparedOutcomeToken[] prepared,
+        long[] expectedOwnerRevisions,
+        CommittedOutcomeToken[] committed)
+    {
+        if (prepared == null
+            || expectedOwnerRevisions == null
+            || committed == null
+            || prepared.Length == 0
+            || prepared.Length
+                > GameplayOutcomeTransactionLimits.MaximumAtomicCommitBatchCount
+            || expectedOwnerRevisions.Length != prepared.Length
+            || committed.Length != prepared.Length)
+        {
+            return new OutcomeCommitResult(
+                OutcomeCommitCode.InvalidPreparedToken,
+                "prepared-batch-shape-invalid");
+        }
+
+        lock (gate)
+        {
+            bool hasPrepared = false;
+            bool hasCommitted = false;
+            for (int index = 0; index < prepared.Length; index++)
+            {
+                PreparedOutcomeToken token = prepared[index];
+                if (!token.IsValid)
+                {
+                    return new OutcomeCommitResult(
+                        OutcomeCommitCode.InvalidPreparedToken,
+                        "prepared-batch-token-invalid:" + index);
+                }
+                for (int previous = 0; previous < index; previous++)
+                {
+                    if (prepared[previous].PageIndex == token.PageIndex)
+                    {
+                        return new OutcomeCommitResult(
+                            OutcomeCommitCode.InvalidPreparedToken,
+                            "prepared-batch-page-duplicate:" + index);
+                    }
+                }
+
+                GameplayOutcomeValuePage page = state.Pool.Get(token.PageIndex);
+                if (!MatchesPrepared(page, token))
+                {
+                    return new OutcomeCommitResult(
+                        OutcomeCommitCode.InvalidPreparedToken,
+                        "prepared-batch-token-mismatch:" + index);
+                }
+                if (token.WorldEpoch != state.WorldEpoch)
+                {
+                    return new OutcomeCommitResult(
+                        OutcomeCommitCode.WorldEpochMismatch,
+                        "prepared-batch-world-epoch-mismatch:" + index);
+                }
+                if (page.OwnerRevision != expectedOwnerRevisions[index])
+                {
+                    return new OutcomeCommitResult(
+                        OutcomeCommitCode.OwnerRevisionMismatch,
+                        "prepared-batch-owner-revision-mismatch:" + index);
+                }
+
+                if (page.State == GameplayOutcomePageState.Prepared)
+                {
+                    hasPrepared = true;
+                }
+                else if (page.State == GameplayOutcomePageState.Committed
+                         || page.State == GameplayOutcomePageState.DeliveryFaultPending
+                         || page.State == GameplayOutcomePageState.PublishedAwaitingAcknowledgement
+                         || page.State == GameplayOutcomePageState.PublishedAcknowledged)
+                {
+                    hasCommitted = true;
+                }
+                else
+                {
+                    return new OutcomeCommitResult(
+                        OutcomeCommitCode.InvalidPreparedToken,
+                        "prepared-batch-token-not-prepared:" + index);
+                }
+            }
+
+            if (hasPrepared && hasCommitted)
+            {
+                return new OutcomeCommitResult(
+                    OutcomeCommitCode.InvalidPreparedToken,
+                    "prepared-batch-mixed-commit-state");
+            }
+
+            for (int index = 0; index < prepared.Length; index++)
+            {
+                PreparedOutcomeToken token = prepared[index];
+                GameplayOutcomeValuePage page = state.Pool.Get(token.PageIndex);
+                if (hasPrepared)
+                {
+                    page.CommitGeneration = page.ResultKey.CommitRevision;
+                    page.State = GameplayOutcomePageState.Committed;
+                    state.ReservedCount--;
+                    state.PendingDeliveryCount++;
+                    state.Revision++;
+                }
+                committed[index] = CreateCommittedToken(token.PageIndex, page);
+            }
+
+            return new OutcomeCommitResult(
+                hasPrepared
+                    ? OutcomeCommitCode.Committed
+                    : OutcomeCommitCode.AlreadyCommitted,
+                string.Empty);
+        }
+    }
+
     internal OutcomeDeliveryResult TryPublishCore(in CommittedOutcomeToken committed)
     {
         lock (gate)

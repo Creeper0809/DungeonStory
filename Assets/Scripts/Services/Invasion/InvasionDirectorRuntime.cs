@@ -36,6 +36,7 @@ public class InvasionDirectorRuntime : MonoBehaviour
     private IFacilityCapabilityQuery facilityCapabilities;
     private InvasionSignalHornDurableEquipmentRuntime signalHornEquipment;
     private ICharacterPerformanceQuery performance;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
     private IDisposable invasionCandidateSubscription;
     private bool nextInvasionIsBoss;
     private float nextBossHealthMultiplier = 1f;
@@ -106,7 +107,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
         IInvasionCampaignRuntime campaignRuntime,
         IFacilityCapabilityQuery facilityCapabilities,
         InvasionSignalHornDurableEquipmentRuntime signalHornEquipment,
-        ICharacterPerformanceQuery performance)
+        ICharacterPerformanceQuery performance,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
     {
         this.invasionContext = invasionContext
             ?? throw new ArgumentNullException(nameof(invasionContext));
@@ -134,6 +136,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(signalHornEquipment));
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
         SubscribeToScopedEvents();
     }
 
@@ -182,6 +186,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
         InvasionCampaignSaveData campaignSnapshot = null;
         int randomRootSeed = 0;
         IReadOnlyList<RandomStreamStateSnapshot> randomSnapshots = null;
+        PreparedMigratedProducerOutcome preparedOutcome = default;
+        bool outcomeReserved = false;
         try
         {
         runtime = factory.Create(intruderPrefab, entry.OutsidePosition);
@@ -192,7 +198,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
             randomStreamProvider,
             gameEventBus,
             treasuryDefenseRuntime,
-            performance);
+            performance,
+            outcomeTransactions);
         CharacterActor preparedIntruder = runtime.IntruderActor;
         string individualRuntimeId = $"invasion:{Guid.NewGuid():N}";
         EnemyArchetypeDefinitionSO enemyArchetype = SelectEnemyArchetype(
@@ -205,6 +212,23 @@ public class InvasionDirectorRuntime : MonoBehaviour
             "defense:" + snapshot.threat.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
         EnemyIndividualBlueprint individual = ResolveEnemyIndividuals()
             .RequireBlueprint(individualData);
+        int absoluteDay = Mathf.Max(
+            0,
+            Mathf.FloorToInt(
+                gameClock.Time / GameCalendarRules.SecondsPerDay));
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.InvasionStartedEvent,
+                individualRuntimeId,
+                absoluteDay,
+                GameplayOutcomeStatus.Succeeded,
+                out preparedOutcome,
+                out string outcomeReserveFailure))
+        {
+            throw new InvalidOperationException(
+                "Invasion-start outcome reservation failed: "
+                + outcomeReserveFailure);
+        }
+        outcomeReserved = true;
         bool isBoss = nextInvasionIsBoss;
         bool isRehearsal = nextInvasionIsRehearsal;
         randomRootSeed = randomStreamProvider.RootSeed;
@@ -300,6 +324,23 @@ public class InvasionDirectorRuntime : MonoBehaviour
             ResolveEnemyIndividuals().EnsureCharacterDomains(individual);
             InvasionIntruderPatternDefinition pattern = runtime.Pattern;
             committedIntruder = preparedIntruder;
+
+            MigratedProducerOutcomeCommitResult outcomeCommitted =
+                outcomeTransactions.CommitSingleSubject(
+                    preparedOutcome,
+                    new MigratedProducerOutcomeSubject(
+                        MigratedProducerOutcomeIds.OperationKind,
+                        individualRuntimeId,
+                        individual.SaveData.displayName,
+                        MigratedProducerOutcomeIds.ActorRole),
+                    $"{individual.SaveData.displayName}의 침공이 위협 {snapshot.threat:0.##}로 시작됐다.");
+            if (!outcomeCommitted.DurablyCommitted)
+            {
+                throw new InvalidOperationException(
+                    "Invasion-start outcome commit failed: "
+                    + outcomeCommitted.DetailCode);
+            }
+            outcomeReserved = false;
             nextInvasionIsBoss = false;
             nextBossHealthMultiplier = 1f;
             nextBossDamageMultiplier = 1f;
@@ -308,25 +349,26 @@ public class InvasionDirectorRuntime : MonoBehaviour
             nextRehearsalOwnerDamageMultiplier = 1f;
             nextRehearsalRetreatHealthRatio = 0f;
 
-            gameEventBus.Publish(new InvasionStartedEvent(
-                runtime.RuntimeId,
-                snapshot));
-            gameEventBus.Publish(new InvasionSpawnedEvent(
-                committedIntruder,
-                snapshot));
+            PublishPostCommit(() => gameEventBus.Publish(
+                new InvasionStartedEvent(runtime.RuntimeId, snapshot)),
+                "invasion-started");
+            PublishPostCommit(() => gameEventBus.Publish(
+                new InvasionSpawnedEvent(committedIntruder, snapshot)),
+                "invasion-spawned");
             if (isBoss)
             {
-                gameEventBus.Publish(new BossInvasionStartedEvent(
-                    committedIntruder,
-                    snapshot));
+                PublishPostCommit(() => gameEventBus.Publish(
+                    new BossInvasionStartedEvent(committedIntruder, snapshot)),
+                    "boss-invasion-started");
             }
-            gameEventBus.RaiseAlert(
+            PublishPostCommit(() => gameEventBus.RaiseAlert(
                 isBoss
                     ? $"최종 침공 집결 · {pattern.title}"
                     : $"침입자 집결 · {pattern.title}",
                 BuildRallyDescription(runtime, operation),
                 EventAlertImportance.High,
-                "침입");
+                "침입"),
+                "invasion-alert");
             return true;
         }
 
@@ -356,6 +398,11 @@ public class InvasionDirectorRuntime : MonoBehaviour
         }
         catch (Exception exception)
         {
+            if (outcomeReserved)
+            {
+                outcomeTransactions.Cancel(preparedOutcome);
+                outcomeReserved = false;
+            }
             intruder = null;
             LastSpawnFailureReason = $"{exception.GetType().Name}: {exception.Message}";
             List<Exception> cleanupFailures = CleanupFailedSpawn(
@@ -564,6 +611,22 @@ public class InvasionDirectorRuntime : MonoBehaviour
             intelligenceConfidence);
     }
 
+    private static void PublishPostCommit(Action publish, string observer)
+    {
+        try
+        {
+            publish?.Invoke();
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError("invasion-start-post-commit-" + observer + ":"
+                + exception.GetType().Name);
+        }
+    }
+
     public IReadOnlyList<InvasionIntruderPersistenceState> CapturePersistentState(Grid grid) =>
         restoreCoordinator.Capture(activeIntruders, grid);
 
@@ -590,7 +653,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
                 randomStreamProvider,
                 gameEventBus,
                 treasuryDefenseRuntime,
-                performance),
+                performance,
+                outcomeTransactions),
             runtime => ResolveIntruderFactory().DestroyDetached(runtime));
 
     public void PublishRestoreCandidates() => restoreCoordinator.Publish();

@@ -96,7 +96,48 @@ public interface ICropIrrigationRuntime
     CropIrrigationSupplyResult TrySupply(CropIrrigationRequest request);
 }
 
-public sealed class CropIrrigationRuntime : ICropIrrigationRuntime
+public sealed class PreparedCropIrrigationSupply
+{
+    internal PreparedCropIrrigationSupply(
+        CropIrrigationSupplyResult result,
+        BuildableObject irrigator,
+        float suppliedAt,
+        float minimumRefillIntervalSeconds,
+        FluidInfrastructureMutationToken fluidMutation)
+    {
+        Result = result;
+        Irrigator = irrigator;
+        SuppliedAt = suppliedAt;
+        MinimumRefillIntervalSeconds = minimumRefillIntervalSeconds;
+        FluidMutation = fluidMutation;
+        IsPending = true;
+    }
+
+    public CropIrrigationSupplyResult Result { get; }
+    public string PlotDisplayName => FacilityShopService.GetBuildingName(
+        Result.Assessment.PlotId.IsValid ? Plot?.BuildingData : null);
+    public string IrrigatorDisplayName => FacilityShopService.GetBuildingName(
+        Irrigator?.BuildingData);
+    internal BuildableObject Plot { get; set; }
+    internal BuildableObject Irrigator { get; }
+    internal float SuppliedAt { get; }
+    internal float MinimumRefillIntervalSeconds { get; }
+    internal FluidInfrastructureMutationToken FluidMutation { get; }
+    internal bool IsPending { get; set; }
+}
+
+public interface ICropIrrigationSupplyTransaction
+{
+    bool TryPrepareSupply(
+        CropIrrigationRequest request,
+        out PreparedCropIrrigationSupply prepared);
+    void CommitPreparedSupply(PreparedCropIrrigationSupply prepared);
+    void RollbackPreparedSupply(PreparedCropIrrigationSupply prepared);
+}
+
+public sealed class CropIrrigationRuntime :
+    ICropIrrigationRuntime,
+    ICropIrrigationSupplyTransaction
 {
     private const float Epsilon = 0.0001f;
     private const float ApprovedWaterUnits = 1f;
@@ -106,6 +147,7 @@ public sealed class CropIrrigationRuntime : ICropIrrigationRuntime
     private readonly IBlueprintResearchStateService research;
     private readonly IFluidInfrastructureQuery fluidQuery;
     private readonly IFluidInfrastructureTransaction fluid;
+    private readonly IFluidInfrastructureMutationTransaction fluidMutations;
     private readonly IGameClock clock;
     private readonly Dictionary<string, SupplyStamp> irrigatorSupplies =
         new(StringComparer.Ordinal);
@@ -117,6 +159,7 @@ public sealed class CropIrrigationRuntime : ICropIrrigationRuntime
         IBlueprintResearchStateService research,
         IFluidInfrastructureQuery fluidQuery,
         IFluidInfrastructureTransaction fluid,
+        IFluidInfrastructureMutationTransaction fluidMutations,
         IGameClock clock)
     {
         this.facilities = facilities
@@ -127,9 +170,31 @@ public sealed class CropIrrigationRuntime : ICropIrrigationRuntime
             ?? throw new ArgumentNullException(nameof(fluidQuery));
         this.fluid = fluid
             ?? throw new ArgumentNullException(nameof(fluid));
+        this.fluidMutations = fluidMutations
+            ?? throw new ArgumentNullException(nameof(fluidMutations));
         this.clock = clock
             ?? throw new ArgumentNullException(nameof(clock));
     }
+
+#if UNITY_EDITOR
+    public CropIrrigationRuntime(
+        IFacilityCapabilityQuery facilities,
+        IBlueprintResearchStateService research,
+        IFluidInfrastructureQuery fluidQuery,
+        IFluidInfrastructureTransaction fluid,
+        IGameClock clock)
+        : this(
+            facilities,
+            research,
+            fluidQuery,
+            fluid,
+            fluid as IFluidInfrastructureMutationTransaction
+                ?? throw new InvalidOperationException(
+                    "Crop irrigation fixtures require the exact fluid mutation transaction."),
+            clock)
+    {
+    }
+#endif
 
     public int Version => fluidQuery.Version;
 
@@ -137,17 +202,22 @@ public sealed class CropIrrigationRuntime : ICropIrrigationRuntime
         Evaluate(request).Assessment;
 
     public CropIrrigationSupplyResult TrySupply(CropIrrigationRequest request)
+        => throw new InvalidOperationException(
+            "Direct crop irrigation supply is disabled; the plot owner must use the joint irrigation supply transaction.");
+
+    public bool TryPrepareSupply(
+        CropIrrigationRequest request,
+        out PreparedCropIrrigationSupply prepared)
     {
         Evaluation evaluation = Evaluate(request);
         if (!evaluation.Assessment.CanSupply)
         {
-            return new CropIrrigationSupplyResult(
-                evaluation.Assessment,
-                false,
-                0f,
-                RequiredQuality);
+            prepared = null;
+            return false;
         }
 
+        FluidInfrastructureMutationToken fluidBefore =
+            fluidMutations.CaptureMutation();
         if (!fluid.TryConsume(
                 evaluation.Irrigator,
                 RequiredQuality,
@@ -155,33 +225,72 @@ public sealed class CropIrrigationRuntime : ICropIrrigationRuntime
                 out WorldWaterQuality consumedQuality,
                 out DomainFailure failure))
         {
-            CropIrrigationAssessment rejected = CreateFluidFailure(
-                evaluation.Assessment.PlotId,
-                evaluation.Assessment.IrrigatorId,
-                evaluation.Assessment.WaterUnits,
-                failure);
-            return new CropIrrigationSupplyResult(
-                rejected,
-                false,
-                0f,
-                RequiredQuality);
+            prepared = new PreparedCropIrrigationSupply(
+                new CropIrrigationSupplyResult(
+                    CreateFluidFailure(
+                        evaluation.Assessment.PlotId,
+                        evaluation.Assessment.IrrigatorId,
+                        evaluation.Assessment.WaterUnits,
+                        failure),
+                    false,
+                    0f,
+                    RequiredQuality),
+                evaluation.Irrigator,
+                clock.Time,
+                evaluation.Ability.minimumRefillIntervalSeconds,
+                default)
+            {
+                Plot = request.Plot,
+                IsPending = false
+            };
+            return false;
         }
 
-        float suppliedAt = clock.Time;
-        SupplyStamp stamp = new(
+        prepared = new PreparedCropIrrigationSupply(
+            new CropIrrigationSupplyResult(
+                evaluation.Assessment,
+                true,
+                evaluation.Assessment.WaterUnits,
+                consumedQuality),
             evaluation.Irrigator,
-            suppliedAt,
-            evaluation.Ability.minimumRefillIntervalSeconds);
-        irrigatorSupplies[evaluation.Assessment.IrrigatorId.Value] = stamp;
-        plotSupplies[evaluation.Assessment.PlotId.Value] = new SupplyStamp(
-            request.Plot,
-            suppliedAt,
-            evaluation.Ability.minimumRefillIntervalSeconds);
-        return new CropIrrigationSupplyResult(
-            evaluation.Assessment,
-            true,
-            evaluation.Assessment.WaterUnits,
-            consumedQuality);
+            clock.Time,
+            evaluation.Ability.minimumRefillIntervalSeconds,
+            fluidBefore)
+        {
+            Plot = request.Plot
+        };
+        return true;
+    }
+
+    public void CommitPreparedSupply(PreparedCropIrrigationSupply prepared)
+    {
+        RequirePending(prepared);
+        SupplyStamp stamp = new(
+            prepared.Irrigator,
+            prepared.SuppliedAt,
+            prepared.MinimumRefillIntervalSeconds);
+        irrigatorSupplies[prepared.Result.Assessment.IrrigatorId.Value] = stamp;
+        plotSupplies[prepared.Result.Assessment.PlotId.Value] = new SupplyStamp(
+            prepared.Plot,
+            prepared.SuppliedAt,
+            prepared.MinimumRefillIntervalSeconds);
+        prepared.IsPending = false;
+    }
+
+    public void RollbackPreparedSupply(PreparedCropIrrigationSupply prepared)
+    {
+        RequirePending(prepared);
+        fluidMutations.RestoreMutation(prepared.FluidMutation);
+        prepared.IsPending = false;
+    }
+
+    private static void RequirePending(PreparedCropIrrigationSupply prepared)
+    {
+        if (prepared == null || !prepared.IsPending
+            || !prepared.Result.Succeeded
+            || !prepared.FluidMutation.IsValid)
+            throw new InvalidOperationException(
+                "A pending exact crop irrigation supply is required.");
     }
 
     private Evaluation Evaluate(CropIrrigationRequest request)

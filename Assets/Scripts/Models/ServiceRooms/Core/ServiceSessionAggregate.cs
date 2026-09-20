@@ -37,6 +37,26 @@ namespace DungeonStory.ServiceRooms
     /// </summary>
     public sealed class ServiceSessionAggregate
     {
+        public readonly struct ServiceModeMutationSnapshot
+        {
+            internal ServiceModeMutationSnapshot(
+                string hubId,
+                bool hadStoredMode,
+                ServiceOperationMode previousMode,
+                int version)
+            {
+                HubId = hubId;
+                HadStoredMode = hadStoredMode;
+                PreviousMode = previousMode;
+                Version = version;
+            }
+
+            internal string HubId { get; }
+            internal bool HadStoredMode { get; }
+            internal ServiceOperationMode PreviousMode { get; }
+            internal int Version { get; }
+        }
+
         private readonly Dictionary<string, ServiceOperationMode> modesByHubId =
             new(StringComparer.Ordinal);
         private readonly Dictionary<string, ServiceSessionSnapshot> sessionsById =
@@ -93,6 +113,43 @@ namespace DungeonStory.ServiceRooms
             modesByHubId[hubId] = mode;
             IncrementVersion();
             return true;
+        }
+
+        public ServiceModeMutationSnapshot CaptureModeMutationSnapshot(
+            string hubId)
+        {
+            RequireCanonical(hubId, nameof(hubId));
+            bool hadStoredMode = modesByHubId.TryGetValue(
+                hubId,
+                out ServiceOperationMode previousMode);
+            return new ServiceModeMutationSnapshot(
+                hubId,
+                hadStoredMode,
+                hadStoredMode
+                    ? previousMode
+                    : ServiceOperationMode.Direct,
+                Version);
+        }
+
+        public void RestoreModeMutationSnapshot(
+            in ServiceModeMutationSnapshot snapshot)
+        {
+            RequireCanonical(snapshot.HubId, nameof(snapshot));
+            RequireDefined(snapshot.PreviousMode, nameof(snapshot));
+            if (snapshot.Version < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(snapshot));
+            }
+
+            if (snapshot.HadStoredMode)
+            {
+                modesByHubId[snapshot.HubId] = snapshot.PreviousMode;
+            }
+            else
+            {
+                modesByHubId.Remove(snapshot.HubId);
+            }
+            Version = snapshot.Version;
         }
 
         public int CountActiveSessions(string hubId)

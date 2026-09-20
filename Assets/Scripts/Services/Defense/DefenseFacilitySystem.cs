@@ -208,6 +208,7 @@ public class DefenseFacility : Facility
     private DungeonStory.Foundation.IGameEventBus gameEventBus;
     private IWorldThreatModifierQuery worldThreatModifiers;
     private IDefenseFacilityRuntime defenseRuntime;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
 
     [VContainer.Inject]
     public void ConstructDefenseFacilityEventBus(
@@ -219,6 +220,14 @@ public class DefenseFacility : Facility
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.worldThreatModifiers = worldThreatModifiers;
         this.defenseRuntime = defenseRuntime;
+    }
+
+    [VContainer.Inject]
+    public void ConstructDefenseFacilityOutcomeTransactions(
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
+    {
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
     }
 
     public DefenseFacilityData Defense => BuildingData != null ? BuildingData.Defense : null;
@@ -290,6 +299,49 @@ public class DefenseFacility : Facility
             return null;
         }
 
+        if (defenseRuntime == null || outcomeTransactions == null)
+        {
+            Debug.LogError(
+                "defense-facility-trigger-outcome-transaction-unavailable");
+            return null;
+        }
+
+        BuildingInstanceId facilityId = RequirePersistentInstanceId();
+        int absoluteDay = Mathf.Max(
+            0,
+            Mathf.FloorToInt(GameTime / GameCalendarRules.SecondsPerDay));
+        var prepared = new PreparedMigratedProducerOutcome[2];
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.DefenseFacilityTriggeredEvent,
+                facilityId.Value,
+                absoluteDay,
+                GameplayOutcomeStatus.Succeeded,
+                out prepared[0],
+                out string triggerReserveFailure))
+        {
+            Debug.LogError(
+                "defense-facility-trigger-outcome-reservation-failed:"
+                + triggerReserveFailure);
+            return null;
+        }
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.DefenseFacilityStateChangedEvent,
+                facilityId.Value,
+                absoluteDay,
+                GameplayOutcomeStatus.Succeeded,
+                out prepared[1],
+                out string stateReserveFailure))
+        {
+            outcomeTransactions.Cancel(prepared[0]);
+            Debug.LogError(
+                "defense-facility-state-outcome-reservation-failed:"
+                + stateReserveFailure);
+            return null;
+        }
+
+        DefenseFacilityState rollback = defenseRuntime.CaptureActivationState(this);
+        float previousNextTriggerTime = nextTriggerTime;
+
         DefenseActivationAuthorization operational =
             DefenseActivationAuthorization.Granted;
         if (defenseRuntime != null
@@ -300,6 +352,8 @@ public class DefenseFacility : Facility
                 out operational,
                 out _))
         {
+            outcomeTransactions.Cancel(prepared[0]);
+            outcomeTransactions.Cancel(prepared[1]);
             return null;
         }
 
@@ -310,6 +364,69 @@ public class DefenseFacility : Facility
             timing,
             activationCount);
         nextTriggerTime = GameTime + Mathf.Max(0f, Defense.cooldownSeconds);
+        if (operational.Jammed)
+        {
+            report.AddEffectTag("걸림");
+        }
+        if (operational.Misfired)
+        {
+            report.AddEffectTag("오작동");
+        }
+        defenseRuntime.CompleteActivation(this, operational);
+        DefenseFacilitySnapshot committedState = defenseRuntime.GetSnapshot(this);
+        var subjects = new[]
+        {
+            new MigratedProducerOutcomeSubject(
+                MigratedProducerOutcomeIds.FacilityKind,
+                facilityId.Value,
+                name,
+                MigratedProducerOutcomeIds.FacilityRole),
+            new MigratedProducerOutcomeSubject(
+                MigratedProducerOutcomeIds.FacilityKind,
+                facilityId.Value,
+                name,
+                MigratedProducerOutcomeIds.FacilityRole)
+        };
+        string targetId = CharacterPersistentIdentity.TryGet(
+            intruder,
+            out CharacterId intruderId)
+                ? intruderId.Value
+                : string.Empty;
+        string[] summaries =
+        {
+            "facility=" + facilityId.Value
+            + ";target=" + targetId
+            + ";timing=" + timing
+            + ";concept=" + Defense.concept
+            + ";jammed=" + operational.Jammed
+            + ";misfired=" + operational.Misfired,
+            "state=" + committedState.OperationalState
+            + ";condition=" + committedState.Condition.ToString(
+                "0.###",
+                System.Globalization.CultureInfo.InvariantCulture)
+            + ";supply=" + committedState.Supply
+            + ";activationCount=" + committedState.ActivationCount
+            + ";blocked=" + committedState.BlockedReason
+        };
+        var commitResults = new MigratedProducerOutcomeCommitResult[2];
+        if (!outcomeTransactions.CommitSingleSubjectBatch(
+                prepared,
+                subjects,
+                summaries,
+                commitResults,
+                out string commitFailure)
+            || commitResults.Any(value => !value.DurablyCommitted))
+        {
+            outcomeTransactions.Cancel(prepared[0]);
+            outcomeTransactions.Cancel(prepared[1]);
+            defenseRuntime.RestoreActivationState(this, rollback);
+            nextTriggerTime = previousNextTriggerTime;
+            Debug.LogError(
+                "defense-facility-trigger-outcome-commit-failed:"
+                + commitFailure);
+            return null;
+        }
+
         DefenseEffectResolver.ApplyEffects(
             this,
             intruder,
@@ -319,31 +436,44 @@ public class DefenseFacility : Facility
                 OffenseThreatModifierKind.AutomatedDefense) ?? 1f)
                 * Mathf.Max(0f, paidPerformanceMultiplier)
                 * operational.EffectMultiplier);
-        if (operational.Jammed)
-        {
-            report.AddEffectTag("걸림");
-        }
-        if (operational.Misfired)
-        {
-            report.AddEffectTag("오작동");
-        }
-        defenseRuntime?.CompleteActivation(this, operational);
-        intruder.AddActivity(CharacterActivityEvent.Facility(
-            CharacterActivityKinds.Combat,
-            CharacterActivityOutcomes.Damaged,
-            report.FormatSummary(),
-            this,
-            actionId: $"defense:{Defense.concept}",
-            reasonCode: timing.ToString(),
-            value: report.TotalDamage,
-            quantity: report.EffectTags.Count,
-            bubbleEligible: true));
-        (gameEventBus
-            ?? throw new InvalidOperationException(
-                $"{nameof(DefenseFacility)} requires "
-                + $"{nameof(DungeonStory.Foundation.IGameEventBus)} injection."))
-            .Publish(new DefenseFacilityTriggeredEvent(report));
+        PublishPostCommitObserver(
+            () => defenseRuntime.PublishCommittedState(this),
+            "defense-facility-state-observer");
+        PublishPostCommitObserver(
+            () => intruder.AddActivity(CharacterActivityEvent.Facility(
+                CharacterActivityKinds.Combat,
+                CharacterActivityOutcomes.Damaged,
+                report.FormatSummary(),
+                this,
+                actionId: $"defense:{Defense.concept}",
+                reasonCode: timing.ToString(),
+                value: report.TotalDamage,
+                quantity: report.EffectTags.Count,
+                bubbleEligible: true)),
+            "defense-facility-activity-observer");
+        PublishPostCommitObserver(
+            () => (gameEventBus
+                ?? throw new InvalidOperationException(
+                    $"{nameof(DefenseFacility)} requires "
+                    + $"{nameof(DungeonStory.Foundation.IGameEventBus)} injection."))
+                .Publish(new DefenseFacilityTriggeredEvent(report)),
+            "defense-facility-triggered-event-observer");
         return report;
+    }
+
+    private static void PublishPostCommitObserver(Action observer, string context)
+    {
+        try
+        {
+            observer?.Invoke();
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(context + ":" + exception.GetType().Name);
+        }
     }
 
 }

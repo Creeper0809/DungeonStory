@@ -7,6 +7,14 @@ public static class EnvironmentOutcomeIds
         new("environment.certified-seed-completed");
     public static readonly GameplayOutcomeTypeId CropPlanTerminal =
         new("environment.crop-plan-terminal");
+    public static readonly GameplayOutcomeTypeId CropIrrigationSupplied =
+        new("environment.crop-irrigation-supplied");
+    public static readonly GameplayOutcomeTypeId FireIgnition =
+        new("environment.fire-ignition");
+    public static readonly GameplayOutcomeTypeId FireSuppression =
+        new("environment.fire-suppression");
+    public static readonly GameplayOutcomeTypeId FireDamage =
+        new("environment.fire-damage");
     public static readonly GameplayOutcomeTypeId FireFuelLoss =
         new("environment.fire-fuel-loss");
     public static readonly GameplayOutcomeTypeId FireWaterConsumed =
@@ -43,6 +51,7 @@ public static class EnvironmentOutcomeIds
     public static readonly GameplayRoleId SpeciesRole = new("species");
     public static readonly GameplayRoleId RoomRole = new("room");
     public static readonly GameplayRoleId FireRole = new("fire");
+    public static readonly GameplayRoleId TargetRole = new("target");
     public static readonly GameplayRoleId ItemRole = new("item");
 
     public static readonly GameplayMetricUnitId CountUnit = new("count");
@@ -73,6 +82,8 @@ public static class EnvironmentOutcomeIds
     public static readonly GameplayMetricId StatusMetric = new("status");
     public static readonly GameplayMetricId IntensityBeforeMetric = new("intensity-before");
     public static readonly GameplayMetricId IntensityAfterMetric = new("intensity-after");
+    public static readonly GameplayMetricId WaterUnitsMetric = new("water-units");
+    public static readonly GameplayMetricId WaterQualityMetric = new("water-quality");
     public static readonly GameplayMetricId SourceXMetric = new("source-x");
     public static readonly GameplayMetricId SourceYMetric = new("source-y");
     public static readonly GameplayMetricId DestinationXMetric = new("destination-x");
@@ -108,6 +119,10 @@ public static class EnvironmentOutcomeIds
 
     public const string CertifiedSeedProducer = "environment.certified-seed";
     public const string CropPlanProducer = "environment.crop-plan";
+    public const string CropIrrigationProducer = "environment.crop-irrigation";
+    public const string FireIgnitionProducer = "environment.fire-ignition";
+    public const string FireSuppressionProducer = "environment.fire-suppression";
+    public const string FireDamageProducer = "environment.fire-damage";
     public const string FireFuelProducer = "environment.fire-fuel";
     public const string FireWaterProducer = "environment.fire-water";
     public const string DiseaseExposureProducer = "environment.disease-exposure";
@@ -282,6 +297,30 @@ public readonly struct CertifiedSeedCompletionOutcomeReceipt : IEnvironmentOutco
 public readonly struct CropPlanGameplayOutcomeReceipt : IEnvironmentOutcomeReceipt
 {
     public CropPlanGameplayOutcomeReceipt(EnvironmentOutcomePayload payload) => Payload = payload;
+    public EnvironmentOutcomePayload Payload { get; }
+}
+
+public readonly struct CropIrrigationSupplyOutcomeReceipt : IEnvironmentOutcomeReceipt
+{
+    public CropIrrigationSupplyOutcomeReceipt(EnvironmentOutcomePayload payload) => Payload = payload;
+    public EnvironmentOutcomePayload Payload { get; }
+}
+
+public readonly struct EnvironmentalFireIgnitionOutcomeReceipt : IEnvironmentOutcomeReceipt
+{
+    public EnvironmentalFireIgnitionOutcomeReceipt(EnvironmentOutcomePayload payload) => Payload = payload;
+    public EnvironmentOutcomePayload Payload { get; }
+}
+
+public readonly struct EnvironmentalFireSuppressionOutcomeReceipt : IEnvironmentOutcomeReceipt
+{
+    public EnvironmentalFireSuppressionOutcomeReceipt(EnvironmentOutcomePayload payload) => Payload = payload;
+    public EnvironmentOutcomePayload Payload { get; }
+}
+
+public readonly struct EnvironmentalFireDamageOutcomeReceipt : IEnvironmentOutcomeReceipt
+{
+    public EnvironmentalFireDamageOutcomeReceipt(EnvironmentOutcomePayload payload) => Payload = payload;
     public EnvironmentOutcomePayload Payload { get; }
 }
 

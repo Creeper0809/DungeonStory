@@ -9,6 +9,7 @@ using VContainer.Unity;
 internal sealed class FluidNetworkRuntime :
     IFluidInfrastructureQuery,
     IFluidInfrastructureTransaction,
+    IFluidInfrastructureMutationTransaction,
     IManualWaterAvailabilityQuery,
     IManualWaterTransferTransaction,
     IFluidInfrastructureBatchTransaction,
@@ -35,13 +36,13 @@ internal sealed class FluidNetworkRuntime :
     private readonly FluidNetworkStateStore stateStore;
     private readonly FluidNetworkProjectionAdapter projectionAdapter;
     private readonly IFluidFacilityInputOwnerAuthority inputOwners;
+    private readonly IInfrastructureCommandOutcomeTransaction commandOutcomes;
     private readonly Dictionary<string, float> nextBackflowAt =
         new Dictionary<string, float>(StringComparer.Ordinal);
     private IReadOnlyList<WaterTransferFacilitySnapshot> waterTransfers =
         Array.Empty<WaterTransferFacilitySnapshot>();
     private float accumulated;
 
-    [Inject]
     public FluidNetworkRuntime(
         IIndustrialInfrastructureTopologyRuntime topologyRuntime,
         IPowerInfrastructureQuery power,
@@ -71,12 +72,53 @@ internal sealed class FluidNetworkRuntime :
             facilities,
             facilityStateChanges,
             aggregateRootStore,
+            physicalMass,
+            destinationClaims,
+            destinationCapacities,
+            destinationLifecycle,
+            destinationReleases,
+            null)
+    {
+    }
+
+    [Inject]
+    public FluidNetworkRuntime(
+        IIndustrialInfrastructureTopologyRuntime topologyRuntime,
+        IPowerInfrastructureQuery power,
+        IWorldItemStackRuntime items,
+        IPhysicalItemBatchDispositionService physicalDispositions,
+        IWorldFilthQuery filth,
+        IGameClock clock,
+        IEnvironmentalFieldQuery environment,
+        ISeasonalEventQuery seasonalEvents,
+        IFacilityCapabilityQuery facilities,
+        IBuildingFacilityStateChangePort facilityStateChanges,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IPhysicalItemMassQuery physicalMass,
+        IFacilityBufferDestinationClaimAuthorityQuery destinationClaims,
+        IFacilityBufferMassCapacityAuthorityQuery destinationCapacities,
+        IFacilityBufferDestinationLifecycleCommand destinationLifecycle,
+        IFacilityBufferDestinationReleaseService destinationReleases,
+        IInfrastructureCommandOutcomeTransaction commandOutcomes)
+        : this(
+            topologyRuntime,
+            power,
+            items,
+            physicalDispositions,
+            filth,
+            clock,
+            environment,
+            seasonalEvents,
+            facilities,
+            facilityStateChanges,
+            aggregateRootStore,
             new FluidFacilityInputOwnerAuthority(
                 physicalMass,
                 destinationClaims,
                 destinationCapacities,
                 destinationLifecycle,
-                destinationReleases))
+                destinationReleases),
+            commandOutcomes)
     {
     }
 
@@ -92,7 +134,8 @@ internal sealed class FluidNetworkRuntime :
         IFacilityCapabilityQuery facilities,
         IBuildingFacilityStateChangePort facilityStateChanges,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
-        IFluidFacilityInputOwnerAuthority inputOwners)
+        IFluidFacilityInputOwnerAuthority inputOwners,
+        IInfrastructureCommandOutcomeTransaction commandOutcomes = null)
     {
         this.topologyRuntime = topologyRuntime
             ?? throw new ArgumentNullException(nameof(topologyRuntime));
@@ -112,6 +155,7 @@ internal sealed class FluidNetworkRuntime :
             ?? throw new ArgumentNullException(nameof(facilityStateChanges));
         this.inputOwners = inputOwners
             ?? throw new ArgumentNullException(nameof(inputOwners));
+        this.commandOutcomes = commandOutcomes;
         stateStore = new FluidNetworkStateStore(
             aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore)));
@@ -576,6 +620,18 @@ internal sealed class FluidNetworkRuntime :
         return AcknowledgeManualWaterTransfer(
             pending.OperationId,
             out failure);
+    }
+
+    public FluidInfrastructureMutationToken CaptureMutation() => new(
+        stateStore.CaptureMutation(),
+        checked(stateStore.Version + 1));
+
+    public void RestoreMutation(in FluidInfrastructureMutationToken token)
+    {
+        if (!token.IsValid)
+            throw new ArgumentException(
+                "A valid fluid mutation token is required.", nameof(token));
+        stateStore.RestoreMutation(token.Before, token.ExpectedMutatedVersion);
     }
 
     public bool CanConsumeManualContainer(
@@ -1203,10 +1259,32 @@ internal sealed class FluidNetworkRuntime :
         }
 
         bool changed = state.Blockage > 0.0001f;
+        if (!changed)
+            return InfrastructureCommandResult.Success();
+        string nodeId = IndustrialInfrastructureIdentity.GetNodeId(building);
+        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+                commandOutcomes,
+                InfrastructureCommandOutcomeKind.FluidBlockageCleared,
+                nodeId,
+                building,
+                InfrastructureCommandOutcomeExecution.Float(state.Blockage),
+                "0",
+                out IPreparedInfrastructureCommandOutcome prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        FluidNetworkAggregateState before = stateStore.CaptureMutation();
         state.Blockage = 0f;
         stateStore.Touch();
-        if (changed)
-            facilityStateChanges.MarkDynamicStateDirty();
+        InfrastructureCommandOutcomeCommitResult commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (!commit.DurablyCommitted)
+        {
+            stateStore.RestoreMutation(before, stateStore.Version);
+            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+        }
+        NotifyFacilityStateChangedAfterCommit();
         return InfrastructureCommandResult.Success();
     }
 
@@ -1225,10 +1303,43 @@ internal sealed class FluidNetworkRuntime :
                 FailureCode.IndustrialCommandInvalid);
         }
 
+        if (state.TransferMode == mode
+            && Mathf.Approximately(state.TransferWork, 0f)
+            && state.TransferStatus.Code == InfrastructureStatusCode.None)
+        {
+            return InfrastructureCommandResult.Success();
+        }
+        string nodeId = IndustrialInfrastructureIdentity.GetNodeId(building);
+        string beforeValue = "mode=" + state.TransferMode
+            + ";work="
+            + InfrastructureCommandOutcomeExecution.Float(state.TransferWork)
+            + ";status=" + state.TransferStatus;
+        string afterValue = "mode=" + mode
+            + ";work=0;status=" + InfrastructureStatus.None;
+        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+                commandOutcomes,
+                InfrastructureCommandOutcomeKind.WaterTransferModeChanged,
+                nodeId,
+                building,
+                beforeValue,
+                afterValue,
+                out IPreparedInfrastructureCommandOutcome prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        FluidNetworkAggregateState before = stateStore.CaptureMutation();
         state.TransferMode = mode;
         state.TransferWork = 0f;
         state.TransferStatus = InfrastructureStatus.None;
         stateStore.Touch();
+        InfrastructureCommandOutcomeCommitResult commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (!commit.DurablyCommitted)
+        {
+            stateStore.RestoreMutation(before, stateStore.Version);
+            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+        }
         return InfrastructureCommandResult.Success();
     }
 
@@ -1311,11 +1422,47 @@ internal sealed class FluidNetworkRuntime :
         }
 
         bool changed = state.Leak > 0.0001f;
+        if (!changed)
+            return InfrastructureCommandResult.Success();
+        string nodeId = IndustrialInfrastructureIdentity.GetNodeId(building);
+        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+                commandOutcomes,
+                InfrastructureCommandOutcomeKind.FluidLeakRepaired,
+                nodeId,
+                building,
+                InfrastructureCommandOutcomeExecution.Float(state.Leak),
+                "0",
+                out IPreparedInfrastructureCommandOutcome prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        FluidNetworkAggregateState before = stateStore.CaptureMutation();
         state.Leak = 0f;
         stateStore.Touch();
-        if (changed)
-            facilityStateChanges.MarkDynamicStateDirty();
+        InfrastructureCommandOutcomeCommitResult commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (!commit.DurablyCommitted)
+        {
+            stateStore.RestoreMutation(before, stateStore.Version);
+            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+        }
+        NotifyFacilityStateChangedAfterCommit();
         return InfrastructureCommandResult.Success();
+    }
+
+    private void NotifyFacilityStateChangedAfterCommit()
+    {
+        try
+        {
+            facilityStateChanges.MarkDynamicStateDirty();
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                "Facility state notification failed after committed fluid command: "
+                + exception);
+        }
     }
 
     public DungeonFluidInfrastructureSaveData Capture()

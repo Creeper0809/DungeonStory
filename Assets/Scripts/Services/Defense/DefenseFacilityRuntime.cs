@@ -22,6 +22,11 @@ public interface IDefenseFacilityRuntime
     void CompleteActivation(
         DefenseFacility facility,
         DefenseActivationAuthorization authorization);
+    DefenseFacilityState CaptureActivationState(DefenseFacility facility);
+    void RestoreActivationState(
+        DefenseFacility facility,
+        DefenseFacilityState snapshot);
+    void PublishCommittedState(DefenseFacility facility);
     bool SetArmingPolicy(
         DefenseFacility facility,
         DefenseArmingPolicy policy);
@@ -45,7 +50,7 @@ public interface IDefenseFacilityRuntime
 
 public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
 {
-    private readonly IWorldItemStackRuntime items;
+    private readonly IEquipmentPhysicalItemGateway items;
     private readonly IDefenseFacilityPhysicalItemGateway physicalItems;
     private readonly IDefenseFacilityInputOwnerRuntime inputOwners;
     private readonly IPowerInfrastructureQuery power;
@@ -66,7 +71,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
     internal IReadOnlyCollection<DefenseFacilityState> States => Current.States;
 
     public DefenseFacilityRuntime(
-        IWorldItemStackRuntime items,
+        IEquipmentPhysicalItemGateway items,
         IDefenseFacilityPhysicalItemGateway physicalItems,
         IDefenseFacilityInputOwnerRuntime inputOwners,
         IGameClock clock,
@@ -235,7 +240,6 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             jammed,
             misfired,
             multiplier);
-        PublishState(state);
         return true;
     }
 
@@ -261,8 +265,30 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         state.operationalState = state.cooldownUntil > clock.Time
             ? DefenseFacilityOperationalState.Cooldown
             : DefenseFacilityOperationalState.Ready;
-        PublishState(state);
     }
+
+    public DefenseFacilityState CaptureActivationState(DefenseFacility facility) =>
+        GetOrCreate(facility).DeepClone();
+
+    public void RestoreActivationState(
+        DefenseFacility facility,
+        DefenseFacilityState snapshot)
+    {
+        string facilityId = ResolvePersistentId(facility);
+        if (snapshot == null
+            || !string.Equals(
+                snapshot.facilityPersistentId,
+                facilityId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Defense activation rollback snapshot belongs to another facility.");
+        }
+        Writable.Set(snapshot.DeepClone());
+    }
+
+    public void PublishCommittedState(DefenseFacility facility) =>
+        PublishState(GetOrCreate(facility));
 
     public bool SetArmingPolicy(
         DefenseFacility facility,

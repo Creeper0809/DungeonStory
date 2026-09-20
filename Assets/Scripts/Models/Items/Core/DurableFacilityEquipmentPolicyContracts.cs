@@ -397,7 +397,8 @@ public readonly struct DurableFacilityEquipmentUseResult
         DurableFacilityEquipmentUseStatus status,
         DurableFacilityEquipmentSlotSnapshot slot,
         string stackId,
-        string failureReason)
+        string failureReason,
+        string postCommitFaultCode = "")
     {
         bool applied = status is DurableFacilityEquipmentUseStatus.Applied
             or DurableFacilityEquipmentUseStatus.AppliedDrainPending;
@@ -405,12 +406,14 @@ public readonly struct DurableFacilityEquipmentUseResult
             or DurableFacilityEquipmentUseStatus.Deferred
             or DurableFacilityEquipmentUseStatus.Conflict;
         string reason = failureReason ?? string.Empty;
+        string postCommitFault = postCommitFaultCode ?? string.Empty;
         if (!Enum.IsDefined(typeof(DurableFacilityEquipmentUseStatus), status)
             || slot == null
             || (applied && (string.IsNullOrWhiteSpace(stackId)
                 || reason.Length != 0))
             || (failed && ((stackId ?? string.Empty).Length != 0
-                || !Canonical(reason))))
+                || !Canonical(reason)))
+            || (postCommitFault.Length != 0 && (!applied || !Canonical(postCommitFault))))
         {
             throw new ArgumentException(
                 "Durable equipment use result is incoherent.");
@@ -419,12 +422,15 @@ public readonly struct DurableFacilityEquipmentUseResult
         Slot = slot;
         StackId = stackId ?? string.Empty;
         FailureReason = reason;
+        PostCommitFaultCode = postCommitFault;
     }
 
     public DurableFacilityEquipmentUseStatus Status { get; }
     public DurableFacilityEquipmentSlotSnapshot Slot { get; }
     public string StackId { get; }
     public string FailureReason { get; }
+    /// <summary>Wear/effect are committed; retry only finalization, never the gameplay effect.</summary>
+    public string PostCommitFaultCode { get; }
     public bool Succeeded => Status is DurableFacilityEquipmentUseStatus.Applied
         or DurableFacilityEquipmentUseStatus.AppliedDrainPending;
 

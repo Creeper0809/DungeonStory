@@ -7,8 +7,10 @@ public sealed class CaptivityCharacterContext
         ICharacterAiWorldRegistry worldRegistry,
         ICharacterBodyHealthQuery bodyHealthQuery,
         ICharacterBodyHealthCommand bodyHealthCommands,
+        ICharacterBodyHealthMutationTransaction bodyHealthMutations,
         ICombatEquipmentRuntime combatEquipment,
         IWorldItemStackRuntime itemRuntime,
+        IPhysicalItemSourcePublicationService physicalItemSources,
         IPhysicalItemBatchDispositionService batchDispositions,
         ICharacterPopulationService population,
         ICharacterNarrativeQuery narratives,
@@ -20,10 +22,14 @@ public sealed class CaptivityCharacterContext
             ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
         BodyHealthCommands = bodyHealthCommands
             ?? throw new ArgumentNullException(nameof(bodyHealthCommands));
+        BodyHealthMutations = bodyHealthMutations
+            ?? throw new ArgumentNullException(nameof(bodyHealthMutations));
         CombatEquipment = combatEquipment
             ?? throw new ArgumentNullException(nameof(combatEquipment));
         ItemRuntime = itemRuntime
             ?? throw new ArgumentNullException(nameof(itemRuntime));
+        PhysicalItemSources = physicalItemSources
+            ?? throw new ArgumentNullException(nameof(physicalItemSources));
         BatchDispositions = batchDispositions
             ?? throw new ArgumentNullException(nameof(batchDispositions));
         Population = population
@@ -37,8 +43,10 @@ public sealed class CaptivityCharacterContext
     public ICharacterAiWorldRegistry WorldRegistry { get; }
     public ICharacterBodyHealthQuery BodyHealthQuery { get; }
     public ICharacterBodyHealthCommand BodyHealthCommands { get; }
+    public ICharacterBodyHealthMutationTransaction BodyHealthMutations { get; }
     public ICombatEquipmentRuntime CombatEquipment { get; }
     public IWorldItemStackRuntime ItemRuntime { get; }
+    public IPhysicalItemSourcePublicationService PhysicalItemSources { get; }
     public IPhysicalItemBatchDispositionService BatchDispositions { get; }
     public ICharacterPopulationService Population { get; }
     public ICharacterNarrativeQuery Narratives { get; }
@@ -90,7 +98,11 @@ public sealed class CaptivitySessionContext
         CharacterMoodPolicyService moodPolicy,
         IFactionCampaignCommand factionCampaign,
         ISurvivalFoodCommand survivalFood,
-        ICaptivityInterrogationCodexPort interrogationCodex)
+        ICaptivityInterrogationCodexPort interrogationCodex,
+        ICaptivePerformerMilestoneOutcomeCommitter performerMilestoneOutcomes,
+        ICaptiveEscapeOutcomeCommitter captiveEscapeOutcomes,
+        ICaptiveRansomOutcomeCommitter captiveRansomOutcomes,
+        ICaptivityInteractionOutcomeCommitter captivityInteractionOutcomes)
     {
         Money = money ?? throw new ArgumentNullException(nameof(money));
         Interactions = interactions
@@ -112,6 +124,14 @@ public sealed class CaptivitySessionContext
             ?? throw new ArgumentNullException(nameof(survivalFood));
         InterrogationCodex = interrogationCodex
             ?? throw new ArgumentNullException(nameof(interrogationCodex));
+        PerformerMilestoneOutcomes = performerMilestoneOutcomes
+            ?? throw new ArgumentNullException(nameof(performerMilestoneOutcomes));
+        CaptiveEscapeOutcomes = captiveEscapeOutcomes
+            ?? throw new ArgumentNullException(nameof(captiveEscapeOutcomes));
+        CaptiveRansomOutcomes = captiveRansomOutcomes
+            ?? throw new ArgumentNullException(nameof(captiveRansomOutcomes));
+        CaptivityInteractionOutcomes = captivityInteractionOutcomes
+            ?? throw new ArgumentNullException(nameof(captivityInteractionOutcomes));
     }
 
     public IGameMoneyAccount Money { get; }
@@ -125,4 +145,8 @@ public sealed class CaptivitySessionContext
     public IFactionCampaignCommand FactionCampaign { get; }
     public ISurvivalFoodCommand SurvivalFood { get; }
     public ICaptivityInterrogationCodexPort InterrogationCodex { get; }
+    public ICaptivePerformerMilestoneOutcomeCommitter PerformerMilestoneOutcomes { get; }
+    public ICaptiveEscapeOutcomeCommitter CaptiveEscapeOutcomes { get; }
+    public ICaptiveRansomOutcomeCommitter CaptiveRansomOutcomes { get; }
+    public ICaptivityInteractionOutcomeCommitter CaptivityInteractionOutcomes { get; }
 }

@@ -330,6 +330,20 @@ public sealed class OperatingDaySettlementDomain<TReport, TSupplyResult>
     }
 
     public OperatingDaySettlementAggregateState<TReport, TSupplyResult>
+        CaptureOwnerState()
+    {
+        return Current.DeepClone();
+    }
+
+    public void RestoreOwnerState(
+        OperatingDaySettlementAggregateState<TReport, TSupplyResult> restored)
+    {
+        aggregateRootStore.Replace(
+            (restored ?? throw new ArgumentNullException(nameof(restored)))
+            .DeepClone());
+    }
+
+    public OperatingDaySettlementAggregateState<TReport, TSupplyResult>
         PrepareRestoreState(
             OperatingDaySettlementStateSnapshot<TReport, TSupplyResult> source)
     {

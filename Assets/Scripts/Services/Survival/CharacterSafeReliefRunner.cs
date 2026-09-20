@@ -9,12 +9,8 @@ internal sealed class CharacterSafeReliefRunner
     private const string IntentOwnerId = "survival:safe-relief";
     private const int MaximumStartsPerFrame = 2;
 
-    private readonly IWorldItemStackRuntime itemStackRuntime;
-    private readonly IReservedItemTransferService reservedTransfers;
-    private readonly IWorldWaterQuery waterQuery;
     private readonly IGameClock gameClock;
-    private readonly ICharacterNeedBalanceRuntime needBalanceRuntime;
-    private readonly IGameEventBus events;
+    private readonly CharacterWaterConsumptionCoordinator waterConsumption;
     private readonly CharacterDeprivationStateStore stateStore;
     private readonly CharacterSafeDrinkPlanner planner;
     private readonly CharacterEmergencyMovement movement;
@@ -36,19 +32,20 @@ internal sealed class CharacterSafeReliefRunner
         CharacterDeprivationStateStore stateStore,
         CharacterSafeDrinkPlanner planner,
         CharacterEmergencyMovement movement,
-        CharacterDeprivationDiagnostics diagnostics)
+        CharacterDeprivationDiagnostics diagnostics,
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
     {
-        this.itemStackRuntime = itemStackRuntime
-            ?? throw new ArgumentNullException(nameof(itemStackRuntime));
-        this.reservedTransfers = reservedTransfers
-            ?? throw new ArgumentNullException(nameof(reservedTransfers));
-        this.waterQuery = waterQuery
-            ?? throw new ArgumentNullException(nameof(waterQuery));
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
-        this.needBalanceRuntime = needBalanceRuntime
-            ?? throw new ArgumentNullException(nameof(needBalanceRuntime));
-        this.events = events ?? throw new ArgumentNullException(nameof(events));
+        waterConsumption = new CharacterWaterConsumptionCoordinator(
+            itemStackRuntime,
+            reservedTransfers,
+            waterQuery,
+            needBalanceRuntime,
+            events,
+            calendar,
+            outcomeTransactions);
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
         this.planner = planner
@@ -562,23 +559,11 @@ internal sealed class CharacterSafeReliefRunner
         {
             case CharacterSafeDrinkTargetKind.ItemStack:
                 if (Manhattan(actor.GetNowXY(), plan.TargetPosition) <= 1
-                    && plan.ItemReservation.IsValid
-                    && reservedTransfers.TryConsumeReservedQuantity(
-                        plan.ItemReservation.LeaseId,
-                        1,
-                        out _))
+                    && waterConsumption.TryConsumeReservedItem(actor, plan))
                 {
                     planner.CompleteItemReservation(
                         CharacterPersistentIdentity.Require(actor).Value,
                         plan.ItemReservation.LeaseId);
-                    RecoverThirst(actor, 65f);
-                    actor.ApplyMoodFactor("survival:clean-water", "깨끗한 물을 마심", 2f, 90f, 1);
-                    PublishWaterConsumed(
-                        actor,
-                        plan.TargetId,
-                        WorldWaterQuality.Clean,
-                        1f,
-                        string.Empty);
                     return true;
                 }
                 break;
@@ -587,70 +572,25 @@ internal sealed class CharacterSafeReliefRunner
                 BuildableObject facility = plan.Facility;
                 if (facility != null
                     && !facility.IsGridDestroyed
-                    && Manhattan(actor.GetNowXY(), facility.centerPos) <= 1)
+                    && Manhattan(actor.GetNowXY(), facility.centerPos) <= 1
+                    && waterConsumption.TryConsumeFacility(actor, facility))
                 {
-                    RecoverThirst(actor, 65f);
-                    actor.ApplyMoodFactor("survival:well-water", "우물에서 물을 마심", 1f, 90f, 1);
-                    PublishWaterConsumed(
-                        actor,
-                        facility.RequirePersistentInstanceId().Value,
-                        WorldWaterQuality.Clean,
-                        1f,
-                        string.Empty);
                     return true;
                 }
                 break;
 
             case CharacterSafeDrinkTargetKind.WorldSource:
                 if (Manhattan(actor.GetNowXY(), plan.TargetPosition) <= 1
-                    && waterQuery.TryGetSource(
-                        plan.TargetId,
-                        out WorldWaterSourceSnapshot source)
-                    && waterQuery.TryDrink(
-                        plan.TargetId,
-                        needBalanceRuntime.ApplyPersonalContinuousWaterMultiplier(1f),
-                        out WorldWaterQuality quality,
-                        out float consumed)
-                    && consumed > 0f
-                    && quality == WorldWaterQuality.Clean)
+                    && waterConsumption.TryConsumeWorldSource(
+                        actor,
+                        plan.TargetId))
                 {
-                    RecoverThirst(actor, 65f);
-                    PublishWaterConsumed(actor, source, quality, consumed);
                     return true;
                 }
                 break;
         }
 
         return false;
-    }
-
-    private void PublishWaterConsumed(
-        CharacterActor actor,
-        WorldWaterSourceSnapshot source,
-        WorldWaterQuality quality,
-        float consumed)
-    {
-        PublishWaterConsumed(
-            actor,
-            source.SourceId,
-            quality,
-            consumed,
-            source.PathogenDiseaseId);
-    }
-
-    private void PublishWaterConsumed(
-        CharacterActor actor,
-        string sourceId,
-        WorldWaterQuality quality,
-        float consumed,
-        string pathogenDiseaseId)
-    {
-        events.Publish(new CharacterWaterConsumedEvent(
-            CharacterPersistentIdentity.Require(actor),
-            sourceId,
-            quality,
-            consumed,
-            pathogenDiseaseId));
     }
 
     private void RecordPlanDiagnostics(CharacterActor actor, CharacterSafeDrinkPlan plan)
@@ -789,16 +729,227 @@ internal sealed class CharacterSafeReliefRunner
         startsThisFrame++;
     }
 
-    private static void RecoverThirst(CharacterActor actor, float amount)
-    {
-        actor?.Stats?.RecoverNeed(
-            CharacterCondition.THIRST,
-            amount,
-            CharacterNeedRecoverySource.Emergency);
-    }
-
     private static int Manhattan(Vector2Int a, Vector2Int b)
     {
         return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
     }
+}
+
+internal sealed class CharacterWaterConsumptionCoordinator
+{
+    private readonly IWorldItemStackRuntime itemStackRuntime;
+    private readonly IReservedItemTransferService reservedTransfers;
+    private readonly IWorldWaterQuery waterQuery;
+    private readonly ICharacterNeedBalanceRuntime needBalanceRuntime;
+    private readonly IGameEventBus events;
+    private readonly IGameCalendar calendar;
+    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
+
+    internal CharacterWaterConsumptionCoordinator(
+        IWorldItemStackRuntime itemStackRuntime,
+        IReservedItemTransferService reservedTransfers,
+        IWorldWaterQuery waterQuery,
+        ICharacterNeedBalanceRuntime needBalanceRuntime,
+        IGameEventBus events,
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
+    {
+        this.itemStackRuntime = itemStackRuntime
+            ?? throw new ArgumentNullException(nameof(itemStackRuntime));
+        this.reservedTransfers = reservedTransfers
+            ?? throw new ArgumentNullException(nameof(reservedTransfers));
+        this.waterQuery = waterQuery
+            ?? throw new ArgumentNullException(nameof(waterQuery));
+        this.needBalanceRuntime = needBalanceRuntime
+            ?? throw new ArgumentNullException(nameof(needBalanceRuntime));
+        this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+    }
+
+    internal bool TryConsumeReservedItem(
+        CharacterActor actor,
+        in CharacterSafeDrinkPlan plan)
+    {
+        if (!plan.ItemReservation.IsValid)
+            return false;
+
+        PreparedMigratedProducerOutcome prepared = Reserve(
+            actor,
+            plan.TargetId);
+        DungeonPhysicalItemSaveData physicalBefore = itemStackRuntime.Capture();
+        CharacterMoodDeliveryTransactionSnapshot statsBefore =
+            actor?.Stats?.CaptureMoodDeliveryTransactionState();
+        if (!reservedTransfers.TryConsumeReservedQuantity(
+                plan.ItemReservation.LeaseId,
+                1,
+                out _))
+        {
+            outcomeTransactions.Cancel(prepared);
+            return false;
+        }
+
+        RecoverThirst(actor, 65f);
+        actor.ApplyMoodFactor(
+            "survival:clean-water",
+            "깨끗한 물을 마심",
+            2f,
+            90f,
+            1);
+        if (!Commit(
+                prepared,
+                actor,
+                plan.TargetId,
+                WorldWaterQuality.Clean,
+                1f,
+                string.Empty))
+        {
+            itemStackRuntime.Restore(physicalBefore);
+            RestoreStats(actor, statsBefore);
+            ThrowRejected();
+        }
+        return true;
+    }
+
+    internal bool TryConsumeFacility(
+        CharacterActor actor,
+        BuildableObject facility)
+    {
+        if (facility == null || facility.IsGridDestroyed)
+            return false;
+        string sourceId = facility.RequirePersistentInstanceId().Value;
+        PreparedMigratedProducerOutcome prepared = Reserve(actor, sourceId);
+        CharacterMoodDeliveryTransactionSnapshot statsBefore =
+            actor?.Stats?.CaptureMoodDeliveryTransactionState();
+        RecoverThirst(actor, 65f);
+        actor.ApplyMoodFactor(
+            "survival:well-water",
+            "우물에서 물을 마심",
+            1f,
+            90f,
+            1);
+        if (!Commit(
+                prepared,
+                actor,
+                sourceId,
+                WorldWaterQuality.Clean,
+                1f,
+                string.Empty))
+        {
+            RestoreStats(actor, statsBefore);
+            ThrowRejected();
+        }
+        return true;
+    }
+
+    internal bool TryConsumeWorldSource(CharacterActor actor, string sourceId)
+    {
+        if (actor == null
+            || !waterQuery.TryGetSource(sourceId, out WorldWaterSourceSnapshot source)
+            || source.Quality != WorldWaterQuality.Clean)
+        {
+            return false;
+        }
+
+        PreparedMigratedProducerOutcome prepared = Reserve(actor, sourceId);
+        List<WorldWaterSourceSaveData> waterBefore = waterQuery.CaptureWaterSources();
+        int nextWaterSequenceBefore = waterQuery.NextWaterSequence;
+        CharacterMoodDeliveryTransactionSnapshot statsBefore =
+            actor.Stats?.CaptureMoodDeliveryTransactionState();
+        if (!waterQuery.TryDrink(
+                sourceId,
+                needBalanceRuntime.ApplyPersonalContinuousWaterMultiplier(1f),
+                out WorldWaterQuality quality,
+                out float consumed)
+            || consumed <= 0f
+            || quality != WorldWaterQuality.Clean)
+        {
+            waterQuery.RestoreWaterSources(waterBefore, nextWaterSequenceBefore);
+            outcomeTransactions.Cancel(prepared);
+            return false;
+        }
+
+        RecoverThirst(actor, 65f);
+        if (!Commit(
+                prepared,
+                actor,
+                source.SourceId,
+                quality,
+                consumed,
+                source.PathogenDiseaseId))
+        {
+            waterQuery.RestoreWaterSources(waterBefore, nextWaterSequenceBefore);
+            RestoreStats(actor, statsBefore);
+            ThrowRejected();
+        }
+        return true;
+    }
+
+    private PreparedMigratedProducerOutcome Reserve(
+        CharacterActor actor,
+        string sourceId)
+    {
+        CharacterId actorId = CharacterPersistentIdentity.Require(actor);
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.CharacterWaterConsumedEvent,
+                "water-consumed:" + actorId.Value,
+                Math.Max(1, calendar.Day),
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Required water-consumed outcome reservation failed for source '"
+                + sourceId + "': " + failureReason);
+        }
+        return prepared;
+    }
+
+    private bool Commit(
+        in PreparedMigratedProducerOutcome prepared,
+        CharacterActor actor,
+        string sourceId,
+        WorldWaterQuality quality,
+        float consumed,
+        string pathogenDiseaseId)
+    {
+        CharacterId actorId = CharacterPersistentIdentity.Require(actor);
+        MigratedProducerOutcomeCommitResult committed =
+            outcomeTransactions.CommitSingleSubject(
+                prepared,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    actorId.Value,
+                    actor.BuildingDisplayName,
+                    MigratedProducerOutcomeIds.ActorRole),
+                $"source={sourceId}; quality={quality}; consumed={consumed:0.###}; pathogen={pathogenDiseaseId}");
+        if (!committed.DurablyCommitted)
+            return false;
+
+        events.Publish(new CharacterWaterConsumedEvent(
+            actorId,
+            sourceId,
+            quality,
+            consumed,
+            pathogenDiseaseId));
+        return true;
+    }
+
+    private static void RecoverThirst(CharacterActor actor, float amount) =>
+        actor?.Stats?.RecoverNeed(
+            CharacterCondition.THIRST,
+            amount,
+            CharacterNeedRecoverySource.Emergency);
+
+    private static void RestoreStats(
+        CharacterActor actor,
+        CharacterMoodDeliveryTransactionSnapshot snapshot)
+    {
+        if (actor?.Stats != null && snapshot != null)
+            actor.Stats.RestoreMoodDeliveryTransactionState(snapshot);
+    }
+
+    private static void ThrowRejected() => throw new InvalidOperationException(
+        "Required water-consumed outcome commit was definitely rejected.");
 }

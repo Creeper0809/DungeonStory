@@ -33,6 +33,11 @@ public interface IDungeonSaveSection
     void Restore(string payloadJson, int sectionVersion, DungeonGameRestoreReport report);
 }
 
+public interface IDungeonSaveSectionVersionCompatibility
+{
+    bool CanRestoreVersion(int sectionVersion);
+}
+
 public interface IOptionalDungeonSaveSection
 {
     void RestoreMissing(DungeonGameRestoreReport report);
@@ -972,7 +977,13 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
                 continue;
             }
 
-            if (envelope.sectionVersion != section.SectionVersion)
+            bool compatibleVersion = envelope.sectionVersion ==
+                    section.SectionVersion
+                || section is IDungeonSaveSectionVersionCompatibility
+                    compatibility
+                    && compatibility.CanRestoreVersion(
+                        envelope.sectionVersion);
+            if (!compatibleVersion)
             {
                 report.AddError(
                     $"Section '{section.SectionId}' has version {envelope.sectionVersion}; expected {section.SectionVersion}.");

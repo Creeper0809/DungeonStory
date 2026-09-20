@@ -189,6 +189,12 @@ public sealed class ResearchWorkExecutionHandler :
             result.CompletedSuccessfully = work.Succeeded;
             if (!work.Succeeded)
             {
+                if (work.CapacityDeferred)
+                {
+                    // Ledger backpressure is retryable, not a fictional failed research event.
+                    yield return new WaitForSeconds(0.2f);
+                    yield break;
+                }
                 context.Actor?.AddActivity(CharacterActivityEvent.Work(
                     FacilityWorkType.Research,
                     CharacterActivityOutcomes.Failed,
@@ -352,7 +358,8 @@ public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
                 false,
                 0f,
                 equipmentFailure,
-                equipmentFailure);
+                equipmentFailure,
+                result.CapacityDeferred);
         }
         string label = result.Blueprint != null
             ? result.Blueprint.DisplayName
@@ -362,7 +369,8 @@ public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
             result.Completed,
             result.ProgressRatio,
             label,
-            result.Success ? string.Empty : result.Message);
+            result.Success ? string.Empty : result.Message,
+            result.CapacityDeferred);
     }
 
     private bool TryApplyRegisteredEquipmentWork(
@@ -455,6 +463,7 @@ public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
                 effect);
         if (!use.Succeeded)
         {
+            result = effect.Result;
             failureReason = Canonical(use.FailureReason)
                 ? use.FailureReason
                 : "research-durable-equipment-use-failed";
@@ -535,7 +544,8 @@ public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
             Result = service.ApplyApprovedResearchWork(
                 researcher,
                 facility,
-                boosted);
+                boosted,
+                context);
             if (!Result.Success)
             {
                 failureReason = Canonical(Result.Message)

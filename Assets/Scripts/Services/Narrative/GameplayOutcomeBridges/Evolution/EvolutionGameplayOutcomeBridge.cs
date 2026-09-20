@@ -13,6 +13,73 @@ public interface IApparelChangeOutcomeCommitter
         out string failureReason);
 }
 
+public interface IApparelPhysicalOutcomeCommitter
+{
+    bool TryReserve(
+        string operationId,
+        long ownerRevision,
+        int absoluteDay,
+        int qualitySchemaVersion,
+        out ReservedEvolutionOutcome reserved,
+        out string failureReason);
+    bool TryWriteReserved(
+        in ApparelPhysicalOutcomeReceipt receipt,
+        in ReservedEvolutionOutcome reserved,
+        out PreparedEvolutionOutcome prepared,
+        out string failureReason);
+    void Cancel(in ReservedEvolutionOutcome reserved);
+    void Cancel(in PreparedEvolutionOutcome prepared);
+    bool TryCommit(
+        in PreparedEvolutionOutcome prepared,
+        long expectedOwnerRevision,
+        out string failureReason);
+}
+
+public interface IProductQualityOutcomeCommitter
+{
+    bool TryPrepare(
+        in ProductQualityOutcomeReceipt receipt,
+        out PreparedEvolutionOutcome prepared,
+        out string failureReason);
+    void Cancel(in PreparedEvolutionOutcome prepared);
+    bool TryCommit(
+        in PreparedEvolutionOutcome prepared,
+        long expectedOwnerRevision,
+        out string failureReason);
+}
+
+public interface IAcquiredTraitInferenceOutcomeCommitter
+{
+    bool TryPrepare(
+        in AcquiredTraitInferenceOutcomeReceipt receipt,
+        out PreparedEvolutionOutcome prepared,
+        out string failureReason);
+    void Cancel(in PreparedEvolutionOutcome prepared);
+    bool TryCommit(
+        in PreparedEvolutionOutcome prepared,
+        long expectedOwnerRevision,
+        out string failureReason);
+}
+
+public interface IMemoryErasureBossAwardOutcomeCommitter
+{
+    bool TryReserve(
+        string operationId,
+        int absoluteDay,
+        out ReservedEvolutionOutcome reserved,
+        out string failureReason);
+    bool TryWriteReserved(
+        in MemoryErasureBossAwardOutcomeReceipt receipt,
+        in ReservedEvolutionOutcome reserved,
+        out PreparedEvolutionOutcome prepared,
+        out string failureReason);
+    void Cancel(in ReservedEvolutionOutcome reserved);
+    void Cancel(in PreparedEvolutionOutcome prepared);
+    bool TryCommit(
+        in PreparedEvolutionOutcome prepared,
+        out string failureReason);
+}
+
 public interface IAcquiredTraitReactionOutcomeCommitter
 {
     bool TryPrepare(
@@ -64,9 +131,13 @@ public interface IMemoryErasureOutcomeCommitter
 
 public sealed class EvolutionGameplayOutcomeBridge :
     IApparelChangeOutcomeCommitter,
+    IApparelPhysicalOutcomeCommitter,
+    IProductQualityOutcomeCommitter,
+    IAcquiredTraitInferenceOutcomeCommitter,
     IAcquiredTraitReactionOutcomeCommitter,
     IFacilityEvolutionOutcomeCommitter,
-    IMemoryErasureOutcomeCommitter
+    IMemoryErasureOutcomeCommitter,
+    IMemoryErasureBossAwardOutcomeCommitter
 {
     private readonly IGameplayOutcomeRecorder recorder;
     private readonly GameplayOutcomeLedger ledger;
@@ -95,6 +166,108 @@ public sealed class EvolutionGameplayOutcomeBridge :
         in PreparedEvolutionOutcome prepared,
         long expectedOwnerRevision,
         out string failureReason) => Commit(prepared, expectedOwnerRevision, out failureReason);
+
+    bool IApparelPhysicalOutcomeCommitter.TryReserve(
+        string operationId,
+        long ownerRevision,
+        int absoluteDay,
+        int qualitySchemaVersion,
+        out ReservedEvolutionOutcome reserved,
+        out string failureReason)
+    {
+        reserved = default;
+        failureReason = string.Empty;
+        try
+        {
+            if (qualitySchemaVersion is < 0 or > 1)
+                throw new ArgumentOutOfRangeException(
+                    nameof(qualitySchemaVersion));
+            GameplayResultKey resultKey = new(
+                EvolutionOutcomeIds.ApparelPhysicalProducerId,
+                new GameplayOperationId(operationId),
+                ownerRevision,
+                0);
+            return Reserve(
+                ApparelPhysicalOutcomeAdapter.CreateRequirements(
+                    resultKey,
+                    ownerRevision,
+                    absoluteDay,
+                    ledger.CurrentWorldEpoch,
+                    qualitySchemaVersion == 1),
+                out reserved,
+                out failureReason);
+        }
+        catch (Exception exception) when (IsCaptureException(exception))
+        {
+            failureReason = "apparel-physical-outcome-key-invalid:"
+                + exception.Message;
+            return false;
+        }
+    }
+
+    bool IApparelPhysicalOutcomeCommitter.TryWriteReserved(
+        in ApparelPhysicalOutcomeReceipt receipt,
+        in ReservedEvolutionOutcome reserved,
+        out PreparedEvolutionOutcome prepared,
+        out string failureReason) => WriteReserved(
+        receipt,
+        reserved,
+        out prepared,
+        out failureReason);
+
+    void IApparelPhysicalOutcomeCommitter.Cancel(
+        in ReservedEvolutionOutcome reserved) => CancelReserved(reserved);
+
+    void IApparelPhysicalOutcomeCommitter.Cancel(
+        in PreparedEvolutionOutcome prepared) => CancelPrepared(prepared);
+
+    bool IApparelPhysicalOutcomeCommitter.TryCommit(
+        in PreparedEvolutionOutcome prepared,
+        long expectedOwnerRevision,
+        out string failureReason) => Commit(
+        prepared,
+        expectedOwnerRevision,
+        out failureReason);
+
+    bool IProductQualityOutcomeCommitter.TryPrepare(
+        in ProductQualityOutcomeReceipt receipt,
+        out PreparedEvolutionOutcome prepared,
+        out string failureReason) => Prepare(
+        receipt,
+        receipt.ResultKey,
+        out prepared,
+        out failureReason);
+
+    void IProductQualityOutcomeCommitter.Cancel(
+        in PreparedEvolutionOutcome prepared) => CancelPrepared(prepared);
+
+    bool IProductQualityOutcomeCommitter.TryCommit(
+        in PreparedEvolutionOutcome prepared,
+        long expectedOwnerRevision,
+        out string failureReason) => Commit(
+        prepared,
+        expectedOwnerRevision,
+        out failureReason);
+
+    bool IAcquiredTraitInferenceOutcomeCommitter.TryPrepare(
+        in AcquiredTraitInferenceOutcomeReceipt receipt,
+        out PreparedEvolutionOutcome prepared,
+        out string failureReason) => Prepare(
+        receipt,
+        receipt.ResultKey,
+        out prepared,
+        out failureReason);
+
+    void IAcquiredTraitInferenceOutcomeCommitter.Cancel(
+        in PreparedEvolutionOutcome prepared) => CancelPrepared(prepared);
+
+    bool IAcquiredTraitInferenceOutcomeCommitter.TryCommit(
+        in PreparedEvolutionOutcome prepared,
+        long expectedOwnerRevision,
+        out string failureReason) => Commit(
+        prepared,
+        expectedOwnerRevision,
+        out failureReason);
 
     bool IAcquiredTraitReactionOutcomeCommitter.TryPrepare(
         in AcquiredTraitReactionOutcomeReceipt receipt,
@@ -235,6 +408,149 @@ public sealed class EvolutionGameplayOutcomeBridge :
         in PreparedEvolutionOutcome prepared,
         out string failureReason) => Commit(prepared, 0L, out failureReason);
 
+    bool IMemoryErasureBossAwardOutcomeCommitter.TryReserve(
+        string operationId,
+        int absoluteDay,
+        out ReservedEvolutionOutcome reserved,
+        out string failureReason)
+    {
+        reserved = default;
+        failureReason = string.Empty;
+        try
+        {
+            GameplayResultKey resultKey = new(
+                EvolutionOutcomeIds.MemoryErasureBossAwardProducerId,
+                new GameplayOperationId(operationId),
+                0L,
+                0);
+            return Reserve(
+                MemoryErasureBossAwardOutcomeAdapter.CreateRequirements(
+                    resultKey,
+                    absoluteDay,
+                    ledger.CurrentWorldEpoch),
+                out reserved,
+                out failureReason);
+        }
+        catch (Exception exception) when (IsCaptureException(exception))
+        {
+            failureReason = "memory-erasure-boss-award-outcome-key-invalid:"
+                + exception.Message;
+            return false;
+        }
+    }
+
+    bool IMemoryErasureBossAwardOutcomeCommitter.TryWriteReserved(
+        in MemoryErasureBossAwardOutcomeReceipt receipt,
+        in ReservedEvolutionOutcome reserved,
+        out PreparedEvolutionOutcome prepared,
+        out string failureReason) => WriteReserved(
+        receipt,
+        reserved,
+        out prepared,
+        out failureReason);
+
+    void IMemoryErasureBossAwardOutcomeCommitter.Cancel(
+        in ReservedEvolutionOutcome reserved) => CancelReserved(reserved);
+
+    void IMemoryErasureBossAwardOutcomeCommitter.Cancel(
+        in PreparedEvolutionOutcome prepared) => CancelPrepared(prepared);
+
+    bool IMemoryErasureBossAwardOutcomeCommitter.TryCommit(
+        in PreparedEvolutionOutcome prepared,
+        out string failureReason) => Commit(prepared, 0L, out failureReason);
+
+    private bool Reserve(
+        in OutcomeWriteRequirements requirements,
+        out ReservedEvolutionOutcome reserved,
+        out string failureReason)
+    {
+        reserved = default;
+        failureReason = string.Empty;
+        OutcomePrepareResult result = recorder.TryReserve(
+            requirements,
+            out PreparedOutcomeReservation reservation);
+        if (!result.Success)
+        {
+            if (result.Code == OutcomePrepareCode.DuplicateResult
+                && IsCommittedReplayCandidate(
+                    result.Existing,
+                    requirements.ResultKey))
+            {
+                reserved = new ReservedEvolutionOutcome(
+                    default,
+                    requirements.ResultKey,
+                    alreadyCommitted: true);
+                return true;
+            }
+            failureReason = Format("evolution-outcome-reserve", result);
+            return false;
+        }
+        reserved = new ReservedEvolutionOutcome(
+            reservation,
+            requirements.ResultKey,
+            alreadyCommitted: false);
+        return true;
+    }
+
+    private bool WriteReserved<TReceipt>(
+        in TReceipt receipt,
+        in ReservedEvolutionOutcome reserved,
+        out PreparedEvolutionOutcome prepared,
+        out string failureReason)
+    {
+        prepared = default;
+        failureReason = string.Empty;
+        if (!reserved.IsValid)
+        {
+            failureReason = "evolution-outcome-reservation-invalid";
+            return false;
+        }
+        if (reserved.AlreadyCommitted)
+        {
+            OutcomePrepareResult replay = recorder.TryPrepare(
+                receipt,
+                out PreparedOutcomeToken unexpectedPrepared);
+            if (unexpectedPrepared.IsValid)
+            {
+                recorder.CancelPrepared(unexpectedPrepared);
+                failureReason =
+                    "evolution-outcome-replay-was-not-previously-committed";
+                return false;
+            }
+            if (!IsCanonicalReplay(replay, reserved.ResultKey))
+            {
+                failureReason = Format("evolution-outcome-replay", replay);
+                return false;
+            }
+            prepared = new PreparedEvolutionOutcome(
+                default,
+                reserved.ResultKey,
+                alreadyCommitted: true);
+            return true;
+        }
+        OutcomePrepareResult result = recorder.TryWriteReserved(
+            receipt,
+            reserved.Reservation,
+            out PreparedOutcomeToken token);
+        if (!result.Success)
+        {
+            recorder.CancelReservation(reserved.Reservation);
+            failureReason = Format("evolution-outcome-write", result);
+            return false;
+        }
+        prepared = new PreparedEvolutionOutcome(
+            token,
+            reserved.ResultKey,
+            alreadyCommitted: false);
+        return true;
+    }
+
+    private void CancelReserved(in ReservedEvolutionOutcome reserved)
+    {
+        if (reserved.Reservation.IsValid)
+            recorder.CancelReservation(reserved.Reservation);
+    }
+
     private bool Prepare<TReceipt>(
         in TReceipt receipt,
         GameplayResultKey resultKey,
@@ -248,8 +564,7 @@ public sealed class EvolutionGameplayOutcomeBridge :
             out PreparedOutcomeToken token);
         if (!result.Success)
         {
-            if (result.Code == OutcomePrepareCode.DuplicateResult
-                && IsCommittedOrPublished(resultKey))
+            if (IsCanonicalReplay(result, resultKey))
             {
                 prepared = new PreparedEvolutionOutcome(
                     default,
@@ -317,6 +632,22 @@ public sealed class EvolutionGameplayOutcomeBridge :
         }
         return false;
     }
+
+    private static bool IsCommittedReplayCandidate(
+        in GameplayOutcomeReplayIdentity existing,
+        GameplayResultKey resultKey) =>
+        existing.ResultKey == resultKey
+        && existing.HasCanonicalPayloadHash
+        && existing.State is >= GameplayOutcomeReplayState.Committed
+            and <= GameplayOutcomeReplayState.Forgotten;
+
+    private static bool IsCanonicalReplay(
+        in OutcomePrepareResult result,
+        GameplayResultKey resultKey) =>
+        IsCommittedReplayCandidate(result.Existing, resultKey)
+        && result.Code is OutcomePrepareCode.AlreadyCommitted
+            or OutcomePrepareCode.AlreadyPublished
+            or OutcomePrepareCode.AlreadyTerminal;
 
     private static string Format(string prefix, OutcomePrepareResult result) =>
         prefix + "-" + result.Code + ":" + result.DetailCode;

@@ -319,6 +319,27 @@ public sealed class StaffDiscontentState
         new Dictionary<string, StaffDiscontentRecord>(StringComparer.Ordinal);
 
     public IReadOnlyCollection<StaffDiscontentRecord> Records => records.Values;
+    public long OutcomeRevision { get; private set; }
+
+    public long GetNextOutcomeRevision()
+    {
+        if (OutcomeRevision == long.MaxValue)
+        {
+            throw new InvalidOperationException(
+                "Staff-discontent outcome revision is exhausted.");
+        }
+        return OutcomeRevision + 1L;
+    }
+
+    public void AdvanceOutcomeRevision(long expectedNextRevision)
+    {
+        if (expectedNextRevision != GetNextOutcomeRevision())
+        {
+            throw new InvalidOperationException(
+                $"Staff-discontent outcome revision mismatch: current={OutcomeRevision}, next={expectedNextRevision}.");
+        }
+        OutcomeRevision = expectedNextRevision;
+    }
 
     public StaffDiscontentRecord ProcessStaff(CharacterActor staff, StaffDiscontentRules rules, out StaffDiscontentOutcome outcome)
     {
@@ -365,11 +386,17 @@ public sealed class StaffDiscontentState
             .ToList();
     }
 
-    public void Restore(IEnumerable<StaffDiscontentSnapshot> savedRecords)
+    public void Restore(
+        IEnumerable<StaffDiscontentSnapshot> savedRecords,
+        long outcomeRevision = 0L)
     {
         if (savedRecords == null)
         {
             throw new ArgumentNullException(nameof(savedRecords));
+        }
+        if (outcomeRevision < 0L)
+        {
+            throw new ArgumentOutOfRangeException(nameof(outcomeRevision));
         }
 
         Dictionary<string, StaffDiscontentRecord> restored =
@@ -384,6 +411,7 @@ public sealed class StaffDiscontentState
         }
 
         records = restored;
+        OutcomeRevision = outcomeRevision;
     }
 
     private StaffDiscontentRecord GetOrCreate(string staffId, CharacterActor staff)

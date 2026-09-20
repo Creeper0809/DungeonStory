@@ -15,12 +15,24 @@ public sealed class OffenseRewardRestoreCandidate
     internal OffenseRewardState State { get; }
 }
 
+internal sealed class OffenseRewardTransactionSnapshot
+{
+    internal OffenseRewardState RewardState;
+    internal DungeonPhysicalItemSaveData PhysicalItems;
+    internal FacilityShopStateSnapshot ShopUnlocks;
+    internal BlueprintResearchAggregateState Research;
+    internal DungeonOffenseRegionSaveData Regions;
+    internal DungeonOffenseReturnArrivalSaveData Arrivals;
+    internal OffenseRewardContext Context;
+}
+
 public class OffenseRewardRuntime : MonoBehaviour
 {
     private OffenseRewardState state = new OffenseRewardState();
     private readonly OffenseRewardDebugContext debugContext = new OffenseRewardDebugContext();
     private IOffenseRewardContextBuilder contextBuilder;
     private IOffenseRewardGrantService grantService;
+    private IWorldItemStackRuntime itemStackRuntime;
 
     public IOffenseRewardStateView State => state;
 
@@ -33,6 +45,13 @@ public class OffenseRewardRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(contextBuilder));
         this.grantService = grantService
             ?? throw new ArgumentNullException(nameof(grantService));
+    }
+
+    [Inject]
+    public void ConstructTransactionItems(IWorldItemStackRuntime items)
+    {
+        itemStackRuntime = items
+            ?? throw new ArgumentNullException(nameof(items));
     }
 
     public IReadOnlyList<OffenseRewardGrantResult> ApplyExpeditionRewards(
@@ -133,6 +152,71 @@ public class OffenseRewardRuntime : MonoBehaviour
         PublishPersistentState(
             (candidate ?? throw new ArgumentNullException(nameof(candidate)))
             .State);
+
+    internal OffenseRewardTransactionSnapshot CaptureTransaction(
+        OffenseExpeditionRun expedition)
+    {
+        if (expedition?.Target == null)
+            throw new ArgumentNullException(nameof(expedition));
+        OffenseRewardContext context = CreateContext(
+            expedition.Target,
+            expedition.ExpeditionId);
+        return new OffenseRewardTransactionSnapshot
+        {
+            RewardState = PreparePersistentState(
+                state.MoneyEarned,
+                state.StockGrantedByCategory,
+                state.RareFacilityBuildingIds,
+                state.AcquiredBlueprintIds),
+            PhysicalItems = itemStackRuntime?.Capture(),
+            ShopUnlocks = context.shopUnlockState?.Capture(),
+            Research = context.researchState?.CaptureAggregateClone(),
+            Regions = context.regionRuntime?.Capture(),
+            Arrivals = context.returnArrivalRuntime?.Capture(),
+            Context = context
+        };
+    }
+
+    internal void RestoreTransaction(
+        OffenseRewardTransactionSnapshot snapshot)
+    {
+        snapshot = snapshot
+            ?? throw new ArgumentNullException(nameof(snapshot));
+        if (snapshot.PhysicalItems != null)
+        {
+            if (itemStackRuntime == null)
+                throw new InvalidOperationException(
+                    "Offense reward physical-item rollback is unavailable.");
+            itemStackRuntime.Restore(snapshot.PhysicalItems);
+        }
+        if (snapshot.ShopUnlocks != null)
+            snapshot.Context.shopUnlockState?.Restore(snapshot.ShopUnlocks);
+        if (snapshot.Research != null)
+            snapshot.Context.researchState?.ReplaceAggregate(
+                snapshot.Research.DeepClone());
+        if (snapshot.Regions != null
+            && snapshot.Context.regionRuntime != null)
+        {
+            snapshot.Context.regionRuntime.PublishRestoreCandidate(
+                snapshot.Context.regionRuntime.BuildRestoreCandidate(
+                    snapshot.Regions));
+        }
+        if (snapshot.Arrivals != null
+            && snapshot.Context.returnArrivalRuntime != null)
+        {
+            DungeonGameRestoreReport report = new();
+            OffenseReturnArrivalRestoreCandidate candidate =
+                snapshot.Context.returnArrivalRuntime.BuildRestoreCandidate(
+                    snapshot.Arrivals,
+                    report);
+            if (!report.Success || candidate == null)
+                throw new InvalidOperationException(
+                    "Offense reward arrival rollback snapshot is invalid.");
+            snapshot.Context.returnArrivalRuntime.PublishRestoreCandidate(
+                candidate);
+        }
+        PublishPersistentState(snapshot.RewardState);
+    }
 
     private OffenseRewardContext CreateContext(
         OffenseTargetDefinition target,

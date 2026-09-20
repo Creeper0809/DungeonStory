@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using VContainer;
 using VContainer.Unity;
 
 public enum ProductionFacilityDestructiveRemovalStatus
@@ -318,10 +319,37 @@ public sealed class ProductionFacilityDestructiveDrainRecoveryRuntime :
     private readonly IProductionFacilityDestructiveDrainAuthorityRevoker revoker;
     private readonly IProductionFacilityDestructiveDrainWorldRemovalPort world;
     private readonly IBuildingWorldQuery buildings;
+    private readonly IGameCalendar calendar;
+    private readonly IProductionFacilityDestructiveDrainPostWorldRemovalFinalizer
+        postWorldRemovalFinalizer;
     private bool resumeRequested;
     private int observedJournalVersion = -1;
     private string worldBoundaryConflict = string.Empty;
 
+    [Inject]
+    public ProductionFacilityDestructiveDrainRecoveryRuntime(
+        IProductionFacilityDestructiveDrainJournalQuery journal,
+        IProductionFacilityDestructiveDrainCoordinator coordinator,
+        IProductionFacilityDestructiveDrainAuthorityRevoker revoker,
+        IProductionFacilityDestructiveDrainWorldRemovalPort world,
+        IBuildingWorldQuery buildings,
+        IGameCalendar calendar,
+        IProductionFacilityDestructiveDrainPostWorldRemovalFinalizer
+            postWorldRemovalFinalizer)
+    {
+        this.journal = journal ?? throw new ArgumentNullException(nameof(journal));
+        this.coordinator = coordinator
+            ?? throw new ArgumentNullException(nameof(coordinator));
+        this.revoker = revoker ?? throw new ArgumentNullException(nameof(revoker));
+        this.world = world ?? throw new ArgumentNullException(nameof(world));
+        this.buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.postWorldRemovalFinalizer = postWorldRemovalFinalizer
+            ?? throw new ArgumentNullException(
+                nameof(postWorldRemovalFinalizer));
+    }
+
+#if UNITY_EDITOR
     public ProductionFacilityDestructiveDrainRecoveryRuntime(
         IProductionFacilityDestructiveDrainJournalQuery journal,
         IProductionFacilityDestructiveDrainCoordinator coordinator,
@@ -335,7 +363,9 @@ public sealed class ProductionFacilityDestructiveDrainRecoveryRuntime :
         this.revoker = revoker ?? throw new ArgumentNullException(nameof(revoker));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
+        calendar = null;
     }
+#endif
 
     public void Start() => resumeRequested = true;
 
@@ -376,9 +406,40 @@ public sealed class ProductionFacilityDestructiveDrainRecoveryRuntime :
         {
             return Conflict("production-destructive-drain-request-invalid");
         }
+        ProductionFacilityDestructiveDrainOutcomeSnapshot outcomeSnapshot =
+            default;
+        if (cause == ProductionFacilityDestructiveDrainCause
+                .ExplicitDemolition)
+        {
+            ProductionFacilityDestructiveDrainOperationId operationId =
+                ProductionFacilityDestructiveDrainOperationId.FromFacility(
+                    facility.PersistentInstanceId);
+            if (!journal.TryGet(operationId, out _))
+            {
+                BuildingSO definition = facility.BuildingData;
+                string displayName = definition?.objectName?.Trim()
+                    ?? string.Empty;
+                if (calendar == null
+                    || definition == null
+                    || displayName.Length == 0)
+                {
+                    return Conflict(
+                        "production-destructive-drain-demolition-snapshot-missing");
+                }
+                outcomeSnapshot = new
+                    ProductionFacilityDestructiveDrainOutcomeSnapshot(
+                        BuildingDefinitionIdentity.Resolve(definition),
+                        displayName,
+                        facility.centerPos.x,
+                        facility.centerPos.y,
+                        Math.Max(1, calendar.Day),
+                        ownerRevision: 1L);
+            }
+        }
         ProductionFacilityDestructiveRemovalResult result = DriveExisting(
             facility.PersistentInstanceId.Value,
-            cause);
+            cause,
+            outcomeSnapshot);
         observedJournalVersion = journal.Version;
         resumeRequested = result.Status ==
             ProductionFacilityDestructiveRemovalStatus.DeferredAccepted;
@@ -417,7 +478,9 @@ public sealed class ProductionFacilityDestructiveDrainRecoveryRuntime :
 
     private ProductionFacilityDestructiveRemovalResult DriveExisting(
         string rawFacilityId,
-        ProductionFacilityDestructiveDrainCause cause)
+        ProductionFacilityDestructiveDrainCause cause,
+        ProductionFacilityDestructiveDrainOutcomeSnapshot outcomeSnapshot =
+            default)
     {
         BuildingInstanceId facilityId = (BuildingInstanceId)rawFacilityId;
         if (!facilityId.IsValid)
@@ -433,7 +496,10 @@ public sealed class ProductionFacilityDestructiveDrainRecoveryRuntime :
                     out ProductionFacilityDestructiveDrainEntrySaveData entry))
             {
                 ProductionFacilityDestructiveDrainDriveResult started =
-                    coordinator.DriveToAuthorityRevoke(cause, facilityId);
+                    coordinator.DriveToAuthorityRevoke(
+                        cause,
+                        facilityId,
+                        outcomeSnapshot);
                 if (started.Status is
                     ProductionFacilityDestructiveDrainDriveStatus.Deferred
                     or ProductionFacilityDestructiveDrainDriveStatus.Conflict)
@@ -522,6 +588,17 @@ public sealed class ProductionFacilityDestructiveDrainRecoveryRuntime :
                             .AppliedWithNotificationFailure)
                     {
                         notificationFailure = removed.FailureReason;
+                    }
+                    if (postWorldRemovalFinalizer != null
+                        && !postWorldRemovalFinalizer
+                            .TryFinalizeAfterWorldRemoval(
+                                entry,
+                                out string outcomeFailure))
+                    {
+                        resumeRequested = true;
+                        return Deferred(string.IsNullOrEmpty(outcomeFailure)
+                            ? "production-destructive-drain-post-world-removal-finalizer-deferred"
+                            : outcomeFailure);
                     }
                     ProductionFacilityDestructiveDrainDriveResult recorded =
                         coordinator.RecordWorldRemoved(operationId);

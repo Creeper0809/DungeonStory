@@ -365,14 +365,24 @@ public struct FacilityVisitEvent
 public sealed class BuildingVisitEventPublisher : IBuildingVisitEventPort
 {
     private readonly IGameEventBus gameEventBus;
+    private readonly IGameSessionStateProvider gameDataProvider;
+    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
 
-    public BuildingVisitEventPublisher(IGameEventBus gameEventBus)
+    [Inject]
+    public BuildingVisitEventPublisher(
+        IGameEventBus gameEventBus,
+        IGameSessionStateProvider gameDataProvider,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
     {
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.gameDataProvider = gameDataProvider
+            ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
     }
 
-    public void PublishVisit(
+    public void CommitVisit(
         IBuildingCharacterPort visitor,
         IBuildingWorldEntryPort facility)
     {
@@ -383,7 +393,151 @@ public sealed class BuildingVisitEventPublisher : IBuildingVisitEventPort
                 nameof(facility));
         }
 
-        gameEventBus.Publish(new FacilityVisitEvent(visitor, buildableObject));
+        if (outcomeTransactions == null)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(BuildingVisitEventPublisher)} requires {nameof(IMigratedProducerOutcomeTransaction)}.");
+        }
+        if (!TryResolveCurrentOutcomeDay(out int absoluteDay))
+        {
+            throw new InvalidOperationException(
+                "Facility visit outcome requires the current session day.");
+        }
+
+        string facilityId = buildableObject.RequirePersistentInstanceId().Value;
+        if (buildableObject.FacilityState.completedUses == int.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"Facility '{facilityId}' cannot record more visits.");
+        }
+
+        int visitSequence = buildableObject.FacilityState.completedUses + 1;
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.FacilityVisitEvent,
+                CreateVisitOutcomeIdentity(facilityId, visitSequence),
+                absoluteDay,
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reserveFailure))
+        {
+            throw new InvalidOperationException(
+                "Facility visit outcome reservation failed: " + reserveFailure);
+        }
+
+        FacilityRuntimeState rollback = buildableObject.FacilityState.Clone();
+        try
+        {
+            buildableObject.ApplyFacilityUseMutation();
+        }
+        catch
+        {
+            CancelAndRestore(prepared, buildableObject, rollback);
+            throw;
+        }
+
+        MigratedProducerOutcomeCommitResult committed;
+        try
+        {
+            committed = outcomeTransactions.CommitSingleSubject(
+                prepared,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.FacilityKind,
+                    facilityId,
+                    GetFacilityDisplayName(buildableObject, facilityId),
+                    MigratedProducerOutcomeIds.FacilityRole),
+                CreateVisitOutcomeSummary(
+                    visitor,
+                    buildableObject,
+                    visitSequence));
+        }
+        catch
+        {
+            CancelAndRestore(prepared, buildableObject, rollback);
+            throw;
+        }
+        if (!committed.DurablyCommitted)
+        {
+            buildableObject.RestoreFacilityState(rollback);
+            throw new InvalidOperationException(
+                "Facility visit outcome commit failed: " + committed.DetailCode);
+        }
+
+        PublishPostCommitObserver(
+            () => gameEventBus.Publish(
+                new FacilityVisitEvent(visitor, buildableObject)),
+            "facility-visit-post-commit-event");
+    }
+
+    private bool TryResolveCurrentOutcomeDay(out int absoluteDay)
+    {
+        absoluteDay = 0;
+        return gameDataProvider != null
+            && gameDataProvider.TryGetSessionState(out GameSessionState gameData)
+            && gameData?.day != null
+            && (absoluteDay = gameData.day.Value) >= 0;
+    }
+
+    private void CancelAndRestore(
+        PreparedMigratedProducerOutcome prepared,
+        BuildableObject facility,
+        FacilityRuntimeState rollback)
+    {
+        try
+        {
+            outcomeTransactions.Cancel(prepared);
+        }
+        finally
+        {
+            facility.RestoreFacilityState(rollback);
+        }
+    }
+
+    private static string CreateVisitOutcomeIdentity(
+        string facilityId,
+        int visitSequence) =>
+        "facility-visit:facility=" + facilityId
+        + ":use=" + visitSequence;
+
+    private static string CreateVisitOutcomeSummary(
+        IBuildingCharacterPort visitor,
+        BuildableObject facility,
+        int visitSequence)
+    {
+        CharacterActor actor = CharacterBuildingVisitorAdapter.GetActorOrNull(visitor);
+        string visitorId = actor?.Identity?.PersistentId;
+        return GetFacilityDisplayName(
+                facility,
+                facility.RequirePersistentInstanceId().Value)
+            + " 방문 " + visitSequence + "회차가 확정되었습니다. 방문자="
+            + (string.IsNullOrWhiteSpace(visitorId) ? "미상" : visitorId)
+            + ".";
+    }
+
+    private static string GetFacilityDisplayName(
+        BuildableObject facility,
+        string fallbackId)
+    {
+        string authoredName = facility?.BuildingData?.objectName;
+        return string.IsNullOrWhiteSpace(authoredName)
+            ? fallbackId
+            : authoredName.Trim();
+    }
+
+    private static void PublishPostCommitObserver(
+        Action observer,
+        string label)
+    {
+        try
+        {
+            observer?.Invoke();
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(label + ":" + exception.GetType().Name);
+        }
     }
 }
 

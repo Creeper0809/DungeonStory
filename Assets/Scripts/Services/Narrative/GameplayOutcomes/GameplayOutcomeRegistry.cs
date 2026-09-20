@@ -7,6 +7,19 @@ public interface IGameplayOutcomeAdapterRegistration
     GameplayOutcomeTypeId OutcomeTypeId { get; }
 }
 
+/// <summary>
+/// Explicit opt-in for one immutable receipt envelope that can encode a
+/// closed, pre-registered set of outcome types. This is not an open-ended
+/// runtime dispatch hook: every supported type must have a descriptor when
+/// the registry is built and the adapter must reject every unlisted type.
+/// </summary>
+public interface IGameplayOutcomeDynamicAdapterRegistration :
+    IGameplayOutcomeAdapterRegistration
+{
+    IReadOnlyList<GameplayOutcomeTypeId> SupportedOutcomeTypes { get; }
+    bool SupportsOutcomeType(GameplayOutcomeTypeId outcomeTypeId);
+}
+
 public interface IGameplayOutcomeAdapter<TReceipt> : IGameplayOutcomeAdapterRegistration
 {
     OutcomePrepareResult TryGetRequirements(
@@ -168,6 +181,11 @@ public interface IGameplayOutcomeDescriptor
     IOutcomeMemoryConsolidator MemoryConsolidator { get; }
 }
 
+public interface IGameplayOutcomeDescriptorCatalog
+{
+    IReadOnlyList<IGameplayOutcomeDescriptor> Descriptors { get; }
+}
+
 public interface IGameplayOutcomeRegistry
 {
     bool TryGetDescriptor(GameplayOutcomeTypeId outcomeTypeId, out IGameplayOutcomeDescriptor descriptor);
@@ -187,7 +205,8 @@ public sealed class GameplayOutcomeRegistry : IGameplayOutcomeRegistry
 
     public GameplayOutcomeRegistry(
         IEnumerable<IGameplayOutcomeDescriptor> descriptorSource,
-        IEnumerable<IGameplayOutcomeAdapterRegistration> adapterSource)
+        IEnumerable<IGameplayOutcomeAdapterRegistration> adapterSource,
+        IEnumerable<IGameplayOutcomeDescriptorCatalog> descriptorCatalogs = null)
     {
         descriptors = new Dictionary<GameplayOutcomeTypeId, IGameplayOutcomeDescriptor>();
         adapters = new Dictionary<Type, IGameplayOutcomeAdapterRegistration>();
@@ -196,34 +215,19 @@ public sealed class GameplayOutcomeRegistry : IGameplayOutcomeRegistry
         if (descriptorSource != null)
         {
             foreach (IGameplayOutcomeDescriptor descriptor in descriptorSource)
+                RegisterDescriptor(descriptor, ref observedPolicyVersion);
+        }
+
+        if (descriptorCatalogs != null)
+        {
+            foreach (IGameplayOutcomeDescriptorCatalog catalog in descriptorCatalogs)
             {
-                if (descriptor == null
-                    || !descriptor.OutcomeTypeId.IsValid
-                    || descriptor.PerspectiveProjector == null
-                    || descriptor.MemoryPolicy == null
-                    || descriptor.PerceptionPolicy == null
-                    || descriptor.MemoryConsolidator == null)
-                {
-                    throw new InvalidOperationException(
-                        "Every gameplay outcome descriptor must provide a valid ID, projector, memory policy, perception policy, and consolidator.");
-                }
-                if (descriptor.MemoryPolicy.PolicyVersion <= 0)
-                    throw new InvalidOperationException($"Outcome descriptor '{descriptor.OutcomeTypeId}' has an invalid policy version.");
-                if (observedPolicyVersion == 0)
-                    observedPolicyVersion = descriptor.MemoryPolicy.PolicyVersion;
-                else if (observedPolicyVersion != descriptor.MemoryPolicy.PolicyVersion)
-                    throw new InvalidOperationException("All gameplay outcome descriptors must share one consolidation policy version.");
-                if (descriptor.PerceptionPolicy.MaximumOptionalWitnessLinks < 0)
-                    throw new InvalidOperationException($"Outcome descriptor '{descriptor.OutcomeTypeId}' has an invalid witness limit.");
-                if (descriptor.MemoryConsolidator is IOutcomeCompactionContract compaction
-                    && compaction.SupportsCompaction
-                    && descriptor.PerspectiveProjector is not ICompactedNarrativePerspectiveProjector)
-                {
-                    throw new InvalidOperationException(
-                        $"Compactable outcome descriptor '{descriptor.OutcomeTypeId}' must provide a compacted narrative projector.");
-                }
-                if (!descriptors.TryAdd(descriptor.OutcomeTypeId, descriptor))
-                    throw new InvalidOperationException($"Duplicate gameplay outcome descriptor '{descriptor.OutcomeTypeId}'.");
+                IReadOnlyList<IGameplayOutcomeDescriptor> catalogDescriptors =
+                    catalog?.Descriptors
+                    ?? throw new InvalidOperationException(
+                        "Every gameplay outcome descriptor catalog must provide a descriptor collection.");
+                for (int index = 0; index < catalogDescriptors.Count; index++)
+                    RegisterDescriptor(catalogDescriptors[index], ref observedPolicyVersion);
             }
         }
 
@@ -233,9 +237,39 @@ public sealed class GameplayOutcomeRegistry : IGameplayOutcomeRegistry
             {
                 if (adapter == null || adapter.ReceiptType == null || !adapter.OutcomeTypeId.IsValid)
                     throw new InvalidOperationException("Every gameplay outcome adapter registration must provide receipt and outcome types.");
-                if (!descriptors.ContainsKey(adapter.OutcomeTypeId))
+                if (adapter is IGameplayOutcomeDynamicAdapterRegistration dynamicAdapter)
+                {
+                    IReadOnlyList<GameplayOutcomeTypeId> supported =
+                        dynamicAdapter.SupportedOutcomeTypes;
+                    if (supported == null || supported.Count == 0)
+                    {
+                        throw new InvalidOperationException(
+                            $"Dynamic gameplay outcome adapter '{adapter.ReceiptType.FullName}' has no supported outcome types.");
+                    }
+                    var uniqueTypes = new HashSet<GameplayOutcomeTypeId>();
+                    for (int index = 0; index < supported.Count; index++)
+                    {
+                        GameplayOutcomeTypeId outcomeTypeId = supported[index];
+                        if (!outcomeTypeId.IsValid
+                            || !uniqueTypes.Add(outcomeTypeId)
+                            || !dynamicAdapter.SupportsOutcomeType(outcomeTypeId)
+                            || !descriptors.ContainsKey(outcomeTypeId))
+                        {
+                            throw new InvalidOperationException(
+                                $"Dynamic gameplay outcome adapter '{adapter.ReceiptType.FullName}' has an invalid, duplicate, unsupported, or descriptor-less outcome type '{outcomeTypeId}'.");
+                        }
+                    }
+                    if (!dynamicAdapter.SupportsOutcomeType(adapter.OutcomeTypeId))
+                    {
+                        throw new InvalidOperationException(
+                            $"Dynamic gameplay outcome adapter '{adapter.ReceiptType.FullName}' does not include its primary outcome type '{adapter.OutcomeTypeId}'.");
+                    }
+                }
+                else if (!descriptors.ContainsKey(adapter.OutcomeTypeId))
+                {
                     throw new InvalidOperationException(
                         $"Gameplay outcome adapter '{adapter.ReceiptType.FullName}' has no descriptor for '{adapter.OutcomeTypeId}'.");
+                }
                 if (!adapters.TryAdd(adapter.ReceiptType, adapter))
                     throw new InvalidOperationException($"Duplicate gameplay outcome adapter for receipt '{adapter.ReceiptType.FullName}'.");
             }
@@ -246,7 +280,9 @@ public sealed class GameplayOutcomeRegistry : IGameplayOutcomeRegistry
             bool hasAdapter = false;
             foreach (IGameplayOutcomeAdapterRegistration adapter in adapters.Values)
             {
-                if (adapter.OutcomeTypeId == descriptorId)
+                if (adapter.OutcomeTypeId == descriptorId
+                    || adapter is IGameplayOutcomeDynamicAdapterRegistration dynamicAdapter
+                    && dynamicAdapter.SupportsOutcomeType(descriptorId))
                 {
                     hasAdapter = true;
                     break;
@@ -287,6 +323,49 @@ public sealed class GameplayOutcomeRegistry : IGameplayOutcomeRegistry
         }
         adapter = null;
         return false;
+    }
+
+    private void RegisterDescriptor(
+        IGameplayOutcomeDescriptor descriptor,
+        ref int observedPolicyVersion)
+    {
+        if (descriptor == null
+            || !descriptor.OutcomeTypeId.IsValid
+            || descriptor.PerspectiveProjector == null
+            || descriptor.MemoryPolicy == null
+            || descriptor.PerceptionPolicy == null
+            || descriptor.MemoryConsolidator == null)
+        {
+            throw new InvalidOperationException(
+                "Every gameplay outcome descriptor must provide a valid ID, projector, memory policy, perception policy, and consolidator.");
+        }
+        if (descriptor.MemoryPolicy.PolicyVersion <= 0)
+        {
+            throw new InvalidOperationException(
+                $"Outcome descriptor '{descriptor.OutcomeTypeId}' has an invalid policy version.");
+        }
+        if (observedPolicyVersion == 0)
+            observedPolicyVersion = descriptor.MemoryPolicy.PolicyVersion;
+        else if (observedPolicyVersion != descriptor.MemoryPolicy.PolicyVersion)
+            throw new InvalidOperationException(
+                "All gameplay outcome descriptors must share one consolidation policy version.");
+        if (descriptor.PerceptionPolicy.MaximumOptionalWitnessLinks < 0)
+        {
+            throw new InvalidOperationException(
+                $"Outcome descriptor '{descriptor.OutcomeTypeId}' has an invalid witness limit.");
+        }
+        if (descriptor.MemoryConsolidator is IOutcomeCompactionContract compaction
+            && compaction.SupportsCompaction
+            && descriptor.PerspectiveProjector is not ICompactedNarrativePerspectiveProjector)
+        {
+            throw new InvalidOperationException(
+                $"Compactable outcome descriptor '{descriptor.OutcomeTypeId}' must provide a compacted narrative projector.");
+        }
+        if (!descriptors.TryAdd(descriptor.OutcomeTypeId, descriptor))
+        {
+            throw new InvalidOperationException(
+                $"Duplicate gameplay outcome descriptor '{descriptor.OutcomeTypeId}'.");
+        }
     }
 
     private static int CompareOutcomeTypeIds(GameplayOutcomeTypeId left, GameplayOutcomeTypeId right) =>

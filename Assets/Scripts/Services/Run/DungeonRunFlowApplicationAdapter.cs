@@ -198,6 +198,21 @@ public class DungeonRunFlowApplicationAdapter :
         {
             throw new ArgumentNullException(nameof(transition));
         }
+
+        for (int index = 0; index < transition.Effects.Count; index++)
+        {
+            DungeonRunFlowEffect effect = transition.Effects[index];
+            if (effect.Kind == DungeonRunFlowEffectKind.CompleteRun
+                && !CompleteRun(
+                    effect.Outcome,
+                    effect.Outcome == DungeonRunOutcome.Victory
+                        ? completionReason ?? "진실 발견"
+                        : "침공 방어 실패"))
+            {
+                return;
+            }
+        }
+
         if (transition.StateChanged)
         {
             aggregateRootStore.Replace(transition.State);
@@ -205,6 +220,10 @@ public class DungeonRunFlowApplicationAdapter :
 
         foreach (DungeonRunFlowEffect effect in transition.Effects)
         {
+            if (effect.Kind == DungeonRunFlowEffectKind.CompleteRun)
+            {
+                continue;
+            }
             ExecuteEffect(effect, completionReason);
         }
     }
@@ -256,13 +275,6 @@ public class DungeonRunFlowApplicationAdapter :
                 break;
             case DungeonRunFlowEffectKind.ForceArmedInvasion:
                 ForceArmedInvasion();
-                break;
-            case DungeonRunFlowEffectKind.CompleteRun:
-                CompleteRun(
-                    effect.Outcome,
-                    effect.Outcome == DungeonRunOutcome.Victory
-                        ? completionReason ?? "진실 발견"
-                        : "침공 방어 실패");
                 break;
         }
     }
@@ -353,7 +365,7 @@ public class DungeonRunFlowApplicationAdapter :
             "침입");
     }
 
-    private void CompleteRun(DungeonRunOutcome outcome, string reason)
+    private bool CompleteRun(DungeonRunOutcome outcome, string reason)
     {
         if (!ownerProvider.TryGetManager(out OwnerRunManager ownerManager)
             || ownerManager == null
@@ -361,7 +373,9 @@ public class DungeonRunFlowApplicationAdapter :
         {
             Debug.LogWarning(
                 $"Run completion could not be delivered to {nameof(OwnerRunManager)}.");
+            return false;
         }
+        return true;
     }
 
     private void RaisePhaseAlert(DungeonRunPhase phase)

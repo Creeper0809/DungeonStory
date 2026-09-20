@@ -93,6 +93,25 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
         IReadOnlyList<ProductionFacilityDestructiveDrainParticipantSaveData>
             participants,
         out ProductionFacilityDestructiveDrainEntrySaveData entry,
+        out string failureReason) => TryRequest(
+        cause,
+        facilityId,
+        initiatingMutationOperationId,
+        preparedLifecycleFingerprint,
+        default,
+        participants,
+        out entry,
+        out failureReason);
+
+    public bool TryRequest(
+        ProductionFacilityDestructiveDrainCause cause,
+        BuildingInstanceId facilityId,
+        string initiatingMutationOperationId,
+        string preparedLifecycleFingerprint,
+        ProductionFacilityDestructiveDrainOutcomeSnapshot outcomeSnapshot,
+        IReadOnlyList<ProductionFacilityDestructiveDrainParticipantSaveData>
+            participants,
+        out ProductionFacilityDestructiveDrainEntrySaveData entry,
         out string failureReason)
     {
         entry = null;
@@ -101,7 +120,11 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
             || cause == ProductionFacilityDestructiveDrainCause.None
             || !facilityId.IsValid
             || !ProductionFacilityDestructiveDrainCanonical.IsFingerprint(
-                preparedLifecycleFingerprint))
+                preparedLifecycleFingerprint)
+            || cause == ProductionFacilityDestructiveDrainCause
+                    .ExplicitDemolition != outcomeSnapshot.IsValid
+            || cause != ProductionFacilityDestructiveDrainCause
+                    .ExplicitDemolition && outcomeSnapshot.IsPresent)
         {
             failureReason = "production-facility-destructive-drain-request-invalid";
             return false;
@@ -137,6 +160,9 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
                     existing.preparedLifecycleFingerprint,
                     preparedLifecycleFingerprint,
                     StringComparison.Ordinal)
+                && OutcomeSnapshotEquals(
+                    existing.OutcomeSnapshot,
+                    outcomeSnapshot)
                 && ImmutableParticipantPlanEquals(
                     existing.participants,
                     normalizedParticipants))
@@ -161,6 +187,15 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
             preparedLifecycleFingerprint = preparedLifecycleFingerprint,
             expectedCurrentLifecycleFingerprint = preparedLifecycleFingerprint,
             revision = 1L,
+            outcomeSnapshotVersion = outcomeSnapshot.Version,
+            outcomeBuildingDefinitionId =
+                outcomeSnapshot.BuildingDefinitionId ?? string.Empty,
+            outcomeBuildingDisplayName =
+                outcomeSnapshot.BuildingDisplayName ?? string.Empty,
+            outcomePositionX = outcomeSnapshot.PositionX,
+            outcomePositionY = outcomeSnapshot.PositionY,
+            outcomeAbsoluteDay = outcomeSnapshot.AbsoluteDay,
+            outcomeOwnerRevision = outcomeSnapshot.OwnerRevision,
             participants = normalizedParticipants
         };
         ValidateEntry(created);
@@ -444,9 +479,11 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
     public ProductionFacilityDestructiveDrainRestoreCandidate BuildRestore(
         DungeonProductionFacilityDestructiveDrainSaveData payload)
     {
-        ValidatePayload(payload);
+        DungeonProductionFacilityDestructiveDrainSaveData canonical =
+            MigrateLegacyPayload(payload);
+        ValidatePayload(canonical);
         return new ProductionFacilityDestructiveDrainRestoreCandidate(
-            ClonePayload(payload));
+            ClonePayload(canonical));
     }
 
     public void Restore(
@@ -503,6 +540,154 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
         }
     }
 
+    internal static DungeonProductionFacilityDestructiveDrainSaveData
+        MigrateLegacyPayload(
+        DungeonProductionFacilityDestructiveDrainSaveData source)
+    {
+        DungeonProductionFacilityDestructiveDrainSaveData v4 =
+            MigrateV3Payload(source);
+        return MigrateV4Payload(v4);
+    }
+
+    internal static DungeonProductionFacilityDestructiveDrainSaveData
+        MigrateV3Payload(
+        DungeonProductionFacilityDestructiveDrainSaveData source)
+    {
+        if (source == null
+            || source.version != 3
+            || !string.Equals(
+                source.registryFingerprint,
+                ProductionFacilityDestructiveDrainParticipantRegistry
+                    .PreviousV3RegistryFingerprint,
+                StringComparison.Ordinal))
+        {
+            return source;
+        }
+        if (source.entries == null)
+        {
+            throw new InvalidOperationException(
+                "Production destructive-drain V3 payload is incomplete.");
+        }
+
+        DungeonProductionFacilityDestructiveDrainSaveData migrated =
+            ClonePayload(source);
+        migrated.version = 4;
+        migrated.registryFingerprint =
+            ProductionFacilityDestructiveDrainParticipantRegistry
+                .PreviousV4RegistryFingerprint;
+        foreach (ProductionFacilityDestructiveDrainEntrySaveData entry in
+                 migrated.entries)
+        {
+            BuildingInstanceId facilityId = (BuildingInstanceId)entry.facilityId;
+            string contribution = EnvironmentalFireDamageOutcomeAuthority
+                .ProjectFacilityContribution(
+                    facilityId,
+                    Array.Empty<
+                        DungeonStory.Environment
+                            .EnvironmentalFireDamageOutcomeSaveRecord>());
+            CanonicalSemanticDigestBuilder plan = new();
+            plan.Append("environmental-fire-damage-destructive-plan@1");
+            plan.Append(facilityId.Value);
+            plan.Append(contribution);
+            plan.Append(0);
+            entry.participants.Add(
+                new ProductionFacilityDestructiveDrainParticipantSaveData
+                {
+                    participantId =
+                        ProductionFacilityDestructiveDrainParticipantIds
+                            .EnvironmentalFireDamageOutcome,
+                    contractVersion =
+                        EnvironmentalFireDamageDestructiveDrainParticipant
+                            .CurrentContractVersion,
+                    preparedContributionFingerprint = contribution,
+                    expectedCurrentContributionFingerprint = contribution,
+                    planFingerprint = plan.ComputeSha256(),
+                    owners = new List<
+                        ProductionFacilityDestructiveDrainOwnerSaveData>()
+                });
+            entry.participants = entry.participants
+                .OrderBy(value => value.participantId, StringComparer.Ordinal)
+                .ToList();
+        }
+        return migrated;
+    }
+
+    internal static DungeonProductionFacilityDestructiveDrainSaveData
+        MigrateV4Payload(
+        DungeonProductionFacilityDestructiveDrainSaveData source)
+    {
+        if (source == null
+            || source.version != 4
+            || !string.Equals(
+                source.registryFingerprint,
+                ProductionFacilityDestructiveDrainParticipantRegistry
+                    .PreviousV4RegistryFingerprint,
+                StringComparison.Ordinal))
+        {
+            return source;
+        }
+        if (source.entries == null)
+        {
+            throw new InvalidOperationException(
+                "Production destructive-drain V4 payload is incomplete.");
+        }
+
+        DungeonProductionFacilityDestructiveDrainSaveData migrated =
+            ClonePayload(source);
+        migrated.version =
+            DungeonProductionFacilityDestructiveDrainSaveData.CurrentVersion;
+        migrated.registryFingerprint =
+            ProductionFacilityDestructiveDrainParticipantRegistry
+                .ExpectedRegistryFingerprint;
+        foreach (ProductionFacilityDestructiveDrainEntrySaveData entry in
+                 migrated.entries)
+        {
+            BuildingInstanceId facilityId = (BuildingInstanceId)entry.facilityId;
+            string contribution = BuildingDemolitionOutcomeLifecycle
+                .ProjectContribution(facilityId);
+            CanonicalSemanticDigestBuilder plan = new();
+            plan.Append("building-demolition-destructive-plan@1");
+            plan.Append(facilityId.Value);
+            plan.Append(contribution);
+            plan.Append(0);
+            entry.participants.Add(
+                new ProductionFacilityDestructiveDrainParticipantSaveData
+                {
+                    participantId =
+                        ProductionFacilityDestructiveDrainParticipantIds
+                            .BuildingDemolitionOutcome,
+                    contractVersion =
+                        BuildingDemolitionDestructiveDrainParticipant
+                            .CurrentContractVersion,
+                    preparedContributionFingerprint = contribution,
+                    expectedCurrentContributionFingerprint = contribution,
+                    planFingerprint = plan.ComputeSha256(),
+                    owners = new List<
+                        ProductionFacilityDestructiveDrainOwnerSaveData>()
+                });
+            entry.participants = entry.participants
+                .OrderBy(value => value.participantId, StringComparer.Ordinal)
+                .ToList();
+            entry.preparedLifecycleFingerprint =
+                ProductionOutputDestinationDurableSaveProjector
+                    .ComposeAggregate(
+                        facilityId,
+                        entry.participants.Select(value =>
+                            new KeyValuePair<string, string>(
+                                value.participantId,
+                                value.preparedContributionFingerprint)));
+            entry.expectedCurrentLifecycleFingerprint =
+                ProductionOutputDestinationDurableSaveProjector
+                    .ComposeAggregate(
+                        facilityId,
+                        entry.participants.Select(value =>
+                            new KeyValuePair<string, string>(
+                                value.participantId,
+                                value.expectedCurrentContributionFingerprint)));
+        }
+        return migrated;
+    }
+
     private void ValidateEntry(
         ProductionFacilityDestructiveDrainEntrySaveData entry)
     {
@@ -544,13 +729,34 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
                 entry.preparedLifecycleFingerprint)
             || !ProductionFacilityDestructiveDrainCanonical.IsFingerprint(
                 entry.expectedCurrentLifecycleFingerprint)
-            || entry.participants == null)
+            || entry.participants == null
+            || !IsValidOutcomeSnapshot(entry))
         {
             throw new InvalidOperationException(
                 "Production destructive-drain entry is invalid.");
         }
 
         ValidateParticipants(operationId, entry.participants);
+    }
+
+    private static bool IsValidOutcomeSnapshot(
+        ProductionFacilityDestructiveDrainEntrySaveData entry)
+    {
+        ProductionFacilityDestructiveDrainOutcomeSnapshot snapshot =
+            entry.OutcomeSnapshot;
+        if (!snapshot.IsPresent)
+        {
+            return entry.outcomeSnapshotVersion == 0
+                && string.IsNullOrEmpty(entry.outcomeBuildingDefinitionId)
+                && string.IsNullOrEmpty(entry.outcomeBuildingDisplayName)
+                && entry.outcomePositionX == 0
+                && entry.outcomePositionY == 0
+                && entry.outcomeAbsoluteDay == 0
+                && entry.outcomeOwnerRevision == 0L;
+        }
+        return entry.cause ==
+                ProductionFacilityDestructiveDrainCause.ExplicitDemolition
+            && snapshot.IsValid;
     }
 
     private void ValidateParticipants(
@@ -678,6 +884,23 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
         }
         return true;
     }
+
+    private static bool OutcomeSnapshotEquals(
+        in ProductionFacilityDestructiveDrainOutcomeSnapshot left,
+        in ProductionFacilityDestructiveDrainOutcomeSnapshot right) =>
+        left.Version == right.Version
+        && string.Equals(
+            left.BuildingDefinitionId ?? string.Empty,
+            right.BuildingDefinitionId ?? string.Empty,
+            StringComparison.Ordinal)
+        && string.Equals(
+            left.BuildingDisplayName ?? string.Empty,
+            right.BuildingDisplayName ?? string.Empty,
+            StringComparison.Ordinal)
+        && left.PositionX == right.PositionX
+        && left.PositionY == right.PositionY
+        && left.AbsoluteDay == right.AbsoluteDay
+        && left.OwnerRevision == right.OwnerRevision;
 
     private static bool IsValidParticipantStateAdvance(
         IReadOnlyList<ProductionFacilityDestructiveDrainParticipantSaveData>

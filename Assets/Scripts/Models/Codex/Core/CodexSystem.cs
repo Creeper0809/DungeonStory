@@ -229,6 +229,20 @@ public sealed class CodexState
         ReplaceAggregate(source.Current.DeepClone());
     }
 
+    internal CodexAggregateState CaptureAggregate() => Current.DeepClone();
+
+    internal bool MatchesAggregate(CodexAggregateState expected)
+    {
+        if (expected == null || Current.Entries.Count != expected.Entries.Count) return false;
+        foreach (var pair in expected.Entries)
+        {
+            if (!Current.Entries.TryGetValue(pair.Key, out var actual)
+                || actual.Title != pair.Value.Title || actual.Discovered != pair.Value.Discovered
+                || !actual.Lines.SequenceEqual(pair.Value.Lines)) return false;
+        }
+        return true;
+    }
+
     private CodexAggregateState Current => aggregateRootStore != null
         ? aggregateRootStore.GetOrCreate(() => new CodexAggregateState())
         : localState;
@@ -239,7 +253,7 @@ public sealed class CodexState
             aggregate => aggregate.DeepClone())
         : localState;
 
-    private void ReplaceAggregate(CodexAggregateState aggregate)
+    internal void ReplaceAggregate(CodexAggregateState aggregate)
     {
         if (aggregateRootStore != null)
         {

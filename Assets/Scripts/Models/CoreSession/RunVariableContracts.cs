@@ -126,23 +126,27 @@ public sealed class ActiveRunVariable
         : this(
             definition,
             startDay,
-            Math.Max(1, definition?.activeDays ?? 1))
+            Math.Max(1, definition?.activeDays ?? 1),
+            0L)
     {
     }
 
     public ActiveRunVariable(
         RunVariableDefinition definition,
         int startDay,
-        int remainingDays)
+        int remainingDays,
+        long instanceSequence = 0L)
     {
         Definition = definition;
         StartDay = Math.Max(1, startDay);
         RemainingDays = Math.Max(0, remainingDays);
+        InstanceSequence = Math.Max(0L, instanceSequence);
     }
 
     public RunVariableDefinition Definition { get; }
     public int StartDay { get; }
     public int RemainingDays { get; private set; }
+    public long InstanceSequence { get; }
     public bool IsExpired => RemainingDays <= 0;
 
     public void AdvanceDay()
@@ -183,7 +187,8 @@ public sealed class RunVariableState : IRunVariableStateView
 
     public ActiveRunVariable ActivateOperationVariable(
         RunVariableDefinition definition,
-        int day)
+        int day,
+        long instanceSequence = 0L)
     {
         if (definition == null
             || definition.category != RunVariableCategory.Operation)
@@ -197,7 +202,11 @@ public sealed class RunVariableState : IRunVariableStateView
                 active.Definition.id,
                 definition.id,
                 StringComparison.Ordinal));
-        ActiveRunVariable instance = new(definition, day);
+        ActiveRunVariable instance = new(
+            definition,
+            day,
+            Math.Max(1, definition.activeDays),
+            instanceSequence);
         activeOperationVariables.Add(instance);
         return instance;
     }
@@ -247,6 +256,20 @@ public sealed class RunVariableState : IRunVariableStateView
                 && !active.IsExpired));
         SetInvasionVariable(invasionVariable);
     }
+
+    public RunVariableState DeepClone()
+    {
+        var clone = new RunVariableState();
+        clone.Restore(
+            StartVariables,
+            activeOperationVariables.Select(active => new ActiveRunVariable(
+                active.Definition,
+                active.StartDay,
+                active.RemainingDays,
+                active.InstanceSequence)),
+            CurrentInvasionVariable);
+        return clone;
+    }
 }
 
 public sealed class RunVariableAggregateState
@@ -261,16 +284,39 @@ public sealed class RunVariableAggregateState
     public RunVariableState Variables { get; }
     public int RunSeed { get; set; }
     public int CurrentDay { get; set; }
+    public long NextOperationSequence { get; set; } = 1L;
+    public int LastOperationAdvanceDay { get; set; }
+
+    public RunVariableAggregateState DeepClone()
+    {
+        var clone = new RunVariableAggregateState(RunSeed, CurrentDay)
+        {
+            NextOperationSequence = NextOperationSequence,
+            LastOperationAdvanceDay = LastOperationAdvanceDay
+        };
+        clone.Variables.Restore(
+            Variables.StartVariables,
+            Variables.ActiveOperationVariables.Select(active =>
+                new ActiveRunVariable(
+                    active.Definition,
+                    active.StartDay,
+                    active.RemainingDays,
+                    active.InstanceSequence)),
+            Variables.CurrentInvasionVariable);
+        return clone;
+    }
 }
 
 [Serializable]
 public sealed class DungeonRunVariableSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     public int version = CurrentVersion;
     public int runSeed;
     public int currentDay = 1;
+    public long nextOperationSequence = 1L;
+    public int lastOperationAdvanceDay;
     public bool hasStartVariables;
     public DungeonRunStartSaveData startVariables;
     public List<DungeonActiveRunVariableSaveData> activeOperationVariables =
@@ -301,6 +347,7 @@ public sealed class DungeonActiveRunVariableSaveData
     public string definitionId = string.Empty;
     public int startDay = 1;
     public int remainingDays = 1;
+    public long instanceSequence;
 }
 
 [Serializable]

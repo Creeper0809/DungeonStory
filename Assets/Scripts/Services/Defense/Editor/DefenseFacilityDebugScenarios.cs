@@ -842,6 +842,21 @@ public static class DefenseFacilityDebugScenarios
         {
         }
 
+        public DefenseFacilityState CaptureActivationState(
+            DefenseFacility facility) =>
+            throw new NotSupportedException(
+                "The strict save fixture does not execute activations.");
+
+        public void RestoreActivationState(
+            DefenseFacility facility,
+            DefenseFacilityState snapshot) =>
+            throw new NotSupportedException(
+                "The strict save fixture does not execute activations.");
+
+        public void PublishCommittedState(DefenseFacility facility) =>
+            throw new NotSupportedException(
+                "The strict save fixture does not execute activations.");
+
         public bool SetArmingPolicy(
             DefenseFacility facility,
             DefenseArmingPolicy policy)
@@ -961,7 +976,8 @@ public static class DefenseFacilityDebugScenarios
         public BlueprintResearchWorkResult ApplyApprovedResearchWork(
             CharacterActor researcher,
             BuildableObject researchFacility,
-            float approvedWorkUnits) =>
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null) =>
             ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 

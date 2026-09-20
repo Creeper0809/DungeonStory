@@ -255,7 +255,7 @@ public static class StaffDiscontentDebugScenarios
                 ownerThreat: false,
                 isolated: true,
                 suppressed: false)
-        });
+        }, 7L);
 
         CharacterSceneRuntimeReferences sourceReferences =
             new CharacterSceneRuntimeReferences(
@@ -291,6 +291,7 @@ public static class StaffDiscontentDebugScenarios
             validReport);
         object sectionContract = targetSection;
         int validRecordCount = target.Runtime.State.Records.Count;
+        long validOutcomeRevision = target.Runtime.OutcomeRevision;
         bool validRoundTrip = string.Equals(
             targetSection.Capture(),
             canonicalJson,
@@ -301,6 +302,7 @@ public static class StaffDiscontentDebugScenarios
             && sectionContract is not IDungeonStagedOptionalSaveSection;
         if (!validReport.Success
             || validRecordCount != 1
+            || validOutcomeRevision != 7L
             || !validRoundTrip
             || !strictContract)
         {
@@ -309,11 +311,60 @@ public static class StaffDiscontentDebugScenarios
                 $"report={validReport.Success}, "
                 + $"errors={JoinErrors(validReport)}, "
                 + $"records={validRecordCount}, "
+                + $"outcomeRevision={validOutcomeRevision}, "
                 + $"canonical={validRoundTrip}, "
                 + $"strictContract={strictContract}");
         }
 
+        using (ScenarioRuntime legacyTarget = new ScenarioRuntime())
+        {
+            CharacterSceneRuntimeReferences legacyReferences =
+                new CharacterSceneRuntimeReferences(
+                    null,
+                    null,
+                    legacyTarget.Runtime,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
+            StaffDiscontentSaveSection legacySection =
+                new StaffDiscontentSaveSection(legacyReferences);
+            string legacyJson = canonicalJson.Replace(
+                "\"outcomeRevision\":7,",
+                string.Empty);
+            DungeonGameRestoreReport legacyReport =
+                new DungeonGameRestoreReport();
+            legacySection.Restore(
+                legacyJson,
+                legacySection.SectionVersion,
+                legacyReport);
+            if (!legacyReport.Success
+                || legacyTarget.Runtime.OutcomeRevision != 0L
+                || legacyTarget.Runtime.State.Records.Count != 1)
+            {
+                return FailStrictSaveBoundary(
+                    "additive-v1-revision-default",
+                    $"report={legacyReport.Success}, "
+                    + $"revision={legacyTarget.Runtime.OutcomeRevision}, "
+                    + $"records={legacyTarget.Runtime.State.Records.Count}");
+            }
+        }
+
         string beforeInvalid = targetSection.Capture();
+        DungeonStaffDiscontentSaveData negativeRevision =
+            JsonUtility.FromJson<DungeonStaffDiscontentSaveData>(canonicalJson);
+        negativeRevision.outcomeRevision = -1L;
+        if (!RejectsStaffPayloadWithoutMutation(
+                targetSection,
+                negativeRevision,
+                beforeInvalid))
+        {
+            return FailStrictSaveBoundary(
+                "negative-outcome-revision-rejection",
+                $"liveUnchanged={string.Equals(targetSection.Capture(), beforeInvalid, StringComparison.Ordinal)}");
+        }
+
         DungeonStaffDiscontentSaveData legacy =
             JsonUtility.FromJson<DungeonStaffDiscontentSaveData>(canonicalJson);
         legacy.version = DungeonStaffDiscontentSaveData.CurrentVersion - 1;
@@ -573,7 +624,9 @@ public static class StaffDiscontentDebugScenarios
                 CharacterAiEditorTestDependencies.WorldRegistry,
                 CharacterAiEditorTestDependencies.GameEvents,
                 RootStore,
-                CharacterAiEditorTestDependencies.SettlementStandings);
+                CharacterAiEditorTestDependencies.SettlementStandings,
+                CharacterAiEditorTestDependencies.StaffOutcomes,
+                CharacterAiEditorTestDependencies.GameClock);
         }
 
         public StaffDiscontentRuntime Runtime { get; }

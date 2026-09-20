@@ -1809,23 +1809,40 @@ public sealed class V20CampaignRuntime :
     private readonly IPhysicalItemBatchDispositionService physicalDispositions;
     private readonly ISeasonalFeedSelfHeatingTargetQuery
         seasonalFeedSelfHeatingTargets;
+    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
     private SeasonalEventAggregateState preparedSeasonalRestore;
     public V20CampaignRuntime(DungeonRuntimeAggregateRootStore rootStore, V20StoryContentCatalog catalog)
-        : this(rootStore, catalog, null, null) { }
+        : this(rootStore, catalog, null, null, null) { }
     private int evaluationAbsoluteDay = -1;
     public V20CampaignRuntime(DungeonRuntimeAggregateRootStore rootStore, V20StoryContentCatalog catalog, IPhysicalItemBatchDispositionService physicalDispositions)
-        : this(rootStore, catalog, physicalDispositions, null) { }
+        : this(rootStore, catalog, physicalDispositions, null, null) { }
     public V20CampaignRuntime(
         DungeonRuntimeAggregateRootStore rootStore,
         V20StoryContentCatalog catalog,
         IPhysicalItemBatchDispositionService physicalDispositions,
         ISeasonalFeedSelfHeatingTargetQuery seasonalFeedSelfHeatingTargets)
+        : this(
+            rootStore,
+            catalog,
+            physicalDispositions,
+            seasonalFeedSelfHeatingTargets,
+            null)
+    {
+    }
+
+    public V20CampaignRuntime(
+        DungeonRuntimeAggregateRootStore rootStore,
+        V20StoryContentCatalog catalog,
+        IPhysicalItemBatchDispositionService physicalDispositions,
+        ISeasonalFeedSelfHeatingTargetQuery seasonalFeedSelfHeatingTargets,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
     {
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.physicalDispositions = physicalDispositions;
         this.seasonalFeedSelfHeatingTargets =
             seasonalFeedSelfHeatingTargets;
+        this.outcomeTransactions = outcomeTransactions;
         EnsureFactionStates();
     }
 
@@ -2803,7 +2820,8 @@ public sealed class V20CampaignRuntime :
         V20DailyEventContext context)
     {
         ServiceIncidentKind incidentKind = proposed.incidentKind;
-        SocietyEventAggregateState candidate = PrepareSociety(CaptureSociety());
+        SocietyEventWorldSaveData societyBefore = CaptureSociety();
+        SocietyEventAggregateState candidate = PrepareSociety(societyBefore);
         SocietyEventWorldSaveData state = candidate.Data;
         ObservedMealIncidentEvidenceSaveData existing =
             state.successfulIncidentOperations.FirstOrDefault(value =>
@@ -2884,13 +2902,90 @@ public sealed class V20CampaignRuntime :
         state.activeEvents.Add(occurrence);
         state.successfulIncidentOperations.Add(JsonClone(frozen));
         candidate.Data = ValidateSociety(Clone(state));
-        PublishSociety(candidate);
+
+        if (outcomeTransactions == null)
+        {
+            throw new InvalidOperationException(
+                "Observed service-incident outcome transaction is unavailable.");
+        }
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.ObservedMealIncidentCaptureResult,
+                frozen.operationId,
+                frozen.absoluteDay,
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reserveFailure))
+        {
+            return RejectedObservedIncidentOutcome(
+                incidentKind,
+                frozen.operationId,
+                "reservation-failed:" + reserveFailure);
+        }
+
+        bool mutationPublished = false;
+        try
+        {
+            PublishSociety(candidate);
+            mutationPublished = true;
+            MigratedProducerOutcomeCommitResult committed =
+                outcomeTransactions.CommitSingleSubject(
+                    prepared,
+                    CreateObservedIncidentSubject(targetCharacterId),
+                    BuildObservedIncidentSummary(frozen));
+            if (!committed.DurablyCommitted)
+            {
+                PublishSociety(PrepareSociety(societyBefore));
+                mutationPublished = false;
+                return RejectedObservedIncidentOutcome(
+                    incidentKind,
+                    frozen.operationId,
+                    "commit-rejected:" + committed.DetailCode);
+            }
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            if (mutationPublished)
+                PublishSociety(PrepareSociety(societyBefore));
+            throw;
+        }
         return new ObservedMealIncidentCaptureResult(
             ObservedMealIncidentCaptureDisposition.Created,
             incidentKind,
             occurrence.instanceId,
             DomainFailure.None);
     }
+
+    private static MigratedProducerOutcomeSubject CreateObservedIncidentSubject(
+        CharacterId targetCharacterId) => new(
+        MigratedProducerOutcomeIds.CharacterKind,
+        targetCharacterId.Value,
+        targetCharacterId.Value,
+        MigratedProducerOutcomeIds.ActorRole);
+
+    private static string BuildObservedIncidentSummary(
+        ObservedMealIncidentEvidenceSaveData evidence) =>
+        "서비스 사건 목격: source=" + evidence.sourceKind
+        + "; incident=" + evidence.incidentKind
+        + "; operation=" + evidence.operationId
+        + "; occurrence=" + evidence.occurrenceInstanceId
+        + "; target=" + evidence.targetCharacterId
+        + "; facility=" + evidence.facilityInstanceId
+        + "; location=(" + evidence.locationX + "," + evidence.locationY + ")"
+        + "; day=" + evidence.absoluteDay;
+
+    private static ObservedMealIncidentCaptureResult
+        RejectedObservedIncidentOutcome(
+            ServiceIncidentKind incidentKind,
+            string operationId,
+            string detail) => new(
+        ObservedMealIncidentCaptureDisposition.NotEligible,
+        incidentKind,
+        string.Empty,
+        new DomainFailure(
+            FailureCode.ExternalInfluenceUnavailable,
+            operationId ?? string.Empty,
+            "observed-service-incident-outcome-" + detail));
 
     private static ObservedMealIncidentCaptureResult NotEligibleObservedIncident(
         string reason) => new(

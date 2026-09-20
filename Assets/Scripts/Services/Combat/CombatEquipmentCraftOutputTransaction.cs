@@ -26,13 +26,15 @@ public sealed class CombatEquipmentCraftOutputTransaction :
     private readonly IQualityRejectedSaleDestinationAuthority
         rejectedSaleDestination;
     private readonly IEquipmentPhysicalItemGateway physicalItems;
+    private readonly IProductQualityOutcomeCommitter qualityOutcomes;
 
     public CombatEquipmentCraftOutputTransaction(
         CombatEquipmentRuntimeStateStore stateStore,
         IBuildingWorldQuery buildings,
         IProductionDomainOutputPublicationService publication,
         IQualityRejectedSaleDestinationAuthority rejectedSaleDestination,
-        IEquipmentPhysicalItemGateway physicalItems)
+        IEquipmentPhysicalItemGateway physicalItems,
+        IProductQualityOutcomeCommitter qualityOutcomes)
     {
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
@@ -44,6 +46,8 @@ public sealed class CombatEquipmentCraftOutputTransaction :
             ?? throw new ArgumentNullException(nameof(rejectedSaleDestination));
         this.physicalItems = physicalItems
             ?? throw new ArgumentNullException(nameof(physicalItems));
+        this.qualityOutcomes = qualityOutcomes
+            ?? throw new ArgumentNullException(nameof(qualityOutcomes));
     }
 
     public string OutputOwnerDomainId => OwnerDomainId;
@@ -57,6 +61,15 @@ public sealed class CombatEquipmentCraftOutputTransaction :
                 .ResolvedWaitingForPublication)
         {
             return Conflict("combat-output-owner-phase-invalid");
+        }
+        if (!TryEnsureQualityOutcome(
+                order,
+                out bool qualityConflict,
+                out string qualityFailure))
+        {
+            return qualityConflict
+                ? Conflict(qualityFailure)
+                : Pending(qualityFailure);
         }
         BuildableObject facility = FindFacility(order.facilityPersistentId);
         if (facility == null || facility.IsBuildingDestroyed)
@@ -122,6 +135,73 @@ public sealed class CombatEquipmentCraftOutputTransaction :
                 : order.outputPublication.stacks.Single().stackId;
         }
         return result;
+    }
+
+    private bool TryEnsureQualityOutcome(
+        CombatEquipmentCraftOrderSaveData order,
+        out bool conflict,
+        out string failureReason)
+    {
+        conflict = false;
+        failureReason = string.Empty;
+        if (order.qualityOutcomeSchemaVersion == 0)
+        {
+            // Legacy resolved attempts predate the canonical product-quality
+            // receipt. Do not invent a historical maker/name snapshot.
+            return true;
+        }
+        if (order.qualityOutcomeSchemaVersion != 1)
+        {
+            conflict = true;
+            failureReason = "combat-quality-outcome-schema-invalid";
+            return false;
+        }
+        if (order.qualityOutcomeCommitted)
+            return true;
+
+        ProductQualityOutcomeReceipt receipt;
+        try
+        {
+            receipt = new ProductQualityOutcomeReceipt(
+                order.outputOperationId,
+                order.qualityAttemptIndex,
+                order.resolvedMakerCharacterId,
+                order.resolvedMakerDisplayName,
+                order.definitionId,
+                (CraftsmanshipQualityTier)(int)order.resolvedQuality,
+                order.qualityAttemptIndex,
+                order.resolvedAbsoluteDay,
+                (int)order.resolvedQuality < (int)order.minimumQuality);
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            conflict = true;
+            failureReason = "combat-quality-outcome-receipt-invalid:"
+                + exception.Message;
+            return false;
+        }
+        if (!qualityOutcomes.TryPrepare(
+                receipt,
+                out PreparedEvolutionOutcome prepared,
+                out string prepareFailure))
+        {
+            failureReason = "combat-quality-outcome-prepare:"
+                + prepareFailure;
+            return false;
+        }
+        if (!qualityOutcomes.TryCommit(
+                prepared,
+                order.qualityAttemptIndex,
+                out string commitFailure))
+        {
+            failureReason = "combat-quality-outcome-commit:"
+                + commitFailure;
+            return false;
+        }
+        order.qualityOutcomeCommitted = true;
+        return true;
     }
 
     public bool TryAcknowledgeAndRoute(

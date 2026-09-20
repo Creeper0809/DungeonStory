@@ -840,6 +840,326 @@ public static class EnvironmentOutcomeReceiptFactory
         return new PopulationDiseaseExposureOutcomeReceipt(builder.Build());
     }
 
+    public static CropIrrigationSupplyOutcomeReceipt CreateCropIrrigationSupply(
+        in CropIrrigationSupplyResult source,
+        string operationId,
+        long ownerRevision,
+        string plotDisplayName,
+        string irrigatorDisplayName,
+        CoreGridCell location,
+        int absoluteDay)
+    {
+        if (!source.Succeeded
+            || !source.Assessment.PlotId.IsValid
+            || !source.Assessment.IrrigatorId.IsValid
+            || !float.IsFinite(source.SuppliedWaterUnits)
+            || source.SuppliedWaterUnits <= 0f)
+            throw new ArgumentException(
+                "A successful exact irrigation result is required.",
+                nameof(source));
+        string canonicalOperationId = RequireStable(operationId, nameof(operationId));
+        var plot = new GameplayEntityId(
+            EnvironmentOutcomeIds.FacilityKind,
+            source.Assessment.PlotId.Value);
+        var irrigator = new GameplayEntityId(
+            EnvironmentOutcomeIds.FacilityKind,
+            source.Assessment.IrrigatorId.Value);
+        var builder = new EnvironmentOutcomePayloadBuilder(
+            new GameplayResultKey(
+                EnvironmentOutcomeIds.CropIrrigationProducer,
+                new GameplayOperationId(canonicalOperationId),
+                ownerRevision,
+                0),
+            EnvironmentOutcomeIds.CropIrrigationSupplied,
+            absoluteDay,
+            GameplayOutcomeStatus.Succeeded,
+            ownerRevision);
+        Require(builder.AddParticipant(new GameplayOutcomeParticipant(
+            plot,
+            EnvironmentOutcomeIds.FacilityRole,
+            GameplayParticipationKind.Direct,
+            true,
+            EnvironmentOutcomeSnapshots.Name(
+                source.Assessment.PlotId.Value,
+                plotDisplayName))));
+        Require(builder.AddParticipant(new GameplayOutcomeParticipant(
+            irrigator,
+            EnvironmentOutcomeIds.ActorRole,
+            GameplayParticipationKind.Direct,
+            true,
+            EnvironmentOutcomeSnapshots.Name(
+                source.Assessment.IrrigatorId.Value,
+                irrigatorDisplayName))));
+        Require(builder.AddSubject(EnvironmentOutcomeSnapshots.Subject(
+            EnvironmentOutcomeIds.FacilityKind,
+            source.Assessment.PlotId.Value,
+            0.62f)));
+        Require(builder.AddSubject(new GameplayOutcomeSubjectLink(
+            irrigator,
+            0.48f,
+            NarrativeMemoryTier.Episodic,
+            false,
+            false,
+            0)));
+        AddMetric(ref builder, EnvironmentOutcomeIds.WaterUnitsMetric,
+            source.SuppliedWaterUnits, EnvironmentOutcomeIds.PointUnit, plot);
+        AddMetric(ref builder, EnvironmentOutcomeIds.WaterQualityMetric,
+            (int)source.ConsumedQuality, EnvironmentOutcomeIds.EnumUnit, irrigator);
+        Require(builder.AddTag(EnvironmentOutcomeIds.AgricultureTag));
+        Require(builder.AddProvenance(new GameplayOutcomeProvenanceReference(
+            EnvironmentOutcomeIds.CropIrrigationProducer,
+            canonicalOperationId)));
+        AddFact(ref builder, EnvironmentOutcomeIds.ReceiptKindFact,
+            nameof(CropIrrigationSupplyResult));
+        AddFact(ref builder, EnvironmentOutcomeIds.CorrelationFact,
+            canonicalOperationId);
+        AddFact(ref builder, EnvironmentOutcomeIds.SummaryFact,
+            $"{irrigatorDisplayName}에서 {plotDisplayName}에 깨끗한 물 {source.SuppliedWaterUnits:0.##}단위를 공급했다.");
+        builder.SetLocation(new GameplayLocationReference(
+            "dungeon", string.Empty, location.X, location.Y));
+        return new CropIrrigationSupplyOutcomeReceipt(builder.Build());
+    }
+
+    public static EnvironmentalFireIgnitionOutcomeReceipt CreateFireIgnition(
+        EnvironmentalFireIgnitionRequest request,
+        in EnvironmentalFireIgnitionResult source,
+        string targetDisplayName,
+        CoreGridCell location,
+        int absoluteDay,
+        long ownerRevision,
+        float appliedIntensity,
+        bool hasLocation = true)
+    {
+        if (request?.IsValid != true
+            || source.Disposition is EnvironmentalFireIgnitionDisposition.InvalidRequest
+                or EnvironmentalFireIgnitionDisposition.CauseConflict)
+            throw new ArgumentException(
+                "A processed canonical ignition result is required.", nameof(source));
+        var target = new GameplayEntityId(
+            EnvironmentOutcomeIds.FacilityKind,
+            request.Target.TargetId);
+        var builder = new EnvironmentOutcomePayloadBuilder(
+            new GameplayResultKey(
+                EnvironmentOutcomeIds.FireIgnitionProducer,
+                new GameplayOperationId(request.CauseId),
+                ownerRevision,
+                0),
+            EnvironmentOutcomeIds.FireIgnition,
+            absoluteDay,
+            source.Created
+                ? GameplayOutcomeStatus.Succeeded
+                : GameplayOutcomeStatus.Failed,
+            ownerRevision);
+        Require(builder.AddParticipant(new GameplayOutcomeParticipant(
+            target,
+            EnvironmentOutcomeIds.FacilityRole,
+            GameplayParticipationKind.Direct,
+            true,
+            EnvironmentOutcomeSnapshots.Name(
+                request.Target.TargetId,
+                targetDisplayName))));
+        Require(builder.AddSubject(EnvironmentOutcomeSnapshots.Subject(
+            EnvironmentOutcomeIds.FacilityKind,
+            request.Target.TargetId,
+            source.Created ? 0.9f : 0.56f)));
+        AddMetric(ref builder, EnvironmentOutcomeIds.StatusMetric,
+            (int)source.Disposition, EnvironmentOutcomeIds.EnumUnit, target);
+        AddMetric(ref builder, EnvironmentOutcomeIds.IntensityAfterMetric,
+            source.Created ? appliedIntensity : 0d,
+            EnvironmentOutcomeIds.RatioUnit, target);
+        Require(builder.AddTag(EnvironmentOutcomeIds.DisasterTag));
+        Require(builder.AddProvenance(new GameplayOutcomeProvenanceReference(
+            request.ProducerId,
+            request.EvidenceId)));
+        AddFact(ref builder, EnvironmentOutcomeIds.ReceiptKindFact,
+            nameof(EnvironmentalFireIgnitionResult));
+        AddFact(ref builder, EnvironmentOutcomeIds.CorrelationFact,
+            request.CauseId);
+        AddFact(ref builder, EnvironmentOutcomeIds.ReasonFact,
+            source.Disposition.ToString());
+        AddFact(ref builder, EnvironmentOutcomeIds.SummaryFact,
+            source.Created
+                ? $"{targetDisplayName}에서 화재가 발생했다."
+                : $"{targetDisplayName}의 화재 발화 판정이 {source.Disposition}로 끝났다.");
+        if (hasLocation)
+            builder.SetLocation(new GameplayLocationReference(
+                "dungeon", string.Empty, location.X, location.Y));
+        return new EnvironmentalFireIgnitionOutcomeReceipt(builder.Build());
+    }
+
+    public static EnvironmentalFireSuppressionOutcomeReceipt CreateFireSuppression(
+        EnvironmentalFireSuppressionCommand command,
+        in EnvironmentalFireSuppressionResult source,
+        string workerDisplayName,
+        CoreGridCell location,
+        int absoluteDay,
+        long ownerRevision)
+    {
+        if (command?.IsValid != true
+            || !source.Applied
+            || !float.IsFinite(source.IntensityBefore)
+            || !float.IsFinite(source.IntensityAfter))
+            throw new ArgumentException(
+                "An applied canonical suppression result is required.", nameof(source));
+        var worker = new GameplayEntityId(
+            EnvironmentOutcomeIds.CharacterKind,
+            command.WorkerId);
+        var fire = new GameplayEntityId(
+            EnvironmentOutcomeIds.FireKind,
+            command.FireId);
+        var builder = new EnvironmentOutcomePayloadBuilder(
+            new GameplayResultKey(
+                EnvironmentOutcomeIds.FireSuppressionProducer,
+                new GameplayOperationId(command.OperationId),
+                ownerRevision,
+                0),
+            EnvironmentOutcomeIds.FireSuppression,
+            absoluteDay,
+            GameplayOutcomeStatus.Succeeded,
+            ownerRevision);
+        Require(builder.AddParticipant(new GameplayOutcomeParticipant(
+            worker, EnvironmentOutcomeIds.ActorRole,
+            GameplayParticipationKind.Direct, true,
+            EnvironmentOutcomeSnapshots.Name(command.WorkerId, workerDisplayName))));
+        Require(builder.AddParticipant(new GameplayOutcomeParticipant(
+            fire, EnvironmentOutcomeIds.FireRole,
+            GameplayParticipationKind.Direct, true,
+            EnvironmentOutcomeSnapshots.Name(command.FireId, "화재"))));
+        Require(builder.AddSubject(EnvironmentOutcomeSnapshots.Subject(
+            EnvironmentOutcomeIds.CharacterKind, command.WorkerId, 0.78f)));
+        Require(builder.AddSubject(new GameplayOutcomeSubjectLink(
+            fire,
+            0.82f,
+            NarrativeMemoryTier.Episodic,
+            false,
+            false,
+            0)));
+        AddMetric(ref builder, EnvironmentOutcomeIds.IntensityBeforeMetric,
+            source.IntensityBefore, EnvironmentOutcomeIds.RatioUnit, fire);
+        AddMetric(ref builder, EnvironmentOutcomeIds.IntensityAfterMetric,
+            source.IntensityAfter, EnvironmentOutcomeIds.RatioUnit, fire);
+        AddMetric(ref builder, EnvironmentOutcomeIds.QuantityMetric,
+            source.WaterConsumed, EnvironmentOutcomeIds.CountUnit, fire);
+        AddMetric(ref builder, EnvironmentOutcomeIds.StatusMetric,
+            (int)source.Disposition, EnvironmentOutcomeIds.EnumUnit, fire);
+        Require(builder.AddTag(EnvironmentOutcomeIds.DisasterTag));
+        Require(builder.AddProvenance(new GameplayOutcomeProvenanceReference(
+            EnvironmentOutcomeIds.FireSuppressionProducer,
+            command.OperationId)));
+        AddFact(ref builder, EnvironmentOutcomeIds.ReceiptKindFact,
+            nameof(EnvironmentalFireSuppressionResult));
+        AddFact(ref builder, EnvironmentOutcomeIds.CorrelationFact,
+            command.OperationId);
+        AddFact(ref builder, EnvironmentOutcomeIds.ReasonFact,
+            source.Disposition.ToString());
+        AddFact(ref builder, EnvironmentOutcomeIds.SummaryFact,
+            source.IntensityAfter <= 0.0001f
+                ? $"{workerDisplayName}이 화재를 완전히 진압했다."
+                : $"{workerDisplayName}이 화재 강도를 {source.IntensityBefore:0.###}에서 {source.IntensityAfter:0.###}로 낮췄다.");
+        builder.SetLocation(new GameplayLocationReference(
+            "dungeon", string.Empty, location.X, location.Y));
+        return new EnvironmentalFireSuppressionOutcomeReceipt(builder.Build());
+    }
+
+    public static EnvironmentalFireDamageOutcomeReceipt CreateFireDamage(
+        EnvironmentalFireDamageCommand command,
+        in EnvironmentalFireDamageResult source,
+        string targetDisplayName,
+        int absoluteDay,
+        long ownerRevision)
+    {
+        if (string.IsNullOrWhiteSpace(command.OperationId)
+            || string.IsNullOrWhiteSpace(command.FireId)
+            || !command.Target.IsValid
+            || !source.Committed
+            || !float.IsFinite(source.AppliedDamage)
+            || source.AppliedDamage <= 0f
+            || !float.IsFinite(command.Intensity)
+            || command.Intensity <= 0f
+            || command.Intensity > 1f
+            || string.IsNullOrWhiteSpace(targetDisplayName)
+            || ownerRevision <= 0L)
+        {
+            throw new ArgumentException(
+                "A committed canonical fire-damage result is required.",
+                nameof(source));
+        }
+
+        GameplayEntityKindId targetKind = command.Target.Kind ==
+                EnvironmentalFireTargetKind.Character
+            ? EnvironmentOutcomeIds.CharacterKind
+            : EnvironmentOutcomeIds.FacilityKind;
+        var fire = new GameplayEntityId(
+            EnvironmentOutcomeIds.FireKind,
+            command.FireId);
+        var target = new GameplayEntityId(
+            targetKind,
+            command.Target.TargetId);
+        var builder = new EnvironmentOutcomePayloadBuilder(
+            new GameplayResultKey(
+                EnvironmentOutcomeIds.FireDamageProducer,
+                new GameplayOperationId(command.OperationId),
+                ownerRevision,
+                0),
+            EnvironmentOutcomeIds.FireDamage,
+            absoluteDay,
+            GameplayOutcomeStatus.Failed,
+            ownerRevision);
+        Require(builder.AddParticipant(new GameplayOutcomeParticipant(
+            fire,
+            EnvironmentOutcomeIds.FireRole,
+            GameplayParticipationKind.Direct,
+            true,
+            EnvironmentOutcomeSnapshots.Name(command.FireId, "화재"))));
+        Require(builder.AddParticipant(new GameplayOutcomeParticipant(
+            target,
+            EnvironmentOutcomeIds.TargetRole,
+            GameplayParticipationKind.Direct,
+            true,
+            EnvironmentOutcomeSnapshots.Name(
+                command.Target.TargetId,
+                targetDisplayName))));
+        Require(builder.AddSubject(new GameplayOutcomeSubjectLink(
+            fire,
+            0.76f,
+            NarrativeMemoryTier.Episodic,
+            false,
+            false,
+            0)));
+        Require(builder.AddSubject(new GameplayOutcomeSubjectLink(
+            target,
+            source.TargetRemainsCombustible ? 0.84f : 0.94f,
+            source.TargetRemainsCombustible
+                ? NarrativeMemoryTier.Episodic
+                : NarrativeMemoryTier.Core,
+            false,
+            false,
+            0)));
+        AddMetric(ref builder, EnvironmentOutcomeIds.DamageMetric,
+            source.AppliedDamage, EnvironmentOutcomeIds.PointUnit, target);
+        AddMetric(ref builder, EnvironmentOutcomeIds.IntensityBeforeMetric,
+            command.Intensity, EnvironmentOutcomeIds.RatioUnit, fire);
+        AddMetric(ref builder, EnvironmentOutcomeIds.StatusMetric,
+            source.TargetRemainsCombustible ? 1d : 0d,
+            EnvironmentOutcomeIds.EnumUnit,
+            target);
+        Require(builder.AddTag(EnvironmentOutcomeIds.DisasterTag));
+        Require(builder.AddProvenance(new GameplayOutcomeProvenanceReference(
+            EnvironmentOutcomeIds.FireDamageProducer,
+            command.OperationId)));
+        AddFact(ref builder, EnvironmentOutcomeIds.ReceiptKindFact,
+            nameof(EnvironmentalFireDamageResult));
+        AddFact(ref builder, EnvironmentOutcomeIds.CorrelationFact,
+            command.OperationId);
+        AddFact(ref builder, EnvironmentOutcomeIds.SummaryFact,
+            source.TargetRemainsCombustible
+                ? $"{targetDisplayName}이 화재로 {source.AppliedDamage:0.###} 피해를 입었다."
+                : $"{targetDisplayName}이 화재 피해로 파괴되거나 쓰러졌다.");
+        builder.SetLocation(new GameplayLocationReference(
+            "dungeon", string.Empty, command.Position.x, command.Position.y));
+        return new EnvironmentalFireDamageOutcomeReceipt(builder.Build());
+    }
+
     private static string RequireStable(string value, string parameterName) =>
         GameplayOutcomeStableIdSyntax.Require(value, parameterName);
 

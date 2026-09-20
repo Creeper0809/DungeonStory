@@ -53,7 +53,9 @@ public sealed class OffenseReturnArrivalDomainServices
         IEnemyIndividualFactory enemyIndividuals,
         ICombatEquipmentRuntime equipment,
         IGameClock clock,
-        IGameEventBus eventBus)
+        IGameCalendar calendar,
+        IGameEventBus eventBus,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
     {
         BodyHealthQuery = bodyHealthQuery
             ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
@@ -74,8 +76,11 @@ public sealed class OffenseReturnArrivalDomainServices
         Equipment = equipment
             ?? throw new ArgumentNullException(nameof(equipment));
         Clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         EventBus = eventBus
             ?? throw new ArgumentNullException(nameof(eventBus));
+        OutcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
     }
 
     public ICharacterBodyHealthQuery BodyHealthQuery { get; }
@@ -88,5 +93,7 @@ public sealed class OffenseReturnArrivalDomainServices
     public IEnemyIndividualFactory EnemyIndividuals { get; }
     public ICombatEquipmentRuntime Equipment { get; }
     public IGameClock Clock { get; }
+    public IGameCalendar Calendar { get; }
     public IGameEventBus EventBus { get; }
+    public IMigratedProducerOutcomeTransaction OutcomeTransactions { get; }
 }

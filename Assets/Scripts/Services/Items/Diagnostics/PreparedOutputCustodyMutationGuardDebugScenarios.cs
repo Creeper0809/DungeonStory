@@ -711,6 +711,12 @@ public sealed class DeterministicPhysicalItemRelocationOutcomeFixture :
         out CommittedOutcomeToken committed) =>
         throw DirectRecorderUse();
 
+    public OutcomeCommitResult CommitPreparedBatch(
+        PreparedOutcomeToken[] prepared,
+        long[] expectedOwnerRevisions,
+        CommittedOutcomeToken[] committed) =>
+        throw DirectRecorderUse();
+
     public OutcomeDeliveryResult TryDeliver(
         in CommittedOutcomeToken committed) =>
         throw DirectRecorderUse();

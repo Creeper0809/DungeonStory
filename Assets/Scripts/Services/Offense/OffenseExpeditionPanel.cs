@@ -544,7 +544,10 @@ public class OffenseExpeditionPanel : MonoBehaviour
             || expedition == null
             || !GameplayOutcomeStableIdSyntax.IsValid(expedition.ExpeditionId))
             return string.Empty;
-        GameplayOutcomePresentationPage page = outcomePresentation.GetOperationPage(
+        GameplayOutcomePresentationPage page = outcomePresentation.GetExpeditionPage(
+            new GameplayEntityId(
+                new GameplayEntityKindId("expedition"),
+                expedition.ExpeditionId),
             new GameplayOperationId(expedition.ExpeditionId),
             OutcomeCursor.FirstPage(8),
             OutcomeFilter.All);

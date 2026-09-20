@@ -21,6 +21,9 @@ public static class DungeonSaveRegistration
         builder.Register<DungeonAggregateReferencePreflight>(Lifetime.Singleton)
             .As<IDungeonSavePreflightValidator>()
             .As<IDungeonCapturedSavePreflightValidator>();
+        builder.Register<ResearchOutcomeSavePreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>()
+            .As<IDungeonCapturedSavePreflightValidator>();
         builder.Register<
                 SocietyObservedIncidentResponseCrossAggregateSaveValidation>(
                 Lifetime.Singleton)
@@ -295,6 +298,11 @@ public static class DungeonSaveRegistration
         builder.Register<CharacterNarrativeSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<GameplayOutcomeLedgerSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<MigratedProducerOutcomeSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<InfrastructureCommandOutcomeSaveSection>(
+                Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<RoomEnvironmentOutcomeSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();

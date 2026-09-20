@@ -26,6 +26,7 @@ public class InvasionIntruderRuntime :
     private IRandomStream pathRandomStream;
     private ITreasuryDefenseRuntime treasuryDefenseRuntime;
     private IDefenseEngagementRuntime defenseEngagementRuntime;
+    private ICharacterBodyHealthQuery bodyHealth;
     private IDefenseBreachPlanner breachPlanner;
     private IBuildingStructuralIntegrityRuntime structuralIntegrity;
     private IDefenseRaidAwarenessRuntime raidAwareness;
@@ -63,6 +64,7 @@ public class InvasionIntruderRuntime :
     private InvasionIntruderExecutionCoordinator executionCoordinator;
     private InvasionIntruderRestoreCoordinator restoreCoordinator;
     private ICharacterPerformanceQuery performance;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
 
     public CharacterActor IntruderActor => intruderActor != null ? intruderActor : GetComponent<CharacterActor>();
     public InvasionIntruderState State { get; private set; }
@@ -161,6 +163,8 @@ public class InvasionIntruderRuntime :
     float IInvasionIntruderExecutionHost.MeleeDamageMultiplier => MeleeDamageMultiplier;
     float IInvasionIntruderExecutionHost.AttackSpeedMultiplier => AttackSpeedMultiplier;
     ICharacterPerformanceQuery IInvasionIntruderExecutionHost.Performance => performance;
+    IMigratedProducerOutcomeTransaction IInvasionIntruderExecutionHost.OutcomeTransactions =>
+        outcomeTransactions;
     Queue<GridMoveStep> IInvasionIntruderExecutionHost.CreateNextPath(Grid grid, Vector2Int ownerPosition, out bool direct, out BuildableObject priorityTarget) => CreateNextPath(grid, ownerPosition, out direct, out priorityTarget);
     bool IInvasionIntruderExecutionHost.TryDamageNearbyFacility(Grid grid, BuildableObject preferredTarget) => TryDamageNearbyFacility(grid, preferredTarget);
     void IInvasionIntruderExecutionHost.MarkDungeonBreached(Grid grid, Vector2Int cellPosition) => TryMarkDungeonBreached(grid, cellPosition);
@@ -358,7 +362,8 @@ public class InvasionIntruderRuntime :
         IRandomStreamProvider randomStreamProvider,
         IGameEventBus gameEventBus,
         ITreasuryDefenseRuntime treasuryDefenseRuntime,
-        ICharacterPerformanceQuery performance = null)
+        ICharacterPerformanceQuery performance,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
     {
         this.invasionContext = invasionContext
             ?? throw new ArgumentNullException(nameof(invasionContext));
@@ -374,12 +379,18 @@ public class InvasionIntruderRuntime :
             ?? throw new ArgumentNullException(nameof(treasuryDefenseRuntime));
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
     }
 
-    public void ConfigureDefenseEngagement(IDefenseEngagementRuntime defenseEngagementRuntime)
+    public void ConfigureDefenseEngagement(
+        IDefenseEngagementRuntime defenseEngagementRuntime,
+        ICharacterBodyHealthQuery bodyHealth)
     {
         this.defenseEngagementRuntime = defenseEngagementRuntime
             ?? throw new ArgumentNullException(nameof(defenseEngagementRuntime));
+        this.bodyHealth = bodyHealth
+            ?? throw new ArgumentNullException(nameof(bodyHealth));
     }
 
     public void ConfigureTacticalServices(
@@ -701,19 +712,86 @@ public class InvasionIntruderRuntime :
             return false;
         }
 
-        State = InvasionIntruderState.DamagingFacility;
-        target.SetDamaged(true);
-        damagedFacilityIds.Add(target.RequirePersistentInstanceId());
-        facilityDamageCount++;
-        intruderActor.AddActivity(CharacterActivityEvent.Facility(
-            CharacterActivityKinds.Combat,
-            CharacterActivityOutcomes.Damaged,
-            $"{target.name} 손상",
-            target,
-            actionId: "invasion:damage-facility",
-            value: 1f,
-            bubbleEligible: true));
-        gameEventBus.Publish(new InvasionFacilityDamagedEvent(intruderActor, target));
+        BuildingInstanceId facilityId = target.RequirePersistentInstanceId();
+        string ownerIdentity = runtimeId + ":facility-damage:" + facilityId.Value;
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.InvasionFacilityDamagedEvent,
+                ownerIdentity,
+                ResolveCurrentOutcomeDay(),
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reserveFailure))
+        {
+            Debug.LogError(
+                "invasion-facility-damage-outcome-reservation-failed:"
+                + reserveFailure);
+            return false;
+        }
+
+        InvasionIntruderState previousState = State;
+        bool wasDamaged = target.IsDamaged;
+        bool wasRemembered = damagedFacilityIds.Contains(facilityId);
+        int previousDamageCount = facilityDamageCount;
+        try
+        {
+            State = InvasionIntruderState.DamagingFacility;
+            target.SetDamaged(true);
+            if (!target.IsDamaged)
+            {
+                outcomeTransactions.Cancel(prepared);
+                State = previousState;
+                return false;
+            }
+            damagedFacilityIds.Add(facilityId);
+            facilityDamageCount = checked(facilityDamageCount + 1);
+            MigratedProducerOutcomeCommitResult committed =
+                outcomeTransactions.CommitSingleSubject(
+                    prepared,
+                    new MigratedProducerOutcomeSubject(
+                        MigratedProducerOutcomeIds.FacilityKind,
+                        facilityId.Value,
+                        target.name,
+                        MigratedProducerOutcomeIds.FacilityRole),
+                    $"{target.name}이(가) 침입자에게 손상됐다;damageIndex={facilityDamageCount}.");
+            if (!committed.DurablyCommitted)
+            {
+                outcomeTransactions.Cancel(prepared);
+                target.SetDamaged(wasDamaged);
+                if (!wasRemembered)
+                    damagedFacilityIds.Remove(facilityId);
+                facilityDamageCount = previousDamageCount;
+                State = previousState;
+                Debug.LogError(
+                    "invasion-facility-damage-outcome-commit-failed:"
+                    + committed.DetailCode);
+                return false;
+            }
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            target.SetDamaged(wasDamaged);
+            if (!wasRemembered)
+                damagedFacilityIds.Remove(facilityId);
+            facilityDamageCount = previousDamageCount;
+            State = previousState;
+            throw;
+        }
+
+        PublishOutcomeObserver(
+            () => intruderActor.AddActivity(CharacterActivityEvent.Facility(
+                CharacterActivityKinds.Combat,
+                CharacterActivityOutcomes.Damaged,
+                $"{target.name} 손상",
+                target,
+                actionId: "invasion:damage-facility",
+                value: 1f,
+                bubbleEligible: true)),
+            "invasion-facility-damage-activity-observer");
+        PublishOutcomeObserver(
+            () => gameEventBus.Publish(
+                new InvasionFacilityDamagedEvent(intruderActor, target)),
+            "invasion-facility-damage-event-observer");
         if (target == currentPriorityTarget)
         {
             currentPriorityTarget = null;
@@ -724,31 +802,62 @@ public class InvasionIntruderRuntime :
     public void ApplyFinalCombat(CharacterActor owner) =>
         ExecutionCoordinator.ApplyFinalCombat(owner);
 
+    public bool CanResolveDefeat(out string failureReason)
+    {
+        CharacterActor actor = IntruderActor;
+        if (actor == null)
+        {
+            failureReason = "Defeat requires the owned intruder actor.";
+            return false;
+        }
+        if (resolved || State == InvasionIntruderState.Finished)
+        {
+            failureReason = "The intruder has already resolved.";
+            return false;
+        }
+        if (bodyHealth == null)
+            throw new InvalidOperationException("Intruder defeat requires body-health authority.");
+        if (!actor.IsDead && !bodyHealth.GetSnapshot(actor).Downed)
+        {
+            failureReason = "Intruder is neither dead nor downed by body-health authority.";
+            return false;
+        }
+        failureReason = string.Empty;
+        return true;
+    }
+
     public void ResolveSuppressedBy(CharacterActor defender)
     {
         if (resolved)
         {
-            Finish();
+            // A repeated terminal must not despawn the living captive actor.
             return;
         }
+        if (!CanResolveDefeat(out string failureReason))
+            throw new InvalidOperationException(failureReason);
 
-        resolved = true;
-        State = InvasionIntruderState.Finished;
-        intruderActor?.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Combat,
-            CharacterActivityOutcomes.Defeated,
-            defender != null ? $"{defender.name}에게 제압됨" : "제압됨",
-            actionId: "invasion:suppressed",
-            targetId: defender != null
-                ? CharacterPersistentIdentity.Require(defender).Value
-                : string.Empty,
-            targetName: defender != null ? defender.name : string.Empty,
-            sentiment: -0.9f,
-            bubbleEligible: true));
-        gameEventBus.Publish(new InvasionResolvedEvent(
-            runtimeId,
-            true,
-            1f));
+        if (!TryCommitResolution(
+                defended: true,
+                residualRisk: 1f,
+                InvasionIntruderState.Finished,
+                "침입자가 제압되어 침공이 종결됐다."))
+        {
+            throw new InvalidOperationException(
+                "The suppressed invasion result could not be committed.");
+        }
+        PublishOutcomeObserver(
+            () => intruderActor?.AddActivity(CharacterActivityEvent.Create(
+                CharacterActivityKinds.Combat,
+                CharacterActivityOutcomes.Defeated,
+                defender != null ? $"{defender.name}에게 제압됨" : "제압됨",
+                actionId: "invasion:suppressed",
+                targetId: defender != null
+                    ? CharacterPersistentIdentity.Require(defender).Value
+                    : string.Empty,
+                targetName: defender != null ? defender.name : string.Empty,
+                sentiment: -0.9f,
+                bubbleEligible: true)),
+            "invasion-suppressed-activity-observer");
         if (intruderActor != null && !intruderActor.IsDead)
         {
             FinishAsDownedCaptureCandidate();
@@ -766,21 +875,176 @@ public class InvasionIntruderRuntime :
             return;
         }
 
-        resolved = true;
-        intruderActor?.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Combat,
-            CharacterActivityOutcomes.Completed,
-            "최종 방어선 돌파",
-            actionId: "invasion:owner-defeated",
-            targetId: owner?.Identity?.PersistentId ?? "owner",
-            targetName: owner?.Identity?.DisplayName ?? "사장",
-            sentiment: 0.8f,
-            bubbleEligible: true));
-        gameEventBus.Publish(new InvasionResolvedEvent(
-            runtimeId,
-            false,
-            5f));
+        if (!TryCommitResolution(
+                defended: false,
+                residualRisk: 5f,
+                InvasionIntruderState.Finished,
+                "최종 방어선이 돌파되어 침공이 종결됐다."))
+        {
+            throw new InvalidOperationException(
+                "The failed-defense invasion result could not be committed.");
+        }
+        PublishOutcomeObserver(
+            () => intruderActor?.AddActivity(CharacterActivityEvent.Create(
+                CharacterActivityKinds.Combat,
+                CharacterActivityOutcomes.Completed,
+                "최종 방어선 돌파",
+                actionId: "invasion:owner-defeated",
+                targetId: owner?.Identity?.PersistentId ?? "owner",
+                targetName: owner?.Identity?.DisplayName ?? "사장",
+                sentiment: 0.8f,
+                bubbleEligible: true)),
+            "invasion-owner-defeated-activity-observer");
         Finish();
+    }
+
+    internal bool TryCommitFrontCollapsedOutcome(string reason)
+    {
+        if (resolved || string.IsNullOrWhiteSpace(runtimeId))
+            return false;
+        return TryCommitOutcomeOnly(
+            MigratedProducerOutcomeKind.DefenseFrontCollapsedEvent,
+            runtimeId + ":front-collapse",
+            reason,
+            "방어선이 붕괴했다: " + (reason?.Trim() ?? string.Empty));
+    }
+
+    internal bool TryCommitResolution(
+        bool defended,
+        float residualRisk,
+        InvasionIntruderState terminalState,
+        string summary)
+    {
+        if (resolved
+            || string.IsNullOrWhiteSpace(runtimeId)
+            || !float.IsFinite(residualRisk)
+            || residualRisk < 0f)
+        {
+            return false;
+        }
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.InvasionResolvedEvent,
+                runtimeId,
+                ResolveCurrentOutcomeDay(),
+                defended
+                    ? GameplayOutcomeStatus.Succeeded
+                    : GameplayOutcomeStatus.Failed,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reserveFailure))
+        {
+            Debug.LogError(
+                "invasion-resolved-outcome-reservation-failed:"
+                + reserveFailure);
+            return false;
+        }
+
+        bool previousResolved = resolved;
+        InvasionIntruderState previousState = State;
+        try
+        {
+            resolved = true;
+            State = terminalState;
+            MigratedProducerOutcomeCommitResult committed =
+                outcomeTransactions.CommitSingleSubject(
+                    prepared,
+                    new MigratedProducerOutcomeSubject(
+                        MigratedProducerOutcomeIds.OperationKind,
+                        runtimeId,
+                        intruderActor?.Identity?.DisplayName ?? runtimeId,
+                        MigratedProducerOutcomeIds.OperationRole),
+                    (summary?.Trim() ?? string.Empty)
+                    + ";defended=" + defended
+                    + ";residualRisk=" + residualRisk.ToString(
+                        "0.###",
+                        System.Globalization.CultureInfo.InvariantCulture));
+            if (!committed.DurablyCommitted)
+            {
+                outcomeTransactions.Cancel(prepared);
+                resolved = previousResolved;
+                State = previousState;
+                Debug.LogError(
+                    "invasion-resolved-outcome-commit-failed:"
+                    + committed.DetailCode);
+                return false;
+            }
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            resolved = previousResolved;
+            State = previousState;
+            throw;
+        }
+
+        PublishOutcomeObserver(
+            () => gameEventBus.Publish(new InvasionResolvedEvent(
+                runtimeId,
+                defended,
+                residualRisk)),
+            "invasion-resolved-event-observer");
+        return true;
+    }
+
+    private bool TryCommitOutcomeOnly(
+        MigratedProducerOutcomeKind kind,
+        string ownerIdentity,
+        string reason,
+        string summary)
+    {
+        if (outcomeTransactions == null
+            || string.IsNullOrWhiteSpace(ownerIdentity))
+        {
+            return false;
+        }
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                kind,
+                ownerIdentity,
+                ResolveCurrentOutcomeDay(),
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reserveFailure))
+        {
+            Debug.LogError(
+                "invasion-outcome-reservation-failed:"
+                + kind + ":" + reserveFailure);
+            return false;
+        }
+        MigratedProducerOutcomeCommitResult committed =
+            outcomeTransactions.CommitSingleSubject(
+                prepared,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.OperationKind,
+                    runtimeId,
+                    intruderActor?.Identity?.DisplayName ?? runtimeId,
+                    MigratedProducerOutcomeIds.OperationRole),
+                summary + ";reason=" + (reason?.Trim() ?? string.Empty));
+        if (committed.DurablyCommitted)
+            return true;
+        outcomeTransactions.Cancel(prepared);
+        Debug.LogError(
+            "invasion-outcome-commit-failed:"
+            + kind + ":" + committed.DetailCode);
+        return false;
+    }
+
+    private int ResolveCurrentOutcomeDay() => Mathf.Max(
+        0,
+        Mathf.FloorToInt(
+            ResolveGameClock().Time / GameCalendarRules.SecondsPerDay));
+
+    private static void PublishOutcomeObserver(Action observer, string context)
+    {
+        try
+        {
+            observer?.Invoke();
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(context + ":" + exception.GetType().Name);
+        }
     }
 
     private IEnumerator Run(
@@ -829,6 +1093,8 @@ public class InvasionIntruderRuntime :
 
         defenseEngagementRuntime?.NotifyIntruderFinished(this);
         State = InvasionIntruderState.Finished;
+        // Project the already-committed body-health result. Never manufacture
+        // a downed state to force a healthy intruder through this terminal.
         intruderActor.SetLifecycleState(CharacterLifecycleState.Downed);
         OnFinished?.Invoke(this);
         Destroy(this);

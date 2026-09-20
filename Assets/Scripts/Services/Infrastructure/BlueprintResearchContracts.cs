@@ -52,6 +52,7 @@ public class BlueprintResearchTask
 
 public sealed class BlueprintResearchAggregateState
 {
+    internal long OutcomeSequence;
     internal readonly ResearchProjectRuntimeState Projects;
     internal readonly List<BlueprintResearchTask> Tasks;
     internal readonly HashSet<int> CompletedBlueprintIds;
@@ -97,7 +98,8 @@ public sealed class BlueprintResearchAggregateState
             Tasks.Select(task => task?.DeepClone()).ToList(),
             new HashSet<int>(CompletedBlueprintIds),
             new HashSet<int>(UnlockedBuildingIds),
-            new HashSet<string>(UnlockedRecipeIds, StringComparer.Ordinal));
+            new HashSet<string>(UnlockedRecipeIds, StringComparer.Ordinal))
+        { OutcomeSequence = OutcomeSequence };
     }
 }
 
@@ -129,6 +131,14 @@ public class BlueprintResearchState : IBuildingUnlockStateView
     public ResearchProjectRuntimeState Projects => Writable.Projects;
 
     public bool HasActiveTask => TryGetActiveTask(out _);
+
+    public long OutcomeSequence => Current.OutcomeSequence;
+
+    internal void RestoreOutcomeSequence(long value)
+    {
+        if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+        Writable.OutcomeSequence = value;
+    }
 
     public bool EnqueueBlueprint(FacilityBlueprintSO blueprint)
     {
@@ -256,7 +266,7 @@ public class BlueprintResearchState : IBuildingUnlockStateView
                 state => state.DeepClone())
             : localState;
 
-    private void ReplaceAggregate(BlueprintResearchAggregateState state)
+    internal void ReplaceAggregate(BlueprintResearchAggregateState state)
     {
         if (aggregateRootStore != null)
         {
@@ -277,16 +287,18 @@ public readonly struct BlueprintResearchWorkResult
         float totalProgress,
         float requiredWork,
         bool completed,
-        string message)
+        string message,
+        bool capacityDeferred = false)
     {
         Success = success;
         Blueprint = blueprint;
         Project = null;
-        AddedProgress = Mathf.Max(0f, addedProgress);
+        AddedProgress = addedProgress;
         TotalProgress = Mathf.Max(0f, totalProgress);
         RequiredWork = Mathf.Max(1f, requiredWork);
         Completed = completed;
         Message = message ?? string.Empty;
+        CapacityDeferred = capacityDeferred;
     }
 
     public static BlueprintResearchWorkResult ForProject(
@@ -296,7 +308,8 @@ public readonly struct BlueprintResearchWorkResult
         float totalProgress,
         float requiredWork,
         bool completed,
-        string message)
+        string message,
+        bool capacityDeferred = false)
     {
         return new BlueprintResearchWorkResult(
             success,
@@ -306,7 +319,8 @@ public readonly struct BlueprintResearchWorkResult
             requiredWork,
             completed,
             message,
-            projectResult: true);
+            projectResult: true,
+            capacityDeferred: capacityDeferred);
     }
 
     private BlueprintResearchWorkResult(
@@ -317,21 +331,25 @@ public readonly struct BlueprintResearchWorkResult
         float requiredWork,
         bool completed,
         string message,
-        bool projectResult)
+        bool projectResult,
+        bool capacityDeferred)
     {
         Success = success;
         Blueprint = project?.Blueprint;
         Project = project;
-        AddedProgress = Mathf.Max(0f, addedProgress);
+        AddedProgress = addedProgress;
         TotalProgress = Mathf.Max(0f, totalProgress);
         RequiredWork = Mathf.Max(1f, requiredWork);
         Completed = completed;
         Message = message ?? string.Empty;
+        CapacityDeferred = capacityDeferred;
     }
 
     public bool Success { get; }
+    public bool CapacityDeferred { get; }
     public FacilityBlueprintSO Blueprint { get; }
     public ResearchProjectSO Project { get; }
+    /// <summary>Signed committed delta; a forbidden-leap setback may reduce progress.</summary>
     public float AddedProgress { get; }
     public float TotalProgress { get; }
     public float RequiredWork { get; }

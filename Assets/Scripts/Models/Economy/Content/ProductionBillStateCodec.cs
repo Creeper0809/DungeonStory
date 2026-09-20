@@ -18,10 +18,17 @@ public sealed class ProductionAggregateStateStore
     public IReadOnlyList<ProductionBillRecord> Bills => session.Bills;
     internal IReadOnlyList<ProductionWipTerminalReceiptSaveData> WipTerminalReceipts =>
         session.WipTerminalReceipts;
+    internal IReadOnlyCollection<ProductionCommandOutcomeOutboxSaveData>
+        PendingCommandOutcomes => session.PendingCommandOutcomes;
     internal int NextBillSequence
     {
         get => session.NextBillSequence;
         set => session.NextBillSequence = value;
+    }
+    internal long NextCommandOutcomeSequence
+    {
+        get => session.NextCommandOutcomeSequence;
+        set => session.NextCommandOutcomeSequence = value;
     }
     internal int BillVersion => session.BillVersion;
     internal int StockSensorVersion => session.StockSensorVersion;
@@ -37,6 +44,15 @@ public sealed class ProductionAggregateStateStore
         PendingStockSensorRemovals => session.PendingStockSensorRemovals;
     internal void AddBill(ProductionBillRecord bill) => session.AddBill(bill);
     internal bool RemoveBill(ProductionBillRecord bill) => session.RemoveBill(bill);
+    internal void SetPendingCommandOutcome(
+        ProductionCommandOutcomeOutboxSaveData pending) =>
+        session.SetPendingCommandOutcome(pending);
+    internal bool TryGetPendingCommandOutcome(
+        long ownerRevision,
+        out ProductionCommandOutcomeOutboxSaveData pending) =>
+        session.TryGetPendingCommandOutcome(ownerRevision, out pending);
+    internal bool RemovePendingCommandOutcome(long ownerRevision) =>
+        session.RemovePendingCommandOutcome(ownerRevision);
     internal bool AddWipTerminalReceipt(
         ProductionWipTerminalReceiptSaveData receipt) =>
         session.AddWipTerminalReceipt(receipt);
@@ -103,6 +119,9 @@ internal static class ProductionBillStateCodec
 
     internal static DungeonProductionBillSaveData Capture(
         int nextBillSequence,
+        long nextCommandOutcomeSequence,
+        IEnumerable<ProductionCommandOutcomeOutboxSaveData>
+            pendingCommandOutcomes,
         IEnumerable<ProductionBillRecord> bills,
         IEnumerable<string> installedStockSensorFacilityIds,
         IEnumerable<string> acknowledgedStockSensorFacilityIds,
@@ -117,6 +136,12 @@ internal static class ProductionBillStateCodec
         return new DungeonProductionBillSaveData
         {
             nextBillSequence = nextBillSequence,
+            nextCommandOutcomeSequence = nextCommandOutcomeSequence,
+            pendingCommandOutcomes = (pendingCommandOutcomes
+                    ?? Array.Empty<ProductionCommandOutcomeOutboxSaveData>())
+                .OrderBy(value => value.ownerRevision)
+                .Select(value => value.Clone())
+                .ToList(),
             bills = (bills ?? Array.Empty<ProductionBillRecord>())
                 .Select(ToSaveData)
                 .ToList(),
@@ -179,6 +204,8 @@ internal static class ProductionBillStateCodec
                 $"Production-bill payload version {snapshot.version} is unsupported.");
         }
         if (snapshot.nextBillSequence <= 0
+            || snapshot.nextCommandOutcomeSequence < 0L
+            || snapshot.pendingCommandOutcomes == null
             || snapshot.bills == null
             || snapshot.installedStockSensorFacilityIds == null
             || snapshot.acknowledgedStockSensorFacilityIds == null
@@ -190,6 +217,10 @@ internal static class ProductionBillStateCodec
             throw new InvalidOperationException(
                 "Production-bill payload has missing collections or an invalid next sequence.");
         }
+
+        ValidatePendingCommandOutcomes(
+            snapshot.pendingCommandOutcomes,
+            snapshot.nextCommandOutcomeSequence);
 
         ValidateCanonicalBuildingIds(
             snapshot.installedStockSensorFacilityIds,
@@ -237,6 +268,39 @@ internal static class ProductionBillStateCodec
                 "Production-bill next sequence collides with a persisted bill ID.");
         }
         ValidateWipTerminalReceipts(snapshot.wipTerminalReceipts, catalog);
+    }
+
+    private static void ValidatePendingCommandOutcomes(
+        IReadOnlyList<ProductionCommandOutcomeOutboxSaveData> pending,
+        long nextOwnerRevision)
+    {
+        long previous = 0L;
+        foreach (ProductionCommandOutcomeOutboxSaveData value in pending)
+        {
+            if (value == null
+                || value.ownerRevision <= previous
+                || value.ownerRevision <= 0L
+                || nextOwnerRevision > 0L
+                    && value.ownerRevision >= nextOwnerRevision)
+            {
+                throw new InvalidOperationException(
+                    "Pending production command outcomes are invalid, unordered, or collide with the next owner revision.");
+            }
+            try
+            {
+                _ = value.ToSource();
+                _ = value.ToFrozenContext();
+            }
+            catch (Exception exception) when (exception is ArgumentException
+                                               or InvalidOperationException
+                                               or OverflowException)
+            {
+                throw new InvalidOperationException(
+                    "Pending production command outcome has an invalid frozen receipt.",
+                    exception);
+            }
+            previous = value.ownerRevision;
+        }
     }
 
     private static void ValidatePendingStockSensorInstalls(

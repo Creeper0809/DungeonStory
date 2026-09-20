@@ -328,6 +328,14 @@ public interface IFieldMealConsumptionCommand
         out MealConsumptionResult result);
 }
 
+public interface IPrimitiveFieldMealConsumptionCommand
+{
+    bool TryConsumePrimitiveFieldMeal(
+        CharacterActor actor,
+        ItemStackId stackId,
+        out MealConsumptionResult result);
+}
+
 public interface ICharacterSubstanceCommand
 {
     void SetPolicy(

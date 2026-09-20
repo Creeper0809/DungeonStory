@@ -41,13 +41,15 @@ public readonly struct SeasonalFeedSelfHeatingTarget
         string itemId,
         int quantity,
         string destinationId,
-        BuildingInstanceId facilityInstanceId)
+        BuildingInstanceId facilityInstanceId,
+        string facilityDisplayName)
     {
         StackId = stackId?.Trim() ?? string.Empty;
         ItemId = itemId?.Trim() ?? string.Empty;
         Quantity = quantity;
         DestinationId = destinationId?.Trim() ?? string.Empty;
         FacilityInstanceId = facilityInstanceId;
+        FacilityDisplayName = facilityDisplayName?.Trim() ?? string.Empty;
     }
 
     public string StackId { get; }
@@ -55,12 +57,14 @@ public readonly struct SeasonalFeedSelfHeatingTarget
     public int Quantity { get; }
     public string DestinationId { get; }
     public BuildingInstanceId FacilityInstanceId { get; }
+    public string FacilityDisplayName { get; }
     public bool IsValid =>
         !string.IsNullOrEmpty(StackId)
         && !string.IsNullOrEmpty(ItemId)
         && Quantity > 0
         && !string.IsNullOrEmpty(DestinationId)
-        && FacilityInstanceId.IsValid;
+        && FacilityInstanceId.IsValid
+        && !string.IsNullOrEmpty(FacilityDisplayName);
 }
 
 public interface ISeasonalFeedSelfHeatingTargetQuery
@@ -297,5 +301,6 @@ public sealed class SeasonalFeedSelfHeatingTargetQuery :
         stack.ItemId,
         stack.Quantity,
         stack.DestinationId,
-        facility.PersistentInstanceId);
+        facility.PersistentInstanceId,
+        FacilityShopService.GetBuildingName(facility.BuildingData));
 }

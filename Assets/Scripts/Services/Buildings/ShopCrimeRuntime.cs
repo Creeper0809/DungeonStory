@@ -9,6 +9,8 @@ internal sealed class ShopCrimeRuntime
     private readonly Shop owner;
     private IFacilityCrimeRiskEvaluator evaluator;
     private IRandomStream random;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private IGameSessionStateProvider gameDataProvider;
 
     public ShopCrimeRuntime(Shop owner)
     {
@@ -23,6 +25,16 @@ internal sealed class ShopCrimeRuntime
             ?? throw new ArgumentNullException(nameof(crimeRiskEvaluator));
         random = randomStream
             ?? throw new ArgumentNullException(nameof(randomStream));
+    }
+
+    public void ConfigureOutcomeTransactions(
+        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        IGameSessionStateProvider gameDataProvider)
+    {
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.gameDataProvider = gameDataProvider
+            ?? throw new ArgumentNullException(nameof(gameDataProvider));
     }
 
     public float GetCheckoutChance(
@@ -68,33 +80,79 @@ internal sealed class ShopCrimeRuntime
             return false;
         }
 
-        if (!owner.TryTakeExactRetailLot(
+        if (outcomeTransactions == null
+            || gameDataProvider == null
+            || !gameDataProvider.TryGetSessionState(out GameSessionState gameData)
+            || gameData?.day == null)
+        {
+            throw new InvalidOperationException(
+                "Shoplifting outcome requires the migrated transaction and current session day.");
+        }
+        if (!owner.TryPreviewExactRetailLotOperationId(
                 stolenStock.id,
-                out RetailStockLotSnapshot stolenLot,
-                out string unitOperationId,
-                out _))
+                out string previewOperationId))
         {
             return false;
         }
-        if (!owner.TryCommitExactRetailExternalSink(
-                stolenLot,
-                out _))
-        {
-            if (!owner.TryRestoreTakenExactRetailLot(
-                    stolenLot,
-                    out string restoreFailure))
-            {
-                throw new InvalidOperationException(
-                    $"Shoplifting lot '{stolenLot.sourceOperationId}' could not be restored: {restoreFailure}");
-            }
-            return false;
-        }
+
+        string facilityId = owner.RequirePersistentInstanceId().Value;
+        string actorId = actor?.VisitorSnapshot.PersistentId ?? string.Empty;
         StockCategory category = owner.GetStockCategoryForSaleItem(stolenStock.id);
-        owner.PublishStockConsumed(actor, category);
+        int absoluteDay = Mathf.Max(0, gameData.day.Value);
+        string outcomeIdentity = "facility-crime:shoplifting:"
+            + previewOperationId
+            + ":facility=" + facilityId
+            + ":actor=" + actorId;
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.FacilityCrimeEvent,
+                outcomeIdentity,
+                absoluteDay,
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reserveFailure))
+        {
+            throw new InvalidOperationException(
+                "Shoplifting outcome reservation failed: " + reserveFailure);
+        }
+
+        RetailStockLotSnapshot stolenLot;
+        string unitOperationId;
+        bool lotTaken;
+        try
+        {
+            lotTaken = owner.TryTakeExactRetailLot(
+                stolenStock.id,
+                out stolenLot,
+                out unitOperationId,
+                out _);
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            throw;
+        }
+        if (!lotTaken)
+        {
+            outcomeTransactions.Cancel(prepared);
+            return false;
+        }
+
+        if (!string.Equals(
+                previewOperationId,
+                unitOperationId,
+                StringComparison.Ordinal))
+        {
+            outcomeTransactions.Cancel(prepared);
+            RestoreStolenLotOrThrow(stolenLot, "shoplifting-operation-drift");
+            throw new InvalidOperationException(
+                "Shoplifting operation identity drifted before mutation.");
+        }
         if (stolenLot == null
             || stolenLot.quantity != 1
             || string.IsNullOrWhiteSpace(stolenLot.itemDefinitionId))
         {
+            outcomeTransactions.Cancel(prepared);
+            RestoreStolenLotOrThrow(stolenLot, "shoplifting-lot-invalid");
             throw new InvalidOperationException(
                 $"Stolen sale item '{stolenStock.id}' produced no exact physical lot receipt.");
         }
@@ -102,22 +160,109 @@ internal sealed class ShopCrimeRuntime
         int lossValue = Mathf.Max(0, stolenStock.cost);
         string detail = BuildCrimeDetail(actor, stolenStock, lossValue, chance);
         string commitOperationId = $"shoplifting-commit:{unitOperationId}";
-        owner.PublishShopliftingCrime(
-            actor,
-            detail,
-            lossValue,
-            commitOperationId,
-            stolenLot);
-        actor?.RecordActivity(owner, new BuildingActivitySnapshot(
-            BuildingActivityKinds.Social,
-            BuildingActivityOutcomes.Damaged,
-            detail,
-            actionId: "crime:shoplifting",
-            reasonCode: "shoplifting",
-            value: lossValue,
-            quantity: 1,
-            bubbleEligible: true));
+        bool outcomeCommitted = false;
+        bool rollbackAttempted = false;
+        try
+        {
+            MigratedProducerOutcomeCommitResult committed =
+                outcomeTransactions.CommitSingleSubject(
+                    prepared,
+                    new MigratedProducerOutcomeSubject(
+                        MigratedProducerOutcomeIds.FacilityKind,
+                        facilityId,
+                        owner.DisplayNameForActivity,
+                        MigratedProducerOutcomeIds.FacilityRole),
+                    "시설 절도 확정: operation=" + commitOperationId
+                    + "; actor=" + actorId
+                    + "; item=" + stolenLot.itemDefinitionId
+                    + "; loss=" + lossValue
+                    + "; day=" + absoluteDay);
+            if (!committed.DurablyCommitted)
+            {
+                rollbackAttempted = true;
+                RestoreStolenLotOrThrow(
+                    stolenLot,
+                    "shoplifting-outcome-rejected");
+                throw new InvalidOperationException(
+                    "Shoplifting outcome commit failed: "
+                    + committed.DetailCode);
+            }
+            outcomeCommitted = true;
+
+            if (!owner.TryCommitExactRetailExternalSink(
+                    stolenLot,
+                    out string sinkFailure))
+            {
+                throw new InvalidOperationException(
+                    "Shoplifting terminal sink failed after durable outcome '"
+                    + commitOperationId + "': " + sinkFailure);
+            }
+        }
+        catch
+        {
+            if (!outcomeCommitted && !rollbackAttempted)
+            {
+                outcomeTransactions.Cancel(prepared);
+                RestoreStolenLotOrThrow(
+                    stolenLot,
+                    "shoplifting-outcome-exception");
+            }
+            throw;
+        }
+
+        PublishPostCommit(
+            () => owner.PublishStockConsumed(actor, category),
+            "shoplifting-stock-consumed");
+        PublishPostCommit(
+            () => owner.PublishShopliftingCrime(
+                actor,
+                detail,
+                lossValue,
+                commitOperationId,
+                stolenLot),
+            "shoplifting-crime-event");
+        PublishPostCommit(
+            () => actor?.RecordActivity(owner, new BuildingActivitySnapshot(
+                BuildingActivityKinds.Social,
+                BuildingActivityOutcomes.Damaged,
+                detail,
+                actionId: "crime:shoplifting",
+                reasonCode: "shoplifting",
+                value: lossValue,
+                quantity: 1,
+                bubbleEligible: true)),
+            "shoplifting-activity");
         return true;
+    }
+
+    private void RestoreStolenLotOrThrow(
+        RetailStockLotSnapshot stolenLot,
+        string reason)
+    {
+        if (!owner.TryRestoreTakenExactRetailLot(
+                stolenLot,
+                out string restoreFailure))
+        {
+            throw new InvalidOperationException(
+                "Shoplifting rollback '" + reason
+                + "' could not restore exact lot '"
+                + stolenLot?.sourceOperationId + "': " + restoreFailure);
+        }
+    }
+
+    private static void PublishPostCommit(Action observer, string label)
+    {
+        try
+        {
+            observer?.Invoke();
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(label + ":" + exception.GetType().Name);
+        }
     }
 
     private string BuildCrimeDetail(

@@ -37,9 +37,13 @@ internal static class CharacterAiEditorTestDependencies
             performanceRecorder: PerformanceRecorder, doorAccessQuery: null, costPolicy: null);
     internal static readonly IGameClock GameClock = new UnityGameClock();
     internal static readonly IUiClock UiClock = new UnityUiClock();
+    internal static readonly IStaffDiscontentOutcomeCommitter StaffOutcomes =
+        new EditorUnavailableStaffDiscontentOutcomeCommitter();
     private static readonly IDynamicFrameWorkBudget FrameWorkBudget =
         new DynamicFrameWorkBudget(GameClock, UiClock);
     internal static readonly IGameEventBus GameEvents = new GameEventBus();
+    private static readonly MigratedProducerOutcomeEditorFixture OutcomeFixture =
+        new("run:character-ai-stats");
     private static readonly IRandomStreamProvider RandomStreams =
         new RandomStreamProvider(rootSeed: 9173);
     private static readonly IPersistentIdGenerator PersistentIds =
@@ -79,6 +83,8 @@ internal static class CharacterAiEditorTestDependencies
                     CombatEquipmentRuntime.Value)));
     internal static ICombatEquipmentRuntime CombatEquipment =>
         CombatEquipmentRuntime.Value;
+    internal static CharacterBodyHealthRuntime BodyHealthRuntime =>
+        BodyHealth.Value;
     internal static IRetailStockPhysicalRuntime RetailStockPhysical =>
         RetailStockPhysicalRuntime.Value;
     private static readonly IStockQuery StockQuery =
@@ -617,7 +623,8 @@ internal static class CharacterAiEditorTestDependencies
         IMetaProgressionRuntimeReader metaProgression,
         IGameClock gameClock,
         ICharacterNeedDefinitionCatalog needDefinitions,
-        IDungeonDebugRuleQuery debugRules)
+        IDungeonDebugRuleQuery debugRules,
+        IMigratedProducerOutcomeTransaction outcomeTransactions = null)
     {
         if (stats == null)
         {
@@ -655,6 +662,7 @@ internal static class CharacterAiEditorTestDependencies
             new CharacterMoodStateService(gameClock, needDefinitions),
             new CharacterStatsMaintenanceSchedule(),
             GameEvents,
+            outcomeTransactions ?? OutcomeFixture.Transaction,
             NeutralPerformance,
             new CharacterWorkPerformanceContextResolver(
                 NeutralProficiencies,
@@ -932,6 +940,22 @@ internal static class CharacterAiEditorTestDependencies
             debugRules: DisabledDungeonDebugRuleQuery.Instance);
     }
 
+    internal static void InjectCharacterStatsOutcomeForDiagnostics(
+        CharacterStats stats,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
+    {
+        if (outcomeTransactions == null)
+            throw new ArgumentNullException(nameof(outcomeTransactions));
+        InjectCharacterStats(
+            stats,
+            StaffDiscontent,
+            MetaProgression,
+            GameClock,
+            AuthoredGameplay,
+            DisabledDungeonDebugRuleQuery.Instance,
+            outcomeTransactions);
+    }
+
     internal static void InjectFeedbackCameraForDiagnostics(
         CharacterAiScheduler scheduler,
         IMainCameraProvider cameraProvider)
@@ -1014,7 +1038,9 @@ internal static class CharacterAiEditorTestDependencies
             WorldRegistry,
             GameEvents,
             new DungeonRuntimeAggregateRootStore(),
-            SettlementStandings);
+            SettlementStandings,
+            StaffOutcomes,
+            GameClock);
     }
 
     public static void Inject(BlueprintResearchRuntime runtime)
@@ -1045,7 +1071,9 @@ internal static class CharacterAiEditorTestDependencies
             WorldRegistry,
             GameEvents,
             new DungeonRuntimeAggregateRootStore(),
-            SettlementStandings);
+            SettlementStandings,
+            StaffOutcomes,
+            GameClock);
     }
 
     public static void Inject(BuildableObject building)
@@ -1088,7 +1116,10 @@ internal static class CharacterAiEditorTestDependencies
             gameClock: GameClock, combatEquipmentRuntime: null, worldItemStackRuntime: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
         building?.ConstructBuildableObjectEventBus(
             GameEvents,
-            new BuildingVisitEventPublisher(GameEvents),
+            new BuildingVisitEventPublisher(
+                GameEvents,
+                new FixedGameSessionStateProvider(),
+                OutcomeFixture.Transaction),
             new BuildingInfoPresentationAdapter(GameEvents));
         building?.ConstructDebugRules(DisabledDungeonDebugRuleQuery.Instance);
 
@@ -1403,6 +1434,29 @@ internal static class CharacterAiEditorTestDependencies
         }
     }
 
+    internal static void InjectOwnerRunManagerOutcomeForDiagnostics(
+        OwnerRunManager manager,
+        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        IRunSeedProvider runSeedProvider,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        DungeonStory.Content.CoreSession.ICoreSessionRulesProvider rulesProvider)
+    {
+        if (manager == null)
+            throw new ArgumentNullException(nameof(manager));
+        manager.ConstructOwnerRunManager(
+            OwnerCandidates,
+            new EditorOwnerCharacterFactory(manager),
+            GameEvents,
+            outcomeTransactions
+                ?? throw new ArgumentNullException(nameof(outcomeTransactions)),
+            runSeedProvider
+                ?? throw new ArgumentNullException(nameof(runSeedProvider)),
+            aggregateRootStore
+                ?? throw new ArgumentNullException(nameof(aggregateRootStore)),
+            rulesProvider
+                ?? throw new ArgumentNullException(nameof(rulesProvider)));
+    }
+
     private sealed class NoopCharacterFeedbackBubbleFactory : ICharacterFeedbackBubbleFactory
     {
         public CharacterFeedbackBubble GetOrAdd(CharacterActor actor) => null;
@@ -1584,6 +1638,58 @@ internal static class CharacterAiEditorTestDependencies
         public bool ResolveSuppressedRebel(CharacterActor rebel, CharacterActor defender) => false;
     }
 
+    private sealed class EditorUnavailableStaffDiscontentOutcomeCommitter :
+        IStaffDiscontentOutcomeCommitter
+    {
+        public bool TryReserve(
+            long ownerRevision,
+            int absoluteDay,
+            bool hasResponder,
+            out ReservedStaffDiscontentOutcome reserved,
+            out string failureReason)
+        {
+            reserved = default;
+            failureReason = "editor-staff-outcome-fixture-not-configured";
+            return false;
+        }
+
+        public bool TryWrite(
+            in StaffDiscontentOutcomeReceipt receipt,
+            in ReservedStaffDiscontentOutcome reserved,
+            out PreparedOwnerOutcome prepared,
+            out string failureReason)
+        {
+            prepared = default;
+            failureReason = "editor-staff-outcome-fixture-not-configured";
+            return false;
+        }
+
+        public OwnerOutcomeCommitResult Commit(
+            in PreparedOwnerOutcome prepared,
+            long expectedOwnerRevision) => new(
+            OwnerOutcomeCommitPhase.Rejected,
+            prepared.ResultKey,
+            default,
+            string.Empty,
+            "editor-staff-outcome-fixture-not-configured");
+
+        public OwnerOutcomeCommitResult Reconcile(
+            GameplayResultKey resultKey) => new(
+            OwnerOutcomeCommitPhase.Rejected,
+            resultKey,
+            default,
+            string.Empty,
+            "editor-staff-outcome-fixture-not-configured");
+
+        public void Cancel(in ReservedStaffDiscontentOutcome reserved)
+        {
+        }
+
+        public void Cancel(in PreparedOwnerOutcome prepared)
+        {
+        }
+    }
+
     private sealed class EditorStaffDiscontentRuntimeService : IStaffDiscontentRuntimeService
     {
         private readonly StaffDiscontentRuntime runtime;
@@ -1656,7 +1762,8 @@ internal static class CharacterAiEditorTestDependencies
         public BlueprintResearchWorkResult ApplyApprovedResearchWork(
             CharacterActor researcher,
             BuildableObject researchFacility,
-            float approvedWorkUnits) =>
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null) =>
             ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 
@@ -1684,11 +1791,13 @@ internal static class CharacterAiEditorTestDependencies
         public BlueprintResearchWorkResult ApplyApprovedResearchWork(
             CharacterActor researcher,
             BuildableObject researchFacility,
-            float approvedWorkUnits) =>
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null) =>
             runtime.ApplyApprovedResearchWork(
                 researcher,
                 researchFacility,
-                approvedWorkUnits);
+                approvedWorkUnits,
+                equipment);
     }
 
     private sealed class NoopWorldInfoClickSelector : IWorldInfoClickSelector

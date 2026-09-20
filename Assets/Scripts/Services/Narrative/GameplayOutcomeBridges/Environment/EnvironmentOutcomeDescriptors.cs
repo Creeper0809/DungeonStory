@@ -395,6 +395,107 @@ public sealed class CropPlanOutcomeDescriptor : EnvironmentOutcomeDescriptor
     }
 }
 
+public sealed class CropIrrigationSupplyOutcomeDescriptor : EnvironmentOutcomeDescriptor
+{
+    public CropIrrigationSupplyOutcomeDescriptor(IKoreanJosaFormatter josa) : base(
+        josa, "농지 관개", EnvironmentOutcomeIds.FacilityRole,
+        KoreanJosaKind.Topic, " 깨끗한 물을 공급받았다.", "깨끗한 물을 공급받았다.",
+        GameplayOutcomeStatus.Succeeded, GameplayOutcomeStatus.Succeeded,
+        EnvironmentOutcomeIds.AgricultureTag,
+        new[] { EnvironmentOutcomeIds.FacilityRole, EnvironmentOutcomeIds.ActorRole },
+        new[]
+        {
+            Metric(EnvironmentOutcomeIds.WaterUnitsMetric, EnvironmentOutcomeIds.PointUnit, double.Epsilon),
+            Metric(EnvironmentOutcomeIds.WaterQualityMetric, EnvironmentOutcomeIds.EnumUnit, 0d, int.MaxValue, true)
+        },
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.CorrelationFact,
+            EnvironmentOutcomeIds.SummaryFact
+        }) { }
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.CropIrrigationSupplied;
+}
+
+public sealed class FireIgnitionOutcomeDescriptor : EnvironmentOutcomeDescriptor
+{
+    public FireIgnitionOutcomeDescriptor(IKoreanJosaFormatter josa) : base(
+        josa, "화재 발화 판정", EnvironmentOutcomeIds.FacilityRole,
+        KoreanJosaKind.Topic, " 화재 발화 판정을 받았다.", "화재 발화 판정을 받았다.",
+        GameplayOutcomeStatus.Succeeded, GameplayOutcomeStatus.Failed,
+        EnvironmentOutcomeIds.DisasterTag,
+        new[] { EnvironmentOutcomeIds.FacilityRole },
+        new[]
+        {
+            Metric(EnvironmentOutcomeIds.StatusMetric, EnvironmentOutcomeIds.EnumUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.IntensityAfterMetric, EnvironmentOutcomeIds.RatioUnit, 0d, 1d)
+        },
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.CorrelationFact,
+            EnvironmentOutcomeIds.ReasonFact,
+            EnvironmentOutcomeIds.SummaryFact
+        }) { }
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.FireIgnition;
+}
+
+public sealed class FireSuppressionOutcomeDescriptor : EnvironmentOutcomeDescriptor
+{
+    public FireSuppressionOutcomeDescriptor(IKoreanJosaFormatter josa) : base(
+        josa, "화재 진압 결과", EnvironmentOutcomeIds.ActorRole,
+        KoreanJosaKind.Subject, " 화재를 진압했다.", "화재를 진압했다.",
+        GameplayOutcomeStatus.Succeeded, GameplayOutcomeStatus.Succeeded,
+        EnvironmentOutcomeIds.DisasterTag,
+        new[] { EnvironmentOutcomeIds.ActorRole, EnvironmentOutcomeIds.FireRole },
+        new[]
+        {
+            Metric(EnvironmentOutcomeIds.IntensityBeforeMetric, EnvironmentOutcomeIds.RatioUnit, double.Epsilon, 1d),
+            Metric(EnvironmentOutcomeIds.IntensityAfterMetric, EnvironmentOutcomeIds.RatioUnit, 0d, 1d),
+            Metric(EnvironmentOutcomeIds.QuantityMetric, EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.StatusMetric, EnvironmentOutcomeIds.EnumUnit, 0d, int.MaxValue, true)
+        },
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.CorrelationFact,
+            EnvironmentOutcomeIds.ReasonFact,
+            EnvironmentOutcomeIds.SummaryFact
+        }) { }
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.FireSuppression;
+}
+
+public sealed class FireDamageOutcomeDescriptor : EnvironmentOutcomeDescriptor
+{
+    public FireDamageOutcomeDescriptor(IKoreanJosaFormatter josa) : base(
+        josa, "화재 피해", EnvironmentOutcomeIds.FireRole,
+        KoreanJosaKind.Subject, " 피해를 입혔다.", "화재 피해가 발생했다.",
+        GameplayOutcomeStatus.Failed, GameplayOutcomeStatus.Failed,
+        EnvironmentOutcomeIds.DisasterTag,
+        new[] { EnvironmentOutcomeIds.FireRole, EnvironmentOutcomeIds.TargetRole },
+        new[]
+        {
+            Metric(EnvironmentOutcomeIds.DamageMetric,
+                EnvironmentOutcomeIds.PointUnit, double.Epsilon),
+            Metric(EnvironmentOutcomeIds.IntensityBeforeMetric,
+                EnvironmentOutcomeIds.RatioUnit, double.Epsilon, 1d),
+            Metric(EnvironmentOutcomeIds.StatusMetric,
+                EnvironmentOutcomeIds.EnumUnit, 0d, 1d, true)
+        },
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.CorrelationFact,
+            EnvironmentOutcomeIds.SummaryFact
+        }) { }
+
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.FireDamage;
+}
+
 public sealed class FireFuelOutcomeDescriptor : EnvironmentOutcomeDescriptor
 {
     public FireFuelOutcomeDescriptor(IKoreanJosaFormatter josa) : base(

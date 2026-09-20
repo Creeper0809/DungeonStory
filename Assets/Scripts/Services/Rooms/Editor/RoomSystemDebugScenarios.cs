@@ -536,7 +536,8 @@ public static class RoomSystemDebugScenarios
         public BlueprintResearchWorkResult ApplyApprovedResearchWork(
             CharacterActor researcher,
             BuildableObject researchFacility,
-            float approvedWorkUnits) =>
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null) =>
             ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 

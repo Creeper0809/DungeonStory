@@ -3274,7 +3274,10 @@ public static class FullGameManualQaRuntimeProbe
                     new DungeonStory.Foundation.UnityGameClock(),
                     new DungeonStory.Foundation.RandomStreamProvider(307),
                     ResolveFromLifetimeScope<IGameEventBus>()
-                        ?? CharacterAiEditorTestDependencies.GameEvents, treasuryDefenseRuntime: null);
+                        ?? CharacterAiEditorTestDependencies.GameEvents,
+                    ResolveFromLifetimeScope<ITreasuryDefenseRuntime>(),
+                    ResolveFromLifetimeScope<ICharacterPerformanceQuery>(),
+                    ResolveFromLifetimeScope<IMigratedProducerOutcomeTransaction>());
                 runtimeInitialized = true;
                 runtime.PrepareBegin(
                     intruderData != null ? intruderData : intruder.Identity.Data,

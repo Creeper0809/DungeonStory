@@ -73,6 +73,8 @@ public sealed class DungeonPreparationLifetimeScope : LifetimeScope
             sceneQuery.First<CameraManager>(includeInactive: true),
             sceneQuery.All<DungeonUiThemeRuntime>(includeInactive: true)));
         builder.RegisterDungeonFoundation();
+        builder.Register<GameplayOutcomeNarrativeEvidenceQuery>(Lifetime.Singleton)
+            .As<IGameplayOutcomeNarrativeEvidenceQuery>();
         builder.Register<UnityGameContentRootLoader>(Lifetime.Singleton)
             .As<IGameContentRootLoader>();
         builder.RegisterDungeonGameContentCatalog();

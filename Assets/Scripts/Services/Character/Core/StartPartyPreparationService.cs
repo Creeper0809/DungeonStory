@@ -93,6 +93,8 @@ public interface IStartPartyPreparationService
 public sealed class StartPartyPreparationService : IStartPartyPreparationService, IDisposable
 {
     private const int PartialRerollCharge = 3;
+    private const string CurrentPreviewIdentityKind = "current";
+    private const string PrefetchPreviewIdentityKind = "prefetch";
 
     private static readonly string[] GivenNames =
     {
@@ -402,6 +404,8 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         selected.IsReserve = true;
         reserve.PartySlot = selectedSlot;
         reserve.IsReserve = false;
+        CancelStartingSkillRequests(selected);
+        ResumeStartingSkillRequests(reserve);
         message = $"선발 {selectedSlot}번에 {incomingName}을 배치했습니다.";
         Changed?.Invoke();
         return true;
@@ -528,6 +532,12 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             member.Progression.CapturePersistentState();
         CharacterGrowthState growth = progressionSnapshot.GrowthState?.Clone()
             ?? new CharacterGrowthState();
+        if (!member.IsOwner)
+        {
+            // Starting staff commit their generated first active immediately, but
+            // later gameplay unlocks remain player choices.
+            growth.autoChooseDrafts = false;
+        }
         string displayName = !string.IsNullOrWhiteSpace(growth.displayName)
             ? growth.displayName
             : member.CharacterData != null
@@ -556,7 +566,11 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
     {
         DestroyPreview(member.Progression, member.previewObject);
         DestroyPreview(member.prefetchedSkillProgression, member.prefetchedSkillObject);
-        member.previewObject = CreatePreviewObject($"StartParty_{member.Index}_Current", out CharacterProgression progression);
+        member.previewObject = CreatePreviewObject(
+            $"StartParty_{member.Index}_Current",
+            member,
+            CurrentPreviewIdentityKind,
+            out CharacterProgression progression);
         member.Progression = progression;
         progression.DraftReady += _ => Changed?.Invoke();
         progression.Changed += HandleProgressionChanged;
@@ -581,7 +595,11 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         }
         else
         {
-            member.previewObject = CreatePreviewObject($"StartParty_{member.Index}_Current", out CharacterProgression progression);
+            member.previewObject = CreatePreviewObject(
+                $"StartParty_{member.Index}_Current",
+                member,
+                CurrentPreviewIdentityKind,
+                out CharacterProgression progression);
             member.Progression = progression;
             progression.DraftReady += _ => Changed?.Invoke();
             progression.Changed += HandleProgressionChanged;
@@ -594,6 +612,8 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
     private void TryBeginSkillPrefetch(StartPartyMemberPreparation member)
     {
         if (member == null
+            || member.IsOwner
+            || member.IsReserve
             || member.Progression == null
             || !member.HasReadyFirstActive
             || !member.HasFirstPassive
@@ -605,6 +625,8 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         DestroyPreview(member.prefetchedSkillProgression, member.prefetchedSkillObject);
         member.prefetchedSkillObject = CreatePreviewObject(
             $"StartParty_{member.Index}_Prefetch",
+            member,
+            PrefetchPreviewIdentityKind,
             out CharacterProgression progression);
         member.prefetchedSkillProgression = progression;
         ApplyRoll(
@@ -620,18 +642,19 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         CharacterPreparedIdentity identity,
         CharacterPotentialGrade potential)
     {
-        member.rollSerial++;
+        member.rollSerial = checked(member.rollSerial + 1);
         progression.ApplyPreparedIdentity(
             identity.displayName,
             identity.origin,
             identity.traitIds,
             potential,
             NextSeed(member),
-            autoChooseDrafts: false,
+            autoChooseDrafts: !member.IsOwner,
             startingProficiencySeed: member.proficiencySeed,
             startingProfile: identity.startingProfile,
             preparedStartingProficiencies: identity.startingProficiencies,
-            maximumTraitCount: 4 + GetTraitCountBonus(member));
+            maximumTraitCount: 4 + GetTraitCountBonus(member),
+            ensureInitialDrafts: false);
         EnsureGeneratedStartingSkills(member, progression);
     }
 
@@ -639,7 +662,7 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         StartPartyMemberPreparation member,
         CharacterProgression progression)
     {
-        if (member == null || member.IsOwner || progression == null)
+        if (member == null || member.IsOwner || member.IsReserve || progression == null)
         {
             return;
         }
@@ -658,6 +681,31 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             1);
         if (!passiveDraft.permanentlyChosen && !passiveDraft.isReady)
             skillGenerationService.RequestDraft(progression, passiveDraft);
+    }
+
+    private void CancelStartingSkillRequests(StartPartyMemberPreparation member)
+    {
+        if (member?.Progression != null)
+        {
+            skillGenerationService.CancelRequests(member.Progression);
+        }
+
+        if (member?.prefetchedSkillProgression != null)
+        {
+            skillGenerationService.CancelRequests(member.prefetchedSkillProgression);
+        }
+    }
+
+    private void ResumeStartingSkillRequests(StartPartyMemberPreparation member)
+    {
+        if (member == null || member.IsOwner || member.IsReserve)
+        {
+            return;
+        }
+
+        EnsureGeneratedStartingSkills(member, member.Progression);
+        EnsureGeneratedStartingSkills(member, member.prefetchedSkillProgression);
+        TryBeginSkillPrefetch(member);
     }
 
     private CharacterSkillDraft EnsurePreparedDraft(
@@ -682,17 +730,51 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         return draft;
     }
 
-    private GameObject CreatePreviewObject(string objectName, out CharacterProgression progression)
+    private GameObject CreatePreviewObject(
+        string objectName,
+        StartPartyMemberPreparation member,
+        string previewIdentityKind,
+        out CharacterProgression progression)
     {
+        if (member?.CharacterData == null)
+        {
+            throw new InvalidOperationException(
+                "A start-party preview requires authored character data.");
+        }
+        if (string.IsNullOrWhiteSpace(previewIdentityKind))
+        {
+            throw new ArgumentException(
+                "A start-party preview identity kind is required.",
+                nameof(previewIdentityKind));
+        }
+
         GameObject preview = new GameObject(objectName);
         preview.hideFlags = HideFlags.HideAndDontSave;
-        progression = preview.AddComponent<CharacterProgression>();
+        preview.SetActive(false);
+
+        CharacterActor actor = preview.AddComponent<CharacterActor>();
+        actor.PrepareForComposition();
+        actor.EnsureRuntimeState();
+        progression = actor.Progression
+            ?? throw new InvalidOperationException(
+                "Start-party preview actor composition did not provide progression.");
         progression.ConfigurePreview(
             skillGenerationService,
             settingsProvider,
             new CharacterProgressionProfileProjector(
                 content,
                 runtimeProfileFactory));
+        actor.Identity.SetData(
+            member.CharacterData,
+            runtimeProfileFactory.Create(
+                CharacterSpawnRequest.FromAuthoring(member.CharacterData)));
+        if (!member.IsOwner)
+        {
+            int nextRollSerial = checked(member.rollSerial + 1);
+            actor.Identity.SetPersistentId(CharacterId.FromStableSuffix(
+                FormattableString.Invariant(
+                    $"start-party-preview:{member.RosterId:D2}:{nextRollSerial:D4}:{previewIdentityKind}")));
+        }
         progression.SetPublicSkillNotificationsSuppressed(true);
         return preview;
     }

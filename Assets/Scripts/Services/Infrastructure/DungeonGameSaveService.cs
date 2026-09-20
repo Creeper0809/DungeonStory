@@ -216,6 +216,7 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
             sections = sections
         };
 
+        string capturedSnapshotSha256 = save.manifest.snapshotSha256;
         DungeonGameRestoreReport captureReport = new();
         foreach (IDungeonCapturedSavePreflightValidator validator in
                  capturedSaveValidators)
@@ -236,6 +237,14 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
                 "Captured save failed aggregate preflight: "
                 + string.Join(" | ", captureReport.Errors));
         }
+        // Preflight validators are observers of the detached snapshot. Reject a
+        // validator that changed it after capture rather than resealing its edits.
+        if (save.manifest == null
+            || save.manifest.payloadHashVersion != DungeonSavePayloadIntegrity.CurrentVersion
+            || save.manifest.snapshotSha256 != capturedSnapshotSha256)
+            throw new InvalidOperationException("Captured save integrity failed: preflight changed the snapshot seal.");
+        if (!DungeonSaveManifest.TryValidate(save.manifest, save.sections, out string integrityFailure))
+            throw new InvalidOperationException("Captured save integrity failed: " + integrityFailure);
 
         return save;
     }
@@ -279,6 +288,12 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
             return false;
         }
 
+        int payloadHashVersion = saveData.manifest.payloadHashVersion;
+        string snapshotSha256 = saveData.manifest.snapshotSha256;
+        if (payloadHashVersion == 0)
+            report.AddWarning("LegacySnapshotIntegrityAbsent: this legacy V24 save has no payload seal; "
+                + "content integrity is unverified. Domain preflight still applies; the input is not resealed.");
+
         foreach (IDungeonSavePreflightValidator validator in preflightValidators)
         {
             try
@@ -294,6 +309,19 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
 
         if (!report.Success)
         {
+            return false;
+        }
+
+        if (saveData.manifest == null
+            || saveData.manifest.payloadHashVersion != payloadHashVersion
+            || saveData.manifest.snapshotSha256 != snapshotSha256)
+        {
+            report.AddError("Save preflight changed the snapshot seal.");
+            return false;
+        }
+        if (!DungeonSaveManifest.TryValidate(saveData.manifest, saveData.sections, out manifestError))
+        {
+            report.AddError("Save preflight changed snapshot content: " + manifestError);
             return false;
         }
 

@@ -48,6 +48,7 @@ internal interface IInvasionIntruderExecutionHost
     float MeleeDamageMultiplier { get; }
     float AttackSpeedMultiplier { get; }
     ICharacterPerformanceQuery Performance { get; }
+    IMigratedProducerOutcomeTransaction OutcomeTransactions { get; }
 
     Queue<GridMoveStep> CreateNextPath(
         Grid grid,
@@ -79,11 +80,17 @@ internal sealed class InvasionIntruderExecutionCoordinator
         host.State = InvasionIntruderState.FinalCombat;
         host.GameEventBus.Publish(new InvasionFinalCombatStartedEvent(host.Actor, owner));
         owner.ApplyDamage(host.Settings.finalCombatDamage, "침입자 최종 교전");
-        host.Resolved = true;
-        host.GameEventBus.Publish(new InvasionResolvedEvent(
-            host.RuntimeId,
-            !owner.IsDead,
-            owner.IsDead ? 5f : 2f));
+        if (!host.Runtime.TryCommitResolution(
+                !owner.IsDead,
+                owner.IsDead ? 5f : 2f,
+                InvasionIntruderState.FinalCombat,
+                owner.IsDead
+                    ? "최종 교전에서 방어자가 쓰러져 침공이 종결됐다."
+                    : "최종 교전에서 방어자가 버텨 침공이 종결됐다."))
+        {
+            throw new InvalidOperationException(
+                "The final-combat invasion result could not be committed.");
+        }
     }
 
     public void ClearBreachState()
@@ -117,22 +124,82 @@ internal sealed class InvasionIntruderExecutionCoordinator
             return;
         }
 
-        host.HasBreachedDungeonInterior = true;
-        if (host.BreachEventRaised)
+        if (!host.OutcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.InvasionDungeonBreachedEvent,
+                host.RuntimeId,
+                Mathf.Max(
+                    0,
+                    Mathf.FloorToInt(
+                        host.Clock.Time / GameCalendarRules.SecondsPerDay)),
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reserveFailure))
         {
+            Debug.LogError("invasion-breach-outcome-reservation-failed:"
+                + reserveFailure);
             return;
         }
 
+        bool previousBreached = host.HasBreachedDungeonInterior;
+        bool previousEventRaised = host.BreachEventRaised;
+        host.HasBreachedDungeonInterior = true;
         host.BreachEventRaised = true;
-        host.GameEventBus.Publish(new InvasionDungeonBreachedEvent(
-            host.Runtime,
-            host.Actor,
-            host.ThreatSnapshot));
-        host.GameEventBus.RaiseAlert(
+        MigratedProducerOutcomeCommitResult committed;
+        try
+        {
+            committed = host.OutcomeTransactions.CommitSingleSubject(
+                prepared,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.OperationKind,
+                    host.RuntimeId,
+                    host.Actor?.Identity?.DisplayName ?? host.RuntimeId,
+                    MigratedProducerOutcomeIds.ActorRole),
+                $"{host.RuntimeId} 침공대가 던전 내부 {cellPosition.x},{cellPosition.y}에 진입했다.");
+        }
+        catch
+        {
+            host.OutcomeTransactions.Cancel(prepared);
+            host.HasBreachedDungeonInterior = previousBreached;
+            host.BreachEventRaised = previousEventRaised;
+            throw;
+        }
+        if (!committed.DurablyCommitted)
+        {
+            host.HasBreachedDungeonInterior = previousBreached;
+            host.BreachEventRaised = previousEventRaised;
+            Debug.LogError("invasion-breach-outcome-commit-failed:"
+                + committed.DetailCode);
+            return;
+        }
+
+        PublishPostCommit(() => host.GameEventBus.Publish(
+            new InvasionDungeonBreachedEvent(
+                host.Runtime,
+                host.Actor,
+                host.ThreatSnapshot)),
+            "event");
+        PublishPostCommit(() => host.GameEventBus.RaiseAlert(
             "던전 내부 침입",
             "침입자가 내부에 진입했습니다. 당직 경비가 저지하러 이동합니다.",
             EventAlertImportance.High,
-            "방어");
+            "방어"),
+            "alert");
+    }
+
+    private static void PublishPostCommit(Action observer, string name)
+    {
+        try
+        {
+            observer?.Invoke();
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError("invasion-breach-post-commit-" + name + ":"
+                + exception.GetType().Name);
+        }
     }
 
     public IEnumerator Run(
@@ -666,11 +733,15 @@ internal sealed class InvasionIntruderExecutionCoordinator
     {
         if (!host.Resolved)
         {
-            host.Resolved = true;
-            host.GameEventBus.Publish(new InvasionResolvedEvent(
-                host.RuntimeId,
-                true,
-                1f));
+            if (!host.Runtime.TryCommitResolution(
+                    defended: true,
+                    residualRisk: 1f,
+                    InvasionIntruderState.Finished,
+                    "침입자가 패배하여 침공이 종결됐다."))
+            {
+                throw new InvalidOperationException(
+                    "The defeated-intruder result could not be committed.");
+            }
         }
 
         host.Finish();
@@ -684,17 +755,32 @@ internal sealed class InvasionIntruderExecutionCoordinator
             return;
         }
 
-        host.Resolved = true;
-        host.State = InvasionIntruderState.Finished;
-        host.GameEventBus.RaiseAlert(
-            "침입자 철수",
-            "부상당한 침입자가 목표를 포기하고 물러났습니다.",
-            EventAlertImportance.Low,
-            "침입");
-        host.GameEventBus.Publish(new InvasionResolvedEvent(
-            host.RuntimeId,
-            true,
-            0.5f));
+        if (!host.Runtime.TryCommitResolution(
+                defended: true,
+                residualRisk: 0.5f,
+                InvasionIntruderState.Finished,
+                "부상당한 침입자가 철수하여 침공이 종결됐다."))
+        {
+            throw new InvalidOperationException(
+                "The retreated-intruder result could not be committed.");
+        }
+        try
+        {
+            host.GameEventBus.RaiseAlert(
+                "침입자 철수",
+                "부상당한 침입자가 목표를 포기하고 물러났습니다.",
+                EventAlertImportance.Low,
+                "침입");
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "invasion-retreated-alert-observer:"
+                + exception.GetType().Name);
+        }
         host.Finish();
     }
 }

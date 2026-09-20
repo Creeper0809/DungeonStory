@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -14,6 +15,8 @@ public static class DefenseEngagementPlayModeVerifier
 {
     public const string ReportPath =
         "Artifacts/QA/defense-engagement-playmode.txt";
+    private const string Phase80ReportArgument = "-phase80DefenseReport";
+    private const string Phase80ExitArgument = "-phase80DefenseExit";
     public const string Wim048ReportPath =
         "Artifacts/QA/wim-implementation/wim-048-resident-room-evacuation.txt";
     private const string PendingFlagPath =
@@ -25,6 +28,7 @@ public static class DefenseEngagementPlayModeVerifier
     private static readonly TimeSpan PendingMaximumAge = TimeSpan.FromMinutes(30);
     private const float StartupTimeoutSeconds = 15f;
     private const float EngagementTimeoutSeconds = 180f;
+    private const int MaximumCombatWitnessExchanges = 12;
     private static string lastReport = "방어 교전 PlayMode 검증을 실행하지 않았습니다.";
     private static bool completed;
     private static CharacterActor policyProbeOldLead;
@@ -55,6 +59,7 @@ public static class DefenseEngagementPlayModeVerifier
                 lastReport = "FAIL: " + failureReason;
                 completed = true;
                 WriteImmediateFailure(lastReport);
+                ExitPhase80BatchIfRequested(false);
                 return;
             }
             Directory.CreateDirectory("Temp");
@@ -65,6 +70,50 @@ public static class DefenseEngagementPlayModeVerifier
 
         RejectUnauthorisedRuntimeStart(
             "EditMode clean-scene preflight evidence is required.");
+    }
+
+    public static void StartPhase80Batch()
+    {
+        if (Application.isPlaying)
+        {
+            FailPhase80BatchStart("Batch verification must start in EditMode.");
+            return;
+        }
+        if (!TryGetPhase80ReportPath(out string reportPath, out string pathFailure))
+        {
+            FailPhase80BatchStart(pathFailure);
+            return;
+        }
+        if (File.Exists(reportPath))
+        {
+            Debug.LogError(
+                "Phase80 defense evidence is immutable and already exists: "
+                + reportPath);
+            EditorApplication.Exit(2);
+            return;
+        }
+
+        for (int index = 0; index < SceneManager.sceneCount; index++)
+        {
+            Scene loaded = SceneManager.GetSceneAt(index);
+            if (loaded.IsValid() && loaded.isLoaded && loaded.isDirty)
+            {
+                FailPhase80BatchStart(
+                    "Loaded scenes contain unsaved changes; batch verification "
+                    + "will not save or discard them.");
+                return;
+            }
+        }
+
+        Scene active = SceneManager.GetActiveScene();
+        if (!active.IsValid()
+            || !active.isLoaded
+            || !string.Equals(active.path, GameplayScenePath, StringComparison.Ordinal)
+            || SceneManager.sceneCount != 1)
+        {
+            EditorSceneManager.OpenScene(GameplayScenePath, OpenSceneMode.Single);
+        }
+        StartFromMenu();
     }
 
     [MenuItem("DungeonStory/Debug/Invasion/Run WIM-048 Resident Room Evacuation Focused")]
@@ -110,6 +159,7 @@ public static class DefenseEngagementPlayModeVerifier
                 lastReport = "FAIL: " + failureReason;
                 completed = true;
                 WriteImmediateFailure(lastReport);
+                ExitPhase80BatchIfRequested(false);
                 return;
             }
         }
@@ -197,11 +247,21 @@ public static class DefenseEngagementPlayModeVerifier
 
         completed = false;
         lastReport = "RUNNING: 게임 초기화를 기다리는 중";
-        Directory.CreateDirectory(Path.GetDirectoryName(ReportPath)
+        string reportPath = GetActiveReportPath();
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath)
             ?? "Artifacts/QA");
-        if (File.Exists(ReportPath))
+        if (File.Exists(reportPath))
         {
-            File.Delete(ReportPath);
+            if (ShouldExitPhase80Batch())
+            {
+                lastReport = "FAIL: Phase80 defense evidence appeared after "
+                    + "the create-only preflight; refusing to overwrite it.";
+                completed = true;
+                Debug.LogError("DEFENSE_ENGAGEMENT_PLAYMODE " + lastReport);
+                ExitPhase80BatchIfRequested(false);
+                return lastReport;
+            }
+            File.Delete(reportPath);
         }
         ownerEvacuationProbeDurabilityBoosted = false;
         Time.timeScale = 1f;
@@ -419,9 +479,10 @@ public static class DefenseEngagementPlayModeVerifier
 
     private static void WriteImmediateFailure(string detail)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(ReportPath)
+        string reportPath = GetActiveReportPath();
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath)
             ?? "Artifacts/QA");
-        File.WriteAllLines(ReportPath, new[]
+        File.WriteAllLines(reportPath, new[]
         {
             "# Defense engagement production-live PlayMode verification",
             "result=FAIL",
@@ -429,6 +490,97 @@ public static class DefenseEngagementPlayModeVerifier
             "utc=" + DateTime.UtcNow.ToString("O"),
             "terminal=" + (detail ?? string.Empty)
         });
+    }
+
+    private static string GetActiveReportPath()
+    {
+        return TryReadCommandLineValue(Phase80ReportArgument, out string configured)
+            ? Path.GetFullPath(configured)
+            : ReportPath;
+    }
+
+    private static bool TryGetPhase80ReportPath(
+        out string reportPath,
+        out string failureReason)
+    {
+        reportPath = string.Empty;
+        failureReason = string.Empty;
+        if (!TryReadCommandLineValue(Phase80ReportArgument, out string configured))
+        {
+            failureReason = Phase80ReportArgument + " is required.";
+            return false;
+        }
+
+        string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+        string qaRoot = Path.GetFullPath(Path.Combine(projectRoot, "Artifacts", "QA"));
+        string candidate = Path.GetFullPath(configured);
+        string qaPrefix = qaRoot.TrimEnd(
+                Path.DirectorySeparatorChar,
+                Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        if (!candidate.StartsWith(qaPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            failureReason = "Phase80 defense report must be inside Artifacts/QA.";
+            return false;
+        }
+        string parent = Path.GetDirectoryName(candidate) ?? string.Empty;
+        string directoryName = Path.GetFileName(parent);
+        if (!directoryName.StartsWith(
+                "GameplayOutcomeLedgerPhase80DefensePlayMode-",
+                StringComparison.Ordinal)
+            || !string.Equals(
+                Path.GetFileName(candidate),
+                "defense-playmode-report.txt",
+                StringComparison.Ordinal))
+        {
+            failureReason = "Phase80 defense report path does not match the "
+                + "create-only evidence naming contract.";
+            return false;
+        }
+        reportPath = candidate;
+        return true;
+    }
+
+    private static bool TryReadCommandLineValue(string name, out string value)
+    {
+        string[] arguments = Environment.GetCommandLineArgs();
+        for (int index = 0; index + 1 < arguments.Length; index++)
+        {
+            if (string.Equals(arguments[index], name, StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(arguments[index + 1]))
+            {
+                value = arguments[index + 1].Trim();
+                return true;
+            }
+        }
+        value = string.Empty;
+        return false;
+    }
+
+    private static bool ShouldExitPhase80Batch()
+    {
+        return Environment.GetCommandLineArgs().Any(argument =>
+            string.Equals(argument, Phase80ExitArgument, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static void FailPhase80BatchStart(string detail)
+    {
+        lastReport = "FAIL: " + (detail ?? string.Empty);
+        completed = true;
+        if (TryGetPhase80ReportPath(out _, out _))
+        {
+            WriteImmediateFailure(lastReport);
+        }
+        Debug.LogError("DEFENSE_ENGAGEMENT_PLAYMODE " + lastReport);
+        ExitPhase80BatchIfRequested(false);
+    }
+
+    private static void ExitPhase80BatchIfRequested(bool success)
+    {
+        if (ShouldExitPhase80Batch())
+        {
+            EditorApplication.Exit(success ? 0 : 1);
+        }
     }
 
     public static string GetReport()
@@ -1640,6 +1792,7 @@ public static class DefenseEngagementPlayModeVerifier
             new Dictionary<CharacterActor, float>();
         private float startedAt;
         private float intruderSpawnedAt;
+        private float recoveryStartedAt;
         private InvasionDirectorRuntime director;
         private InvasionIntruderRuntime intruder;
         private IDefenseEngagementRuntime engagementRuntime;
@@ -1651,6 +1804,7 @@ public static class DefenseEngagementPlayModeVerifier
         private ICharacterDeprivationRuntime deprivationRuntime;
         private ICharacterCombatCommandRuntime combatCommandRuntime;
         private ICombatAmmoResupplyRuntime ammoResupplyRuntime;
+        private GameplayOutcomeLedger gameplayOutcomeLedger;
         private CharacterActor isolatedOwner;
         private bool isolatedOwnerWasPaused;
         private bool ownerIsolationApplied;
@@ -1666,6 +1820,11 @@ public static class DefenseEngagementPlayModeVerifier
         private int lastObservedExchangeCount = -1;
         private string observedEngagementId = string.Empty;
         private readonly List<string> exchangeTrace = new List<string>();
+        private readonly HashSet<string> observedCombatDamageOutcomeIds =
+            new HashSet<string>(StringComparer.Ordinal);
+        private bool observedCombatDamageOutcome;
+        private int observedCombatDamageOutcomeCount;
+        private string observedCombatDamageOperationId = string.Empty;
         private float leadHealthAtObservation;
         private float intruderHealthAtObservation;
         private bool attemptedPartySetup;
@@ -1688,6 +1847,9 @@ public static class DefenseEngagementPlayModeVerifier
         private float maxObservedStabilizationWork;
         private float maxObservedTreatmentWork;
         private int seededTreatmentSupply;
+        private int lastSeededTreatmentSupplySequence;
+        private readonly Dictionary<string, int> remainingTreatmentFixtureStock =
+            new Dictionary<string, int>(StringComparer.Ordinal);
         private string controlledPatientId = string.Empty;
         private string controlledRescuerId = string.Empty;
         private readonly List<string> medicalStateTrace = new List<string>();
@@ -1697,8 +1859,14 @@ public static class DefenseEngagementPlayModeVerifier
         private float postCombatNoDownStartedAt = -1f;
         private bool controlledMedicalTriggerAttempted;
         private bool controlledMedicalTriggerUsed;
+        private bool naturalMedicalJourneyUsed;
+        private bool automaticSaveIsolated;
+        private bool MedicalJourneyStarted =>
+            controlledMedicalTriggerUsed || naturalMedicalJourneyUsed;
         private bool controlledSuppressionRequested;
         private bool controlledSuppressionCompleted;
+        private bool healthyDefeatRejected;
+        private bool defeatedIntruderSaveCaptured;
         private string controlledSuppressionFailure = string.Empty;
         private bool cleanBootEvidence;
         private string cleanBootScenePath = string.Empty;
@@ -1768,6 +1936,7 @@ public static class DefenseEngagementPlayModeVerifier
             deprivationRuntime ??= ResolveService<ICharacterDeprivationRuntime>();
             combatCommandRuntime ??= ResolveService<ICharacterCombatCommandRuntime>();
             ammoResupplyRuntime ??= ResolveService<ICombatAmmoResupplyRuntime>();
+            gameplayOutcomeLedger ??= ResolveService<GameplayOutcomeLedger>();
             if (director == null
                 || engagementRuntime == null
                 || medicalQuery == null
@@ -1775,9 +1944,25 @@ public static class DefenseEngagementPlayModeVerifier
                 || resourceCatalog == null
                 || bodyHealthRuntime == null
                 || deprivationRuntime == null
-                || combatCommandRuntime == null)
+                || combatCommandRuntime == null
+                || gameplayOutcomeLedger == null)
             {
                 return;
+            }
+
+            if (ShouldExitPhase80Batch() && !automaticSaveIsolated)
+            {
+                // QA must not overwrite the player's autosave/on-quit slot.
+                // Finish still probes the unchanged in-memory save preflight.
+                DungeonAutosaveService autosave =
+                    ResolveService<IDungeonSaveCommandService>() as DungeonAutosaveService;
+                if (autosave == null)
+                {
+                    Finish(false, "The Phase80 autosave isolation authority is unavailable.");
+                    return;
+                }
+                autosave.Dispose();
+                automaticSaveIsolated = true;
             }
 
             EnsureVerificationMedicine();
@@ -1894,18 +2079,36 @@ public static class DefenseEngagementPlayModeVerifier
                     return false;
                 }
 
+                if (ShouldExitPhase80Batch()
+                    && !scope.Container.Resolve<IDungeonSpaceExpansionCommand>()
+                        .TryReconcileNewRunTierZero(out _, out string layoutFailure))
+                {
+                    message = "Phase80 new-run layout initialization failed: " + layoutFailure;
+                    return false;
+                }
+
                 if (!preparation.Begin(owner, out string beginMessage))
                 {
                     message = beginMessage;
                     return false;
                 }
 
-                int seed = Environment.TickCount == 0 ? 1 : Environment.TickCount;
+                int seed = ShouldExitPhase80Batch()
+                    ? 80019
+                    : Environment.TickCount == 0 ? 1 : Environment.TickCount;
                 bool prepared = preparation.TryCreatePreparedSnapshot(
                     DungeonDifficulty.Normal,
                     seed,
                     out PreparedStartPartySnapshot snapshot,
                     out string snapshotMessage);
+                if (!prepared && ShouldExitPhase80Batch())
+                {
+                    prepared = TryCreatePhase80DefenseFixtureSnapshot(
+                        preparation.Members,
+                        seed,
+                        out snapshot,
+                        out snapshotMessage);
+                }
                 preparation.Cancel();
                 if (!prepared)
                 {
@@ -1919,9 +2122,79 @@ public static class DefenseEngagementPlayModeVerifier
             }
             catch (Exception exception)
             {
+                Debug.LogException(exception);
                 message = $"시작 파티 준비 예외: {exception.GetType().Name} {exception.Message}";
                 return false;
             }
+        }
+
+        private static bool TryCreatePhase80DefenseFixtureSnapshot(
+            IReadOnlyList<StartPartyMemberPreparation> members,
+            int seed,
+            out PreparedStartPartySnapshot snapshot,
+            out string message)
+        {
+            snapshot = null;
+            StartPartyMemberPreparation[] selected = members?
+                .Where(member => member != null
+                    && member.CharacterData != null
+                    && member.Progression != null)
+                .OrderBy(member => member.PartySlot)
+                .Take(3)
+                .ToArray()
+                ?? Array.Empty<StartPartyMemberPreparation>();
+            if (selected.Length != 3
+                || !selected[0].IsOwner
+                || selected.Skip(1).Any(member => member.IsOwner))
+            {
+                message = "Phase80 defense fixture requires one owner and two staff members.";
+                return false;
+            }
+
+            PreparedStartPartyMemberSnapshot CreateMember(
+                StartPartyMemberPreparation member,
+                string persistentId)
+            {
+                CharacterProgressionSnapshot progression =
+                    member.Progression.CapturePersistentState();
+                CharacterGrowthState growth = progression.GrowthState.Clone();
+                if (string.IsNullOrWhiteSpace(growth.displayName))
+                {
+                    growth.displayName = member.IsOwner
+                        ? "Phase80 Owner"
+                        : "Phase80 Guard " + member.PartySlot;
+                }
+                return new PreparedStartPartyMemberSnapshot
+                {
+                    rosterId = member.RosterId,
+                    partySlot = member.PartySlot,
+                    isOwner = member.IsOwner,
+                    characterDataId = member.CharacterData.id,
+                    persistentId = persistentId,
+                    displayName = growth.displayName,
+                    level = progression.Level,
+                    currentExperience = progression.CurrentExperience,
+                    growth = growth,
+                    narrative = progression.NarrativeLedger.Clone()
+                };
+            }
+
+            snapshot = new PreparedStartPartySnapshot
+            {
+                difficulty = DungeonDifficulty.Normal,
+                survivalPressure = DungeonSurvivalPressure.Standard,
+                runSeed = seed,
+                owner = CreateMember(selected[0], "owner"),
+                staff = selected.Skip(1)
+                    .Select((member, index) => CreateMember(
+                        member,
+                        CharacterId.FromStableSuffix(
+                            $"phase80-defense:{seed}:{index + 1:D2}").Value))
+                    .ToList()
+            };
+            message = "Phase80 defense verifier authored a deterministic C# party "
+                + "snapshot without bypassing the production New Game readiness gate.";
+            return snapshot.IsValid;
         }
 
         private void ObserveEngagement()
@@ -2066,6 +2339,7 @@ public static class DefenseEngagementPlayModeVerifier
                 exchangeTrace.Add($"e{engagement.ExchangeCount}:{intruderCell}/{guardCell}:{engagement.State}");
                 lastObservedExchangeCount = engagement.ExchangeCount;
             }
+            ObserveCombatDamageOutcomes(engagement);
 
             bool guardDamaged = engagement.LeadGuard != null
                 && engagement.LeadGuard.CurrentHealth < leadHealthAtObservation;
@@ -2091,6 +2365,23 @@ public static class DefenseEngagementPlayModeVerifier
             {
                 return;
             }
+            if (!observedCombatDamageOutcome)
+            {
+                if (observedExchanges < MaximumCombatWitnessExchanges)
+                {
+                    lastReport =
+                        $"RUNNING: 교전 {observedExchanges}회 완료, 확정 피해 원장 기록 대기 · "
+                        + $"limit={MaximumCombatWitnessExchanges}; "
+                        + $"engagement={engagement.Id}";
+                    return;
+                }
+                Finish(
+                    false,
+                    $"{MaximumCombatWitnessExchanges}회 실제 공방 안에 acknowledged "
+                    + "combat.damage-resolved 원장 기록을 확인하지 못했습니다. "
+                    + $"engagement={engagement.Id}");
+                return;
+            }
 
             bool valid = intruderStayedStill
                 && separateAdjacentCells
@@ -2099,7 +2390,8 @@ public static class DefenseEngagementPlayModeVerifier
                 && saveCaptured
                 && presentationVisible
                 && observedRallying
-                && observedApproachWithoutDispatch;
+                && observedApproachWithoutDispatch
+                && observedCombatDamageOutcome;
             string ownerState = ownerEvacuation != null
                 ? $"ownerEvac={ownerEvacuation.IsEvacuating}/{ownerEvacuation.HasReachedTarget}:{ownerEvacuation.StatusText}"
                 : "ownerEvac=missing";
@@ -2110,26 +2402,25 @@ public static class DefenseEngagementPlayModeVerifier
                     $"exchanges={observedExchanges}({engagement.ExchangeCount} total); held={intruderStayedStill}; adjacent={separateAdjacentCells}; "
                     + $"bothDamaged={guardDamaged && intruderDamaged}; facilityLocked={noFacilityDamage}; "
                     + $"leadReserveValid={oneLeadOneReserve}; save={saveCaptured}; presentation={presentationVisible}; "
+                    + $"combatOutcome={observedCombatDamageOutcome}:{observedCombatDamageOperationId}; "
                     + $"rally={observedRallying}; approachHeld={observedApproachWithoutDispatch}; "
                     + $"cells={intruderCell}/{guardCell}; trace=[{string.Join(",", exchangeTrace)}]; {ownerState}");
                 return;
             }
 
             combatContractSatisfied = true;
+            recoveryStartedAt = Time.realtimeSinceStartup;
             Time.timeScale = 5f;
-            // The required production exchanges are complete. Resolve through
-            // the defense runtime's normal victory boundary so encounter
-            // rewards, passives, guard release, engagement removal and intruder
-            // suppression remain one atomic production terminal.
+            // The required exchanges are real. The terminal setup below is a
+            // controlled body injury, not a claim that those hits won naturally.
+            // Body-health events must drive the normal defense/captivity handoff.
             if (intruder != null
                 && intruder.State != InvasionIntruderState.Finished
                 && engagement.LeadGuard != null)
             {
                 controlledSuppressionRequested = true;
-                controlledSuppressionCompleted =
-                    engagementRuntime.TryResolveIntruderDefeated(
-                        intruder,
-                        out controlledSuppressionFailure);
+                controlledSuppressionCompleted = TryVerifyDefeatTerminal(
+                    engagement, out controlledSuppressionFailure);
                 if (!controlledSuppressionCompleted)
                 {
                     Finish(
@@ -2144,7 +2435,137 @@ public static class DefenseEngagementPlayModeVerifier
             lastReport =
                 $"RUNNING: 교전 계약 통과, 자연 쓰러짐·구조 대기 · "
                 + $"exchanges={observedExchanges}; cells={intruderCell}/{guardCell}; "
+                + $"combatOutcome={observedCombatDamageOperationId}; "
                 + $"suppression={controlledSuppressionCompleted}; {ownerState}";
+        }
+
+        private bool TryVerifyDefeatTerminal(
+            DefenseEngagement engagement,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            CharacterActor actor = intruder.IntruderActor;
+            CharacterActor victor = engagement.LeadGuard;
+            CharacterBodyHealthSnapshot before = bodyHealthRuntime.GetSnapshot(actor);
+            if (actor.IsDead || before.Downed)
+            {
+                failureReason = "Healthy-defeat refusal setup was not observed before terminal.";
+                return false;
+            }
+
+            string engagementBefore = JsonUtility.ToJson(engagementRuntime.Capture());
+            if (engagementRuntime.TryResolveIntruderDefeated(intruder, out string rejection)
+                || string.IsNullOrWhiteSpace(rejection)
+                || engagementBefore != JsonUtility.ToJson(engagementRuntime.Capture())
+                || !director.ActiveIntruders.Contains(intruder))
+            {
+                failureReason = "Healthy defeat was accepted or changed engagement ownership.";
+                return false;
+            }
+            healthyDefeatRejected = true;
+
+            List<CharacterBodyPartHealthState> parts = before.Parts.Select(part =>
+                new CharacterBodyPartHealthState
+                {
+                    bodyPart = part.bodyPart,
+                    maxHealth = part.maxHealth,
+                    currentHealth = part.bodyPart == CombatBodyPart.LeftLeg
+                        || part.bodyPart == CombatBodyPart.RightLeg
+                            ? Mathf.Min(part.currentHealth, part.maxHealth * 0.18f)
+                            : part.currentHealth,
+                    bleedingPerSecond = part.bleedingPerSecond
+                }).ToList();
+            bodyHealthRuntime.ApplySnapshot(actor, new CharacterBodyHealthSnapshot(
+                parts, before.BloodLoss, before.Suppression, before.Consciousness,
+                before.Manipulation, 0.18f, downed: true),
+                "QA controlled intruder leg injury after real combat exchanges");
+            if (!bodyHealthRuntime.GetSnapshot(actor).Downed
+                || engagement.IsActive
+                || director.ActiveIntruders.Contains(intruder)
+                || intruder.State != InvasionIntruderState.Finished)
+            {
+                failureReason = "Body-health downing did not complete the production defeat handoff.";
+                return false;
+            }
+
+            // Repeating the terminal must not despawn the captive awaiting capture.
+            intruder.ResolveSuppressedBy(victor);
+            if (actor.IsDead || actor.CurrentLifecycleState != CharacterLifecycleState.Downed)
+            {
+                failureReason = "Repeated defeat retired the living captive actor.";
+                return false;
+            }
+            try
+            {
+                ResolveService<IDungeonGameSaveService>().Capture();
+                defeatedIntruderSaveCaptured = true;
+            }
+            catch (Exception exception)
+            {
+                failureReason = "Post-defeat in-memory save failed: " + exception.Message;
+                return false;
+            }
+            return true;
+        }
+
+        private void ObserveCombatDamageOutcomes(DefenseEngagement engagement)
+        {
+            if (gameplayOutcomeLedger == null
+                || engagement == null
+                || string.IsNullOrWhiteSpace(engagement.Id))
+            {
+                return;
+            }
+
+            int firstExchange = Math.Max(1, baselineExchangeCount + 1);
+            for (int exchangeNumber = firstExchange;
+                 exchangeNumber <= engagement.ExchangeCount;
+                 exchangeNumber++)
+            {
+                ObserveCombatDamageOperation(
+                    engagement.Id + ":exchange:" + exchangeNumber);
+                ObserveCombatDamageOperation(
+                    engagement.Id + ":ranged:" + exchangeNumber);
+            }
+        }
+
+        private void ObserveCombatDamageOperation(string operationId)
+        {
+            GameplayOutcomeQueryPage page = gameplayOutcomeLedger.GetForOperation(
+                new GameplayOperationId(operationId));
+            foreach (GameplayOutcomeQueryItem item in page.Items)
+            {
+                GameplayOutcomeSnapshot exact = item.Exact;
+                if (exact == null
+                    || !string.Equals(
+                        exact.operationId,
+                        operationId,
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        exact.producerId,
+                        ProductionCombatOutcomeIds.CombatProducerId,
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        exact.outcomeTypeId,
+                        ProductionCombatOutcomeIds.CombatDamageResolved.Value,
+                        StringComparison.Ordinal)
+                    || exact.status != GameplayOutcomeStatus.Succeeded
+                    || exact.lifecycle
+                        != GameplayOutcomeRecordLifecycle.PublishedAcknowledged)
+                {
+                    continue;
+                }
+
+                string exactId = exact.runId + "/"
+                    + exact.sequence.ToString(CultureInfo.InvariantCulture);
+                if (!observedCombatDamageOutcomeIds.Add(exactId))
+                {
+                    continue;
+                }
+                observedCombatDamageOutcome = true;
+                observedCombatDamageOutcomeCount++;
+                observedCombatDamageOperationId = operationId;
+            }
         }
 
         private void ObserveMedicalProgress()
@@ -2160,7 +2581,7 @@ public static class DefenseEngagementPlayModeVerifier
                 medicalQuery.TryGetOrder(medicalOrderId, out order);
             }
 
-            if (order == null && !controlledMedicalTriggerUsed)
+            if (order == null && !MedicalJourneyStarted)
             {
                 foreach (CharacterMedicalOrder candidate in medicalQuery.ActiveOrders)
                 {
@@ -2187,7 +2608,7 @@ public static class DefenseEngagementPlayModeVerifier
             }
 
             string patientId = currentPatient.Identity?.PersistentId ?? string.Empty;
-            if (controlledMedicalTriggerUsed
+            if (MedicalJourneyStarted
                 && (!string.Equals(order.orderId, medicalOrderId, StringComparison.Ordinal)
                     || !string.Equals(patientId, controlledPatientId, StringComparison.Ordinal)))
             {
@@ -2197,6 +2618,28 @@ public static class DefenseEngagementPlayModeVerifier
                     + $"order={medicalOrderId}->{order.orderId}; "
                     + $"patient={controlledPatientId}->{patientId}.");
                 return;
+            }
+
+            // The live coordinator owns the versioned one-item destination.
+            // Seed fixture stock only after that authority exists; legacy
+            // facility-input:medical:* stock is not available to this order.
+            if (MedicalJourneyStarted
+                && order.treatmentBufferCapacityGrams > 0L
+                && order.treatmentSupply == CharacterMedicalSupplyKind.None
+                && !order.treatmentSupplyConsumed
+                && order.completedTreatmentWork <= 0.001f
+                && lastSeededTreatmentSupplySequence != order.treatmentSupplyOperationSequence)
+            {
+                int supplied = SeedControlledTreatmentSupply(
+                    order,
+                    out string supplyFailure);
+                if (supplied != 1)
+                {
+                    Finish(false, "Controlled treatment stock failed: " + supplyFailure);
+                    return;
+                }
+                seededTreatmentSupply += supplied;
+                lastSeededTreatmentSupplySequence = order.treatmentSupplyOperationSequence;
             }
 
             if (rescueWorker == null && !string.IsNullOrWhiteSpace(order.rescuerId))
@@ -2280,13 +2723,33 @@ public static class DefenseEngagementPlayModeVerifier
 
         private void ObserveRecovery()
         {
-            if (Time.realtimeSinceStartup - intruderSpawnedAt > EngagementTimeoutSeconds)
+            // Combat and medical work are separate phases. Keep the existing
+            // 180-second bound for each; do not debit rally/travel/combat time
+            // from a treatment course that starts only after combat completes.
+            if (Time.realtimeSinceStartup - recoveryStartedAt > EngagementTimeoutSeconds)
             {
                 Finish(
                     false,
                     "실제 교전 뒤 구조·치료가 제한 시간 안에 완료되지 않았습니다. "
                     + BuildRecoverySummary());
                 return;
+            }
+
+            ObserveMedicalProgress();
+            if (completed)
+                return;
+            if (!controlledMedicalTriggerAttempted
+                && observedDowned
+                && downedGuard != null
+                && !downedGuard.IsDead
+                && !string.IsNullOrWhiteSpace(medicalOrderId))
+            {
+                // Prefer the actual combat injury. Do not require two healthy
+                // workers or overwrite an already-running rescue with a fixture.
+                controlledMedicalTriggerAttempted = true;
+                naturalMedicalJourneyUsed = true;
+                controlledPatientId = CharacterPersistentIdentity.Require(downedGuard).Value;
+                InitializeTreatmentFixtureStock();
             }
 
             if (!controlledMedicalTriggerAttempted)
@@ -2317,7 +2780,7 @@ public static class DefenseEngagementPlayModeVerifier
             }
 
             ObserveMedicalProgress();
-            if (!controlledMedicalTriggerUsed
+            if (!MedicalJourneyStarted
                 || !observedDowned
                 || downedGuard == null)
             {
@@ -2389,15 +2852,16 @@ public static class DefenseEngagementPlayModeVerifier
                 + $"carry={observedPhysicalCarry}; "
                 + $"carryAttached={observedPhysicalCarryAttachment}; "
                 + $"treatment={observedTreatment}; "
-                + $"treatWork={maxObservedTreatmentWork:0.###}/"
+                + $"treatWork={(order?.completedTreatmentWork ?? 0f):0.###}/"
                 + $"{(order?.requiredTreatmentWork ?? 0f):0.###}; "
+                + $"maxObservedTreatWork={maxObservedTreatmentWork:0.###}; "
                 + $"supplyConsumed={observedTreatmentSupplyConsumed}; "
                 + $"supplyReady={observedTreatmentSupplyReady}; "
                 + $"seededSupply={seededTreatmentSupply}; "
                 + $"preStabilized={observedPreStabilizedPatient}; "
                 + $"treatmentCompletedStatus={observedTreatmentCompletedStatus}; "
                 + $"recovery={observedRecovery}; order={order?.state.ToString() ?? "none"}; "
-                + $"medicalTrigger={(controlledMedicalTriggerUsed ? "controlled-post-combat" : "pending")}; "
+                + $"medicalTrigger={(naturalMedicalJourneyUsed ? "natural-combat" : controlledMedicalTriggerUsed ? "controlled-post-combat" : "pending")}; "
                 + $"patient={controlledPatientId}; rescuer={controlledRescuerId}; "
                 + $"status={order?.statusCode.ToString() ?? "none"}; "
                 + $"rescueDiag={rescueWorker?.GetComponent<AbilityRescue>()?.LastRescueTerminalForDiagnostics ?? "none"}; "
@@ -2514,13 +2978,7 @@ public static class DefenseEngagementPlayModeVerifier
                 return false;
             }
             medicalOrderId = createdOrder.orderId;
-            seededTreatmentSupply = SeedControlledTreatmentSupply(createdOrder);
-            if (seededTreatmentSupply <= 0)
-            {
-                failureReason =
-                    $"no physical treatment supply could be seeded for {createdOrder.orderId}";
-                return false;
-            }
+            InitializeTreatmentFixtureStock();
 
             rescueWorker = availableWorkers
                 .Where(actor => actor != patient
@@ -2558,35 +3016,83 @@ public static class DefenseEngagementPlayModeVerifier
             return true;
         }
 
-        private int SeedControlledTreatmentSupply(CharacterMedicalOrder order)
+        private void InitializeTreatmentFixtureStock()
         {
-            if (order == null || worldItems == null || resourceCatalog == null)
-            {
-                return 0;
-            }
-
-            string destination = WorldItemStackRuntime.FacilityInputDestinationPrefix
-                + $"medical:{order.orderId}";
-            int total = 0;
+            seededTreatmentSupply = 0;
+            lastSeededTreatmentSupplySequence = 0;
+            remainingTreatmentFixtureStock.Clear();
             foreach (ResourceItemDefinitionSO medicine in resourceCatalog.Items
                          .Where(item => item != null
                              && item.Kind == ResourceItemKind.Medicine
-                             && item.SupportsInjuryTreatment)
-                         .OrderBy(item => item.ItemId, StringComparer.Ordinal))
+                             && item.SupportsInjuryTreatment))
+                remainingTreatmentFixtureStock.Add(medicine.ItemId, 2);
+        }
+
+        private int SeedControlledTreatmentSupply(
+            CharacterMedicalOrder order,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            if (order == null || worldItems == null || resourceCatalog == null)
             {
-                if (worldItems.SpawnItemAt(
-                        medicine.ItemId,
-                        2,
-                        order.BedPosition,
-                        WorldItemStackState.FacilityBuffer,
-                        destination,
-                        out int spawned))
-                {
-                    total += spawned;
-                }
+                failureReason = "medical fixture supply dependencies are missing";
+                return 0;
             }
 
-            return total;
+            ICharacterMedicalSupplyDestinationRuntime destinations =
+                ResolveService<ICharacterMedicalSupplyDestinationRuntime>();
+            IFacilityBufferDestinationClaimAuthorityQuery claims =
+                ResolveService<IFacilityBufferDestinationClaimAuthorityQuery>();
+            if (destinations == null || claims == null)
+            {
+                failureReason = "medical fixture supply authority is missing";
+                return 0;
+            }
+            if (!destinations.TryValidate(order, out failureReason))
+                return 0;
+
+            FacilityBufferDestinationClaim claim = claims.CaptureAuthorityClaims()
+                .Single(value => value != null
+                    && string.Equals(value.DestinationId,
+                        order.treatmentMaterialDestinationId,
+                        StringComparison.Ordinal));
+            CharacterMedicalMedicineCandidate[] candidates = resourceCatalog.Items
+                .Where(item => item != null
+                    && item.Kind == ResourceItemKind.Medicine
+                    && item.SupportsInjuryTreatment
+                    && remainingTreatmentFixtureStock.TryGetValue(item.ItemId, out int available)
+                    && available > 0)
+                .Select(item => new CharacterMedicalMedicineCandidate(
+                    item.ItemId,
+                    item.UnitPrice,
+                    item.TreatmentPotency,
+                    item.InfectionReduction,
+                    item.PainReduction))
+                .ToArray();
+            IReadOnlyList<CharacterMedicalMedicineCandidate> ranked =
+                CharacterMedicalSupplyPolicy.RankMedicines(candidates, order.requiredTreatmentWork);
+            if (ranked.Count == 0)
+            {
+                failureReason = "the bounded two-per-medicine fixture stock is exhausted";
+                return 0;
+            }
+            CharacterMedicalMedicineCandidate medicine = ranked[0];
+            if (!worldItems.SpawnItemAt(
+                    medicine.ItemId,
+                    1,
+                    claim.DropPosition,
+                    WorldItemStackState.FacilityBuffer,
+                    claim.DestinationId,
+                    out int spawned)
+                || spawned != 1)
+            {
+                failureReason = "medicine could not enter the registered one-item buffer: "
+                    + claim.DestinationId;
+                return 0;
+            }
+
+            remainingTreatmentFixtureStock[medicine.ItemId] -= spawned;
+            return spawned;
         }
 
         private bool ResetPersistentNeedsAndMood(
@@ -2770,26 +3276,39 @@ public static class DefenseEngagementPlayModeVerifier
             WriteDurableReport(success, detail);
             Time.timeScale = 0f;
             Debug.Log($"DEFENSE_ENGAGEMENT_PLAYMODE {lastReport}");
+            ExitPhase80BatchIfRequested(success);
         }
 
         private void WriteDurableReport(bool success, string detail)
         {
             bool patientAiResumed = downedGuard != null
                 && !downedGuard.IsAiPaused()
+                && downedGuard.CurrentLifecycleState == CharacterLifecycleState.Active
+                && !downedGuard.IsDead
                 && downedGuard.Brain != null;
             bool rescuerAiResumed = rescueWorker != null
                 && !rescueWorker.IsAiPaused()
+                && rescueWorker.CurrentLifecycleState == CharacterLifecycleState.Active
+                && rescueWorker.GetComponent<AbilityRescue>()?.IsRescuing != true
                 && rescueWorker.Brain != null;
             string Row(bool passed, string id, string value) =>
                 (passed ? "PASS" : "FAIL") + "\t" + id + "\t" + value;
 
-            Directory.CreateDirectory(Path.GetDirectoryName(ReportPath)
+            string reportPath = GetActiveReportPath();
+            Directory.CreateDirectory(Path.GetDirectoryName(reportPath)
                 ?? "Artifacts/QA");
-            File.WriteAllLines(ReportPath, new[]
+            File.WriteAllLines(reportPath, new[]
             {
                 "# Defense engagement production-live PlayMode verification",
                 "result=" + (success ? "PASS" : "FAIL"),
                 "scope=production-invasion+defense-engagement+medical-recovery",
+                "qaAutosaveIsolated=" + automaticSaveIsolated,
+                "phaseTimeoutSeconds=" + EngagementTimeoutSeconds
+                    + "; combatElapsed=" + (combatContractSatisfied
+                        ? recoveryStartedAt - intruderSpawnedAt
+                        : Time.realtimeSinceStartup - intruderSpawnedAt)
+                    + "; medicalElapsed=" + (combatContractSatisfied
+                        ? Time.realtimeSinceStartup - recoveryStartedAt : 0f),
                 "utc=" + DateTime.UtcNow.ToString("O"),
                 "authority=InvasionDirectorRuntime.TrySpawnIntruder->IDefenseEngagementRuntime->production combat exchanges->autonomous medical terminal",
                 Row(cleanBootEvidence, "GAMEPLAY_SCENE_CLEAN_BOOT", "scene=" + cleanBootScenePath),
@@ -2797,7 +3316,15 @@ public static class DefenseEngagementPlayModeVerifier
                 Row(observedRallying && observedApproachWithoutDispatch, "INVASION_ENTRY_PHASES", "rally=" + observedRallying + "; approach=" + observedApproachWithoutDispatch),
                 Row(observedEngagement, "ENGAGEMENT_STARTED", "engagementId=" + observedEngagementId),
                 Row(combatContractSatisfied, "COMBAT_3_EXCHANGES_OBSERVED", "exchanges=" + Math.Max(0, lastObservedExchangeCount - baselineExchangeCount)),
-                Row(controlledSuppressionRequested && controlledSuppressionCompleted, "PRODUCTION_DEFENSE_VICTORY_TERMINAL", "requested=" + controlledSuppressionRequested + "; completed=" + controlledSuppressionCompleted + "; failure=" + controlledSuppressionFailure),
+                Row(
+                    observedCombatDamageOutcome
+                    && observedCombatDamageOutcomeCount > 0,
+                    "COMBAT_DAMAGE_OUTCOME_ACKNOWLEDGED",
+                    "count=" + observedCombatDamageOutcomeCount
+                    + ";operation=" + observedCombatDamageOperationId),
+                Row(healthyDefeatRejected, "HEALTHY_DEFEAT_REJECTED_WITHOUT_MUTATION", "observed=" + healthyDefeatRejected),
+                Row(controlledSuppressionRequested && controlledSuppressionCompleted, "BODY_DOWNED_DEFENSE_TERMINAL", "setup=controlled-body-injury-after-real-exchanges; completed=" + controlledSuppressionCompleted + "; failure=" + controlledSuppressionFailure),
+                Row(defeatedIntruderSaveCaptured, "POST_DEFEAT_IN_MEMORY_SAVE_PREFLIGHT", "captured=" + defeatedIntruderSaveCaptured + "; slotWritten=false"),
                 Row(observedDowned, "MEDICAL_DOWNED", "observed=" + observedDowned),
                 Row(observedStabilization, "MEDICAL_STABILIZATION", "observed=" + observedStabilization + "; preStabilized=" + observedPreStabilizedPatient + "; work=" + maxObservedStabilizationWork),
                 Row(observedPhysicalCarry && observedPhysicalCarryAttachment, "MEDICAL_PHYSICAL_CARRY", "observed=" + observedPhysicalCarry + "; attached=" + observedPhysicalCarryAttachment),
@@ -2806,6 +3333,54 @@ public static class DefenseEngagementPlayModeVerifier
                 Row(patientAiResumed && rescuerAiResumed, "AI_OWNERSHIP_RESUMED", "patient=" + patientAiResumed + "; rescuer=" + rescuerAiResumed),
                 "terminal=" + (success ? "PASS: " : "FAIL: ") + (detail ?? string.Empty)
             });
+
+            if (ShouldExitPhase80Batch())
+                WritePhase80SaveDiagnostics(reportPath + ".save-diagnostics.txt");
+        }
+
+        private void WritePhase80SaveDiagnostics(string path)
+        {
+            if (File.Exists(path))
+                throw new InvalidOperationException("Phase80 save diagnostics already exist: " + path);
+            List<string> lines = new List<string>
+            {
+                "# Supplemental in-memory save capture; no save slot written",
+                "utc=" + DateTime.UtcNow.ToString("O")
+            };
+            try
+            {
+                ResolveService<IDungeonGameSaveService>().Capture();
+                lines.Add("capture=PASS");
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                                               && exception is not StackOverflowException
+                                               && exception is not AccessViolationException)
+            {
+                lines.Add("capture=FAIL:" + exception.GetType().Name + ":" + exception.Message);
+            }
+            try
+            {
+                lines.Add("loadoutOwners=" + string.Join(",", ResolveService<ICombatEquipmentRuntime>()
+                    .Capture().loadouts.Select(value => value.characterId)
+                    .OrderBy(value => value, StringComparer.Ordinal)));
+                lines.Add("captivityOwners=" + string.Join(",", ResolveService<ICaptivityOwnedCharacterIdQuery>()
+                    .GetOwnedCharacterIds().Select(value => value.Value)
+                    .OrderBy(value => value, StringComparer.Ordinal)));
+                lines.AddRange(FindObjectsByType<CharacterActor>(
+                        FindObjectsInactive.Include, FindObjectsSortMode.None)
+                    .OrderBy(actor => actor.Identity?.PersistentId ?? string.Empty, StringComparer.Ordinal)
+                    .Select(actor => "actor=" + actor.Identity?.PersistentId
+                        + ";type=" + actor.characterType
+                        + ";lifecycle=" + actor.CurrentLifecycleState
+                        + ";dead=" + actor.IsDead));
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                                               && exception is not StackOverflowException
+                                               && exception is not AccessViolationException)
+            {
+                lines.Add("ownerDiagnostics=FAIL:" + exception.GetType().Name + ":" + exception.Message);
+            }
+            File.WriteAllLines(path, lines);
         }
 
         private void OnDestroy()

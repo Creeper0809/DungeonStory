@@ -261,8 +261,12 @@ public static class CombatEquipmentCraftMaterialOutbox
         order.resolvedQuality = CombatEquipmentQuality.Normal;
         order.resolvedMythicProvenance = null;
         order.resolvedMakerCharacterId = string.Empty;
+        order.resolvedMakerDisplayName = string.Empty;
+        order.resolvedAbsoluteDay = 0;
         order.resolvedHadInspiration = false;
         order.completionEffectsPublished = false;
+        order.qualityOutcomeSchemaVersion = 0;
+        order.qualityOutcomeCommitted = false;
         order.outputPublished = false;
         order.outputOperationId = string.Empty;
         order.outputItemId = string.Empty;

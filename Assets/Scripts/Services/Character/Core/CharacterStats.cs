@@ -72,6 +72,7 @@ public class CharacterStats :
     private ICharacterPerformanceQuery performance;
     private CharacterWorkPerformanceContextResolver workPerformanceContext;
     private ICombatEquipmentRuntime combatEquipment;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
     [NonSerialized]
     private ControlledDictionary<CharacterCondition, float> controlledStats;
     public IDictionary<CharacterCondition, float> Stats
@@ -145,6 +146,7 @@ public class CharacterStats :
         CharacterMoodStateService moodStateService,
         CharacterStatsMaintenanceSchedule maintenanceSchedule,
         IGameEventBus gameEventBus,
+        IMigratedProducerOutcomeTransaction outcomeTransactions,
         ICharacterPerformanceQuery performance = null,
         CharacterWorkPerformanceContextResolver workPerformanceContext = null,
         ICombatEquipmentRuntime combatEquipment = null)
@@ -164,6 +166,8 @@ public class CharacterStats :
             ?? throw new ArgumentNullException(nameof(maintenanceSchedule));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
         this.workPerformanceContext = workPerformanceContext
@@ -295,44 +299,123 @@ public class CharacterStats :
         CharacterNeedRecoverySource source,
         IEnumerable<string> activeConditionIds = null)
     {
-        float previousValue = GetConditionValue(condition, 0f);
         float sharedMultiplier = condition == CharacterCondition.SLEEP
             && source == CharacterNeedRecoverySource.Rest
                 ? GetDetailedStatMultiplier(
                     "character:sleep-recovery",
                     activeConditionIds)
                 : 1f;
-        ChangesStat(
+        float appliedAmount = RequireNeedStateService().ApplyRecoveryMultiplier(
             condition,
-            RequireNeedStateService().ApplyRecoveryMultiplier(
-                condition,
-                amount,
-                source) * sharedMultiplier);
-        if (condition == CharacterCondition.SLEEP
-            && source == CharacterNeedRecoverySource.Rest
-            && gameEventBus != null
-            && actor != null
-            && CharacterPersistentIdentity.TryGet(actor, out CharacterId id))
+            amount,
+            source) * sharedMultiplier;
+        if (condition != CharacterCondition.SLEEP
+            || source != CharacterNeedRecoverySource.Rest)
         {
-            List<string> conditions = new();
-            if (activeConditionIds != null)
-            {
-                foreach (string conditionId in activeConditionIds)
-                {
-                    if (!string.IsNullOrWhiteSpace(conditionId))
-                        conditions.Add(conditionId.Trim());
-                }
-            }
+            ChangesStat(condition, appliedAmount);
+            return;
+        }
+
+        if (RequireNeedStateService().ShouldFreeze(condition, appliedAmount))
+            return;
+        if (actor == null
+            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId id))
+        {
+            Debug.LogError("rest-outcome-character-identity-unavailable");
+            return;
+        }
+
+        int absoluteDay = Mathf.Max(
+            0,
+            Mathf.FloorToInt(
+                gameClock.Time / GameCalendarRules.SecondsPerDay));
+        string ownerIdentity = "rest-outcome:" + id.Value;
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.RestOutcomeIdentityEvent,
+                ownerIdentity,
+                absoluteDay,
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reserveFailure))
+        {
+            Debug.LogError("rest-outcome-reservation-failed:" + reserveFailure);
+            return;
+        }
+
+        EnsureStats();
+        SynchronizeExternalMoodOverride();
+        CharacterMoodDeliveryTransactionSnapshot rollback =
+            CaptureMoodDeliveryTransactionState();
+        float previousValue = GetConditionValue(condition, 0f);
+        ApplyStatDeltaWithoutPublishing(condition, appliedAmount);
+        RecalculateMood(
+            notify: false,
+            forceNotify: false,
+            adoptExternalOverride: false);
+        float currentValue = GetConditionValue(condition, previousValue);
+        List<string> conditions = SnapshotConditionIds(activeConditionIds);
+        MigratedProducerOutcomeCommitResult committed;
+        try
+        {
+            committed = outcomeTransactions.CommitSingleSubject(
+                prepared,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    id.Value,
+                    identity?.DisplayName ?? actor.BuildingDisplayName,
+                    MigratedProducerOutcomeIds.ActorRole),
+                $"수면 수치가 {previousValue:0.##}에서 {currentValue:0.##}로 회복됐다.");
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            RestoreMoodDeliveryTransactionState(rollback);
+            throw;
+        }
+        if (!committed.DurablyCommitted)
+        {
+            RestoreMoodDeliveryTransactionState(rollback);
+            Debug.LogError("rest-outcome-commit-failed:" + committed.DetailCode);
+            return;
+        }
+
+        try
+        {
+            PublishStatsChanged(includeMood: true);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError("rest-outcome-stats-observer-failed:"
+                + exception.GetType().Name);
+        }
+        try
+        {
             gameEventBus.Publish(new RestOutcomeIdentityEvent(
                 id,
                 previousValue,
-                GetConditionValue(condition, previousValue),
+                currentValue,
                 conditions,
-                Mathf.Max(
-                    0,
-                    Mathf.FloorToInt(
-                        gameClock.Time / GameCalendarRules.SecondsPerDay))));
+                absoluteDay));
         }
+        catch (Exception exception)
+        {
+            Debug.LogError("rest-outcome-identity-observer-failed:"
+                + exception.GetType().Name);
+        }
+    }
+
+    private static List<string> SnapshotConditionIds(
+        IEnumerable<string> activeConditionIds)
+    {
+        var conditions = new List<string>();
+        if (activeConditionIds == null)
+            return conditions;
+        foreach (string conditionId in activeConditionIds)
+        {
+            if (!string.IsNullOrWhiteSpace(conditionId))
+                conditions.Add(conditionId.Trim());
+        }
+        return conditions;
     }
 
     public void ApplyWorkNeedDepletion(float elapsedSeconds = 1f)

@@ -126,7 +126,7 @@ public sealed class MetaProgressionState
     public int GetUpgradeLevel(string id)
     {
         return !string.IsNullOrWhiteSpace(id)
-            && upgradeLevels.TryGetValue(id, out int level)
+            && state.UpgradeLevels.TryGetValue(id, out int level)
                 ? level
                 : 0;
     }

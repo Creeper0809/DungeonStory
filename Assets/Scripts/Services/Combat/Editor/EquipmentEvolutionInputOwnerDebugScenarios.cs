@@ -12,7 +12,9 @@ public static class EquipmentEvolutionInputOwnerDebugScenarios
     private const string OrderId = "equipment-reforge:qa-0001";
     private const string DestinationId = "facility-reforge:" + OrderId;
     private const string FacilityId = "building:qa:equipment-reforge";
-    private const string EquipmentItemId = "equipment:qa-blade";
+    private const string EquipmentDefinitionId = "qa-blade";
+    private static readonly string EquipmentItemId =
+        PhysicalItemIds.ForEquipment(EquipmentDefinitionId);
     private const string EquipmentInstanceId = "equipment-instance:qa-blade-0001";
     private const string EquipmentStackId = "world-item:qa-blade-0001";
 
@@ -26,7 +28,7 @@ public static class EquipmentEvolutionInputOwnerDebugScenarios
     public static void RunAll()
     {
         AuthorityFixture authority = new();
-        RecordingDelivery delivery = new(CreateEquipmentStack(Component("baseline")));
+        RecordingDelivery delivery = new(CreateEquipmentStack(Component(1f)));
         RecordingRelease release = new();
         MutableBuildingWorld buildings = new();
         Facility facility = CreateFacility(buildings);
@@ -51,7 +53,7 @@ public static class EquipmentEvolutionInputOwnerDebugScenarios
                 release);
             EquipmentEvolutionInputOwnerDescriptor opening = Descriptor(
                 facility,
-                Component("baseline"),
+                Component(1f),
                 storedCapacity: 0L,
                 revision: 0L,
                 fingerprint: string.Empty);
@@ -74,7 +76,7 @@ public static class EquipmentEvolutionInputOwnerDebugScenarios
 
             EquipmentEvolutionInputOwnerDescriptor stored = Descriptor(
                 facility,
-                Component("baseline"),
+                Component(1f),
                 projection.CapacityGrams,
                 projection.MassAuthorityRevision,
                 projection.CapacityFingerprint);
@@ -96,7 +98,7 @@ public static class EquipmentEvolutionInputOwnerDebugScenarios
 
             EquipmentEvolutionInputOwnerDescriptor oneGramDrift = Descriptor(
                 facility,
-                Component("baseline"),
+                Component(1f),
                 projection.CapacityGrams + 1L,
                 projection.MassAuthorityRevision,
                 projection.CapacityFingerprint);
@@ -107,10 +109,10 @@ public static class EquipmentEvolutionInputOwnerDebugScenarios
                 && authority.Profiles.Count == 1,
                 "Current-format restore accepted a one-gram projection drift.");
 
-            delivery.Set(CreateEquipmentStack(Component("mutated")));
+            delivery.Set(CreateEquipmentStack(Component(0.5f)));
             Require(!runtime.TryValidateAuthority(stored, out _),
                 "Unique equipment component custody drift was accepted.");
-            delivery.Set(CreateEquipmentStack(Component("baseline")));
+            delivery.Set(CreateEquipmentStack(Component(1f)));
 
             release.Fail = true;
             Require(!runtime.TryClose(stored, "qa-terminal", out _)
@@ -148,6 +150,7 @@ public static class EquipmentEvolutionInputOwnerDebugScenarios
             BindingFlags.Instance | BindingFlags.Public);
         buildingData?.SetValue(facility, definition);
         facility.RestorePersistentIdentity((BuildingInstanceId)FacilityId);
+        CharacterAiEditorTestDependencies.Inject(facility);
         facility.SetRuntimeGridPosition(new Vector2Int(8, 13));
         buildings.Values = new BuildableObject[] { facility };
         return facility;
@@ -176,21 +179,18 @@ public static class EquipmentEvolutionInputOwnerDebugScenarios
         revision,
         fingerprint);
 
-    private static ItemInstanceComponentSaveData Component(string value) => new()
-    {
-        componentTypeId = ItemInstanceComponentIds.Equipment,
-        schemaVersion = 1,
-        affectsStacking = true,
-        values = new List<ItemStateValueSaveData>
+    private static ItemInstanceComponentSaveData Component(float durabilityRatio) =>
+        EquipmentItemStateCodec.Encode(new CombatEquipmentInstance
         {
-            new()
-            {
-                key = "qa-state",
-                kind = ItemStateValueKind.String,
-                stringValue = value
-            }
-        }
-    };
+            instanceId = EquipmentInstanceId,
+            definitionId = EquipmentDefinitionId,
+            materialId = "material:iron-ingot",
+            quality = CombatEquipmentQuality.Normal,
+            durabilityRatio = durabilityRatio,
+            powerCharge = 100f,
+            worldState = CombatEquipmentWorldState.Stored,
+            sourceStackId = EquipmentStackId
+        });
 
     private static WorldItemStackSnapshot CreateEquipmentStack(
         ItemInstanceComponentSaveData component) => new()

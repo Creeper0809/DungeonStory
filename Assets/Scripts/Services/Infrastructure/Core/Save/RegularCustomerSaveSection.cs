@@ -143,6 +143,25 @@ public sealed class RegularCustomerSaveSection :
                 report.AddError(
                     $"Regular customer '{id}' has invalid recruit capabilities {(int)saved.recruitCapabilities}.");
             }
+            if (!Enum.IsDefined(
+                    typeof(RegularCustomerRecruitDeliveryKind),
+                    saved.recruitDeliveryKind)
+                || saved.recruitDeliveryPending
+                    && (!saved.isRecruited
+                        || saved.recruitDeliveryKind
+                            == RegularCustomerRecruitDeliveryKind.None)
+                || !saved.recruitDeliveryPending
+                    && (saved.recruitDeliveryKind
+                            != RegularCustomerRecruitDeliveryKind.None
+                        || saved.pendingMercenaryRolePremium != 0)
+                || saved.recruitDeliveryKind
+                        != RegularCustomerRecruitDeliveryKind.Mercenary
+                    && saved.pendingMercenaryRolePremium != 0
+                || saved.pendingMercenaryRolePremium < 0)
+            {
+                report.AddError(
+                    $"Regular customer '{id}' has invalid pending recruit delivery state.");
+            }
         }
     }
 

@@ -141,6 +141,19 @@ public interface IOutcomeAwarePhysicalItemBatchDispositionService
         out string failureReason);
 }
 
+/// <summary>Callback-free owner publication joined to exact pending-receipt removal.</summary>
+public interface IPhysicalItemDispositionAcknowledgementParticipant
+{
+    bool TryCommit(out string failureReason);
+    void Rollback();
+}
+
+public interface IOutcomeAwarePhysicalItemDispositionAcknowledgementService
+{
+    bool Acknowledge(string commitId, IPhysicalItemDispositionAcknowledgementParticipant participant,
+        out string failureReason);
+}
+
 internal static class PhysicalGameplayOutcomeSaveCodec
 {
     internal static PhysicalItemDispositionSourceFactSaveData ToSave(

@@ -54,7 +54,7 @@ public static class DungeonRuntimeCompositionDebugScenarios
         builder.RegisterInstance(dependency);
 
         using IObjectResolver resolver = builder.Build();
-        Scene probeScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+        Scene probeScene = EditorSceneManager.NewPreviewScene();
         GameObject root = new GameObject("Runtime Composition Root Probe");
         GameObject child = new GameObject("Inactive Unlisted Injection Probe");
         child.transform.SetParent(root.transform, false);
@@ -81,13 +81,13 @@ public static class DungeonRuntimeCompositionDebugScenarios
         finally
         {
             UnityEngine.Object.DestroyImmediate(root);
-            EditorSceneManager.CloseScene(probeScene, true);
+            EditorSceneManager.ClosePreviewScene(probeScene);
         }
     }
 
     private static bool VerifyMissingRequiredDependencyFailsWithContext()
     {
-        Scene probeScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+        Scene probeScene = EditorSceneManager.NewPreviewScene();
         GameObject buildingObject = new GameObject("Missing Dependency Building Probe");
         SceneManager.MoveGameObjectToScene(buildingObject, probeScene);
         BuildableObject building = buildingObject.AddComponent<BuildableObject>();
@@ -107,13 +107,13 @@ public static class DungeonRuntimeCompositionDebugScenarios
         finally
         {
             UnityEngine.Object.DestroyImmediate(buildingObject);
-            EditorSceneManager.CloseScene(probeScene, true);
+            EditorSceneManager.ClosePreviewScene(probeScene);
         }
     }
 
     private static bool VerifyDestroyedSceneComponentCacheRefreshes()
     {
-        Scene probeScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+        Scene probeScene = EditorSceneManager.NewPreviewScene();
         GameObject firstObject = new GameObject("First Cached Camera Probe", typeof(Camera));
         SceneManager.MoveGameObjectToScene(firstObject, probeScene);
         Camera firstCamera = firstObject.GetComponent<Camera>();
@@ -160,7 +160,7 @@ public static class DungeonRuntimeCompositionDebugScenarios
                 UnityEngine.Object.DestroyImmediate(firstObject);
             }
 
-            EditorSceneManager.CloseScene(probeScene, true);
+            EditorSceneManager.ClosePreviewScene(probeScene);
         }
     }
 

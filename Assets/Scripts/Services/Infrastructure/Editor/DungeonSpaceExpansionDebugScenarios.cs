@@ -48,6 +48,31 @@ public static class DungeonSpaceExpansionDebugScenarios
             rows,
             failures);
         Verify(
+            "EXPANSION_OUTCOME_REJECTION_ROLLS_BACK_GRID",
+            VerifyOutcomeCommitRejectionRollsBackGrid,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_POSTCOMMIT_OBSERVER_FAULT_ISOLATED",
+            VerifyPostCommitObserverFaultIsolated,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_RESEARCH_STATE_RETRIES_PREPARE_DEFERRAL",
+            VerifyResearchStateRetriesPrepareDeferral,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_RESTORE_HOOK_RECONCILES_COMPLETED_RESEARCH",
+            VerifyRestoreHookReconcilesCompletedResearch,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_SAVE_V5_LAYOUT_ROUNDTRIP_EXACT",
+            VerifySaveLayoutRoundTrip,
+            rows,
+            failures);
+        Verify(
             "EXPANSION_OUT_OF_ORDER_DEEP_IDEMPOTENT",
             VerifyDeepCompletionDirectExpansion,
             rows,
@@ -100,6 +125,42 @@ public static class DungeonSpaceExpansionDebugScenarios
             Debug.Log("Research-gated dungeon expansion scenarios passed.");
         }
 
+        return failures.Count == 0;
+    }
+
+    public static bool RunOutcomeIntegrationScenarios(bool logSuccess)
+    {
+        List<string> rows = new();
+        List<string> failures = new();
+        Verify(
+            "EXPANSION_EVENT_29_51_71_87_EXACT",
+            VerifyResearchEventExpansion,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_OUTCOME_REJECTION_ROLLS_BACK_GRID",
+            VerifyOutcomeCommitRejectionRollsBackGrid,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_POSTCOMMIT_OBSERVER_FAULT_ISOLATED",
+            VerifyPostCommitObserverFaultIsolated,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_RESEARCH_STATE_RETRIES_PREPARE_DEFERRAL",
+            VerifyResearchStateRetriesPrepareDeferral,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_RESTORE_HOOK_RECONCILES_COMPLETED_RESEARCH",
+            VerifyRestoreHookReconcilesCompletedResearch,
+            rows,
+            failures);
+        foreach (string failure in failures)
+            Debug.LogError(failure);
+        if (failures.Count == 0 && logSuccess)
+            Debug.Log("Dungeon-space outcome integration scenarios passed.");
         return failures.Count == 0;
     }
 
@@ -168,7 +229,7 @@ public static class DungeonSpaceExpansionDebugScenarios
         TestGridAuthority authority = new TestGridAuthority(initial);
         GameEventBus events = new GameEventBus();
         DungeonSpaceExpansionRuntime runtime =
-            new DungeonSpaceExpansionRuntime(events, authority, authority);
+            CreateRuntime(events, authority);
         runtime.Start();
         try
         {
@@ -238,7 +299,7 @@ public static class DungeonSpaceExpansionDebugScenarios
         TestGridAuthority restoredAuthority = new(restoredTierZero);
         GameEventBus restoredEvents = new();
         DungeonSpaceExpansionRuntime restoredRuntime =
-            new(restoredEvents, restoredAuthority, restoredAuthority);
+            CreateRuntime(restoredEvents, restoredAuthority);
         restoredRuntime.Start();
         try
         {
@@ -257,7 +318,7 @@ public static class DungeonSpaceExpansionDebugScenarios
         TestGridAuthority newRunAuthority = new(sceneSeed);
         GameEventBus newRunEvents = new();
         DungeonSpaceExpansionRuntime newRunRuntime =
-            new(newRunEvents, newRunAuthority, newRunAuthority);
+            CreateRuntime(newRunEvents, newRunAuthority);
         try
         {
             Require(newRunRuntime.TryReconcileNewRunTierZero(
@@ -293,7 +354,7 @@ public static class DungeonSpaceExpansionDebugScenarios
         TestGridAuthority authority = new TestGridAuthority(initial);
         GameEventBus events = new GameEventBus();
         DungeonSpaceExpansionRuntime runtime =
-            new DungeonSpaceExpansionRuntime(events, authority, authority);
+            CreateRuntime(events, authority);
         runtime.Start();
         try
         {
@@ -330,6 +391,197 @@ public static class DungeonSpaceExpansionDebugScenarios
             events.Clear();
         }
 
+        return true;
+    }
+
+    private static bool VerifyOutcomeCommitRejectionRollsBackGrid()
+    {
+        Grid initial = CreateInitialGrid();
+        TestGridAuthority authority = new(initial);
+        GameEventBus events = new();
+        EditorDungeonSpaceExpansionOutcomeCommitter committer = new(
+            rejectCommit: true);
+        DungeonSpaceExpansionRuntime runtime = CreateRuntime(
+            events,
+            authority,
+            committer);
+        try
+        {
+            Require(!runtime.TryReconcileNewRunTierZero(
+                    out DungeonSpaceExpansionResult result,
+                    out string failureReason),
+                "Injected outcome rejection unexpectedly succeeded.");
+            Require(ReferenceEquals(authority.Grid, initial)
+                    && authority.PublicationCount == 2
+                    && authority.CompletionCount == 0
+                    && !result.Changed
+                    && committer.PrepareCount == 1
+                    && committer.CommitCount == 1
+                    && failureReason.Contains(
+                        "injected-dungeon-space-commit-rejection",
+                        StringComparison.Ordinal),
+                "Outcome rejection did not restore the original grid atomically: "
+                + failureReason);
+        }
+        finally
+        {
+            runtime.Dispose();
+            events.Clear();
+        }
+        return true;
+    }
+
+    private static bool VerifyPostCommitObserverFaultIsolated()
+    {
+        Grid initial = CreateInitialGrid();
+        TestGridAuthority authority = new(initial)
+        {
+            ThrowOnCompletion = true
+        };
+        GameEventBus events = new();
+        EditorDungeonSpaceExpansionOutcomeCommitter committer = new();
+        DungeonSpaceExpansionRuntime runtime = CreateRuntime(
+            events,
+            authority,
+            committer);
+        try
+        {
+            Require(runtime.TryReconcileNewRunTierZero(
+                    out DungeonSpaceExpansionResult result,
+                    out string failureReason),
+                "Post-commit observer fault escaped the expansion command: "
+                + failureReason);
+            Require(result.Changed
+                    && result.OutcomeOwnerRevision
+                        == DungeonSpaceExpansionCatalog.InitialInteriorColumns
+                    && authority.PublicationCount == 1
+                    && authority.CompletionCount == 1
+                    && committer.PrepareCount == 1
+                    && committer.CommitCount == 1,
+                "Post-commit observer fault changed the committed expansion result.");
+            RequireLayout(
+                authority.Grid,
+                DungeonSpaceExpansionCatalog.InitialInteriorColumns,
+                60,
+                new Vector2Int(17, 0));
+        }
+        finally
+        {
+            runtime.Dispose();
+            events.Clear();
+        }
+        return true;
+    }
+
+    private static bool VerifyResearchStateRetriesPrepareDeferral()
+    {
+        Dictionary<string, ResearchProjectSO> projects = LoadProjects();
+        Grid tierZero = CreateTierZeroGrid();
+        TestGridAuthority authority = new(tierZero);
+        GameEventBus events = new();
+        BlueprintResearchState researchState = new();
+        researchState.Projects.RestoreCompleted(
+            new ResearchProjectId(DungeonSpaceExpansionCatalog.QuarryResearchId));
+        EditorBlueprintResearchStateService research = new(researchState);
+        EditorDungeonSpaceExpansionOutcomeCommitter committer = new(
+            deferPrepareCount: 1);
+        DungeonSpaceExpansionRuntime runtime = CreateRuntime(
+            events,
+            authority,
+            committer,
+            research);
+        runtime.Start();
+        try
+        {
+            Publish(
+                events,
+                projects[DungeonSpaceExpansionCatalog.QuarryResearchId]);
+            Require(ReferenceEquals(authority.Grid, tierZero)
+                    && runtime.HasPendingExpansion
+                    && string.Equals(
+                        runtime.PendingResearchProjectId,
+                        DungeonSpaceExpansionCatalog.QuarryResearchId,
+                        StringComparison.Ordinal)
+                    && runtime.PendingFailureReason.Contains(
+                        "injected-dungeon-space-prepare-deferral",
+                        StringComparison.Ordinal)
+                    && committer.PrepareCount == 1
+                    && committer.CommitCount == 0,
+                "A deferred prepare was not retained as an observable pending expansion.");
+
+            for (int index = 0; index <= 60; index++)
+                runtime.Tick();
+
+            RequireLayout(
+                authority.Grid,
+                DungeonSpaceExpansionCatalog.BasicSectorTargetColumns,
+                68,
+                new Vector2Int(17, 0));
+            Require(!runtime.HasPendingExpansion
+                    && string.IsNullOrEmpty(runtime.PendingResearchProjectId)
+                    && string.IsNullOrEmpty(runtime.PendingFailureReason)
+                    && committer.PrepareCount == 2
+                    && committer.CommitCount == 1
+                    && authority.PublicationCount == 1
+                    && authority.CompletionCount == 1,
+                "Completed research did not retry the exact deferred expansion once.");
+
+            for (int index = 0; index < 120; index++)
+                runtime.Tick();
+            Require(committer.PrepareCount == 2
+                    && authority.PublicationCount == 1,
+                "A reconciled expansion kept retrying after success.");
+        }
+        finally
+        {
+            runtime.Dispose();
+            events.Clear();
+        }
+        return true;
+    }
+
+    private static bool VerifyRestoreHookReconcilesCompletedResearch()
+    {
+        Grid tierZero = CreateTierZeroGrid();
+        TestGridAuthority authority = new(tierZero);
+        GameEventBus events = new();
+        BlueprintResearchState researchState = new();
+        researchState.Projects.RestoreCompleted(
+            new ResearchProjectId(DungeonSpaceExpansionCatalog.DeepMiningResearchId));
+        EditorDungeonSpaceExpansionOutcomeCommitter committer = new();
+        DungeonSpaceExpansionRuntime runtime = CreateRuntime(
+            events,
+            authority,
+            committer,
+            new EditorBlueprintResearchStateService(researchState));
+        runtime.Start();
+        try
+        {
+            runtime.OnRestoreCompleted();
+            runtime.Tick();
+
+            RequireLayout(
+                authority.Grid,
+                DungeonSpaceExpansionCatalog.DeepSectorTargetColumns,
+                DungeonSpaceExpansionCatalog.MaximumSupportedGridWidth,
+                new Vector2Int(17, 0));
+            Require(!runtime.HasPendingExpansion
+                    && runtime.LastResult.Changed
+                    && string.Equals(
+                        runtime.LastResult.ResearchProjectId,
+                        DungeonSpaceExpansionCatalog.DeepMiningResearchId,
+                        StringComparison.Ordinal)
+                    && committer.PrepareCount == 1
+                    && committer.CommitCount == 1
+                    && authority.PublicationCount == 1
+                    && authority.CompletionCount == 1,
+                "The restore-completed hook did not reconcile the highest completed expansion exactly once.");
+        }
+        finally
+        {
+            runtime.Dispose();
+            events.Clear();
+        }
         return true;
     }
 
@@ -446,7 +698,7 @@ public static class DungeonSpaceExpansionDebugScenarios
             Grid original = CreateGridWithInteriorColumns(columns);
             TestGridAuthority authority = new(original);
             GameEventBus events = new();
-            DungeonSpaceExpansionRuntime runtime = new(events, authority, authority);
+            DungeonSpaceExpansionRuntime runtime = CreateRuntime(events, authority);
             try
             {
                 Require(!runtime.TryReconcileNewRunTierZero(
@@ -682,7 +934,7 @@ public static class DungeonSpaceExpansionDebugScenarios
         Grid initial = CreateInitialGrid();
         TestGridAuthority authority = new(initial);
         GameEventBus events = new();
-        DungeonSpaceExpansionRuntime runtime = new(events, authority, authority);
+        DungeonSpaceExpansionRuntime runtime = CreateRuntime(events, authority);
         try
         {
             Require(runtime.TryReconcileNewRunTierZero(out _, out string failureReason),
@@ -700,6 +952,18 @@ public static class DungeonSpaceExpansionDebugScenarios
     {
         events.Publish(new BlueprintResearchCompletedEvent(project, default));
     }
+
+    private static DungeonSpaceExpansionRuntime CreateRuntime(
+        GameEventBus events,
+        TestGridAuthority authority,
+        EditorDungeonSpaceExpansionOutcomeCommitter committer = null,
+        IBlueprintResearchStateService researchStateService = null) => new(
+        events,
+        authority,
+        authority,
+        EditorFixedGameCalendar.Instance,
+        committer ?? new EditorDungeonSpaceExpansionOutcomeCommitter(),
+        researchStateService ?? new EditorBlueprintResearchStateService());
 
     private static void RequireLayout(
         Grid grid,
@@ -769,6 +1033,7 @@ public static class DungeonSpaceExpansionDebugScenarios
         public Grid Grid { get; private set; }
         public int PublicationCount { get; private set; }
         public int CompletionCount { get; private set; }
+        public bool ThrowOnCompletion { get; set; }
 
         public bool TryGetManager(out GridSystemManager manager)
         {
@@ -802,6 +1067,11 @@ public static class DungeonSpaceExpansionDebugScenarios
         public void CompleteGridPublication()
         {
             CompletionCount++;
+            if (ThrowOnCompletion)
+            {
+                throw new InvalidOperationException(
+                    "injected-dungeon-space-observer-fault");
+            }
         }
     }
 

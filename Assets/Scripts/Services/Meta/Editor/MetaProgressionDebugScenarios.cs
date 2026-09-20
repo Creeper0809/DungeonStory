@@ -241,6 +241,10 @@ public static class MetaProgressionDebugScenarios
         DungeonSceneRuntimeReferences runReferences =
             EditorRuntimeReferenceFixtures.DungeonWithRunVariables;
         RunVariableRuntime runVariables = runReferences.RunVariables;
+        var runRoot = new DungeonRuntimeAggregateRootStore();
+        var runOutcomeFixture = new MigratedProducerOutcomeEditorFixture(
+            "run:meta-strategy-variables",
+            runRoot);
         runVariables.Construct(
             new EmptyOwnerRunDataProvider(),
             EditorRuntimeReferenceFixtures.Invasion,
@@ -252,7 +256,8 @@ public static class MetaProgressionDebugScenarios
             new DungeonStory.Foundation.GameEventBus(),
             authored,
             authored,
-            new DungeonRuntimeAggregateRootStore());
+            runRoot,
+            runOutcomeFixture.Transaction);
         runVariables.StartRun(9405);
         RunVariableRuntimeReader runReader = new RunVariableRuntimeReader(
             runReferences,
@@ -611,6 +616,10 @@ public static class MetaProgressionDebugScenarios
             GameEvents = new DungeonStory.Foundation.GameEventBus();
             runtimeObject = new GameObject("Meta Progression Scenario Runtime");
             Runtime = runtimeObject.AddComponent<MetaProgressionRuntime>();
+            var aggregateRootStore = new DungeonRuntimeAggregateRootStore();
+            var outcomeFixture = new MigratedProducerOutcomeEditorFixture(
+                "run:meta-progression",
+                aggregateRootStore);
             Runtime.Construct(
                 new MetaRunResultBuilder(),
                 new MetaRuntimeApplicationAdapter(
@@ -622,7 +631,13 @@ public static class MetaProgressionDebugScenarios
                     new NoopRunResultPanelService()),
                 gameClock,
                 CreateAuthoredMetaCatalog(),
-                new DungeonRuntimeAggregateRootStore());
+                aggregateRootStore);
+            var outcomeTransactions =
+                new MetaUpgradePurchaseOutcomeTransaction(
+                    outcomeFixture.Transaction);
+            Runtime.ConstructOutcomeTransactions(outcomeTransactions);
+            Runtime.ConstructRunResultOutcomeTransactions(
+                outcomeTransactions);
             Runtime.SetShowRunResultPanel(false);
             Runtime.StartNewRun();
         }
@@ -839,13 +854,23 @@ public static class MetaProgressionDebugScenarios
     {
         public IReadOnlyList<KnowledgeResidueTaskSnapshot> Tasks =>
             Array.Empty<KnowledgeResidueTaskSnapshot>();
+        public int NextTaskSequence => 1;
+        public int TaskIdentityGeneration =>
+            KnowledgeResidueTaskIdentity.OriginalGeneration;
         public bool TryQueueCodexAnalysis(out string message) { message = string.Empty; return false; }
         public bool TryQueueRegionReconnaissance(string regionId, out string message) { message = string.Empty; return false; }
         public bool HasProcessingWorkFor(BuildableObject facility) => false;
         public BlueprintResearchWorkResult ApplyWork(CharacterActor researcher, BuildableObject facility, float seconds) => default;
-        public BlueprintResearchWorkResult ApplyApprovedWork(CharacterActor researcher, BuildableObject facility, float approvedWorkUnits) => default;
+        public BlueprintResearchWorkResult ApplyApprovedWork(
+            CharacterActor researcher,
+            BuildableObject facility,
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null) => default;
         public IReadOnlyList<KnowledgeResidueTaskSaveData> Capture() => Array.Empty<KnowledgeResidueTaskSaveData>();
-        public KnowledgeResidueRestoreCandidate PrepareRestore(IEnumerable<KnowledgeResidueTaskSaveData> tasks) =>
+        public KnowledgeResidueRestoreCandidate PrepareRestore(
+            IEnumerable<KnowledgeResidueTaskSaveData> tasks,
+            int nextTaskSequence = 0,
+            int taskIdentityGeneration = 0) =>
             new KnowledgeResidueRestoreCandidate(new KnowledgeResidueAggregateState());
         public void Restore(KnowledgeResidueRestoreCandidate candidate) { }
     }

@@ -32,7 +32,8 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
     private readonly IDoorAccessCommandService doorAccessCommands;
     private readonly IDoorAccessSubjectRegistry doorSubjectRegistry;
     private readonly IGameClock gameClock;
-    private readonly IGameEventBus gameEventBus;
+    private readonly CaptiveEscapeOutcomeRuntime escapeOutcomes;
+    private readonly CaptivityEscapeCompletionRuntime completionRuntime;
     private readonly CaptiveTriggerCommand triggerBetrayal;
     private readonly Dictionary<string, PendingInvasionEscape>
         pendingInvasionEscapes = new(StringComparer.Ordinal);
@@ -42,7 +43,8 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
         CaptivityActorRuntimeLookup actorRuntime,
         CaptivityWorldContext world,
         CaptivitySessionContext session,
-        CaptiveTriggerCommand triggerBetrayal)
+        CaptiveTriggerCommand triggerBetrayal,
+        CaptiveEscapeOutcomeRuntime escapeOutcomes)
     {
         this.actors = actors ?? throw new ArgumentNullException(nameof(actors));
         this.actorRuntime = actorRuntime
@@ -54,8 +56,15 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
         doorAccessCommands = world.DoorAccessCommands;
         doorSubjectRegistry = world.DoorSubjectRegistry;
         gameClock = session.GameClock;
-        gameEventBus = session.GameEventBus;
         this.triggerBetrayal = triggerBetrayal ?? throw new ArgumentNullException(nameof(triggerBetrayal));
+        this.escapeOutcomes = escapeOutcomes
+            ?? throw new ArgumentNullException(nameof(escapeOutcomes));
+        completionRuntime = new CaptivityEscapeCompletionRuntime(
+            actors,
+            actorRuntime,
+            doorSubjectRegistry,
+            gameClock,
+            this.escapeOutcomes);
     }
 
     public void HandleInvasionStarted()
@@ -281,31 +290,24 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
             $"captive-escape:{captiveId?.Trim() ?? string.Empty}");
     }
 
-    public void CompleteEscape(string captiveId, CharacterActor actor)
-    {
-        CaptiveState state = actors.FindState(captiveId);
-        if (state == null || actor == null)
-        {
-            return;
-        }
+    public bool TryCommitNextPendingPhysicalEscape(
+        IReadOnlyList<CaptiveState> states,
+        out bool attempted,
+        out string failureReason) =>
+        completionRuntime.TryCommitNextPendingPhysicalEscape(
+            states,
+            out attempted,
+            out failureReason);
 
-        state.status = CaptivityStatus.Escaped;
-        state.restrained = false;
-        state.lastResult = string.IsNullOrWhiteSpace(state.betrayalTrigger)
-            ? "감방에서 탈출"
-            : state.betrayalTrigger;
-        state.retaliationPressure = ClampStat(
-            state.retaliationPressure + 15f + state.grudge * 0.2f);
-        actor.characterType = CharacterType.Intruder;
-        actor.SetLifecycleState(CharacterLifecycleState.Active);
-        actor.SetAiPaused(false);
-        doorSubjectRegistry.SetCaptive(state.captiveId, false);
-        gameEventBus.Publish(new CaptiveEscapedEvent(
-            state.captiveId,
-            state.lastResult,
-            betrayal: false));
-        actor.GetAbility<AbilityMove>()?.StartSystemExitDungeon();
-    }
+    public bool CompleteEscape(
+        string captiveId,
+        CharacterActor actor,
+        string trigger,
+        out string failureReason) => completionRuntime.CompleteEscape(
+        captiveId,
+        actor,
+        trigger,
+        out failureReason);
 
     public void FailEscape(
         string captiveId,

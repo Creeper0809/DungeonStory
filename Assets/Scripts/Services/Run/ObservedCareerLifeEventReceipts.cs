@@ -11,6 +11,242 @@ public enum CharacterProficiencyAwardKind
     DirectExperience = 2
 }
 
+internal sealed class ObservedLifeEventOutcomeCoordinator
+{
+    private readonly IMigratedProducerOutcomeTransaction transactions;
+
+    internal ObservedLifeEventOutcomeCoordinator(
+        IMigratedProducerOutcomeTransaction transactions) =>
+        this.transactions = transactions
+            ?? throw new ArgumentNullException(nameof(transactions));
+
+    internal bool TryRecordFuneral(
+        V20CampaignRuntime campaign,
+        in ObservedFuneralLifeEventReceipt receipt,
+        out bool stateChanged,
+        out string failureReason)
+    {
+        ObservedFuneralLifeEventReceipt frozen = receipt;
+        return TryRecord(
+            campaign,
+            MigratedProducerOutcomeKind.ObservedFuneralLifeEventReceipt,
+            frozen.SourceOperationId,
+            frozen.AbsoluteDay,
+            FuneralSubject(frozen),
+            FuneralSummary(frozen),
+            () => campaign.RecordObservedFuneralLifeEvent(frozen),
+            out stateChanged,
+            out failureReason);
+    }
+
+    internal bool TryRecordLastLesson(
+        V20CampaignRuntime campaign,
+        in ObservedLastLessonLifeEventReceipt receipt,
+        out bool stateChanged,
+        out string failureReason)
+    {
+        ObservedLastLessonLifeEventReceipt frozen = receipt;
+        return TryRecord(
+            campaign,
+            MigratedProducerOutcomeKind.ObservedLastLessonLifeEventReceipt,
+            frozen.SourceOperationId,
+            frozen.AbsoluteDay,
+            LastLessonSubject(frozen),
+            LastLessonSummary(frozen),
+            () => campaign.RecordObservedLastLessonLifeEvent(frozen),
+            out stateChanged,
+            out failureReason);
+    }
+
+    internal bool TryRecordQuietPromotion(
+        V20CampaignRuntime campaign,
+        in ObservedQuietPromotionLifeEventReceipt receipt,
+        out bool stateChanged,
+        out string failureReason)
+    {
+        ObservedQuietPromotionLifeEventReceipt frozen = receipt;
+        return TryRecord(
+            campaign,
+            MigratedProducerOutcomeKind.ObservedQuietPromotionLifeEventReceipt,
+            frozen.SourceOperationId,
+            frozen.AbsoluteDay,
+            QuietPromotionSubject(frozen),
+            QuietPromotionSummary(frozen),
+            () => campaign.RecordObservedQuietPromotionLifeEvent(frozen),
+            out stateChanged,
+            out failureReason);
+    }
+
+    internal bool TryReserveFuneral(
+        in ObservedFuneralLifeEventReceipt receipt,
+        out PreparedMigratedProducerOutcome prepared,
+        out string failureReason) => transactions.TryReserveSingleSubject(
+        MigratedProducerOutcomeKind.ObservedFuneralLifeEventReceipt,
+        receipt.SourceOperationId,
+        receipt.AbsoluteDay,
+        GameplayOutcomeStatus.Succeeded,
+        out prepared,
+        out failureReason);
+
+    internal MigratedProducerOutcomeCommitResult CommitFuneral(
+        in PreparedMigratedProducerOutcome prepared,
+        in ObservedFuneralLifeEventReceipt receipt) =>
+        transactions.CommitSingleSubject(
+            prepared,
+            FuneralSubject(receipt),
+            FuneralSummary(receipt));
+
+    internal bool TryReserveLastLesson(
+        in ObservedLastLessonLifeEventReceipt receipt,
+        out PreparedMigratedProducerOutcome prepared,
+        out string failureReason) => transactions.TryReserveSingleSubject(
+        MigratedProducerOutcomeKind.ObservedLastLessonLifeEventReceipt,
+        receipt.SourceOperationId,
+        receipt.AbsoluteDay,
+        GameplayOutcomeStatus.Succeeded,
+        out prepared,
+        out failureReason);
+
+    internal MigratedProducerOutcomeCommitResult CommitLastLesson(
+        in PreparedMigratedProducerOutcome prepared,
+        in ObservedLastLessonLifeEventReceipt receipt) =>
+        transactions.CommitSingleSubject(
+            prepared,
+            LastLessonSubject(receipt),
+            LastLessonSummary(receipt));
+
+    internal bool TryReserveQuietPromotion(
+        in ObservedQuietPromotionLifeEventReceipt receipt,
+        out PreparedMigratedProducerOutcome prepared,
+        out string failureReason) => transactions.TryReserveSingleSubject(
+        MigratedProducerOutcomeKind.ObservedQuietPromotionLifeEventReceipt,
+        receipt.SourceOperationId,
+        receipt.AbsoluteDay,
+        GameplayOutcomeStatus.Succeeded,
+        out prepared,
+        out failureReason);
+
+    internal MigratedProducerOutcomeCommitResult CommitQuietPromotion(
+        in PreparedMigratedProducerOutcome prepared,
+        in ObservedQuietPromotionLifeEventReceipt receipt) =>
+        transactions.CommitSingleSubject(
+            prepared,
+            QuietPromotionSubject(receipt),
+            QuietPromotionSummary(receipt));
+
+    private bool TryRecord(
+        V20CampaignRuntime campaign,
+        MigratedProducerOutcomeKind kind,
+        string operationId,
+        int absoluteDay,
+        in MigratedProducerOutcomeSubject subject,
+        string summary,
+        Func<ObservedLifeEventCommitResult> record,
+        out bool stateChanged,
+        out string failureReason)
+    {
+        if (campaign == null)
+            throw new ArgumentNullException(nameof(campaign));
+        stateChanged = false;
+        failureReason = string.Empty;
+        if (!transactions.TryReserveSingleSubject(
+                kind,
+                operationId,
+                absoluteDay,
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out failureReason))
+        {
+            return false;
+        }
+
+        SocietyEventWorldSaveData before = campaign.CaptureSociety();
+        try
+        {
+            ObservedLifeEventCommitResult recorded = record();
+            stateChanged = recorded.StateChanged;
+            if (!stateChanged)
+            {
+                transactions.Cancel(prepared);
+                return true;
+            }
+            MigratedProducerOutcomeCommitResult committed =
+                transactions.CommitSingleSubject(prepared, subject, summary);
+            if (committed.DurablyCommitted)
+                return true;
+            campaign.PublishSociety(campaign.PrepareSociety(before));
+            stateChanged = false;
+            failureReason = "observed-life-event-outcome-commit-rejected:"
+                + committed.DetailCode;
+            return false;
+        }
+        catch
+        {
+            transactions.Cancel(prepared);
+            campaign.PublishSociety(campaign.PrepareSociety(before));
+            stateChanged = false;
+            throw;
+        }
+    }
+
+    private static MigratedProducerOutcomeSubject FuneralSubject(
+        in ObservedFuneralLifeEventReceipt receipt) => new(
+        MigratedProducerOutcomeIds.CharacterKind,
+        receipt.DeceasedCharacterId.Value,
+        receipt.DeceasedCharacterId.Value,
+        MigratedProducerOutcomeIds.ActorRole);
+
+    private static string FuneralSummary(
+        in ObservedFuneralLifeEventReceipt receipt) =>
+        "장례 목격: deceased=" + receipt.DeceasedCharacterId.Value
+        + "; operation=" + receipt.SourceOperationId
+        + "; facility=" + receipt.FacilityInstanceId
+        + "; day=" + receipt.AbsoluteDay
+        + "; generation=" + receipt.Generation
+        + "; participants=" + string.Join(",",
+            receipt.ParticipantCharacterIds.Select(value => value.Value));
+
+    private static MigratedProducerOutcomeSubject LastLessonSubject(
+        in ObservedLastLessonLifeEventReceipt receipt) => new(
+        MigratedProducerOutcomeIds.CharacterKind,
+        receipt.MentorCharacterId.Value,
+        receipt.MentorCharacterId.Value,
+        MigratedProducerOutcomeIds.ActorRole);
+
+    private static string LastLessonSummary(
+        in ObservedLastLessonLifeEventReceipt receipt) =>
+        "마지막 가르침 목격: mentor=" + receipt.MentorCharacterId.Value
+        + "; student=" + receipt.StudentCharacterId.Value
+        + "; academy=" + receipt.AcademyBuildingId.Value
+        + "; proficiency=" + receipt.ProficiencyId.Value
+        + "; equipment=" + receipt.ProtectiveEquipmentInstanceId
+        + "; award=" + receipt.AwardLedgerStackId
+        + "; revision=" + receipt.AwardBeforeContentRevision
+        + "->" + receipt.AwardAfterContentRevision
+        + "; day=" + receipt.AbsoluteDay
+        + "; generation=" + receipt.Generation;
+
+    private static MigratedProducerOutcomeSubject QuietPromotionSubject(
+        in ObservedQuietPromotionLifeEventReceipt receipt) => new(
+        MigratedProducerOutcomeIds.CharacterKind,
+        receipt.CharacterId.Value,
+        receipt.CharacterId.Value,
+        MigratedProducerOutcomeIds.ActorRole);
+
+    private static string QuietPromotionSummary(
+        in ObservedQuietPromotionLifeEventReceipt receipt) =>
+        "조용한 승진 목격: character=" + receipt.CharacterId.Value
+        + "; proficiency=" + receipt.ProficiencyId.Value
+        + "; rank=" + receipt.BeforeRank + "->" + receipt.AfterRank
+        + "; current=" + receipt.BeforeCurrentMilliExperience
+        + "->" + receipt.AfterCurrentMilliExperience
+        + "; lifetime=" + receipt.BeforeLifetimeMilliExperience
+        + "->" + receipt.AfterLifetimeMilliExperience
+        + "; hour=" + receipt.AbsoluteHour
+        + "; day=" + receipt.AbsoluteDay
+        + "; generation=" + receipt.Generation;
+}
+
 public readonly struct CharacterProficiencyAwardCommitReceipt
 {
     public CharacterProficiencyAwardCommitReceipt(
@@ -290,14 +526,24 @@ public sealed class ObservedProficiencyPromotionApplicationAdapter :
     private void OnPromotionCommitted(
         CharacterProficiencyAwardCommitReceipt source)
     {
-        if (!commands.TryCaptureQuietPromotion(
-                source,
-                out _,
-                out string failureReason))
+        try
         {
-            throw new InvalidOperationException(
+            if (!commands.TryCaptureQuietPromotion(
+                    source,
+                    out _,
+                    out string failureReason))
+            {
+                UnityEngine.Debug.LogError(
+                    "Quiet-promotion observation failed after proficiency commit: "
+                    + failureReason);
+            }
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            and not StackOverflowException and not AccessViolationException)
+        {
+            UnityEngine.Debug.LogError(
                 "Quiet-promotion observation failed after proficiency commit: "
-                + failureReason);
+                + exception);
         }
     }
 }

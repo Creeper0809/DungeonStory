@@ -181,6 +181,45 @@ public readonly struct CharacterBodyHealthMutationSnapshot
     public bool IsValid => CharacterId.IsValid && State != null;
 }
 
+public readonly struct CharacterPreparedAggregateDamageReceipt
+{
+    public CharacterPreparedAggregateDamageReceipt(
+        CharacterId characterId,
+        float requestedDamage,
+        float previousHealth,
+        float resultingHealth,
+        float maximumHealth,
+        CharacterDeathCauseCode deathCause,
+        string reasonCode,
+        bool allowDeath)
+    {
+        CharacterId = characterId;
+        RequestedDamage = Mathf.Max(0f, requestedDamage);
+        PreviousHealth = Mathf.Max(0f, previousHealth);
+        ResultingHealth = Mathf.Max(0f, resultingHealth);
+        MaximumHealth = Mathf.Max(1f, maximumHealth);
+        DeathCause = deathCause;
+        ReasonCode = reasonCode ?? string.Empty;
+        AllowDeath = allowDeath;
+    }
+
+    public CharacterId CharacterId { get; }
+    public float RequestedDamage { get; }
+    public float PreviousHealth { get; }
+    public float ResultingHealth { get; }
+    public float MaximumHealth { get; }
+    public CharacterDeathCauseCode DeathCause { get; }
+    public string ReasonCode { get; }
+    public bool AllowDeath { get; }
+    public float AppliedDamage => Mathf.Max(0f, PreviousHealth - ResultingHealth);
+    public bool IsValid => CharacterId.IsValid
+        && RequestedDamage > 0f
+        && PreviousHealth > 0f
+        && MaximumHealth >= PreviousHealth
+        && ResultingHealth <= PreviousHealth
+        && !string.IsNullOrWhiteSpace(ReasonCode);
+}
+
 public interface ICharacterBodyHealthMutationTransaction
 {
     CharacterBodyHealthMutationSnapshot CaptureCombatMutation(
@@ -198,6 +237,15 @@ public interface ICharacterBodyHealthMutationTransaction
         in CharacterBodyHealthMutationSnapshot before,
         CombatAttackResult result,
         string reason);
+    CharacterPreparedAggregateDamageReceipt ApplyPreparedAggregateDamage(
+        CharacterActor actor,
+        float amount,
+        CharacterDeathCauseCode deathCause,
+        string reasonCode,
+        bool allowDeath);
+    void CompletePreparedAggregateDamage(
+        CharacterActor actor,
+        in CharacterPreparedAggregateDamageReceipt receipt);
     void ApplyPreparedSuppressionReduction(
         CharacterActor actor,
         float amount);

@@ -1473,8 +1473,16 @@ public sealed class FacilityEvolutionEngine
             && !pending.evidenceUseCompleted
             && (pending.evidenceBindings?.Count ?? 0) > 0)
         {
-            if (evidenceUseTransaction == null
-                || !evidenceUseTransaction.TryPrepareBindings(
+            if (evidenceUseTransaction == null)
+            {
+                failureReason =
+                    "Facility evolution mandatory evidence-use transaction is unavailable.";
+                outcomeCommitter?.Cancel(preparedOutcome);
+                result = Fail(recipe, facility, default, failureReason);
+                return false;
+            }
+
+            if (!evidenceUseTransaction.TryPrepareBindings(
                     "facility-evolution",
                     pending.evidenceAnchorId,
                     pending.evidenceBindings,

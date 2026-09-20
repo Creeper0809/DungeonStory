@@ -163,7 +163,8 @@ public sealed class CharacterWorldSaveService :
     ICharacterWorldPersistenceIdentityQuery,
     ICharacterConsumablesPersistentActorQuery,
     ICharacterHaulDeliveryRestoreQuery,
-    IDungeonRestoreTransactionParticipant
+    IDungeonRestoreTransactionParticipant,
+    IDungeonSaveRestoreCompletedHook
 {
     private const int MaxSavedLogEntries = 30;
 
@@ -1068,6 +1069,16 @@ public sealed class CharacterWorldSaveService :
                 report.AddError(
                     $"Character '{actor.persistentId}' {issue}");
             }
+        }
+    }
+
+    public void OnRestoreCompleted()
+    {
+        foreach (CharacterActor actor in restoredActorsById.Values
+                     .Where(actor => actor != null)
+                     .Distinct())
+        {
+            actor.Progression?.ResumePendingGenerationAfterWorldRestore();
         }
     }
 

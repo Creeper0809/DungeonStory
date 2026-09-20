@@ -134,6 +134,7 @@ public sealed class OffenseBattleRuntime :
     private readonly IGameEventBus gameEventBus;
     private ICharacterProficiencyCommand proficiencyCommands;
     private IGameCalendar proficiencyCalendar;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
     private Dictionary<string, CharacterActor> actorsById =
         new Dictionary<string, CharacterActor>(StringComparer.Ordinal);
     private bool started;
@@ -185,10 +186,13 @@ public sealed class OffenseBattleRuntime :
     [Inject]
     public void ConstructProficiencyProgression(
         ICharacterProficiencyCommand commands,
-        IGameCalendar calendar)
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
     {
         proficiencyCommands = commands;
         proficiencyCalendar = calendar;
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
     }
 
     public OffenseBattleSession Session { get; private set; }
@@ -348,6 +352,8 @@ public sealed class OffenseBattleRuntime :
             return false;
         }
 
+        OffenseBattlePersistenceState commandBefore =
+            Session.CapturePersistentState();
         if (!Session.PreparePlannedRound(
                 directorTurn,
                 out string preparationFailure))
@@ -378,10 +384,32 @@ public sealed class OffenseBattleRuntime :
         OffenseBattleCombatant targetBefore = Session.FindCombatant(targetId);
         float targetHealthBefore = targetBefore?.CurrentHealth ?? 0f;
         bool targetWasDead = targetBefore?.IsDead ?? false;
+        PreparedMigratedProducerOutcome prepared;
+        try
+        {
+            prepared = ReserveBattleCommandOutcome(command);
+        }
+        catch
+        {
+            RestoreRejectedBattleCommand(commandBefore);
+            throw;
+        }
         bool accepted = Session.TryExecutePlannedCommand(command, out result);
         if (!accepted)
         {
+            outcomeTransactions.Cancel(prepared);
+            RestoreRejectedBattleCommand(commandBefore);
             return false;
+        }
+
+        try
+        {
+            CommitBattleCommandOutcome(prepared, command, actingBefore, result);
+        }
+        catch
+        {
+            RestoreRejectedBattleCommand(commandBefore);
+            throw;
         }
 
         AwardCombatCommand(
@@ -863,10 +891,30 @@ public sealed class OffenseBattleRuntime :
             return false;
         }
 
+        OffenseBattlePersistenceState commandBefore =
+            Session.CapturePersistentState();
+        PreparedMigratedProducerOutcome prepared =
+            ReserveBattleCommandOutcome(command);
         bool accepted = Session.TryExecuteCommand(command, out result);
         if (!accepted)
         {
+            outcomeTransactions.Cancel(prepared);
+            RestoreRejectedBattleCommand(commandBefore);
             return false;
+        }
+
+        try
+        {
+            CommitBattleCommandOutcome(
+                prepared,
+                command,
+                actingCombatant,
+                result);
+        }
+        catch
+        {
+            RestoreRejectedBattleCommand(commandBefore);
+            throw;
         }
 
         AwardCombatCommand(
@@ -928,6 +976,74 @@ public sealed class OffenseBattleRuntime :
         }
 
         return true;
+    }
+
+    private void RestoreRejectedBattleCommand(
+        OffenseBattlePersistenceState commandBefore)
+    {
+        if (commandBefore == null || Session == null)
+            return;
+        OffenseExpeditionRun settlementOwner = Session.SettlementOwner;
+        Session = OffenseBattleSession.Restore(
+            commandBefore,
+            Session.Combatants,
+            combatResolution,
+            combatEquipmentRuntime,
+            Session.EncounterRules);
+        if (settlementOwner != null)
+            Session.BindSettlementOwner(settlementOwner);
+    }
+
+    private PreparedMigratedProducerOutcome ReserveBattleCommandOutcome(
+        OffenseBattleCommand command)
+    {
+        if (outcomeTransactions == null || proficiencyCalendar == null)
+        {
+            throw new InvalidOperationException(
+                "Offense battle command outcome transaction is unavailable.");
+        }
+        if (command == null || Session == null)
+        {
+            throw new InvalidOperationException(
+                "Offense battle command outcome requires an active command and battle.");
+        }
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.OffenseBattleCommandResult,
+                "offense-battle:" + Session.BattleId,
+                Math.Max(1, proficiencyCalendar.Day),
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Offense battle command outcome reservation failed: "
+                + failureReason);
+        }
+        return prepared;
+    }
+
+    private void CommitBattleCommandOutcome(
+        in PreparedMigratedProducerOutcome prepared,
+        OffenseBattleCommand command,
+        OffenseBattleCombatant actor,
+        OffenseBattleCommandResult result)
+    {
+        string actorId = command?.ActorId ?? string.Empty;
+        MigratedProducerOutcomeCommitResult committed =
+            outcomeTransactions.CommitSingleSubject(
+                prepared,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    actorId,
+                    actor?.DisplayName ?? actorId,
+                    MigratedProducerOutcomeIds.ActorRole),
+                $"battle={Session.BattleId}; command={command.CommandId}; action={command.ActionType}; target={command.TargetId}; ability={command.AbilityId}; message={result?.Message}; amount={(result?.Amount ?? 0f):0.###}; hit={result?.Hit == true}; shieldBlocked={result?.ShieldBlocked == true}; coverBlocked={result?.CoverBlocked == true}");
+        if (!committed.DurablyCommitted)
+        {
+            throw new InvalidOperationException(
+                "Offense battle command outcome commit failed: "
+                + committed.DetailCode);
+        }
     }
 
     private void AwardCombatCommand(

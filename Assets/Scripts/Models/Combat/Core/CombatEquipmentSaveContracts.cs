@@ -228,8 +228,12 @@ public sealed class CombatEquipmentCraftOrderSaveData
         CombatEquipmentQuality.Normal;
     public MythicProvenanceSaveData resolvedMythicProvenance;
     public string resolvedMakerCharacterId = string.Empty;
+    public string resolvedMakerDisplayName = string.Empty;
+    public int resolvedAbsoluteDay;
     public bool resolvedHadInspiration;
     public bool completionEffectsPublished;
+    public int qualityOutcomeSchemaVersion;
+    public bool qualityOutcomeCommitted;
     public bool outputPublished;
     public string outputOperationId = string.Empty;
     public string outputItemId = string.Empty;
@@ -337,8 +341,15 @@ public sealed class CombatEquipmentCraftOrderSaveData
             resolvedQuality = resolvedQuality,
             resolvedMythicProvenance = resolvedMythicProvenance?.Clone(),
             resolvedMakerCharacterId = resolvedMakerCharacterId ?? string.Empty,
+            resolvedMakerDisplayName = resolvedMakerDisplayName ?? string.Empty,
+            resolvedAbsoluteDay = Mathf.Max(0, resolvedAbsoluteDay),
             resolvedHadInspiration = resolvedHadInspiration,
             completionEffectsPublished = completionEffectsPublished,
+            qualityOutcomeSchemaVersion = Mathf.Clamp(
+                qualityOutcomeSchemaVersion,
+                0,
+                1),
+            qualityOutcomeCommitted = qualityOutcomeCommitted,
             outputPublished = outputPublished,
             outputOperationId = outputOperationId ?? string.Empty,
             outputItemId = outputItemId ?? string.Empty,

@@ -471,7 +471,7 @@ public sealed class CombatDamageOutcomeBridge
 
     public void Cancel(in ReservedCombatDamageOutcome reserved)
     {
-        if (reserved.IsValid)
+        if (reserved.HasDamageReservation)
             recorder.CancelReservation(reserved.Reservation);
     }
 
@@ -489,7 +489,7 @@ public sealed class CombatDamageOutcomeBridge
     {
         prepared = default;
         failureReason = string.Empty;
-        if (!reserved.IsValid
+        if (!reserved.HasDamageReservation
             || !string.Equals(
                 reserved.OperationId,
                 receipt.AttackOperationId,

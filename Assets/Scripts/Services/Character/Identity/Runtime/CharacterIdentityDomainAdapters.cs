@@ -395,6 +395,7 @@ public sealed class WorkIdentityEventAdapter :
     private readonly CharacterPersistentNeedRuntime persistentNeeds;
     private readonly WorkCompletionIdentityDeliveryLedger completionDeliveries;
     private readonly ICharacterLifetimeQuery characterLifetime;
+    private readonly WorkCompletionIdentityGameplayOutcomeBridge outcomes;
 
     [Serializable]
     private sealed class WorkEventHistoryState
@@ -412,7 +413,8 @@ public sealed class WorkIdentityEventAdapter :
         ICharacterEnvironmentStatusQuery environment,
         CharacterPersistentNeedRuntime persistentNeeds,
         WorkCompletionIdentityDeliveryLedger completionDeliveries,
-        ICharacterLifetimeQuery characterLifetime)
+        ICharacterLifetimeQuery characterLifetime,
+        WorkCompletionIdentityGameplayOutcomeBridge outcomes)
         : base(events, world, moods)
     {
         this.directOrders = directOrders
@@ -426,6 +428,8 @@ public sealed class WorkIdentityEventAdapter :
             ?? throw new ArgumentNullException(nameof(completionDeliveries));
         this.characterLifetime = characterLifetime
             ?? throw new ArgumentNullException(nameof(characterLifetime));
+        this.outcomes = outcomes
+            ?? throw new ArgumentNullException(nameof(outcomes));
     }
 
     [GameplayInternalOnly(
@@ -493,7 +497,7 @@ public sealed class WorkIdentityEventAdapter :
         WorkCompletionIdentityDeliveryStatus status = completionDeliveries
             .Inspect(request, out string failureReason);
         if (status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied)
-            return new(status);
+            return ReconcileAppliedDelivery(request);
         if (status == WorkCompletionIdentityDeliveryStatus.Conflict)
             return new(status, failureReason);
         CharacterActor actor = Find(request.Character);
@@ -523,19 +527,131 @@ public sealed class WorkIdentityEventAdapter :
             return new(terminalCommit);
         }
 
+        return ApplyWithOutcome(request, actor);
+    }
+
+    private WorkCompletionIdentityDeliveryResult ReconcileAppliedDelivery(
+        WorkCompletionIdentityDeliveryRequest request)
+    {
+        if (!completionDeliveries.TryGetCommittedDisposition(
+                request,
+                out WorkCompletionIdentityDeliveryDisposition disposition))
+        {
+            return new(
+                WorkCompletionIdentityDeliveryStatus.Conflict,
+                "The committed work-completion delivery cursor is missing.");
+        }
+        if (disposition == WorkCompletionIdentityDeliveryDisposition
+                .TerminalRecipientUnavailable)
+        {
+            return new(WorkCompletionIdentityDeliveryStatus.AlreadyApplied);
+        }
+
+        OwnerOutcomeCommitResult existing = outcomes.Reconcile(request);
+        if (existing.DurablyCommitted)
+            return new(WorkCompletionIdentityDeliveryStatus.AlreadyApplied);
+        if (disposition == WorkCompletionIdentityDeliveryDisposition
+                .EffectsAppliedWithOutcome)
+        {
+            return new(
+                WorkCompletionIdentityDeliveryStatus.Conflict,
+                existing.DetailCode.Length == 0
+                    ? "The committed work identity outcome is missing."
+                    : existing.DetailCode);
+        }
+
+        CharacterActor actor = Find(request.Character);
+        if (actor == null)
+        {
+            CharacterActor lifetimeActor = FindLifetime(request.Character);
+            bool terminal = lifetimeActor == null
+                || lifetimeActor.IsDead
+                || lifetimeActor.CurrentLifecycleState ==
+                    CharacterLifecycleState.Despawned;
+            return terminal
+                ? new WorkCompletionIdentityDeliveryResult(
+                    WorkCompletionIdentityDeliveryStatus.AlreadyApplied,
+                    "A legacy identity delivery has no recoverable display snapshot for outcome backfill.")
+                : new WorkCompletionIdentityDeliveryResult(
+                    WorkCompletionIdentityDeliveryStatus.Deferred,
+                    "The completion character is temporarily unavailable for outcome backfill.");
+        }
+
+        if (!outcomes.TryPrepare(
+                request,
+                out PreparedWorkCompletionIdentityOutcome prepared,
+                out bool capacityDeferred,
+                out string failureReason))
+        {
+            return new(
+                capacityDeferred
+                    ? WorkCompletionIdentityDeliveryStatus.Deferred
+                    : WorkCompletionIdentityDeliveryStatus.Conflict,
+                failureReason);
+        }
+        OwnerOutcomeCommitResult committed = outcomes.Commit(prepared);
+        if (!committed.DurablyCommitted)
+        {
+            outcomes.Cancel(prepared);
+            return new(
+                WorkCompletionIdentityDeliveryStatus.Conflict,
+                committed.DetailCode);
+        }
+        if (!completionDeliveries.TryPromoteCommittedDisposition(
+                request,
+                WorkCompletionIdentityDeliveryDisposition.EffectsApplied,
+                WorkCompletionIdentityDeliveryDisposition
+                    .EffectsAppliedWithOutcome))
+        {
+            throw new InvalidOperationException(
+                "The legacy work-completion delivery changed during outcome backfill.");
+        }
+        return new(WorkCompletionIdentityDeliveryStatus.AlreadyApplied);
+    }
+
+    private WorkCompletionIdentityDeliveryResult ApplyWithOutcome(
+        WorkCompletionIdentityDeliveryRequest request,
+        CharacterActor actor)
+    {
+        if (!outcomes.TryPrepare(
+                request,
+                out PreparedWorkCompletionIdentityOutcome prepared,
+                out bool capacityDeferred,
+                out string failureReason))
+        {
+            return new(
+                capacityDeferred
+                    ? WorkCompletionIdentityDeliveryStatus.Deferred
+                    : WorkCompletionIdentityDeliveryStatus.Conflict,
+                failureReason);
+        }
+
         completionDeliveries.BeginApply(request);
         IReadOnlyList<CharacterIdentityRuntimeStateSaveData> identityBefore = null;
         CharacterMoodDeliveryTransactionSnapshot moodBefore = null;
         CharacterProgressionSnapshot progressionBefore = null;
+        bool outcomeDurablyCommitted = false;
         try
         {
             identityBefore = states.Capture();
             moodBefore = actor.Stats?.CaptureMoodDeliveryTransactionState();
             progressionBefore = actor.Progression?.CapturePersistentState();
             ApplyCompleted(request.ToEvent(), actor);
+            OwnerOutcomeCommitResult outcome = outcomes.Commit(prepared);
+            if (!outcome.DurablyCommitted)
+            {
+                throw new InvalidOperationException(
+                    "Work-completion identity outcome was rejected: "
+                    + outcome.DetailCode);
+            }
+            outcomeDurablyCommitted = true;
             WorkCompletionIdentityDeliveryStatus committed =
-                completionDeliveries.Commit(request, out failureReason);
-            if (committed == WorkCompletionIdentityDeliveryStatus.Conflict)
+                completionDeliveries.Commit(
+                    request,
+                    out failureReason,
+                    WorkCompletionIdentityDeliveryDisposition
+                        .EffectsAppliedWithOutcome);
+            if (committed != WorkCompletionIdentityDeliveryStatus.Applied)
                 throw new InvalidOperationException(
                     "Work-completion delivery changed during synchronous apply: "
                     + failureReason);
@@ -543,6 +659,13 @@ public sealed class WorkIdentityEventAdapter :
         }
         catch (Exception error)
         {
+            if (outcomeDurablyCommitted)
+            {
+                throw new InvalidOperationException(
+                    "The work identity outcome committed, but its owner cursor did not finalize.",
+                    error);
+            }
+            outcomes.Cancel(prepared);
             List<Exception> rollbackFailures = new();
             try
             {
@@ -593,8 +716,23 @@ public sealed class WorkIdentityEventAdapter :
     {
         CharacterActor actor = Find(e.Character);
         if (actor == null) return;
-        ApplyCompleted(e, actor);
+        WorkCompletionIdentityDeliveryRequest request =
+            completionDeliveries.CreateNextDirectRequest(e);
+        WorkCompletionIdentityDeliveryResult result =
+            ApplyWithOutcome(request, actor);
+        if (!result.IsApplied)
+        {
+            throw new InvalidOperationException(
+                "Direct work-completion identity delivery failed: "
+                + result.FailureReason);
+        }
     }
+
+    private CharacterActor FindLifetime(CharacterId character) =>
+        characterLifetime.AllCharacters.FirstOrDefault(candidate =>
+            candidate != null
+            && candidate.Identity != null
+            && candidate.Identity.TypedPersistentId.Equals(character));
 
     private void ApplyCompleted(
         WorkCompletedIdentityEvent e,

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using UnityEngine;
 
 [Serializable]
 public sealed class KinshipHouseholdWorldSaveData
@@ -62,15 +63,19 @@ public sealed class KinshipHouseholdRuntime :
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly V20CampaignRuntime campaign;
     private readonly IGameEventBus events;
+    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
     public KinshipHouseholdRuntime(
         DungeonRuntimeAggregateRootStore rootStore,
         V20CampaignRuntime campaign,
-        IGameEventBus events)
+        IGameEventBus events,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
     {
         this.rootStore = rootStore
             ?? throw new ArgumentNullException(nameof(rootStore));
         this.campaign = campaign ?? throw new ArgumentNullException(nameof(campaign));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
     }
 
     public IReadOnlyCollection<CharacterTombstoneSaveData> Tombstones =>
@@ -107,7 +112,8 @@ public sealed class KinshipHouseholdRuntime :
         int currentAbsoluteDay,
         IReadOnlyCollection<CharacterId> livingCharacters)
     {
-        KinshipHouseholdAggregateState candidate = PrepareRestore(Capture());
+        KinshipHouseholdWorldSaveData beforeState = Capture();
+        KinshipHouseholdAggregateState candidate = PrepareRestore(beforeState);
         CharacterTombstoneSaveData[] before = candidate.Kinship.Capture()
             .tombstones
             .Where(value => value != null)
@@ -115,8 +121,8 @@ public sealed class KinshipHouseholdRuntime :
         candidate.Kinship.ArchiveColdData(
             currentAbsoluteDay,
             livingCharacters);
-        KinshipWorldSaveData committed = candidate.Kinship.Capture();
-        HashSet<string> remaining = committed.tombstones
+        KinshipWorldSaveData committedState = candidate.Kinship.Capture();
+        HashSet<string> remaining = committedState.tombstones
             .Where(value => value != null)
             .Select(value => value.characterId)
             .ToHashSet(StringComparer.Ordinal);
@@ -126,7 +132,7 @@ public sealed class KinshipHouseholdRuntime :
             .Select(tombstone => new ObservedLineageCompressionLifeEventReceipt(
                 tombstone,
                 currentAbsoluteDay,
-                committed.lineageSummaries.Single(summary => summary != null
+                committedState.lineageSummaries.Single(summary => summary != null
                     && summary.generation == tombstone.generation
                     && string.Equals(
                         summary.householdId,
@@ -137,17 +143,107 @@ public sealed class KinshipHouseholdRuntime :
             .ToArray();
         foreach (ObservedLineageCompressionLifeEventReceipt receipt in receipts)
             campaign.RequireCanRecordObservedLineageCompressionLifeEvent(receipt);
-
-        PublishRestore(candidate);
-        foreach (ObservedLineageCompressionLifeEventReceipt receipt in receipts)
+        if (receipts.Length
+            > GameplayOutcomeTransactionLimits.MaximumAtomicCommitBatchCount)
         {
-            ObservedLifeEventCommitResult observed =
-                campaign.RecordObservedLineageCompressionLifeEvent(receipt);
-            if (!observed.Resolution.HasValue) continue;
-            V20SocietyEventAlertProjection.PublishResolved(
-                events,
-                observed.Resolution.Value,
-                physicalEffectsApplied: true);
+            throw new InvalidOperationException(
+                "Lineage compression exceeds the atomic outcome batch limit.");
+        }
+
+        PreparedMigratedProducerOutcome[] prepared =
+            new PreparedMigratedProducerOutcome[receipts.Length];
+        try
+        {
+            for (int index = 0; index < receipts.Length; index++)
+            {
+                ObservedLineageCompressionLifeEventReceipt receipt = receipts[index];
+                if (!outcomeTransactions.TryReserveSingleSubject(
+                        MigratedProducerOutcomeKind
+                            .ObservedLineageCompressionLifeEventReceipt,
+                        receipt.SourceOperationId,
+                        receipt.ArchiveAbsoluteDay,
+                        GameplayOutcomeStatus.Succeeded,
+                        out prepared[index],
+                        out string failureReason))
+                {
+                    throw new InvalidOperationException(
+                        "Lineage-compression outcome reservation failed: "
+                        + failureReason);
+                }
+            }
+        }
+        catch
+        {
+            CancelLineageOutcomes(prepared);
+            throw;
+        }
+
+        CampaignMutationSnapshot campaignBefore = CaptureCampaign();
+        var observed = new List<ObservedLifeEventCommitResult>(receipts.Length);
+        var changedPrepared = new List<PreparedMigratedProducerOutcome>(
+            receipts.Length);
+        var changedSubjects = new List<MigratedProducerOutcomeSubject>(
+            receipts.Length);
+        var changedSummaries = new List<string>(receipts.Length);
+        bool mutationAttempted = false;
+        bool outcomesDurable = false;
+        try
+        {
+            mutationAttempted = true;
+            PublishRestore(candidate);
+            for (int index = 0; index < receipts.Length; index++)
+            {
+                ObservedLineageCompressionLifeEventReceipt receipt = receipts[index];
+                ObservedLifeEventCommitResult committed =
+                    campaign.RecordObservedLineageCompressionLifeEvent(receipt);
+                observed.Add(committed);
+                if (!committed.StateChanged)
+                {
+                    outcomeTransactions.Cancel(prepared[index]);
+                    continue;
+                }
+                changedPrepared.Add(prepared[index]);
+                changedSubjects.Add(CreateLineageSubject(receipt));
+                changedSummaries.Add(BuildLineageSummary(receipt));
+            }
+
+            if (changedPrepared.Count > 0)
+            {
+                var results = new MigratedProducerOutcomeCommitResult[
+                    changedPrepared.Count];
+                if (!outcomeTransactions.CommitSingleSubjectBatch(
+                        changedPrepared.ToArray(),
+                        changedSubjects.ToArray(),
+                        changedSummaries.ToArray(),
+                        results,
+                        out string failureReason)
+                    || results.Any(value => !value.DurablyCommitted))
+                {
+                    throw new InvalidOperationException(
+                        "Lineage-compression outcome batch commit was rejected: "
+                        + failureReason);
+                }
+            }
+            outcomesDurable = true;
+        }
+        catch
+        {
+            if (!outcomesDurable)
+            {
+                CancelLineageOutcomes(prepared);
+                if (mutationAttempted)
+                {
+                    PublishRestore(PrepareRestore(beforeState));
+                    RestoreCampaign(campaignBefore);
+                }
+            }
+            throw;
+        }
+
+        foreach (ObservedLifeEventCommitResult committed in observed)
+        {
+            if (committed.Resolution.HasValue)
+                PublishLineageObserver(committed.Resolution.Value);
         }
     }
     public void Assign(CharacterId characterId, HouseholdId householdId,
@@ -170,6 +266,87 @@ public sealed class KinshipHouseholdRuntime :
         value => KinshipHouseholdAggregateState.Restore(value.Capture()));
     private static KinshipHouseholdAggregateState CreateFresh() =>
         new(new CharacterKinshipAggregate(), new CharacterHouseholdAggregate());
+
+    private static MigratedProducerOutcomeSubject CreateLineageSubject(
+        in ObservedLineageCompressionLifeEventReceipt receipt) => new(
+        MigratedProducerOutcomeIds.CharacterKind,
+        receipt.CharacterId.Value,
+        receipt.CharacterId.Value,
+        MigratedProducerOutcomeIds.ActorRole);
+
+    private static string BuildLineageSummary(
+        in ObservedLineageCompressionLifeEventReceipt receipt) =>
+        "계보 압축 목격: character=" + receipt.CharacterId.Value
+        + "; species=" + receipt.PhenotypeSpeciesId.Value
+        + "; household=" + receipt.SummaryHouseholdId
+        + "; generation=" + receipt.Generation
+        + "; archive-day=" + receipt.ArchiveAbsoluteDay
+        + "; archived-count=" + receipt.SummaryArchivedCharacterCount
+        + "; life=" + receipt.BirthAbsoluteDay
+        + "->" + receipt.DeathAbsoluteDay;
+
+    private void CancelLineageOutcomes(
+        IEnumerable<PreparedMigratedProducerOutcome> prepared)
+    {
+        foreach (PreparedMigratedProducerOutcome item in prepared
+                     ?? Array.Empty<PreparedMigratedProducerOutcome>())
+        {
+            outcomeTransactions.Cancel(item);
+        }
+    }
+
+    private CampaignMutationSnapshot CaptureCampaign() => new(
+        campaign.CaptureSeasonal(),
+        campaign.CaptureSociety(),
+        campaign.CaptureFactions(),
+        campaign.CaptureMilestones());
+
+    private void RestoreCampaign(CampaignMutationSnapshot snapshot) =>
+        campaign.PublishContentResolution(
+            campaign.PrepareSeasonal(snapshot.Seasonal),
+            campaign.PrepareSociety(snapshot.Society),
+            campaign.PrepareFactions(snapshot.Factions),
+            campaign.PrepareMilestones(snapshot.Milestones));
+
+    private void PublishLineageObserver(V20ResolvedEventResult resolution)
+    {
+        try
+        {
+            V20SocietyEventAlertProjection.PublishResolved(
+                events,
+                resolution,
+                physicalEffectsApplied: true);
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "lineage-compression-post-commit-observer:"
+                + exception.GetType().Name);
+        }
+    }
+
+    private sealed class CampaignMutationSnapshot
+    {
+        public CampaignMutationSnapshot(
+            SeasonalEventWorldSaveData seasonal,
+            SocietyEventWorldSaveData society,
+            FactionCampaignWorldSaveData factions,
+            RunMilestoneWorldSaveData milestones)
+        {
+            Seasonal = seasonal;
+            Society = society;
+            Factions = factions;
+            Milestones = milestones;
+        }
+
+        public SeasonalEventWorldSaveData Seasonal { get; }
+        public SocietyEventWorldSaveData Society { get; }
+        public FactionCampaignWorldSaveData Factions { get; }
+        public RunMilestoneWorldSaveData Milestones { get; }
+    }
 }
 
 public sealed class ReproductionRuntime : IReproductionService, IReproductionPersistence

@@ -137,6 +137,36 @@ public static class ApparelPhysicalTransactionDebugScenarios
             && order.craftOutputAcknowledged
             && fixture.Repository.GetEditorPendingBatchDispositionCount() == 0,
             "Successful craft did not close material/output pending receipts.");
+        GameplayOutcomeQueryPage makerHistory = fixture.OutcomeFixture.Ledger
+            .GetForEntity(
+                new GameplayEntityId(
+                    EvolutionOutcomeIds.CharacterKind,
+                    "character:qa:apparel-maker"),
+                OutcomeCursor.FirstPage(10),
+                OutcomeFilter.All);
+        GameplayOutcomeQueryPage facilityHistory = fixture.OutcomeFixture.Ledger
+            .GetForEntity(
+                new GameplayEntityId(
+                    EvolutionOutcomeIds.FacilityKind,
+                    FacilityId),
+                OutcomeCursor.FirstPage(10),
+                OutcomeFilter.All);
+        GameplayOutcomeSnapshot qualityOutcome = makerHistory.Items
+            .Single().Exact;
+        Require(
+            facilityHistory.Items.Count == 1
+            && facilityHistory.Items[0].Exact.sequence
+                == qualityOutcome.sequence
+            && qualityOutcome.participants.Count == 2
+            && qualityOutcome.subjects.Count == 2
+            && qualityOutcome.metrics.Count == 5
+            && qualityOutcome.tags.Contains(
+                EvolutionOutcomeIds.ProductQualityTag.Value)
+            && qualityOutcome.metrics.Any(value =>
+                value.metricId
+                    == EvolutionOutcomeIds.ProductQualityTierMetric.Value
+                && value.value == (int)CraftsmanshipQualityTier.Normal),
+            "Apparel physical outcome did not expose the same exact quality result to maker and facility views.");
         RequireFrozenCapability(order);
         RequireNoRawSpawnOrDeleteRollback();
     }
@@ -491,6 +521,8 @@ public static class ApparelPhysicalTransactionDebugScenarios
                 ApparelPhysicalTransaction.OutputLineId,
                 OutputItemId,
                 ProductionOutputCapabilityIds.ApparelWorkOrder);
+            OutcomeFixture = new EvolutionGameplayOutcomeEditorFixture(
+                "run:apparel-physical-editor");
             Transaction = new ApparelPhysicalTransaction(
                 WorldItems,
                 dispositions,
@@ -503,7 +535,9 @@ public static class ApparelPhysicalTransactionDebugScenarios
                 publication,
                 repository,
                 outputCapabilityRegistry,
-                maximumMassRegistry);
+                maximumMassRegistry,
+                OutcomeFixture.Bridge,
+                OutcomeFixture.Clock);
         }
 
         internal FixedCatalog Catalog { get; }
@@ -515,6 +549,7 @@ public static class ApparelPhysicalTransactionDebugScenarios
         internal ProductionOutputDestinationAuthorityRuntime Destinations { get; }
         internal ProductionOutputMaximumMassRegistry MaximumMassRegistry { get; }
         internal ProductionOutputCapabilityDescriptor ApparelDescriptor { get; }
+        internal EvolutionGameplayOutcomeEditorFixture OutcomeFixture { get; }
         internal string DestinationId => ProductionBillRuntime.OutputDestinationPrefix + FacilityId;
         internal IReadOnlyList<WorldItemStackSnapshot> OutputStacks => WorldItems
             .GetAllStacks()

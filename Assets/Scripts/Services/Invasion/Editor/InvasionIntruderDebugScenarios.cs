@@ -976,7 +976,44 @@ public static class InvasionIntruderDebugScenarios
             InterfaceStub<IBuildingStructuralIntegrityRuntime>(),
             InterfaceStub<IDefenseRaidAwarenessRuntime>(),
             InterfaceStub<IDefenseFacilityNetworkRuntime>(),
-            InterfaceStub<IInvasionIntruderPatternDefinitionCatalog>());
+            InterfaceStub<IInvasionIntruderPatternDefinitionCatalog>(),
+            CharacterAiEditorTestDependencies.BodyHealthRuntime);
+    }
+
+    public static void VerifyDefeatAuthority()
+    {
+        using IntruderScenarioWorld world = new IntruderScenarioWorld(10);
+        CharacterActor actor = world.CreateIntruder(new Vector2Int(1, 0));
+        InvasionIntruderRuntime runtime = actor.gameObject.AddComponent<InvasionIntruderRuntime>();
+        var health = CharacterAiEditorTestDependencies.BodyHealthRuntime;
+        runtime.ConfigureDefenseEngagement(InterfaceStub<IDefenseEngagementRuntime>(), health);
+        health.Heal(actor, actor.MaxHealth * 10f, stopBleeding: true);
+        string before = JsonUtility.ToJson(health.Capture());
+        actor.SetLifecycleState(CharacterLifecycleState.Downed);
+        if (runtime.CanResolveDefeat(out string reason) || string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("Lifecycle-only downing bypassed body-health authority.");
+        bool rejected = false;
+        try { runtime.ResolveSuppressedBy(null); }
+        catch (InvalidOperationException exception) { rejected = exception.Message == reason; }
+        if (!rejected || runtime.State == InvasionIntruderState.Finished
+            || before != JsonUtility.ToJson(health.Capture()))
+            throw new InvalidOperationException("Rejected suppression changed authoritative state.");
+
+        actor.SetLifecycleState(CharacterLifecycleState.Active);
+        CharacterBodyHealthSnapshot source = health.GetSnapshot(actor);
+        var parts = source.Parts.Select(part => new CharacterBodyPartHealthState
+        {
+            bodyPart = part.bodyPart,
+            maxHealth = part.maxHealth,
+            currentHealth = part.bodyPart == CombatBodyPart.LeftLeg
+                || part.bodyPart == CombatBodyPart.RightLeg ? part.maxHealth * 0.18f : part.currentHealth,
+            bleedingPerSecond = part.bleedingPerSecond
+        }).ToArray();
+        health.ApplySnapshot(actor, new CharacterBodyHealthSnapshot(parts, source.BloodLoss,
+            source.Suppression, source.Consciousness, source.Manipulation, 0.18f, true),
+            "Defeat authority regression fixture");
+        if (!health.GetSnapshot(actor).Downed || !runtime.CanResolveDefeat(out _))
+            throw new InvalidOperationException("Committed body-health downing was not accepted.");
     }
 
     private static T InterfaceStub<T>() where T : class

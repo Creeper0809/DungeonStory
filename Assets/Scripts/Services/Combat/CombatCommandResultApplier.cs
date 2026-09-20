@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
@@ -51,6 +52,9 @@ public sealed class CombatCommandResultApplier
     private readonly IRoomFacilityPolicy roomFacilityPolicy;
     private readonly IGameCalendar calendar;
     private readonly CharacterIdentityEventPublisher identityEvents;
+    private readonly IMigratedProducerOutcomeTransaction migratedOutcomes;
+    private readonly IMigratedProducerOutcomeExternalBatchTransaction
+        migratedExternalBatch;
 
     public CombatCommandResultApplier(
         ICombatEquipmentRuntime equipment,
@@ -66,7 +70,9 @@ public sealed class CombatCommandResultApplier
         IBuildingWorldQuery buildingWorld,
         IRoomFacilityPolicy roomFacilityPolicy,
         IGameCalendar calendar,
-        CharacterIdentityEventPublisher identityEvents = null)
+        CharacterIdentityEventPublisher identityEvents = null,
+        IMigratedProducerOutcomeTransaction migratedOutcomes = null,
+        IMigratedProducerOutcomeExternalBatchTransaction migratedExternalBatch = null)
     {
         this.equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
         this.bodyHealth = bodyHealth ?? throw new ArgumentNullException(nameof(bodyHealth));
@@ -89,6 +95,8 @@ public sealed class CombatCommandResultApplier
             ?? throw new ArgumentNullException(nameof(roomFacilityPolicy));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.identityEvents = identityEvents;
+        this.migratedOutcomes = migratedOutcomes;
+        this.migratedExternalBatch = migratedExternalBatch;
     }
 
     public bool TryReserveDamageOutcome(
@@ -99,25 +107,65 @@ public sealed class CombatCommandResultApplier
         out bool capacityDeferred,
         out string failureReason)
     {
-        if (!target.IsCharacter)
+        PreparedMigratedProducerOutcome attackOutcome = default;
+        if (migratedOutcomes != null
+            && !migratedOutcomes.TryReserve(
+                MigratedProducerOutcomeKind.CombatAttackResult,
+                $"{attackOperationId}:{attackRevision}",
+                Mathf.Max(1, calendar.Day),
+                GameplayOutcomeStatus.Succeeded,
+                participantCount: 2,
+                metricCount: 0,
+                subjectCount: 2,
+                additionalFactCount: 1,
+                out attackOutcome,
+                out failureReason))
         {
             reserved = default;
+            capacityDeferred = failureReason.Contains(
+                "CapacityDeferred",
+                StringComparison.Ordinal);
+            return false;
+        }
+
+        if (!target.IsCharacter)
+        {
+            reserved = attackOutcome.IsValid
+                ? new ReservedCombatDamageOutcome(
+                    default,
+                    attackOperationId,
+                    attackRevision,
+                    attackOutcome)
+                : default;
             capacityDeferred = false;
             failureReason = string.Empty;
             return true;
         }
 
-        return damageOutcomes.TryReserve(
+        if (!damageOutcomes.TryReserve(
             attackOperationId,
             attackRevision,
             Mathf.Max(1, calendar.Day),
             out reserved,
             out capacityDeferred,
-            out failureReason);
+            out failureReason))
+        {
+            if (attackOutcome.IsValid)
+                migratedOutcomes.Cancel(attackOutcome);
+            return false;
+        }
+        if (attackOutcome.IsValid)
+            reserved = reserved.WithAttackOutcome(attackOutcome);
+        return true;
     }
 
-    public void CancelDamageOutcome(in ReservedCombatDamageOutcome reserved) =>
-        damageOutcomes.Cancel(reserved);
+    public void CancelDamageOutcome(in ReservedCombatDamageOutcome reserved)
+    {
+        if (reserved.HasDamageReservation)
+            damageOutcomes.Cancel(reserved);
+        if (reserved.HasAttackOutcome)
+            migratedOutcomes?.Cancel(reserved.AttackOutcome);
+    }
 
     // Non-command combat producers retain their existing authority path.  They
     // do not have a stable command operation/revision reservation and therefore
@@ -183,7 +231,12 @@ public sealed class CombatCommandResultApplier
                     damageType,
                     worldUiHierarchy);
                 if (wasAlive && target.Character.IsDead)
-                    PublishKilledEvent(attacker, target.Character);
+                {
+                    PublishKilledEvent(
+                        attacker,
+                        target.Character,
+                        CharacterCommandOrigin.DirectPlayerOrder);
+                }
             }
             else
             {
@@ -207,16 +260,109 @@ public sealed class CombatCommandResultApplier
         in ReservedCombatDamageOutcome reservedDamage,
         in CombatOutcomeMechanicalMutation mechanicalMutation)
     {
+        return Apply(
+            target,
+            result,
+            attacker,
+            attackerName,
+            damageType,
+            attackOperationId,
+            attackRevision,
+            reservedDamage,
+            mechanicalMutation,
+            $"직접 전투 명령: {attackerName}",
+            CharacterCommandOrigin.DirectPlayerOrder);
+    }
+
+    public CombatOutcomeApplyResult Apply(
+        CombatParticipantRef target,
+        CombatAttackResult result,
+        CharacterActor attacker,
+        string attackerName,
+        CombatDamageType damageType,
+        string attackOperationId,
+        long attackRevision,
+        in ReservedCombatDamageOutcome reservedDamage,
+        in CombatOutcomeMechanicalMutation mechanicalMutation,
+        string damageSource,
+        CharacterCommandOrigin origin)
+    {
         bool signalAppliedInTransaction = false;
+        PreparedMigratedProducerOutcome[] transitionOutcomes = null;
         if (!mechanicalMutation.IsValid)
         {
-            damageOutcomes.Cancel(reservedDamage);
+            CancelDamageOutcome(reservedDamage);
             return CombatOutcomeApplyResult.Failed(
                 "combat-mechanical-mutation-boundary-missing");
         }
+        if (string.IsNullOrWhiteSpace(damageSource))
+        {
+            CancelDamageOutcome(reservedDamage);
+            SafeRollbackMechanical(mechanicalMutation);
+            return CombatOutcomeApplyResult.Failed(
+                "combat-damage-source-missing");
+        }
+        string normalizedDamageSource = damageSource.Trim();
         if (result.CoverBlocked)
         {
-            damageOutcomes.Cancel(reservedDamage);
+            if (target.IsCharacter && reservedDamage.HasAttackOutcome)
+            {
+                CombatOutcomeApplyResult applied = ApplyCharacterNonDamageOutcome(
+                    target.Character,
+                    result.WithAppliedDamageMultiplier(0f),
+                    attacker,
+                    reservedDamage,
+                    mechanicalMutation,
+                    normalizedDamageSource);
+                if (!applied.Succeeded)
+                    return applied;
+                coverDurability.TryApplyDamage(
+                    result.CoverSourceId,
+                    result.CoverDamage);
+                CombatImpactPresentation.Play(
+                    target.Character.transform.position,
+                    damageType,
+                    gameClock,
+                    worldUiHierarchy,
+                    coverHit: true);
+                return CombatOutcomeApplyResult.Success();
+            }
+            if (target.IsWildlife && reservedDamage.HasAttackOutcome)
+            {
+                damageOutcomes.Cancel(reservedDamage);
+                if (!TryApplyMechanical(
+                        mechanicalMutation,
+                        out string wildlifeCoverMechanicalFailure))
+                {
+                    migratedOutcomes.Cancel(reservedDamage.AttackOutcome);
+                    return CombatOutcomeApplyResult.Failed(
+                        wildlifeCoverMechanicalFailure);
+                }
+                if (!TryCommitAttackOutcome(
+                        reservedDamage.AttackOutcome,
+                        attacker,
+                        target,
+                        result,
+                        out string wildlifeCoverCommitFailure))
+                {
+                    SafeRollbackMechanical(mechanicalMutation);
+                    return CombatOutcomeApplyResult.Failed(
+                        wildlifeCoverCommitFailure);
+                }
+                mechanicalMutation.Complete();
+                coverDurability.TryApplyDamage(
+                    result.CoverSourceId,
+                    result.CoverDamage);
+                CombatImpactPresentation.Play(
+                    target.Wildlife.transform.position,
+                    damageType,
+                    gameClock,
+                    worldUiHierarchy,
+                    coverHit: true);
+                ApplySignalSupport(result, attacker);
+                return CombatOutcomeApplyResult.Success();
+            }
+            CancelDamageOutcome(reservedDamage);
             if (!TryApplyUntrackedMechanical(
                     mechanicalMutation,
                     out string mechanicalFailure))
@@ -258,7 +404,17 @@ public sealed class CombatCommandResultApplier
                     healthBefore);
                 if (expectedActualDamage <= 0f)
                 {
-                    damageOutcomes.Cancel(reservedDamage);
+                    if (reservedDamage.HasAttackOutcome)
+                    {
+                        return ApplyCharacterNonDamageOutcome(
+                            target.Character,
+                            appliedResult.WithAppliedDamageMultiplier(0f),
+                            attacker,
+                            reservedDamage,
+                            mechanicalMutation,
+                            normalizedDamageSource);
+                    }
+                    CancelDamageOutcome(reservedDamage);
                     if (!TryApplyUntrackedMechanical(
                             mechanicalMutation,
                             out string noDamageMechanicalFailure))
@@ -269,7 +425,7 @@ public sealed class CombatCommandResultApplier
                     bodyHealth.ApplyCombatResult(
                         target.Character,
                         appliedResult,
-                        $"직접 전투 명령: {attackerName}");
+                        normalizedDamageSource);
                     ApplySignalSupport(result, attacker);
                     return CombatOutcomeApplyResult.Success();
                 }
@@ -281,7 +437,7 @@ public sealed class CombatCommandResultApplier
                         target.Character,
                         out CharacterId victimId))
                 {
-                    damageOutcomes.Cancel(reservedDamage);
+                    CancelDamageOutcome(reservedDamage);
                     SafeRollbackMechanical(mechanicalMutation);
                     return CombatOutcomeApplyResult.Failed(
                         "combat-outcome-participant-id-missing");
@@ -312,7 +468,7 @@ public sealed class CombatCommandResultApplier
                                                    or InvalidOperationException
                                                    or OverflowException)
                 {
-                    damageOutcomes.Cancel(reservedDamage);
+                    CancelDamageOutcome(reservedDamage);
                     SafeRollbackMechanical(mechanicalMutation);
                     return CombatOutcomeApplyResult.Failed(
                         "combat-outcome-receipt-invalid:" + exception.Message);
@@ -323,6 +479,8 @@ public sealed class CombatCommandResultApplier
                         out PreparedOutcomeToken prepared,
                         out string prepareFailure))
                 {
+                    if (reservedDamage.HasAttackOutcome)
+                        migratedOutcomes?.Cancel(reservedDamage.AttackOutcome);
                     SafeRollbackMechanical(mechanicalMutation);
                     return CombatOutcomeApplyResult.Failed(prepareFailure);
                 }
@@ -347,16 +505,31 @@ public sealed class CombatCommandResultApplier
                                                    or InvalidOperationException)
                 {
                     damageOutcomes.CancelPrepared(prepared);
+                    if (reservedDamage.HasAttackOutcome)
+                        migratedOutcomes?.Cancel(reservedDamage.AttackOutcome);
                     SafeRollbackMechanical(mechanicalMutation);
                     return CombatOutcomeApplyResult.Failed(
                         "combat-health-rollback-capture-failed:" + exception.Message);
+                }
+                if (reservedDamage.HasAttackOutcome
+                    && !TryReserveCharacterCombatTransitions(
+                        attackOperationId,
+                        attackRevision,
+                        out transitionOutcomes,
+                        out string transitionReserveFailure))
+                {
+                    damageOutcomes.CancelPrepared(prepared);
+                    migratedOutcomes.Cancel(reservedDamage.AttackOutcome);
+                    SafeRollbackMechanical(mechanicalMutation);
+                    return CombatOutcomeApplyResult.Failed(
+                        transitionReserveFailure);
                 }
                 try
                 {
                     bodyHealthMutation.ApplyPreparedCombatMutation(
                         target.Character,
                         appliedResult,
-                        $"직접 전투 명령: {attackerName}");
+                        normalizedDamageSource);
                 }
                 catch (Exception exception) when (
                     exception is not OutOfMemoryException
@@ -373,6 +546,9 @@ public sealed class CombatCommandResultApplier
                         hasAttackerRollback,
                         "combat-signal-mutation-exception-rollback");
                     damageOutcomes.CancelPrepared(prepared);
+                    CancelMigratedReservations(transitionOutcomes);
+                    if (reservedDamage.HasAttackOutcome)
+                        migratedOutcomes?.Cancel(reservedDamage.AttackOutcome);
                     SafeRollbackMechanical(mechanicalMutation);
                     return CombatOutcomeApplyResult.Failed(
                         "combat-health-mutation-failed:" + exception.GetType().Name);
@@ -393,6 +569,9 @@ public sealed class CombatCommandResultApplier
                         hasAttackerRollback,
                         "combat-signal-post-clamp-rollback");
                     damageOutcomes.CancelPrepared(prepared);
+                    CancelMigratedReservations(transitionOutcomes);
+                    if (reservedDamage.HasAttackOutcome)
+                        migratedOutcomes?.Cancel(reservedDamage.AttackOutcome);
                     SafeRollbackMechanical(mechanicalMutation);
                     return CombatOutcomeApplyResult.Failed(
                         "combat-outcome-post-clamp-mismatch");
@@ -418,11 +597,22 @@ public sealed class CombatCommandResultApplier
                         hasAttackerRollback,
                         "combat-signal-mechanical-rollback");
                     damageOutcomes.CancelPrepared(prepared);
+                    CancelMigratedReservations(transitionOutcomes);
+                    if (reservedDamage.HasAttackOutcome)
+                        migratedOutcomes?.Cancel(reservedDamage.AttackOutcome);
                     return CombatOutcomeApplyResult.Failed(mechanicalFailure);
                 }
-                if (!damageOutcomes.TryCommit(
+                if (!TryCommitCharacterCombatBatch(
                         prepared,
+                        reservedDamage,
+                        transitionOutcomes,
                         attackRevision,
+                        attacker,
+                        target.Character,
+                        appliedResult,
+                        rollback,
+                        actualDamage,
+                        normalizedDamageSource,
                         out string commitFailure))
                 {
                     bodyHealthMutation.RestoreCombatMutation(
@@ -442,7 +632,7 @@ public sealed class CombatCommandResultApplier
                     target.Character,
                     rollback,
                     appliedResult,
-                    $"직접 전투 명령: {attackerName}");
+                    normalizedDamageSource);
                 if (hasAttackerRollback)
                 {
                     bodyHealthMutation.CompletePreparedSuppressionReduction(
@@ -471,19 +661,30 @@ public sealed class CombatCommandResultApplier
                     attackOperationId,
                     attacker,
                     target.Character,
-                    actualDamage);
+                    actualDamage,
+                    origin);
                 DefenseCombatPresentation.Ensure(target.Character)?.PlayHit(
                     appliedResult.AppliedDamage,
                     damageType,
                     worldUiHierarchy);
                 if (wasAlive && target.Character.IsDead)
                 {
-                    PublishKilledEvent(attacker, target.Character);
+                    PublishKilledEvent(attacker, target.Character, origin);
                 }
             }
             else
             {
-                damageOutcomes.Cancel(reservedDamage);
+                if (reservedDamage.HasAttackOutcome)
+                {
+                    return ApplyCharacterNonDamageOutcome(
+                        target.Character,
+                        appliedResult,
+                        attacker,
+                        reservedDamage,
+                        mechanicalMutation,
+                        normalizedDamageSource);
+                }
+                CancelDamageOutcome(reservedDamage);
                 if (!TryApplyUntrackedMechanical(
                         mechanicalMutation,
                         out string mechanicalFailure))
@@ -495,17 +696,630 @@ public sealed class CombatCommandResultApplier
         }
         else if (target.IsWildlife)
         {
-            if (!TryApplyUntrackedMechanical(
+            if (!TryApplyMechanical(
                     mechanicalMutation,
                     out string mechanicalFailure))
             {
+                if (reservedDamage.HasAttackOutcome)
+                    migratedOutcomes?.Cancel(reservedDamage.AttackOutcome);
                 return CombatOutcomeApplyResult.Failed(mechanicalFailure);
             }
+            if (reservedDamage.HasAttackOutcome
+                && !TryCommitAttackOutcome(
+                    reservedDamage.AttackOutcome,
+                    attacker,
+                    target,
+                    result,
+                    out string attackCommitFailure))
+            {
+                SafeRollbackMechanical(mechanicalMutation);
+                return CombatOutcomeApplyResult.Failed(attackCommitFailure);
+            }
+            mechanicalMutation.Complete();
             target.Wildlife.ApplyCombatDamage(result, attacker);
         }
         if (!signalAppliedInTransaction)
             ApplySignalSupport(result, attacker);
         return CombatOutcomeApplyResult.Success();
+    }
+
+    private CombatOutcomeApplyResult ApplyCharacterNonDamageOutcome(
+        CharacterActor target,
+        CombatAttackResult result,
+        CharacterActor attacker,
+        in ReservedCombatDamageOutcome reserved,
+        in CombatOutcomeMechanicalMutation mechanicalMutation,
+        string damageSource)
+    {
+        if (target == null || attacker == null)
+        {
+            CancelDamageOutcome(reserved);
+            SafeRollbackMechanical(mechanicalMutation);
+            return CombatOutcomeApplyResult.Failed(
+                "combat-non-damage-participant-missing");
+        }
+        damageOutcomes.Cancel(reserved);
+
+        CharacterBodyHealthMutationSnapshot targetBefore;
+        CharacterBodyHealthMutationSnapshot attackerBefore = default;
+        bool hasSignal = (result.SpecialEffects
+                & CombatSpecialEffectFlags.SignalSupport) != 0;
+        try
+        {
+            targetBefore = bodyHealthMutation.CaptureCombatMutation(target);
+            if (hasSignal)
+            {
+                attackerBefore = bodyHealthMutation.CaptureCombatMutation(
+                    attacker);
+            }
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException)
+        {
+            migratedOutcomes.Cancel(reserved.AttackOutcome);
+            SafeRollbackMechanical(mechanicalMutation);
+            return CombatOutcomeApplyResult.Failed(
+                "combat-non-damage-snapshot-failed:" + exception.Message);
+        }
+        if (!TryReserveCharacterCombatTransitions(
+                reserved.OperationId,
+                reserved.AttackRevision,
+                out PreparedMigratedProducerOutcome[] transitions,
+                out string reserveFailure))
+        {
+            migratedOutcomes.Cancel(reserved.AttackOutcome);
+            SafeRollbackMechanical(mechanicalMutation);
+            return CombatOutcomeApplyResult.Failed(reserveFailure);
+        }
+
+        try
+        {
+            bodyHealthMutation.ApplyPreparedCombatMutation(
+                target,
+                result,
+                damageSource);
+            if (hasSignal)
+            {
+                bodyHealthMutation.ApplyPreparedSuppressionReduction(
+                    attacker,
+                    result.StatusPotency * 100f);
+            }
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            bodyHealthMutation.RestoreCombatMutation(
+                target,
+                targetBefore,
+                "combat-non-damage-mutation-rollback");
+            RestoreSignalSupportMutation(
+                attacker,
+                attackerBefore,
+                hasSignal,
+                "combat-non-damage-signal-rollback");
+            migratedOutcomes.Cancel(reserved.AttackOutcome);
+            CancelMigratedReservations(transitions);
+            SafeRollbackMechanical(mechanicalMutation);
+            return CombatOutcomeApplyResult.Failed(
+                "combat-non-damage-mutation-failed:"
+                + exception.GetType().Name);
+        }
+        if (!TryApplyMechanical(mechanicalMutation, out string mechanicalFailure))
+        {
+            bodyHealthMutation.RestoreCombatMutation(
+                target,
+                targetBefore,
+                "combat-non-damage-mechanical-rollback");
+            RestoreSignalSupportMutation(
+                attacker,
+                attackerBefore,
+                hasSignal,
+                "combat-non-damage-signal-mechanical-rollback");
+            migratedOutcomes.Cancel(reserved.AttackOutcome);
+            CancelMigratedReservations(transitions);
+            return CombatOutcomeApplyResult.Failed(mechanicalFailure);
+        }
+
+        CharacterBodyHealthMutationSnapshot targetAfter;
+        try
+        {
+            targetAfter = bodyHealthMutation.CaptureCombatMutation(target);
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException)
+        {
+            bodyHealthMutation.RestoreCombatMutation(
+                target,
+                targetBefore,
+                "combat-non-damage-post-state-rollback");
+            RestoreSignalSupportMutation(
+                attacker,
+                attackerBefore,
+                hasSignal,
+                "combat-non-damage-signal-post-state-rollback");
+            migratedOutcomes.Cancel(reserved.AttackOutcome);
+            CancelMigratedReservations(transitions);
+            SafeRollbackMechanical(mechanicalMutation);
+            return CombatOutcomeApplyResult.Failed(
+                "combat-non-damage-post-state-failed:" + exception.Message);
+        }
+
+        var selected = new List<PreparedMigratedProducerOutcome>(2)
+        {
+            reserved.AttackOutcome
+        };
+        var receipts = new List<MigratedProducerOutcomeReceipt>(2);
+        try
+        {
+            receipts.Add(CreateTwoCharacterReceipt(
+                reserved.AttackOutcome,
+                attacker,
+                target,
+                $"{attacker.Identity?.DisplayName ?? attacker.name}의 공격이 "
+                    + $"{target.Identity?.DisplayName ?? target.name}에게 판정됐다.",
+                $"executed={result.Executed};hit={result.Hit};"
+                    + $"coverBlocked={result.CoverBlocked};damage=0"));
+            bool becameDowned = !targetBefore.State.downed
+                && targetAfter.State.downed;
+            for (int index = 0; index < transitions.Length; index++)
+            {
+                if (index != 1 || !becameDowned)
+                {
+                    migratedOutcomes.Cancel(transitions[index]);
+                    continue;
+                }
+                selected.Add(transitions[index]);
+                receipts.Add(CreateSingleCharacterReceipt(
+                    transitions[index],
+                    target,
+                    $"{target.Identity?.DisplayName ?? target.name}이(가) 전투 불능이 됐다.",
+                    $"beforeDowned={targetBefore.State.downed};"
+                        + $"afterDowned={targetAfter.State.downed}"));
+            }
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            bodyHealthMutation.RestoreCombatMutation(
+                target,
+                targetBefore,
+                "combat-non-damage-receipt-rollback");
+            RestoreSignalSupportMutation(
+                attacker,
+                attackerBefore,
+                hasSignal,
+                "combat-non-damage-signal-receipt-rollback");
+            CancelMigratedReservations(selected);
+            SafeRollbackMechanical(mechanicalMutation);
+            return CombatOutcomeApplyResult.Failed(
+                "combat-non-damage-receipt-invalid:" + exception.Message);
+        }
+
+        var results = new MigratedProducerOutcomeCommitResult[selected.Count];
+        if (!migratedOutcomes.CommitBatch(
+                selected.ToArray(),
+                receipts.ToArray(),
+                results,
+                out string commitFailure))
+        {
+            bodyHealthMutation.RestoreCombatMutation(
+                target,
+                targetBefore,
+                "combat-non-damage-outcome-rollback");
+            RestoreSignalSupportMutation(
+                attacker,
+                attackerBefore,
+                hasSignal,
+                "combat-non-damage-signal-outcome-rollback");
+            SafeRollbackMechanical(mechanicalMutation);
+            return CombatOutcomeApplyResult.Failed(commitFailure);
+        }
+
+        mechanicalMutation.Complete();
+        bodyHealthMutation.CompletePreparedCombatMutation(
+            target,
+            targetBefore,
+            result,
+            damageSource);
+        if (hasSignal)
+        {
+            bodyHealthMutation.CompletePreparedSuppressionReduction(
+                attacker,
+                attackerBefore);
+        }
+        return CombatOutcomeApplyResult.Success();
+    }
+
+    private bool TryCommitAttackOutcome(
+        in PreparedMigratedProducerOutcome prepared,
+        CharacterActor attacker,
+        in CombatParticipantRef target,
+        CombatAttackResult result,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        try
+        {
+            MigratedProducerOutcomeReceipt receipt;
+            if (target.IsCharacter)
+            {
+                receipt = CreateTwoCharacterReceipt(
+                    prepared,
+                    attacker,
+                    target.Character,
+                    $"{attacker.Identity?.DisplayName ?? attacker.name}의 공격 판정이 끝났다.",
+                    $"executed={result.Executed};hit={result.Hit};"
+                        + $"coverBlocked={result.CoverBlocked};"
+                        + $"damage={result.AppliedDamage:0.###}");
+            }
+            else if (target.IsWildlife
+                && attacker != null
+                && CharacterPersistentIdentity.TryGet(
+                    attacker,
+                    out CharacterId attackerId)
+                && target.Wildlife != null
+                && !string.IsNullOrWhiteSpace(target.Wildlife.WildlifeId))
+            {
+                var actorSubject = new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    attackerId.Value,
+                    attacker.Identity?.DisplayName ?? attacker.name,
+                    MigratedProducerOutcomeIds.ActorRole);
+                var targetSubject = new MigratedProducerOutcomeSubject(
+                    new GameplayEntityKindId("wildlife"),
+                    target.Wildlife.WildlifeId,
+                    target.Wildlife.DisplayName,
+                    MigratedProducerOutcomeIds.TargetRole);
+                MigratedProducerOutcomePayloadBuilder builder =
+                    migratedOutcomes.CreatePayloadBuilder(prepared);
+                if (!AddParticipantAndSubject(
+                        ref builder,
+                        prepared,
+                        actorSubject)
+                    || !AddParticipantAndSubject(
+                        ref builder,
+                        prepared,
+                        targetSubject)
+                    || !builder.AddFact(new GameplayOutcomeFact(
+                        MigratedProducerOutcomeIds.SummaryFact,
+                        $"{attacker.Identity?.DisplayName ?? attacker.name}의 야생동물 공격 판정이 끝났다."))
+                    || !builder.AddFact(new GameplayOutcomeFact(
+                        MigratedProducerOutcomeIds.DetailFact,
+                        $"executed={result.Executed};hit={result.Hit};"
+                            + $"coverBlocked={result.CoverBlocked};"
+                            + $"damage={result.AppliedDamage:0.###}")))
+                {
+                    throw new InvalidOperationException(
+                        "The wildlife attack payload exceeded its reserved capacity.");
+                }
+                receipt = builder.Build();
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    "Stable combat attack participants are required.");
+            }
+
+            MigratedProducerOutcomeCommitResult committed =
+                migratedOutcomes.Commit(prepared, receipt);
+            if (committed.DurablyCommitted)
+                return true;
+            failureReason = committed.DetailCode;
+            return false;
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            migratedOutcomes.Cancel(prepared);
+            failureReason = "combat-attack-outcome-invalid:" + exception.Message;
+            return false;
+        }
+    }
+
+    private bool TryReserveCharacterCombatTransitions(
+        string attackOperationId,
+        long attackRevision,
+        out PreparedMigratedProducerOutcome[] prepared,
+        out string failureReason)
+    {
+        prepared = new PreparedMigratedProducerOutcome[4];
+        failureReason = string.Empty;
+        MigratedProducerOutcomeKind[] kinds =
+        {
+            MigratedProducerOutcomeKind.HealthThresholdCrossedEvent,
+            MigratedProducerOutcomeKind.CharacterBodyHealthDownedEvent,
+            MigratedProducerOutcomeKind.CharacterDeathEvent,
+            MigratedProducerOutcomeKind.CharacterKilledEvent
+        };
+        for (int index = 0; index < kinds.Length; index++)
+        {
+            bool twoSubjects = kinds[index]
+                == MigratedProducerOutcomeKind.CharacterKilledEvent;
+            if (migratedOutcomes.TryReserve(
+                    kinds[index],
+                    $"{attackOperationId}:{attackRevision}:{(int)kinds[index]}",
+                    Mathf.Max(1, calendar.Day),
+                    GameplayOutcomeStatus.Succeeded,
+                    participantCount: twoSubjects ? 2 : 1,
+                    metricCount: 0,
+                    subjectCount: twoSubjects ? 2 : 1,
+                    additionalFactCount: 1,
+                    out prepared[index],
+                    out failureReason))
+            {
+                continue;
+            }
+            CancelMigratedReservations(prepared);
+            failureReason = "combat-transition-outcome-reserve-failed:"
+                + failureReason;
+            return false;
+        }
+        return true;
+    }
+
+    private bool TryCommitCharacterCombatBatch(
+        in PreparedOutcomeToken damagePrepared,
+        in ReservedCombatDamageOutcome reserved,
+        PreparedMigratedProducerOutcome[] transitionOutcomes,
+        long attackRevision,
+        CharacterActor attacker,
+        CharacterActor victim,
+        CombatAttackResult result,
+        in CharacterBodyHealthMutationSnapshot before,
+        float actualDamage,
+        string damageSource,
+        out string failureReason)
+    {
+        if (!reserved.HasAttackOutcome)
+        {
+            CancelMigratedReservations(transitionOutcomes);
+            return damageOutcomes.TryCommit(
+                damagePrepared,
+                attackRevision,
+                out failureReason);
+        }
+        if (migratedExternalBatch == null
+            || migratedOutcomes == null
+            || transitionOutcomes == null
+            || transitionOutcomes.Length != 4)
+        {
+            damageOutcomes.CancelPrepared(damagePrepared);
+            migratedOutcomes?.Cancel(reserved.AttackOutcome);
+            CancelMigratedReservations(transitionOutcomes);
+            failureReason = "combat-migrated-external-batch-boundary-missing";
+            return false;
+        }
+
+        CharacterBodyHealthMutationSnapshot after;
+        try
+        {
+            after = bodyHealthMutation.CaptureCombatMutation(victim);
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException)
+        {
+            damageOutcomes.CancelPrepared(damagePrepared);
+            migratedOutcomes.Cancel(reserved.AttackOutcome);
+            CancelMigratedReservations(transitionOutcomes);
+            failureReason = "combat-transition-post-state-capture-failed:"
+                + exception.Message;
+            return false;
+        }
+
+        float beforeRatio = Mathf.Clamp01(
+            before.State.currentHealth / Mathf.Max(1f, before.State.maxHealth));
+        float afterRatio = Mathf.Clamp01(
+            after.State.currentHealth / Mathf.Max(1f, after.State.maxHealth));
+        bool thresholdCrossed = (beforeRatio > 0.20f && afterRatio <= 0.20f)
+            || (beforeRatio <= 0.20f && afterRatio > 0.20f);
+        bool downed = !before.State.downed && after.State.downed;
+        bool died = before.State.currentHealth > 0f
+            && after.State.currentHealth <= 0f;
+        bool killed = died && attacker != null;
+
+        var selected = new List<PreparedMigratedProducerOutcome>(5)
+        {
+            reserved.AttackOutcome
+        };
+        var receipts = new List<MigratedProducerOutcomeReceipt>(5);
+        try
+        {
+            receipts.Add(CreateTwoCharacterReceipt(
+                reserved.AttackOutcome,
+                attacker,
+                victim,
+                $"{attacker.Identity?.DisplayName ?? attacker.name}의 공격이 "
+                    + $"{victim.Identity?.DisplayName ?? victim.name}에게 판정됐다.",
+                $"executed={result.Executed};hit={result.Hit};"
+                    + $"coverBlocked={result.CoverBlocked};"
+                    + $"bodyPart={result.BodyPart};damage={actualDamage:0.###}"));
+
+            bool[] include = { thresholdCrossed, downed, died, killed };
+            for (int index = 0; index < transitionOutcomes.Length; index++)
+            {
+                PreparedMigratedProducerOutcome candidate =
+                    transitionOutcomes[index];
+                if (!include[index])
+                {
+                    migratedOutcomes.Cancel(candidate);
+                    continue;
+                }
+                selected.Add(candidate);
+                if (index == 3)
+                {
+                    receipts.Add(CreateTwoCharacterReceipt(
+                        candidate,
+                        attacker,
+                        victim,
+                        $"{attacker.Identity?.DisplayName ?? attacker.name}의 공격으로 "
+                            + $"{victim.Identity?.DisplayName ?? victim.name}이(가) 쓰러졌다.",
+                        $"origin=combat;source={damageSource};damage={actualDamage:0.###}"));
+                }
+                else
+                {
+                    string summary = index switch
+                    {
+                        0 => $"{victim.Identity?.DisplayName ?? victim.name}의 건강이 임계치를 넘었다.",
+                        1 => $"{victim.Identity?.DisplayName ?? victim.name}이(가) 전투 불능이 됐다.",
+                        _ => $"{victim.Identity?.DisplayName ?? victim.name}이(가) 전투 피해로 사망했다."
+                    };
+                    string detail = index switch
+                    {
+                        0 => $"beforeRatio={beforeRatio:0.###};afterRatio={afterRatio:0.###}",
+                        1 => $"beforeDowned={before.State.downed};afterDowned={after.State.downed}",
+                        _ => $"source={damageSource};damage={actualDamage:0.###}"
+                    };
+                    receipts.Add(CreateSingleCharacterReceipt(
+                        candidate,
+                        victim,
+                        summary,
+                        detail));
+                }
+            }
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            damageOutcomes.CancelPrepared(damagePrepared);
+            CancelMigratedReservations(selected.ToArray());
+            failureReason = "combat-transition-receipt-invalid:"
+                + exception.Message;
+            return false;
+        }
+
+        var commitResults =
+            new MigratedProducerOutcomeCommitResult[selected.Count];
+        return migratedExternalBatch.CommitWithExternalPrepared(
+            damagePrepared,
+            attackRevision,
+            selected.ToArray(),
+            receipts.ToArray(),
+            commitResults,
+            out failureReason);
+    }
+
+    private MigratedProducerOutcomeReceipt CreateSingleCharacterReceipt(
+        in PreparedMigratedProducerOutcome prepared,
+        CharacterActor character,
+        string summary,
+        string detail)
+    {
+        if (character == null
+            || !CharacterPersistentIdentity.TryGet(
+                character,
+                out CharacterId characterId))
+        {
+            throw new InvalidOperationException(
+                "A persistent character identity is required for a combat transition outcome.");
+        }
+        var subject = new MigratedProducerOutcomeSubject(
+            MigratedProducerOutcomeIds.CharacterKind,
+            characterId.Value,
+            character.Identity?.DisplayName ?? character.name,
+            MigratedProducerOutcomeIds.TargetRole);
+        MigratedProducerOutcomePayloadBuilder builder =
+            migratedOutcomes.CreatePayloadBuilder(prepared);
+        if (!builder.AddParticipant(new GameplayOutcomeParticipant(
+                subject.EntityId,
+                subject.Role,
+                GameplayParticipationKind.Direct,
+                true,
+                subject.DisplayName))
+            || !builder.AddSubject(new GameplayOutcomeSubjectLink(
+                subject.EntityId,
+                prepared.Salience,
+                prepared.Tier,
+                prepared.Tier == NarrativeMemoryTier.Core,
+                false,
+                0))
+            || !builder.AddFact(new GameplayOutcomeFact(
+                MigratedProducerOutcomeIds.SummaryFact,
+                summary))
+            || !builder.AddFact(new GameplayOutcomeFact(
+                MigratedProducerOutcomeIds.DetailFact,
+                detail)))
+        {
+            throw new InvalidOperationException(
+                "The combat transition payload exceeded its reserved capacity.");
+        }
+        return builder.Build();
+    }
+
+    private MigratedProducerOutcomeReceipt CreateTwoCharacterReceipt(
+        in PreparedMigratedProducerOutcome prepared,
+        CharacterActor attacker,
+        CharacterActor victim,
+        string summary,
+        string detail)
+    {
+        if (attacker == null
+            || victim == null
+            || !CharacterPersistentIdentity.TryGet(attacker, out CharacterId attackerId)
+            || !CharacterPersistentIdentity.TryGet(victim, out CharacterId victimId))
+        {
+            throw new InvalidOperationException(
+                "Persistent attacker and victim identities are required for a combat outcome.");
+        }
+        var actorSubject = new MigratedProducerOutcomeSubject(
+            MigratedProducerOutcomeIds.CharacterKind,
+            attackerId.Value,
+            attacker.Identity?.DisplayName ?? attacker.name,
+            MigratedProducerOutcomeIds.ActorRole);
+        var targetSubject = new MigratedProducerOutcomeSubject(
+            MigratedProducerOutcomeIds.CharacterKind,
+            victimId.Value,
+            victim.Identity?.DisplayName ?? victim.name,
+            MigratedProducerOutcomeIds.TargetRole);
+        MigratedProducerOutcomePayloadBuilder builder =
+            migratedOutcomes.CreatePayloadBuilder(prepared);
+        if (!AddParticipantAndSubject(ref builder, prepared, actorSubject)
+            || !AddParticipantAndSubject(ref builder, prepared, targetSubject)
+            || !builder.AddFact(new GameplayOutcomeFact(
+                MigratedProducerOutcomeIds.SummaryFact,
+                summary))
+            || !builder.AddFact(new GameplayOutcomeFact(
+                MigratedProducerOutcomeIds.DetailFact,
+                detail)))
+        {
+            throw new InvalidOperationException(
+                "The combat outcome payload exceeded its reserved capacity.");
+        }
+        return builder.Build();
+    }
+
+    private static bool AddParticipantAndSubject(
+        ref MigratedProducerOutcomePayloadBuilder builder,
+        in PreparedMigratedProducerOutcome prepared,
+        in MigratedProducerOutcomeSubject subject) =>
+        builder.AddParticipant(new GameplayOutcomeParticipant(
+            subject.EntityId,
+            subject.Role,
+            GameplayParticipationKind.Direct,
+            true,
+            subject.DisplayName))
+        && builder.AddSubject(new GameplayOutcomeSubjectLink(
+            subject.EntityId,
+            prepared.Salience,
+            prepared.Tier,
+            prepared.Tier == NarrativeMemoryTier.Core,
+            false,
+            0));
+
+    private void CancelMigratedReservations(
+        IReadOnlyList<PreparedMigratedProducerOutcome> prepared)
+    {
+        if (prepared == null || migratedOutcomes == null)
+            return;
+        for (int index = 0; index < prepared.Count; index++)
+        {
+            if (prepared[index].IsValid)
+                migratedOutcomes.Cancel(prepared[index]);
+        }
     }
 
     private void RestoreSignalSupportMutation(
@@ -620,7 +1434,8 @@ public sealed class CombatCommandResultApplier
         string attackOperationId,
         CharacterActor attacker,
         CharacterActor defender,
-        float actualDamage)
+        float actualDamage,
+        CharacterCommandOrigin origin)
     {
         if (attacker == null
             || defender == null
@@ -690,7 +1505,7 @@ public sealed class CombatCommandResultApplier
             defenderId,
             "betrayal-or-assault",
             Mathf.Clamp(actualDamage / 10f, 1f, 10f),
-            CharacterCommandOrigin.DirectPlayerOrder,
+            origin,
             calendar.Day,
             attackOperationId));
     }
@@ -735,7 +1550,10 @@ public sealed class CombatCommandResultApplier
         return false;
     }
 
-    private void PublishKilledEvent(CharacterActor killer, CharacterActor victim)
+    private void PublishKilledEvent(
+        CharacterActor killer,
+        CharacterActor victim,
+        CharacterCommandOrigin origin)
     {
         if (killer == null || victim == null
             || !CharacterPersistentIdentity.TryGet(killer, out CharacterId killerId)
@@ -763,7 +1581,7 @@ public sealed class CombatCommandResultApplier
             wasHostile: true,
             wasPrisoner: false,
             wasInnocent: false,
-            CharacterCommandOrigin.DirectPlayerOrder,
+            origin,
             calendar.Day));
     }
 

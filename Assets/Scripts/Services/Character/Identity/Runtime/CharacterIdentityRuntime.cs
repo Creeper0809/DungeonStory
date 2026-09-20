@@ -124,7 +124,7 @@ public readonly struct WorkCompletionIdentityDeliveryRequest
         OperationSequence = operationSequence;
         Character = character;
         WorkId = RequireCanonical(workId, nameof(workId));
-        ProductId = RequireCanonical(productId, nameof(productId));
+        ProductId = OptionalCanonical(productId, nameof(productId));
         if (!Enum.IsDefined(typeof(CharacterCommandOrigin), origin))
             throw new ArgumentOutOfRangeException(nameof(origin));
         if (absoluteDay < 0)
@@ -189,6 +189,20 @@ public readonly struct WorkCompletionIdentityDeliveryRequest
             throw new ArgumentException(
                 "A nonempty canonical token is required.",
                 parameterName);
+        return value;
+    }
+
+    private static string OptionalCanonical(string value, string parameterName)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+        if (string.IsNullOrWhiteSpace(value)
+            || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "An optional canonical token cannot contain surrounding whitespace.",
+                parameterName);
+        }
         return value;
     }
 }
@@ -577,6 +591,11 @@ public sealed class CharacterIdentityEventPublisher
 
 public sealed class WorkCompletionIdentityDeliveryLedger
 {
+    public const string DirectEventStreamId =
+        "work-identity:direct-events";
+    public const string DirectEventDeliveryPrefix =
+        "work-identity-direct:";
+
     private readonly Dictionary<string,
         WorkCompletionIdentityDeliveryCursorSaveData> cursors =
         new(StringComparer.Ordinal);
@@ -646,6 +665,72 @@ public sealed class WorkCompletionIdentityDeliveryLedger
             ? "The completion delivery sequence is stale."
             : "The completion delivery sequence is not contiguous.";
         return WorkCompletionIdentityDeliveryStatus.Conflict;
+    }
+
+    public WorkCompletionIdentityDeliveryRequest CreateNextDirectRequest(
+        WorkCompletedIdentityEvent gameEvent)
+    {
+        if (activeDeliveries.ContainsKey(DirectEventStreamId))
+            throw new InvalidOperationException(
+                "A direct work-completion identity event is already applying.");
+        int operationSequence = cursors.TryGetValue(
+            DirectEventStreamId,
+            out WorkCompletionIdentityDeliveryCursorSaveData cursor)
+            ? checked(cursor.operationSequence + 1)
+            : 0;
+        return new WorkCompletionIdentityDeliveryRequest(
+            DirectEventDeliveryPrefix + operationSequence,
+            DirectEventStreamId,
+            operationSequence,
+            gameEvent.Character,
+            gameEvent.WorkId,
+            gameEvent.ProductId,
+            gameEvent.Origin,
+            gameEvent.AbsoluteDay);
+    }
+
+    public bool TryGetCommittedDisposition(
+        WorkCompletionIdentityDeliveryRequest request,
+        out WorkCompletionIdentityDeliveryDisposition disposition)
+    {
+        disposition = default;
+        if (!cursors.TryGetValue(
+                request.ProducerStreamId,
+                out WorkCompletionIdentityDeliveryCursorSaveData cursor)
+            || cursor.operationSequence != request.OperationSequence
+            || !string.Equals(
+                cursor.deliveryId,
+                request.DeliveryId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                cursor.payloadFingerprint,
+                request.PayloadFingerprint,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+        disposition = cursor.disposition;
+        return true;
+    }
+
+    public bool TryPromoteCommittedDisposition(
+        WorkCompletionIdentityDeliveryRequest request,
+        WorkCompletionIdentityDeliveryDisposition expected,
+        WorkCompletionIdentityDeliveryDisposition replacement)
+    {
+        if (!Enum.IsDefined(
+                typeof(WorkCompletionIdentityDeliveryDisposition),
+                expected)
+            || !Enum.IsDefined(
+                typeof(WorkCompletionIdentityDeliveryDisposition),
+                replacement)
+            || !TryGetCommittedDisposition(request, out var current)
+            || current != expected)
+        {
+            return false;
+        }
+        cursors[request.ProducerStreamId].disposition = replacement;
+        return true;
     }
 
     public WorkCompletionIdentityDeliveryStatus Commit(
@@ -809,7 +894,7 @@ public sealed class CharacterIdentityStateStore
 
     [GameplayInternalOnly(
         "Only identity-rule runtimes may mutate their own stable rule-state record.",
-        "CharacterPersistentNeedRuntime|ExtremeTraitRuntime|CharacterRitualFastingRuntime")]
+        "CharacterPersistentNeedRuntime|ExtremeTraitRuntime|ForbiddenResearchLeapPreparation|CharacterRitualFastingRuntime")]
     public void Set(string characterId, string traitDefinitionId, string ruleId, int revision, string payload)
     {
         if (revision <= 0) throw new ArgumentOutOfRangeException(nameof(revision));
@@ -877,8 +962,8 @@ public sealed class CharacterIdentityStateStore
     }
 
     [GameplayInternalOnly(
-        "A completed external owner retires a death-retained identity rule state.",
-        "ExtremeTraitRuntime")]
+        "Retire a death-retained state or restore the absent preimage of an uncommitted attempt.",
+        "ExtremeTraitRuntime|ForbiddenResearchLeapPreparation")]
     public bool RemoveRule(
         string characterId,
         string traitDefinitionId,
@@ -1147,6 +1232,7 @@ public sealed class CharacterPersistentNeedRuntime
 public sealed class ExtremeCraftInspirationRuntimeState
 {
     public string lastProductDefinitionId = string.Empty;
+    public string lastCompletionOperationId = string.Empty;
     public int consecutiveEligibleCompletions;
     public float lastCompletionElapsedSeconds = -1f;
 }
@@ -1188,7 +1274,8 @@ public sealed class ExtremeCraftInspirationRuntime
         CharacterActor maker,
         string productDefinitionId,
         bool mythic,
-        float elapsedSeconds)
+        float elapsedSeconds,
+        string operationId = "")
     {
         CharacterTraitSO trait = maker?.Progression?.ResolveSelectedTraits()
             .FirstOrDefault(value => value != null
@@ -1210,6 +1297,16 @@ public sealed class ExtremeCraftInspirationRuntime
                 ?? new ExtremeCraftInspirationRuntimeState();
         }
 
+        string canonicalOperationId = operationId?.Trim() ?? string.Empty;
+        if (canonicalOperationId.Length > 0
+            && string.Equals(
+                state.lastCompletionOperationId,
+                canonicalOperationId,
+                StringComparison.Ordinal))
+        {
+            return 0f;
+        }
+
         float resetSeconds = Mathf.Max(1, rule.resetAfterHours)
             * (GameCalendarRules.SecondsPerDay / 24f);
         bool reset = !string.Equals(
@@ -1223,6 +1320,7 @@ public sealed class ExtremeCraftInspirationRuntime
             : Mathf.Max(1, state.consecutiveEligibleCompletions + 1);
         state.lastProductDefinitionId = definitionId;
         state.lastCompletionElapsedSeconds = Mathf.Max(0f, elapsedSeconds);
+        state.lastCompletionOperationId = canonicalOperationId;
 
         float moodDelta = 0f;
         if (mythic)

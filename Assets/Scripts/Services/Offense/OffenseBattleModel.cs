@@ -145,6 +145,8 @@ public sealed class OffenseBattleSession
         settlementOwner = expedition;
     }
 
+    internal OffenseExpeditionRun SettlementOwner => settlementOwner;
+
     public OffenseBattlePersistenceState CapturePersistentState()
     {
         return new OffenseBattlePersistenceState

@@ -44,7 +44,7 @@ public sealed class GameplayOutcomeRecorder : IGameplayOutcomeRecorder
         }
         if (!measured.Success)
             return measured;
-        if (requirements.OutcomeTypeId != adapter.OutcomeTypeId)
+        if (!SupportsOutcomeType(adapter, requirements.OutcomeTypeId))
             return new OutcomePrepareResult(OutcomePrepareCode.InvalidReceipt, "adapter-outcome-type-mismatch");
         OutcomePrepareResult reserved = TryReserve(requirements, out PreparedOutcomeReservation reservation);
         if (!reserved.Success)
@@ -104,7 +104,7 @@ public sealed class GameplayOutcomeRecorder : IGameplayOutcomeRecorder
             return measured;
         if (requirements.ResultKey != reservation.ResultKey
             || requirements.WorldEpoch != reservation.WorldEpoch
-            || requirements.OutcomeTypeId != adapter.OutcomeTypeId)
+            || !SupportsOutcomeType(adapter, requirements.OutcomeTypeId))
         {
             return new OutcomePrepareResult(OutcomePrepareCode.ReservationInvalid, "reserved-receipt-identity-mismatch");
         }
@@ -161,6 +161,18 @@ public sealed class GameplayOutcomeRecorder : IGameplayOutcomeRecorder
         long expectedOwnerRevision,
         out CommittedOutcomeToken committed) =>
         ledger.CommitPreparedCore(prepared, expectedOwnerRevision, out committed);
+
+    [GameplayInternalOnly(
+        "Atomically transfers a bounded prepared-result batch into the durable in-memory outbox inside one domain commit boundary.",
+        "Registered gameplay outcome producer transaction adapters")]
+    public OutcomeCommitResult CommitPreparedBatch(
+        PreparedOutcomeToken[] prepared,
+        long[] expectedOwnerRevisions,
+        CommittedOutcomeToken[] committed) =>
+        ledger.CommitPreparedBatchCore(
+            prepared,
+            expectedOwnerRevisions,
+            committed);
 
     [GameplayInternalOnly(
         "Publishes only an already-committed outbox result and never repeats gameplay effects.",
@@ -259,4 +271,11 @@ public sealed class GameplayOutcomeRecorder : IGameplayOutcomeRecorder
         exception is not OutOfMemoryException
         && exception is not StackOverflowException
         && exception is not AccessViolationException;
+
+    private static bool SupportsOutcomeType<TReceipt>(
+        IGameplayOutcomeAdapter<TReceipt> adapter,
+        GameplayOutcomeTypeId outcomeTypeId) =>
+        adapter is IGameplayOutcomeDynamicAdapterRegistration dynamicAdapter
+            ? dynamicAdapter.SupportsOutcomeType(outcomeTypeId)
+            : adapter.OutcomeTypeId == outcomeTypeId;
 }

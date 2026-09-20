@@ -29,7 +29,9 @@ internal sealed class EvolutionOutcomeMemoryPolicy : IOutcomeMemoryPolicy
         bool permanent = outcome.OutcomeTypeId ==
                 EvolutionOutcomeIds.FacilityEvolutionCompleted
             || outcome.OutcomeTypeId == EvolutionOutcomeIds.MemoryErasureTerminal
-                && outcome.Status == GameplayOutcomeStatus.Succeeded;
+                && outcome.Status == GameplayOutcomeStatus.Succeeded
+            || outcome.OutcomeTypeId == EvolutionOutcomeIds.TraitInferenceCompleted
+            || outcome.OutcomeTypeId == EvolutionOutcomeIds.MemoryErasureBossAwarded;
         NarrativeMemoryTier tier = permanent
             ? NarrativeMemoryTier.Core
             : priorMatchingCount >= 3
@@ -40,6 +42,58 @@ internal sealed class EvolutionOutcomeMemoryPolicy : IOutcomeMemoryPolicy
             tier,
             Math.Max(evaluationDay + 1, outcome.AbsoluteDay + 1));
     }
+}
+
+internal sealed class ApparelPhysicalPerspectiveProjector :
+    INarrativePerspectiveProjector
+{
+    public NarrativeView Project(
+        in GameplayOutcomeReadView outcome,
+        NarrativePerspectiveContext perspective) => new(
+        outcome.OutcomeId,
+        perspective.Kind,
+        "의복의 물리 입출력 처리가 확정됐다.",
+        "apparel-physical-v1",
+        true);
+}
+
+internal sealed class ProductQualityPerspectiveProjector :
+    INarrativePerspectiveProjector
+{
+    public NarrativeView Project(
+        in GameplayOutcomeReadView outcome,
+        NarrativePerspectiveContext perspective) => new(
+        outcome.OutcomeId,
+        perspective.Kind,
+        "제작자의 손에서 완제품 품질 판정이 확정됐다.",
+        "product-quality-v1",
+        true);
+}
+
+internal sealed class AcquiredTraitInferencePerspectiveProjector :
+    INarrativePerspectiveProjector
+{
+    public NarrativeView Project(
+        in GameplayOutcomeReadView outcome,
+        NarrativePerspectiveContext perspective) => new(
+        outcome.OutcomeId,
+        perspective.Kind,
+        "경험의 흔적이 새로운 후천 특성으로 확정됐다.",
+        "acquired-trait-inference-v1",
+        true);
+}
+
+internal sealed class MemoryErasureBossAwardPerspectiveProjector :
+    INarrativePerspectiveProjector
+{
+    public NarrativeView Project(
+        in GameplayOutcomeReadView outcome,
+        NarrativePerspectiveContext perspective) => new(
+        outcome.OutcomeId,
+        perspective.Kind,
+        "권역의 첫 우두머리 격파로 기억 소거 인장이 수여됐다.",
+        "memory-erasure-boss-award-v1",
+        true);
 }
 
 internal sealed class EvolutionOutcomePerceptionPolicy : IOutcomePerceptionPolicy
@@ -224,6 +278,161 @@ public sealed class ApparelChangeOutcomeDescriptor : IGameplayOutcomeDescriptor
         && outcome.AnchorCount == 0
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject("apparel-change-shape-invalid");
+}
+
+public sealed class ApparelPhysicalOutcomeDescriptor : IGameplayOutcomeDescriptor
+{
+    private static readonly INarrativePerspectiveProjector Projector =
+        new ApparelPhysicalPerspectiveProjector();
+    private static readonly IOutcomeMemoryPolicy Memory =
+        new EvolutionOutcomeMemoryPolicy();
+    private static readonly IOutcomePerceptionPolicy Perception =
+        new EvolutionOutcomePerceptionPolicy();
+    private static readonly IOutcomeMemoryConsolidator Consolidator =
+        new EvolutionOutcomeConsolidator(false);
+
+    public GameplayOutcomeTypeId OutcomeTypeId =>
+        EvolutionOutcomeIds.ApparelPhysicalCompleted;
+    public INarrativePerspectiveProjector PerspectiveProjector => Projector;
+    public IOutcomeMemoryPolicy MemoryPolicy => Memory;
+    public IOutcomePerceptionPolicy PerceptionPolicy => Perception;
+    public IOutcomeMemoryConsolidator MemoryConsolidator => Consolidator;
+    public bool IsKnownRole(GameplayRoleId roleId) =>
+        roleId.Equals(EvolutionOutcomeIds.PhysicalTransactionOwnerRole)
+        || roleId.Equals(EvolutionOutcomeIds.ProductMakerRole);
+    public bool IsKnownMetric(GameplayMetricId metricId, GameplayMetricUnitId unitId) =>
+        (metricId.Equals(EvolutionOutcomeIds.PhysicalInputMassMetric)
+            || metricId.Equals(EvolutionOutcomeIds.PhysicalOutputMassMetric))
+        && unitId.Equals(EvolutionOutcomeIds.GramUnit)
+        || metricId.Equals(EvolutionOutcomeIds.ProductQualityTierMetric)
+            && unitId.Equals(EvolutionOutcomeIds.EnumUnit)
+        || metricId.Equals(EvolutionOutcomeIds.ProductQualityAttemptMetric)
+            && unitId.Equals(EvolutionOutcomeIds.CountUnit)
+        || metricId.Equals(EvolutionOutcomeIds.ProductRejectedMetric)
+            && unitId.Equals(EvolutionOutcomeIds.BooleanUnit);
+    public OutcomeValidationResult Validate(in GameplayOutcomeReadView outcome) =>
+        outcome.OutcomeTypeId == OutcomeTypeId
+        && (outcome.ParticipantCount == 1
+                && outcome.MetricCount == 2
+                && outcome.SubjectCount == 1
+                && outcome.TagCount == 1
+            || outcome.ParticipantCount == 2
+                && outcome.MetricCount == 5
+                && outcome.SubjectCount == 2
+                && outcome.TagCount == 2)
+        && outcome.AnchorCount == 3
+            ? OutcomeValidationResult.Accepted
+            : OutcomeValidationResult.Reject("apparel-physical-shape-invalid");
+}
+
+public sealed class ProductQualityOutcomeDescriptor : IGameplayOutcomeDescriptor
+{
+    private static readonly INarrativePerspectiveProjector Projector =
+        new ProductQualityPerspectiveProjector();
+    private static readonly IOutcomeMemoryPolicy Memory =
+        new EvolutionOutcomeMemoryPolicy();
+    private static readonly IOutcomePerceptionPolicy Perception =
+        new EvolutionOutcomePerceptionPolicy();
+    private static readonly IOutcomeMemoryConsolidator Consolidator =
+        new EvolutionOutcomeConsolidator(false);
+
+    public GameplayOutcomeTypeId OutcomeTypeId =>
+        EvolutionOutcomeIds.ProductQualityResolved;
+    public INarrativePerspectiveProjector PerspectiveProjector => Projector;
+    public IOutcomeMemoryPolicy MemoryPolicy => Memory;
+    public IOutcomePerceptionPolicy PerceptionPolicy => Perception;
+    public IOutcomeMemoryConsolidator MemoryConsolidator => Consolidator;
+    public bool IsKnownRole(GameplayRoleId roleId) =>
+        roleId.Equals(EvolutionOutcomeIds.ProductMakerRole);
+    public bool IsKnownMetric(
+        GameplayMetricId metricId,
+        GameplayMetricUnitId unitId) =>
+        metricId.Equals(EvolutionOutcomeIds.ProductQualityTierMetric)
+            && unitId.Equals(EvolutionOutcomeIds.EnumUnit)
+        || metricId.Equals(EvolutionOutcomeIds.ProductQualityAttemptMetric)
+            && unitId.Equals(EvolutionOutcomeIds.CountUnit)
+        || metricId.Equals(EvolutionOutcomeIds.ProductRejectedMetric)
+            && unitId.Equals(EvolutionOutcomeIds.BooleanUnit);
+    public OutcomeValidationResult Validate(in GameplayOutcomeReadView outcome) =>
+        outcome.OutcomeTypeId == OutcomeTypeId
+        && outcome.ParticipantCount == 1
+        && outcome.MetricCount == 3
+        && outcome.SubjectCount == 1
+        && outcome.TagCount == 2
+        && outcome.AnchorCount == 1
+            ? OutcomeValidationResult.Accepted
+            : OutcomeValidationResult.Reject("product-quality-shape-invalid");
+}
+
+public sealed class AcquiredTraitInferenceOutcomeDescriptor :
+    IGameplayOutcomeDescriptor
+{
+    private static readonly INarrativePerspectiveProjector Projector =
+        new AcquiredTraitInferencePerspectiveProjector();
+    private static readonly IOutcomeMemoryPolicy Memory =
+        new EvolutionOutcomeMemoryPolicy();
+    private static readonly IOutcomePerceptionPolicy Perception =
+        new EvolutionOutcomePerceptionPolicy();
+    private static readonly IOutcomeMemoryConsolidator Consolidator =
+        new EvolutionOutcomeConsolidator(false);
+
+    public GameplayOutcomeTypeId OutcomeTypeId =>
+        EvolutionOutcomeIds.TraitInferenceCompleted;
+    public INarrativePerspectiveProjector PerspectiveProjector => Projector;
+    public IOutcomeMemoryPolicy MemoryPolicy => Memory;
+    public IOutcomePerceptionPolicy PerceptionPolicy => Perception;
+    public IOutcomeMemoryConsolidator MemoryConsolidator => Consolidator;
+    public bool IsKnownRole(GameplayRoleId roleId) =>
+        roleId.Equals(EvolutionOutcomeIds.AcquiredTraitOwnerRole);
+    public bool IsKnownMetric(GameplayMetricId metricId, GameplayMetricUnitId unitId) =>
+        (metricId.Equals(EvolutionOutcomeIds.TraitExpectedRevisionMetric)
+            || metricId.Equals(EvolutionOutcomeIds.TraitResultingRevisionMetric))
+        && unitId.Equals(EvolutionOutcomeIds.RevisionUnit);
+    public OutcomeValidationResult Validate(in GameplayOutcomeReadView outcome) =>
+        outcome.OutcomeTypeId == OutcomeTypeId
+        && outcome.ParticipantCount == 1
+        && outcome.MetricCount == 2
+        && outcome.SubjectCount == 1
+        && outcome.TagCount == 1
+        && outcome.AnchorCount == 3
+            ? OutcomeValidationResult.Accepted
+            : OutcomeValidationResult.Reject(
+                "acquired-trait-inference-shape-invalid");
+}
+
+public sealed class MemoryErasureBossAwardOutcomeDescriptor :
+    IGameplayOutcomeDescriptor
+{
+    private static readonly INarrativePerspectiveProjector Projector =
+        new MemoryErasureBossAwardPerspectiveProjector();
+    private static readonly IOutcomeMemoryPolicy Memory =
+        new EvolutionOutcomeMemoryPolicy();
+    private static readonly IOutcomePerceptionPolicy Perception =
+        new EvolutionOutcomePerceptionPolicy();
+    private static readonly IOutcomeMemoryConsolidator Consolidator =
+        new EvolutionOutcomeConsolidator(false);
+
+    public GameplayOutcomeTypeId OutcomeTypeId =>
+        EvolutionOutcomeIds.MemoryErasureBossAwarded;
+    public INarrativePerspectiveProjector PerspectiveProjector => Projector;
+    public IOutcomeMemoryPolicy MemoryPolicy => Memory;
+    public IOutcomePerceptionPolicy PerceptionPolicy => Perception;
+    public IOutcomeMemoryConsolidator MemoryConsolidator => Consolidator;
+    public bool IsKnownRole(GameplayRoleId roleId) =>
+        roleId.Equals(EvolutionOutcomeIds.AwardedRegionRole);
+    public bool IsKnownMetric(GameplayMetricId metricId, GameplayMetricUnitId unitId) =>
+        metricId.Equals(EvolutionOutcomeIds.AwardedItemCountMetric)
+        && unitId.Equals(EvolutionOutcomeIds.CountUnit);
+    public OutcomeValidationResult Validate(in GameplayOutcomeReadView outcome) =>
+        outcome.OutcomeTypeId == OutcomeTypeId
+        && outcome.ParticipantCount == 1
+        && outcome.MetricCount == 1
+        && outcome.SubjectCount == 1
+        && outcome.TagCount == 1
+        && outcome.AnchorCount == 1
+            ? OutcomeValidationResult.Accepted
+            : OutcomeValidationResult.Reject(
+                "memory-erasure-boss-award-shape-invalid");
 }
 
 public sealed class AcquiredTraitReactionOutcomeDescriptor :

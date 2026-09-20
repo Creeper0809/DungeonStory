@@ -5,6 +5,7 @@ using DungeonStory.Factions;
 using DungeonStory.Foundation;
 using DungeonStory.Infrastructure;
 using UnityEngine;
+using VContainer;
 using VContainer.Unity;
 
 public sealed class FactionRuntimeApplicationAdapter :
@@ -18,7 +19,10 @@ public sealed class FactionRuntimeApplicationAdapter :
     private const string CargoSourceOwnerDomain = "faction.route-cargo";
     private const string CargoReleaseReason =
         "faction-route-cargo-delivery";
+    private const string CargoOutcomeRollbackReason =
+        "faction-route-cargo-outcome-rollback";
     private readonly ResourceDungeonFactionCatalogApplicationAdapter catalog;
+    private readonly IReadOnlyList<FactionDefinitionSnapshot> definitions;
     private readonly FactionDomainRuntime domain;
     private readonly IOffenseWorldSimulation world;
     private readonly IWorldItemSpawner itemSpawner;
@@ -36,11 +40,15 @@ public sealed class FactionRuntimeApplicationAdapter :
     private readonly ResourceFactionAllianceBenefitBudgetApplicationAdapter
         allianceBenefitBudget;
     private readonly IIdempotentGameMoneyAccount money;
+    private readonly IGameSessionStateStore gameSessionState;
+    private readonly TreasuryEconomyAggregateStateStore treasuryState;
     private readonly FactionTradeSettlementRecovery tradeSettlementRecovery;
+    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
     private readonly Dictionary<string, PendingFactionCargoPublication>
         pendingCargo = new(StringComparer.Ordinal);
     private readonly IFactionCampaignQuery campaignQuery;
     private readonly IFactionCampaignCommand campaignCommand;
+    private readonly IV20CampaignPersistence campaignPersistence;
     [ApplicationAdapterTransientState]
     private IDisposable daySubscription;
     [ApplicationAdapterTransientState]
@@ -53,12 +61,24 @@ public sealed class FactionRuntimeApplicationAdapter :
         public PhysicalItemExactSourcePublicationPlan Plan;
         public PhysicalItemExactSourcePublicationTransaction Transaction;
         public FactionRouteCargoDeliveryReceipt ExpectedReceipt;
+        public FactionRouteCargoDeliveryReceipt BeforeReceipt;
+        public DungeonPhysicalItemSaveData PhysicalItemsBefore;
+        public PreparedMigratedProducerOutcome Outcome;
+        public bool OutcomeCommitted;
+    }
+
+    private sealed class PreparedFactionRouteArrival
+    {
+        public FactionRouteState Route;
+        public FactionRouteState Before;
+        public PreparedMigratedProducerOutcome Outcome;
     }
 
     private IEnumerable<DungeonFactionState> factions => domain.FactionStates;
     private IReadOnlyList<FactionRouteState> routes => domain.Routes;
     private int currentDay => domain.CurrentDay;
 
+    [Inject]
     public FactionRuntimeApplicationAdapter(
         ResourceDungeonFactionCatalogApplicationAdapter catalog,
         IOffenseWorldSimulation world,
@@ -70,10 +90,14 @@ public sealed class FactionRuntimeApplicationAdapter :
         ResourceFactionAllianceBenefitBudgetApplicationAdapter
             allianceBenefitBudget,
         IIdempotentGameMoneyAccount money,
+        IGameSessionStateStore gameSessionState,
+        TreasuryEconomyAggregateStateStore treasuryState,
         V20CampaignRuntime campaign,
+        IMigratedProducerOutcomeTransaction outcomeTransactions,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        definitions = this.catalog.Definitions;
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         itemLogistics = itemLogistics
             ?? throw new ArgumentNullException(nameof(itemLogistics));
@@ -95,17 +119,78 @@ public sealed class FactionRuntimeApplicationAdapter :
         this.allianceBenefitBudget = allianceBenefitBudget
             ?? throw new ArgumentNullException(nameof(allianceBenefitBudget));
         this.money = money ?? throw new ArgumentNullException(nameof(money));
+        this.gameSessionState = gameSessionState
+            ?? throw new ArgumentNullException(nameof(gameSessionState));
+        this.treasuryState = treasuryState
+            ?? throw new ArgumentNullException(nameof(treasuryState));
         tradeSettlementRecovery = new FactionTradeSettlementRecovery(this.money);
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
         campaignQuery = campaign ?? throw new ArgumentNullException(nameof(campaign));
         campaignCommand = campaign;
+        campaignPersistence = campaign;
         domain = new FactionDomainRuntime(
             aggregateRootStore ?? throw new ArgumentNullException(nameof(aggregateRootStore)));
     }
 
+    internal FactionRuntimeApplicationAdapter(
+        FactionAggregateState initialState,
+        IGameClock clock,
+        IGameEventBus events,
+        IIdempotentGameMoneyAccount money,
+        IFactionCampaignQuery campaignQuery,
+        IFactionCampaignCommand campaignCommand,
+        IV20CampaignPersistence campaignPersistence,
+        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IWorldDropZoneQuery dropZones = null,
+        IPhysicalItemExactSourcePublicationService exactSources = null,
+        IWorldItemStackRuntime itemRuntime = null,
+        IReadOnlyList<FactionDefinitionSnapshot> definitions = null,
+        IOffenseWorldSimulation world = null,
+        IFactionRouteEconomicPolicyRegistry routeEconomicPolicies = null,
+        IGameSessionStateStore gameSessionState = null,
+        TreasuryEconomyAggregateStateStore treasuryState = null)
+    {
+        catalog = null;
+        this.definitions = definitions ?? Array.Empty<FactionDefinitionSnapshot>();
+        this.world = world;
+        itemSpawner = null;
+        this.itemRuntime = itemRuntime;
+        batchDispositions = null;
+        this.dropZones = dropZones;
+        this.exactSources = exactSources;
+        characterCatalog = null;
+        spawnerProvider = null;
+        characterFactory = null;
+        worldRegistry = null;
+        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.routeEconomicPolicies = routeEconomicPolicies;
+        allianceBenefitBudget = null;
+        this.money = money ?? throw new ArgumentNullException(nameof(money));
+        this.gameSessionState = gameSessionState;
+        this.treasuryState = treasuryState;
+        tradeSettlementRecovery = new FactionTradeSettlementRecovery(this.money);
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.campaignQuery = campaignQuery
+            ?? throw new ArgumentNullException(nameof(campaignQuery));
+        this.campaignCommand = campaignCommand
+            ?? throw new ArgumentNullException(nameof(campaignCommand));
+        this.campaignPersistence = campaignPersistence
+            ?? throw new ArgumentNullException(nameof(campaignPersistence));
+        domain = new FactionDomainRuntime(
+            aggregateRootStore ?? throw new ArgumentNullException(nameof(aggregateRootStore)));
+        domain.ReplaceState(initialState
+            ?? throw new ArgumentNullException(nameof(initialState)));
+        projectedRestoreRevision = domain.PublishedRestoreRevision;
+    }
+
     public IReadOnlyList<FactionDefinitionSnapshot> Definitions =>
-        catalog.Definitions;
+        definitions;
     public IReadOnlyList<DungeonFactionState> Factions =>
-        catalog.Definitions
+        definitions
             .Select(definition => ProjectCampaignRelationship(
                 factions.FirstOrDefault(value => string.Equals(
                     value.factionId,
@@ -166,11 +251,108 @@ public sealed class FactionRuntimeApplicationAdapter :
             return;
         }
 
-        foreach (FactionRouteState route in domain.AdvanceRoutes(
-                     clock.DeltaTime,
-                     SecondsPerHex))
+        IReadOnlyList<FactionRouteState> predictedArrivals =
+            domain.PreviewRouteArrivals(clock.DeltaTime, SecondsPerHex);
+        Dictionary<string, PreparedFactionRouteArrival> preparedArrivals =
+            new(StringComparer.Ordinal);
+        try
         {
-            CompleteRoute(route);
+            foreach (FactionRouteState route in predictedArrivals)
+            {
+                FactionRouteState before = CloneRoute(route);
+                if (!outcomeTransactions.TryReserveSingleSubject(
+                        MigratedProducerOutcomeKind.FactionRouteArrivedEvent,
+                        route.routeId,
+                        Math.Max(1, currentDay),
+                        GameplayOutcomeStatus.Succeeded,
+                        out PreparedMigratedProducerOutcome prepared,
+                        out _))
+                {
+                    foreach (PreparedFactionRouteArrival reserved in
+                             preparedArrivals.Values)
+                    {
+                        outcomeTransactions.Cancel(reserved.Outcome);
+                    }
+                    return;
+                }
+                try
+                {
+                    preparedArrivals.Add(
+                        route.routeId,
+                        new PreparedFactionRouteArrival
+                        {
+                            Route = route,
+                            Before = before,
+                            Outcome = prepared
+                        });
+                }
+                catch
+                {
+                    outcomeTransactions.Cancel(prepared);
+                    throw;
+                }
+            }
+        }
+        catch
+        {
+            foreach (PreparedFactionRouteArrival reserved in
+                     preparedArrivals.Values)
+            {
+                outcomeTransactions.Cancel(reserved.Outcome);
+            }
+            throw;
+        }
+
+        try
+        {
+            foreach (FactionRouteState route in domain.AdvanceRoutes(
+                         clock.DeltaTime,
+                         SecondsPerHex))
+            {
+                if (!preparedArrivals.Remove(
+                        route.routeId,
+                        out PreparedFactionRouteArrival prepared))
+                {
+                    throw new InvalidOperationException(
+                        $"Faction route '{route.routeId}' arrived without a prepared outcome reservation.");
+                }
+
+                MigratedProducerOutcomeCommitResult committed;
+                try
+                {
+                    committed = CommitRouteArrivalOutcome(
+                        prepared.Outcome,
+                        route);
+                }
+                catch
+                {
+                    outcomeTransactions.Cancel(prepared.Outcome);
+                    RestoreRouteSnapshot(route, prepared.Before);
+                    throw;
+                }
+                if (!committed.DurablyCommitted)
+                {
+                    RestoreRouteSnapshot(route, prepared.Before);
+                    continue;
+                }
+
+                CompleteRoute(route);
+                PublishRouteArrivedObserver(route);
+            }
+        }
+        finally
+        {
+            foreach (PreparedFactionRouteArrival unused in
+                     preparedArrivals.Values)
+            {
+                outcomeTransactions.Cancel(unused.Outcome);
+                if (unused.Route != null
+                    && unused.Route.status == FactionRouteStatus.Arrived
+                    && unused.Before?.status != FactionRouteStatus.Arrived)
+                {
+                    RestoreRouteSnapshot(unused.Route, unused.Before);
+                }
+            }
         }
     }
 
@@ -235,17 +417,57 @@ public sealed class FactionRuntimeApplicationAdapter :
             ? Math.Max(1, (int)MathF.Round(
                 amount * MathF.Pow(0.85f, faction.betrayalScars)))
             : amount;
-        campaignCommand.ApplyFactionChange(
-            factionId,
-            adjusted,
-            amount < 0 ? Math.Max(1, -amount / 2) : 0,
-            0);
-        ProjectCampaignRelationship(faction);
-        events.Publish(new FactionTrustChangedEvent(
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.FactionTrustChangedEvent,
+                faction.factionId,
+                Math.Max(1, currentDay),
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out _))
+        {
+            message = "세력 관계 결과 기록을 준비하지 못했습니다.";
+            return false;
+        }
+
+        FactionCampaignWorldSaveData campaignBefore =
+            campaignPersistence.CaptureFactions();
+        try
+        {
+            campaignCommand.ApplyFactionChange(
+                factionId,
+                adjusted,
+                amount < 0 ? Math.Max(1, -amount / 2) : 0,
+                0);
+            ProjectCampaignRelationship(faction);
+            MigratedProducerOutcomeCommitResult committed =
+                CommitFactionTrustOutcome(
+                    prepared,
+                    faction.factionId,
+                    previous,
+                    faction.trust,
+                    reason,
+                    faction.factionId);
+            if (!committed.DurablyCommitted)
+            {
+                RestoreCampaignFactions(campaignBefore);
+                ProjectCampaignRelationship(faction);
+                message = "세력 관계 결과 기록이 거절되어 변경을 복원했습니다.";
+                return false;
+            }
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            RestoreCampaignFactions(campaignBefore);
+            ProjectCampaignRelationship(faction);
+            throw;
+        }
+
+        PublishTrustChangedObserver(
             faction.factionId,
             previous,
             faction.trust,
-            reason));
+            reason);
         message =
             $"{DisplayName(factionId)} 우호 {previous} → {faction.trust}";
         return true;
@@ -262,102 +484,235 @@ public sealed class FactionRuntimeApplicationAdapter :
             return false;
         }
 
+        int consumedValue;
+        int previousRapport;
+        int adjustedGain;
+        PreparedMigratedProducerOutcome prepared;
         if (FactionGoodwillOutbox.HasProvenance(faction))
         {
-            int transferredValue = faction.goodwillTransferredPhysicalValue;
-            if (!FactionGoodwillOutbox.TryFinalizePending(
+            consumedValue = faction.goodwillTransferredPhysicalValue;
+            if (faction.goodwillTransferCompleted)
+            {
+                if (!FactionGoodwillOutbox.TryApplyPending(
+                        faction,
+                        batchDispositions,
+                        campaignQuery,
+                        campaignCommand,
+                        domain.AcceptGoodwill,
+                        out _,
+                        out string completedFailure))
+                {
+                    throw new InvalidOperationException(
+                        $"Faction goodwill could not reconcile its completed transfer: {completedFailure}");
+                }
+                if (!FactionGoodwillOutbox.TryAcknowledgeCompleted(
+                        faction,
+                        batchDispositions,
+                        out _))
+                {
+                    ProjectCampaignRelationship(faction);
+                    message =
+                        $"{DisplayName(factionId)} 호의 물자 {consumedValue} 전달 완료 · 영수증 확인 대기";
+                    return true;
+                }
+                FactionGoodwillOutbox.ClearCompleted(faction);
+                ProjectCampaignRelationship(faction);
+                message =
+                    $"{DisplayName(factionId)} 호의 물자 {consumedValue} 전달 완료";
+                return true;
+            }
+            if (!campaignQuery.TryGetFaction(
+                    factionId,
+                    out FactionCampaignStateSaveData pendingCampaign)
+                || pendingCampaign == null)
+            {
+                throw new InvalidOperationException(
+                    $"Faction goodwill campaign authority '{factionId}' is missing.");
+            }
+            previousRapport = pendingCampaign.rapport;
+            adjustedGain = Math.Max(
+                0,
+                faction.goodwillCampaignRapportTarget - previousRapport);
+            if (!outcomeTransactions.TryReserveSingleSubject(
+                    MigratedProducerOutcomeKind.FactionTrustChangedEvent,
+                    faction.goodwillTransferOperationId,
+                    Math.Max(1, currentDay),
+                    GameplayOutcomeStatus.Succeeded,
+                    out prepared,
+                    out _))
+            {
+                message =
+                    $"{DisplayName(factionId)} 호의 물자 {consumedValue} 전달 접수 · 관계 반영 대기";
+                return true;
+            }
+        }
+        else
+        {
+            if (faction.NegotiationBlocked(currentDay))
+            {
+                message =
+                    $"배신 후 협상 봉쇄가 Day {faction.negotiationBlockedUntilDay}까지 유지됩니다.";
+                return false;
+            }
+
+            int offered = Mathf.Max(0, physicalValue);
+            if (offered < 50
+                || !TrySelectPhysicalGoods(
+                    offered,
+                    out PhysicalItemTransformInput[] inputs,
+                    out consumedValue))
+            {
+                message = "예약되지 않은 실물 물자 가치 50 이상이 필요합니다.";
+                return false;
+            }
+
+            if (!campaignQuery.TryGetFaction(
+                    factionId,
+                    out FactionCampaignStateSaveData campaignState)
+                || campaignState == null)
+            {
+                throw new InvalidOperationException(
+                    $"Faction goodwill campaign authority '{factionId}' is missing.");
+            }
+            previousRapport = campaignState.rapport;
+            int rawGain = Mathf.Clamp(consumedValue / 10, 1, 10);
+            adjustedGain = Math.Max(1, (int)MathF.Round(
+                rawGain * MathF.Pow(0.85f, faction.betrayalScars)));
+            int rapportTarget = Math.Clamp(
+                previousRapport + adjustedGain,
+                -100,
+                100);
+            if (domain.GoodwillOperationSequence == int.MaxValue)
+            {
+                throw new InvalidOperationException(
+                    "Faction goodwill operation sequence is exhausted.");
+            }
+            int nextSequence = domain.GoodwillOperationSequence + 1;
+            string operationId = FactionGoodwillOutbox.FormatOperationId(
+                factionId,
+                nextSequence);
+            if (!outcomeTransactions.TryReserveSingleSubject(
+                    MigratedProducerOutcomeKind.FactionTrustChangedEvent,
+                    operationId,
+                    Math.Max(1, currentDay),
+                    GameplayOutcomeStatus.Succeeded,
+                    out prepared,
+                    out _))
+            {
+                message = "세력 관계 결과 기록을 준비하지 못했습니다.";
+                return false;
+            }
+
+            try
+            {
+                int sequence = domain.AllocateGoodwillOperationSequence();
+                if (sequence != nextSequence)
+                {
+                    throw new InvalidOperationException(
+                        "Faction goodwill operation sequence changed after reservation.");
+                }
+                if (!batchDispositions.TryCommitPending(
+                        inputs,
+                        PhysicalItemDispositionKind.Transfer,
+                        operationId,
+                        FactionGoodwillOutbox.TransferReason,
+                        out PhysicalItemBatchDispositionReceipt receipt,
+                        out string dispositionFailure))
+                {
+                    throw new InvalidOperationException(
+                        $"Faction goods changed during atomic goodwill transfer: {dispositionFailure}");
+                }
+                FactionGoodwillOutbox.RecordPending(
+                    faction,
+                    sequence,
+                    receipt,
+                    consumedValue,
+                    rapportTarget);
+            }
+            catch
+            {
+                outcomeTransactions.Cancel(prepared);
+                throw;
+            }
+        }
+
+        FactionCampaignWorldSaveData campaignBefore =
+            campaignPersistence.CaptureFactions();
+        DungeonFactionState pendingBefore = CloneFaction(faction);
+        bool domainAppliedNow;
+        try
+        {
+            if (!FactionGoodwillOutbox.TryApplyPending(
                     faction,
                     batchDispositions,
                     campaignQuery,
                     campaignCommand,
                     domain.AcceptGoodwill,
-                    out _,
-                    out string replayFailure))
+                    out domainAppliedNow,
+                    out string finalizeFailure))
             {
                 throw new InvalidOperationException(
-                    $"Faction goodwill could not reconcile its physical transfer: {replayFailure}");
+                    $"Faction goodwill transfer committed but did not finalize: {finalizeFailure}");
             }
-            FactionGoodwillOutbox.ClearCompleted(faction);
+            if (!campaignQuery.TryGetFaction(
+                    factionId,
+                    out FactionCampaignStateSaveData appliedCampaign)
+                || appliedCampaign == null)
+            {
+                throw new InvalidOperationException(
+                    $"Faction goodwill campaign authority '{factionId}' is missing after apply.");
+            }
+            int currentRapport = appliedCampaign.rapport;
+            if (!domainAppliedNow)
+            {
+                outcomeTransactions.Cancel(prepared);
+            }
+            else
+            {
+                string reason = $"호의 물자 {consumedValue}";
+                MigratedProducerOutcomeCommitResult committed =
+                    CommitFactionTrustOutcome(
+                        prepared,
+                        faction.factionId,
+                        previousRapport,
+                        currentRapport,
+                        reason,
+                        faction.goodwillTransferOperationId);
+                if (!committed.DurablyCommitted)
+                {
+                    RestoreCampaignFactions(campaignBefore);
+                    RestoreFactionSnapshot(faction, pendingBefore);
+                    ProjectCampaignRelationship(faction);
+                    message =
+                        $"{DisplayName(factionId)} 호의 물자 {consumedValue} 전달 접수 · 관계 반영 대기";
+                    return true;
+                }
+                PublishTrustChangedObserver(
+                    faction.factionId,
+                    previousRapport,
+                    currentRapport,
+                    reason);
+                adjustedGain = currentRapport - previousRapport;
+            }
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            RestoreCampaignFactions(campaignBefore);
+            RestoreFactionSnapshot(faction, pendingBefore);
             ProjectCampaignRelationship(faction);
-            message =
-                $"{DisplayName(factionId)} 호의 물자 {transferredValue} 전달 완료";
-            return true;
+            throw;
         }
 
-        if (faction.NegotiationBlocked(currentDay))
-        {
-            message =
-                $"배신 후 협상 봉쇄가 Day {faction.negotiationBlockedUntilDay}까지 유지됩니다.";
-            return false;
-        }
-
-        int offered = Mathf.Max(0, physicalValue);
-        if (offered < 50
-            || !TrySelectPhysicalGoods(
-                offered,
-                out PhysicalItemTransformInput[] inputs,
-                out int consumedValue))
-        {
-            message = "예약되지 않은 실물 물자 가치 50 이상이 필요합니다.";
-            return false;
-        }
-
-        if (!campaignQuery.TryGetFaction(
-                factionId,
-                out FactionCampaignStateSaveData campaignState)
-            || campaignState == null)
-        {
-            throw new InvalidOperationException(
-                $"Faction goodwill campaign authority '{factionId}' is missing.");
-        }
-        int previousRapport = campaignState.rapport;
-        int rawGain = Mathf.Clamp(consumedValue / 10, 1, 10);
-        int adjustedGain = Math.Max(1, (int)MathF.Round(
-            rawGain * MathF.Pow(0.85f, faction.betrayalScars)));
-        int rapportTarget = Math.Clamp(
-            previousRapport + adjustedGain,
-            -100,
-            100);
-        int sequence = domain.AllocateGoodwillOperationSequence();
-        string operationId = FactionGoodwillOutbox.FormatOperationId(
-            factionId,
-            sequence);
-        if (!batchDispositions.TryCommitPending(
-                inputs,
-                PhysicalItemDispositionKind.Transfer,
-                operationId,
-                FactionGoodwillOutbox.TransferReason,
-                out PhysicalItemBatchDispositionReceipt receipt,
-                out string dispositionFailure))
-        {
-            throw new InvalidOperationException(
-                $"Faction goods changed during atomic goodwill transfer: {dispositionFailure}");
-        }
-        FactionGoodwillOutbox.RecordPending(
-            faction,
-            sequence,
-            receipt,
-            consumedValue,
-            rapportTarget);
-        if (!FactionGoodwillOutbox.TryFinalizePending(
+        if (!FactionGoodwillOutbox.TryAcknowledgeCompleted(
                 faction,
                 batchDispositions,
-                campaignQuery,
-                campaignCommand,
-                domain.AcceptGoodwill,
-                out bool domainAppliedNow,
-                out string finalizeFailure))
+                out _))
         {
-            throw new InvalidOperationException(
-                $"Faction goodwill transfer committed but did not finalize: {finalizeFailure}");
-        }
-        if (domainAppliedNow)
-        {
-            events.Publish(new FactionTrustChangedEvent(
-                faction.factionId,
-                previousRapport,
-                rapportTarget,
-                $"호의 물자 {consumedValue}"));
+            ProjectCampaignRelationship(faction);
+            message =
+                $"{DisplayName(factionId)} 호의 물자 {consumedValue} 전달 완료 · 영수증 확인 대기";
+            return true;
         }
         FactionGoodwillOutbox.ClearCompleted(faction);
         ProjectCampaignRelationship(faction);
@@ -465,29 +820,97 @@ public sealed class FactionRuntimeApplicationAdapter :
             return false;
         }
 
-        if (!TrySpawnBetrayalLoot(
-                factionId,
-                stolenValue,
-                out int actualLootValue,
-                out message))
+        DungeonFactionState[] affectedFactions = factions.ToArray();
+        string betrayalOperationId =
+            FormatBetrayalOperationId(factionId, currentDay);
+        if (!outcomeTransactions.TryReserve(
+                MigratedProducerOutcomeKind.FactionTrustChangedEvent,
+                betrayalOperationId,
+                Math.Max(1, currentDay),
+                GameplayOutcomeStatus.Succeeded,
+                participantCount: affectedFactions.Length,
+                metricCount: 0,
+                subjectCount: affectedFactions.Length,
+                additionalFactCount: 0,
+                out PreparedMigratedProducerOutcome prepared,
+                out _))
         {
+            message = "세력 배신 결과 기록을 준비하지 못했습니다.";
             return false;
         }
 
-        foreach (FactionTrustTransition transition in
-                 domain.ApplyBetrayal(target, actualLootValue))
+        FactionCampaignWorldSaveData campaignBefore =
+            campaignPersistence.CaptureFactions();
+        DungeonPhysicalItemSaveData physicalItemsBefore = itemRuntime.Capture();
+        Dictionary<string, DungeonFactionState> factionsBefore =
+            affectedFactions.ToDictionary(
+                value => value.factionId,
+                CloneFaction,
+                StringComparer.Ordinal);
+        IReadOnlyList<FactionTrustTransition> transitions;
+        int actualLootValue;
+        try
         {
-            int rapportDelta = transition.Current - transition.Previous;
-            campaignCommand.ApplyFactionChange(
-                transition.FactionId,
-                rapportDelta,
-                string.Equals(transition.FactionId, factionId, StringComparison.Ordinal)
-                    ? 35
-                    : 10,
-                0);
-            if (domain.TryGetFaction(transition.FactionId, out DungeonFactionState projected))
-                ProjectCampaignRelationship(projected);
-            events.Publish(new FactionTrustChangedEvent(
+            if (!TrySpawnBetrayalLoot(
+                    factionId,
+                    stolenValue,
+                    out actualLootValue,
+                    out message))
+            {
+                outcomeTransactions.Cancel(prepared);
+                return false;
+            }
+
+            transitions = domain.ApplyBetrayal(target, actualLootValue);
+            foreach (FactionTrustTransition transition in transitions)
+            {
+                int rapportDelta = transition.Current - transition.Previous;
+                campaignCommand.ApplyFactionChange(
+                    transition.FactionId,
+                    rapportDelta,
+                    string.Equals(
+                        transition.FactionId,
+                        factionId,
+                        StringComparison.Ordinal)
+                        ? 35
+                        : 10,
+                    0);
+                if (domain.TryGetFaction(
+                        transition.FactionId,
+                        out DungeonFactionState projected))
+                {
+                    ProjectCampaignRelationship(projected);
+                }
+            }
+
+            MigratedProducerOutcomeCommitResult committed =
+                CommitFactionBetrayalOutcome(
+                    prepared,
+                    transitions,
+                    factionId,
+                    betrayalOperationId,
+                    actualLootValue);
+            if (!committed.DurablyCommitted)
+            {
+                itemRuntime.Restore(physicalItemsBefore);
+                RestoreCampaignFactions(campaignBefore);
+                RestoreFactionSnapshots(factionsBefore);
+                message = "세력 배신 결과 기록이 거절되어 관계 변경을 복원했습니다.";
+                return false;
+            }
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            itemRuntime.Restore(physicalItemsBefore);
+            RestoreCampaignFactions(campaignBefore);
+            RestoreFactionSnapshots(factionsBefore);
+            throw;
+        }
+
+        foreach (FactionTrustTransition transition in transitions)
+        {
+            PublishTrustChangedObserver(
                 transition.FactionId,
                 transition.Previous,
                 transition.Current,
@@ -496,7 +919,7 @@ public sealed class FactionRuntimeApplicationAdapter :
                     factionId,
                     StringComparison.Ordinal)
                     ? "동맹 던전 약탈"
-                    : "다른 던전 배신 목격"));
+                    : "다른 던전 배신 목격");
         }
 
         message =
@@ -641,7 +1064,7 @@ public sealed class FactionRuntimeApplicationAdapter :
                 quantity,
                 dropoff,
                 WorldItemStackState.Loose,
-                $"faction-betrayal:{factionId}:{currentDay}");
+                FormatBetrayalOperationId(factionId, currentDay));
             actualValue += spawned * unitValue;
             if (actualValue >= targetValue)
             {
@@ -1020,9 +1443,9 @@ public sealed class FactionRuntimeApplicationAdapter :
                 && !occupied.Contains(tile.Coord))
             .OrderBy(tile => tile.Coord)
             .ToArray();
-        for (int i = 0; i < catalog.Definitions.Count; i++)
+        for (int i = 0; i < definitions.Count; i++)
         {
-            FactionDefinitionSnapshot definition = catalog.Definitions[i];
+            FactionDefinitionSnapshot definition = definitions[i];
             int startIndex = candidates.Count > 0
                 ? StableIndex(definition.StableId, candidates.Count)
                 : 0;
@@ -1228,35 +1651,48 @@ public sealed class FactionRuntimeApplicationAdapter :
 
         FactionRouteSettlementReceipt settlement =
             new FactionRouteSettlementReceipt();
-        bool allianceBenefitReserved = false;
-        long allianceBenefitDebit = 0L;
-        long allianceBenefitBalanceAfter = 0L;
         IReadOnlyList<FactionCargoLine> routeCargo = kind switch
         {
             FactionRouteKind.TradeCaravan => definition.TradeCargo,
             FactionRouteKind.SupplyCaravan => definition.SupplyCargo,
             _ => Array.Empty<FactionCargoLine>()
         };
-        if (kind is FactionRouteKind.TradeCaravan
-            or FactionRouteKind.SupplyCaravan)
+        bool hasSettlement = kind is FactionRouteKind.TradeCaravan
+            or FactionRouteKind.SupplyCaravan;
+        FactionRouteQuoteSnapshot quote = null;
+        FactionAllianceBenefitRouteBudgetSnapshot budgetRoute = null;
+        int settlementSequence = 0;
+        string settlementIdentity = string.Empty;
+        string expectedSettlementRouteId = string.Empty;
+        EconomyTransactionContext paymentContext = default;
+        EconomyTransactionContext refundContext = default;
+        PreparedMigratedProducerOutcome settlementOutcome = default;
+        FactionRouteCreationMutationSnapshot factionBefore = default;
+        GameSessionSnapshot sessionBefore = default;
+        TreasuryEconomyAggregateState treasuryBefore = null;
+        if (hasSettlement)
         {
             if (!routeEconomicPolicies.TryCreateQuote(
                     definition,
                     kind,
-                    out FactionRouteQuoteSnapshot quote,
+                    out quote,
                     out string quoteFailure))
             {
                 message = quoteFailure;
                 return false;
             }
 
-            int settlementSequence =
-                domain.AllocateRouteSettlementOperationSequence();
+            if (domain.RouteSettlementOperationSequence == int.MaxValue)
+            {
+                message = "세력 경로 정산 식별자 공간이 소진되었습니다.";
+                return false;
+            }
+            settlementSequence = domain.RouteSettlementOperationSequence + 1;
             if (kind == FactionRouteKind.SupplyCaravan)
             {
                 if (!allianceBenefitBudget.TryGetRoute(
                         factionId,
-                        out FactionAllianceBenefitRouteBudgetSnapshot budgetRoute)
+                        out budgetRoute)
                     || budgetRoute.CooldownDays != definition.SupplyCooldownDays
                     || !string.Equals(
                         budgetRoute.SupplyQuoteSourceDigest,
@@ -1266,94 +1702,132 @@ public sealed class FactionRuntimeApplicationAdapter :
                     message = "세력 보급 경로가 승인된 전역 혜택 예산 원장과 일치하지 않습니다.";
                     return false;
                 }
-
-                domain.ApplyAllianceBenefitRefill(
-                    currentDay,
-                    allianceBenefitBudget.AuthorityDigest,
-                    allianceBenefitBudget.CapacityMilliEwu,
-                    allianceBenefitBudget.RefillNumeratorMilliEwu,
-                    allianceBenefitBudget.RefillDenominatorDays);
-                allianceBenefitDebit = budgetRoute.DebitMilliEwu;
-                if (!domain.TryReserveAllianceBenefit(
-                        allianceBenefitBudget.AuthorityDigest,
-                        allianceBenefitBudget.CapacityMilliEwu,
-                        allianceBenefitDebit,
-                        out long budgetBalanceBefore,
-                        out allianceBenefitBalanceAfter,
-                        out string budgetFailure))
-                {
-                    message = budgetFailure;
-                    return false;
-                }
-                allianceBenefitReserved = true;
-                try
-                {
-                    settlement = CreateAllianceBenefitSettlementReceipt(
-                        quote,
-                        settlementSequence,
-                        allianceBenefitBudget.AuthorityDigest,
-                        budgetRoute.DebitMilliEwu,
-                        budgetBalanceBefore,
-                        allianceBenefitBalanceAfter);
-                }
-                catch
-                {
-                    domain.RefundAllianceBenefit(
-                        allianceBenefitBudget.AuthorityDigest,
-                        allianceBenefitBudget.CapacityMilliEwu,
-                        allianceBenefitDebit,
-                        allianceBenefitBalanceAfter);
-                    allianceBenefitReserved = false;
-                    throw;
-                }
+                settlementIdentity =
+                    $"faction-alliance-benefit:{settlementSequence:D8}";
             }
             else
             {
-                string settlementSourceId =
+                settlementIdentity =
                     $"faction-route-settlement:{settlementSequence:D8}";
-                EconomyTransactionContext context = new(
+                paymentContext = new EconomyTransactionContext(
                     EconomyTransactionKind.FactionTradePurchase,
-                    settlementSourceId,
+                    settlementIdentity,
                     factionId,
                     $"{definition.DisplayName} 교역 화물 선결제");
-                EconomyTransactionContext refundContext = new(
+                refundContext = new EconomyTransactionContext(
                     EconomyTransactionKind.FactionTradePurchaseRefund,
-                    settlementSourceId + ":refund",
+                    settlementIdentity + ":refund",
                     factionId,
                     "세력 교역 경로 게시 실패 환불");
                 tradeSettlementRecovery.ValidateCanBegin(
                     quote.PaymentGold,
                     refundContext);
-                if (!money.TrySpendOnce(
-                        quote.PaymentGold,
-                        context,
-                        out EconomyTransactionRecord paymentReceipt,
-                        out string spendFailure))
+            }
+
+            expectedSettlementRouteId =
+                $"faction-route:{domain.RouteSequence + 1}";
+            if (!outcomeTransactions.TryReserveSingleSubject(
+                    MigratedProducerOutcomeKind.FactionRouteSettlementReceipt,
+                    settlementIdentity,
+                    Math.Max(1, currentDay),
+                    GameplayOutcomeStatus.Succeeded,
+                    out settlementOutcome,
+                    out _))
+            {
+                message = "세력 경로 정산 결과 기록을 준비하지 못했습니다.";
+                return false;
+            }
+            try
+            {
+                if (!gameSessionState.TryGetSessionState(
+                        out GameSessionState session))
                 {
-                    message = spendFailure;
-                    return false;
+                    throw new InvalidOperationException(
+                        "Faction route settlement could not capture the game-session authority.");
                 }
-                tradeSettlementRecovery.BeginCommittedDebit(
-                    quote.PaymentGold,
-                    refundContext);
-                try
-                {
-                    settlement = CreatePaidSettlementReceipt(
-                        quote,
-                        settlementSequence,
-                        context,
-                        paymentReceipt);
-                }
-                catch (Exception settlementFailure)
-                {
-                    ThrowAfterTradePublicationFailure(settlementFailure);
-                }
+                factionBefore = domain.CaptureRouteCreationMutationSnapshot();
+                sessionBefore = session.Capture();
+                treasuryBefore = treasuryState.Current.Copy();
+            }
+            catch
+            {
+                outcomeTransactions.Cancel(settlementOutcome);
+                throw;
             }
         }
 
         FactionRouteState route;
         try
         {
+            if (hasSettlement)
+            {
+                int allocated =
+                    domain.AllocateRouteSettlementOperationSequence();
+                if (allocated != settlementSequence)
+                {
+                    throw new InvalidOperationException(
+                        "Faction route settlement sequence changed after outcome reservation.");
+                }
+
+                if (kind == FactionRouteKind.SupplyCaravan)
+                {
+                    domain.ApplyAllianceBenefitRefill(
+                        currentDay,
+                        allianceBenefitBudget.AuthorityDigest,
+                        allianceBenefitBudget.CapacityMilliEwu,
+                        allianceBenefitBudget.RefillNumeratorMilliEwu,
+                        allianceBenefitBudget.RefillDenominatorDays);
+                    if (!domain.TryReserveAllianceBenefit(
+                            allianceBenefitBudget.AuthorityDigest,
+                            allianceBenefitBudget.CapacityMilliEwu,
+                            budgetRoute.DebitMilliEwu,
+                            out long budgetBalanceBefore,
+                            out long budgetBalanceAfter,
+                            out string budgetFailure))
+                    {
+                        RollbackRouteSettlement(
+                            factionBefore,
+                            sessionBefore,
+                            treasuryBefore,
+                            settlementOutcome);
+                        message = budgetFailure;
+                        return false;
+                    }
+                    settlement = CreateAllianceBenefitSettlementReceipt(
+                        quote,
+                        settlementSequence,
+                        allianceBenefitBudget.AuthorityDigest,
+                        budgetRoute.DebitMilliEwu,
+                        budgetBalanceBefore,
+                        budgetBalanceAfter);
+                }
+                else
+                {
+                    if (!money.TrySpendOnce(
+                            quote.PaymentGold,
+                            paymentContext,
+                            out EconomyTransactionRecord paymentReceipt,
+                            out string spendFailure))
+                    {
+                        RollbackRouteSettlement(
+                            factionBefore,
+                            sessionBefore,
+                            treasuryBefore,
+                            settlementOutcome);
+                        message = spendFailure;
+                        return false;
+                    }
+                    tradeSettlementRecovery.BeginCommittedDebit(
+                        quote.PaymentGold,
+                        refundContext);
+                    settlement = CreatePaidSettlementReceipt(
+                        quote,
+                        settlementSequence,
+                        paymentContext,
+                        paymentReceipt);
+                }
+            }
+
             int steps = Mathf.Max(1, path.Count - 1);
             List<FactionCargoLine> frozenCargo =
                 (routeCargo ?? Array.Empty<FactionCargoLine>())
@@ -1382,23 +1856,47 @@ public sealed class FactionRuntimeApplicationAdapter :
                 }
             };
             routeId = domain.AddRoute(route);
-            tradeSettlementRecovery.CompletePublication();
-            allianceBenefitReserved = false;
-        }
-        catch (Exception routeFailure)
-        {
-            if (allianceBenefitReserved)
+            if (hasSettlement
+                && !string.Equals(
+                    routeId,
+                    expectedSettlementRouteId,
+                    StringComparison.Ordinal))
             {
-                domain.RefundAllianceBenefit(
-                    allianceBenefitBudget.AuthorityDigest,
-                    allianceBenefitBudget.CapacityMilliEwu,
-                    allianceBenefitDebit,
-                    allianceBenefitBalanceAfter);
-                allianceBenefitReserved = false;
+                throw new InvalidOperationException(
+                    "Faction route identity changed after settlement outcome reservation.");
             }
-            if (tradeSettlementRecovery.IsPending)
+            tradeSettlementRecovery.CompletePublication();
+            if (hasSettlement)
             {
-                ThrowAfterTradePublicationFailure(routeFailure);
+                MigratedProducerOutcomeCommitResult committed =
+                    CommitRouteSettlementOutcome(
+                        settlementOutcome,
+                        route,
+                        settlement,
+                        settlementIdentity);
+                if (!committed.DurablyCommitted)
+                {
+                    RollbackRouteSettlement(
+                        factionBefore,
+                        sessionBefore,
+                        treasuryBefore,
+                        settlementOutcome);
+                    routeId = string.Empty;
+                    message = "세력 경로 정산 결과 기록이 거절되어 생성을 복원했습니다.";
+                    return false;
+                }
+            }
+        }
+        catch
+        {
+            if (hasSettlement)
+            {
+                RollbackRouteSettlement(
+                    factionBefore,
+                    sessionBefore,
+                    treasuryBefore,
+                    settlementOutcome);
+                routeId = string.Empty;
             }
             throw;
         }
@@ -1409,28 +1907,6 @@ public sealed class FactionRuntimeApplicationAdapter :
             : string.Empty;
         message = $"{DisplayName(factionId)} 경로 출발 · ETA Day {route.estimatedArrivalDay}{paymentText}";
         return true;
-    }
-
-    private void ThrowAfterTradePublicationFailure(Exception failure)
-    {
-        if (!tradeSettlementRecovery.IsPending)
-        {
-            throw new InvalidOperationException(
-                "Faction route publication failed outside an active trade settlement boundary.",
-                failure);
-        }
-        if (!tradeSettlementRecovery.TryResolve())
-        {
-            throw new InvalidOperationException(
-                "Faction trade debit committed, route publication failed, "
-                + "and the exact refund remains pending: "
-                + tradeSettlementRecovery.LastFailure,
-                failure);
-        }
-
-        throw new InvalidOperationException(
-            "Faction trade route publication failed after its exact debit was refunded.",
-            failure);
     }
 
     private static FactionRouteSettlementReceipt CreatePaidSettlementReceipt(
@@ -1539,12 +2015,6 @@ public sealed class FactionRuntimeApplicationAdapter :
         {
             MaterializeReinforcements(route);
         }
-
-        events.Publish(new FactionRouteArrivedEvent(
-            route.routeId,
-            route.factionId,
-            route.kind,
-            route.strength));
     }
 
     private bool TryDeliverCargo(FactionRouteState route)
@@ -1575,22 +2045,76 @@ public sealed class FactionRuntimeApplicationAdapter :
 
         PhysicalItemExactSourcePublicationPlan plan =
             CreateCargoPublicationPlan(route, dropoff);
-        if (!exactSources.TryPrepare(
-                plan,
-                out PhysicalItemExactSourcePublicationTransaction transaction,
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.FactionRouteCargoDeliveryReceipt,
+                plan.BatchCommitId,
+                Math.Max(1, currentDay),
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
                 out _))
         {
             return false;
+        }
+        DungeonPhysicalItemSaveData physicalItemsBefore;
+        try
+        {
+            physicalItemsBefore = itemRuntime.Capture();
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            throw;
+        }
+        PhysicalItemExactSourcePublicationTransaction transaction;
+        try
+        {
+            if (!exactSources.TryPrepare(
+                    plan,
+                    out transaction,
+                    out _))
+            {
+                outcomeTransactions.Cancel(prepared);
+                return false;
+            }
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            throw;
         }
 
         PendingFactionCargoPublication created = new()
         {
             Plan = plan,
-            Transaction = transaction
+            Transaction = transaction,
+            ExpectedReceipt = ProjectCargoReceipt(plan, transaction),
+            BeforeReceipt = route.cargoDelivery.Clone(),
+            PhysicalItemsBefore = physicalItemsBefore,
+            Outcome = prepared
         };
-        pendingCargo.Add(route.routeId, created);
-        route.cargoDelivery.state = FactionRouteCargoDeliveryState.Publishing;
-        created.ExpectedReceipt = ProjectCargoReceipt(plan, transaction);
+        try
+        {
+            pendingCargo.Add(route.routeId, created);
+            route.cargoDelivery.state =
+                FactionRouteCargoDeliveryState.Publishing;
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            if (!exactSources.TryRollback(
+                    transaction,
+                    CargoOutcomeRollbackReason,
+                    out string rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Faction cargo prepare failed and its physical candidate could not roll back: "
+                    + rollbackFailure);
+            }
+            itemRuntime.Restore(physicalItemsBefore);
+            route.cargoDelivery = created.BeforeReceipt.Clone();
+            pendingCargo.Remove(route.routeId);
+            throw;
+        }
         return TryCommitCargo(route, created);
     }
 
@@ -1603,24 +2127,63 @@ public sealed class FactionRuntimeApplicationAdapter :
             throw new InvalidOperationException(
                 $"Faction route '{route?.routeId}' has no prebuilt durable cargo receipt.");
         }
-        if (!exactSources.TryCommitReleased(
-                pending.Transaction,
-                FacilityBufferAcknowledgedOutputReleaseTarget.Unassigned,
-                CargoReleaseReason,
-                out PhysicalItemExactSourcePublicationReceipt physicalReceipt,
-                out _))
+        bool rollbackAttempted = false;
+        try
         {
-            return false;
-        }
-        if (!CargoReceiptMatches(pending.ExpectedReceipt, physicalReceipt))
-        {
-            throw new InvalidOperationException(
-                $"Faction route '{route.routeId}' exact cargo receipt drifted after publication.");
-        }
+            if (!pending.OutcomeCommitted)
+            {
+                domain.MarkCargoDelivered(route, pending.ExpectedReceipt);
+                MigratedProducerOutcomeCommitResult committed =
+                    CommitRouteCargoOutcome(
+                        pending.Outcome,
+                        route,
+                        pending.ExpectedReceipt);
+                if (!committed.DurablyCommitted)
+                {
+                    rollbackAttempted = true;
+                    RollbackPreparedCargo(route, pending);
+                    return false;
+                }
+                pending.OutcomeCommitted = true;
+                route.cargoDelivery = pending.BeforeReceipt.Clone();
+                route.cargoDelivery.state =
+                    FactionRouteCargoDeliveryState.Publishing;
+            }
 
-        domain.MarkCargoDelivered(route, pending.ExpectedReceipt);
-        pendingCargo.Remove(route.routeId);
-        return true;
+            if (!exactSources.TryCommitReleased(
+                    pending.Transaction,
+                    FacilityBufferAcknowledgedOutputReleaseTarget.Unassigned,
+                    CargoReleaseReason,
+                    out PhysicalItemExactSourcePublicationReceipt physicalReceipt,
+                    out _))
+            {
+                return false;
+            }
+            if (!CargoReceiptMatches(pending.ExpectedReceipt, physicalReceipt))
+            {
+                throw new InvalidOperationException(
+                    $"Faction route '{route.routeId}' exact cargo receipt drifted after publication.");
+            }
+
+            domain.MarkCargoDelivered(route, pending.ExpectedReceipt);
+            pendingCargo.Remove(route.routeId);
+            return true;
+        }
+        catch
+        {
+            if (!pending.OutcomeCommitted && !rollbackAttempted)
+            {
+                outcomeTransactions.Cancel(pending.Outcome);
+                RollbackPreparedCargo(route, pending);
+            }
+            else if (route?.cargoDelivery != null)
+            {
+                route.cargoDelivery = pending.BeforeReceipt.Clone();
+                route.cargoDelivery.state =
+                    FactionRouteCargoDeliveryState.Publishing;
+            }
+            throw;
+        }
     }
 
     private static PhysicalItemExactSourcePublicationPlan
@@ -1843,9 +2406,313 @@ public sealed class FactionRuntimeApplicationAdapter :
         domain.FinishReinforcementMaterialization(route);
     }
 
+    private MigratedProducerOutcomeCommitResult CommitRouteArrivalOutcome(
+        in PreparedMigratedProducerOutcome prepared,
+        FactionRouteState route) => outcomeTransactions.CommitSingleSubject(
+        prepared,
+        CreateRouteOutcomeSubject(route),
+        "세력 경로 도착: route=" + route.routeId
+        + "; faction=" + route.factionId
+        + "; kind=" + route.kind
+        + "; strength=" + route.strength);
+
+    private MigratedProducerOutcomeCommitResult CommitRouteSettlementOutcome(
+        in PreparedMigratedProducerOutcome prepared,
+        FactionRouteState route,
+        FactionRouteSettlementReceipt receipt,
+        string settlementIdentity)
+    {
+        string quoteLines = string.Join(
+            ",",
+            receipt.quoteLines.Select(line =>
+                line.itemId + ":" + line.amount + "@" + line.unitPriceGold));
+        return outcomeTransactions.CommitSingleSubject(
+            prepared,
+            CreateRouteOutcomeSubject(route),
+            "세력 경로 정산: route=" + route.routeId
+            + "; faction=" + route.factionId
+            + "; operation=" + settlementIdentity
+            + "; state=" + receipt.state
+            + "; capability=" + receipt.capabilityId
+            + "; capability-version=" + receipt.capabilityVersion
+            + "; authored-gold=" + receipt.cargoAuthoredGold
+            + "; payment-gold=" + receipt.paymentGold
+            + "; balance=" + receipt.balanceBefore
+            + "->" + receipt.balanceAfter
+            + "; transaction=" + receipt.transactionId
+            + "; source=" + receipt.transactionSourceId
+            + "; target=" + receipt.transactionTargetId
+            + "; alliance-reservation="
+            + receipt.allianceBenefitReservationId
+            + "; alliance-debit-milli-ewu="
+            + receipt.allianceBenefitDebitMilliEwu
+            + "; alliance-balance-milli-ewu="
+            + receipt.allianceBenefitBalanceBeforeMilliEwu
+            + "->" + receipt.allianceBenefitBalanceAfterMilliEwu
+            + "; source-digest=" + receipt.sourceDigest
+            + "; quote=" + receipt.quoteDigest
+            + "; lines=" + quoteLines);
+    }
+
+    private MigratedProducerOutcomeCommitResult CommitRouteCargoOutcome(
+        in PreparedMigratedProducerOutcome prepared,
+        FactionRouteState route,
+        FactionRouteCargoDeliveryReceipt receipt)
+    {
+        string stacks = string.Join(
+            ",",
+            receipt.stacks.Select(stack =>
+                stack.outputLineId
+                + ":" + stack.itemId
+                + ":" + stack.itemInstanceId
+                + ":" + stack.stackId
+                + ":" + stack.quantity
+                + ":" + stack.massGrams));
+        return outcomeTransactions.CommitSingleSubject(
+            prepared,
+            CreateRouteOutcomeSubject(route),
+            "세력 경로 화물 인도: route=" + route.routeId
+            + "; batch=" + receipt.batchCommitId
+            + "; destination=" + receipt.destinationId
+            + "; fingerprint=" + receipt.outcomeFingerprint
+            + "; stacks=" + receipt.stacks.Count
+            + "; mass-grams=" + receipt.totalMassGrams
+            + "; position=" + receipt.deliveryX + "," + receipt.deliveryY
+            + "; stack-lines=" + stacks);
+    }
+
+    private MigratedProducerOutcomeSubject CreateRouteOutcomeSubject(
+        FactionRouteState route) => new(
+        MigratedProducerOutcomeIds.RouteKind,
+        route?.routeId
+            ?? throw new ArgumentNullException(nameof(route)),
+        route.routeId,
+        MigratedProducerOutcomeIds.RouteRole);
+
+    private void RollbackRouteSettlement(
+        FactionRouteCreationMutationSnapshot factionSnapshot,
+        GameSessionSnapshot sessionSnapshot,
+        TreasuryEconomyAggregateState treasurySnapshot,
+        in PreparedMigratedProducerOutcome prepared)
+    {
+        outcomeTransactions.Cancel(prepared);
+        domain.RestoreRouteCreationMutationSnapshot(factionSnapshot);
+        gameSessionState.Restore(sessionSnapshot);
+        treasuryState.Replace(
+            treasurySnapshot
+            ?? throw new ArgumentNullException(nameof(treasurySnapshot)));
+        tradeSettlementRecovery.CompletePublication();
+    }
+
+    private void RollbackPreparedCargo(
+        FactionRouteState route,
+        PendingFactionCargoPublication pending)
+    {
+        if (!exactSources.TryRollback(
+                pending.Transaction,
+                CargoOutcomeRollbackReason,
+                out string rollbackFailure))
+        {
+            throw new InvalidOperationException(
+                "Faction cargo outcome was rejected but its exact-source transaction could not roll back: "
+                + rollbackFailure);
+        }
+        itemRuntime.Restore(
+            pending?.PhysicalItemsBefore
+            ?? throw new ArgumentNullException(nameof(pending)));
+        route.cargoDelivery = (pending.BeforeReceipt
+            ?? throw new InvalidOperationException(
+                "Faction cargo rollback receipt is missing.")).Clone();
+        pendingCargo.Remove(route.routeId);
+    }
+
+    private static void RestoreRouteSnapshot(
+        FactionRouteState route,
+        FactionRouteState snapshot)
+    {
+        JsonUtility.FromJsonOverwrite(
+            JsonUtility.ToJson(
+                snapshot ?? throw new ArgumentNullException(nameof(snapshot))),
+            route ?? throw new ArgumentNullException(nameof(route)));
+    }
+
+    private void PublishRouteArrivedObserver(FactionRouteState route)
+    {
+        try
+        {
+            events.Publish(new FactionRouteArrivedEvent(
+                route.routeId,
+                route.factionId,
+                route.kind,
+                route.strength));
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "faction-route-arrived-post-commit-observer:"
+                + exception.GetType().Name);
+        }
+    }
+
+    private MigratedProducerOutcomeCommitResult CommitFactionTrustOutcome(
+        in PreparedMigratedProducerOutcome prepared,
+        string factionId,
+        int previous,
+        int current,
+        string reason,
+        string ownerIdentity)
+    {
+        string canonicalReason = reason?.Trim() ?? string.Empty;
+        return outcomeTransactions.CommitSingleSubject(
+            prepared,
+            CreateFactionOutcomeSubject(factionId),
+            "세력 신뢰 변화: faction=" + factionId
+            + "; previous=" + previous
+            + "; current=" + current
+            + "; reason=" + canonicalReason
+            + "; owner=" + ownerIdentity);
+    }
+
+    private MigratedProducerOutcomeCommitResult CommitFactionBetrayalOutcome(
+        in PreparedMigratedProducerOutcome prepared,
+        IReadOnlyList<FactionTrustTransition> transitions,
+        string betrayedFactionId,
+        string operationId,
+        int actualLootValue)
+    {
+        MigratedProducerOutcomePayloadBuilder builder =
+            outcomeTransactions.CreatePayloadBuilder(prepared);
+        for (int index = 0; index < transitions.Count; index++)
+        {
+            FactionTrustTransition transition = transitions[index];
+            MigratedProducerOutcomeSubject subject =
+                CreateFactionOutcomeSubject(transition.FactionId);
+            if (!builder.AddParticipant(new GameplayOutcomeParticipant(
+                    subject.EntityId,
+                    subject.Role,
+                    GameplayParticipationKind.Direct,
+                    true,
+                    subject.DisplayName))
+                || !builder.AddSubject(new GameplayOutcomeSubjectLink(
+                    subject.EntityId,
+                    prepared.Salience,
+                    prepared.Tier,
+                    prepared.Tier == NarrativeMemoryTier.Core,
+                    false,
+                    0)))
+            {
+                outcomeTransactions.Cancel(prepared);
+                return new MigratedProducerOutcomeCommitResult(
+                    false,
+                    prepared.ResultKey,
+                    default,
+                    string.Empty,
+                    "faction-betrayal-outcome-capacity-invalid");
+            }
+        }
+        string transitionSummary = string.Join(
+            ",",
+            transitions.Select(transition =>
+                transition.FactionId
+                + ":" + transition.Previous
+                + "->" + transition.Current
+                + ":" + (string.Equals(
+                    transition.FactionId,
+                    betrayedFactionId,
+                    StringComparison.Ordinal)
+                    ? "betrayed"
+                    : "witness")));
+        if (!builder.AddFact(new GameplayOutcomeFact(
+                MigratedProducerOutcomeIds.SummaryFact,
+                "세력 배신 신뢰 변화: target=" + betrayedFactionId
+                + "; operation=" + operationId
+                + "; affected=" + transitions.Count
+                + "; loot-value=" + actualLootValue
+                + "; transitions=" + transitionSummary)))
+        {
+            outcomeTransactions.Cancel(prepared);
+            return new MigratedProducerOutcomeCommitResult(
+                false,
+                prepared.ResultKey,
+                default,
+                string.Empty,
+                "faction-betrayal-outcome-fact-capacity-invalid");
+        }
+        return outcomeTransactions.Commit(prepared, builder.Build());
+    }
+
+    private MigratedProducerOutcomeSubject CreateFactionOutcomeSubject(
+        string factionId) => new(
+        MigratedProducerOutcomeIds.FactionKind,
+        factionId,
+        DisplayName(factionId),
+        MigratedProducerOutcomeIds.FactionRole);
+
+    private static string FormatBetrayalOperationId(
+        string factionId,
+        int day) => $"faction-betrayal:{factionId}:{day}";
+
+    private void RestoreCampaignFactions(
+        FactionCampaignWorldSaveData snapshot)
+    {
+        campaignPersistence.PublishFactions(
+            campaignPersistence.PrepareFactions(snapshot));
+    }
+
+    private void RestoreFactionSnapshots(
+        IReadOnlyDictionary<string, DungeonFactionState> snapshots)
+    {
+        foreach (KeyValuePair<string, DungeonFactionState> pair in snapshots)
+        {
+            if (domain.TryGetFaction(pair.Key, out DungeonFactionState faction))
+            {
+                RestoreFactionSnapshot(faction, pair.Value);
+                ProjectCampaignRelationship(faction);
+            }
+        }
+    }
+
+    private static void RestoreFactionSnapshot(
+        DungeonFactionState faction,
+        DungeonFactionState snapshot)
+    {
+        JsonUtility.FromJsonOverwrite(
+            JsonUtility.ToJson(
+                snapshot ?? throw new ArgumentNullException(nameof(snapshot))),
+            faction ?? throw new ArgumentNullException(nameof(faction)));
+    }
+
+    private void PublishTrustChangedObserver(
+        string factionId,
+        int previous,
+        int current,
+        string reason)
+    {
+        try
+        {
+            events.Publish(new FactionTrustChangedEvent(
+                factionId,
+                previous,
+                current,
+                reason));
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "faction-trust-post-commit-observer:"
+                + exception.GetType().Name);
+        }
+    }
+
     private FactionDefinitionSnapshot FindDefinition(string factionId)
     {
-        return catalog.Definitions.FirstOrDefault(value =>
+        return definitions.FirstOrDefault(value =>
             string.Equals(value.StableId, factionId, StringComparison.Ordinal));
     }
 

@@ -29,6 +29,7 @@ public static class DungeonFoundationRegistration
             .AsSelf();
         builder.Register<KoreanJosaFormatter>(Lifetime.Singleton)
             .As<IKoreanJosaFormatter>();
+        builder.RegisterMigratedProducerGameplayOutcomes();
         builder.RegisterInstance(GameplayOutcomeBufferLimits.Default)
             .AsSelf();
         builder.Register<GameplayOutcomeRegistry>(Lifetime.Singleton)
@@ -47,12 +48,17 @@ public static class DungeonFoundationRegistration
             .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<GameplayOutcomeRecorder>(Lifetime.Singleton)
             .As<IGameplayOutcomeRecorder>();
+        builder.Register<MigratedProducerOutcomeRuntime>(Lifetime.Singleton)
+            .As<IMigratedProducerOutcomeTransaction>()
+            .As<IMigratedProducerOutcomeExternalBatchTransaction>()
+            .As<IMigratedProducerOutcomePersistence>();
         builder.RegisterEntryPoint<GameplayOutcomeConsolidationRuntime>(
                 Lifetime.Singleton)
             .As<IInitializable>()
             .As<ITickable>()
             .As<IGameplayOutcomeConsolidationPumpDiagnostics>();
         builder.RegisterTradeInventoryGameplayOutcomes();
+        builder.RegisterBuildingDemolitionGameplayOutcomes();
         builder.Register<BuildingVisitEventPublisher>(Lifetime.Singleton)
             .As<IBuildingVisitEventPort>();
         builder.Register<GuidPersistentIdGenerator>(Lifetime.Singleton)

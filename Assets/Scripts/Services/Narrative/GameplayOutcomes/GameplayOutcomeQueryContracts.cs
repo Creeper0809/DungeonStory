@@ -429,6 +429,8 @@ public interface IGameplayOutcomeMemoryCommands
     void CancelInfluenceUse(in PreparedInfluenceUseToken prepared);
     InfluenceUseRollbackResult RollbackInfluenceUse(
         in InfluenceUseRollbackToken rollback);
+    InfluenceUseRollbackResult RollbackCompletedInfluenceUse(
+        in InfluenceUseRollbackToken rollback);
 }
 
 public enum InfluenceUsePrepareCode

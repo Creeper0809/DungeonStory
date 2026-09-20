@@ -19,6 +19,8 @@ public static class IndustrialInfrastructurePlayModeVerifier
         "Temp/IndustrialInfrastructure/playmode-live-report.txt";
     public const string PowerFuelEvidencePath =
         "Artifacts/QA/industrial-power-fuel-buffer-playmode-report.txt";
+    public const string CommandOutcomeEvidencePath =
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80IndustrialCommands-20260919-r4/producer-runtime-report.txt";
     public const string ScreenshotPath =
         "Temp/IndustrialInfrastructure/playmode-live.png";
     public const string CommittedInvasionWarningEvidencePath =
@@ -56,11 +58,15 @@ public static class IndustrialInfrastructurePlayModeVerifier
     public static void RunWim009TemporarySupplyOnly() =>
         CreateRunner(false, temporarySupplyOnly: true);
 
+    public static void RunInfrastructureCommandOutcomesOnly() =>
+        CreateRunner(false, commandOutcomesOnly: true);
+
     private static void CreateRunner(bool powerFuelOnly, bool conveyorOnly = false, bool conveyorFiltersOnly = false,
         bool powerConnectionsOnly = false, bool lightingOnly = false, bool doorsOnly = false, bool returnRestoreOnly = false,
         bool doorConsumersOnly = false, bool doorConsumersRemainingOnly = false,
         bool committedInvasionWarningOnly = false,
-        bool temporarySupplyOnly = false)
+        bool temporarySupplyOnly = false,
+        bool commandOutcomesOnly = false)
     {
         if (!Application.isPlaying)
         {
@@ -92,6 +98,7 @@ public static class IndustrialInfrastructurePlayModeVerifier
         runner.DoorConsumersRemainingOnly = doorConsumersRemainingOnly;
         runner.CommittedInvasionWarningOnly = committedInvasionWarningOnly;
         runner.TemporarySupplyOnly = temporarySupplyOnly;
+        runner.CommandOutcomesOnly = commandOutcomesOnly;
     }
 }
 
@@ -109,6 +116,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     public bool DoorConsumersRemainingOnly { get; set; }
     public bool CommittedInvasionWarningOnly { get; set; }
     public bool TemporarySupplyOnly { get; set; }
+    public bool CommandOutcomesOnly { get; set; }
     private const string ConveyorDestinationPrefix = "qa:industrial-output:";
     private const string ConveyorBufferOwnerDomain =
         "qa.infrastructure.conveyor";
@@ -126,8 +134,10 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     private Grid grid;
     private IGridBuildingObjectFactory buildingFactory;
     private IPowerInfrastructureQuery power;
+    private IPowerInfrastructureCommand powerCommands;
     private IPowerInfrastructurePersistence powerPersistence;
     private IFluidInfrastructureQuery water;
+    private IFluidInfrastructureCommand fluidCommands;
     private IFluidInfrastructurePersistence fluidPersistence;
     private IFluidWastewaterTransaction wastewater;
     private IWaterFixtureUseRuntime fixtures;
@@ -138,6 +148,8 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     private IAutomationInfrastructureQuery automation;
     private IAutomationInfrastructureCommand automationCommands;
     private IAutomationInfrastructurePersistence automationPersistence;
+    private IInfrastructureCommandOutcomePersistence commandOutcomePersistence;
+    private IGameplayOutcomeQuery gameplayOutcomes;
     private IWorldItemStackRuntime items;
     private IItemTransferService itemTransfers;
     private IDungeonSaveSectionRegistry saveSections;
@@ -227,15 +239,18 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
     private IEnumerator RunVerification()
     {
-            if (CommittedInvasionWarningOnly || TemporarySupplyOnly)
+            if (CommittedInvasionWarningOnly
+                || TemporarySupplyOnly
+                || CommandOutcomesOnly)
             {
-                // A save restore deliberately retires transient visitors. That
-                // state cannot be reconstructed by the durable save contract,
-                // so every WIM047 run is disposable before any setup mutation.
+                // Dedicated batch verification must leave both the live world
+                // and the user's durable profile/save slots unchanged.
                 exitPlayModeOnCompletion = true;
             }
             yield return ResolveRuntime();
-            if (CommittedInvasionWarningOnly || TemporarySupplyOnly)
+            if (CommittedInvasionWarningOnly
+                || TemporarySupplyOnly
+                || CommandOutcomesOnly)
             {
                 IsolateCommittedInvasionPersistence();
             }
@@ -283,7 +298,9 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                 yield break;
             }
 
-            Dictionary<string, BuildingSO> assets = LoadAssets(LightingOnly);
+            Dictionary<string, BuildingSO> assets = LoadAssets(
+                LightingOnly,
+                CommandOutcomesOnly);
             if (TemporarySupplyOnly)
             {
                 Require(assets.ContainsKey("I04"),
@@ -303,6 +320,45 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                     && water.Networks.Count > 0
                     && conveyor.Networks.Count >= 2,
                 "실제 배치 이후 기반 시설 토폴로지가 생성되지 않았습니다.");
+
+            if (CommandOutcomesOnly)
+            {
+                InfrastructureCommandOutcomeProducerPlayModeScenario.Verify(
+                    createdBuildings,
+                    power,
+                    powerCommands,
+                    powerPersistence,
+                    fluidCommands,
+                    fluidPersistence,
+                    conveyorCommands,
+                    conveyorPersistence,
+                    automation,
+                    automationCommands,
+                    automationPersistence,
+                    commandOutcomePersistence,
+                    gameplayOutcomes,
+                    items,
+                    itemTransfers,
+                    itemMass,
+                    (destinationId,
+                        output,
+                        outputFacilityId,
+                        outputDropPosition,
+                        capacity,
+                        capacityRevision) =>
+                    {
+                        conveyorDestination = destinationId;
+                        PublishConveyorOutputAuthority(
+                            output,
+                            outputFacilityId,
+                            outputDropPosition,
+                            capacity,
+                            capacityRevision);
+                    },
+                    report);
+                report.Add("mode=infrastructure-command-outcomes-only");
+                yield break;
+            }
 
             if (TemporarySupplyOnly)
             {
@@ -445,9 +501,11 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         buildingFactory =
             scope.Container.Resolve<IGridBuildingObjectFactory>();
         power = scope.Container.Resolve<IPowerInfrastructureQuery>();
+        powerCommands = scope.Container.Resolve<IPowerInfrastructureCommand>();
         powerPersistence =
             scope.Container.Resolve<IPowerInfrastructurePersistence>();
         water = scope.Container.Resolve<IFluidInfrastructureQuery>();
+        fluidCommands = scope.Container.Resolve<IFluidInfrastructureCommand>();
         fluidPersistence =
             scope.Container.Resolve<IFluidInfrastructurePersistence>();
         wastewater =
@@ -466,6 +524,9 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             scope.Container.Resolve<IAutomationInfrastructureCommand>();
         automationPersistence =
             scope.Container.Resolve<IAutomationInfrastructurePersistence>();
+        commandOutcomePersistence = scope.Container.Resolve<
+            IInfrastructureCommandOutcomePersistence>();
+        gameplayOutcomes = scope.Container.Resolve<IGameplayOutcomeQuery>();
         items = scope.Container.Resolve<IWorldItemStackRuntime>();
         itemTransfers = scope.Container.Resolve<IItemTransferService>();
         saveSections = scope.Container.Resolve<IDungeonSaveSectionRegistry>();
@@ -603,7 +664,9 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         }
     }
 
-    private static Dictionary<string, BuildingSO> LoadAssets(bool includeLighting)
+    private static Dictionary<string, BuildingSO> LoadAssets(
+        bool includeLighting,
+        bool includeCommandOutcomeFixtures)
     {
         string[] requiredCodes =
         {
@@ -644,6 +707,14 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         {
             Require(assets.ContainsKey(code),
                 $"산업 검증 자산 {code}를 찾지 못했습니다.");
+        }
+
+        if (includeCommandOutcomeFixtures)
+        {
+            Require(assets.ContainsKey("I05"),
+                "Authored circuit breaker fixture is missing.");
+            Require(assets.ContainsKey("I10"),
+                "Authored water-transfer fixture is missing.");
         }
 
         if (includeLighting)
@@ -697,8 +768,55 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             }
         }
 
+        if (CommandOutcomesOnly)
+        {
+            return ExpandCommandOutcomeScenarioGrid(
+                assets,
+                automationAsset);
+        }
+
         throw new InvalidOperationException(
             "실제 플레이 Grid에서 12x3 산업 검증 구역을 확보하지 못했습니다.");
+    }
+
+    private Vector2Int ExpandCommandOutcomeScenarioGrid(
+        IReadOnlyDictionary<string, BuildingSO> assets,
+        BuildingSO automationAsset)
+    {
+        GridSystemManager manager = UnityEngine.Object.FindFirstObjectByType<
+            GridSystemManager>();
+        Require(manager != null,
+            "Command-outcome fixture cannot resolve the live grid manager.");
+
+        Grid original = grid;
+        const int fixtureWidth = 12;
+        Grid expanded = original.TryExpandGrid(fixtureWidth, 0);
+        Require(expanded != null,
+            "Command-outcome fixture could not allocate a temporary grid strip.");
+        Vector2Int origin = new Vector2Int(original.width, 0);
+        for (int x = origin.x; x < origin.x + fixtureWidth; x++)
+        {
+            for (int y = 0; y < expanded.height; y++)
+            {
+                expanded.SetAreaType(
+                    new Vector2Int(x, y),
+                    GridCellAreaType.DungeonInterior);
+            }
+        }
+
+        Require(manager.TryPublishGrid(
+                original,
+                expanded,
+                out string failureReason),
+            "Command-outcome fixture could not publish its temporary grid: "
+            + failureReason);
+        manager.CompleteGridPublication();
+        grid = expanded;
+        Require(CanPlaceScenario(origin, assets, automationAsset),
+            "Temporary command-outcome grid strip cannot host the authored fixtures.");
+        report.Add("scenarioSpace=temporary-expanded-grid;previousWidth="
+            + original.width + ";newWidth=" + expanded.width);
+        return origin;
     }
 
     private bool CanPlaceScenario(
@@ -773,6 +891,11 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         {
             Add("I04", 3, 1);
         }
+        if (CommandOutcomesOnly)
+        {
+            Add("I05", 4, 1);
+            Add("I10", 6, 1);
+        }
         Add("I07", 3, 0);
         Add("I08", 5, 0);
         Add("I14", 7, 0);
@@ -797,6 +920,13 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         {
             utilityCells.Add(origin + new Vector2Int(3, 1));
             utilityCells.Add(origin + new Vector2Int(4, 1));
+        }
+        if (CommandOutcomesOnly)
+        {
+            for (int x = 4; x <= 7; x++)
+            {
+                utilityCells.Add(origin + new Vector2Int(x, 1));
+            }
         }
         for (int x = 0; x <= 1; x++)
         {
@@ -1782,6 +1912,29 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         File.WriteAllLines(
             IndustrialInfrastructurePlayModeVerifier.ReportPath,
             report);
+        if (CommandOutcomesOnly)
+        {
+            string commandOutcomeDirectory = Path.GetDirectoryName(
+                IndustrialInfrastructurePlayModeVerifier
+                    .CommandOutcomeEvidencePath);
+            if (!string.IsNullOrWhiteSpace(commandOutcomeDirectory))
+            {
+                Directory.CreateDirectory(commandOutcomeDirectory);
+            }
+            File.WriteAllLines(
+                IndustrialInfrastructurePlayModeVerifier
+                    .CommandOutcomeEvidencePath,
+                report.Where(line => !line.StartsWith(
+                        "fastPartyCommit=",
+                        StringComparison.Ordinal)
+                    && !line.StartsWith(
+                        "unityFrame=",
+                        StringComparison.Ordinal)
+                    && !line.StartsWith(
+                        "gameTime=",
+                        StringComparison.Ordinal)),
+                new UTF8Encoding(false));
+        }
         if (ConveyorOnly)
         {
             Directory.CreateDirectory("Artifacts/QA/wim-implementation");
@@ -2027,8 +2180,12 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                 List<DungeonSaveSectionEnvelope> after =
                     saveSections.CaptureAll();
                 bool byteExact = SaveEnvelopesEqual(originalWorld, after);
-                if (!byteExact && SaveEnvelopesEqual(originalWorld, after, allowMetaClockRounding: true))
-                    cleanupResult = "exact-except-meta-elapsed-float-rounding-under-0.00001s";
+                if (!byteExact && SaveEnvelopesEqual(
+                        originalWorld,
+                        after,
+                        allowExpectedRestoreNormalization: true))
+                    cleanupResult = "canonical-except-gameplay-outcome-world-epoch"
+                        + "-and-meta-elapsed-float-rounding-under-0.00001s";
                 else if (byteExact)
                     cleanupResult = CommittedInvasionWarningOnly
                         ? "post-restore-scenario-baseline-byte-exact;"
@@ -2174,6 +2331,9 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
     private void IsolateCommittedInvasionPersistence()
     {
+        string evidencePrefix = CommandOutcomesOnly
+            ? "phase80-infrastructure-command"
+            : "wim047";
         IMetaProfileStore profileStore = scope.Container.Resolve<
             IMetaProfileStore>();
         IDungeonSaveSlotCatalog slotCatalog = scope.Container.Resolve<
@@ -2206,14 +2366,17 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             "WIM047 production autosave/meta persistence services are unavailable.");
         isolatedAutosave.Dispose();
         isolatedMetaPersistence.Dispose();
-        report.Add("wim047-persistence-isolation=PASS;autosave=True;"
+        report.Add(evidencePrefix
+            + "-persistence-isolation=PASS;autosave=True;"
             + "metaProfile=True;realFiles=" + realPersistenceBefore.Count
             + ";terminalDisposition=PlayModeDiscard");
     }
 
     private void CheckCommittedInvasionPersistenceIntegrity()
     {
-        if ((!CommittedInvasionWarningOnly && !TemporarySupplyOnly)
+        if ((!CommittedInvasionWarningOnly
+                && !TemporarySupplyOnly
+                && !CommandOutcomesOnly)
             || realPersistenceBefore.Count == 0)
         {
             return;
@@ -2230,7 +2393,10 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             Require(changed.Length == 0,
                 "WIM047 changed real profile/save-slot bytes; files will not be rewritten: "
                 + string.Join(",", changed));
-            report.Add("wim047-real-persistence=PASS;unchanged="
+            string evidencePrefix = CommandOutcomesOnly
+                ? "phase80-infrastructure-command"
+                : "wim047";
+            report.Add(evidencePrefix + "-real-persistence=PASS;unchanged="
                 + realPersistenceBefore.Count + "/"
                 + realPersistenceBefore.Count);
         }
@@ -2277,7 +2443,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     private static bool SaveEnvelopesEqual(
         IReadOnlyList<DungeonSaveSectionEnvelope> left,
         IReadOnlyList<DungeonSaveSectionEnvelope> right,
-        bool allowMetaClockRounding = false)
+        bool allowExpectedRestoreNormalization = false)
     {
         if (left == null || right == null || left.Count != right.Count)
             return false;
@@ -2285,16 +2451,24 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         {
             DungeonSaveSectionEnvelope a = left[index];
             DungeonSaveSectionEnvelope b = right[index];
+            bool payloadMatches = string.Equals(
+                a.payloadJson,
+                b.payloadJson,
+                StringComparison.Ordinal);
+            if (!payloadMatches && allowExpectedRestoreNormalization)
+            {
+                payloadMatches = a.sectionId == MetaProgressionSaveSection.Id
+                    ? MetaClockRoundingOnly(a.payloadJson, b.payloadJson)
+                    : a.sectionId == GameplayOutcomeLedgerSaveSection.Id
+                        && GameplayOutcomeEpochOnly(
+                            a.payloadJson,
+                            b.payloadJson);
+            }
             if (!string.Equals(a.sectionId, b.sectionId, StringComparison.Ordinal)
                 || a.sectionVersion != b.sectionVersion
                 || a.restorePhase != b.restorePhase
                 || a.optional != b.optional
-                || (!string.Equals(
-                    a.payloadJson,
-                    b.payloadJson,
-                    StringComparison.Ordinal)
-                    && !(allowMetaClockRounding && a.sectionId == MetaProgressionSaveSection.Id
-                        && MetaClockRoundingOnly(a.payloadJson, b.payloadJson))))
+                || !payloadMatches)
             {
                 return false;
             }
@@ -2313,6 +2487,33 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         // This fixture exception never applies to physical stock, currency,
         // orders, destination state, or production restore validation.
         right.runProgress.elapsedSeconds = left.runProgress.elapsedSeconds;
+        return JsonUtility.ToJson(left) == JsonUtility.ToJson(right);
+    }
+
+    private static bool GameplayOutcomeEpochOnly(string before, string after)
+    {
+        GameplayOutcomeLedgerSaveData left = JsonUtility.FromJson<
+            GameplayOutcomeLedgerSaveData>(before);
+        GameplayOutcomeLedgerSaveData right = JsonUtility.FromJson<
+            GameplayOutcomeLedgerSaveData>(after);
+        if (left == null || right == null)
+            return false;
+        left.worldEpoch = 0L;
+        right.worldEpoch = 0L;
+        foreach (GameplayOutcomeConsolidationJobSnapshot job in
+                 left.consolidationJobs
+                 ?? new List<GameplayOutcomeConsolidationJobSnapshot>())
+        {
+            if (job != null)
+                job.worldEpoch = 0L;
+        }
+        foreach (GameplayOutcomeConsolidationJobSnapshot job in
+                 right.consolidationJobs
+                 ?? new List<GameplayOutcomeConsolidationJobSnapshot>())
+        {
+            if (job != null)
+                job.worldEpoch = 0L;
+        }
         return JsonUtility.ToJson(left) == JsonUtility.ToJson(right);
     }
 

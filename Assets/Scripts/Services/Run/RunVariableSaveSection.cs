@@ -12,7 +12,8 @@ public sealed class RunVariableSaveSection :
     DungeonStrictJsonSaveSection<
         DungeonRunVariableSaveData,
         RunVariableAggregateState>,
-    IDungeonRollbackFreeSaveSection
+    IDungeonRollbackFreeSaveSection,
+    IDungeonSaveSectionVersionCompatibility
 {
     public const string Id = DungeonSaveSectionIds.RunVariables;
 
@@ -43,8 +44,33 @@ public sealed class RunVariableSaveSection :
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.Foundation;
 
+    public bool CanRestoreVersion(int sectionVersion) => sectionVersion == 3;
+
     protected override DungeonRunVariableSaveData CapturePayload() =>
         runtime.CaptureForSave();
+
+    protected override void NormalizeRestorePayload(
+        DungeonRunVariableSaveData payload,
+        DungeonGameRestoreReport report)
+    {
+        if (payload == null || payload.version != 3)
+            return;
+
+        DungeonActiveRunVariableSaveData[] active =
+            (payload.activeOperationVariables
+                ?? new List<DungeonActiveRunVariableSaveData>())
+            .Where(value => value != null)
+            .OrderBy(value => value.definitionId, StringComparer.Ordinal)
+            .ThenBy(value => value.startDay)
+            .ToArray();
+        for (int index = 0; index < active.Length; index++)
+            active[index].instanceSequence = index + 1L;
+        payload.nextOperationSequence = active.Length + 1L;
+        payload.lastOperationAdvanceDay = 0;
+        payload.version = DungeonRunVariableSaveData.CurrentVersion;
+        report?.AddWarning(
+            "RunVariableV3Migrated: active operation variables received deterministic future outcome identities; no historical outcomes were invented.");
+    }
 
     protected override RunVariableAggregateState BuildRestoreCandidate(
         DungeonRunVariableSaveData payload)
@@ -80,7 +106,8 @@ public sealed class RunVariableSaveSection :
             .Select(saved => new ActiveRunVariable(
                 variableCatalog.Require(saved.definitionId),
                 saved.startDay,
-                saved.remainingDays))
+                saved.remainingDays,
+                saved.instanceSequence))
             .ToList();
         RunVariableDefinition invasion =
             payload.invasionVariableId.Length == 0
@@ -88,7 +115,11 @@ public sealed class RunVariableSaveSection :
                 : variableCatalog.Require(payload.invasionVariableId);
         RunVariableAggregateState candidate = new(
             payload.runSeed,
-            payload.currentDay);
+            payload.currentDay)
+        {
+            NextOperationSequence = payload.nextOperationSequence,
+            LastOperationAdvanceDay = payload.lastOperationAdvanceDay
+        };
         candidate.Variables.Restore(start, operations, invasion);
         return candidate;
     }
@@ -112,7 +143,11 @@ public sealed class RunVariableSaveSection :
             report.AddError(
                 $"Run-variable payload version {payload.version} is unsupported.");
         }
-        if (payload.runSeed == 0 || payload.currentDay < 1)
+        if (payload.runSeed == 0
+            || payload.currentDay < 1
+            || payload.nextOperationSequence < 1L
+            || payload.lastOperationAdvanceDay < 0
+            || payload.lastOperationAdvanceDay > payload.currentDay)
         {
             report.AddError("Run-variable seed or current day is invalid.");
         }
@@ -130,6 +165,7 @@ public sealed class RunVariableSaveSection :
         }
 
         HashSet<string> activeIds = new HashSet<string>(StringComparer.Ordinal);
+        HashSet<long> activeSequences = new HashSet<long>();
         foreach (DungeonActiveRunVariableSaveData saved in
                  payload.activeOperationVariables)
         {
@@ -140,6 +176,9 @@ public sealed class RunVariableSaveSection :
                 || definition == null
                 || definition.category != RunVariableCategory.Operation
                 || !activeIds.Add(definitionId)
+                || saved.instanceSequence <= 0L
+                || saved.instanceSequence >= payload.nextOperationSequence
+                || !activeSequences.Add(saved.instanceSequence)
                 || saved.startDay < 1
                 || saved.startDay > payload.currentDay
                 || saved.remainingDays < 1

@@ -535,6 +535,9 @@ public sealed class DefenseEngagementRuntime :
             return false;
         }
 
+        if (!intruder.CanResolveDefeat(out failureReason))
+            return false;
+
         combatRuntime.ResolveIntruderDefeated(engagement);
         bool completed = !engagement.IsActive
             && !TryGetEngagement(intruder, out _)

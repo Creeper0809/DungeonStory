@@ -461,6 +461,7 @@ public sealed class FacilityGameplayUsageSource : GameplayNarrativeSourceDefinit
     }
 }
 
+#if UNITY_EDITOR
 public sealed class EquipmentGameplayFormulaReplayResult
 {
     public EquipmentGameplayFormulaReplayResult(
@@ -713,3 +714,4 @@ public static class EquipmentGameplayFormulaReplay
         }
     }
 }
+#endif

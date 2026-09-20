@@ -1078,6 +1078,9 @@ public sealed class NarrativeMechanicScenarioAcquiredTraitSource
                 selected.combinationId,
                 packet.evidenceFactIds[0]);
         }
+        EvolutionGameplayOutcomeEditorFixture outcomes = new(
+            "run:trait-scenario-editor:" + targetId + ":"
+                + submission.Audit.ResultingRevision);
         return inference.CompleteMilestone(
             progression,
             new CharacterAcquiredTraitCompletionCommand(
@@ -1089,7 +1092,8 @@ public sealed class NarrativeMechanicScenarioAcquiredTraitSource
                 submission.Audit.ResultingRevision,
                 responseJson,
                 NarrativeInferenceTimestamp.FromGameTick(gameTick)),
-            packet);
+            packet,
+            outcomes.Bridge);
     }
 
     private static NarrativeMechanicCatalogCanonicalJsonObject

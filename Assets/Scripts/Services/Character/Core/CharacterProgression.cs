@@ -8,6 +8,10 @@ using VContainer;
 [DisallowMultipleComponent]
 public sealed class CharacterProgression : MonoBehaviour
 {
+    private const string PreparedOriginFactPrefix = "identity:prepared-origin:";
+    private const string PreparedHistoryFactPrefix = "identity:prepared-history:";
+    private const string PreparedIdentityEventGroup = "identity:prepared";
+
     public const int MaxLevel = CharacterProgressionRules.MaxLevel;
     public const int NormalActiveSlots = 3;
     public const int PassiveSlots = 2;
@@ -339,6 +343,45 @@ public sealed class CharacterProgression : MonoBehaviour
         IEnumerable<CharacterAcquiredTraitModuleSO> moduleDefinitions,
         out IReadOnlyList<CharacterAcquiredTraitValidationIssue> validationIssues)
     {
+        return TryCommitAcquiredTraitStateCore(
+            candidate,
+            expectedRevision,
+            settings,
+            moduleDefinitions,
+            null,
+            out validationIssues);
+    }
+
+    [GameplayInternalOnly(
+        "Acquired-trait inference stages its validated state until the mandatory outcome commit succeeds.",
+        "CharacterAcquiredTraitInferenceService")]
+    public bool TryCommitAcquiredTraitStateAndOutcome(
+        CharacterAcquiredTraitAggregateState candidate,
+        int expectedRevision,
+        CharacterAcquiredTraitSettingsSO settings,
+        IEnumerable<CharacterAcquiredTraitModuleSO> moduleDefinitions,
+        Action commitOutcome,
+        out IReadOnlyList<CharacterAcquiredTraitValidationIssue> validationIssues)
+    {
+        if (commitOutcome == null)
+            throw new ArgumentNullException(nameof(commitOutcome));
+        return TryCommitAcquiredTraitStateCore(
+            candidate,
+            expectedRevision,
+            settings,
+            moduleDefinitions,
+            commitOutcome,
+            out validationIssues);
+    }
+
+    private bool TryCommitAcquiredTraitStateCore(
+        CharacterAcquiredTraitAggregateState candidate,
+        int expectedRevision,
+        CharacterAcquiredTraitSettingsSO settings,
+        IEnumerable<CharacterAcquiredTraitModuleSO> moduleDefinitions,
+        Action commitOutcome,
+        out IReadOnlyList<CharacterAcquiredTraitValidationIssue> validationIssues)
+    {
         CharacterAcquiredTraitAggregateState current =
             CaptureAcquiredTraitState();
         List<CharacterAcquiredTraitValidationIssue> issues = ValidateAcquiredTraitCandidate(
@@ -349,7 +392,17 @@ public sealed class CharacterProgression : MonoBehaviour
             return false;
         }
 
+        CharacterAcquiredTraitAggregateState previous = current.Clone();
         acquiredTraitState = candidate.Clone();
+        try
+        {
+            commitOutcome?.Invoke();
+        }
+        catch
+        {
+            acquiredTraitState = previous;
+            throw;
+        }
         validationIssues = Array.Empty<CharacterAcquiredTraitValidationIssue>();
         Changed?.Invoke();
         return true;
@@ -365,6 +418,53 @@ public sealed class CharacterProgression : MonoBehaviour
         IEnumerable<CharacterAcquiredTraitModuleSO> moduleDefinitions,
         IEnumerable<string> evidenceFactIds,
         IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> evidenceBindings,
+        out IReadOnlyList<CharacterAcquiredTraitValidationIssue> validationIssues)
+    {
+        return TryCommitAcquiredTraitStateWithFormulaEvidenceCore(
+            candidate,
+            expectedRevision,
+            settings,
+            moduleDefinitions,
+            evidenceFactIds,
+            evidenceBindings,
+            null,
+            out validationIssues);
+    }
+
+    [GameplayInternalOnly(
+        "Formula acquired-trait inference keeps its state and exact evidence use reversible until the mandatory outcome commit succeeds.",
+        "CharacterAcquiredTraitInferenceService")]
+    public bool TryCommitAcquiredTraitStateWithFormulaEvidenceAndOutcome(
+        CharacterAcquiredTraitAggregateState candidate,
+        int expectedRevision,
+        CharacterAcquiredTraitSettingsSO settings,
+        IEnumerable<CharacterAcquiredTraitModuleSO> moduleDefinitions,
+        IEnumerable<string> evidenceFactIds,
+        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> evidenceBindings,
+        Action commitOutcome,
+        out IReadOnlyList<CharacterAcquiredTraitValidationIssue> validationIssues)
+    {
+        if (commitOutcome == null)
+            throw new ArgumentNullException(nameof(commitOutcome));
+        return TryCommitAcquiredTraitStateWithFormulaEvidenceCore(
+            candidate,
+            expectedRevision,
+            settings,
+            moduleDefinitions,
+            evidenceFactIds,
+            evidenceBindings,
+            commitOutcome,
+            out validationIssues);
+    }
+
+    private bool TryCommitAcquiredTraitStateWithFormulaEvidenceCore(
+        CharacterAcquiredTraitAggregateState candidate,
+        int expectedRevision,
+        CharacterAcquiredTraitSettingsSO settings,
+        IEnumerable<CharacterAcquiredTraitModuleSO> moduleDefinitions,
+        IEnumerable<string> evidenceFactIds,
+        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> evidenceBindings,
+        Action commitOutcome,
         out IReadOnlyList<CharacterAcquiredTraitValidationIssue> validationIssues)
     {
         CharacterAcquiredTraitAggregateState current = acquiredTraitState?.Clone()
@@ -496,16 +596,36 @@ public sealed class CharacterProgression : MonoBehaviour
             acquiredTraitState = frozenCandidate;
             foreach (CharacterNarrativeFact fact in selectedFacts)
                 fact.influenceUseCount++;
-            prepared?.CompleteOwnerCommit();
+            if (commitOutcome == null)
+            {
+                prepared?.CompleteOwnerCommit();
+            }
+            else
+            {
+                if (prepared != null
+                    && !prepared.TrySealOwnerCommitForJointOutcome(
+                        out string ownerCommitFailure))
+                {
+                    throw new InvalidOperationException(
+                        "Acquired-trait evidence owner commit could not be sealed: "
+                        + ownerCommitFailure);
+                }
+                commitOutcome();
+                prepared?.CompleteJointOutcomeCommit();
+            }
         }
-        catch
+        catch (Exception commitException)
         {
+            if (prepared != null && !prepared.TryRollbackAnchors(out string rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Acquired-trait joint outcome failure could not roll back its exact evidence use: "
+                    + rollbackFailure,
+                    commitException);
+            }
             acquiredTraitState = previous;
             foreach (CharacterNarrativeFact fact in selectedFacts)
                 fact.influenceUseCount--;
-            if (prepared != null && !prepared.TryRollbackAnchors(out string rollbackFailure))
-                Debug.LogError("Acquired-trait evidence anchor rollback failed: "
-                    + rollbackFailure);
             throw;
         }
         NotifyChangedWithoutAffectingCommittedState();
@@ -831,8 +951,23 @@ public sealed class CharacterProgression : MonoBehaviour
         RebuildLegacySkillViews();
         EnsureInitialized();
         WarmEffectiveRuntimeProfile();
-        EnsureUnlockedDrafts();
+        if (actor == null || !actor.IsDetachedRestoreCandidate)
+        {
+            EnsureUnlockedDrafts();
+        }
         Changed?.Invoke();
+    }
+
+    internal void ResumePendingGenerationAfterWorldRestore()
+    {
+        if (actor != null
+            && (actor.IsDetachedRestoreCandidate || actor.IsUnpublishedComposition))
+        {
+            throw new InvalidOperationException(
+                "Character skill generation cannot resume before world publication completes.");
+        }
+
+        EnsureUnlockedDrafts();
     }
 
     public void RestorePersistentState(
@@ -862,7 +997,8 @@ public sealed class CharacterProgression : MonoBehaviour
         CharacterStartingProfileState startingProfile = null,
         IEnumerable<CharacterStartingProficiencyExperience>
             preparedStartingProficiencies = null,
-        int maximumTraitCount = 4)
+        int maximumTraitCount = 4,
+        bool ensureInitialDrafts = true)
     {
         if (maximumTraitCount is < 0 or > 5)
         {
@@ -903,9 +1039,147 @@ public sealed class CharacterProgression : MonoBehaviour
         acquiredTraitState = new CharacterAcquiredTraitAggregateState();
         InvalidateEffectiveRuntimeProfile();
         WarmEffectiveRuntimeProfile();
-        EnsureUnlockedDrafts();
-        actor?.Stats?.RecalculateVitals(resetCurrentHealth: true);
+        ReplacePreparedIdentityNarrativeEvidence(GrowthState.startingProfile);
+        if (ensureInitialDrafts)
+        {
+            EnsureUnlockedDrafts();
+        }
+        // Prepared previews own real identity/profile/progression state so public
+        // narrative generation can remain authoritative, but they are not live
+        // characters and do not have the injected vitals projection/runtime.
+        if (actor != null && !actor.IsUnpublishedComposition)
+        {
+            actor.Stats?.RecalculateVitals(resetCurrentHealth: true);
+        }
         Changed?.Invoke();
+    }
+
+    private void ReplacePreparedIdentityNarrativeEvidence(
+        CharacterStartingProfileState profile)
+    {
+        if (profile?.prepared != true)
+        {
+            NarrativeLedger.facts ??= new List<CharacterNarrativeFact>();
+            NarrativeLedger.facts.RemoveAll(IsPreparedIdentityNarrativeFact);
+            return;
+        }
+
+        string originId = RequirePreparedProfileValue(
+            profile.originId,
+            nameof(profile.originId));
+        string originDisplayName = RequirePreparedProfileValue(
+            profile.originDisplayName,
+            nameof(profile.originDisplayName));
+        string historyId = RequirePreparedProfileValue(
+            profile.historyId,
+            nameof(profile.historyId));
+        string historyDisplayName = RequirePreparedProfileValue(
+            profile.historyDisplayName,
+            nameof(profile.historyDisplayName));
+        string primaryProficiencyId = RequirePreparedProfileValue(
+            profile.primaryProficiencyId,
+            nameof(profile.primaryProficiencyId));
+        CharacterNarrativeDomain historyDomain =
+            ResolvePreparedHistoryDomain(primaryProficiencyId);
+
+        NarrativeLedger.facts ??= new List<CharacterNarrativeFact>();
+        NarrativeLedger.facts.RemoveAll(IsPreparedIdentityNarrativeFact);
+
+        RecordPreparedIdentityNarrative(
+            CharacterNarrativeDomain.Survival,
+            PreparedOriginFactPrefix + originId,
+            originId,
+            originDisplayName,
+            "identity:origin:" + originId);
+        RecordPreparedIdentityNarrative(
+            historyDomain,
+            PreparedHistoryFactPrefix + historyId,
+            historyId,
+            historyDisplayName,
+            "identity:history:" + historyId);
+    }
+
+    private void RecordPreparedIdentityNarrative(
+        CharacterNarrativeDomain domain,
+        string factId,
+        string subjectId,
+        string displayName,
+        string actionKey)
+    {
+        NarrativeLedger.Record(
+            domain,
+            factId,
+            subjectId,
+            displayName,
+            value: 0f,
+            day: 0,
+            metadata: new CharacterNarrativeEvidenceMetadata(
+                PreparedIdentityEventGroup,
+                actionKey,
+                string.Empty,
+                CharacterNarrativeEvidenceMetadata.OrdinaryImportance));
+    }
+
+    private static bool IsPreparedIdentityNarrativeFact(
+        CharacterNarrativeFact fact) =>
+        fact != null
+        && (fact.factId?.StartsWith(
+                PreparedOriginFactPrefix,
+                StringComparison.Ordinal) == true
+            || fact.factId?.StartsWith(
+                PreparedHistoryFactPrefix,
+                StringComparison.Ordinal) == true);
+
+    private static string RequirePreparedProfileValue(
+        string value,
+        string fieldName)
+    {
+        string canonical = value?.Trim() ?? string.Empty;
+        if (canonical.Length == 0)
+        {
+            throw new InvalidOperationException(
+                $"Prepared character identity requires {fieldName} before skill generation.");
+        }
+
+        return canonical;
+    }
+
+    private static CharacterNarrativeDomain ResolvePreparedHistoryDomain(
+        string primaryProficiencyId)
+    {
+        CharacterProficiencyId proficiencyId = new(primaryProficiencyId);
+        if (proficiencyId == BuiltInCharacterProficiencyIds.MeleeCombat
+            || proficiencyId == BuiltInCharacterProficiencyIds.RangedCombat)
+        {
+            return CharacterNarrativeDomain.Combat;
+        }
+
+        if (proficiencyId == BuiltInCharacterProficiencyIds.Medicine)
+        {
+            return CharacterNarrativeDomain.Injury;
+        }
+
+        if (proficiencyId == BuiltInCharacterProficiencyIds.Social)
+        {
+            return CharacterNarrativeDomain.Relationship;
+        }
+
+        if (proficiencyId == BuiltInCharacterProficiencyIds.Fieldwork)
+        {
+            return CharacterNarrativeDomain.Expedition;
+        }
+
+        if (proficiencyId == BuiltInCharacterProficiencyIds.ConstructionEngineering
+            || proficiencyId == BuiltInCharacterProficiencyIds.Crafting
+            || proficiencyId == BuiltInCharacterProficiencyIds.FoodProduction
+            || proficiencyId == BuiltInCharacterProficiencyIds.Scholarship)
+        {
+            return CharacterNarrativeDomain.Work;
+        }
+
+        throw new InvalidOperationException(
+            "Prepared character identity has no narrative-domain mapping for primary proficiency '"
+            + primaryProficiencyId + "'.");
     }
 
     private void CompleteConfigurationIfReady()
@@ -917,6 +1191,15 @@ public sealed class CharacterProgression : MonoBehaviour
 
         EnsureInitialized();
         WarmEffectiveRuntimeProfile();
+        // Composition binds authored data before the prepared/save snapshot
+        // installs its narrative evidence. Do not create drafts from that
+        // transient empty ledger; explicit restore/identity/narrative paths
+        // resume generation after their authoritative state is installed.
+        if (actor != null
+            && (actor.IsUnpublishedComposition || actor.IsDetachedRestoreCandidate))
+        {
+            return;
+        }
         EnsureUnlockedDrafts();
     }
 

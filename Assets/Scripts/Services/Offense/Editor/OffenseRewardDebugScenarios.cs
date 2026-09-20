@@ -111,13 +111,17 @@ public static class OffenseRewardDebugScenarios
         OffenseRegionRuntime sourceRegions = new OffenseRegionRuntime();
         MemorySealPublicationFixture publications =
             new MemorySealPublicationFixture();
+        EvolutionGameplayOutcomeEditorFixture outcomes = new(
+            "run:memory-erasure-boss-award-editor");
         MemoryErasureSealBossAwardService sourceService =
             new MemoryErasureSealBossAwardService(
                 sourceRegions,
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IOffenseWorldSimulation>(),
                 publications,
-                MemorySealDropZoneFixture.Instance);
+                MemorySealDropZoneFixture.Instance,
+                outcomes.Bridge,
+                outcomes.Clock);
 
         MemoryErasureSealBossAwardResult first = AwardRegionBoss(
             sourceService,
@@ -148,7 +152,9 @@ public static class OffenseRewardDebugScenarios
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IOffenseWorldSimulation>(),
                 publications,
-                MemorySealDropZoneFixture.Instance);
+                MemorySealDropZoneFixture.Instance,
+                outcomes.Bridge,
+                outcomes.Clock);
         restoredService.OnRestoreCompleted();
         restoredService.Tick();
 
@@ -744,10 +750,27 @@ public static class OffenseRewardDebugScenarios
 
     private static IOffenseRewardGrantService CreateGrantService()
     {
+        IWorldItemStackRuntime itemRuntime =
+            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                .Create<IWorldItemStackRuntime>();
+        IExpeditionRewardItemSink rewardItems =
+            new RecordingExpeditionRewardItemSink();
+        var outcomeFixture = new MigratedProducerOutcomeEditorFixture(
+            "run:offense-reward-grants");
+        IReadOnlyList<IOffenseRewardGrantHandler> defaults =
+            OffenseRewardGrantHandlers.CreateDefaults(rewardItems);
         return new OffenseRewardGrantService(
             new OffenseRewardSelector(new EditorOffenseRewardCatalog()),
-            OffenseRewardGrantHandlers.CreateDefaults(
-                new RecordingExpeditionRewardItemSink()));
+            defaults
+                .Where(handler => handler.RewardTypeId != OffenseRewardTypeIds.Stock)
+                .Concat(new IOffenseRewardGrantHandler[]
+                {
+                    new OffenseStockRewardGrantHandler(
+                        rewardItems: rewardItems,
+                        gameEventBus: null,
+                        itemStackRuntime: itemRuntime,
+                        outcomeTransactions: outcomeFixture.Transaction)
+                }));
     }
 
     private sealed class RecordingExpeditionRewardItemSink :
@@ -1055,6 +1078,9 @@ public static class OffenseRewardDebugScenarios
             DungeonSceneRuntimeReferences dungeonRuntimes =
                 EditorRuntimeReferenceFixtures.DungeonWithRunVariables;
             DungeonRuntimeAggregateRootStore runRoot = new();
+            var runOutcomeFixture = new MigratedProducerOutcomeEditorFixture(
+                "run:offense-reward-variables",
+                runRoot);
             dungeonRuntimes.RunVariables.Construct(
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IOwnerRunDataProvider>(),
@@ -1067,7 +1093,8 @@ public static class OffenseRewardDebugScenarios
                     .Create<IRunVariableDefinitionCatalog>(),
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IOwnerDoctrineDefinitionCatalog>(),
-                runRoot);
+                runRoot,
+                runOutcomeFixture.Transaction);
             characterSaveService = new TestCharacterSaveService();
             battleEquipment = OffenseEditorTestDependencies.CreateCombatEquipmentRuntime();
             ICharacterPerformanceQuery rewardPerformance =
@@ -1091,6 +1118,11 @@ public static class OffenseRewardDebugScenarios
                             new UnityGameContentRootLoader()))),
                 returnArrivals: Context.ReturnArrivals,
                 performance: rewardPerformance);
+            Battle.ConstructProficiencyProgression(
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<ICharacterProficiencyCommand>(),
+                CharacterAiEditorTestDependencies.GameCalendar,
+                runOutcomeFixture.Transaction);
             Battle.BattleCompleted += OnBattleCompleted;
             if (includeExpeditionFixture)
             {
@@ -1098,7 +1130,8 @@ public static class OffenseRewardDebugScenarios
                     WorldMap.Runtime,
                     Reward.Runtime,
                     GameEvents,
-                    Battle);
+                    Battle,
+                    runOutcomeFixture.Transaction);
             }
         }
 
@@ -1255,16 +1288,9 @@ public static class OffenseRewardDebugScenarios
         public ExpeditionFixture(
             OffenseWorldMapRuntime worldMap,
             OffenseRewardRuntime rewards,
-            DungeonStory.Foundation.IGameEventBus gameEventBus)
-            : this(worldMap, rewards, gameEventBus, null)
-        {
-        }
-
-        public ExpeditionFixture(
-            OffenseWorldMapRuntime worldMap,
-            OffenseRewardRuntime rewards,
             DungeonStory.Foundation.IGameEventBus gameEventBus,
-            IOffenseBattleRuntime battleRuntime)
+            IOffenseBattleRuntime battleRuntime,
+            IMigratedProducerOutcomeTransaction outcomeTransactions)
         {
             obj = new GameObject("Offense Reward Expedition Fixture");
             Runtime = obj.AddComponent<OffenseExpeditionRuntime>();
@@ -1298,6 +1324,11 @@ public static class OffenseRewardDebugScenarios
                         metaProgression),
                     gameEventBus,
                     worldMap);
+            finalizer.ConstructOutcomeTransaction(
+                CharacterAiEditorTestDependencies.GameCalendar,
+                outcomeTransactions
+                    ?? throw new ArgumentNullException(
+                        nameof(outcomeTransactions)));
             IOffenseWorldSimulation strategicWorld =
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IOffenseWorldSimulation>();
@@ -1365,7 +1396,8 @@ public static class OffenseRewardDebugScenarios
                 fieldMobility,
                 calendar: CharacterAiEditorTestDependencies.GameCalendar,
                 performance: CharacterAiEditorTestDependencies.NeutralPerformance,
-                settlementStandings: CharacterAiEditorTestDependencies.SettlementStandings);
+                settlementStandings: CharacterAiEditorTestDependencies.SettlementStandings,
+                outcomeTransactions: outcomeTransactions);
         }
 
         public void Dispose()

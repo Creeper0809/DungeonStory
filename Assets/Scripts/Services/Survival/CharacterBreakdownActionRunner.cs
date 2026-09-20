@@ -41,7 +41,9 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
         CharacterDeprivationDiagnostics diagnostics,
         CharacterDeprivationConsequences consequences,
         IFieldMealConsumptionCommand fieldMeals,
-        IGameEventBus events)
+        IGameEventBus events,
+        IGameCalendar calendar,
+        IMigratedProducerOutcomeTransaction outcomeTransactions)
     {
         StateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
@@ -56,6 +58,9 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
         FieldMeals = fieldMeals
             ?? throw new ArgumentNullException(nameof(fieldMeals));
         Events = events ?? throw new ArgumentNullException(nameof(events));
+        Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        OutcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
     }
 
     internal CharacterDeprivationStateStore StateStore { get; }
@@ -65,6 +70,8 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
     internal CharacterDeprivationConsequences Consequences { get; }
     internal IFieldMealConsumptionCommand FieldMeals { get; }
     internal IGameEventBus Events { get; }
+    internal IGameCalendar Calendar { get; }
+    internal IMigratedProducerOutcomeTransaction OutcomeTransactions { get; }
 }
 
 internal sealed class CharacterBreakdownActionRunner
@@ -95,6 +102,8 @@ internal sealed class CharacterBreakdownActionRunner
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly ICharacterPerformanceQuery performance;
     private readonly IGameEventBus events;
+    private readonly IGameCalendar calendar;
+    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
     private readonly HashSet<CharacterId> runningActorIds =
         new HashSet<CharacterId>();
     private readonly Dictionary<CharacterBreakdownKind, Func<CharacterActor, CharacterActionIntentLease, IEnumerator>>
@@ -121,6 +130,8 @@ internal sealed class CharacterBreakdownActionRunner
         consequences = execution.Consequences;
         fieldMeals = execution.FieldMeals;
         events = execution.Events;
+        calendar = execution.Calendar;
+        outcomeTransactions = execution.OutcomeTransactions;
         CreateActionRoutines();
     }
 
@@ -419,37 +430,135 @@ internal sealed class CharacterBreakdownActionRunner
             int standDistance = source.TerrainType == GridCellTerrainType.DeepWater ? 1 : 0;
             yield return emergencyMovement.MoveNear(actor, source.Position, standDistance);
             if (CanCommit(actor, intentLease)
-                && Manhattan(actor.GetNowXY(), source.Position) <= standDistance
-                && world.TryDrink(
-                    source.SourceId,
-                    ApplyPersonalWaterConsumption(1f),
-                    out WorldWaterQuality quality,
-                    out float consumed)
-                && consumed > 0f)
+                && Manhattan(actor.GetNowXY(), source.Position) <= standDistance)
             {
-                RecoverNeed(
-                    actor,
-                    CharacterCondition.THIRST,
-                    GetWaterRecovery(quality),
-                    CharacterNeedRecoverySource.Emergency);
-                consequences.EndActiveBreakdownIfRelieved(actor);
+                if (!outcomeTransactions.TryReserveSingleSubject(
+                        MigratedProducerOutcomeKind.CharacterWaterConsumedEvent,
+                        "water-consumed:" + actorId.Value,
+                        Math.Max(1, calendar.Day),
+                        GameplayOutcomeStatus.Succeeded,
+                        out PreparedMigratedProducerOutcome prepared,
+                        out string reservationFailure))
+                {
+                    throw new InvalidOperationException(
+                        "Breakdown water outcome reservation failed: "
+                        + reservationFailure);
+                }
+
+                CharacterBreakdownWorld.WaterTransactionSnapshot waterBefore;
+                CharacterMoodDeliveryTransactionSnapshot statsBefore;
+                CharacterDeprivationAggregateState deprivationBefore;
+                ICharacterBodyHealthPersistence bodyPersistence;
+                DungeonCharacterBodyHealthSaveData bodyBefore;
+                try
+                {
+                    waterBefore = world.CaptureWater();
+                    statsBefore = actor.Stats?
+                        .CaptureMoodDeliveryTransactionState();
+                    deprivationBefore = stateStore.CaptureTransactionState();
+                    bodyPersistence = bodyHealthCommands
+                        as ICharacterBodyHealthPersistence;
+                    if (source.Quality != WorldWaterQuality.Clean
+                        && bodyPersistence == null)
+                    {
+                        throw new InvalidOperationException(
+                            "Breakdown foul-water rollback requires body-health persistence.");
+                    }
+                    bodyBefore = bodyPersistence?.Capture();
+                }
+                catch
+                {
+                    outcomeTransactions.Cancel(prepared);
+                    throw;
+                }
+
+                bool drank;
+                WorldWaterQuality quality;
+                float consumed;
+                try
+                {
+                    drank = world.TryDrink(
+                        source.SourceId,
+                        ApplyPersonalWaterConsumption(1f),
+                        out quality,
+                        out consumed)
+                        && consumed > 0f;
+                    if (drank)
+                    {
+                        RecoverNeed(
+                            actor,
+                            CharacterCondition.THIRST,
+                            GetWaterRecovery(quality),
+                            CharacterNeedRecoverySource.Emergency);
+                        consequences.EndActiveBreakdownIfRelieved(actor);
+                        if (quality != WorldWaterQuality.Clean)
+                        {
+                            bodyHealthCommands.ApplyLegacyDamage(
+                                actor,
+                                quality == WorldWaterQuality.Foul ? 5f : 2f,
+                                "오염된 물",
+                                allowDeath: true);
+                            actor.ChangesStat(CharacterCondition.HYGIENE, -12f);
+                            consequences.AddInfection(
+                                actor,
+                                quality == WorldWaterQuality.Foul ? 22f : 10f);
+                            actor.ApplyMoodFactor(
+                                "survival:foul-water",
+                                "썩은 물을 삼킴",
+                                -7f,
+                                240f,
+                                1);
+                        }
+
+                        MigratedProducerOutcomeCommitResult committed =
+                            outcomeTransactions.CommitSingleSubject(
+                                prepared,
+                                new MigratedProducerOutcomeSubject(
+                                    MigratedProducerOutcomeIds.CharacterKind,
+                                    actorId.Value,
+                                    actor.BuildingDisplayName,
+                                    MigratedProducerOutcomeIds.ActorRole),
+                                $"source={source.SourceId}; quality={quality}; consumed={consumed:0.###}; pathogen={source.PathogenDiseaseId}");
+                        if (!committed.DurablyCommitted)
+                        {
+                            throw new InvalidOperationException(
+                                "Breakdown water outcome commit failed: "
+                                + committed.DetailCode);
+                        }
+                    }
+                }
+                catch
+                {
+                    outcomeTransactions.Cancel(prepared);
+                    RestoreWorldDrinkTransaction(
+                        actor,
+                        waterBefore,
+                        statsBefore,
+                        deprivationBefore,
+                        bodyPersistence,
+                        bodyBefore);
+                    throw;
+                }
+
+                if (!drank)
+                {
+                    outcomeTransactions.Cancel(prepared);
+                    RestoreWorldDrinkTransaction(
+                        actor,
+                        waterBefore,
+                        statsBefore,
+                        deprivationBefore,
+                        bodyPersistence,
+                        bodyBefore);
+                    yield break;
+                }
+
                 events.Publish(new CharacterWaterConsumedEvent(
                     actorId,
                     source.SourceId,
                     quality,
                     consumed,
                     source.PathogenDiseaseId));
-                if (quality != WorldWaterQuality.Clean)
-                {
-                    bodyHealthCommands.ApplyLegacyDamage(
-                        actor,
-                        quality == WorldWaterQuality.Foul ? 5f : 2f,
-                        "오염된 물",
-                        allowDeath: true);
-                    actor.ChangesStat(CharacterCondition.HYGIENE, -12f);
-                    consequences.AddInfection(actor, quality == WorldWaterQuality.Foul ? 22f : 10f);
-                    actor.ApplyMoodFactor("survival:foul-water", "썩은 물을 삼킴", -7f, 240f, 1);
-                }
                 yield break;
             }
         }
@@ -1092,6 +1201,25 @@ internal sealed class CharacterBreakdownActionRunner
             WorldWaterQuality.Unsafe => 55f,
             _ => 45f
         };
+    }
+
+    private void RestoreWorldDrinkTransaction(
+        CharacterActor actor,
+        CharacterBreakdownWorld.WaterTransactionSnapshot waterBefore,
+        CharacterMoodDeliveryTransactionSnapshot statsBefore,
+        CharacterDeprivationAggregateState deprivationBefore,
+        ICharacterBodyHealthPersistence bodyPersistence,
+        DungeonCharacterBodyHealthSaveData bodyBefore)
+    {
+        world.RestoreWater(waterBefore);
+        stateStore.RestoreTransactionState(deprivationBefore);
+        if (bodyPersistence != null && bodyBefore != null)
+        {
+            bodyPersistence.PublishRestore(
+                bodyPersistence.PrepareRestore(bodyBefore));
+        }
+        if (statsBefore != null)
+            actor.Stats?.RestoreMoodDeliveryTransactionState(statsBefore);
     }
 
     private static void RecoverNeed(

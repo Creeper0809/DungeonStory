@@ -80,7 +80,8 @@ public interface IGameplayOutcomePresentationQuery
         OutcomeFilter filter,
         string locale = "ko-KR");
 
-    GameplayOutcomePresentationPage GetOperationPage(
+    GameplayOutcomePresentationPage GetExpeditionPage(
+        GameplayEntityId expeditionId,
         GameplayOperationId operationId,
         OutcomeCursor cursor,
         OutcomeFilter filter,

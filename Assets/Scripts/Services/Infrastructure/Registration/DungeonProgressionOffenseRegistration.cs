@@ -49,6 +49,11 @@ public static class DungeonProgressionOffenseRegistration
         builder.Register<ResearchFacilityCapacityQuery>(Lifetime.Singleton)
             .As<IResearchFacilityCapacityQuery>();
         builder.Register<BlueprintResearchApplicationAdapter>(Lifetime.Singleton);
+        builder.Register<BlueprintResearchOutcomeTransaction>(Lifetime.Singleton);
+        builder.RegisterResearchWorkGameplayOutcomes();
+        builder.RegisterKnowledgeCompletionGameplayOutcomes();
+        builder.RegisterDungeonSpaceExpansionGameplayOutcomes();
+        builder.Register<KnowledgeResidueCompletionTransaction>(Lifetime.Singleton);
         builder.Register<BlueprintResearchProjectCoordinator>(
             Lifetime.Singleton);
         builder.Register<ResearchQueueRuntimeAdapter>(Lifetime.Singleton)
@@ -65,7 +70,8 @@ public static class DungeonProgressionOffenseRegistration
         builder.RegisterEntryPoint<DungeonSpaceExpansionRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<IDungeonSpaceExpansionQuery>()
-            .As<IDungeonSpaceExpansionCommand>();
+            .As<IDungeonSpaceExpansionCommand>()
+            .As<IDungeonSaveRestoreCompletedHook>();
 
         builder.Register<MetaProgressionRuntimeReader>(Lifetime.Singleton)
             .As<IMetaProgressionRuntimeReader>();
@@ -73,6 +79,10 @@ public static class DungeonProgressionOffenseRegistration
             .As<IStartingOwnerTraitCountBonusQuery>();
         builder.Register<MetaRuntimeApplicationAdapter>(Lifetime.Singleton)
             .As<IMetaRuntimeApplicationPort>();
+        builder.Register<MetaUpgradePurchaseOutcomeTransaction>(
+                Lifetime.Singleton)
+            .As<IMetaUpgradePurchaseOutcomeTransaction>()
+            .As<IMetaRunResultOutcomeTransaction>();
         builder.Register<MetaRunSceneTransitionAdapter>(Lifetime.Singleton)
             .As<IMetaRunSceneTransitionPort>();
         builder.Register<MetaProfileStore>(Lifetime.Singleton)

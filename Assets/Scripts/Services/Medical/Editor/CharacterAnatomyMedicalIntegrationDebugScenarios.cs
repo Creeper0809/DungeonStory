@@ -7,6 +7,64 @@ using UnityEngine;
 
 public static class CharacterAnatomyMedicalIntegrationDebugScenarios
 {
+    public static void VerifySurfaceHealingAuthority()
+    {
+        VerifySurfaceHealing("Human", "torso");
+        VerifySurfaceHealing("Slime", "membrane");
+        Debug.Log("SURFACE_HEALING_AUTHORITY=PASS; human/slime; treatment/heal; alias-budget; read-stability");
+    }
+
+    private static void VerifySurfaceHealing(string species, string surfaceNode)
+    {
+        CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+            CharacterType.Customer, "Surface healing " + species, species);
+        GameObject instance = new GameObject(data.characterName);
+        CharacterActor actor = null;
+        try
+        {
+            actor = instance.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(instance);
+            actor.EnsureRuntimeState();
+            actor.data = data;
+            actor.characterType = CharacterType.Customer;
+            actor.Identity.SetPersistentId("character:surface-healing:" + species.ToLowerInvariant());
+            CharacterAiEditorTestDependencies.WorldRegistry.RegisterCharacter(actor);
+            CharacterBodyHealthRuntime health = CharacterAiEditorTestDependencies.BodyHealthRuntime;
+            health.ConfigureVitals(actor, 100f, resetCurrentHealth: true);
+            if (!health.TryDamageNode(actor, surfaceNode, 10f, 0f, "surface-healing-fixture"))
+                throw new InvalidOperationException(species + " surface damage setup failed.");
+            float missing = health.GetMissingPartHealth(actor);
+            if (Mathf.Abs(missing - 10f) > 0.001f)
+                throw new InvalidOperationException(species + " expected exactly 10 canonical damage, got " + missing);
+
+            if (!health.ApplyTreatment(actor, 5f, 0f))
+                throw new InvalidOperationException(species + " treatment was unexpectedly rejected.");
+            float afterTreatment = health.GetMissingPartHealth(actor);
+            if (Mathf.Abs(afterTreatment - 5f) > 0.001f)
+                throw new InvalidOperationException(species + " treatment must restore 5 canonical HP once; missing=" + afterTreatment);
+
+            // Repeated queries must not overwrite the typed result from stale aliases.
+            health.GetSnapshot(actor);
+            health.GetAnatomySnapshot(actor);
+            if (Mathf.Abs(health.GetMissingPartHealth(actor) - afterTreatment) > 0.001f)
+                throw new InvalidOperationException(species + " healing changed during read projection.");
+            health.Heal(actor, 3f, stopBleeding: false);
+            if (Mathf.Abs(health.GetMissingPartHealth(actor) - 2f) > 0.001f)
+                throw new InvalidOperationException(species + " general healing lost or multiplied its canonical budget.");
+            health.Heal(actor, 1000f, stopBleeding: true);
+            if (health.GetMissingPartHealth(actor) > 0.001f
+                || health.ApplyTreatment(actor, 0f, 0f))
+                throw new InvalidOperationException(species + " full-health/no-op boundary failed.");
+        }
+        finally
+        {
+            if (actor != null)
+                CharacterAiEditorTestDependencies.WorldRegistry.UnregisterCharacter(actor);
+            UnityEngine.Object.DestroyImmediate(instance);
+            UnityEngine.Object.DestroyImmediate(data);
+        }
+    }
+
     [MenuItem("DungeonStory/Debug/QA/Run Character Anatomy Medical Integration")]
     public static void RunFromMenu()
     {

@@ -35,6 +35,7 @@ public sealed class StaffDiscontentSaveSection :
     {
         DungeonStaffDiscontentSaveData destination =
             new DungeonStaffDiscontentSaveData();
+        destination.outcomeRevision = runtime.OutcomeRevision;
         destination.records = runtime.CaptureSnapshots()
             .OrderBy(snapshot => snapshot.staffId, StringComparer.Ordinal)
             .Select(snapshot => new DungeonStaffDiscontentRecordSaveData
@@ -77,6 +78,11 @@ public sealed class StaffDiscontentSaveSection :
         {
             report.AddError(
                 $"Staff-discontent payload version {payload.version} is unsupported.");
+        }
+        if (payload.outcomeRevision < 0L)
+        {
+            report.AddError(
+                "Staff-discontent outcome revision cannot be negative.");
         }
 
         HashSet<string> staffIds = new HashSet<string>(StringComparer.Ordinal);
@@ -162,7 +168,9 @@ public sealed class StaffDiscontentSaveSection :
                 saved.suppressed))
             .ToList();
 
-        return runtime.PrepareRestoreCandidate(records);
+        return runtime.PrepareRestoreCandidate(
+            records,
+            source.outcomeRevision);
     }
 
     protected override void PublishRestoreCandidate(

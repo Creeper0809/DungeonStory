@@ -23,6 +23,9 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
     private IGameMoneyAccount money;
     private IBuildingCategoryDefinitionCatalog buildingCategoryCatalog;
     private IDungeonDebugRuleQuery debugRules;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private IGameSessionStateStore gameSessionState;
+    private TreasuryEconomyAggregateStateStore treasuryState;
     private IDisposable runStartVariablesSubscription;
     private IDisposable operatingDayEndedSubscription;
 
@@ -73,6 +76,20 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
         stateApplication = new FacilityShopApplication(unlockState);
         projectedRestoreRevision = this.aggregateRootStore.PublishedRestoreRevision;
         SubscribeToScopedEvents();
+    }
+
+    [Inject]
+    public void ConstructPurchaseOutcomeTransactions(
+        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        IGameSessionStateStore gameSessionState,
+        TreasuryEconomyAggregateStateStore treasuryState)
+    {
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.gameSessionState = gameSessionState
+            ?? throw new ArgumentNullException(nameof(gameSessionState));
+        this.treasuryState = treasuryState
+            ?? throw new ArgumentNullException(nameof(treasuryState));
     }
 
     private void Start()
@@ -230,14 +247,146 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
         EconomyTransactionContext transactionContext,
         out FacilityShopPurchaseResult result)
     {
-        return FacilityShopService.TryPurchaseOffer(
-            money,
-            offer,
-            unlockState,
+        if (offer == null || !offer.IsValid)
+        {
+            result = new FacilityShopPurchaseResult(
+                false,
+                offer,
+                0,
+                "상품 정보가 올바르지 않습니다");
+            PublishPurchase(result);
+            return false;
+        }
+        if (gameData?.day == null
+            || outcomeTransactions == null
+            || gameSessionState == null
+            || treasuryState == null)
+        {
+            result = new FacilityShopPurchaseResult(
+                false,
+                offer,
+                offer.Cost,
+                "시설 상점 결과 원장 트랜잭션이 준비되지 않았습니다.");
+            PublishPurchase(result);
+            return false;
+        }
+
+        int absoluteDay = Math.Max(0, gameData.day.Value);
+        string identity = CreatePurchaseOutcomeIdentity(
+            absoluteDay,
             transactionContext,
-            debugRules,
-            out result,
-            PublishPurchase);
+            offer);
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.FacilityShopPurchaseResult,
+                identity,
+                absoluteDay,
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reserveFailure))
+        {
+            result = new FacilityShopPurchaseResult(
+                false,
+                offer,
+                offer.Cost,
+                "시설 상점 결과를 예약하지 못했습니다: " + reserveFailure);
+            PublishPurchase(result);
+            return false;
+        }
+
+        FacilityShopStateSnapshot shopBefore = unlockState.Capture();
+        GameSessionSnapshot sessionBefore = gameData.Capture();
+        TreasuryEconomyAggregateState treasuryBefore =
+            treasuryState.Current.Copy();
+        try
+        {
+            bool purchased = FacilityShopService.TryPurchaseOffer(
+                money,
+                offer,
+                unlockState,
+                transactionContext,
+                debugRules,
+                out result);
+            if (!purchased)
+            {
+                outcomeTransactions.Cancel(prepared);
+                return false;
+            }
+
+            MigratedProducerOutcomeCommitResult committed =
+                outcomeTransactions.CommitSingleSubject(
+                    prepared,
+                    new MigratedProducerOutcomeSubject(
+                        MigratedProducerOutcomeIds.OperationKind,
+                        identity,
+                        offer.DisplayName,
+                        MigratedProducerOutcomeIds.OperationRole),
+                    "시설 상점 구매: type=" + offer.OfferTypeId
+                    + "; data-id=" + offer.DataId
+                    + "; name=" + offer.DisplayName
+                    + "; cost=" + offer.Cost
+                    + "; day=" + absoluteDay);
+            if (!committed.DurablyCommitted)
+            {
+                RestorePurchaseState(
+                    shopBefore,
+                    sessionBefore,
+                    treasuryBefore);
+                result = new FacilityShopPurchaseResult(
+                    false,
+                    offer,
+                    offer.Cost,
+                    "시설 상점 결과 원장 확정 실패: " + committed.DetailCode);
+                return false;
+            }
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            RestorePurchaseState(shopBefore, sessionBefore, treasuryBefore);
+            throw;
+        }
+
+        PublishPurchasePostCommit(result);
+        return true;
+    }
+
+    private void RestorePurchaseState(
+        FacilityShopStateSnapshot shopBefore,
+        GameSessionSnapshot sessionBefore,
+        TreasuryEconomyAggregateState treasuryBefore)
+    {
+        unlockState.Restore(
+            shopBefore ?? throw new ArgumentNullException(nameof(shopBefore)));
+        gameSessionState.Restore(sessionBefore);
+        treasuryState.Replace(
+            treasuryBefore
+            ?? throw new ArgumentNullException(nameof(treasuryBefore)));
+    }
+
+    private static string CreatePurchaseOutcomeIdentity(
+        int absoluteDay,
+        EconomyTransactionContext transactionContext,
+        FacilityShopOffer offer) =>
+        "facility-shop-purchase:day:" + absoluteDay
+        + ":source:" + (transactionContext.sourceId?.Trim() ?? string.Empty)
+        + ":target:" + (transactionContext.targetId?.Trim() ?? string.Empty)
+        + ":offer:" + offer.OfferTypeId + ":" + offer.DataId;
+
+    private void PublishPurchasePostCommit(FacilityShopPurchaseResult result)
+    {
+        try
+        {
+            PublishPurchase(result);
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "facility-shop-purchase-post-commit-observer:"
+                + exception.GetType().Name);
+        }
     }
 
     private static EconomyTransactionContext CreatePurchaseContext(

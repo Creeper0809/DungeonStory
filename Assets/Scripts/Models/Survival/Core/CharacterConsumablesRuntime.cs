@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
@@ -43,6 +44,7 @@ public sealed class CharacterConsumablesRuntime :
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly ICharacterNeedBalanceRuntime needBalance;
     private readonly ICharacterConsumablesWorkforcePort workforce;
+    private readonly ICharacterConsumablesOutcomeTransaction outcomeTransactions;
     private readonly Dictionary<ConsumableOperationId, MealOperationFailureState>
         mealOperationFailures = new();
     private readonly Queue<ConsumableOperationId> mealOperationFailureOrder = new();
@@ -86,7 +88,8 @@ public sealed class CharacterConsumablesRuntime :
         IRandomStreamProvider randomStreams,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         ICharacterNeedBalanceRuntime needBalance,
-        ICharacterConsumablesWorkforcePort workforce = null)
+        ICharacterConsumablesWorkforcePort workforce = null,
+        ICharacterConsumablesOutcomeTransaction outcomeTransactions = null)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.inventory = inventory ?? throw new ArgumentNullException(nameof(inventory));
@@ -97,6 +100,7 @@ public sealed class CharacterConsumablesRuntime :
         this.needBalance = needBalance
             ?? throw new ArgumentNullException(nameof(needBalance));
         this.workforce = workforce;
+        this.outcomeTransactions = outcomeTransactions;
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get("character-consumables");
     }
@@ -312,6 +316,27 @@ public sealed class CharacterConsumablesRuntime :
     public bool TryConsumeFieldMeal(
         CharacterId characterId,
         ItemStackId stackId,
+        out CharacterConsumablesMealResult result) =>
+        TryConsumeFieldMealInternal(
+            characterId,
+            stackId,
+            primitiveSurvivalOutcomeRequired: false,
+            out result);
+
+    public bool TryConsumePrimitiveFieldMeal(
+        CharacterId characterId,
+        ItemStackId stackId,
+        out CharacterConsumablesMealResult result) =>
+        TryConsumeFieldMealInternal(
+            characterId,
+            stackId,
+            primitiveSurvivalOutcomeRequired: true,
+            out result);
+
+    private bool TryConsumeFieldMealInternal(
+        CharacterId characterId,
+        ItemStackId stackId,
+        bool primitiveSurvivalOutcomeRequired,
         out CharacterConsumablesMealResult result)
     {
         ConsumableOperationId operationId = NewOperationId();
@@ -434,7 +459,9 @@ public sealed class CharacterConsumablesRuntime :
             physicalCommitQuantity = physicalCommit.Quantity,
             physicalCommitInputMassGrams = physicalCommit.InputMassGrams,
             committedPolicyViolation = !policyAllowed,
-            committedContaminated = contaminated
+            committedContaminated = contaminated,
+            primitiveSurvivalOutcomeRequired =
+                primitiveSurvivalOutcomeRequired
         };
         WriteState.ActiveMealPlans.Add(operationId, plan);
         ConsumeMealCommand command = new(
@@ -1107,10 +1134,10 @@ public sealed class CharacterConsumablesRuntime :
             return false;
         }
 
-        CharacterConsumablesAggregateState state = WriteState;
         if (plan.phase == CharacterMealPlanPhase.ItemCommitted)
         {
-            if (!state.CompletedOperations.ContainsKey(command.OperationId))
+            CharacterConsumablesAggregateState readState = ReadState;
+            if (!readState.CompletedOperations.ContainsKey(command.OperationId))
             {
                 if (!TryGetActor(
                         command.CharacterId,
@@ -1126,6 +1153,43 @@ public sealed class CharacterConsumablesRuntime :
                     return false;
                 }
 
+                if (!TryReserveConsumableOutcome(
+                        CharacterConsumablesOutcomeKind.Meal,
+                        "meal",
+                        command.OperationId,
+                        command.CharacterId,
+                        out ICharacterConsumablesOutcomeReservation prepared))
+                {
+                    return false;
+                }
+
+                ICharacterConsumablesPrimitiveOutcomeTransaction
+                    primitiveTransactions = null;
+                ICharacterConsumablesOutcomeReservation primitivePrepared =
+                    null;
+                if (plan.primitiveSurvivalOutcomeRequired)
+                {
+                    primitiveTransactions = outcomeTransactions as
+                        ICharacterConsumablesPrimitiveOutcomeTransaction;
+                    string primitiveReservationFailure =
+                        primitiveTransactions == null
+                            ? "transaction-unavailable"
+                            : string.Empty;
+                    if (primitiveTransactions == null
+                        || !primitiveTransactions.TryReservePrimitiveSurvival(
+                            command.CharacterId,
+                            out primitivePrepared,
+                            out primitiveReservationFailure))
+                    {
+                        outcomeTransactions.Cancel(prepared);
+                        Debug.LogError(
+                            "character-consumables-primitive-outcome-reservation-failed:"
+                            + primitiveReservationFailure);
+                        return false;
+                    }
+                }
+
+                CharacterConsumablesAggregateState rollback = readState.Clone();
                 ItemStackId committedStackId = new(
                     plan.physicalCommitSourceStackIds?.FirstOrDefault()
                     ?? plan.sourceStackId);
@@ -1136,41 +1200,106 @@ public sealed class CharacterConsumablesRuntime :
                         committedStackId,
                         plan.committedPolicyViolation,
                         plan.committedContaminated);
-                if (meal.ServingRole is MealServingRole.Snack
-                    or MealServingRole.LightMeal)
+                try
                 {
-                    state.MealFollowupCooldownUntil[command.CharacterId] =
-                        clock.Time + MealFollowupCooldownSeconds;
+                    CharacterConsumablesAggregateState writableState = WriteState;
+                    if (!writableState.ActiveMealPlans.TryGetValue(
+                            command.OperationId,
+                            out CharacterMealPlan writablePlan)
+                        || writablePlan == null)
+                    {
+                        outcomeTransactions.Cancel(prepared);
+                        aggregateRootStore.Replace(rollback);
+                        return false;
+                    }
+                    if (meal.ServingRole is MealServingRole.Snack
+                        or MealServingRole.LightMeal)
+                    {
+                        writableState.MealFollowupCooldownUntil[command.CharacterId] =
+                            clock.Time + MealFollowupCooldownSeconds;
+                    }
+                    CompleteDelivery(command.CharacterId, command.FacilityId, meal.Id);
+                    RecordCompletedOperation(
+                        command.OperationId,
+                        command.CharacterId,
+                        meal.Id,
+                        committedStackId,
+                        true,
+                        writablePlan.committedPolicyViolation,
+                        writablePlan.committedContaminated,
+                        facilityId: command.FacilityId);
+                    writablePlan.phase = CharacterMealPlanPhase.EffectsPublished;
+
+                    string mealSummary = CreateMealOutcomeSummary(result);
+                    CharacterConsumablesOutcomeCommitResult committed =
+                        plan.primitiveSurvivalOutcomeRequired
+                            ? primitiveTransactions
+                                .CommitMealAndPrimitiveSurvival(
+                                    prepared,
+                                    primitivePrepared,
+                                    command.CharacterId,
+                                    mealSummary,
+                                    $"action=survival:field-meal; recovery={meal.Nutrition:0.###}; physicalItemCount=1")
+                            : outcomeTransactions.Commit(
+                                prepared,
+                                command.CharacterId,
+                                mealSummary);
+                    if (!committed.DurablyCommitted)
+                    {
+                        outcomeTransactions.Cancel(prepared);
+                        outcomeTransactions.Cancel(primitivePrepared);
+                        aggregateRootStore.Replace(rollback);
+                        Debug.LogError(
+                            "character-consumables-meal-outcome-commit-failed:"
+                            + committed.DetailCode);
+                        return false;
+                    }
                 }
-                CompleteDelivery(command.CharacterId, command.FacilityId, meal.Id);
-                (world as ICharacterRitualFastingMealPort)?.RecordMealConsumed(
-                    command.CharacterId,
-                    directPlayerOrder: !plan.automaticOperation);
-                ApplyMealEffects(command, result);
-                RecordCompletedOperation(
-                    command.OperationId,
-                    command.CharacterId,
-                    meal.Id,
-                    committedStackId,
-                    true,
-                    plan.committedPolicyViolation,
-                    plan.committedContaminated,
-                    facilityId: command.FacilityId);
+                catch
+                {
+                    outcomeTransactions.Cancel(prepared);
+                    outcomeTransactions.Cancel(primitivePrepared);
+                    aggregateRootStore.Replace(rollback);
+                    throw;
+                }
+
+                PublishPostCommitObserver(
+                    () =>
+                    {
+                        (world as ICharacterRitualFastingMealPort)
+                            ?.RecordMealConsumed(
+                                command.CharacterId,
+                                directPlayerOrder: !plan.automaticOperation);
+                        ApplyMealEffects(command, result);
+                    },
+                    "character-consumables-meal-post-commit-observer");
             }
-            plan.phase = CharacterMealPlanPhase.EffectsPublished;
+            else
+            {
+                WriteState.ActiveMealPlans[command.OperationId].phase =
+                    CharacterMealPlanPhase.EffectsPublished;
+            }
         }
 
+        CharacterConsumablesAggregateState state = WriteState;
+        if (!state.ActiveMealPlans.TryGetValue(
+                command.OperationId,
+                out CharacterMealPlan activePlan)
+            || activePlan == null)
+        {
+            return false;
+        }
         if (!inventory.TryAcknowledgeMealConsumption(
                 command.CharacterId,
-                new ConsumableItemDefinitionId(plan.itemDefinitionId),
-                plan.physicalCommitQuantity,
-                plan.physicalCommitId,
+                new ConsumableItemDefinitionId(activePlan.itemDefinitionId),
+                activePlan.physicalCommitQuantity,
+                activePlan.physicalCommitId,
                 out _))
         {
             return false;
         }
 
-        plan.phase = CharacterMealPlanPhase.Completed;
+        activePlan.phase = CharacterMealPlanPhase.Completed;
         state.ActiveMealPlans.Remove(command.OperationId);
         mealOperationFailures.Remove(command.OperationId);
         // Facility-slot ownership is transient and is deliberately not restored.
@@ -1179,7 +1308,7 @@ public sealed class CharacterConsumablesRuntime :
         // The virtual field-meal facility has no owner entry, so the same call is
         // also a safe no-op for primitive meals.
         world.ReleaseMealFacilitySlot(command.OperationId, command.FacilityId);
-        plan.facilitySlotReserved = false;
+        activePlan.facilitySlotReserved = false;
         return true;
     }
 
@@ -1875,9 +2004,9 @@ public sealed class CharacterConsumablesRuntime :
                 command.ItemStackId.Value);
             return false;
         }
-        CharacterSubstanceState currentState = GetWritableSubstanceState(
+        CharacterSubstanceState currentState = GetSubstanceState(
             command.CharacterId,
-            substance.Id);
+            substance.Id.Value);
         SubstanceDefinitionView definition = substance.Definition;
         float toleranceRatio = currentState.tolerance / 100f;
         bool wasAddicted = currentState.addicted;
@@ -2002,52 +2131,112 @@ public sealed class CharacterConsumablesRuntime :
                 return false;
             }
 
-            if (!WriteState.CompletedOperations.ContainsKey(operationId))
+            CharacterConsumablesAggregateState readState = ReadState;
+            if (!readState.CompletedOperations.ContainsKey(operationId))
             {
-                CharacterSubstanceState state = GetWritableSubstanceState(
-                    characterId,
-                    itemId);
-                state.tolerance = plan.resolvedTolerance;
-                state.addiction = plan.resolvedAddiction;
-                state.withdrawal = plan.resolvedWithdrawal;
-                state.activeSeconds = plan.resolvedActiveSeconds;
-                state.secondsSinceLastDose = plan.resolvedSecondsSinceLastDose;
-                state.scheduledCooldownSeconds =
-                    plan.resolvedScheduledCooldownSeconds;
-                state.addicted = plan.resolvedAddicted;
-                state.overdosed = plan.resolvedOverdosed;
-                ApplySubstanceEffects(
-                    characterId,
-                    substance,
-                    state,
-                    plan.effectToleranceRatio,
-                    plan.resolvedOverdosed);
-                if (plan.resolvedOverdosed)
-                {
-                    AddToxicity(
+                if (!TryReserveConsumableOutcome(
+                        CharacterConsumablesOutcomeKind.Substance,
+                        "substance",
+                        operationId,
                         characterId,
-                        CharacterToxicityPolicy.OverdoseGain);
+                        out ICharacterConsumablesOutcomeReservation prepared))
+                {
+                    return false;
                 }
-                RecordCompletedOperation(
-                    operationId,
-                    characterId,
-                    itemId,
-                    new ItemStackId(plan.sourceStackId),
-                    false);
+                CharacterConsumablesAggregateState rollback = readState.Clone();
+                try
+                {
+                    CharacterConsumablesAggregateState writableState = WriteState;
+                    if (!writableState.ActiveSubstanceUsePlans.TryGetValue(
+                            operationId,
+                            out CharacterSubstanceUsePlan writablePlan)
+                        || writablePlan == null)
+                    {
+                        outcomeTransactions.Cancel(prepared);
+                        aggregateRootStore.Replace(rollback);
+                        return false;
+                    }
+                    CharacterSubstanceState stateForItem = GetWritableSubstanceState(
+                        characterId,
+                        itemId);
+                    stateForItem.tolerance = writablePlan.resolvedTolerance;
+                    stateForItem.addiction = writablePlan.resolvedAddiction;
+                    stateForItem.withdrawal = writablePlan.resolvedWithdrawal;
+                    stateForItem.activeSeconds = writablePlan.resolvedActiveSeconds;
+                    stateForItem.secondsSinceLastDose =
+                        writablePlan.resolvedSecondsSinceLastDose;
+                    stateForItem.scheduledCooldownSeconds =
+                        writablePlan.resolvedScheduledCooldownSeconds;
+                    stateForItem.addicted = writablePlan.resolvedAddicted;
+                    stateForItem.overdosed = writablePlan.resolvedOverdosed;
+                    if (writablePlan.resolvedOverdosed)
+                    {
+                        AddToxicity(
+                            characterId,
+                            CharacterToxicityPolicy.OverdoseGain);
+                    }
+                    RecordCompletedOperation(
+                        operationId,
+                        characterId,
+                        itemId,
+                        new ItemStackId(writablePlan.sourceStackId),
+                        false);
+                    writablePlan.phase =
+                        CharacterSubstanceUsePlanPhase.EffectsPublished;
+
+                    CharacterConsumablesOutcomeCommitResult committed =
+                        outcomeTransactions.Commit(
+                            prepared,
+                            characterId,
+                            CreateSubstanceOutcomeSummary(
+                                substance,
+                                writablePlan));
+                    if (!committed.DurablyCommitted)
+                    {
+                        outcomeTransactions.Cancel(prepared);
+                        aggregateRootStore.Replace(rollback);
+                        Debug.LogError(
+                            "character-consumables-substance-outcome-commit-failed:"
+                            + committed.DetailCode);
+                        return false;
+                    }
+
+                    PublishPostCommitObserver(
+                        () => ApplySubstanceEffects(
+                            characterId,
+                            substance,
+                            stateForItem,
+                            writablePlan.effectToleranceRatio,
+                            writablePlan.resolvedOverdosed),
+                        "character-consumables-substance-post-commit-observer");
+                }
+                catch
+                {
+                    outcomeTransactions.Cancel(prepared);
+                    aggregateRootStore.Replace(rollback);
+                    throw;
+                }
             }
-            plan.phase = CharacterSubstanceUsePlanPhase.EffectsPublished;
         }
 
+        CharacterConsumablesAggregateState state = WriteState;
+        if (!state.ActiveSubstanceUsePlans.TryGetValue(
+                operationId,
+                out CharacterSubstanceUsePlan activePlan)
+            || activePlan == null)
+        {
+            return false;
+        }
         if (!inventory.TryAcknowledgeSubstanceConsumption(
                 characterId,
                 itemId,
-                plan.physicalCommitQuantity,
-                plan.physicalCommitId,
+                activePlan.physicalCommitQuantity,
+                activePlan.physicalCommitId,
                 out _))
         {
             return false;
         }
-        WriteState.ActiveSubstanceUsePlans.Remove(operationId);
+        state.ActiveSubstanceUsePlans.Remove(operationId);
         return true;
     }
 
@@ -2090,38 +2279,94 @@ public sealed class CharacterConsumablesRuntime :
             {
                 return false;
             }
-            if (!WriteState.CompletedOperations.ContainsKey(operationId))
+            CharacterConsumablesAggregateState readState = ReadState;
+            if (!readState.CompletedOperations.ContainsKey(operationId))
             {
-                float before = GetToxicity(characterId);
-                AddToxicity(characterId, -plan.detoxReduction);
-                plan.appliedReduction = before - GetToxicity(characterId);
-                RecordCompletedOperation(
-                    operationId,
-                    characterId,
-                    medicineId,
-                    new ItemStackId(plan.sourceStackId),
-                    meal: false,
-                    detox: true,
-                    facilityId: new BuildingInstanceId(
-                        plan.facilityInstanceId),
-                    appliedEffect: plan.appliedReduction);
+                if (!TryReserveConsumableOutcome(
+                        CharacterConsumablesOutcomeKind.Detox,
+                        "detox",
+                        operationId,
+                        characterId,
+                        out ICharacterConsumablesOutcomeReservation prepared))
+                {
+                    return false;
+                }
+                CharacterConsumablesAggregateState rollback = readState.Clone();
+                try
+                {
+                    CharacterConsumablesAggregateState state = WriteState;
+                    if (!state.ActiveDetoxTreatmentPlans.TryGetValue(
+                            operationId,
+                            out CharacterDetoxTreatmentPlan writablePlan)
+                        || writablePlan == null)
+                    {
+                        outcomeTransactions.Cancel(prepared);
+                        aggregateRootStore.Replace(rollback);
+                        return false;
+                    }
+                    float before = GetToxicity(characterId);
+                    AddToxicity(characterId, -writablePlan.detoxReduction);
+                    writablePlan.appliedReduction = before - GetToxicity(characterId);
+                    RecordCompletedOperation(
+                        operationId,
+                        characterId,
+                        medicineId,
+                        new ItemStackId(writablePlan.sourceStackId),
+                        meal: false,
+                        detox: true,
+                        facilityId: new BuildingInstanceId(
+                            writablePlan.facilityInstanceId),
+                        appliedEffect: writablePlan.appliedReduction);
+                    writablePlan.phase =
+                        CharacterDetoxTreatmentPlanPhase.EffectsPublished;
+
+                    CharacterConsumablesOutcomeCommitResult committed =
+                        outcomeTransactions.Commit(
+                            prepared,
+                            characterId,
+                            CreateDetoxOutcomeSummary(writablePlan));
+                    if (!committed.DurablyCommitted)
+                    {
+                        outcomeTransactions.Cancel(prepared);
+                        aggregateRootStore.Replace(rollback);
+                        Debug.LogError(
+                            "character-consumables-detox-outcome-commit-failed:"
+                            + committed.DetailCode);
+                        return false;
+                    }
+                }
+                catch
+                {
+                    outcomeTransactions.Cancel(prepared);
+                    aggregateRootStore.Replace(rollback);
+                    throw;
+                }
             }
-            plan.phase = CharacterDetoxTreatmentPlanPhase.EffectsPublished;
         }
-        if (plan.phase == CharacterDetoxTreatmentPlanPhase.EffectsPublished)
+        CharacterConsumablesAggregateState activeState = WriteState;
+        if (!activeState.ActiveDetoxTreatmentPlans.TryGetValue(
+                operationId,
+                out CharacterDetoxTreatmentPlan activePlan)
+            || activePlan == null)
+        {
+            return false;
+        }
+        if (activePlan.phase == CharacterDetoxTreatmentPlanPhase.EffectsPublished)
         {
             if (!inventory.TryAcknowledgeDetoxConsumption(
                     characterId,
                     medicineId,
-                    plan.physicalCommitQuantity,
-                    plan.physicalCommitId,
+                    activePlan.physicalCommitQuantity,
+                    activePlan.physicalCommitId,
                     out _))
             {
                 return false;
             }
-            plan.phase = CharacterDetoxTreatmentPlanPhase.PhysicalAcknowledged;
+            activePlan.phase =
+                CharacterDetoxTreatmentPlanPhase.PhysicalAcknowledged;
         }
-        return plan.phase == CharacterDetoxTreatmentPlanPhase.PhysicalAcknowledged;
+        return activePlan.phase
+            == CharacterDetoxTreatmentPlanPhase.PhysicalAcknowledged;
     }
 
     public bool TryGetAutomaticUseRequest(
@@ -3188,6 +3433,92 @@ public sealed class CharacterConsumablesRuntime :
             WriteState.SubstanceStates.Add(key, state);
         }
         return state;
+    }
+
+    private bool TryReserveConsumableOutcome(
+        CharacterConsumablesOutcomeKind kind,
+        string operationKind,
+        ConsumableOperationId operationId,
+        CharacterId characterId,
+        out ICharacterConsumablesOutcomeReservation prepared)
+    {
+        prepared = default;
+        if (outcomeTransactions == null)
+        {
+            Debug.LogError("character-consumables-outcome-transaction-unavailable");
+            return false;
+        }
+        if (!operationId.IsValid || !characterId.IsValid)
+        {
+            Debug.LogError("character-consumables-outcome-identity-invalid");
+            return false;
+        }
+        if (outcomeTransactions.TryReserve(
+                kind,
+                CreateConsumableOutcomeIdentity(operationKind, operationId),
+                out prepared,
+                out string failureReason))
+        {
+            return true;
+        }
+
+        Debug.LogError(
+            "character-consumables-outcome-reservation-failed:"
+            + (failureReason ?? string.Empty));
+        return false;
+    }
+
+    private static string CreateConsumableOutcomeIdentity(
+        string operationKind,
+        ConsumableOperationId operationId) =>
+        "character-consumables-"
+        + (operationKind?.Trim() ?? string.Empty)
+        + "@1|"
+        + operationId.Value;
+
+    private static string CreateMealOutcomeSummary(
+        CharacterConsumablesMealResult result) =>
+        "meal=" + result.Meal.Id.Value
+        + ";policyViolation=" + result.PolicyViolation
+        + ";contaminated=" + result.Contaminated;
+
+    private static string CreateSubstanceOutcomeSummary(
+        CharacterConsumablesSubstanceDefinitionSnapshot substance,
+        CharacterSubstanceUsePlan plan) =>
+        "substance=" + substance.Id.Value
+        + ";tolerance=" + plan.resolvedTolerance.ToString(
+            "0.###",
+            CultureInfo.InvariantCulture)
+        + ";addiction=" + plan.resolvedAddiction.ToString(
+            "0.###",
+            CultureInfo.InvariantCulture)
+        + ";overdose=" + plan.resolvedOverdosed;
+
+    private static string CreateDetoxOutcomeSummary(
+        CharacterDetoxTreatmentPlan plan) =>
+        "medicine=" + plan.itemDefinitionId
+        + ";reduction=" + plan.appliedReduction.ToString(
+            "0.###",
+            CultureInfo.InvariantCulture);
+
+    private static void PublishPostCommitObserver(
+        Action observer,
+        string context)
+    {
+        try
+        {
+            observer?.Invoke();
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                (context ?? "character-consumables-post-commit-observer")
+                + ":"
+                + exception.GetType().Name);
+        }
     }
 
     private void RecordCompletedOperation(

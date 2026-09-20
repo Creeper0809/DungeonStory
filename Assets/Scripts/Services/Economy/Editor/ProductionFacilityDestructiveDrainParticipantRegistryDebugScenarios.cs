@@ -31,7 +31,11 @@ public static class
             ProductionFacilityDestructiveDrainParticipantIds
                 .PhysicalCustodyCarryRecovery,
             ProductionFacilityDestructiveDrainParticipantIds
-                .StockSensorEmbeddedSalvage
+                .StockSensorEmbeddedSalvage,
+            ProductionFacilityDestructiveDrainParticipantIds
+                .EnvironmentalFireDamageOutcome,
+            ProductionFacilityDestructiveDrainParticipantIds
+                .BuildingDemolitionOutcome
         };
         Require(
             forward.ExecutionOrder.Select(value => value.ParticipantId)
@@ -169,9 +173,97 @@ public static class
                 cycle),
             "a destructive-drain participant dependency cycle was accepted");
 
+        VerifyV3MigrationAddsFireDamageParticipant();
+
         Debug.Log(
             "Production facility destructive-drain participant registry contracts passed."
             + " fingerprint=" + forward.RegistryFingerprint);
+    }
+
+    private static void VerifyV3MigrationAddsFireDamageParticipant()
+    {
+        BuildingInstanceId facilityId =
+            (BuildingInstanceId)"building:qa-v3-fire-damage-migration";
+        ProductionFacilityDestructiveDrainOperationId operationId =
+            ProductionFacilityDestructiveDrainOperationId.FromFacility(
+                facilityId);
+        List<ProductionFacilityDestructiveDrainParticipantSaveData>
+            previousParticipants = CreateSaveParticipants(operationId)
+                .Where(value => !string.Equals(
+                        value.participantId,
+                        ProductionFacilityDestructiveDrainParticipantIds
+                            .EnvironmentalFireDamageOutcome,
+                        StringComparison.Ordinal)
+                    && !string.Equals(
+                        value.participantId,
+                        ProductionFacilityDestructiveDrainParticipantIds
+                            .BuildingDemolitionOutcome,
+                        StringComparison.Ordinal))
+                .ToList();
+        string previousLifecycle =
+            ProductionFacilityDestructiveDrainCanonical.ComputeFingerprint(
+                "qa:v3-legacy-lifecycle");
+        var source = new DungeonProductionFacilityDestructiveDrainSaveData
+        {
+            version = 3,
+            registryFingerprint =
+                ProductionFacilityDestructiveDrainParticipantRegistry
+                    .PreviousV3RegistryFingerprint,
+            entries = new List<ProductionFacilityDestructiveDrainEntrySaveData>
+            {
+                new()
+                {
+                    operationId = operationId.Value,
+                    facilityId = facilityId.Value,
+                    preparedLifecycleFingerprint = previousLifecycle,
+                    expectedCurrentLifecycleFingerprint = previousLifecycle,
+                    participants = previousParticipants
+                }
+            }
+        };
+
+        DungeonProductionFacilityDestructiveDrainSaveData migrated =
+            ProductionFacilityDestructiveDrainJournal
+                .MigrateLegacyPayload(source);
+        ProductionFacilityDestructiveDrainEntrySaveData entry =
+            migrated.entries.Single();
+        ProductionFacilityDestructiveDrainParticipantSaveData fire =
+            entry.participants.Single(value => string.Equals(
+                value.participantId,
+                ProductionFacilityDestructiveDrainParticipantIds
+                    .EnvironmentalFireDamageOutcome,
+                StringComparison.Ordinal));
+        ProductionFacilityDestructiveDrainParticipantSaveData demolition =
+            entry.participants.Single(value => string.Equals(
+                value.participantId,
+                ProductionFacilityDestructiveDrainParticipantIds
+                    .BuildingDemolitionOutcome,
+                StringComparison.Ordinal));
+        Require(
+            migrated.version
+                == DungeonProductionFacilityDestructiveDrainSaveData
+                    .CurrentVersion
+            && string.Equals(
+                migrated.registryFingerprint,
+                ProductionFacilityDestructiveDrainParticipantRegistry
+                    .ExpectedRegistryFingerprint,
+                StringComparison.Ordinal)
+            && entry.participants.Count == 8
+            && fire.contractVersion
+                == EnvironmentalFireDamageDestructiveDrainParticipant
+                    .CurrentContractVersion
+            && fire.owners.Count == 0
+            && demolition.contractVersion
+                == BuildingDemolitionDestructiveDrainParticipant
+                    .CurrentContractVersion
+            && demolition.owners.Count == 0
+            && !string.Equals(
+                entry.preparedLifecycleFingerprint,
+                previousLifecycle,
+                StringComparison.Ordinal)
+            && source.version == 3
+            && source.entries.Single().participants.Count == 6,
+            "V3 destructive-drain migration did not add the exact empty fire-damage and demolition participants without mutating the source.");
     }
 
     public static ProductionFacilityDestructiveDrainParticipantRegistry
@@ -282,6 +374,26 @@ public static class
                 {
                     ProductionFacilityDestructiveDrainParticipantIds
                         .PhysicalCustodyCarryRecovery
+                }),
+            new FakeParticipant(
+                ProductionFacilityDestructiveDrainParticipantIds
+                    .EnvironmentalFireDamageOutcome,
+                EnvironmentalFireDamageDestructiveDrainParticipant
+                    .CurrentContractVersion,
+                new[]
+                {
+                    ProductionFacilityDestructiveDrainParticipantIds
+                        .StockSensorEmbeddedSalvage
+                }),
+            new FakeParticipant(
+                ProductionFacilityDestructiveDrainParticipantIds
+                    .BuildingDemolitionOutcome,
+                BuildingDemolitionDestructiveDrainParticipant
+                    .CurrentContractVersion,
+                new[]
+                {
+                    ProductionFacilityDestructiveDrainParticipantIds
+                        .EnvironmentalFireDamageOutcome
                 })
         };
 

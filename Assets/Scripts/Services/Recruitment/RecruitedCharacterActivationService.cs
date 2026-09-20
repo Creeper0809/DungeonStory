@@ -5,6 +5,10 @@ using UnityEngine;
 
 public interface IRecruitedCharacterActivationService
 {
+    bool TryValidateActivation(
+        RegularCustomerRecord record,
+        out string message);
+
     bool TryActivate(
         RegularCustomerRecord record,
         out CharacterActor actor,
@@ -45,6 +49,46 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
         this.proficiencyCommands = proficiencyCommands
             ?? throw new ArgumentNullException(nameof(proficiencyCommands));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+    }
+
+    public bool TryValidateActivation(
+        RegularCustomerRecord record,
+        out string message)
+    {
+        if (record == null || record.SourceData == null)
+        {
+            message = "Recruit source data is missing.";
+            return false;
+        }
+
+        CharacterActor actor = CharacterActorCollection.GetCanonical(
+            record.ActiveActor);
+        if (!MatchesRecord(actor, record))
+        {
+            actor = CharacterActorCollection.DistinctByGameObject(
+                    characterWorld.Characters)
+                .FirstOrDefault(candidate => MatchesRecord(candidate, record));
+        }
+        if (actor != null)
+        {
+            message = string.Empty;
+            return true;
+        }
+
+        if (!spawnerProvider.TryGetSpawner(out CharacterSpawner spawner)
+            || spawner.characterPrefab == null)
+        {
+            message = "Recruit character prefab was not found.";
+            return false;
+        }
+        if (spawner.characterPrefab.GetComponent<CharacterActor>() == null)
+        {
+            message = "Recruit character prefab has no CharacterActor.";
+            return false;
+        }
+
+        message = string.Empty;
+        return true;
     }
 
     public bool TryActivate(

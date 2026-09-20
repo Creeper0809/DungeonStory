@@ -135,6 +135,126 @@ public sealed class PreparedOutcomeOwnerTransaction
                 "owner-outcome-commit-" + commit.Code + ":" + commit.DetailCode);
         }
 
+        return DeliverCommitted(committed);
+    }
+
+    public bool CommitBatch(
+        PreparedOwnerOutcome[] prepared,
+        long[] expectedOwnerRevisions,
+        OwnerOutcomeCommitResult[] results,
+        out string failureReason)
+    {
+        if (prepared == null
+            || expectedOwnerRevisions == null
+            || results == null
+            || prepared.Length == 0
+            || prepared.Length
+                > GameplayOutcomeTransactionLimits.MaximumAtomicCommitBatchCount
+            || expectedOwnerRevisions.Length != prepared.Length
+            || results.Length != prepared.Length)
+        {
+            failureReason = "owner-outcome-batch-shape-invalid";
+            return false;
+        }
+
+        PreparedOutcomeToken[] tokens = new PreparedOutcomeToken[prepared.Length];
+        CommittedOutcomeToken[] committed = new CommittedOutcomeToken[prepared.Length];
+        for (int index = 0; index < prepared.Length; index++)
+        {
+            if (!prepared[index].IsValid)
+            {
+                failureReason = "owner-outcome-batch-token-invalid:" + index;
+                return false;
+            }
+            tokens[index] = prepared[index].Token;
+        }
+
+        OutcomeCommitResult commit;
+        try
+        {
+            commit = recorder.CommitPreparedBatch(
+                tokens,
+                expectedOwnerRevisions,
+                committed);
+        }
+        catch (Exception exception)
+        {
+            for (int index = 0; index < prepared.Length; index++)
+            {
+                OwnerOutcomeCommitResult reconciled = Reconcile(
+                    prepared[index].ResultKey);
+                results[index] = reconciled.DurablyCommitted
+                    ? reconciled
+                    : new OwnerOutcomeCommitResult(
+                        OwnerOutcomeCommitPhase.CommittedPendingDelivery,
+                        prepared[index].ResultKey,
+                        default,
+                        string.Empty,
+                        "owner-outcome-batch-commit-ambiguous:"
+                        + exception.GetType().Name);
+            }
+            failureReason = string.Empty;
+            return true;
+        }
+
+        if (!commit.Success)
+        {
+            for (int index = 0; index < prepared.Length; index++)
+            {
+                recorder.CancelPrepared(tokens[index]);
+                results[index] = Rejected(
+                    prepared[index].ResultKey,
+                    "owner-outcome-batch-commit-" + commit.Code + ":"
+                    + commit.DetailCode);
+            }
+            failureReason = "owner-outcome-batch-commit-" + commit.Code + ":"
+                + commit.DetailCode;
+            return false;
+        }
+
+        for (int index = 0; index < committed.Length; index++)
+            results[index] = DeliverCommitted(committed[index]);
+        failureReason = string.Empty;
+        return true;
+    }
+
+    public OwnerOutcomeCommitResult Reconcile(GameplayResultKey resultKey)
+    {
+        if (!resultKey.IsValid)
+            return Rejected(resultKey, "owner-outcome-result-key-invalid");
+        try
+        {
+            recorder.RetryPendingDeliveries(1);
+            if (!diagnostics.TryGetResultIdentity(
+                    resultKey,
+                    out GameplayOutcomeReplayIdentity identity)
+                || identity.ResultKey != resultKey)
+            {
+                return Rejected(resultKey, "owner-outcome-result-missing");
+            }
+            return FromIdentity(identity, string.Empty);
+        }
+        catch (Exception exception)
+        {
+            return new OwnerOutcomeCommitResult(
+                OwnerOutcomeCommitPhase.CommittedPendingDelivery,
+                resultKey,
+                default,
+                string.Empty,
+                "owner-outcome-reconcile-ambiguous:"
+                + exception.GetType().Name);
+        }
+    }
+
+    public void Cancel(in PreparedOwnerOutcome prepared)
+    {
+        if (prepared.IsValid)
+            recorder.CancelPrepared(prepared.Token);
+    }
+
+    private OwnerOutcomeCommitResult DeliverCommitted(
+        in CommittedOutcomeToken committed)
+    {
         OutcomeDeliveryResult delivery;
         try
         {
@@ -181,40 +301,6 @@ public sealed class PreparedOutcomeOwnerTransaction
             acknowledgement.Success
                 ? string.Empty
                 : "owner-outcome-acknowledge-" + acknowledgement.Code);
-    }
-
-    public OwnerOutcomeCommitResult Reconcile(GameplayResultKey resultKey)
-    {
-        if (!resultKey.IsValid)
-            return Rejected(resultKey, "owner-outcome-result-key-invalid");
-        try
-        {
-            recorder.RetryPendingDeliveries(1);
-            if (!diagnostics.TryGetResultIdentity(
-                    resultKey,
-                    out GameplayOutcomeReplayIdentity identity)
-                || identity.ResultKey != resultKey)
-            {
-                return Rejected(resultKey, "owner-outcome-result-missing");
-            }
-            return FromIdentity(identity, string.Empty);
-        }
-        catch (Exception exception)
-        {
-            return new OwnerOutcomeCommitResult(
-                OwnerOutcomeCommitPhase.CommittedPendingDelivery,
-                resultKey,
-                default,
-                string.Empty,
-                "owner-outcome-reconcile-ambiguous:"
-                + exception.GetType().Name);
-        }
-    }
-
-    public void Cancel(in PreparedOwnerOutcome prepared)
-    {
-        if (prepared.IsValid)
-            recorder.CancelPrepared(prepared.Token);
     }
 
     private OwnerOutcomeCommitResult Snapshot(

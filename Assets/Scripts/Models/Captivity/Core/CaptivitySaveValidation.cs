@@ -130,6 +130,20 @@ public static class CaptivitySaveValidation
             throw new ArgumentNullException(nameof(source));
         }
         CaptiveState captive = source.Clone();
+        captive.interactionTerminal ??= new CaptivityInteractionTerminalState();
+        if (captive.status == CaptivityStatus.Interaction
+            && !string.IsNullOrWhiteSpace(captive.currentInteractionId)
+            && captive.currentInteractionAttemptId == 0)
+        {
+            if (captive.interactionAttemptSequence == int.MaxValue)
+            {
+                throw new InvalidOperationException(
+                    $"Captive '{captive.captiveId}' interaction attempt sequence is exhausted.");
+            }
+            captive.interactionAttemptSequence++;
+            captive.currentInteractionAttemptId =
+                captive.interactionAttemptSequence;
+        }
         if (captive.status == CaptivityStatus.Escorting)
         {
             captive.status = CaptivityStatus.AwaitingCapture;
@@ -182,6 +196,7 @@ public static class CaptivitySaveValidation
             || captive.status == CaptivityStatus.None
             || !IsCanonicalNonEmpty(captive.policyId)
             || !policyIds.Contains(captive.policyId)
+            || captive.interactionTerminal == null
             || captive.interrogationTerminal == null
             || HasNullString(captive))
         {
@@ -255,7 +270,19 @@ public static class CaptivitySaveValidation
             || captive.performerInjuries < 0
             || captive.privilegeTier < 0
             || captive.privilegeTier > 2
+            || captive.performerMilestoneOutcomeRevision < 0L
+            || captive.carePriorityOutcomeRevision < 0L
+            || captive.staffContractOutcomeRevision < 0L
+             || captive.finalContractOutcomeRevision < 0L
+             || captive.escapeOutcomeRevision < 0L
+             || captive.ransomOutcomeRevision < 0L
+             || captive.ransomAcceptedAmount < 0
             || captive.failedEscapeAttempts < 0
+            || captive.interactionAttemptSequence < 0
+            || captive.currentInteractionAttemptId < 0
+            || captive.currentInteractionAttemptId
+                > captive.interactionAttemptSequence
+            || captive.interactionOutcomeRevision < 0L
             || captive.interrogationAttemptSequence < 0
             || captive.currentInterrogationAttemptId < 0
             || captive.currentInterrogationAttemptId
@@ -267,6 +294,37 @@ public static class CaptivitySaveValidation
         {
             report.AddError(
                 $"Captive '{captiveId}' contains invalid numeric or enum state.");
+        }
+
+        if (!HasValidPerformerMilestoneRevisions(captive))
+        {
+            report.AddError(
+                $"Captive '{captiveId}' has incoherent performer milestone outcome revisions.");
+        }
+
+        if (captive.escapeOutcomeRevision > 0L
+            && captive.status != CaptivityStatus.Escaped)
+        {
+            report.AddError(
+                $"Captive '{captiveId}' has an escape outcome revision without an escaped terminal state.");
+        }
+
+        bool hasRansomOutcome = captive.ransomOutcomeRevision > 0L;
+        bool ransomStateValid = captive.status is CaptivityStatus.Ransom
+            or CaptivityStatus.Released;
+        if ((hasRansomOutcome
+                && (!ransomStateValid
+                    || captive.ransomAcceptedAmount <= 0
+                    || (captive.status == CaptivityStatus.Released
+                        && (!captive.ransomIncomeCredited
+                            || captive.ransomObserversPending))))
+            || (!hasRansomOutcome
+                && (captive.ransomAcceptedAmount != 0
+                    || captive.ransomIncomeCredited
+                    || captive.ransomObserversPending)))
+        {
+            report.AddError(
+                $"Captive '{captiveId}' has incoherent ransom outcome state.");
         }
 
         bool hasInteraction = captive.currentInteractionId.Length > 0;
@@ -285,7 +343,8 @@ public static class CaptivitySaveValidation
                 && ((captive.reservedWardenId.Length > 0
                         && !captive.rehabilitationInProgress)
                     || captive.interactionMaterialDestinationId.Length > 0
-                    || captive.interactionMaterialsConsumed)))
+                    || captive.interactionMaterialsConsumed
+                    || captive.currentInteractionAttemptId > 0)))
         {
             report.AddError(
                 $"Captive '{captiveId}' has incoherent interaction state.");
@@ -391,6 +450,7 @@ public static class CaptivitySaveValidation
             hasAssignedLaborTool,
             laborToolPending,
             report);
+        ValidateInteractionTerminal(captive, report);
         ValidateInterrogationTerminal(captive, report);
         if (captive.finalContractPending
             && captive.resolvedMilestoneChoice
@@ -452,6 +512,219 @@ public static class CaptivitySaveValidation
         {
             report.AddError(
                 $"Captive '{captive.captiveId}' has invalid labor-tool assignment provenance.");
+        }
+    }
+
+    private static bool HasValidPerformerMilestoneRevisions(CaptiveState captive)
+    {
+        long highWater = captive.performerMilestoneOutcomeRevision;
+        long care = captive.carePriorityOutcomeRevision;
+        long staff = captive.staffContractOutcomeRevision;
+        long final = captive.finalContractOutcomeRevision;
+        if (care > highWater || staff > highWater || final > highWater)
+            return false;
+        if ((care > 0L && !captive.carePriorityUnlocked)
+            || (staff > 0L && !captive.staffContractUnlocked)
+            || (final > 0L
+                && !captive.finalContractPending
+                && captive.resolvedMilestoneChoice
+                    == CaptivePerformerMilestoneChoice.None))
+        {
+            return false;
+        }
+
+        long previous = 0L;
+        foreach (long revision in new[] { care, staff, final })
+        {
+            if (revision == 0L)
+                continue;
+            if (revision <= previous)
+                return false;
+            previous = revision;
+        }
+        return highWater == previous;
+    }
+
+    private static void ValidateInteractionTerminal(
+        CaptiveState captive,
+        DungeonGameRestoreReport report)
+    {
+        CaptivityInteractionTerminalState terminal = captive.interactionTerminal;
+        if (terminal.attemptId < 0
+            || terminal.attemptId > captive.interactionAttemptSequence
+            || terminal.outcomeRevision < 0L
+            || terminal.outcomeRevision > captive.interactionOutcomeRevision
+            || terminal.interactionId == null
+            || terminal.interactionDisplayName == null
+            || terminal.wardenId == null
+            || terminal.wardenDisplayName == null
+            || terminal.facilityId == null
+            || terminal.facilityDisplayName == null
+            || terminal.message == null
+            || terminal.outputItemId == null
+            || terminal.outputOperationId == null
+            || terminal.outputCommitId == null
+            || !Enum.IsDefined(
+                typeof(CaptiveInteractionKind),
+                terminal.interactionKind)
+            || !IsPercentage(terminal.willBefore)
+            || !IsPercentage(terminal.willAfter)
+            || !IsPercentage(terminal.fearBefore)
+            || !IsPercentage(terminal.fearAfter)
+            || !IsPercentage(terminal.trustBefore)
+            || !IsPercentage(terminal.trustAfter)
+            || !IsPercentage(terminal.grudgeBefore)
+            || !IsPercentage(terminal.grudgeAfter)
+            || !IsPercentage(terminal.corruptionBefore)
+            || !IsPercentage(terminal.corruptionAfter)
+            || terminal.outputAmount < 0
+            || !IsFiniteAtLeast(terminal.bodyDamageAmount, 0f)
+            || !IsFiniteAtLeast(terminal.bodyHealthBefore, 0f)
+            || !IsFiniteAtLeast(terminal.bodyHealthAfter, 0f)
+            || !IsFiniteAtLeast(terminal.bodyMaximumHealth, 0f))
+        {
+            report.AddError(
+                $"Captive '{captive.captiveId}' has invalid interaction terminal fields.");
+            return;
+        }
+
+        if (!terminal.HasOutcome)
+        {
+            if (terminal.outcomeRevision != 0L
+                || terminal.interactionId.Length > 0
+                || terminal.interactionDisplayName.Length > 0
+                || terminal.wardenId.Length > 0
+                || terminal.wardenDisplayName.Length > 0
+                || terminal.facilityId.Length > 0
+                || terminal.facilityDisplayName.Length > 0
+                || terminal.success
+                || terminal.message.Length > 0
+                || terminal.willBefore != 0f
+                || terminal.willAfter != 0f
+                || terminal.fearBefore != 0f
+                || terminal.fearAfter != 0f
+                || terminal.trustBefore != 0f
+                || terminal.trustAfter != 0f
+                || terminal.grudgeBefore != 0f
+                || terminal.grudgeAfter != 0f
+                || terminal.corruptionBefore != 0f
+                || terminal.corruptionAfter != 0f
+                || terminal.outputItemId.Length > 0
+                || terminal.outputAmount != 0
+                || terminal.outputOperationId.Length > 0
+                || terminal.outputCommitId.Length > 0
+                || terminal.outputPublished
+                || terminal.bodyDamageAmount != 0f
+                || terminal.bodyHealthBefore != 0f
+                || terminal.bodyHealthAfter != 0f
+                || terminal.bodyMaximumHealth != 0f
+                || terminal.bodyObserversPending
+                || (captive.status == CaptivityStatus.Interaction
+                    && captive.completedInteractionWork + 0.001f
+                        >= captive.requiredInteractionWork
+                    && captive.interrogationTerminal?.HasOutcome != true))
+            {
+                report.AddError(
+                    $"Captive '{captive.captiveId}' has interaction result data without an attempt.");
+            }
+            return;
+        }
+
+        bool hasOutput = terminal.outputAmount > 0;
+        bool hasDamage = terminal.bodyDamageAmount > 0f;
+        bool committed = terminal.outcomeRevision > 0L;
+        bool activeShape = captive.status == CaptivityStatus.Interaction
+            && captive.currentInteractionAttemptId == terminal.attemptId
+            && string.Equals(
+                captive.currentInteractionId,
+                terminal.interactionId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                captive.reservedWardenId,
+                terminal.wardenId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                captive.housingBuildingId,
+                terminal.facilityId,
+                StringComparison.Ordinal)
+            && captive.completedInteractionWork + 0.001f
+                >= captive.requiredInteractionWork;
+        bool identityShape = IsCanonicalNonEmpty(terminal.interactionId)
+            && IsCanonicalNonEmpty(terminal.interactionDisplayName)
+            && IsCanonicalCharacterId(terminal.wardenId)
+            && IsCanonicalNonEmpty(terminal.wardenDisplayName)
+            && IsCanonicalNonEmpty(terminal.facilityId)
+            && ((BuildingInstanceId)terminal.facilityId).IsValid
+            && IsCanonicalNonEmpty(terminal.facilityDisplayName)
+            && IsCanonicalNonEmpty(terminal.message);
+        bool outputShape = hasOutput
+            ? IsOptionalItemId(terminal.outputItemId)
+                && terminal.outputItemId.Length > 0
+                && string.Equals(
+                    terminal.outputOperationId,
+                    CaptivityInteractionAttemptIdentity.FormatOutputOperationId(
+                        captive.captiveId,
+                        terminal.attemptId),
+                    StringComparison.Ordinal)
+                && terminal.outputPublished
+                    == (terminal.outputCommitId.Length > 0)
+                && (!terminal.outputPublished
+                    || IsCanonicalNonEmpty(terminal.outputCommitId))
+            : terminal.outputItemId.Length == 0
+                && terminal.outputOperationId.Length == 0
+                && terminal.outputCommitId.Length == 0
+                && !terminal.outputPublished;
+        bool damageShape = hasDamage
+            ? terminal.success
+                && terminal.bodyHealthBefore > 0f
+                && terminal.bodyMaximumHealth
+                    + 0.001f >= terminal.bodyHealthBefore
+                && terminal.bodyHealthAfter
+                    <= terminal.bodyHealthBefore + 0.001f
+                && Approximately(
+                    terminal.bodyHealthAfter,
+                    Math.Max(
+                        0f,
+                        terminal.bodyHealthBefore
+                        - terminal.bodyDamageAmount))
+                && (!terminal.bodyObserversPending || committed)
+            : terminal.bodyHealthBefore == 0f
+                && terminal.bodyHealthAfter == 0f
+                && terminal.bodyMaximumHealth == 0f
+                && !terminal.bodyObserversPending;
+        bool failedShape = terminal.success
+            || (Approximately(terminal.willBefore, terminal.willAfter)
+                && Approximately(terminal.fearBefore, terminal.fearAfter)
+                && Approximately(terminal.trustBefore, terminal.trustAfter)
+                && Approximately(terminal.grudgeBefore, terminal.grudgeAfter)
+                && Approximately(
+                    terminal.corruptionBefore,
+                    terminal.corruptionAfter)
+                && !hasOutput
+                && !hasDamage);
+        bool ownerShape = committed
+            ? terminal.outcomeRevision == captive.interactionOutcomeRevision
+                && Approximately(captive.will, terminal.willAfter)
+                && Approximately(captive.fear, terminal.fearAfter)
+                && Approximately(captive.trust, terminal.trustAfter)
+                && Approximately(captive.grudge, terminal.grudgeAfter)
+                && Approximately(captive.corruption, terminal.corruptionAfter)
+            : !terminal.outputPublished
+                && !terminal.bodyObserversPending
+                && Approximately(captive.will, terminal.willBefore)
+                && Approximately(captive.fear, terminal.fearBefore)
+                && Approximately(captive.trust, terminal.trustBefore)
+                && Approximately(captive.grudge, terminal.grudgeBefore)
+                && Approximately(captive.corruption, terminal.corruptionBefore);
+        if (!activeShape
+            || !identityShape
+            || !outputShape
+            || !damageShape
+            || !failedShape
+            || !ownerShape)
+        {
+            report.AddError(
+                $"Captive '{captive.captiveId}' has incoherent interaction terminal progress.");
         }
     }
 
@@ -672,4 +945,7 @@ public static class CaptivitySaveValidation
             && !float.IsInfinity(value)
             && value >= minimum;
     }
+
+    private static bool Approximately(float left, float right) =>
+        Math.Abs(left - right) <= 0.001f;
 }

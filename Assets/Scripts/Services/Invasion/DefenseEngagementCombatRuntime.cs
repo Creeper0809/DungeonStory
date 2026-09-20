@@ -33,6 +33,17 @@ internal sealed class DefenseEngagementCombatRuntime
             ?? throw new ArgumentNullException(nameof(guardControl));
     }
 
+    internal DefenseEngagementCombatRuntime(
+        IDefenseEngagementStore store,
+        IGameEventBus events,
+        IGameClock clock)
+    {
+        this.store = store ?? throw new ArgumentNullException(nameof(store));
+        this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        guardControl = new DefenseGuardControlRuntime();
+    }
+
     public void Begin(DefenseEngagement engagement)
     {
         if (engagement == null
@@ -196,6 +207,13 @@ internal sealed class DefenseEngagementCombatRuntime
             return;
         }
 
+        if (engagement.Intruder == null
+            || !engagement.Intruder.TryCommitFrontCollapsedOutcome(reason))
+        {
+            throw new InvalidOperationException(
+                "The defense-front collapse outcome could not be committed.");
+        }
+
         engagement.State = DefenseEngagementState.FrontCollapsed;
         engagement.StatusText = reason;
         engagement.Intruder?.SetFrontBrokenState();
@@ -232,6 +250,11 @@ internal sealed class DefenseEngagementCombatRuntime
         {
             return;
         }
+
+        InvasionIntruderRuntime intruder = engagement.Intruder
+            ?? throw new InvalidOperationException("Defeat requires the active invasion owner.");
+        if (!intruder.CanResolveDefeat(out string failureReason))
+            throw new InvalidOperationException(failureReason);
 
         CharacterActor victor = engagement.LeadGuard;
         combatExecutor.AwardEncounterCompletion(
@@ -271,7 +294,6 @@ internal sealed class DefenseEngagementCombatRuntime
                 bubbleEligible: true));
         }
 
-        InvasionIntruderRuntime intruder = engagement.Intruder;
         Complete(engagement, false);
         intruder?.ResolveSuppressedBy(victor);
     }

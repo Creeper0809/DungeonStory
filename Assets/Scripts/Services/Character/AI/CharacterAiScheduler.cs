@@ -170,11 +170,13 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         {
             paths.ConfigureDeterministicSearchForDiagnostics(enabled);
         }
+#if UNITY_EDITOR
         IdleBehaviorRunner.ConfigureDeterministicStaticIdleForDiagnostics(enabled);
         foreach (CharacterActor actor in actors)
         {
             actor?.Brain?.ConfigureDeterministicActionScoringForDiagnostics(enabled);
         }
+#endif
         budgetState.Clear(BuildBudgetSettings(), actors.Count);
     }
 
@@ -231,7 +233,9 @@ public sealed class CharacterAiScheduler : MonoBehaviour
 
         foreach (CharacterActor actor in orderedActors)
         {
+#if UNITY_EDITOR
             actor.Brain?.ConfigureDeterministicActionScoringForDiagnostics(true);
+#endif
             RegisterInternal(actor);
         }
 
@@ -979,7 +983,9 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         actor.EnsureRuntimeState();
         if (deterministicSimulationForDiagnostics)
         {
+#if UNITY_EDITOR
             actor.Brain?.ConfigureDeterministicActionScoringForDiagnostics(true);
+#endif
         }
         actors.Add(actor);
         scheduledRetryKinds.Remove(actor);

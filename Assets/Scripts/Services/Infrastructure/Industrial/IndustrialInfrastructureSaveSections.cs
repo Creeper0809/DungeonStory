@@ -474,6 +474,96 @@ public sealed class AutomationInfrastructureSaveSection :
     }
 }
 
+public sealed class InfrastructureCommandOutcomeSaveSection :
+    IDungeonSaveSection,
+    IDungeonSaveSectionPreflight,
+    IDungeonStagedSaveSection,
+    IDungeonRollbackFreeSaveSection
+{
+    public const string Id = "world.infrastructure-command-outcomes";
+    private static readonly string[] Dependencies =
+    {
+        ModularFacilityWorldSaveSection.Id,
+        GameplayOutcomeLedgerSaveSection.Id
+    };
+    private readonly IInfrastructureCommandOutcomePersistence persistence;
+
+    public InfrastructureCommandOutcomeSaveSection(
+        IInfrastructureCommandOutcomePersistence persistence)
+    {
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
+    }
+
+    public string SectionId => Id;
+    public int SectionVersion =>
+        DungeonInfrastructureCommandOutcomeSaveData.CurrentVersion;
+    public DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.LateRuntimeState;
+    public IReadOnlyList<string> DependsOn => Dependencies;
+    public string Capture() => JsonUtility.ToJson(persistence.Capture());
+
+    public void ValidatePayload(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
+    {
+        if (!IndustrialSaveSectionParsing.ValidateHeader(
+                payloadJson,
+                sectionVersion,
+                SectionVersion,
+                "infrastructure command outcomes",
+                report))
+        {
+            return;
+        }
+
+        try
+        {
+            InfrastructureCommandOutcomeSaveValidation.RequireValid(
+                JsonUtility.FromJson<DungeonInfrastructureCommandOutcomeSaveData>(
+                    payloadJson));
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            report.AddError(
+                "Infrastructure command outcome payload is invalid: "
+                + exception.Message);
+        }
+    }
+
+    public void Restore(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
+    {
+        ValidatePayload(payloadJson, sectionVersion, report);
+        if (report.Success)
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
+    }
+
+    public IDungeonSaveRestoreStage StageRestore(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
+    {
+        IndustrialSaveSectionParsing.RequireHeader(
+            payloadJson,
+            sectionVersion,
+            SectionVersion,
+            "infrastructure command outcomes");
+        InfrastructureCommandOutcomeRestoreCandidate candidate =
+            persistence.PrepareRestore(
+                JsonUtility.FromJson<DungeonInfrastructureCommandOutcomeSaveData>(
+                    payloadJson));
+        return new DungeonDelegateSaveRestoreStage(
+            SectionId,
+            _ => persistence.Restore(candidate));
+    }
+}
+
 internal static class IndustrialSaveSectionParsing
 {
     public static bool ValidateHeader(

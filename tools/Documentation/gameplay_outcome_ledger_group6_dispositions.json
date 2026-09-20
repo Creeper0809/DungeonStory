@@ -1,0 +1,433 @@
+{
+  "schema": "gameplay-outcome-ledger-producer-dispositions@1",
+  "scope": "pre-existing-runtime-candidate/domain_group=6",
+  "entries": [
+    {
+      "type": "ApparelChangedEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative post-mutation apparel-change event.",
+      "integration_reason": "The owner prepares the apparel outcome before state replacement, commits after replacement, then publishes; the exact receipt is bridged and persisted.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs:972-978,1064-1079,1949-2000",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Evolution/EvolutionGameplayOutcomeBridge.cs:86-98,246,283,306"
+      ]
+    },
+    {
+      "type": "ApparelConditionStepResult",
+      "definition_path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelConditionRules.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Per-step wear projection, not a terminal gameplay outcome.",
+      "integration_reason": "The committed item component state or a terminal owner-domain completion is authoritative.",
+      "replacement_authority": "ApparelInstanceState committed by ApparelConditionRuntime through item component authority",
+      "evidence": ["Assets/Scripts/Services/Infrastructure/Environment/ApparelConditionRuntime.cs:283-315,341-364"]
+    },
+    {
+      "type": "ApparelLeaseAuthorityReleaseResult",
+      "definition_path": "Assets/Scripts/Services/Items/ApparelLeaseAuthorityPort.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Lease cleanup/replay status, not the destructive operation result.",
+      "integration_reason": "The parent production-facility destructive-drain transaction owns terminal completion.",
+      "replacement_authority": "ProductionFacilityDestructiveDrainDriveResult and its durable participant journal",
+      "evidence": [
+        "Assets/Scripts/Services/Items/ApparelLeaseAuthorityPort.cs:168-179",
+        "Assets/Scripts/Models/Production/Core/ProductionFacilityDestructiveDrainContracts.cs:618-663"
+      ]
+    },
+    {
+      "type": "ApparelPhysicalTransactionResult",
+      "definition_path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelPhysicalTransaction.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative completed physical input/output transaction with exact material, stack, instance, facility, order, and mass identities.",
+      "integration_reason": "The owner reserves the outcome before physical mutation, writes and commits the exact receipt after durable publication, and joins only canonical same-payload replays; conflicting duplicates remain rejected.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Infrastructure/Environment/ApparelPhysicalTransaction.cs:313-345,515,674-704,918,1965-2005",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Evolution/EvolutionGameplayOutcomeBridge.cs:155-211,429-510",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260919-r12/focused-runtime-report.json#apparel-physical-transaction"
+      ]
+    },
+    {
+      "type": "CharacterAcquiredTraitInferenceCommandResult",
+      "definition_path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitInferenceContracts.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative successful milestone completion that commits one acquired-trait manifestation from exact evidence and a legal combination.",
+      "integration_reason": "The service prepares an immutable receipt, stages trait state and evidence use, commits the mandatory outcome as the last fallible joint step, and rolls state/evidence/reservations back on failure.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitInferenceContracts.cs:319",
+        "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitInferenceService.cs:2538-2546,3144-3185",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Evolution/EvolutionGameplayOutcomeBridge.cs:212-231",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260919-r12/focused-runtime-report.json#character-skill-trait-owner"
+      ]
+    },
+    {
+      "type": "CharacterAcquiredTraitManifestationDiagnosticEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitManifestationRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Diagnostic trace only; it owns no gameplay mutation.",
+      "integration_reason": "The inference completion or reaction execution owns the result.",
+      "replacement_authority": "CharacterAcquiredTraitInferenceCommandResult or CharacterAcquiredTraitReactionExecutedEvent according to the emitting path",
+      "evidence": ["Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitManifestationRuntime.cs#CharacterAcquiredTraitManifestationDiagnosticEvent"]
+    },
+    {
+      "type": "CharacterAcquiredTraitReactionExecutedEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitSpecialReaction.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative post-reaction event.",
+      "integration_reason": "The owner prepares the outcome, mutates the reaction state/effect, commits it, then publishes; the receipt is bridged and persisted.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitSpecialReaction.cs:467-528",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Evolution/EvolutionGameplayOutcomeBridge.cs:99-111,246,283,306"
+      ]
+    },
+    {
+      "type": "CombatEquipmentTerminalDrainResult",
+      "definition_path": "Assets/Scripts/Services/Combat/CombatEquipmentTerminalDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal participant result explicitly bound to a higher destructive-drain transaction.",
+      "integration_reason": "The combat-equipment participant and outbox execute under the production-facility destructive-drain coordinator.",
+      "replacement_authority": "ProductionFacilityDestructiveDrainDriveResult and durable destructive-drain journal",
+      "evidence": [
+        "Assets/Scripts/Services/Combat/CombatEquipmentTerminalDrainContracts.cs:303-366",
+        "Assets/Scripts/Services/Combat/CombatEquipmentTerminalDrainOutbox.cs:741-804"
+      ]
+    },
+    {
+      "type": "CombatEquipmentTerminalEffectResult",
+      "definition_path": "Assets/Scripts/Services/Combat/CombatEquipmentTerminalDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal effect substep of the combat-equipment terminal drain.",
+      "integration_reason": "The enclosing drain and parent destructive-drain transaction own completion.",
+      "replacement_authority": "CombatEquipmentTerminalDrainResult under ProductionFacilityDestructiveDrainDriveResult",
+      "evidence": ["Assets/Scripts/Services/Combat/CombatEquipmentTerminalDrainContracts.cs:454-475"]
+    },
+    {
+      "type": "DurableFacilityEquipmentSlotCheckpointGcResult",
+      "definition_path": "Assets/Scripts/Models/Items/Core/DurableFacilityEquipmentSlotCheckpointGcContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Checkpoint-retention maintenance result, not gameplay outcome authority.",
+      "integration_reason": "The durable slot snapshot/save state is authoritative.",
+      "replacement_authority": "DurableFacilityEquipment slot snapshot and durable save section",
+      "evidence": ["Assets/Scripts/Models/Items/Core/DurableFacilityEquipmentSlotCheckpointGcContracts.cs#DurableFacilityEquipmentSlotCheckpointGcResult"]
+    },
+    {
+      "type": "DurableFacilityEquipmentSlotResult",
+      "definition_path": "Assets/Scripts/Models/Items/Core/DurableFacilityEquipmentSlotContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Generic slot-lifecycle status with no independent gameplay operation identity.",
+      "integration_reason": "The durable slot aggregate and caller-domain terminal outcome own the state and narrative result.",
+      "replacement_authority": "DurableFacilityEquipment slot aggregate snapshot/save authority plus caller-domain terminal result",
+      "evidence": [
+        "Assets/Scripts/Models/Items/Core/DurableFacilityEquipmentSlotContracts.cs:345",
+        "Assets/Scripts/Services/Items/DurableFacilityEquipmentSlotRuntime.cs:271-376"
+      ]
+    },
+    {
+      "type": "DurableFacilityEquipmentUsabilityResult",
+      "definition_path": "Assets/Scripts/Models/Items/Core/DurableFacilityEquipmentPolicyContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Precondition/policy evaluation only.",
+      "integration_reason": "A successful use and its caller-domain effect commit own later mutation.",
+      "replacement_authority": "DurableFacilityEquipmentUseRuntime plus IDurableFacilityEquipmentEffectCommit caller authority",
+      "evidence": ["Assets/Scripts/Models/Items/Core/DurableFacilityEquipmentPolicyContracts.cs#DurableFacilityEquipmentUsabilityResult"]
+    },
+    {
+      "type": "DurableFacilityEquipmentUseResult",
+      "definition_path": "Assets/Scripts/Models/Items/Core/DurableFacilityEquipmentPolicyContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Generic use status; exact wear is in the item component and the caller domain commits the gameplay effect.",
+      "integration_reason": "The result has no stable independent outcome identity.",
+      "replacement_authority": "Equipment item-component state plus concrete IDurableFacilityEquipmentEffectCommit owner-domain result",
+      "evidence": ["Assets/Scripts/Services/Items/DurableFacilityEquipmentUseRuntime.cs:35,189-194,239,269"]
+    },
+    {
+      "type": "EquipmentAttunementAdvanceResult",
+      "definition_path": "Assets/Scripts/Services/Combat/EquipmentEvolutionRules.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Rule-calculation detail for an equipment-evolution state mutation.",
+      "integration_reason": "The equipment evolution runtime state update and later completion own the result.",
+      "replacement_authority": "Equipment evolution component state committed by EquipmentEvolutionRuntime.RecordUsage",
+      "evidence": ["Assets/Scripts/Services/Combat/EquipmentEvolutionRuntime.cs:116-125"]
+    },
+    {
+      "type": "EquipmentGameplayFormulaReplayResult",
+      "definition_path": "Assets/Scripts/Services/Character/Core/GameplayNarrativeSourceCatalog.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Editor-only formula replay/diagnostic value.",
+      "integration_reason": "Production equipment-evolution state commit is authoritative.",
+      "replacement_authority": "Equipment evolution runtime state/outcome",
+      "evidence": ["Assets/Scripts/Services/Character/Core/GameplayNarrativeSourceCatalog.cs:464-479,529-636"]
+    },
+    {
+      "type": "EquipmentStoredEvent",
+      "definition_path": "Assets/Scripts/Models/Items/Core/ItemPrimitives.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Low-detail post-state notification that does not preserve the physical storage transaction.",
+      "integration_reason": "The warehouse admission and physical stored-stack transaction are authoritative.",
+      "replacement_authority": "ItemTransferService warehouse-admission and physical stored-stack transaction",
+      "evidence": ["Assets/Scripts/Services/Items/ItemTransferService.cs:3320-3388"]
+    },
+    {
+      "type": "ExpectedReceipt",
+      "definition_path": "Assets/Scripts/Services/Combat/EquipmentEvolutionMaterialRestoreGuard.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Private restore-guard expectation object.",
+      "integration_reason": "It validates restoration and owns no mutation.",
+      "replacement_authority": "Equipment evolution material replacement receipt/transaction",
+      "evidence": ["Assets/Scripts/Services/Combat/EquipmentEvolutionMaterialRestoreGuard.cs#ExpectedReceipt"]
+    },
+    {
+      "type": "ExtremeRiskResolution",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Deterministic rule resolution consumed by an owning domain operation.",
+      "integration_reason": "The concrete caller applies the effect and owns the terminal result.",
+      "replacement_authority": "Concrete caller-domain terminal transaction that applies ExtremeRiskResolution",
+      "evidence": ["Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntime.cs#ExtremeRiskResolution"]
+    },
+    {
+      "type": "FacilityEvolutionCompletedEvent",
+      "definition_path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRuntime.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative facility-evolution completion event.",
+      "integration_reason": "The owner prepares the outcome, replaces state, commits, acknowledges material, clears pending state, then publishes; exact mapping and persistence exist.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRuntime.cs:1435-1462,1518-1625,1697-1749,2006-2015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Evolution/EvolutionGameplayOutcomeBridge.cs:112-123,246,283,306"
+      ]
+    },
+    {
+      "type": "FacilityEvolutionMaterialCommitReceipt",
+      "definition_path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Durable material subreceipt of one facility-evolution outcome.",
+      "integration_reason": "The connected facility outcome preserves the material provenance.",
+      "replacement_authority": "FacilityEvolutionCompletedEvent via FacilityEvolutionOutcomeReceipt",
+      "evidence": ["Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRuntime.cs:1435-1462,1611-1625,1712-1723"]
+    },
+    {
+      "type": "FacilityEvolutionMutationResult",
+      "definition_path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionMutations.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal mutation-step result.",
+      "integration_reason": "Facility evolution completion is the terminal authority.",
+      "replacement_authority": "FacilityEvolutionCompletedEvent via FacilityEvolutionOutcomeReceipt",
+      "evidence": ["Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionMutations.cs:31,39,47"]
+    },
+    {
+      "type": "FacilityEvolutionResult",
+      "definition_path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Return payload wrapped by the authoritative completion event; separate recording would duplicate one outcome.",
+      "integration_reason": "FacilityEvolutionCompletedEvent and its outcome receipt are connected authority.",
+      "replacement_authority": "FacilityEvolutionCompletedEvent via FacilityEvolutionOutcomeReceipt",
+      "evidence": ["Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRuntime.cs:432-438,1611-1625,2006-2015"]
+    },
+    {
+      "type": "FacilityEvolutionValidationResult",
+      "definition_path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Validation/precondition result.",
+      "integration_reason": "Only a successful facility-evolution completion is authoritative.",
+      "replacement_authority": "FacilityEvolutionCompletedEvent via FacilityEvolutionOutcomeReceipt",
+      "evidence": ["Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs#FacilityEvolutionValidationResult"]
+    },
+    {
+      "type": "GameplayEffectProjectionResult",
+      "definition_path": "Assets/Scripts/Services/Foundation/GameplayEffectContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Pure effect-value projection.",
+      "integration_reason": "The later concrete owner-domain effect application is authoritative.",
+      "replacement_authority": "Concrete gameplay-effect commit owner",
+      "evidence": ["Assets/Scripts/Services/Foundation/GameplayEffectContracts.cs#GameplayEffectProjectionResult"]
+    },
+    {
+      "type": "GoldenHarvestPreparedResolution",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Prepared rollback/replay intermediate, not a separate terminal outcome.",
+      "integration_reason": "CropPlotRuntime commits the harvest outcome around the actual mutation.",
+      "replacement_authority": "CropPlanGameplayOutcomeReceipt committed by CropPlotRuntime",
+      "evidence": ["Assets/Scripts/Services/Economy/CropPlotRuntime.cs:1241-1258,1499-1513,1588-1653"]
+    },
+    {
+      "type": "LocalLlmChoiceResult",
+      "definition_path": "Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Model response/validation result, not gameplay truth.",
+      "integration_reason": "Only the requesting owner can validate and commit a legal result.",
+      "replacement_authority": "Accepted owner-domain commit after C# validation",
+      "evidence": ["Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs#LocalLlmChoiceResult"]
+    },
+    {
+      "type": "LocalLlmResult",
+      "definition_path": "Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Transport result only.",
+      "integration_reason": "Only the requesting owner can validate and commit gameplay truth.",
+      "replacement_authority": "Accepted owner-domain commit after C# validation",
+      "evidence": ["Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs#LocalLlmResult"]
+    },
+    {
+      "type": "MemoryErasureSealBossAwardResult",
+      "definition_path": "Assets/Scripts/Services/Offense/MemoryErasureSealBossAwardService.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative idempotent unique-item award with persisted region name, operation, physical commit, and item identities.",
+      "integration_reason": "The service reserves before physical publication, writes and commits the exact outcome before region completion, and resumes the persisted per-region claim with the same operation and display-name snapshot after restore.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Offense/MemoryErasureSealBossAwardService.cs:159-245,245-380",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Evolution/EvolutionGameplayOutcomeBridge.cs:371-427",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260919-r12/focused-runtime-report.json#memory-erasure-boss-award"
+      ]
+    },
+    {
+      "type": "MemoryErasureSealCommandResult",
+      "definition_path": "Assets/Scripts/Services/Character/Core/MemoryErasureSealContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Command acceptance/status wrapper rather than the completed erase outcome.",
+      "integration_reason": "The completed event and memory-erasure outcome receipt are connected authority.",
+      "replacement_authority": "MemoryErasureSealUseCompletedEvent via MemoryErasureOutcomeReceipt",
+      "evidence": ["Assets/Scripts/Services/Character/Core/MemoryErasureSealCommandService.cs:957-989"]
+    },
+    {
+      "type": "MemoryErasureSealUseCompletedEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Core/MemoryErasureSealContracts.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative memory-erasure completion event.",
+      "integration_reason": "The transaction reserves outcome, debits the seal, commits erasure, acknowledges custody, commits the ledger result, then publishes.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Core/MemoryErasureSealTransactionService.cs:206-212,232-274,307-366",
+        "Assets/Scripts/Services/Character/Core/MemoryErasureSealCommandService.cs:957-989"
+      ]
+    },
+    {
+      "type": "MemoryErasureSealUseResult",
+      "definition_path": "Assets/Scripts/Services/Character/Core/MemoryErasureSealContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Payload carried by the completed event; separate recording would duplicate one logical result.",
+      "integration_reason": "The outcome receipt and completed event own exact identity and commit.",
+      "replacement_authority": "MemoryErasureSealUseCompletedEvent via MemoryErasureOutcomeReceipt",
+      "evidence": ["Assets/Scripts/Services/Character/Core/MemoryErasureSealTransactionService.cs:307-366"]
+    },
+    {
+      "type": "NarrativeFormulaDrawbackResolution",
+      "definition_path": "Assets/Scripts/Models/NarrativeMechanics/NarrativeFormulaContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Mechanic candidate-resolution value before owner commit.",
+      "integration_reason": "The concrete formula-consuming owner result is authoritative.",
+      "replacement_authority": "Concrete formula-consuming owner-domain outcome",
+      "evidence": ["Assets/Scripts/Models/NarrativeMechanics/NarrativeFormulaContracts.cs#NarrativeFormulaDrawbackResolution"]
+    },
+    {
+      "type": "NarrativeFormulaSelectedModuleResolution",
+      "definition_path": "Assets/Scripts/Models/NarrativeMechanics/NarrativeFormulaModuleSelection.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Module-selection calculation before owner commit.",
+      "integration_reason": "The concrete formula-consuming owner result is authoritative.",
+      "replacement_authority": "Concrete formula-consuming owner-domain outcome",
+      "evidence": ["Assets/Scripts/Models/NarrativeMechanics/NarrativeFormulaModuleSelection.cs#NarrativeFormulaSelectedModuleResolution"]
+    },
+    {
+      "type": "ProductionApparelOrderSourceTerminalApplyResult",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionApparelOrderTerminalDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal source-terminal application step.",
+      "integration_reason": "The enclosing participant and parent destructive-drain transaction own completion.",
+      "replacement_authority": "ProductionFacilityDestructiveDrainDriveResult through ProductionApparelOrderTerminalDrainResult",
+      "evidence": ["Assets/Scripts/Services/Economy/ProductionApparelOrderTerminalDestructiveDrainParticipant.cs#source-terminal-apply"]
+    },
+    {
+      "type": "ProductionApparelOrderSourceTerminalReceipt",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionApparelOrderTerminalDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal source-phase receipt belonging to one parent operation.",
+      "integration_reason": "ParentOperationId and the durable outbox bind it to the destructive-drain authority.",
+      "replacement_authority": "ProductionFacilityDestructiveDrainDriveResult through ProductionApparelOrderTerminalDrainResult",
+      "evidence": ["Assets/Scripts/Services/Economy/ProductionApparelOrderTerminalDrainOutbox.cs:105-130,678-708"]
+    },
+    {
+      "type": "ProductionApparelOrderTerminalDrainResult",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionApparelOrderTerminalDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Durable participant result explicitly bound to a higher destructive-drain transaction.",
+      "integration_reason": "The participant is driven and journaled by the production-facility destructive-drain coordinator.",
+      "replacement_authority": "ProductionFacilityDestructiveDrainDriveResult and durable destructive-drain journal",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/ProductionApparelOrderTerminalDrainContracts.cs:242-335",
+        "Assets/Scripts/Services/Economy/ProductionApparelOrderTerminalDestructiveDrainParticipant.cs:432-498,635"
+      ]
+    },
+    {
+      "type": "ProductionApparelOrderTerminalEffectApplyResult",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionApparelOrderTerminalDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal terminal-effect application step.",
+      "integration_reason": "The parent apparel drain and production-facility transaction own completion.",
+      "replacement_authority": "ProductionFacilityDestructiveDrainDriveResult through ProductionApparelOrderTerminalDrainResult",
+      "evidence": ["Assets/Scripts/Services/Economy/ProductionApparelOrderTerminalDestructiveDrainParticipant.cs#terminal-effect-apply"]
+    },
+    {
+      "type": "ProductionApparelOrderTerminalEffectReceipt",
+      "definition_path": "Assets/Scripts/Services/Economy/ProductionApparelOrderTerminalDrainContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal effect-phase receipt belonging to the parent operation.",
+      "integration_reason": "The enclosing participant and parent destructive-drain transaction own completion.",
+      "replacement_authority": "ProductionFacilityDestructiveDrainDriveResult through ProductionApparelOrderTerminalDrainResult",
+      "evidence": ["Assets/Scripts/Services/Economy/ProductionApparelOrderTerminalDrainOutbox.cs#terminal-effect-receipt"]
+    },
+    {
+      "type": "SelectedModuleFormulaResolution",
+      "definition_path": "Assets/Scripts/Services/Combat/EquipmentEvolutionRules.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Private formula-resolution helper before equipment owner commit.",
+      "integration_reason": "Equipment evolution state/outcome is authoritative.",
+      "replacement_authority": "Equipment evolution runtime state/outcome",
+      "evidence": ["Assets/Scripts/Services/Combat/EquipmentEvolutionRules.cs:89-112"]
+    }
+  ]
+}

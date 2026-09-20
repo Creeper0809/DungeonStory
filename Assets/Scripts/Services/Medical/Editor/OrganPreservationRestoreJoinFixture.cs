@@ -631,7 +631,10 @@ public static class OrganPreservationRestoreJoinFixture
                 spawner,
                 mass,
                 dungeonCatalog,
-                EditorNullItemMarkerPresenter.Instance));
+                EditorNullItemMarkerPresenter.Instance,
+                new FixedGameSessionStateProvider(),
+                new MigratedProducerOutcomeEditorFixture(
+                    "run:organ-preservation-transform").Transaction));
             IPhysicalItemTransformService physicalTransforms = transforms
                 ?? (failFirstTransform
                     ? new RejectOnceTransform(Transform)

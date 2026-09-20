@@ -4,6 +4,19 @@ using UnityEngine;
 
 internal sealed class CharacterBreakdownWorld
 {
+    internal sealed class WaterTransactionSnapshot
+    {
+        internal WaterTransactionSnapshot(
+            IReadOnlyList<WorldWaterSourceSaveData> sources,
+            int nextSequence)
+        {
+            Sources = sources ?? throw new ArgumentNullException(nameof(sources));
+            NextSequence = nextSequence;
+        }
+
+        internal IReadOnlyList<WorldWaterSourceSaveData> Sources { get; }
+        internal int NextSequence { get; }
+    }
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IWorldItemStackRuntime itemStackRuntime;
     private readonly IWorldFilthQuery filthQuery;
@@ -71,6 +84,13 @@ internal sealed class CharacterBreakdownWorld
         return committed;
     }
 
+    public DungeonPhysicalItemSaveData CaptureItems() =>
+        itemStackRuntime.Capture();
+
+    public void RestoreItems(DungeonPhysicalItemSaveData snapshot) =>
+        itemStackRuntime.Restore(
+            snapshot ?? throw new ArgumentNullException(nameof(snapshot)));
+
     public IReadOnlyList<WorldItemStackSnapshot> GetStacksAt(
         Vector2Int position,
         bool includeStored)
@@ -110,6 +130,19 @@ internal sealed class CharacterBreakdownWorld
         out float consumed)
     {
         return waterQuery.TryDrink(sourceId, amount, out quality, out consumed);
+    }
+
+    public WaterTransactionSnapshot CaptureWater() => new(
+        waterQuery.CaptureWaterSources(),
+        waterQuery.NextWaterSequence);
+
+    public void RestoreWater(WaterTransactionSnapshot snapshot)
+    {
+        snapshot = snapshot
+            ?? throw new ArgumentNullException(nameof(snapshot));
+        waterQuery.RestoreWaterSources(
+            snapshot.Sources,
+            snapshot.NextSequence);
     }
 
     public int GetAccidentLocationPriority(Grid grid, GridCell cell)

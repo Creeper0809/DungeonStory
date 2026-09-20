@@ -139,7 +139,8 @@ public enum ProductionOutputLifecycleBlockCode
     EquipmentRepairOrder = 17,
     StockSensorInstallPending = 18,
     StockSensorEmbedded = 19,
-    StockSensorRemovalAwaitingAck = 20
+    StockSensorRemovalAwaitingAck = 20,
+    EnvironmentalFireDamageOutcomePending = 21
 }
 
 public readonly struct ProductionOutputLifecycleBlock

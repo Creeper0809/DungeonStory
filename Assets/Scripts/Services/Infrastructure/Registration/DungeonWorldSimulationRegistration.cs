@@ -11,6 +11,9 @@ public static class DungeonWorldSimulationRegistration
         WorldSimulationSceneReferences sceneReferences)
     {
         builder.RegisterEvolutionGameplayOutcomeBridges();
+        builder.RegisterFacilitySynthesisGameplayOutcomes();
+        builder.RegisterProductionCommandGameplayOutcomes();
+        builder.RegisterInfrastructureCommandGameplayOutcomes();
         builder.RegisterInstance(sceneReferences
             ?? throw new System.ArgumentNullException(nameof(sceneReferences)));
         builder.Register<WorldDropZoneQuery>(Lifetime.Singleton)
@@ -714,6 +717,15 @@ public static class DungeonWorldSimulationRegistration
             Lifetime.Singleton);
         builder.Register<ProductionStockSensorLifecycleContributor>(
             Lifetime.Singleton);
+        builder.Register<EnvironmentalFireDamageOutcomeAuthority>(
+                Lifetime.Singleton)
+            .As<IEnvironmentalFireDamageOutcomeAuthority>()
+            .As<IEnvironmentalFireDamageOutcomeQuery>()
+            .As<IEnvironmentalFireDamageOutcomePersistence>();
+        builder.Register<EnvironmentalFireDamageLifecycleContributor>(
+            Lifetime.Singleton);
+        builder.Register<BuildingDemolitionOutcomeLifecycleContributor>(
+            Lifetime.Singleton);
         builder.Register<ProductionOutputDestinationLifecycleQuery>(Lifetime.Singleton)
             .As<IProductionOutputDestinationLifecycleQuery>();
         builder.Register<ProductionPhysicalCustodyDrainService>(
@@ -765,6 +777,14 @@ public static class DungeonWorldSimulationRegistration
                 Lifetime.Singleton)
             .As<IProductionFacilityDestructiveDrainParticipant>()
             .As<IProductionFacilityDestructiveDrainCheckpointGcParticipant>();
+        builder.Register<EnvironmentalFireDamageDestructiveDrainParticipant>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainParticipant>()
+            .As<IProductionFacilityDestructiveDrainPostWorldRemovalFinalizer>()
+            .As<IProductionFacilityDestructiveDrainCheckpointGcParticipant>();
+        builder.Register<BuildingDemolitionDestructiveDrainParticipant>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainParticipant>();
         builder.Register<ProductionFacilityDestructiveDrainParticipantRegistry>(
                 Lifetime.Singleton)
             .AsSelf()
@@ -857,6 +877,10 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<AutomationPowerDemandRegistry>(Lifetime.Singleton)
             .As<IAutomationExecutionModeQuery>()
             .AsSelf();
+        builder.RegisterEntryPoint<InfrastructureCommandOutcomeRuntime>(
+                Lifetime.Singleton)
+            .As<IInfrastructureCommandOutcomeTransaction>()
+            .As<IInfrastructureCommandOutcomePersistence>();
         builder.RegisterEntryPoint<ElectricalNetworkRuntime>(
                 Lifetime.Singleton)
             .As<IPowerInfrastructureQuery>()
@@ -913,6 +937,7 @@ public static class DungeonWorldSimulationRegistration
             .As<IFluidInfrastructureQuery>()
             .As<IFluidInfrastructureCommand>()
             .As<IFluidInfrastructureTransaction>()
+            .As<IFluidInfrastructureMutationTransaction>()
             .As<IManualWaterAvailabilityQuery>()
             .As<IManualWaterTransferTransaction>()
             .As<IFluidInfrastructureBatchTransaction>()
@@ -924,7 +949,8 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<ProcessFluidUseRuntime>(Lifetime.Singleton)
             .As<IProcessFluidUseRuntime>();
         builder.Register<CropIrrigationRuntime>(Lifetime.Singleton)
-            .As<ICropIrrigationRuntime>();
+            .As<ICropIrrigationRuntime>()
+            .As<ICropIrrigationSupplyTransaction>();
         builder.Register<ConveyorItemGateway>(Lifetime.Singleton);
         builder.RegisterEntryPoint<ConveyorRuntime>(Lifetime.Singleton)
             .As<IConveyorInfrastructureQuery>()
@@ -1179,6 +1205,8 @@ public static class DungeonWorldSimulationRegistration
             .As<ICharacterConsumablesInputOwnerRuntime>();
         builder.RegisterEntryPoint<CharacterConsumablesInputOwnerLifecycleRuntime>(
             Lifetime.Singleton);
+        builder.Register<CharacterConsumablesOutcomeTransaction>(Lifetime.Singleton)
+            .As<ICharacterConsumablesOutcomeTransaction>();
         builder.Register<CharacterConsumablesRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<ICharacterConsumablesApplication>()

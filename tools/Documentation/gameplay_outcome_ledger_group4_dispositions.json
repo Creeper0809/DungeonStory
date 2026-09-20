@@ -1,0 +1,773 @@
+{
+  "schema": "gameplay-outcome-ledger-producer-dispositions@1",
+  "scope": "pre-existing-runtime-candidate/domain_group=4",
+  "entries": [
+    {
+      "type": "ApologyEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative apology operation with stable operation identity, offender, recipient, offense and restitution facts.",
+      "integration_reason": "The identity adapter reserves the typed outcome before forgiveness, relationship and recipient-mood mutation, then commits or restores the complete snapshot.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterApologyCommandRuntime.cs:68-92",
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityDomainAdapters.cs:1141-1211"
+      ]
+    },
+    {
+      "type": "BackgroundInitializationOutcome",
+      "definition_path": "Assets/Scripts/Services/Character/CharacterNarrativeContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Initial-state setup projection returned while a newly registered character adopts authored background data; it is not a completed player command or recurring gameplay operation.",
+      "integration_reason": "The saved CharacterNarrativeRecord is the authority for initialized background, initial proficiency, culture and faction state.",
+      "replacement_authority": "CharacterNarrativeRecord persisted initialization state",
+      "evidence": [
+        "Assets/Scripts/Services/Character/CharacterNarrativeAggregate.cs:280-353",
+        "Assets/Scripts/Services/Character/CharacterNarrativeRuntime.cs:873-892"
+      ]
+    },
+    {
+      "type": "CareerMentorshipAwardCommitReceipt",
+      "definition_path": "Assets/Scripts/Services/Character/CareerApplicationAdapter.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative completed mentorship award coupled to an exact durable career-ledger wear revision.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Services/Character/CareerApplicationAdapter.cs:160-189,324-394,439-493",
+        "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs:541-718",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "CharacterActivityEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Core/CharacterActivityEvent.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Legacy actor-local display/log projection that cannot represent complete multi-party outcome facts.",
+      "integration_reason": "The approved plan explicitly rejects CharacterActivityEvent as gameplay truth authority; each originating terminal command owns its result.",
+      "replacement_authority": "Originating typed terminal result receipt",
+      "evidence": [
+        "Tools/Documentation/gameplay-outcome-narrative-ledger-plan.md:41-45",
+        "Assets/Scripts/Services/Character/Core/CharacterActivityEvent.cs:39-269"
+      ]
+    },
+    {
+      "type": "CharacterAgeConditionChangedEvent",
+      "definition_path": "Assets/Scripts/Services/Character/CharacterLifeApplicationAdapter.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative daily age-condition transition that changes persisted life state and can cause exact anatomy damage.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Services/Character/CharacterLifeApplicationAdapter.cs:64-95,170-263",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "CharacterAiDecisionTickResult",
+      "definition_path": "Assets/Scripts/Services/Character/AI/CharacterAiDecisionContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Transient AI scheduling and choice-loop return value, not a committed gameplay effect.",
+      "integration_reason": "The selected command's terminal owner records any resulting gameplay change.",
+      "replacement_authority": "Selected authoritative command result",
+      "evidence": [
+        "Assets/Scripts/Services/Character/AI/CharacterAiDecisionContracts.cs:3-31",
+        "Assets/Scripts/Services/Character/AI/CharacterAiDecisionPipeline.cs:78-1030"
+      ]
+    },
+    {
+      "type": "CharacterAiRuntimeTraceEvent",
+      "definition_path": "Assets/Scripts/Services/Character/AI/CharacterAiRuntimeTrace.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Diagnostic trace describing AI evaluation rather than a committed world result.",
+      "integration_reason": "Trace consumers remain diagnostic; selected command receipts own gameplay truth.",
+      "replacement_authority": "Selected authoritative command result",
+      "evidence": [
+        "Assets/Scripts/Services/Character/AI/CharacterAiRuntimeTrace.cs:90-154",
+        "Assets/Scripts/Services/Character/AI/AIBrain.cs:3744"
+      ]
+    },
+    {
+      "type": "CharacterConsumablesMealConsumedEvent",
+      "definition_path": "Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntimeContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Post-effect notification carrying the already authoritative CharacterConsumablesMealResult.",
+      "integration_reason": "Recording both would duplicate one meal operation; the stable operation-bearing meal result is the replacement authority.",
+      "replacement_authority": "CharacterConsumablesMealResult",
+      "evidence": [
+        "Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntimeContracts.cs:566-584",
+        "Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntime.cs:2483-2525"
+      ]
+    },
+    {
+      "type": "CharacterConsumablesMealResult",
+      "definition_path": "Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntimeContracts.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative terminal meal operation with stable operation, item stack, policy, contamination and nutrition facts.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntimeContracts.cs:440-497",
+        "Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntime.cs:972-1174",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "CharacterConsumablesSubstanceResult",
+      "definition_path": "Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntimeContracts.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative terminal substance-use result including tolerance, addiction and overdose changes.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntimeContracts.cs:499-540",
+        "Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntime.cs:1770-1985",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "CharacterDetoxTreatmentResult",
+      "definition_path": "Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntimeContracts.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative detox operation result with stable operation, exact medicine stack and toxicity reduction.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntimeContracts.cs:350-380",
+        "Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntime.cs:1380-1603,3016-3050",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "CharacterExposureStepResult",
+      "definition_path": "Assets/Scripts/Models/Environment/Core/EnvironmentalCoreDomain.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Pure per-step exposure calculation value, including continuous interpolation state, not a terminal command or threshold event.",
+      "integration_reason": "Only a separately identified meaningful threshold/consequence operation may be recorded; continuous StepExposure output is explicitly outside the result scope.",
+      "replacement_authority": "CharacterEnvironmentRuntime persisted exposure state and any terminal consequence receipt",
+      "evidence": [
+        "Assets/Scripts/Models/Environment/Core/EnvironmentalCoreDomain.cs:268-295,474-517",
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterEnvironmentRuntime.cs:559"
+      ]
+    },
+    {
+      "type": "CharacterGrowthTabRequestedEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Core/CharacterProgressionNotificationApplicationAdapter.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "UI navigation request with no gameplay mutation.",
+      "integration_reason": "Opening a view is not a gameplay result.",
+      "replacement_authority": "none",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Core/CharacterProgressionNotificationApplicationAdapter.cs:55-90"
+      ]
+    },
+    {
+      "type": "CharacterLifeStageChangedEvent",
+      "definition_path": "Assets/Scripts/Services/Character/CharacterLifeApplicationAdapter.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative persisted life-stage transition with character, previous stage and current stage.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Services/Character/CharacterLifeApplicationAdapter.cs:18-33,64-95,150-160",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "CharacterMealConsumedEvent",
+      "definition_path": "Assets/Scripts/Models/Survival/Core/SurvivalPrimitives.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Saved meal-ledger notification derived from an already completed physical meal operation.",
+      "integration_reason": "The CharacterConsumablesMealResult owns the exact operation; this ledger projection must not create a duplicate outcome.",
+      "replacement_authority": "CharacterConsumablesMealResult",
+      "evidence": [
+        "Assets/Scripts/Models/Survival/Core/SurvivalPrimitives.cs:145-221",
+        "Assets/Scripts/Services/Survival/SurvivalMealLedger.cs:56-108"
+      ]
+    },
+    {
+      "type": "CharacterMentalInstabilityBurdenRequestedEvent",
+      "definition_path": "Assets/Scripts/Services/Survival/DarkSurvivalModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Mutation request signal; it does not prove that mental-instability burden was applied.",
+      "integration_reason": "The receiving deprivation aggregate's committed burden transition is the result authority.",
+      "replacement_authority": "CharacterDeprivationRuntime persisted mental-instability burden transition",
+      "evidence": [
+        "Assets/Scripts/Services/Survival/DarkSurvivalModels.cs:31-43",
+        "Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:922-923"
+      ]
+    },
+    {
+      "type": "CharacterPrimitiveSurvivalCompletedEvent",
+      "definition_path": "Assets/Scripts/Services/Survival/DarkSurvivalModels.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Terminal primitive-survival action result with the affected character, action, need recovery and physical-item count.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Services/Survival/DarkSurvivalModels.cs:45-63",
+        "Assets/Scripts/Services/Survival/CharacterPrimitiveSurvivalRunner.cs:194-825",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "CharacterPrimitiveSurvivalStartedEvent",
+      "definition_path": "Assets/Scripts/Services/Survival/DarkSurvivalModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Action-start/progress signal before any survival effect commits.",
+      "integration_reason": "The corresponding completed event or specific failure authority owns the terminal result.",
+      "replacement_authority": "CharacterPrimitiveSurvivalCompletedEvent or terminal failure receipt",
+      "evidence": [
+        "Assets/Scripts/Services/Survival/DarkSurvivalModels.cs:65-83",
+        "Assets/Scripts/Services/Survival/CharacterPrimitiveSurvivalRunner.cs:130-181"
+      ]
+    },
+    {
+      "type": "CharacterProficiencyAwardCommitReceipt",
+      "definition_path": "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative rank-crossing proficiency award with stable before/after experience, rank, hour and operation identity.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs:8-85,258-302",
+        "Assets/Scripts/Services/Character/CharacterNarrativeRuntime.cs:190-243",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "CharacterTabooIncidentEvent",
+      "definition_path": "Assets/Scripts/Models/Survival/Core/CharacterTabooIncidentEvent.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Meaningful taboo incident with direct actor consequences and witness effects caused by a committed humanoid-carcass transform.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Models/Survival/Core/CharacterTabooIncidentEvent.cs:3-25",
+        "Assets/Scripts/Services/Wildlife/WildlifeCarcassService.cs:481-539",
+        "Assets/Scripts/Services/Survival/CharacterDeprivationRuntime.cs:933-960",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "CharacterWaterConsumedEvent",
+      "definition_path": "Assets/Scripts/Models/Survival/Core/SurvivalPrimitives.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Meaningful physical water-consumption result with character, source, quality, quantity and pathogen identity.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Models/Survival/Core/SurvivalPrimitives.cs:708-730",
+        "Assets/Scripts/Services/Survival/CharacterBreakdownActionRunner.cs:416-451",
+        "Assets/Scripts/Services/Survival/CharacterSafeReliefRunner.cs:605-653",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "FacilityRestockEvent",
+      "definition_path": "Assets/Scripts/Services/Operation/OperatingDaySettlement.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Post-commit summary notification that drops the exact retail-lot operation identities.",
+      "integration_reason": "The committed retail lot batch and its source operation IDs are the authority; recording this summary would be lossy and duplicative.",
+      "replacement_authority": "ShopInventoryRuntime committed RetailStockLotSnapshot batch",
+      "evidence": [
+        "Assets/Scripts/Models/Buildings/Core/ShopInventoryRuntime.cs:448-464",
+        "Assets/Scripts/Services/Operation/OperatingDaySettlement.cs:457-472"
+      ]
+    },
+    {
+      "type": "ICharacterIdentityEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Marker/interface definition rather than a produced terminal value.",
+      "integration_reason": "Concrete event types are reviewed independently.",
+      "replacement_authority": "Concrete typed result",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs:7-12"
+      ]
+    },
+    {
+      "type": "KoreanJosaFormatResult",
+      "definition_path": "Assets/Scripts/Services/Narrative/Korean/KoreanJosaContracts.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Pure text-formatting projection, not an in-world gameplay result.",
+      "integration_reason": "The formatter is presentation infrastructure and never owns game state.",
+      "replacement_authority": "none",
+      "evidence": [
+        "Assets/Scripts/Services/Narrative/Korean/KoreanJosaContracts.cs:156-190",
+        "Assets/Scripts/Services/Narrative/Korean/KoreanJosaFormatter.cs:26-96"
+      ]
+    },
+    {
+      "type": "MaterialSalvageResult",
+      "definition_path": "Assets/Scripts/Services/Economy/V23MaterialSalvageCalculator.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Pure deterministic work/recovery estimate used before a dismantle operation.",
+      "integration_reason": "The later dismantle transaction and exact physical output receipt own any committed salvage result.",
+      "replacement_authority": "Terminal dismantle physical transform/output receipt",
+      "evidence": [
+        "Assets/Scripts/Services/Economy/V23MaterialSalvageCalculator.cs:15-89",
+        "Assets/Scripts/Services/Character/Work/WorkAmountSystem.cs:2290-2375"
+      ]
+    },
+    {
+      "type": "MealConsumedEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Identity/mood projection derived from a completed physical meal and meal ledger entry.",
+      "integration_reason": "CharacterConsumablesMealResult owns the exact meal operation; this event only drives secondary identity mood policy.",
+      "replacement_authority": "CharacterConsumablesMealResult",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs:291-305",
+        "Assets/Scripts/Services/Survival/SurvivalFoodRuntime.cs:802-822",
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityDomainAdapters.cs:330-350"
+      ]
+    },
+    {
+      "type": "MealConsumptionResult",
+      "definition_path": "Assets/Scripts/Models/Economy/Core/CharacterConsumableModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Application-layer projection of CharacterConsumablesMealResult with no independent mutation.",
+      "integration_reason": "Recording both would duplicate the same stable consumable operation.",
+      "replacement_authority": "CharacterConsumablesMealResult",
+      "evidence": [
+        "Assets/Scripts/Models/Economy/Core/CharacterConsumableModels.cs:72-178",
+        "Assets/Scripts/Services/Survival/CharacterConsumablesApplicationAdapters.cs:1203-1218"
+      ]
+    },
+    {
+      "type": "MealMissedEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Meaningful per-character daily failure to consume any meal.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs:307-316",
+        "Assets/Scripts/Services/Survival/SurvivalFoodRuntime.cs:854-865",
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityDomainAdapters.cs:351-352",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "ObservedFuneralLifeEventReceipt",
+      "definition_path": "Assets/Scripts/Services/Run/V20CampaignRuntime.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Source-specific authoritative observed funeral life-event receipt with stable source operation and exact participants.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Services/Run/V20CampaignRuntime.cs:49-163,2499-2507,5690-5802",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "ObservedLastLessonLifeEventReceipt",
+      "definition_path": "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Source-specific authoritative observed last-lesson life-event receipt tied to mentorship, retirement and protective equipment.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs:541-729",
+        "Assets/Scripts/Services/Run/V20CampaignRuntime.cs:2534-2543,5690-5802",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "ObservedLifeEventCommitResult",
+      "definition_path": "Assets/Scripts/Services/Run/V20CampaignRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Internal state-changed/resolution wrapper that omits the exact source receipt and has no independent operation identity.",
+      "integration_reason": "Each source-specific observed life-event receipt is reviewed as the record authority; this return wrapper only reports that commit's disposition.",
+      "replacement_authority": "ObservedFuneral/Lineage/LastLesson/QuietPromotion source receipt",
+      "evidence": [
+        "Assets/Scripts/Services/Run/V20CampaignRuntime.cs:1749-1761,2499-2555,5690-5802"
+      ]
+    },
+    {
+      "type": "ObservedLineageCompressionLifeEventReceipt",
+      "definition_path": "Assets/Scripts/Services/Run/V20CampaignRuntime.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Source-specific authoritative life event for irreversible tombstone-to-lineage compression.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Services/Run/V20CampaignRuntime.cs:165-294,2509-2519,5690-5802",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "ObservedMealIncidentCaptureResult",
+      "definition_path": "Assets/Scripts/Services/Run/V20CampaignRuntime.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative observed service-incident capture result with created/replay/conflict disposition and occurrence identity.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Services/Run/V20CampaignRuntime.cs:493-536,2710-2900",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "ObservedQuietPromotionLifeEventReceipt",
+      "definition_path": "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Source-specific authoritative observed promotion life event with exact proficiency before/after values.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs:109-256",
+        "Assets/Scripts/Services/Run/V20CampaignRuntime.cs:2545-2555,5690-5802",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "OwnerRunEndedEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Core/OwnerRunManager.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Terminal dungeon-run victory or defeat with owner and resolved reason.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Services/Character/Core/OwnerRunManager.cs:251-289,513-527",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "PhysicalMealConsumedEvent",
+      "definition_path": "Assets/Scripts/Models/Economy/Core/CharacterConsumableModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Unity-object application projection of the already authoritative core meal result.",
+      "integration_reason": "It exists to notify survival/UI adapters and must not duplicate the stable CharacterConsumablesMealResult operation.",
+      "replacement_authority": "CharacterConsumablesMealResult",
+      "evidence": [
+        "Assets/Scripts/Models/Economy/Core/CharacterConsumableModels.cs:255-273",
+        "Assets/Scripts/Services/Survival/CharacterConsumablesApplicationAdapters.cs:1203-1218"
+      ]
+    },
+    {
+      "type": "RestOutcomeIdentityEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Meaningful rest recovery result with direct character, previous/current sleep and environmental condition facts.",
+      "integration_reason": "The owner-specific migrated-producer path now routes this terminal result through the catalogued MigratedProducerOutcomeReceipt. MigratedProducerOutcomeRuntime reserves and writes that payload, commits the persisted migrated-producer owner revision with the GameplayOutcomeLedger through the owner transaction, restores the prior revision on a non-durable commit, and retains the durable stream for replay. The retained production source evidence identifies the owner path; r80 passed all 57 catalogued producers, r161 compiled the final source, and r37 restored the canonical full-world baseline.",
+      "replacement_authority": "MigratedProducerOutcomeReceipt",
+      "current_transaction_boundary": "The production owner supplies the terminal result to the catalogued MigratedProducerOutcomeReceipt path; MigratedProducerOutcomeRuntime writes the reserved outcome before advancing its persisted owner revision, then commits the prepared owner token through IGameplayOutcomeTransaction and restores the prior revision if durable commit fails.",
+      "joint_commit_feasibility": "implemented: prepared receipt and monotonic migrated-producer owner revision are validated before IGameplayOutcomeTransaction.Commit or CommitBatch; durable failure restores the prior revision, while durable success returns the canonical outcome identity.",
+      "outcome_save_owner": "MigratedProducerOutcomeSaveSection (narrative.migrated-producer-outcomes), dependent on GameplayOutcomeLedgerSaveSection, persists migrated-producer owner revisions; GameplayOutcomeLedgerSaveSection persists the canonical outcome.",
+      "existing_outbox_or_commit_evidence": [
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:928-1015"
+      ],
+      "evidence": [
+        "Assets/Scripts/Services/Character/Core/CharacterStats.cs:292-335",
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs:228-252",
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityDomainAdapters.cs:804-828",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeContracts.cs:117-173",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs:550-707,928-1015",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeDefinition.cs:524-552",
+        "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerOutcomeDebugScenarios.cs:19-125",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Focused-20260920-r80/focused-runtime-report.json",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80Compile-20260920-r161/unity-compile.log",
+        "Artifacts/QA/GameplayOutcomeLedgerPhase80FullWorldSave-20260920-r37/full-world-round-trip-playmode-report.txt"
+      ]
+    },
+    {
+      "type": "SocialConflictCommittedReceiptEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Post-commit observer notification emitted only after the authoritative SocialConflictEvent outcome succeeds.",
+      "integration_reason": "The original SocialConflictEvent and its committed gameplay outcome are the replacement authority.",
+      "replacement_authority": "SocialConflictEvent",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityDomainAdapters.cs:905-989",
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs:1537-1565"
+      ]
+    },
+    {
+      "type": "SocialConflictEvent",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs",
+      "coverage_disposition": "Record",
+      "integration_status": "connected",
+      "reason": "Authoritative social-conflict operation with stable operation identity, both participants, conflict and severity.",
+      "integration_reason": "The identity adapter reserves before relationship and mood mutation, commits the exact typed receipt, and restores both identity and mood state on noncommit.",
+      "replacement_authority": "",
+      "evidence": [
+        "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityDomainAdapters.cs:905-989"
+      ]
+    },
+    {
+      "type": "UsageLedgerEvent",
+      "definition_path": "Assets/Scripts/Models/Evolution/Core/EvolutionHistoryModels.cs",
+      "coverage_disposition": "NonResult",
+      "integration_status": "excluded",
+      "reason": "Legacy derived evolution-history/evidence projection, not the gameplay command that produced the fact.",
+      "integration_reason": "The new outcome ledger records the originating typed result once; equipment evolution may reference its outcome/evidence ID without treating this mutable compacting DTO as gameplay truth.",
+      "replacement_authority": "Originating typed gameplay outcome",
+      "evidence": [
+        "Assets/Scripts/Models/Evolution/Core/EvolutionHistoryModels.cs:50-89",
+        "Assets/Scripts/Models/Evolution/Core/UsageLedgerCompactor.cs:7-90"
+      ]
+    }
+  ]
+}

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Narrative.Korean;
 using UnityEditor;
 using UnityEngine;
 
@@ -584,9 +585,10 @@ public static class V26FounderTraitAuditScenario
                 "Last stand aftermath was not projected.");
 
             ApplyTrait(actor, 302);
-            Require(runtime.TryResolveForbiddenResearchLeap(
-                    actor, "research:audit", 147UL, 30f, out _)
-                && !runtime.TryResolveForbiddenResearchLeap(
+            Require(runtime.TryPrepareForbiddenResearchLeap(
+                    actor, "research:audit", 147UL, 30f, out var leap)
+                && leap.IsCurrent && leap.TryPublish()
+                && !runtime.TryPrepareForbiddenResearchLeap(
                     actor, "research:audit", 147UL, 31f, out _),
                 "Forbidden research leap was not once-per-project.");
 
@@ -849,6 +851,38 @@ public static class V26FounderTraitAuditScenario
             ThrowOnExposure = true
         };
         WorkCompletionIdentityDeliveryLedger ledger = new();
+        GameplayOutcomeRegistry outcomeRegistry = new(
+            new IGameplayOutcomeDescriptor[]
+            {
+                new WorkCompletionIdentityOutcomeDescriptor(
+                    new KoreanJosaFormatter())
+            },
+            new IGameplayOutcomeAdapterRegistration[]
+            {
+                new WorkCompletionIdentityOutcomeAdapter()
+            });
+        GameplayOutcomeLedger outcomeLedger = new(
+            outcomeRegistry,
+            new GameplayOutcomeBufferLimits(
+                smallPageCount: 8,
+                largePageCount: 0,
+                knownResultKeyCapacity: 128),
+            new GameplayOutcomeRunId(
+                "run:founder-trait-work-identity-audit"),
+            1L);
+        WorkCompletionIdentityGameplayOutcomeBridge outcomeBridge = new(
+            new GameplayOutcomeRecorder(
+                outcomeLedger,
+                outcomeRegistry,
+                new GameEventBus()),
+            outcomeLedger,
+            new GameplayOutcomeDisplayNameQuery(
+                new IGameplayOutcomeEntityNameResolver[]
+                {
+                    new CharacterGameplayOutcomeEntityNameResolver(
+                        world,
+                        world)
+                }));
         WorkIdentityEventAdapter adapter = new(
             new GameEventBus(),
             world,
@@ -858,7 +892,8 @@ public static class V26FounderTraitAuditScenario
             environment,
             needs,
             ledger,
-            world);
+            world,
+            outcomeBridge);
         WorkCompletionIdentityDeliveryRequest request = new(
             "identity-event:crop-harvest:audit:000000",
             "crop-harvest:building:crop-plot:audit",
@@ -916,7 +951,8 @@ public static class V26FounderTraitAuditScenario
             environment,
             needs,
             transientLedger,
-            world);
+            world,
+            outcomeBridge);
         WorkCompletionIdentityDeliveryRequest transientRequest = new(
             "identity-event:crop-harvest:transient:000000",
             "crop-harvest:building:crop-plot:transient",
@@ -946,7 +982,8 @@ public static class V26FounderTraitAuditScenario
             environment,
             needs,
             terminalLedger,
-            world);
+            world,
+            outcomeBridge);
         WorkCompletionIdentityDeliveryRequest terminalRequest = new(
             "identity-event:crop-harvest:terminal:000000",
             "crop-harvest:building:crop-plot:terminal",

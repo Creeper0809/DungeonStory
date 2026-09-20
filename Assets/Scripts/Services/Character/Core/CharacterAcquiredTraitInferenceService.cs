@@ -2534,11 +2534,23 @@ public sealed class CharacterAcquiredTraitInferenceService
     [GameplayInternalOnly(
         "The live acquired-trait producer completes an exact persisted pending request.",
         "V25 acquired-trait inference producer callback")]
+#if UNITY_EDITOR
     public CharacterAcquiredTraitInferenceCommandResult CompleteMilestone(
         CharacterProgression progression,
         CharacterAcquiredTraitCompletionCommand command,
-        CharacterAcquiredTraitRequestPacketDto originalPacket)
+        CharacterAcquiredTraitRequestPacketDto originalPacket) =>
+        throw new InvalidOperationException(
+            "Acquired-trait completion requires its mandatory gameplay outcome committer.");
+#endif
+
+    public CharacterAcquiredTraitInferenceCommandResult CompleteMilestone(
+        CharacterProgression progression,
+        CharacterAcquiredTraitCompletionCommand command,
+        CharacterAcquiredTraitRequestPacketDto originalPacket,
+        IAcquiredTraitInferenceOutcomeCommitter outcomeCommitter)
     {
+        if (outcomeCommitter == null)
+            throw new ArgumentNullException(nameof(outcomeCommitter));
         CharacterAcquiredTraitAggregateState current = progression?
             .CaptureAcquiredTraitState();
         if (command == null || progression == null || originalPacket == null)
@@ -2881,14 +2893,24 @@ public sealed class CharacterAcquiredTraitInferenceService
             formulaCandidate.processedMilestones.Add(pending.manifestationMilestone);
             formulaCandidate.processedMilestones = formulaCandidate.processedMilestones
                 .Distinct().OrderBy(value => value).ToList();
-            if (!progression.TryCommitAcquiredTraitStateWithFormulaEvidence(
-                    formulaCandidate,
-                    command.ExpectedRevision,
-                    settings,
-                    modules,
-                    pending.evidenceFactIds,
-                    pending.evidenceBindings,
-                    out IReadOnlyList<CharacterAcquiredTraitValidationIssue> formulaIssues))
+            CharacterAcquiredTraitInferenceCommandResult formulaSuccess = Success(
+                formulaAuditId,
+                CharacterAcquiredTraitInferenceCommandKind.Completion,
+                command.RequestKey,
+                command.CandidatePacketHash,
+                string.Empty,
+                command.TargetPersistentId,
+                command.ExpectedRevision,
+                command.RegisteredRevision,
+                formulaCompletionRevision,
+                command.Timestamp,
+                originalPacket);
+            if (!TryPrepareOutcome(
+                    formulaSuccess,
+                    progression,
+                    outcomeCommitter,
+                    out PreparedEvolutionOutcome preparedFormulaOutcome,
+                    out string formulaOutcomeFailure))
             {
                 return Failure(
                     CharacterAcquiredTraitInferenceCommandKind.Completion,
@@ -2900,21 +2922,47 @@ public sealed class CharacterAcquiredTraitInferenceService
                     command.RegisteredRevision,
                     current.revision,
                     command.Timestamp,
-                    "Formula acquired-trait atomic completion was rejected: "
-                        + string.Join(" | ", formulaIssues),
+                    "Acquired-trait outcome preparation failed: "
+                        + formulaOutcomeFailure,
                     originalPacket);
             }
-            return Success(
-                formulaAuditId,
+            IReadOnlyList<CharacterAcquiredTraitValidationIssue> formulaIssues;
+            try
+            {
+                if (progression.TryCommitAcquiredTraitStateWithFormulaEvidenceAndOutcome(
+                        formulaCandidate,
+                        command.ExpectedRevision,
+                        settings,
+                        modules,
+                        pending.evidenceFactIds,
+                        pending.evidenceBindings,
+                        () => CommitOutcomeOrThrow(
+                            outcomeCommitter,
+                            preparedFormulaOutcome,
+                            formulaCompletionRevision),
+                        out formulaIssues))
+                {
+                    return formulaSuccess;
+                }
+            }
+            catch
+            {
+                outcomeCommitter.Cancel(preparedFormulaOutcome);
+                throw;
+            }
+            outcomeCommitter.Cancel(preparedFormulaOutcome);
+            return Failure(
                 CharacterAcquiredTraitInferenceCommandKind.Completion,
+                CharacterAcquiredTraitInferenceIssueCode.CommitRejected,
                 command.RequestKey,
                 command.CandidatePacketHash,
-                string.Empty,
                 command.TargetPersistentId,
                 command.ExpectedRevision,
                 command.RegisteredRevision,
-                formulaCompletionRevision,
+                current.revision,
                 command.Timestamp,
+                "Formula acquired-trait atomic completion was rejected: "
+                    + string.Join(" | ", formulaIssues),
                 originalPacket);
         }
         if (!CharacterAcquiredTraitResponseAuthority.TryValidate(
@@ -3005,29 +3053,7 @@ public sealed class CharacterAcquiredTraitInferenceService
             .Distinct()
             .OrderBy(value => value)
             .ToList();
-        if (!progression.TryCommitAcquiredTraitState(
-                candidate,
-                command.ExpectedRevision,
-                settings,
-                modules,
-                out IReadOnlyList<CharacterAcquiredTraitValidationIssue> validationIssues))
-        {
-            return Failure(
-                CharacterAcquiredTraitInferenceCommandKind.Completion,
-                CharacterAcquiredTraitInferenceIssueCode.CommitRejected,
-                command.RequestKey,
-                command.CandidatePacketHash,
-                command.TargetPersistentId,
-                command.ExpectedRevision,
-                command.RegisteredRevision,
-                current.revision,
-                command.Timestamp,
-                "Acquired-trait completion commit was rejected: "
-                    + string.Join(" | ", validationIssues),
-                originalPacket);
-        }
-
-        return Success(
+        CharacterAcquiredTraitInferenceCommandResult success = Success(
             auditId,
             CharacterAcquiredTraitInferenceCommandKind.Completion,
             command.RequestKey,
@@ -3039,6 +3065,128 @@ public sealed class CharacterAcquiredTraitInferenceService
             nextRevision,
             command.Timestamp,
             originalPacket);
+        if (!TryPrepareOutcome(
+                success,
+                progression,
+                outcomeCommitter,
+                out PreparedEvolutionOutcome preparedOutcome,
+                out string outcomeFailure))
+        {
+            return Failure(
+                CharacterAcquiredTraitInferenceCommandKind.Completion,
+                CharacterAcquiredTraitInferenceIssueCode.CommitRejected,
+                command.RequestKey,
+                command.CandidatePacketHash,
+                command.TargetPersistentId,
+                command.ExpectedRevision,
+                command.RegisteredRevision,
+                current.revision,
+                command.Timestamp,
+                "Acquired-trait outcome preparation failed: " + outcomeFailure,
+                originalPacket);
+        }
+        IReadOnlyList<CharacterAcquiredTraitValidationIssue> validationIssues;
+        try
+        {
+            if (progression.TryCommitAcquiredTraitStateAndOutcome(
+                    candidate,
+                    command.ExpectedRevision,
+                    settings,
+                    modules,
+                    () => CommitOutcomeOrThrow(
+                        outcomeCommitter,
+                        preparedOutcome,
+                        nextRevision),
+                    out validationIssues))
+            {
+                return success;
+            }
+        }
+        catch
+        {
+            outcomeCommitter.Cancel(preparedOutcome);
+            throw;
+        }
+        outcomeCommitter.Cancel(preparedOutcome);
+        return Failure(
+            CharacterAcquiredTraitInferenceCommandKind.Completion,
+            CharacterAcquiredTraitInferenceIssueCode.CommitRejected,
+            command.RequestKey,
+            command.CandidatePacketHash,
+            command.TargetPersistentId,
+            command.ExpectedRevision,
+            command.RegisteredRevision,
+            current.revision,
+            command.Timestamp,
+            "Acquired-trait completion commit was rejected: "
+                + string.Join(" | ", validationIssues),
+            originalPacket);
+    }
+
+    private static bool TryPrepareOutcome(
+        in CharacterAcquiredTraitInferenceCommandResult result,
+        CharacterProgression progression,
+        IAcquiredTraitInferenceOutcomeCommitter outcomeCommitter,
+        out PreparedEvolutionOutcome prepared,
+        out string failureReason)
+    {
+        CharacterAcquiredTraitInferenceAuditRecord audit = result.Audit;
+        string operationId = "trait-inference:"
+            + audit.TargetPersistentId
+            + ":revision:"
+            + audit.ResultingRevision.ToString("D8", CultureInfo.InvariantCulture);
+        int absoluteDay = ResolveAbsoluteDay(audit.Timestamp);
+        AcquiredTraitInferenceOutcomeReceipt receipt = new(
+            operationId,
+            result,
+            ResolveCharacterDisplayName(progression),
+            absoluteDay);
+        return outcomeCommitter.TryPrepare(
+            receipt,
+            out prepared,
+            out failureReason);
+    }
+
+    private static string ResolveCharacterDisplayName(
+        CharacterProgression progression)
+    {
+        string displayName = progression?.Actor?.Identity?.DisplayName;
+        if (string.IsNullOrWhiteSpace(displayName))
+            displayName = progression?.GrowthState?.displayName;
+        if (string.IsNullOrWhiteSpace(displayName))
+        {
+            throw new InvalidOperationException(
+                "Acquired-trait outcome requires the character's immutable display identity.");
+        }
+        return displayName.Trim();
+    }
+
+    private static void CommitOutcomeOrThrow(
+        IAcquiredTraitInferenceOutcomeCommitter outcomeCommitter,
+        in PreparedEvolutionOutcome prepared,
+        int expectedRevision)
+    {
+        if (!outcomeCommitter.TryCommit(
+                prepared,
+                expectedRevision,
+                out string failureReason))
+        {
+            throw new InvalidOperationException(
+                "Acquired-trait mandatory outcome commit failed; the staged state was rolled back: "
+                + failureReason);
+        }
+    }
+
+    private static int ResolveAbsoluteDay(NarrativeInferenceTimestamp timestamp)
+    {
+        if (timestamp.Authority != NarrativeInferenceTimeAuthority.GameTick
+            || timestamp.GameTick < 0L)
+        {
+            throw new InvalidOperationException(
+                "Acquired-trait gameplay outcome requires a game-tick timestamp.");
+        }
+        long day = timestamp.GameTick / GameCalendarRules.HoursPerDay + 1L;
+        return checked((int)day);
     }
 
     private static bool PendingMatches(

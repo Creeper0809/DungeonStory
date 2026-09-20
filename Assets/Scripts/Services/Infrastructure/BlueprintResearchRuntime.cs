@@ -31,6 +31,13 @@ public class BlueprintResearchRuntime : MonoBehaviour
     private IRunSeedProvider runSeedProvider;
     private IGameClock gameClock;
     private CharacterIdentityEventPublisher identityEvents;
+    private BlueprintResearchOutcomeTransaction gameplayOutcomes;
+
+    [Inject]
+    public void ConstructGameplayOutcomes(BlueprintResearchOutcomeTransaction outcomes)
+    {
+        gameplayOutcomes = outcomes ?? throw new ArgumentNullException(nameof(outcomes));
+    }
 
     public BlueprintResearchState State => state;
     public bool HasActiveResearch =>
@@ -149,18 +156,21 @@ public class BlueprintResearchRuntime : MonoBehaviour
     public BlueprintResearchWorkResult ApplyApprovedResearchWork(
         CharacterActor researcher,
         BuildableObject researchFacility,
-        float approvedWorkUnits) =>
+        float approvedWorkUnits,
+        DurableFacilityEquipmentUseContext equipment = null) =>
         ApplyResearchWorkInternal(
             researcher,
             researchFacility,
             approvedWorkUnits,
-            approvedWorkUnits: true);
+            approvedWorkUnits: true,
+            equipment: equipment);
 
     private BlueprintResearchWorkResult ApplyResearchWorkInternal(
         CharacterActor researcher,
         BuildableObject researchFacility,
         float amount,
-        bool approvedWorkUnits)
+        bool approvedWorkUnits,
+        DurableFacilityEquipmentUseContext equipment = null)
     {
         if (researchFacility == null || !researchFacility.SupportsWork(BuiltInWorkTypeIds.Research))
         {
@@ -169,8 +179,6 @@ public class BlueprintResearchRuntime : MonoBehaviour
 
         if (TryResolveActiveProject(out ResearchProjectSO project, out _))
         {
-            ResearchProjectProgressState projectProgress =
-                state.Projects.GetProgress(project.ProjectId);
             float projectWork = applicationAdapter.IsInstantWorkEnabled
                 ? project.RequiredWork
                 : approvedWorkUnits
@@ -181,31 +189,7 @@ public class BlueprintResearchRuntime : MonoBehaviour
                         researcher,
                         researchFacility,
                         amount);
-            float projectAdded = projectProgress.Add(projectWork, project);
-            PublishResearchProgress(
-                researcher,
-                project.ProjectId.Value,
-                projectWork,
-                projectAdded);
-            bool projectCompleted = projectProgress.Progress >= project.RequiredWork;
-            BlueprintResearchWorkResult projectResult = BlueprintResearchWorkResult.ForProject(
-                true,
-                project,
-                projectAdded,
-                projectProgress.Progress,
-                project.RequiredWork,
-                projectCompleted,
-                projectCompleted ? "연구 완료" : "연구 진행");
-            if (projectCompleted)
-            {
-                PublishResearchOutcome(
-                    researcher,
-                    project.ProjectId.Value,
-                    "completed",
-                    CharacterCommandOrigin.Autonomous);
-                CompleteProject(project);
-            }
-            return projectResult;
+            return ApplyOutcomeWork(researcher, researchFacility, project, null, projectWork, equipment);
         }
 
         if (!state.TryGetActiveTask(out BlueprintResearchTask task))
@@ -230,34 +214,53 @@ public class BlueprintResearchRuntime : MonoBehaviour
                     researcher,
                     researchFacility,
                     amount);
-        float added = task.AddProgress(work);
-        PublishResearchProgress(
-            researcher,
-            $"blueprint:{task.Blueprint?.id ?? 0}",
-            work,
-            added);
-        bool completed = task.IsCompleted;
-        BlueprintResearchWorkResult result = new BlueprintResearchWorkResult(
-            true,
-            task.Blueprint,
-            added,
-            task.Progress,
-            task.RequiredWork,
-            completed,
-            completed ? "연구 완료" : "연구 진행");
+        return ApplyOutcomeWork(researcher, researchFacility, null, task.Blueprint, work, equipment);
+    }
 
-
-        if (completed)
+    private BlueprintResearchWorkResult ApplyOutcomeWork(
+        CharacterActor researcher, BuildableObject facility,
+        ResearchProjectSO project, FacilityBlueprintSO blueprint, float work,
+        DurableFacilityEquipmentUseContext equipment)
+    {
+        if (gameplayOutcomes == null)
+            throw new InvalidOperationException("Research requires its gameplay-outcome transaction.");
+        string researcherId = string.Empty;
+        if (researcher != null)
         {
-            PublishResearchOutcome(
-                researcher,
-                $"blueprint:{task.Blueprint?.id ?? 0}",
-                "completed",
-                CharacterCommandOrigin.Autonomous);
-            CompleteTask(task.Blueprint);
+            if (!CharacterPersistentIdentity.TryGet(researcher, out CharacterId id))
+                throw new InvalidOperationException("Researcher requires a persistent identity.");
+            researcherId = id.Value;
         }
+        if (!gameplayOutcomes.TryApply(
+                state, ShopUnlockState, ResolveFacilityShopCatalog(), project, blueprint,
+                work, CurrentAbsoluteDay, researcherId, researcher?.Identity.DisplayName,
+                facility.RequirePersistentInstanceId().Value,
+                FacilityShopService.GetBuildingName(facility.BuildingData),
+                out BlueprintResearchWorkResult result,
+                out BlueprintResearchUnlockResult unlocks,
+                equipment == null ? null : new ResearchEquipmentOutcomeEvidence(equipment)))
+            return result;
 
+        string projectId = project != null ? project.ProjectId.Value : $"blueprint:{blueprint.id}";
+        NotifyCommittedResearch(() => PublishResearchProgress(
+            researcher, projectId, work, result.AddedProgress));
+        if (result.Completed)
+        {
+            NotifyCommittedResearch(() => PublishResearchOutcome(
+                researcher, projectId, "completed", CharacterCommandOrigin.Autonomous));
+            NotifyResearchCompletion(project, blueprint, unlocks, true, true);
+        }
         return result;
+    }
+
+    private static void NotifyCommittedResearch(Action notify)
+    {
+        try { notify(); }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            and not StackOverflowException and not AccessViolationException)
+        {
+            Debug.LogError("research-post-commit-notification-failed:" + exception);
+        }
     }
 
     public bool TryForbiddenResearchLeap(
@@ -284,36 +287,32 @@ public class BlueprintResearchRuntime : MonoBehaviour
                 : blocker;
             return false;
         }
-        if (!extremeTraits.TryResolveForbiddenResearchLeap(
-                researcher,
-                project.ProjectId.Value,
-                unchecked((ulong)(uint)runSeedProvider.RunSeed),
-                gameClock.Time,
-                out resolution))
+        if (gameplayOutcomes == null)
+            throw new InvalidOperationException("Research outcome transaction is not configured.");
+        if (!gameplayOutcomes.TryApplyForbiddenLeap(
+                state, ShopUnlockState, ResolveFacilityShopCatalog(), project,
+                extremeTraits, researcher, unchecked((ulong)(uint)runSeedProvider.RunSeed),
+                gameClock.Time, CurrentAbsoluteDay, out resolution,
+                out BlueprintResearchWorkResult result, out BlueprintResearchUnlockResult unlocks))
         {
-            failureReason = "이 프로젝트에서는 금단의 도약을 사용할 수 없습니다.";
+            failureReason = result.Message;
             return false;
         }
 
-        ResearchProjectProgressState progress = state.Projects.GetProgress(project.ProjectId);
-        float before = progress.Progress;
         float requestedDelta = resolution.ProgressDelta * project.RequiredWork;
-        if (requestedDelta >= 0f)
-            progress.Add(requestedDelta, project);
-        else
-            progress.Restore(Mathf.Max(0f, progress.Progress + requestedDelta), project);
-        PublishResearchProgress(
+        string riskOutcome = resolution.Outcome.ToString().ToLowerInvariant();
+        NotifyCommittedResearch(() => PublishResearchProgress(
             researcher,
             project.ProjectId.Value,
             Mathf.Abs(requestedDelta),
-            progress.Progress - before);
-        PublishResearchOutcome(
+            result.AddedProgress));
+        NotifyCommittedResearch(() => PublishResearchOutcome(
             researcher,
             project.ProjectId.Value,
-            resolution.Outcome.ToString().ToLowerInvariant(),
-            CharacterCommandOrigin.DirectPlayerOrder);
-        if (progress.Progress >= project.RequiredWork)
-            CompleteProject(project);
+            riskOutcome,
+            CharacterCommandOrigin.DirectPlayerOrder));
+        if (result.Completed)
+            NotifyResearchCompletion(project, null, unlocks, true, true);
         return true;
     }
 
@@ -519,12 +518,13 @@ public class BlueprintResearchRuntime : MonoBehaviour
                 {
                     continue;
                 }
-                CompleteProject(project, notifyAvailability: false, emitAlert: false);
+                if (!TryCompleteImmediately(project, null, out string failure))
+                    throw new InvalidOperationException(failure);
                 projectCount++;
             }
             if (projectCount > 0)
             {
-                NotifyResearchAvailabilityChanged();
+                NotifyCommittedResearch(() => NotifyResearchAvailabilityChanged());
             }
             return projectCount;
         }
@@ -539,14 +539,14 @@ public class BlueprintResearchRuntime : MonoBehaviour
                 continue;
             }
 
-            state.TryCancelBlueprint(blueprint);
-            CompleteTask(blueprint, notifyAvailability: false, emitAlert: false);
+            if (!TryCompleteImmediately(null, blueprint, out string failure))
+                throw new InvalidOperationException(failure);
             completedCount++;
         }
 
         if (completedCount > 0)
         {
-            NotifyResearchAvailabilityChanged();
+            NotifyCommittedResearch(() => NotifyResearchAvailabilityChanged());
         }
 
         return completedCount;
@@ -577,7 +577,9 @@ public class BlueprintResearchRuntime : MonoBehaviour
             return false;
         }
 
-        CompleteProject(project, notifyAvailability: false, emitAlert: false);
+        if (!state.Projects.IsCompleted(projectId)
+            && !TryCompleteImmediately(project, null, out failureReason))
+            return false;
         bool buildingUnlocksExact = project.Unlocks
             .OfType<BlueprintBuildingUnlock>()
             .All(unlock => state.IsBuildingUnlocked(unlock.buildingId));
@@ -875,71 +877,32 @@ public class BlueprintResearchRuntime : MonoBehaviour
             out blocker);
     }
 
-    private void CompleteTask(FacilityBlueprintSO blueprint)
+    private bool TryCompleteImmediately(
+        ResearchProjectSO project, FacilityBlueprintSO blueprint, out string failureReason)
     {
-        CompleteTask(
-            blueprint,
-            notifyAvailability: true,
-            emitAlert: raiseAlertOnResearchComplete);
+        if (gameplayOutcomes == null)
+            throw new InvalidOperationException("Research outcome transaction is not configured.");
+        bool success = gameplayOutcomes.TryCompleteImmediately(
+            state, ShopUnlockState, ResolveFacilityShopCatalog(), project, blueprint,
+            CurrentAbsoluteDay, out BlueprintResearchWorkResult result, out BlueprintResearchUnlockResult unlocks);
+        failureReason = success ? string.Empty : result.Message;
+        if (success) NotifyResearchCompletion(project, blueprint, unlocks, false, false);
+        return success;
     }
 
-    private void CompleteProject(
-        ResearchProjectSO project,
-        bool notifyAvailability = true,
-        bool emitAlert = true)
+    private void NotifyResearchCompletion(
+        ResearchProjectSO project, FacilityBlueprintSO blueprint, BlueprintResearchUnlockResult unlocks,
+        bool notifyAvailability, bool emitAlert)
     {
-        if (project == null)
-        {
-            return;
-        }
-
-        BlueprintResearchUnlockResult unlockResult = BlueprintResearchService.ApplyCompletion(
-            project,
-            state,
-            ShopUnlockState,
-            ResolveFacilityShopCatalog());
-        applicationAdapter.Publish(
-            new BlueprintResearchCompletedEvent(project, unlockResult));
+        NotifyCommittedResearch(() => applicationAdapter.Publish(project != null
+            ? new BlueprintResearchCompletedEvent(project, unlocks)
+            : new BlueprintResearchCompletedEvent(blueprint, unlocks)));
         if (notifyAvailability)
-        {
-            NotifyResearchAvailabilityChanged();
-        }
-
+            NotifyCommittedResearch(() => NotifyResearchAvailabilityChanged());
         if (emitAlert && raiseAlertOnResearchComplete)
-        {
-            List<string> lines = new List<string> { $"{project.DisplayName} 연구 완료" };
-            lines.AddRange(unlockResult.FormatSummaryLines());
-            applicationAdapter.RaiseMediumAlert(
-                "연구 완료",
-                string.Join("\n", lines),
-                "연구");
-        }
-    }
-
-    private void CompleteTask(
-        FacilityBlueprintSO blueprint,
-        bool notifyAvailability,
-        bool emitAlert)
-    {
-        BlueprintResearchUnlockResult unlockResult = BlueprintResearchService.ApplyCompletion(
-            blueprint,
-            state,
-            ShopUnlockState,
-            ResolveFacilityShopCatalog());
-        applicationAdapter.Publish(
-            new BlueprintResearchCompletedEvent(blueprint, unlockResult));
-        if (notifyAvailability)
-        {
-            NotifyResearchAvailabilityChanged();
-        }
-
-        if (emitAlert)
-        {
-            applicationAdapter.RaiseMediumAlert(
-                "연구 완료",
-                FormatUnlockResult(unlockResult),
-                "연구");
-        }
+            NotifyCommittedResearch(() => applicationAdapter.RaiseMediumAlert(
+                "연구 완료", (project != null ? project.DisplayName : blueprint.DisplayName)
+                    + " 연구 완료\n" + string.Join("\n", unlocks.FormatSummaryLines()), "연구"));
     }
 
     private void NotifyResearchAvailabilityChanged(bool prioritizeResearch = false)
@@ -952,18 +915,6 @@ public class BlueprintResearchRuntime : MonoBehaviour
         }
 
         workforceReplanService?.RequestIdleWorkersToReplan();
-    }
-
-    private static string FormatUnlockResult(BlueprintResearchUnlockResult result)
-    {
-        if (result.Blueprint == null)
-        {
-            return "연구 완료";
-        }
-
-        List<string> lines = new List<string> { $"{result.Blueprint.DisplayName} 분석 완료" };
-        lines.AddRange(result.FormatSummaryLines());
-        return string.Join("\n", lines);
     }
 
     private IFacilityShopUnlockStateService ResolveShopUnlockStateService()

@@ -148,6 +148,17 @@ public static class LlmStaticSchemaCatalog
         "\"displayName\":{\"type\":\"string\",\"pattern\":\"^[^0-9０-９%％]*$\",\"minLength\":1,\"maxLength\":32}," +
         "\"narrativeFlavor\":{\"type\":\"string\",\"pattern\":\"^[^0-9０-９%％]*$\",\"minLength\":1,\"maxLength\":180}}}";
 
+    private const string CharacterSkillModuleSelectionBatchSchema =
+        "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"candidates\"],\"properties\":{" +
+        "\"candidates\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":3,\"items\":{" +
+        "\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"selectionId\",\"positiveModuleIds\",\"drawbackModuleIds\",\"evidenceFactIds\",\"displayName\",\"narrativeFlavor\"],\"properties\":{" +
+        "\"selectionId\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":96}," +
+        "\"positiveModuleIds\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":3,\"items\":{\"type\":\"string\",\"pattern\":\"^[a-z][a-z0-9]*(_[a-z0-9]+)*$\"}}," +
+        "\"drawbackModuleIds\":{\"type\":\"array\",\"maxItems\":1,\"items\":{\"type\":\"string\",\"pattern\":\"^character-skill:drawback:[a-z][a-z0-9]*(-[a-z0-9]+)*$\"}}," +
+        "\"evidenceFactIds\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":2,\"items\":{\"type\":\"string\",\"minLength\":1}}," +
+        "\"displayName\":{\"type\":\"string\",\"pattern\":\"^[^0-9０-９%％]*$\",\"minLength\":1,\"maxLength\":14}," +
+        "\"narrativeFlavor\":{\"type\":\"string\",\"pattern\":\"^[^0-9０-９%％\\r\\n]*$\",\"minLength\":1,\"maxLength\":48}}}}}}";
+
     private const string PersonaSchema =
         "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"personaName\",\"flavorText\"],\"properties\":{" +
         "\"personaName\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":40},\"flavorText\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":180}}}";
@@ -208,7 +219,7 @@ public static class LlmStaticSchemaCatalog
     private static readonly LlmStaticSchemaDefinition[] Definitions =
     {
         new("CharacterSkill", 3, CharacterSkillSchema, true),
-        new("CharacterSkillModuleSelection", 4, ModuleSelectionSchema, true),
+        new("CharacterSkillModuleSelection", 6, CharacterSkillModuleSelectionBatchSchema, true),
         new("CharacterSkillLegacyV2", 2, CharacterSkillLegacyV2Schema, true),
         new("Persona", 2, PersonaSchema, true),
         new("MacroGoal", 1, MacroGoalSchema, false),

@@ -42,6 +42,18 @@ internal sealed class BuildableObjectStateAndCapabilityController
         markDynamicStateDirty();
     }
 
+    internal void SetSynthesisOutcomeRevision(
+        FacilityRuntimeState state,
+        long revision)
+    {
+        if (state == null)
+            throw new ArgumentNullException(nameof(state));
+        if (revision < 0L)
+            throw new ArgumentOutOfRangeException(nameof(revision));
+        state.synthesisOutcomeRevision = revision;
+        markDynamicStateDirty();
+    }
+
     internal FacilityRuntimeState ReplaceFuelState(
         FacilityRuntimeState state,
         float remainingFuelGameSeconds,

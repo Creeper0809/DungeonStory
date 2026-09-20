@@ -75,7 +75,21 @@ public sealed class DungeonStoryHostStructuredChatBackend :
             throw new InvalidOperationException("DungeonStory local host endpoint is not available.");
         }
 
-        string modelPrompt = NarrativeRequestContext.ToModelPrompt(prompt);
+        // CharacterSkill selection already carries the same validated facts as
+        // request-local Fxx/Mxx lines and as canonical public JSON. Keep the
+        // original queue prompt for audit, but do not pay the model context cost
+        // twice for this latency-sensitive persistent profile.
+        bool suppressThinking = string.Equals(
+                profile.Id,
+                LocalLlmRequestProfiles.CharacterSkillModuleSelection.Id,
+                StringComparison.Ordinal);
+        string modelPrompt = suppressThinking
+            ? NarrativeRequestContext.ToModelPromptWithoutCanonicalPublicPayload(prompt)
+            : NarrativeRequestContext.ToModelPrompt(prompt);
+        if (suppressThinking)
+        {
+            modelPrompt = "/no_think\n" + modelPrompt;
+        }
         StringBuilder prefix = new StringBuilder((modelPrompt?.Length ?? 0) + 640);
         prefix.Append("{\"model\":");
         AppendJsonString(prefix, model ?? string.Empty);

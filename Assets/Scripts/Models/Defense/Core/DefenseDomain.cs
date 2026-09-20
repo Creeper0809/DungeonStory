@@ -253,6 +253,17 @@ public sealed class DefenseFacilityAggregateState
         states.Add(state.facilityPersistentId, state);
     }
 
+    public void Set(DefenseFacilityState state)
+    {
+        if (state == null || string.IsNullOrWhiteSpace(state.facilityPersistentId))
+        {
+            throw new ArgumentException(
+                "Defense state requires a persistent facility ID.",
+                nameof(state));
+        }
+        states[state.facilityPersistentId] = state;
+    }
+
     public DefenseFacilityAggregateState DeepClone()
     {
         DefenseFacilityAggregateState clone = new();

@@ -33,6 +33,8 @@ public class AbilityShopping : CharacterAbility
     private IRandomStreamProvider randomStreamProvider;
     private IGameClock gameClock;
     private IGameEventBus gameEventBus;
+    private IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private IGameSessionStateProvider gameDataProvider;
     private Predicate<BuildableObject> canVisitBuildingPredicate;
     private float decisionStateCapturedAt = float.NegativeInfinity;
     private int decisionStateVisitCount = int.MinValue;
@@ -94,6 +96,17 @@ public class AbilityShopping : CharacterAbility
             ?? throw new ArgumentNullException(nameof(gameClock));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+    }
+
+    [Inject]
+    public void ConstructRetailPurchaseOutcome(
+        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        IGameSessionStateProvider gameDataProvider)
+    {
+        this.outcomeTransactions = outcomeTransactions
+            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.gameDataProvider = gameDataProvider
+            ?? throw new ArgumentNullException(nameof(gameDataProvider));
     }
 
     public override void Initializtion(CharacterSO data)
@@ -862,56 +875,207 @@ public class AbilityShopping : CharacterAbility
             yield break;
         }
 
-        string lotFailure = "retail-lot-unavailable-before-commit";
-        if (expectedFacility is not Shop shop
-            || !shop.TryTakeExactRetailLot(
-                item.id,
-                out RetailStockLotSnapshot purchasedLot,
-                out lotFailure))
+        if (outcomeTransactions == null
+            || gameDataProvider == null
+            || !gameDataProvider.TryGetSessionState(out GameSessionState gameData)
+            || gameData?.day == null)
         {
+            throw new InvalidOperationException(
+                "Retail purchase outcome transaction or current day is unavailable.");
+        }
+        if (expectedFacility is not Shop shop
+            || !shop.TryPreviewExactRetailLotOperationId(
+                item.id,
+                out string previewOperationId))
+        {
+            commitResult.Reject("retail-lot-unavailable-before-outcome-reservation");
+            yield break;
+        }
+
+        string actorId = actor?.Identity?.PersistentId ?? string.Empty;
+        int absoluteDay = Mathf.Max(0, gameData.day.Value);
+        string outcomeIdentity = "retail-purchase:"
+            + previewOperationId
+            + ":buyer=" + actorId;
+        if (!outcomeTransactions.TryReserveSingleSubject(
+                MigratedProducerOutcomeKind.BuildingRetailPurchaseCommitResult,
+                outcomeIdentity,
+                absoluteDay,
+                GameplayOutcomeStatus.Succeeded,
+                out PreparedMigratedProducerOutcome prepared,
+                out string reserveFailure))
+        {
+            throw new InvalidOperationException(
+                "Retail purchase outcome reservation failed: " + reserveFailure);
+        }
+
+        string lotFailure = "retail-lot-unavailable-before-commit";
+        RetailStockLotSnapshot purchasedLot;
+        string unitOperationId;
+        bool lotTaken;
+        try
+        {
+            lotTaken = shop.TryTakeExactRetailLot(
+                item.id,
+                out purchasedLot,
+                out unitOperationId,
+                out lotFailure);
+        }
+        catch
+        {
+            outcomeTransactions.Cancel(prepared);
+            throw;
+        }
+        if (!lotTaken)
+        {
+            outcomeTransactions.Cancel(prepared);
             commitResult.Reject(string.IsNullOrWhiteSpace(lotFailure)
                 ? "retail-lot-unavailable-before-commit"
                 : lotFailure);
             yield break;
         }
-        if (!shop.TryCommitExactRetailExternalSink(
-                purchasedLot,
-                out string sinkFailure))
+
+        if (!string.Equals(
+                previewOperationId,
+                unitOperationId,
+                StringComparison.Ordinal))
         {
-            if (!shop.TryRestoreTakenExactRetailLot(
-                    purchasedLot,
-                    out string restoreFailure))
+            outcomeTransactions.Cancel(prepared);
+            RestoreRetailLotOrThrow(shop, purchasedLot, "retail-operation-drift");
+            throw new InvalidOperationException(
+                "Retail purchase operation identity drifted before mutation.");
+        }
+
+        int holdingMoneyBefore = holdingMoney;
+        int purchaseCountBefore = committedPurchaseCount;
+        long purchaseMassBefore = committedPurchaseMassGrams;
+        RetailStockLotSnapshot lastLotBefore = lastCommittedPurchaseLot?.Clone();
+        bool outcomeCommitted = false;
+        bool rollbackAttempted = false;
+        try
+        {
+            int nextPurchaseCount = checked(committedPurchaseCount + 1);
+            long nextPurchaseMass = checked(
+                committedPurchaseMassGrams
+                + purchasedLot.unitMassGrams * purchasedLot.quantity);
+            if (!IsInternalStaffUse())
             {
-                throw new InvalidOperationException(
-                    $"Retail purchase sink '{purchasedLot.sourceOperationId}' failed and its exact lot could not be restored: {restoreFailure}");
+                holdingMoney -= normalizedCost;
             }
-            commitResult.Reject(string.IsNullOrWhiteSpace(sinkFailure)
-                ? "retail-terminal-sink-failed"
-                : sinkFailure);
-            yield break;
-        }
+            committedPurchaseCount = nextPurchaseCount;
+            committedPurchaseMassGrams = nextPurchaseMass;
+            lastCommittedPurchaseLot = purchasedLot.Clone();
 
-        // Unity coroutines resume on the main thread. Exact lot removal,
-        // payment and receipt publication remain in one no-yield commit
-        // region, so a second customer cannot buy the same physical unit.
-        if (!IsInternalStaffUse())
+            MigratedProducerOutcomeCommitResult committed =
+                outcomeTransactions.CommitSingleSubject(
+                    prepared,
+                    new MigratedProducerOutcomeSubject(
+                        MigratedProducerOutcomeIds.OperationKind,
+                        prepared.ResultKey.OperationId.Value,
+                        purchasedLot.itemDefinitionId,
+                        MigratedProducerOutcomeIds.OperationRole),
+                    "시설 소매 구매 확정: operation=" + unitOperationId
+                    + "; buyer=" + actorId
+                    + "; item=" + purchasedLot.itemDefinitionId
+                    + "; cost=" + normalizedCost
+                    + "; day=" + absoluteDay);
+            if (!committed.DurablyCommitted)
+            {
+                rollbackAttempted = true;
+                RestoreRetailPurchaseOwnerState(
+                    shop,
+                    purchasedLot,
+                    holdingMoneyBefore,
+                    purchaseCountBefore,
+                    purchaseMassBefore,
+                    lastLotBefore);
+                throw new InvalidOperationException(
+                    "Retail purchase outcome commit failed: "
+                    + committed.DetailCode);
+            }
+            else
+            {
+                outcomeCommitted = true;
+
+                // The exact outcome is durable before unique equipment leaves
+                // retail authority. A terminal-sink failure stays explicit and
+                // is never followed by result observers.
+                if (!shop.TryCommitExactRetailExternalSink(
+                        purchasedLot,
+                        out string sinkFailure))
+                {
+                    throw new InvalidOperationException(
+                        "Retail purchase terminal sink failed after durable outcome '"
+                        + unitOperationId + "': " + sinkFailure);
+                }
+
+                commitResult.Commit(purchasedLot);
+            }
+        }
+        catch
         {
-            holdingMoney -= normalizedCost;
+            if (!outcomeCommitted && !rollbackAttempted)
+            {
+                outcomeTransactions.Cancel(prepared);
+                RestoreRetailPurchaseOwnerState(
+                    shop,
+                    purchasedLot,
+                    holdingMoneyBefore,
+                    purchaseCountBefore,
+                    purchaseMassBefore,
+                    lastLotBefore);
+            }
+            throw;
         }
-
-        // Receipt publication is part of the atomic commit. On-buy effects are
-        // post-commit consequences; an effect exception must not make an
-        // already externalized physical lot appear uncommitted.
-        commitResult.Commit(purchasedLot);
-        committedPurchaseCount = checked(committedPurchaseCount + 1);
-        committedPurchaseMassGrams = checked(
-            committedPurchaseMassGrams
-            + purchasedLot.unitMassGrams * purchasedLot.quantity);
-        lastCommittedPurchaseLot = purchasedLot.Clone();
-
         foreach(var events in item.onbuy)
         {
-            events.Onbuy(actor?.BuildingVisitor);
+            try
+            {
+                events?.Onbuy(actor?.BuildingVisitor);
+            }
+            catch (Exception exception) when (
+                exception is not OutOfMemoryException
+                && exception is not StackOverflowException
+                && exception is not AccessViolationException)
+            {
+                Debug.LogError(
+                    "retail-purchase-post-commit-onbuy:"
+                    + exception.GetType().Name);
+            }
+        }
+    }
+
+    private void RestoreRetailPurchaseOwnerState(
+        Shop shop,
+        RetailStockLotSnapshot purchasedLot,
+        int holdingMoneyBefore,
+        int purchaseCountBefore,
+        long purchaseMassBefore,
+        RetailStockLotSnapshot lastLotBefore)
+    {
+        holdingMoney = holdingMoneyBefore;
+        committedPurchaseCount = purchaseCountBefore;
+        committedPurchaseMassGrams = purchaseMassBefore;
+        lastCommittedPurchaseLot = lastLotBefore?.Clone();
+        RestoreRetailLotOrThrow(
+            shop,
+            purchasedLot,
+            "retail-outcome-rollback");
+    }
+
+    private static void RestoreRetailLotOrThrow(
+        Shop shop,
+        RetailStockLotSnapshot purchasedLot,
+        string reason)
+    {
+        if (!shop.TryRestoreTakenExactRetailLot(
+                purchasedLot,
+                out string restoreFailure))
+        {
+            throw new InvalidOperationException(
+                "Retail purchase rollback '" + reason
+                + "' could not restore exact lot '"
+                + purchasedLot?.sourceOperationId + "': " + restoreFailure);
         }
     }
 

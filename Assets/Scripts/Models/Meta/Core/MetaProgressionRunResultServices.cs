@@ -161,3 +161,68 @@ public interface IMetaRuntimeApplicationPort
     void PublishRunResult(RunResultReadyEvent readyEvent);
     void ShowRunResult(RunResultSnapshot result);
 }
+
+public interface IMetaUpgradePurchaseOutcomeReservation
+{
+}
+
+public readonly struct MetaUpgradePurchaseOutcomeCommitResult
+{
+    public MetaUpgradePurchaseOutcomeCommitResult(
+        bool durablyCommitted,
+        string detailCode)
+    {
+        DurablyCommitted = durablyCommitted;
+        DetailCode = detailCode ?? string.Empty;
+    }
+
+    public bool DurablyCommitted { get; }
+    public string DetailCode { get; }
+}
+
+public interface IMetaUpgradePurchaseOutcomeTransaction
+{
+    bool TryReserve(
+        string upgradeId,
+        int absoluteDay,
+        out IMetaUpgradePurchaseOutcomeReservation reservation,
+        out string failureReason);
+    MetaUpgradePurchaseOutcomeCommitResult Commit(
+        IMetaUpgradePurchaseOutcomeReservation reservation,
+        string displayName,
+        int previousLevel,
+        int currentLevel,
+        int cost);
+    void Cancel(IMetaUpgradePurchaseOutcomeReservation reservation);
+}
+
+public interface IMetaRunResultOutcomeReservation
+{
+}
+
+public readonly struct MetaRunResultOutcomeCommitResult
+{
+    public MetaRunResultOutcomeCommitResult(
+        bool durablyCommitted,
+        string detailCode)
+    {
+        DurablyCommitted = durablyCommitted;
+        DetailCode = detailCode ?? string.Empty;
+    }
+
+    public bool DurablyCommitted { get; }
+    public string DetailCode { get; }
+}
+
+public interface IMetaRunResultOutcomeTransaction
+{
+    bool TryReserve(
+        int runSequence,
+        int absoluteDay,
+        out IMetaRunResultOutcomeReservation reservation,
+        out string failureReason);
+    MetaRunResultOutcomeCommitResult Commit(
+        IMetaRunResultOutcomeReservation reservation,
+        RunResultSnapshot result);
+    void Cancel(IMetaRunResultOutcomeReservation reservation);
+}

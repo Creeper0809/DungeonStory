@@ -1506,10 +1506,13 @@ public sealed class ProductionSelectedSupplySaveData
 [Serializable]
 public sealed class DungeonProductionBillSaveData
 {
-    public const int CurrentVersion = 23;
+    public const int CurrentVersion = 25;
 
     public int version = CurrentVersion;
     public int nextBillSequence = 1;
+    public long nextCommandOutcomeSequence = 1L;
+    public List<ProductionCommandOutcomeOutboxSaveData>
+        pendingCommandOutcomes = new();
     public List<ProductionBillSaveData> bills = new List<ProductionBillSaveData>();
     public List<string> installedStockSensorFacilityIds = new List<string>();
     public List<string> acknowledgedStockSensorFacilityIds = new List<string>();
@@ -1584,6 +1587,299 @@ public sealed class ProductionBillSnapshot
         Array.Empty<ProductionConsumerRoutePolicy>();
     public IReadOnlyList<ProductionConsumerRouteState> RouteStates { get; set; } =
         Array.Empty<ProductionConsumerRouteState>();
+}
+
+public enum ProductionCommandOutcomeKind
+{
+    BillAdded = 1,
+    BillRemoved = 2,
+    BillPriorityChanged = 3,
+    MinimumCraftQualityChanged = 4,
+    SuspensionChanged = 5,
+    StockPolicyChanged = 6,
+    OrderModeChanged = 7,
+    DistributionPolicyChanged = 8,
+    WorkerPolicyChanged = 9,
+    EmergencyWorkerChanged = 10,
+    StockSensorInstalled = 11,
+    StockSensorRemoved = 12,
+    StockSensorUnlockAcknowledged = 13
+}
+
+public readonly struct ProductionCommandOutcomeSource
+{
+    private const int MaximumSnapshotLength = 4096;
+
+    public ProductionCommandOutcomeSource(
+        ProductionCommandOutcomeKind kind,
+        string billId,
+        string recipeId,
+        string recipeDisplayName,
+        string facilityId,
+        int facilityX,
+        int facilityY,
+        string beforeValue,
+        string afterValue)
+    {
+        if (!Enum.IsDefined(typeof(ProductionCommandOutcomeKind), kind))
+            throw new ArgumentOutOfRangeException(nameof(kind));
+        Kind = kind;
+        BillId = OptionalStableId(billId, nameof(billId));
+        RecipeId = OptionalStableId(recipeId, nameof(recipeId));
+        RecipeDisplayName = OptionalText(
+            recipeDisplayName,
+            nameof(recipeDisplayName));
+        FacilityId = RequireStableId(facilityId, nameof(facilityId));
+        BeforeValue = RequireText(beforeValue, nameof(beforeValue));
+        AfterValue = RequireText(afterValue, nameof(afterValue));
+        FacilityX = facilityX;
+        FacilityY = facilityY;
+    }
+
+    public ProductionCommandOutcomeKind Kind { get; }
+    public string BillId { get; }
+    public string RecipeId { get; }
+    public string RecipeDisplayName { get; }
+    public string FacilityId { get; }
+    public int FacilityX { get; }
+    public int FacilityY { get; }
+    public string BeforeValue { get; }
+    public string AfterValue { get; }
+
+    private static string OptionalStableId(string value, string parameterName)
+    {
+        string normalized = value?.Trim() ?? string.Empty;
+        return normalized.Length == 0
+            ? string.Empty
+            : RequireStableId(normalized, parameterName);
+    }
+
+    private static string RequireStableId(string value, string parameterName)
+    {
+        string normalized = value?.Trim() ?? string.Empty;
+        if (normalized.Length == 0
+            || normalized.Length > 256
+            || !string.Equals(value, normalized, StringComparison.Ordinal)
+            || normalized.Any(char.IsWhiteSpace))
+        {
+            throw new ArgumentException(
+                "A canonical production command identity is required.",
+                parameterName);
+        }
+        return normalized;
+    }
+
+    private static string OptionalText(string value, string parameterName)
+    {
+        string normalized = value?.Trim() ?? string.Empty;
+        if (normalized.Length > MaximumSnapshotLength)
+            throw new ArgumentOutOfRangeException(parameterName);
+        return normalized;
+    }
+
+    private static string RequireText(string value, string parameterName)
+    {
+        string normalized = OptionalText(value, parameterName);
+        if (normalized.Length == 0)
+            throw new ArgumentException(
+                "A non-empty production command snapshot is required.",
+                parameterName);
+        return normalized;
+    }
+}
+
+public readonly struct ProductionCommandOutcomeFrozenContext
+{
+    private const int MaximumSnapshotLength = 4096;
+
+    public ProductionCommandOutcomeFrozenContext(
+        string facilityDisplayText,
+        string facilityDisplayRevision,
+        int pronunciationMode,
+        string pronunciationValue,
+        int pronunciationFinalConsonant,
+        string pronunciationRevision,
+        string locale,
+        int absoluteDay)
+    {
+        FacilityDisplayText = RequireText(
+            facilityDisplayText,
+            nameof(facilityDisplayText));
+        FacilityDisplayRevision = RequireText(
+            facilityDisplayRevision,
+            nameof(facilityDisplayRevision));
+        PronunciationMode = pronunciationMode;
+        PronunciationValue = OptionalText(
+            pronunciationValue,
+            nameof(pronunciationValue));
+        PronunciationFinalConsonant = pronunciationFinalConsonant;
+        PronunciationRevision = OptionalText(
+            pronunciationRevision,
+            nameof(pronunciationRevision));
+        Locale = RequireText(locale, nameof(locale));
+        if (absoluteDay <= 0)
+            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        AbsoluteDay = absoluteDay;
+    }
+
+    public string FacilityDisplayText { get; }
+    public string FacilityDisplayRevision { get; }
+    public int PronunciationMode { get; }
+    public string PronunciationValue { get; }
+    public int PronunciationFinalConsonant { get; }
+    public string PronunciationRevision { get; }
+    public string Locale { get; }
+    public int AbsoluteDay { get; }
+
+    private static string OptionalText(string value, string parameterName)
+    {
+        string normalized = value?.Trim() ?? string.Empty;
+        if (normalized.Length > MaximumSnapshotLength)
+            throw new ArgumentOutOfRangeException(parameterName);
+        return normalized;
+    }
+
+    private static string RequireText(string value, string parameterName)
+    {
+        string normalized = OptionalText(value, parameterName);
+        if (normalized.Length == 0)
+            throw new ArgumentException(
+                "A frozen production command context value is required.",
+                parameterName);
+        return normalized;
+    }
+}
+
+[Serializable]
+public sealed class ProductionCommandOutcomeOutboxSaveData
+{
+    public long ownerRevision;
+    public ProductionCommandOutcomeKind kind;
+    public string billId = string.Empty;
+    public string recipeId = string.Empty;
+    public string recipeDisplayName = string.Empty;
+    public string facilityId = string.Empty;
+    public int facilityX;
+    public int facilityY;
+    public string beforeValue = string.Empty;
+    public string afterValue = string.Empty;
+    public string facilityDisplayText = string.Empty;
+    public string facilityDisplayRevision = string.Empty;
+    public int pronunciationMode;
+    public string pronunciationValue = string.Empty;
+    public int pronunciationFinalConsonant;
+    public string pronunciationRevision = string.Empty;
+    public string locale = string.Empty;
+    public int absoluteDay;
+
+    public static ProductionCommandOutcomeOutboxSaveData Create(
+        in ProductionCommandOutcomeSource source,
+        long ownerRevision,
+        in ProductionCommandOutcomeFrozenContext context)
+    {
+        if (ownerRevision <= 0L)
+            throw new ArgumentOutOfRangeException(nameof(ownerRevision));
+        return new ProductionCommandOutcomeOutboxSaveData
+        {
+            ownerRevision = ownerRevision,
+            kind = source.Kind,
+            billId = source.BillId,
+            recipeId = source.RecipeId,
+            recipeDisplayName = source.RecipeDisplayName,
+            facilityId = source.FacilityId,
+            facilityX = source.FacilityX,
+            facilityY = source.FacilityY,
+            beforeValue = source.BeforeValue,
+            afterValue = source.AfterValue,
+            facilityDisplayText = context.FacilityDisplayText,
+            facilityDisplayRevision = context.FacilityDisplayRevision,
+            pronunciationMode = context.PronunciationMode,
+            pronunciationValue = context.PronunciationValue,
+            pronunciationFinalConsonant = context.PronunciationFinalConsonant,
+            pronunciationRevision = context.PronunciationRevision,
+            locale = context.Locale,
+            absoluteDay = context.AbsoluteDay
+        };
+    }
+
+    public ProductionCommandOutcomeSource ToSource() => new(
+        kind,
+        billId,
+        recipeId,
+        recipeDisplayName,
+        facilityId,
+        facilityX,
+        facilityY,
+        beforeValue,
+        afterValue);
+
+    public ProductionCommandOutcomeFrozenContext ToFrozenContext() => new(
+        facilityDisplayText,
+        facilityDisplayRevision,
+        pronunciationMode,
+        pronunciationValue,
+        pronunciationFinalConsonant,
+        pronunciationRevision,
+        locale,
+        absoluteDay);
+
+    public ProductionCommandOutcomeOutboxSaveData Clone() => new()
+    {
+        ownerRevision = ownerRevision,
+        kind = kind,
+        billId = billId,
+        recipeId = recipeId,
+        recipeDisplayName = recipeDisplayName,
+        facilityId = facilityId,
+        facilityX = facilityX,
+        facilityY = facilityY,
+        beforeValue = beforeValue,
+        afterValue = afterValue,
+        facilityDisplayText = facilityDisplayText,
+        facilityDisplayRevision = facilityDisplayRevision,
+        pronunciationMode = pronunciationMode,
+        pronunciationValue = pronunciationValue,
+        pronunciationFinalConsonant = pronunciationFinalConsonant,
+        pronunciationRevision = pronunciationRevision,
+        locale = locale,
+        absoluteDay = absoluteDay
+    };
+}
+
+public interface IPreparedProductionCommandOutcome
+{
+    long OwnerRevision { get; }
+    ProductionCommandOutcomeFrozenContext FrozenContext { get; }
+}
+
+public readonly struct ProductionCommandOutcomeCommitResult
+{
+    public ProductionCommandOutcomeCommitResult(
+        bool durablyCommitted,
+        string detailCode)
+    {
+        DurablyCommitted = durablyCommitted;
+        DetailCode = detailCode ?? string.Empty;
+    }
+
+    public bool DurablyCommitted { get; }
+    public string DetailCode { get; }
+}
+
+public interface IProductionCommandOutcomeCommitter
+{
+    bool TryPrepare(
+        in ProductionCommandOutcomeSource source,
+        long ownerRevision,
+        out IPreparedProductionCommandOutcome prepared,
+        out string failureReason);
+    bool TryPreparePending(
+        ProductionCommandOutcomeOutboxSaveData pending,
+        out IPreparedProductionCommandOutcome prepared,
+        out string failureReason);
+    ProductionCommandOutcomeCommitResult Commit(
+        IPreparedProductionCommandOutcome prepared);
+    void Cancel(IPreparedProductionCommandOutcome prepared);
 }
 
 public sealed class ProductionBillCommandResult

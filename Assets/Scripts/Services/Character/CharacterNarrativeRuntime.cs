@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
@@ -20,6 +21,7 @@ public sealed class CharacterNarrativeRuntime :
     private readonly WorkCompletionIdentityDeliveryLedger completionDeliveries;
     private readonly IGameContentDefinitionSource content;
     private readonly IGameEventBus gameEvents;
+    private readonly IMigratedProducerOutcomeTransaction migratedOutcomes;
     private CharacterIdentityRuntimeStateSaveData[] stagedIdentityStates;
     private WorkCompletionIdentityDeliveryCursorSaveData[]
         stagedCompletionDeliveries;
@@ -36,7 +38,8 @@ public sealed class CharacterNarrativeRuntime :
         ICharacterNarrativeCatalog catalog,
         CharacterIdentityStateStore identityStates = null,
         IGameContentDefinitionSource content = null,
-        WorkCompletionIdentityDeliveryLedger completionDeliveries = null)
+        WorkCompletionIdentityDeliveryLedger completionDeliveries = null,
+        IMigratedProducerOutcomeTransaction migratedOutcomes = null)
     {
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -44,6 +47,7 @@ public sealed class CharacterNarrativeRuntime :
         this.content = content;
         this.completionDeliveries = completionDeliveries
             ?? new WorkCompletionIdentityDeliveryLedger();
+        this.migratedOutcomes = migratedOutcomes;
     }
 
     [Inject]
@@ -53,13 +57,15 @@ public sealed class CharacterNarrativeRuntime :
         CharacterIdentityStateStore identityStates,
         IGameContentDefinitionSource content,
         WorkCompletionIdentityDeliveryLedger completionDeliveries,
-        IGameEventBus gameEvents)
+        IGameEventBus gameEvents,
+        IMigratedProducerOutcomeTransaction migratedOutcomes)
         : this(
             rootStore,
             catalog,
             identityStates,
             content,
-            completionDeliveries)
+            completionDeliveries,
+            migratedOutcomes)
     {
         this.gameEvents = gameEvents
             ?? throw new ArgumentNullException(nameof(gameEvents));
@@ -125,7 +131,199 @@ public sealed class CharacterNarrativeRuntime :
     {
         catalog.Require(profile.Primary);
         if (profile.Secondary.IsValid) catalog.Require(profile.Secondary);
-        CharacterNarrativeRecord record = RequireWritable(characterId);
+        CharacterNarrativeAggregateState beforeState = CloneState(Current);
+        CharacterNarrativeAggregateState projection = CloneState(beforeState);
+        List<CharacterProficiencyAwardCommitReceipt> projectedReceipts = new();
+        long projectedAward = ApplyApprovedWork(
+            projection,
+            characterId,
+            profile,
+            approvedWork,
+            difficultyMultiplier,
+            outcome,
+            learningMultiplier,
+            repetitionMultiplier,
+            absoluteHour,
+            projectedReceipts);
+        return CommitProficiencyAwardMutation(
+            beforeState,
+            projection,
+            projectedAward,
+            projectedReceipts,
+            (candidate, receipts) => ApplyApprovedWork(
+                candidate,
+                characterId,
+                profile,
+                approvedWork,
+                difficultyMultiplier,
+                outcome,
+                learningMultiplier,
+                repetitionMultiplier,
+                absoluteHour,
+                receipts));
+    }
+
+    public long AddDirectExperience(
+        CharacterId characterId,
+        CharacterProficiencyId proficiencyId,
+        float experience,
+        long absoluteHour,
+        bool applyLearningMultiplier = true)
+    {
+        catalog.Require(proficiencyId);
+        CharacterNarrativeAggregateState beforeState = CloneState(Current);
+        CharacterNarrativeAggregateState projection = CloneState(beforeState);
+        List<CharacterProficiencyAwardCommitReceipt> projectedReceipts = new();
+        long projectedAward = ApplyDirectExperience(
+            projection,
+            characterId,
+            proficiencyId,
+            experience,
+            absoluteHour,
+            applyLearningMultiplier,
+            projectedReceipts);
+        return CommitProficiencyAwardMutation(
+            beforeState,
+            projection,
+            projectedAward,
+            projectedReceipts,
+            (candidate, receipts) => ApplyDirectExperience(
+                candidate,
+                characterId,
+                proficiencyId,
+                experience,
+                absoluteHour,
+                applyLearningMultiplier,
+                receipts));
+    }
+
+    private long CommitProficiencyAwardMutation(
+        CharacterNarrativeAggregateState beforeState,
+        CharacterNarrativeAggregateState projection,
+        long projectedAward,
+        IReadOnlyList<CharacterProficiencyAwardCommitReceipt> projectedReceipts,
+        Func<CharacterNarrativeAggregateState,
+            List<CharacterProficiencyAwardCommitReceipt>, long> applyMutation)
+    {
+        if (migratedOutcomes == null || projectedReceipts.Count == 0)
+        {
+            rootStore.Replace(projection);
+            if (projectedAward > 0L) version = unchecked(version + 1);
+            PublishPromotionReceipts(projectedReceipts);
+            return projectedAward;
+        }
+
+        PreparedMigratedProducerOutcome[] reserved =
+            ReserveProficiencyOutcomes(projectedReceipts).ToArray();
+        int previousRuntimeVersion = version;
+        bool candidatePublished = false;
+        long committedAward;
+        List<CharacterProficiencyAwardCommitReceipt> committedReceipts;
+        try
+        {
+            // Reservation is complete before the authoritative COW candidate is
+            // mutated. The detached projection above exists only to freeze the
+            // exact receipt-owned operation identity.
+            CharacterNarrativeAggregateState candidate = CloneState(beforeState);
+            committedReceipts = new List<CharacterProficiencyAwardCommitReceipt>();
+            committedAward = applyMutation(candidate, committedReceipts);
+            RequireMatchingProjection(
+                projectedAward,
+                projectedReceipts,
+                committedAward,
+                committedReceipts);
+
+            rootStore.Replace(candidate);
+            candidatePublished = true;
+            if (committedAward > 0L) version = unchecked(version + 1);
+
+            var subjects = new MigratedProducerOutcomeSubject[reserved.Length];
+            var summaries = new string[reserved.Length];
+            var committed = new MigratedProducerOutcomeCommitResult[reserved.Length];
+            for (int index = 0; index < reserved.Length; index++)
+            {
+                CharacterProficiencyAwardCommitReceipt receipt =
+                    committedReceipts[index];
+                subjects[index] = CreatePromotionSubject(receipt);
+                summaries[index] = BuildPromotionSummary(receipt);
+            }
+            if (!migratedOutcomes.CommitSingleSubjectBatch(
+                    reserved,
+                    subjects,
+                    summaries,
+                    committed,
+                    out string failureReason))
+            {
+                throw new InvalidOperationException(
+                    "Proficiency award outcome batch commit was rejected: "
+                    + failureReason);
+            }
+        }
+        catch
+        {
+            for (int index = 0; index < reserved.Length; index++)
+                migratedOutcomes.Cancel(reserved[index]);
+            if (candidatePublished)
+            {
+                rootStore.Replace(beforeState);
+                version = previousRuntimeVersion;
+            }
+            throw;
+        }
+
+        // Receipt publication is an observer step after every outcome is durable.
+        // Observer failures must not roll back the committed aggregate.
+        PublishPromotionReceipts(committedReceipts);
+        return committedAward;
+    }
+
+    private List<PreparedMigratedProducerOutcome> ReserveProficiencyOutcomes(
+        IReadOnlyList<CharacterProficiencyAwardCommitReceipt> receipts)
+    {
+        List<PreparedMigratedProducerOutcome> reserved = new(receipts.Count);
+        try
+        {
+            for (int index = 0; index < receipts.Count; index++)
+            {
+                CharacterProficiencyAwardCommitReceipt receipt = receipts[index];
+                if (!migratedOutcomes.TryReserveSingleSubject(
+                        MigratedProducerOutcomeKind
+                            .CharacterProficiencyAwardCommitReceipt,
+                        receipt.SourceOperationId,
+                        ResolveAbsoluteDay(receipt.AbsoluteHour),
+                        GameplayOutcomeStatus.Succeeded,
+                        out PreparedMigratedProducerOutcome prepared,
+                        out string failureReason))
+                {
+                    throw new InvalidOperationException(
+                        "Proficiency award outcome reservation failed: "
+                        + failureReason);
+                }
+                reserved.Add(prepared);
+            }
+            return reserved;
+        }
+        catch
+        {
+            for (int index = 0; index < reserved.Count; index++)
+                migratedOutcomes.Cancel(reserved[index]);
+            throw;
+        }
+    }
+
+    private long ApplyApprovedWork(
+        CharacterNarrativeAggregateState state,
+        CharacterId characterId,
+        ProficiencyWorkProfile profile,
+        float approvedWork,
+        float difficultyMultiplier,
+        ProficiencyWorkOutcome outcome,
+        float learningMultiplier,
+        float repetitionMultiplier,
+        long absoluteHour,
+        List<CharacterProficiencyAwardCommitReceipt> receipts)
+    {
+        CharacterNarrativeRecord record = RequireRecord(state, characterId);
         CharacterProficiencySnapshot beforePrimary = RequireProficiencySnapshot(
             record,
             profile.Primary,
@@ -149,8 +347,8 @@ public sealed class CharacterNarrativeRuntime :
             learningMultiplier,
             repetitionMultiplier,
             absoluteHour);
-        if (awarded > 0L) version = unchecked(version + 1);
-        PublishPromotionIfCommitted(
+        AddPromotionReceiptIfCommitted(
+            receipts,
             CharacterProficiencyAwardKind.ApprovedWork,
             characterId,
             beforePrimary,
@@ -158,7 +356,8 @@ public sealed class CharacterNarrativeRuntime :
             absoluteHour);
         if (observesSecondary)
         {
-            PublishPromotionIfCommitted(
+            AddPromotionReceiptIfCommitted(
+                receipts,
                 CharacterProficiencyAwardKind.ApprovedWork,
                 characterId,
                 beforeSecondary,
@@ -171,15 +370,16 @@ public sealed class CharacterNarrativeRuntime :
         return awarded;
     }
 
-    public long AddDirectExperience(
+    private long ApplyDirectExperience(
+        CharacterNarrativeAggregateState state,
         CharacterId characterId,
         CharacterProficiencyId proficiencyId,
         float experience,
         long absoluteHour,
-        bool applyLearningMultiplier = true)
+        bool applyLearningMultiplier,
+        List<CharacterProficiencyAwardCommitReceipt> receipts)
     {
-        catalog.Require(proficiencyId);
-        CharacterNarrativeRecord record = RequireWritable(characterId);
+        CharacterNarrativeRecord record = RequireRecord(state, characterId);
         CharacterProficiencySnapshot before = RequireProficiencySnapshot(
             record,
             proficiencyId,
@@ -189,8 +389,8 @@ public sealed class CharacterNarrativeRuntime :
             experience,
             absoluteHour,
             applyLearningMultiplier);
-        if (awarded > 0L) version = unchecked(version + 1);
-        PublishPromotionIfCommitted(
+        AddPromotionReceiptIfCommitted(
+            receipts,
             CharacterProficiencyAwardKind.DirectExperience,
             characterId,
             before,
@@ -217,22 +417,22 @@ public sealed class CharacterNarrativeRuntime :
         return snapshot;
     }
 
-    private void PublishPromotionIfCommitted(
+    private static void AddPromotionReceiptIfCommitted(
+        ICollection<CharacterProficiencyAwardCommitReceipt> receipts,
         CharacterProficiencyAwardKind awardKind,
         CharacterId characterId,
         CharacterProficiencySnapshot before,
         CharacterProficiencySnapshot after,
         long absoluteHour)
     {
-        if (gameEvents == null
-            || after.CurrentMilliExperience <= before.CurrentMilliExperience
+        if (after.CurrentMilliExperience <= before.CurrentMilliExperience
             || (int)CareerRules.ResolveRank(after.CurrentExperience)
                 <= (int)CareerRules.ResolveRank(before.CurrentExperience))
         {
             return;
         }
 
-        gameEvents.Publish(new CharacterProficiencyAwardCommitReceipt(
+        receipts.Add(new CharacterProficiencyAwardCommitReceipt(
             awardKind,
             characterId,
             after.ProficiencyId,
@@ -242,6 +442,93 @@ public sealed class CharacterNarrativeRuntime :
             after.LifetimeMilliExperience,
             absoluteHour));
     }
+
+    private void PublishPromotionReceipts(
+        IReadOnlyList<CharacterProficiencyAwardCommitReceipt> receipts)
+    {
+        if (gameEvents == null) return;
+        for (int index = 0; index < receipts.Count; index++)
+        {
+            try
+            {
+                gameEvents.Publish(receipts[index]);
+            }
+            catch (Exception exception) when (
+                exception is not OutOfMemoryException
+                && exception is not StackOverflowException
+                && exception is not AccessViolationException)
+            {
+                Debug.LogError(
+                    "character-proficiency-award-post-commit-observer:"
+                    + exception.GetType().Name);
+            }
+        }
+    }
+
+    private CharacterNarrativeAggregateState CloneState(
+        CharacterNarrativeAggregateState source) =>
+        CharacterNarrativeAggregateState.Restore(source.Capture(), catalog);
+
+    private static CharacterNarrativeRecord RequireRecord(
+        CharacterNarrativeAggregateState state,
+        CharacterId characterId) =>
+        state.Characters.TryGetValue(characterId, out CharacterNarrativeRecord record)
+            ? record
+            : throw new KeyNotFoundException(
+                $"Unknown narrative character '{characterId.Value}'.");
+
+    private static void RequireMatchingProjection(
+        long projectedAward,
+        IReadOnlyList<CharacterProficiencyAwardCommitReceipt> projectedReceipts,
+        long committedAward,
+        IReadOnlyList<CharacterProficiencyAwardCommitReceipt> committedReceipts)
+    {
+        if (projectedAward != committedAward
+            || projectedReceipts.Count != committedReceipts.Count)
+        {
+            throw new InvalidOperationException(
+                "Proficiency award mutation diverged from its reserved projection.");
+        }
+        for (int index = 0; index < projectedReceipts.Count; index++)
+        {
+            if (!string.Equals(
+                    projectedReceipts[index].SourceOperationId,
+                    committedReceipts[index].SourceOperationId,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Proficiency award receipt diverged from its reserved projection.");
+            }
+        }
+    }
+
+    private static int ResolveAbsoluteDay(long absoluteHour) =>
+        checked((int)Math.Min(
+            int.MaxValue,
+            Math.Max(0L, absoluteHour) / GameCalendarRules.HoursPerDay + 1L));
+
+    private static string BuildPromotionSummary(
+        CharacterProficiencyAwardCommitReceipt receipt) => string.Join("|", new[]
+    {
+        "proficiency-award@1",
+        ((int)receipt.AwardKind).ToString(CultureInfo.InvariantCulture),
+        receipt.CharacterId.Value,
+        receipt.ProficiencyId.Value,
+        receipt.BeforeCurrentMilliExperience.ToString(CultureInfo.InvariantCulture),
+        receipt.AfterCurrentMilliExperience.ToString(CultureInfo.InvariantCulture),
+        receipt.BeforeLifetimeMilliExperience.ToString(CultureInfo.InvariantCulture),
+        receipt.AfterLifetimeMilliExperience.ToString(CultureInfo.InvariantCulture),
+        ((int)receipt.BeforeRank).ToString(CultureInfo.InvariantCulture),
+        ((int)receipt.AfterRank).ToString(CultureInfo.InvariantCulture),
+        receipt.AbsoluteHour.ToString(CultureInfo.InvariantCulture)
+    });
+
+    private static MigratedProducerOutcomeSubject CreatePromotionSubject(
+        CharacterProficiencyAwardCommitReceipt receipt) => new(
+        MigratedProducerOutcomeIds.CharacterKind,
+        receipt.CharacterId.Value,
+        receipt.CharacterId.Value,
+        MigratedProducerOutcomeIds.ActorRole);
 
     public long AddCombatExperience(
         CharacterId characterId,

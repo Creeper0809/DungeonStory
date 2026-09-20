@@ -232,6 +232,53 @@ public sealed class NarrativeRequestContext
         return modelPrompt;
     }
 
+    /// <summary>
+    /// Builds the same validated request-local fact view as <see cref="ToModelPrompt"/>,
+    /// then removes the redundant canonical public JSON from the transport prompt.
+    /// The caller must retain the original prompt for audit and semantic identity.
+    /// </summary>
+    internal static string ToModelPromptWithoutCanonicalPublicPayload(string prompt)
+    {
+        string modelPrompt = ToModelPrompt(prompt);
+        int begin = modelPrompt.IndexOf(
+            NarrativePublicModelInput.BeginMarker,
+            StringComparison.Ordinal);
+        if (begin < 0)
+        {
+            return modelPrompt;
+        }
+        int end = modelPrompt.IndexOf(
+            NarrativePublicModelInput.EndMarker,
+            begin,
+            StringComparison.Ordinal);
+        if (end < begin)
+        {
+            throw new InvalidOperationException(
+                "Validated narrative prompt lost its canonical public-input end marker.");
+        }
+
+        const string header = "Public narrative context (canonical public JSON):";
+        int removeStart = modelPrompt.LastIndexOf(
+            header,
+            begin,
+            StringComparison.Ordinal);
+        if (removeStart < 0)
+        {
+            removeStart = begin;
+        }
+        else if (removeStart > 0 && modelPrompt[removeStart - 1] == '\n')
+        {
+            removeStart--;
+        }
+        int removeEnd = end + NarrativePublicModelInput.EndMarker.Length;
+        while (removeEnd < modelPrompt.Length
+               && (modelPrompt[removeEnd] == '\r' || modelPrompt[removeEnd] == '\n'))
+        {
+            removeEnd++;
+        }
+        return modelPrompt.Remove(removeStart, removeEnd - removeStart);
+    }
+
     private static string StyleInstruction(string profileId)
     {
         if (string.Equals(profileId, "CharacterSkill", StringComparison.Ordinal)
@@ -496,7 +543,15 @@ public sealed class NarrativeTextQualityGate : INarrativeTextQualityGate
         for (int index = 0; index + 2 < json.Length; index++)
         {
             char prefix = char.ToUpperInvariant(json[index]);
-            if ((prefix != 'F' && prefix != 'M') || !char.IsDigit(json[index + 1]) || !char.IsDigit(json[index + 2])) continue;
+            if ((prefix != 'F' && prefix != 'M')
+                || !char.IsDigit(json[index + 1])
+                || !char.IsDigit(json[index + 2])
+                || (index > 0 && IsAsciiIdentifierCharacter(json[index - 1]))
+                || (index + 3 < json.Length
+                    && IsAsciiIdentifierCharacter(json[index + 3])))
+            {
+                continue;
+            }
             string reference = string.Concat(prefix, json[index + 1], json[index + 2]);
             bool valid = prefix == 'F'
                 ? context.TryResolveFact(reference, out _)
@@ -505,6 +560,12 @@ public sealed class NarrativeTextQualityGate : INarrativeTextQualityGate
         }
         return false;
     }
+
+    private static bool IsAsciiIdentifierCharacter(char value) =>
+        value is >= 'a' and <= 'z'
+            or >= 'A' and <= 'Z'
+            or >= '0' and <= '9'
+            or '_';
 
     private static bool ContainsStableId(string json, NarrativeRequestContext context)
     {

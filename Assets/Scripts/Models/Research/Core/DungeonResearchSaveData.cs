@@ -6,6 +6,13 @@ using System.Collections.Generic;
 [Serializable]
 public sealed class DungeonResearchSaveData
 {
+    // Additive V6 field. Earlier V6 saves have no research outcomes and start at zero.
+    public long outcomeSequence;
+    // Zero means legacy allocation history is unknown, not that no task existed.
+    public int nextKnowledgeTaskSequence;
+    // Zero is an early-V6 payload. When its sequence history is also absent,
+    // restore moves future allocations to the disjoint migrated namespace.
+    public int knowledgeTaskIdentityGeneration;
     public List<DungeonResearchTaskSaveData> tasks =
         new List<DungeonResearchTaskSaveData>();
     public List<int> completedBlueprintIds = new List<int>();
