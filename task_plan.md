@@ -268,6 +268,6 @@ The earlier `CHANGES_REQUIRED` remains historical review evidence; this correcti
 - [x] Verify hashes, closure policy, scoped whitespace and the already-completed compile/runtime evidence on the exact frozen source.
 - [x] Curate Git contents: include source, tests, contracts, planning/docs and necessary compact QA evidence; exclude Player builds, transient process files and redundant intermediate run output.
 - [x] Commit the frozen source as `a88a0482d` on `codex/wim-implementation`.
-- [ ] Commit final evidence/completion records and push the branch to `origin`.
+- [x] Commit final evidence/completion records and push the branch to `origin`.
 
-Window: `SOURCE_EDIT / EDIT_READY`. Unity is not running, no further gameplay source edit is planned, and Unity MCP plus `dungeon-player` MCP remain unused. Human/training flags remain unchanged.
+Window: `COMPLETE / PUSHED`. Frozen source commit `a88a0482d` and evidence commit `d1e3c7e03` are published on `origin/codex/wim-implementation`. Unity MCP plus `dungeon-player` MCP were not used. Human/training flags remain unchanged.
