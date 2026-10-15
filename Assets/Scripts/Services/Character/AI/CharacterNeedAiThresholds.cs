@@ -33,7 +33,15 @@ public static class CharacterNeedAiThresholds
             actor.Stats.GetNeedResponse(condition);
         if (value > response.routineStart)
         {
-            return 0f;
+            // A successful small meal may clear the start threshold without
+            // satisfying the interrupted work's existing recovery target.
+            // Keep only that latched hunger response eligible; healthy workers
+            // must not begin eating merely because they are below resumeTarget.
+            return condition == CharacterCondition.HUNGER
+                && CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work)
+                && work.RequiresRoutineNeedRecovery(condition)
+                    ? 0.35f
+                    : 0f;
         }
 
         float urgency = Mathf.InverseLerp(

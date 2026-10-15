@@ -32,12 +32,10 @@ public static class CaptiveRansomOutcomeIds
             ownerRevision,
             0);
 
+    public static readonly GameplayOutcomeFactId DecisionMakerFact = new("captivity.captive-ransom.decision-maker");
+
     public static bool IsPreviousStatusValid(CaptivityStatus status) =>
-        status is CaptivityStatus.AwaitingCapture
-            or CaptivityStatus.Stabilizing
-            or CaptivityStatus.AwaitingEscort
-            or CaptivityStatus.Confined
-            or CaptivityStatus.Labor;
+        CaptiveRansomAcceptedFact.IsPreviousStatusValid(status);
 }
 
 public readonly struct CaptiveRansomOutcomeReceipt
@@ -45,6 +43,7 @@ public readonly struct CaptiveRansomOutcomeReceipt
     public CaptiveRansomOutcomeReceipt(
         string captiveId,
         KoreanNameSnapshot captiveName,
+        string decisionMakerId,
         CaptivityStatus previousStatus,
         int amount,
         float retaliationPressure,
@@ -76,6 +75,10 @@ public readonly struct CaptiveRansomOutcomeReceipt
         if (absoluteDay < 0)
             throw new ArgumentOutOfRangeException(nameof(absoluteDay));
 
+        if (decisionMakerId == null || (decisionMakerId.Length > 0
+            && !DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsIdentity(decisionMakerId)))
+            throw new ArgumentException("captive-ransom-decision-maker-invalid", nameof(decisionMakerId));
+        DecisionMakerId = decisionMakerId;
         CaptiveId = characterId;
         CaptiveName = captiveName;
         PreviousStatus = previousStatus;
@@ -85,6 +88,7 @@ public readonly struct CaptiveRansomOutcomeReceipt
         AbsoluteDay = absoluteDay;
     }
 
+    public string DecisionMakerId { get; }
     public CharacterId CaptiveId { get; }
     public KoreanNameSnapshot CaptiveName { get; }
     public CaptivityStatus PreviousStatus { get; }
@@ -111,6 +115,8 @@ public sealed class CaptiveRansomOutcomeAdapter :
         bool valid = receipt.CaptiveId.IsValid
             && GameplayOutcomeLedger.IsValidDisplayNameSnapshot(receipt.CaptiveName)
             && CaptiveRansomOutcomeIds.IsPreviousStatusValid(receipt.PreviousStatus)
+            && receipt.DecisionMakerId != null
+            && (receipt.DecisionMakerId.Length == 0 || DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsIdentity(receipt.DecisionMakerId))
             && receipt.Amount > 0
             && !float.IsNaN(receipt.RetaliationPressure)
             && !float.IsInfinity(receipt.RetaliationPressure)
@@ -139,7 +145,7 @@ public sealed class CaptiveRansomOutcomeAdapter :
             tagCount: 1,
             anchorCount: 0,
             provenanceCount: 1,
-            factCount: 1);
+            factCount: 2);
         return OutcomePrepareResult.Prepared();
     }
 
@@ -183,7 +189,9 @@ public sealed class CaptiveRansomOutcomeAdapter :
             && builder.AddProvenance(CaptiveRansomOutcomeIds.Source)
             && builder.AddFact(new GameplayOutcomeFact(
                 CaptiveRansomOutcomeIds.PreviousStatusFact,
-                receipt.PreviousStatus.ToString()));
+                receipt.PreviousStatus.ToString()))
+            && builder.AddFact(new GameplayOutcomeFact(CaptiveRansomOutcomeIds.DecisionMakerFact,
+                receipt.DecisionMakerId.Length == 0 ? "none" : "id:" + receipt.DecisionMakerId));
         return written
             ? OutcomePrepareResult.Prepared()
             : new OutcomePrepareResult(
@@ -202,85 +210,6 @@ public sealed class CaptiveRansomOutcomeAdapter :
         GameplayMetricUnitId unit,
         GameplayEntityId subject) => builder.AddMetric(
         new GameplayOutcomeMetric(id, value, unit, subject));
-}
-
-public readonly struct PreparedCaptiveRansomOutcome
-{
-    public PreparedCaptiveRansomOutcome(
-        PreparedOwnerOutcome prepared,
-        GameplayResultKey resultKey,
-        long ownerRevision,
-        bool isReplay)
-    {
-        Prepared = prepared;
-        ResultKey = resultKey;
-        OwnerRevision = ownerRevision;
-        IsReplay = isReplay;
-    }
-
-    internal PreparedOwnerOutcome Prepared { get; }
-    public GameplayResultKey ResultKey { get; }
-    public long OwnerRevision { get; }
-    public bool IsReplay { get; }
-}
-
-public interface ICaptiveRansomOutcomeCommitter
-{
-    bool TryPrepare(
-        in CaptiveRansomOutcomeReceipt receipt,
-        out PreparedCaptiveRansomOutcome prepared,
-        out string failureReason);
-    OwnerOutcomeCommitResult Commit(in PreparedCaptiveRansomOutcome prepared);
-    void Cancel(in PreparedCaptiveRansomOutcome prepared);
-}
-
-public sealed class CaptiveRansomGameplayOutcomeBridge :
-    ICaptiveRansomOutcomeCommitter
-{
-    private readonly PreparedOutcomeOwnerTransaction transactions;
-
-    public CaptiveRansomGameplayOutcomeBridge(
-        IGameplayOutcomeRecorder recorder,
-        IGameplayOutcomeDiagnosticsQuery diagnostics)
-    {
-        transactions = new PreparedOutcomeOwnerTransaction(
-            recorder ?? throw new ArgumentNullException(nameof(recorder)),
-            diagnostics ?? throw new ArgumentNullException(nameof(diagnostics)));
-    }
-
-    public bool TryPrepare(
-        in CaptiveRansomOutcomeReceipt receipt,
-        out PreparedCaptiveRansomOutcome prepared,
-        out string failureReason)
-    {
-        prepared = default;
-        if (!transactions.TryPrepare(
-                receipt,
-                out PreparedOwnerOutcome token,
-                out OwnerOutcomeCommitResult replay,
-                out _,
-                out failureReason))
-        {
-            return false;
-        }
-        prepared = new PreparedCaptiveRansomOutcome(
-            token,
-            receipt.ResultKey,
-            receipt.OwnerRevision,
-            replay.DurablyCommitted);
-        return true;
-    }
-
-    public OwnerOutcomeCommitResult Commit(
-        in PreparedCaptiveRansomOutcome prepared) => prepared.IsReplay
-        ? transactions.Reconcile(prepared.ResultKey)
-        : transactions.Commit(prepared.Prepared, prepared.OwnerRevision);
-
-    public void Cancel(in PreparedCaptiveRansomOutcome prepared)
-    {
-        if (!prepared.IsReplay)
-            transactions.Cancel(prepared.Prepared);
-    }
 }
 
 internal sealed class CaptiveRansomMemoryPolicy : IOutcomeMemoryPolicy
@@ -441,7 +370,11 @@ public sealed class CaptiveRansomOutcomeDescriptor : IGameplayOutcomeDescriptor
             && outcome.MetricCount == 3
             && outcome.TagCount == 1
             && outcome.ProvenanceCount == 1
-            && outcome.FactCount == 1
+            && outcome.FactCount == 2
+            && outcome.GetFact(1).FactId.Equals(CaptiveRansomOutcomeIds.DecisionMakerFact)
+            && (outcome.GetFact(1).Value == "none"
+                || (outcome.GetFact(1).Value.StartsWith("id:", StringComparison.Ordinal)
+                    && DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsIdentity(outcome.GetFact(1).Value.Substring(3))))
             && statusParsed
             && CaptiveRansomOutcomeIds.IsPreviousStatusValid(previousStatus)
             && hasAmount

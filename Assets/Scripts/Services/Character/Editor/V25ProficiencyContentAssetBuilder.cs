@@ -450,7 +450,7 @@ public static class V25ProficiencyContentAssetBuilder
                 Weighted(
                     BuiltInCharacterProficiencyIds.FoodProduction,
                     BuiltInCharacterProficiencyIds.Social),
-            "S01_판매카운터" =>
+            "S01_판매카운터" or "S02_잡화진열선반" or "S03_잠금진열장" =>
                 Primary(BuiltInCharacterProficiencyIds.Social),
             "RF06_운반_멜빵_걸이" or "RF53_계절_저장_선반" =>
                 Primary(BuiltInCharacterProficiencyIds.Fieldwork),

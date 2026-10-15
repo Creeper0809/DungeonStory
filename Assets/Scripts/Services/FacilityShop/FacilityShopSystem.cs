@@ -174,6 +174,28 @@ public sealed class FacilityBlueprintOffer : FacilityShopOffer
     }
 }
 
+public enum FacilityShopPurchaseFailureStage
+{
+    None = 0,
+    OfferSelection = 1,
+    OfferValidation = 2,
+    RuntimeUnavailable = 3,
+    PurchaseSequenceExhausted = 4,
+    OutcomeReservation = 5,
+    InsufficientFunds = 6,
+    Payment = 7,
+    Receipt = 8,
+    OutcomeCommit = 9
+}
+
+public enum FacilityShopPurchaseOutcomePolicy
+{
+    Unspecified = 0,
+    RejectedWithoutPublication = 1,
+    DurableFactRequired = 2,
+    DomainApplied = 3
+}
+
 public readonly struct FacilityShopPurchaseResult
 {
     public readonly bool success;
@@ -183,8 +205,26 @@ public readonly struct FacilityShopPurchaseResult
     public readonly int dataId;
     public readonly int cost;
     public readonly string message;
+    public readonly string purchasePublicationKey;
+    public readonly string paymentTransactionId;
+    public readonly FacilityShopPurchaseFailureStage failureStage;
+    public readonly FacilityShopPurchaseOutcomePolicy outcomePolicy;
+    public readonly int balanceBefore;
+    public readonly int balanceAfter;
 
-    public FacilityShopPurchaseResult(bool success, FacilityShopOffer offer, int cost, string message)
+    public FacilityShopPurchaseResult(
+        bool success,
+        FacilityShopOffer offer,
+        int cost,
+        string message,
+        string purchasePublicationKey = "",
+        string paymentTransactionId = "",
+        FacilityShopPurchaseFailureStage failureStage =
+            FacilityShopPurchaseFailureStage.None,
+        FacilityShopPurchaseOutcomePolicy outcomePolicy =
+            FacilityShopPurchaseOutcomePolicy.Unspecified,
+        int balanceBefore = -1,
+        int balanceAfter = -1)
     {
         this.success = success;
         this.offer = offer != null ? offer.ToSnapshot() : null;
@@ -193,6 +233,12 @@ public readonly struct FacilityShopPurchaseResult
         dataId = offer?.DataId ?? -1;
         this.cost = Mathf.Max(0, cost);
         this.message = message ?? string.Empty;
+        this.purchasePublicationKey = purchasePublicationKey ?? string.Empty;
+        this.paymentTransactionId = paymentTransactionId ?? string.Empty;
+        this.failureStage = failureStage;
+        this.outcomePolicy = outcomePolicy;
+        this.balanceBefore = balanceBefore;
+        this.balanceAfter = balanceAfter;
     }
 
     public bool TryGetBuilding(out BuildingSO building)
@@ -449,22 +495,49 @@ public static class FacilityShopService
     {
         if (offer == null || !offer.IsValid)
         {
-            result = new FacilityShopPurchaseResult(false, offer, 0, "상품 정보가 올바르지 않습니다");
+            int balance = money?.Balance ?? -1;
+            result = new FacilityShopPurchaseResult(
+                false,
+                offer,
+                0,
+                "상품 정보가 올바르지 않습니다",
+                failureStage: FacilityShopPurchaseFailureStage.OfferValidation,
+                outcomePolicy: FacilityShopPurchaseOutcomePolicy
+                    .RejectedWithoutPublication,
+                balanceBefore: balance,
+                balanceAfter: balance);
             purchaseCompleted?.Invoke(result);
             return false;
         }
 
         if (money == null)
         {
-            result = new FacilityShopPurchaseResult(false, offer, offer.Cost, "게임 자금 데이터가 없습니다");
+            result = new FacilityShopPurchaseResult(
+                false,
+                offer,
+                offer.Cost,
+                "게임 자금 데이터가 없습니다",
+                failureStage: FacilityShopPurchaseFailureStage.RuntimeUnavailable,
+                outcomePolicy: FacilityShopPurchaseOutcomePolicy
+                    .RejectedWithoutPublication);
             purchaseCompleted?.Invoke(result);
             return false;
         }
 
+        int balanceBefore = money.Balance;
         if (!(debugRules ?? throw new ArgumentNullException(nameof(debugRules))).ShouldSkipCosts()
             && !money.CanSpend(offer.Cost))
         {
-            result = new FacilityShopPurchaseResult(false, offer, offer.Cost, "자금 부족");
+            result = new FacilityShopPurchaseResult(
+                false,
+                offer,
+                offer.Cost,
+                "자금 부족",
+                failureStage: FacilityShopPurchaseFailureStage.InsufficientFunds,
+                outcomePolicy: FacilityShopPurchaseOutcomePolicy
+                    .RejectedWithoutPublication,
+                balanceBefore: balanceBefore,
+                balanceAfter: money.Balance);
             purchaseCompleted?.Invoke(result);
             return false;
         }
@@ -477,13 +550,26 @@ public static class FacilityShopService
                     false,
                     offer,
                     offer.Cost,
-                    reason);
+                    reason,
+                    failureStage: FacilityShopPurchaseFailureStage.Payment,
+                    outcomePolicy: FacilityShopPurchaseOutcomePolicy
+                        .RejectedWithoutPublication,
+                    balanceBefore: balanceBefore,
+                    balanceAfter: money.Balance);
                 purchaseCompleted?.Invoke(result);
                 return false;
             }
         }
         string message = offer.ApplyPurchase(unlockState);
-        result = new FacilityShopPurchaseResult(true, offer, offer.Cost, message);
+        result = new FacilityShopPurchaseResult(
+            true,
+            offer,
+            offer.Cost,
+            message,
+            outcomePolicy: FacilityShopPurchaseOutcomePolicy
+                .DurableFactRequired,
+            balanceBefore: balanceBefore,
+            balanceAfter: money.Balance);
         purchaseCompleted?.Invoke(result);
         return true;
     }

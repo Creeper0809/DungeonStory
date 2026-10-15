@@ -9,7 +9,8 @@ public class DungeonRunFlowApplicationAdapter :
     ITickable,
     IDisposable,
     IDungeonRunFlowRuntime,
-    IDungeonRunFlowRestorePublisher
+    IDungeonRunFlowRestorePublisher,
+    IDungeonSaveRestoreCompletedHook
 {
     private readonly IOwnerRunManagerProvider ownerProvider;
     private readonly InvasionThreatRuntime threat;
@@ -116,6 +117,15 @@ public class DungeonRunFlowApplicationAdapter :
         EnsureProjectionCurrent();
     }
 
+    public void OnRestoreCompleted()
+    {
+        // Character publication creates a fresh OwnerRunManager binding with
+        // IsRunEnded=false. Restore must project canonical run.flow before
+        // returning, not leave a terminal owner looking resumable for a tick.
+        EnsureProjectionCurrent();
+        projectedRestoreRevision = aggregateRootStore.PublishedRestoreRevision;
+    }
+
     public void OnTriggerEvent(OperatingDayStartedEvent eventType) =>
         ApplyTransition(DungeonRunFlowReducer.Reduce(
             State,
@@ -186,9 +196,17 @@ public class DungeonRunFlowApplicationAdapter :
         }
     }
 
-    public void PublishRestoreState(DungeonRunFlowAggregateState candidate) =>
-        aggregateRootStore.Replace(candidate
-            ?? throw new ArgumentNullException(nameof(candidate)));
+    public OwnerRunCompletionPendingData CapturePendingCompletion()
+    {
+        if (ownerProvider.TryGetManager(out var owner)) owner.AssertCompletionIdle();
+        return State.PendingCompletion?.Clone();
+    }
+
+    public void PublishRestoreState(DungeonRunFlowAggregateState candidate)
+    {
+        if (ownerProvider.TryGetManager(out var owner)) owner.AssertCompletionIdle();
+        aggregateRootStore.Replace(candidate ?? throw new ArgumentNullException(nameof(candidate)));
+    }
 
     private void ApplyTransition(
         DungeonRunFlowTransition transition,
@@ -215,6 +233,9 @@ public class DungeonRunFlowApplicationAdapter :
 
         if (transition.StateChanged)
         {
+            // CompleteRun can publish a pending observation while this older
+            // transition is executing. Do not overwrite its durable retry row.
+            transition.State.PendingCompletion = State.PendingCompletion?.Clone();
             aggregateRootStore.Replace(transition.State);
         }
 

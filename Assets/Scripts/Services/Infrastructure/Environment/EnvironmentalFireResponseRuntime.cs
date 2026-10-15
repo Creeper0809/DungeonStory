@@ -87,7 +87,8 @@ public interface IEnvironmentalFireSuppressionWorkRuntime
         CharacterActor actor,
         EnvironmentalFireSuppressionWorkSnapshot expectedWork,
         out EnvironmentalFireSuppressionAttempt attempt,
-        out string failureReason);
+        out string failureReason,
+        CharacterCommandOrigin commandOrigin = CharacterCommandOrigin.Autonomous);
 
     bool ApplyResponderExposure(
         EnvironmentalFireSuppressionAttempt attempt,
@@ -372,7 +373,8 @@ public sealed class EnvironmentalFireResponseRuntime :
         CharacterActor actor,
         EnvironmentalFireSuppressionWorkSnapshot expectedWork,
         out EnvironmentalFireSuppressionAttempt attempt,
-        out string failureReason)
+        out string failureReason,
+        CharacterCommandOrigin commandOrigin = CharacterCommandOrigin.Autonomous)
     {
         attempt = null;
         failureReason = string.Empty;
@@ -411,17 +413,8 @@ public sealed class EnvironmentalFireResponseRuntime :
         {
             return false;
         }
-        string operationId = string.Concat(
-            "environmental-fire-suppression:",
-            work.Fire.FireId,
-            ":",
-            workerId.Value,
-            ":work=",
-            work.Fire.TotalSuppressionWork.ToString(
-                "R",
-                CultureInfo.InvariantCulture),
-            ":water=",
-            work.Fire.TotalWaterConsumed.ToString(CultureInfo.InvariantCulture));
+        string operationId = CreateSuppressionOperationId(work.Fire.FireId,
+            workerId.Value, work.Fire.TotalSuppressionWork, work.Fire.TotalWaterConsumed);
         string leaseId = string.Empty;
         if (work.Mode == EnvironmentalFireSuppressionMode.Water)
         {
@@ -464,7 +457,8 @@ public sealed class EnvironmentalFireResponseRuntime :
             expectedWork.RequiredWork,
             leaseId,
             work.RequiredWater,
-            actor.Identity?.DisplayName);
+            actor.Identity?.DisplayName,
+            commandOrigin);
         attempt = new EnvironmentalFireSuppressionAttempt(
             command,
             work.Fire.Intensity,
@@ -495,6 +489,25 @@ public sealed class EnvironmentalFireResponseRuntime :
             * HeatExposurePerWorkAtFullIntensity
             * Mathf.Clamp01(attempt.ExposureIntensity);
         return amount > 0f && exposure.AddHeatExposure(actorId, amount);
+    }
+
+    // The response owns operation identity before reserving water or executing
+    // work. A bounded stable ID also covers long actor IDs/scientific notation;
+    // raw ':work=...:water=...' text is not a legal ledger operation ID.
+    public static string CreateSuppressionOperationId(string fireId, string workerId,
+        float completedWork, int consumedWater)
+    {
+        GameplayOutcomeStableIdSyntax.Require(fireId, nameof(fireId));
+        GameplayOutcomeStableIdSyntax.Require(workerId, nameof(workerId));
+        if (!float.IsFinite(completedWork) || completedWork < 0f)
+            throw new ArgumentOutOfRangeException(nameof(completedWork));
+        if (consumedWater < 0)
+            throw new ArgumentOutOfRangeException(nameof(consumedWater));
+        string canonical = string.Join("\n", fireId, workerId,
+            completedWork.ToString("R", CultureInfo.InvariantCulture),
+            consumedWater.ToString(CultureInfo.InvariantCulture));
+        return new GameplayOperationId("environmental-fire-suppression:"
+            + NarrativeInferenceHash.ComputeSha256Utf8(canonical)).Value;
     }
 
     public EnvironmentalFireSuppressionResult Complete(

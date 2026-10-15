@@ -135,14 +135,6 @@ internal static class StartPartyPreparationPresentation
             _ => rarity.ToString()
         };
 
-    public static void AppendFlags(StringBuilder builder, string label, string value)
-    {
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            builder.AppendLine($"{label}  {value}");
-        }
-    }
-
     public static string FormatFacilityRoles(FacilityRole roles)
     {
         if (roles == FacilityRole.None)
@@ -196,12 +188,6 @@ internal static class StartPartyPreparationPresentation
         }
 
         return member.CharacterData != null ? member.CharacterData.characterName : "-";
-    }
-
-    public static string FormatTraitIds(IEnumerable<int> traitIds)
-    {
-        int[] ids = traitIds?.Distinct().ToArray() ?? Array.Empty<int>();
-        return ids.Length == 0 ? "-" : string.Join(", ", ids.Select(id => $"Trait {id}"));
     }
 
     public static string PotentialLabel(CharacterPotentialGrade grade)

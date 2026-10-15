@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 using VContainer;
@@ -416,6 +417,8 @@ public static class PhysicalStockQueryV18DebugScenarios
             EditorNullItemMarkerPresenter.Instance;
         var outcomeFixture = new MigratedProducerOutcomeEditorFixture(
             "run:physical-stock-partial-transform");
+        using DomainFactDispatcher physicalFacts =
+            outcomeFixture.CreatePhysicalTransformationFacts();
         var session = new FixedGameSessionStateProvider();
         PhysicalItemTransformService transforms = new(
             repository,
@@ -424,7 +427,7 @@ public static class PhysicalStockQueryV18DebugScenarios
             catalog,
             markers,
             session,
-            outcomeFixture.Transaction);
+            physicalFacts);
         long lumberMass = massQuery.GetDefinitionUnitMass(
             (ItemDefinitionId)LumberItemId).Value;
         DungeonItemDefinition output = catalog.All
@@ -590,7 +593,7 @@ public static class PhysicalStockQueryV18DebugScenarios
             catalog,
             new ThrowOnceItemMarkerPresenter(),
             session,
-            outcomeFixture.Transaction);
+            physicalFacts);
         int outputBeforeRollback = stockQuery.GetAllStacks()
             .Where(value => value.Position == multiOutputPosition
                 && string.Equals(value.ItemId, output.ItemId,
@@ -1330,6 +1333,8 @@ public static class PhysicalStockQueryV18DebugScenarios
         WorldItemSpawner spawner = new(catalog, repository, markers);
         var outcomeFixture = new MigratedProducerOutcomeEditorFixture(
             "run:physical-stock-wildlife-transform");
+        using DomainFactDispatcher physicalFacts =
+            outcomeFixture.CreatePhysicalTransformationFacts();
         PhysicalItemTransformService transforms = new(
             repository,
             spawner,
@@ -1337,7 +1342,7 @@ public static class PhysicalStockQueryV18DebugScenarios
             catalog,
             markers,
             new FixedGameSessionStateProvider(),
-            outcomeFixture.Transaction);
+            physicalFacts);
         Vector2Int position = new(37, 4);
         string sourceStackId = WorldItemRepositoryEditorAccess.AddStack(
             repository,

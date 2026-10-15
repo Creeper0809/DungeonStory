@@ -10,6 +10,9 @@ internal sealed class CharacterEnvironmentAggregateState
         new();
     internal Dictionary<CharacterId, EnvironmentalWorkKind> WorkContexts { get; } =
         new();
+    internal Dictionary<string, EnvironmentalExposureOutcomeSaveData>
+        ExposureOutcomes { get; } = new(StringComparer.Ordinal);
+    internal int NextExposureOutcomeSequence { get; set; }
     internal Dictionary<CharacterId, ItemInstanceId> EquippedWorkwearByCharacter { get; } =
         new();
     internal float Accumulator { get; set; }
@@ -29,6 +32,12 @@ internal sealed class CharacterEnvironmentAggregateState
         foreach (KeyValuePair<CharacterId, EnvironmentalWorkKind> pair in WorkContexts)
         {
             copy.WorkContexts.Add(pair.Key, pair.Value);
+        }
+        copy.NextExposureOutcomeSequence = NextExposureOutcomeSequence;
+        foreach (KeyValuePair<string, EnvironmentalExposureOutcomeSaveData> pair
+                 in ExposureOutcomes)
+        {
+            copy.ExposureOutcomes.Add(pair.Key, pair.Value);
         }
         return copy;
     }

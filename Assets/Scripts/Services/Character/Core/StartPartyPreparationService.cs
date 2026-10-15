@@ -714,6 +714,7 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         int unlockLevel)
     {
         CharacterSkillDraft draft = progression.GrowthState.drafts.FirstOrDefault(item => item != null
+            && !item.IsInvalidated()
             && item.kind == kind
             && item.unlockLevel == unlockLevel);
         if (draft != null)

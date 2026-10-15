@@ -39,13 +39,6 @@ public sealed class BlueprintResearchApplicationAdapter
 
     public float UnscaledTime => uiClock.Time;
 
-    public IDisposable SubscribeToShopPurchased(
-        Action<FacilityShopPurchasedEvent> handler)
-    {
-        return gameEventBus.Subscribe(
-            handler ?? throw new ArgumentNullException(nameof(handler)));
-    }
-
     public void Publish<TEvent>(TEvent eventData)
     {
         gameEventBus.Publish(eventData);

@@ -137,7 +137,7 @@ public sealed class Wim009CropPestLiveRunner
             "Start occurrence provenance or exact one handled record is missing.");
         Sow(later);
         string beforeReplay = JsonUtility.ToJson(crops.Capture());
-        V20SocietyEventAlertProjection.PublishResolved(events, started, true);
+        events.Publish(new V20ContentEffectsResolvedEvent(started, true));
         crops.Tick();
         Require(Damage(later) == 0 && JsonUtility.ToJson(crops.Capture()) == beforeReplay,
             "Repeated start or active-event polling damaged a later sow or changed the first damage.");
@@ -163,7 +163,7 @@ public sealed class Wim009CropPestLiveRunner
             && Row(growing).seasonalYieldDamage.sourceEventInstanceId == firstSource
             && crops.Capture().handledSeasonalStartInstanceIds.Count(x => x == firstSource) == 1,
             "Whole restore lost cycle provenance or handled-start authority.");
-        V20SocietyEventAlertProjection.PublishResolved(events, started, true);
+        events.Publish(new V20ContentEffectsResolvedEvent(started, true));
         Require(Damage(later) == 0 && Damage(growing) == 10, "Restored replay hit a later sow.");
         ResolveDay(expiry, 91, Season.Autumn);
         Require(!seasonal.ActiveSeasonalEvents.Any(x => x.instanceId == firstSource)
@@ -206,7 +206,7 @@ public sealed class Wim009CropPestLiveRunner
         Require(Damage(growing) == 0, "New paid sow inherited the previous cycle damage.");
         string beforeStaleStart = JsonUtility.ToJson(crops.Capture());
         bool staleRejected = false;
-        try { V20SocietyEventAlertProjection.PublishResolved(events, started, true); }
+        try { events.Publish(new V20ContentEffectsResolvedEvent(started, true)); }
         catch (InvalidOperationException error)
         {
             staleRejected = error.Message.IndexOf("current active occurrence", StringComparison.Ordinal) >= 0;
@@ -328,7 +328,7 @@ public sealed class Wim009CropPestLiveRunner
             "Campaign evaluation changed crops before its postcommit notification.");
         events.Publish(new V20ContentEffectsResolvedEvent(selected.DefinitionId, selected.ResolutionId, selected.Effects, false));
         Require(JsonUtility.ToJson(crops.Capture()) == before, "Uncommitted notification changed crop authority.");
-        foreach (var resolution in results) V20SocietyEventAlertProjection.PublishResolved(events, resolution, true);
+        foreach (var resolution in results) events.Publish(new V20ContentEffectsResolvedEvent(resolution, true));
         return selected;
     }
 
@@ -341,7 +341,7 @@ public sealed class Wim009CropPestLiveRunner
             out var result, out DomainFailure failure), "Actual daily transaction failed: " + failure);
         if (publish)
             foreach (var resolution in result.Resolutions)
-                V20SocietyEventAlertProjection.PublishResolved(events, resolution, true);
+                events.Publish(new V20ContentEffectsResolvedEvent(resolution, true));
         return result.Resolutions;
     }
 

@@ -12,12 +12,142 @@ using UnityEngine;
 /// </summary>
 public static class IndustrialPowerFuelOutboxContractProbe
 {
+    public static string RunBreakerTrip(
+        BuildableObject building,
+        IWorldItemStackRuntime items,
+        IPhysicalFacilityItemSinkGateway physicalFuel,
+        Action<string, string> observe = null)
+    {
+        if (building == null)
+            throw new ArgumentNullException(nameof(building));
+        if (items == null)
+            throw new ArgumentNullException(nameof(items));
+        if (physicalFuel == null)
+            throw new ArgumentNullException(nameof(physicalFuel));
+
+        string nodeId = IndustrialInfrastructureIdentity.GetNodeId(building);
+        IndustrialTopologySnapshot snapshot =
+            IndustrialInfrastructureTopologyBuilder.Build(
+                1,
+                new[] { building });
+        Require(snapshot.Nodes.ContainsKey(nodeId),
+            "Power breaker probe building was not captured by industrial topology.");
+        FixedTopology topology = new(snapshot);
+        ProbeClock clock = new();
+        RecordingFacilityBufferLifecycle buffers = new();
+        DungeonRuntimeAggregateRootStore firstStore = new();
+        using IndustrialTransitionObservationFixture outcomes = new(
+            firstStore,
+            clock,
+            "run:power-breaker-probe",
+            observe)
+        {
+            RejectNextPrepare = true
+        };
+        ElectricalNetworkRuntime first = new(
+            topology,
+            new FixedGridSystemProvider(building.Grid),
+            new RestoreWorldCandidateIndex(),
+            clock,
+            items,
+            physicalFuel,
+            new AutomationPowerDemandRegistry(firstStore),
+            firstStore,
+            buffers,
+            buffers,
+            buffers,
+            NeutralSeasonalEventQuery.Instance,
+            null,
+            outcomes);
+
+        clock.Advance(2f);
+        first.Tick();
+        PowerNodeSaveData afterRejectedPrepare = first.Capture().nodes.Single(
+            value => string.Equals(
+                value.buildingInstanceId,
+                nodeId,
+                StringComparison.Ordinal));
+        Require(!afterRejectedPrepare.breakerTripped
+                && outcomes.Count(
+                    InfrastructureCommandOutcomeKind.PowerBreakerTripped) == 0,
+            "Rejected breaker outcome preparation changed the breaker or hid a record.");
+        observe?.Invoke("rejected-owner", JsonUtility.ToJson(afterRejectedPrepare));
+
+        clock.Advance(0.25f);
+        first.Tick();
+        DungeonPowerInfrastructureSaveData trippedSave = first.Capture();
+        PowerNodeSaveData tripped = trippedSave.nodes.Single(value =>
+            string.Equals(
+                value.buildingInstanceId,
+                nodeId,
+                StringComparison.Ordinal));
+        Require(tripped.breakerTripped
+                && outcomes.Count(
+                    InfrastructureCommandOutcomeKind.PowerBreakerTripped) == 1,
+            "Breaker threshold crossing was not emitted exactly once.");
+        InfrastructureCommandOutcomeSource trip = outcomes.Single(
+            InfrastructureCommandOutcomeKind.PowerBreakerTripped);
+        Require(trip.BeforeValue.Contains("breaker=false", StringComparison.Ordinal)
+                && trip.BeforeValue.Contains("loadRatio=3", StringComparison.Ordinal)
+                && trip.AfterValue.Contains("breaker=true", StringComparison.Ordinal)
+                && trip.AfterValue.Contains("tripHeat=61", StringComparison.Ordinal)
+                && trip.AfterValue.Contains("overloadTolerance=1.1", StringComparison.Ordinal),
+            "Breaker trip outcome lost its exact threshold transition facts.");
+        observe?.Invoke("tripped-owner", JsonUtility.ToJson(trippedSave));
+
+        clock.Advance(0.25f);
+        first.Tick();
+        Require(outcomes.Count(
+                    InfrastructureCommandOutcomeKind.PowerBreakerTripped) == 1,
+            "Steady tripped state emitted a duplicate autonomous outcome.");
+
+        DungeonPowerInfrastructureSaveData roundTrip =
+            JsonUtility.FromJson<DungeonPowerInfrastructureSaveData>(
+                JsonUtility.ToJson(trippedSave));
+        RecordingFacilityBufferLifecycle restoredBuffers = new();
+        DungeonRuntimeAggregateRootStore restoredStore = new();
+        ElectricalNetworkRuntime restored = new(
+            topology,
+            new FixedGridSystemProvider(building.Grid),
+            new RestoreWorldCandidateIndex(),
+            clock,
+            items,
+            physicalFuel,
+            new AutomationPowerDemandRegistry(restoredStore),
+            restoredStore,
+            restoredBuffers,
+            restoredBuffers,
+            restoredBuffers,
+            NeutralSeasonalEventQuery.Instance,
+            null,
+            outcomes);
+        restored.Restore(restored.PrepareRestore(roundTrip));
+        clock.Advance(3f);
+        restored.Tick();
+        Require(outcomes.Count(
+                    InfrastructureCommandOutcomeKind.PowerBreakerTripped) == 1,
+            "Restoring a tripped breaker emitted a duplicate autonomous outcome.");
+        observe?.Invoke("restored-owner", JsonUtility.ToJson(restored.Capture()));
+
+        InfrastructureCommandResult reset = restored.ResetBreaker(building);
+        Require(reset.Succeeded
+                && outcomes.Count(
+                    InfrastructureCommandOutcomeKind.PowerBreakerReset) == 1
+                && outcomes.Count(
+                    InfrastructureCommandOutcomeKind.PowerBreakerTripped) == 1,
+            "Manual breaker reset was not kept as a separate command outcome.");
+        observe?.Invoke("reset-owner", JsonUtility.ToJson(restored.Capture()));
+        return "prepare-rejection=visible;trip-edge=1;steady-duplicate=0;"
+            + "save-duplicate=0;manual-reset=separate";
+    }
+
     public static string Run(
         BuildableObject building,
         IWorldItemStackRuntime items,
         IPhysicalFacilityItemSinkGateway physicalFuel,
         string fuelItemId,
-        float secondsPerFuel)
+        float secondsPerFuel,
+        Action<string, string> observe = null)
     {
         if (building == null)
             throw new ArgumentNullException(nameof(building));
@@ -41,6 +171,8 @@ public static class IndustrialPowerFuelOutboxContractProbe
         int beforeQuantity = CountFuel(items, destinationId, fuelItemId);
         Require(beforeQuantity >= 2,
             "Power fuel probe requires at least two physical fuel items.");
+        observe?.Invoke("before-quantity", beforeQuantity.ToString(
+            System.Globalization.CultureInfo.InvariantCulture));
         IndustrialTopologySnapshot snapshot =
             IndustrialInfrastructureTopologyBuilder.Build(
                 1,
@@ -51,6 +183,11 @@ public static class IndustrialPowerFuelOutboxContractProbe
         RecordingFacilityBufferLifecycle firstBufferLifecycle = new();
         ProbeClock clock = new();
         DungeonRuntimeAggregateRootStore firstStore = new();
+        using IndustrialTransitionObservationFixture outcomes = new(
+            firstStore,
+            clock,
+            "run:power-fuel-probe",
+            observe);
         ElectricalNetworkRuntime first = new(
             topology,
             new FixedGridSystemProvider(building.Grid),
@@ -63,7 +200,9 @@ public static class IndustrialPowerFuelOutboxContractProbe
             firstBufferLifecycle,
             firstBufferLifecycle,
             firstBufferLifecycle,
-            NeutralSeasonalEventQuery.Instance);
+            NeutralSeasonalEventQuery.Instance,
+            null,
+            outcomes);
 
         DungeonPowerInfrastructureSaveData pending = first.Capture();
         FacilityBufferCapacityProfile firstCapacity =
@@ -90,6 +229,9 @@ public static class IndustrialPowerFuelOutboxContractProbe
                 && CountFuel(items, destinationId, fuelItemId)
                     == beforeQuantity - 1,
             "Fuel acknowledgement fault did not retain one debit and its published-time outbox.");
+        observe?.Invoke("pending-owner", JsonUtility.ToJson(pending));
+        observe?.Invoke("pending-quantity", CountFuel(items, destinationId, fuelItemId)
+            .ToString(System.Globalization.CultureInfo.InvariantCulture));
 
         const int RestoredTopologySourceVersion = 97;
         IndustrialTopologySnapshot restoredSnapshot =
@@ -111,7 +253,9 @@ public static class IndustrialPowerFuelOutboxContractProbe
             restoredBufferLifecycle,
             restoredBufferLifecycle,
             restoredBufferLifecycle,
-            NeutralSeasonalEventQuery.Instance);
+            NeutralSeasonalEventQuery.Instance,
+            null,
+            outcomes);
         restored.Restore(restored.PrepareRestore(pending));
         FacilityBufferCapacityProfile restoredCapacity =
             restoredBufferLifecycle.RequireSingleProfile();
@@ -129,7 +273,8 @@ public static class IndustrialPowerFuelOutboxContractProbe
                 restoredCapacity.DestinationId,
                 StringComparison.Ordinal),
             "Power fuel-buffer capacity revision changed with the topology epoch.");
-        PowerNodeSaveData recoveredNode = restored.Capture().nodes.Single(value =>
+        DungeonPowerInfrastructureSaveData recoveredSave = restored.Capture();
+        PowerNodeSaveData recoveredNode = recoveredSave.nodes.Single(value =>
             string.Equals(
                 value.buildingInstanceId,
                 nodeId,
@@ -144,10 +289,14 @@ public static class IndustrialPowerFuelOutboxContractProbe
                 && CountFuel(items, destinationId, fuelItemId)
                     == beforeQuantity - 1,
             "Fuel restore did not finish acknowledgement-only recovery.");
+        observe?.Invoke("restored-owner", JsonUtility.ToJson(recoveredSave));
+        observe?.Invoke("restored-quantity", CountFuel(items, destinationId, fuelItemId)
+            .ToString(System.Globalization.CultureInfo.InvariantCulture));
 
         clock.Advance(10f);
         restored.Tick();
-        PowerNodeSaveData afterTick = restored.Capture().nodes.Single(value =>
+        DungeonPowerInfrastructureSaveData afterTickSave = restored.Capture();
+        PowerNodeSaveData afterTick = afterTickSave.nodes.Single(value =>
             string.Equals(
                 value.buildingInstanceId,
                 nodeId,
@@ -159,18 +308,23 @@ public static class IndustrialPowerFuelOutboxContractProbe
                 && CountFuel(items, destinationId, fuelItemId)
                     == beforeQuantity - 1,
             "Fuel time did not decrease after recovery or a second fuel lot was consumed.");
-        topology.Replace(IndustrialInfrastructureTopologyBuilder.Build(
-            snapshot.SourceVersion + 1,
+        observe?.Invoke("after-tick-owner", JsonUtility.ToJson(afterTickSave));
+        restoredTopology.Replace(IndustrialInfrastructureTopologyBuilder.Build(
+            restoredSnapshot.SourceVersion + 1,
             Array.Empty<BuildableObject>()));
         clock.Advance(0.25f);
-        first.Tick();
-        Require(firstBufferLifecycle.ReleaseCount == 1
+        restored.Tick();
+        Require(restoredBufferLifecycle.ReleaseCount == 1
                 && string.Equals(
-                    firstBufferLifecycle.LastReleasedDestinationId,
+                    restoredBufferLifecycle.LastReleasedDestinationId,
                     destinationId,
                     StringComparison.Ordinal)
-                && firstBufferLifecycle.CaptureClaims().Count == 0,
+                && restoredBufferLifecycle.CaptureClaims().Count == 0,
             "Retired generator did not terminally release its fuel destination before authority removal.");
+        observe?.Invoke("terminal-release-count", restoredBufferLifecycle.ReleaseCount
+            .ToString(System.Globalization.CultureInfo.InvariantCulture));
+        observe?.Invoke("terminal-claim-count", restoredBufferLifecycle.CaptureClaims().Count
+            .ToString(System.Globalization.CultureInfo.InvariantCulture));
         return "fuel-debit=1; outcome=1; ack-recovery=1; second-debit=0; "
             + "capacity-revision=stable; terminal-close=1";
     }
@@ -231,12 +385,28 @@ public static class IndustrialPowerFuelOutboxContractProbe
         }
     }
 
-    private sealed class ProbeClock : IGameClock
+    private sealed class ProbeClock : IGameClock, IGameCalendar
     {
         public float DeltaTime { get; private set; }
         public float Time { get; private set; }
         public int FrameCount { get; private set; }
         public bool IsPaused => false;
+        public int Day => 1;
+        public int Hour => 0;
+        public int Year => Current.Year;
+        public int DayOfYear => Current.DayOfYear;
+        public Season Season => Current.Season;
+        public int DayOfSeason => Current.DayOfSeason;
+        public long AbsoluteHour => Current.AbsoluteHour;
+        public float ElapsedSeconds => Time;
+        public TimeOfDay TimeOfDay => TimeOfDay.Night;
+        public bool IsRunning { get; private set; }
+        public CalendarDateTime Current => GameCalendarRules.Project(Day, Hour);
+        public CalendarDateTime GetRegionalTime(int utcOffsetHours) =>
+            GameCalendarRules.ProjectRegional(Day, Hour, utcOffsetHours);
+        public void Start() => IsRunning = true;
+        public void SetDateTime(int day, int hour) =>
+            throw new NotSupportedException();
 
         internal void Advance(float seconds)
         {

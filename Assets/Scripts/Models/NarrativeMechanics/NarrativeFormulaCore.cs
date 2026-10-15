@@ -11,6 +11,7 @@ public static class NarrativeFormulaCore
     public const int MaximumFormulaBudget = 4096;
     public const long MaximumCompositionTransitions = 8388608;
     public const double RetentionDistance = 0.10d;
+    public const int CurrentProminencePolicyVersion = 1;
 
     public static NarrativeFormulaStrength CalculateStrength(
         NarrativeFormulaStrengthPolicy policy,
@@ -105,7 +106,8 @@ public static class NarrativeFormulaCore
         IEnumerable<string> evidenceIds,
         int maximumResults = 3,
         NarrativeFormulaDrawbackCreditPolicy drawbackPolicy = null,
-        NarrativeFormulaDrawbackOption drawbackOption = null)
+        NarrativeFormulaDrawbackOption drawbackOption = null,
+        string primaryCapabilityId = null)
     {
         if (generationContext == null) throw new ArgumentNullException(nameof(generationContext));
         if (budget < 0 || budget > MaximumFormulaBudget)
@@ -141,6 +143,15 @@ public static class NarrativeFormulaCore
                 .Distinct(StringComparer.Ordinal).Count() != inputs.Length)
             throw new InvalidOperationException(
                 "Exact composition requires one to three distinct selected capabilities.");
+        if (primaryCapabilityId != null)
+        {
+            if (string.IsNullOrWhiteSpace(primaryCapabilityId)
+                || !string.Equals(primaryCapabilityId, primaryCapabilityId.Trim(), StringComparison.Ordinal)
+                || !inputs.Any(value => value.Descriptor.CapabilityId == primaryCapabilityId))
+                throw new InvalidOperationException("Narrative primary must be an exact selected positive capability.");
+            inputs = inputs.OrderBy(value => value.Descriptor.CapabilityId == primaryCapabilityId ? 0 : 1)
+                .ThenBy(value => value.Descriptor.CapabilityId, StringComparer.Ordinal).ToArray();
+        }
         if (!TryGetPairCost(inputs.Select(value => value.Descriptor).ToArray(),
                 out int pairCost))
             return Array.Empty<NarrativeFormulaCandidate>();
@@ -157,27 +168,34 @@ public static class NarrativeFormulaCore
             value => value.Descriptor.CapabilityId,
             value => EnumerateAxisStates(value.Descriptor, positiveBudget),
             StringComparer.Ordinal);
-        Dictionary<int, NarrativeFormulaCapabilityAllocation[]> totals =
-            new() { [contextCost] = Array.Empty<NarrativeFormulaCapabilityAllocation>() };
+        // Primary cost is part of the DP key. Pruning solely by total cost can
+        // discard the only allocation that satisfies narrative prominence.
+        Dictionary<(int Total, int Primary), NarrativeFormulaCapabilityAllocation[]> totals =
+            new() { [(contextCost, 0)] = Array.Empty<NarrativeFormulaCapabilityAllocation>() };
         long transitions = 0;
         foreach (NarrativeFormulaCapabilityInput input in inputs)
         {
-            Dictionary<int, NarrativeFormulaCapabilityAllocation[]> next = new();
-            foreach (KeyValuePair<int, NarrativeFormulaCapabilityAllocation[]> current in totals)
+            Dictionary<(int Total, int Primary), NarrativeFormulaCapabilityAllocation[]> next = new();
+            foreach (KeyValuePair<(int Total, int Primary), NarrativeFormulaCapabilityAllocation[]> current in totals)
             foreach (AxisState state in states[input.Descriptor.CapabilityId])
             {
                 if (++transitions > MaximumCompositionTransitions)
                     throw new InvalidOperationException(
                         "Exact formula composition exceeds the bounded transition limit.");
-                int total = checked(current.Key + state.VariableCost);
+                int total = checked(current.Key.Total + state.VariableCost);
                 if (total > positiveBudget) continue;
+                int primaryCost = input.Descriptor.CapabilityId == primaryCapabilityId
+                    ? state.VariableCost : current.Key.Primary;
+                if (primaryCapabilityId != null && total - contextCost - primaryCost > primaryCost)
+                    continue;
+                (int Total, int Primary) key = (total, primaryCost);
                 NarrativeFormulaCapabilityAllocation[] allocations = current.Value
                     .Concat(new[]
                     {
                         new NarrativeFormulaCapabilityAllocation(
                             input.Descriptor, state.Parameters)
                     }).ToArray();
-                if (!next.TryGetValue(total,
+                if (!next.TryGetValue(key,
                         out NarrativeFormulaCapabilityAllocation[] existing)
                     || AllocationUtilityScore(allocations)
                         > AllocationUtilityScore(existing) + 1e-12d
@@ -190,24 +208,25 @@ public static class NarrativeFormulaCore
                         && MinimumAdditionalCost(allocations)
                             == MinimumAdditionalCost(existing)
                         && CompareAllocations(allocations, existing) < 0))
-                    next[total] = allocations;
+                    next[key] = allocations;
             }
             totals = next;
         }
 
         List<NarrativeFormulaCandidate> legal = new();
-        foreach (KeyValuePair<int, NarrativeFormulaCapabilityAllocation[]> total in totals)
+        foreach (KeyValuePair<(int Total, int Primary), NarrativeFormulaCapabilityAllocation[]> total in totals)
         {
-            if (total.Key < drawback.AcceptedCredit
-                || CanAddQuantum(total.Value, total.Key, positiveBudget))
+            if (total.Key.Total < drawback.AcceptedCredit
+                || CanAddQuantum(total.Value, total.Key.Total, positiveBudget, primaryCapabilityId))
                 continue;
             legal.Add(new NarrativeFormulaCandidate(
                 total.Value,
-                total.Key,
+                total.Key.Total,
                 drawback,
                 inputs.Sum(value => value.AffinityScore),
                 inputs.Sum(value => value.NoveltyScore),
-                canonicalEvidence));
+                canonicalEvidence,
+                primaryCapabilityId));
         }
         return legal.Count == 0
             ? Array.Empty<NarrativeFormulaCandidate>()
@@ -621,16 +640,74 @@ public static class NarrativeFormulaCore
     private static bool CanAddQuantum(
         IEnumerable<NarrativeFormulaCapabilityAllocation> allocations,
         int currentCost,
-        int budget)
+        int budget,
+        string primaryCapabilityId = null)
     {
-        foreach (NarrativeFormulaCapabilityAllocation allocation in allocations)
+        NarrativeFormulaCapabilityAllocation[] values = allocations.ToArray();
+        int primary = primaryCapabilityId == null ? 0 : values
+            .Where(value => value.Descriptor.CapabilityId == primaryCapabilityId).Sum(EnhancementCost);
+        int support = primaryCapabilityId == null ? 0 : values
+            .Where(value => value.Descriptor.CapabilityId != primaryCapabilityId).Sum(EnhancementCost);
+        foreach (NarrativeFormulaCapabilityAllocation allocation in values)
         foreach (NarrativeFormulaParameterValue parameter in allocation.Parameters)
         {
             NarrativeFormulaQuantizedRange range = allocation.Descriptor.RequireRange(parameter.ParameterId);
             if (parameter.Units < range.MaximumUnits
-                && currentCost + range.CostPerQuantum <= budget) return true;
+                && currentCost + range.CostPerQuantum <= budget
+                && (primaryCapabilityId == null
+                    || allocation.Descriptor.CapabilityId == primaryCapabilityId
+                    || support + range.CostPerQuantum <= primary)) return true;
         }
         return false;
+    }
+
+    /// <summary>Comparable C#-authored enhancement cost, never raw healing vs armor units.</summary>
+    public static int EnhancementCost(NarrativeFormulaCapabilityAllocation allocation)
+    {
+        if (allocation == null) throw new ArgumentNullException(nameof(allocation));
+        int cost = 0;
+        foreach (NarrativeFormulaParameterValue parameter in allocation.Parameters)
+        {
+            NarrativeFormulaQuantizedRange range = allocation.Descriptor.RequireRange(parameter.ParameterId);
+            range.RequireContains(parameter.Units);
+            cost = checked(cost + checked((int)((parameter.Units - range.MinimumUnits) / range.QuantumUnits))
+                * range.CostPerQuantum);
+        }
+        return cost;
+    }
+
+    public static void RequirePrimaryProminence(int policyVersion, string primaryCapabilityId,
+        IEnumerable<NarrativeFormulaCapabilityAllocation> allocations)
+    {
+        if (policyVersion == 0 && string.IsNullOrEmpty(primaryCapabilityId)) return; // Explicit historical snapshot.
+        NarrativeFormulaCapabilityAllocation[] values = (allocations
+            ?? throw new ArgumentNullException(nameof(allocations))).ToArray();
+        if (policyVersion != CurrentProminencePolicyVersion || string.IsNullOrWhiteSpace(primaryCapabilityId)
+            || values.Length is < 1 or > 3 || values.Any(value => value == null)
+            || values[0].Descriptor.CapabilityId != primaryCapabilityId
+            || values.Select(value => value.Descriptor.CapabilityId).Distinct(StringComparer.Ordinal).Count() != values.Length
+            || EnhancementCost(values[0]) < values.Skip(1).Sum(EnhancementCost))
+            throw new InvalidOperationException("Narrative primary/support allocation violates its frozen prominence policy.");
+    }
+
+    public static string ResidualReason(NarrativeFormulaCandidate candidate, int narrativeBudget)
+    {
+        if (candidate == null) throw new ArgumentNullException(nameof(candidate));
+        if (narrativeBudget < 0 || narrativeBudget > MaximumFormulaBudget
+            || candidate.CalculatedCost > narrativeBudget)
+            throw new InvalidOperationException("Residual evidence requires an allocation within its narrative budget.");
+        int available = checked(narrativeBudget + candidate.DrawbackCredit);
+        if (candidate.PositiveCost == available) return "none";
+        if (CanAddQuantum(candidate.Allocations, candidate.PositiveCost, available))
+        {
+            if (candidate.ProminencePolicyVersion != CurrentProminencePolicyVersion
+                || CanAddQuantum(candidate.Allocations, candidate.PositiveCost, available, candidate.PrimaryCapabilityId))
+                throw new InvalidOperationException("Allocation has an unexplained spendable residual budget.");
+            return "primary-prominence-cap";
+        }
+        return candidate.Allocations.All(a => a.Parameters.All(p =>
+                p.Units == a.Descriptor.RequireRange(p.ParameterId).MaximumUnits))
+            ? "effective-cap-reached" : "next-quantum-exceeds-budget";
     }
 
     private static int CompareAllocations(

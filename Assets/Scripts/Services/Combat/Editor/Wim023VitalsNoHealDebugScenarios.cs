@@ -18,12 +18,17 @@ public static class Wim023VitalsNoHealDebugScenarios
             actor.Identity.SetPersistentId("character:qa:wim023-no-heal");
             var clock = new UnityGameClock();
             var bus = new GameEventBus();
+            using var vitalsActivities = new CharacterVitalsActivityObserver(
+                bus,
+                CharacterAiEditorTestDependencies.WorldRegistry);
+            vitalsActivities.Initialize();
             var runtime = new CharacterBodyHealthRuntime(
                 CharacterAiEditorTestDependencies.WorldRegistry, clock, bus,
                 new DynamicFrameWorkBudget(clock, new UnityUiClock()),
                 new ResourceAnatomyProfileCatalog(
                     new ResourceGameContentCatalog(new UnityGameContentRootLoader())),
-                new DungeonRuntimeAggregateRootStore());
+                new DungeonRuntimeAggregateRootStore(),
+                CharacterAiEditorTestDependencies.GameCalendar);
             actor.Stats.ConstructCharacterVitals(new CharacterStatsVitalsService(
                 runtime, runtime, bus,
                 new CharacterDeathEventFactory(CharacterAiEditorTestDependencies.WorldRegistry,

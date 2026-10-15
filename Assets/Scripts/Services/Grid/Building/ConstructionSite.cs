@@ -4,6 +4,39 @@ using System.Collections.Generic;
 using DungeonStory.Foundation;
 using UnityEngine;
 
+public readonly struct BuildingPlacementCommitReceipt
+{
+    public BuildingPlacementCommitReceipt(
+        string finalFacilityId,
+        string finalFacilityDefinitionId,
+        string replacedFacilityId,
+        string replacedFacilityDefinitionId)
+    {
+        FinalFacilityId = finalFacilityId?.Trim() ?? string.Empty;
+        FinalFacilityDefinitionId =
+            finalFacilityDefinitionId?.Trim() ?? string.Empty;
+        ReplacedFacilityId = replacedFacilityId?.Trim() ?? string.Empty;
+        ReplacedFacilityDefinitionId =
+            replacedFacilityDefinitionId?.Trim() ?? string.Empty;
+    }
+
+    public string FinalFacilityId { get; }
+    public string FinalFacilityDefinitionId { get; }
+    public string ReplacedFacilityId { get; }
+    public string ReplacedFacilityDefinitionId { get; }
+    // The work order owns the operation. This receipt describes committed world
+    // effects only and cannot replace the order's placement identity.
+    public bool IsValid => GameplayOutcomeStableIdSyntax.IsValid(FinalFacilityId)
+        && GameplayOutcomeStableIdSyntax.IsValid(FinalFacilityDefinitionId)
+        && ((ReplacedFacilityId.Length == 0) == (ReplacedFacilityDefinitionId.Length == 0))
+        && !string.Equals(FinalFacilityId, ReplacedFacilityId, StringComparison.Ordinal)
+        && (ReplacedFacilityId.Length == 0
+            || GameplayOutcomeStableIdSyntax.IsValid(ReplacedFacilityId))
+        && (ReplacedFacilityDefinitionId.Length == 0
+            || GameplayOutcomeStableIdSyntax.IsValid(
+                ReplacedFacilityDefinitionId));
+}
+
 public sealed class ConstructionSite : BuildableObject,
     IWorkableFacility,
     IAllocatedWorkerOccupancyQuery,
@@ -12,6 +45,7 @@ public sealed class ConstructionSite : BuildableObject,
     private const float WorkerStandOffsetY = 0.15f;
     private const float WorkerStandSpacingX = 0.18f;
     private Func<bool> completeConstruction;
+    private Func<BuildingPlacementCommitReceipt> completeConstructionDetailed;
     private Action removeSite;
     private readonly List<IBuildingVisitorPort> workers = new(4);
     private readonly Dictionary<IBuildingVisitorPort, Vector3> workerOffsets = new();
@@ -90,6 +124,18 @@ public sealed class ConstructionSite : BuildableObject,
     {
         workOrderId = orderId ?? string.Empty;
         completeConstruction = onCompleteConstruction;
+        completeConstructionDetailed = null;
+        removeSite = onRemoveSite;
+    }
+
+    public void ConfigureSite(
+        string orderId,
+        Func<BuildingPlacementCommitReceipt> onCompleteConstruction,
+        Action onRemoveSite)
+    {
+        workOrderId = orderId ?? string.Empty;
+        completeConstruction = null;
+        completeConstructionDetailed = onCompleteConstruction;
         removeSite = onRemoveSite;
     }
 
@@ -534,17 +580,33 @@ public sealed class ConstructionSite : BuildableObject,
 
     public bool CompleteConstruction()
     {
+        bool completed = CompleteConstruction(out _);
+        if (completed)
+        {
+            RemoveSiteOnly();
+        }
+        return completed;
+    }
+
+    public bool CompleteConstruction(
+        out BuildingPlacementCommitReceipt placementReceipt)
+    {
+        placementReceipt = default;
         if (isDestroy)
         {
             return false;
+        }
+
+        if (completeConstructionDetailed != null)
+        {
+            placementReceipt = completeConstructionDetailed.Invoke();
+            return placementReceipt.IsValid;
         }
 
         if (completeConstruction != null && !completeConstruction.Invoke())
         {
             return false;
         }
-
-        RemoveSiteOnly();
         return true;
     }
 

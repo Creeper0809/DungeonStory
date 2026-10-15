@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using DungeonStory.Narrative.Korean;
 using UnityEngine;
 
 public static class DefenseCombatOutcomeTransactionDebugScenarios
@@ -49,6 +52,7 @@ public static class DefenseCombatOutcomeTransactionDebugScenarios
         CharacterActor defender)
     {
         GameEventBus events = new GameEventBus();
+        var migratedAdapter = new MigratedProducerOutcomeAdapter();
         GameplayOutcomeRegistry registry = new GameplayOutcomeRegistry(
             new IGameplayOutcomeDescriptor[]
             {
@@ -56,11 +60,17 @@ public static class DefenseCombatOutcomeTransactionDebugScenarios
             },
             new IGameplayOutcomeAdapterRegistration[]
             {
-                new CombatDamageOutcomeAdapter()
+                new CombatDamageOutcomeAdapter(),
+                migratedAdapter
+            },
+            new IGameplayOutcomeDescriptorCatalog[]
+            {
+                new MigratedProducerOutcomeDescriptorCatalog(
+                    new KoreanJosaFormatter())
             });
         GameplayOutcomeBufferLimits limits = new GameplayOutcomeBufferLimits(
             smallPageCount: 4,
-            largePageCount: 0,
+            largePageCount: 4,
             knownResultKeyCapacity: 32);
         GameplayOutcomeLedger ledger = new GameplayOutcomeLedger(
             registry,
@@ -71,9 +81,24 @@ public static class DefenseCombatOutcomeTransactionDebugScenarios
             ledger,
             registry,
             events);
-        CombatDamageOutcomeBridge bridge = new CombatDamageOutcomeBridge(
+        var roots = new DungeonRuntimeAggregateRootStore();
+        var migrated = new MigratedProducerOutcomeRuntime(
+            roots,
+            ledger,
             recorder,
             ledger);
+        using var facts = new DomainFactDispatcher();
+        facts.Subscribe(
+            "log:combat.action",
+            new CombatActionFactObserver(
+                ledger,
+                recorder,
+                migrated,
+                new GameplayDomainFactCommitGroup(recorder, ledger)));
+        var publications = new CombatActionPublicationRuntime(
+            roots,
+            facts,
+            facts);
         CharacterBodyHealthRuntime health =
             CharacterAiEditorTestDependencies.BodyHealthRuntime;
         CombatCommandResultApplier applier = new CombatCommandResultApplier(
@@ -81,7 +106,7 @@ public static class DefenseCombatOutcomeTransactionDebugScenarios
             health,
             health,
             health,
-            bridge,
+            publications,
             new NoCoverDurabilityRegistry(),
             CharacterAiEditorTestDependencies.GameClock,
             new NoWorldUiHierarchy(),
@@ -116,7 +141,7 @@ public static class DefenseCombatOutcomeTransactionDebugScenarios
                 target,
                 operationId,
                 revision,
-                out ReservedCombatDamageOutcome failedReservation,
+                out ReservedCombatAction failedReservation,
                 out _,
                 out string failedReserveReason),
             "Initial defense outcome reservation failed: " + failedReserveReason);
@@ -170,7 +195,7 @@ public static class DefenseCombatOutcomeTransactionDebugScenarios
                 target,
                 operationId,
                 revision,
-                out ReservedCombatDamageOutcome retryReservation,
+                out ReservedCombatAction retryReservation,
                 out _,
                 out string retryReserveReason),
             "Retry defense outcome reservation failed: " + retryReserveReason);
@@ -206,11 +231,15 @@ public static class DefenseCombatOutcomeTransactionDebugScenarios
             "Committed defense outcome applied the wrong health delta.");
         GameplayOutcomeQueryPage operation = ledger.GetForOperation(
             new GameplayOperationId(operationId));
-        Require(operation.Items.Count == 1
-                && operation.Items[0].Exact != null
-                && operation.Items[0].Exact.outcomeTypeId
-                    == ProductionCombatOutcomeIds.CombatDamageResolved.Value,
-            "Committed defense outcome was not published exactly once.");
+        Require(operation.Items.Count == 2
+                && operation.Items.Count(value => value.Exact != null
+                    && value.Exact.outcomeTypeId
+                        == ProductionCombatOutcomeIds.CombatDamageResolved.Value) == 1
+                && operation.Items.Count(value => value.Exact != null
+                    && value.Exact.outcomeTypeId == MigratedProducerOutcomeCatalog.Get(
+                            MigratedProducerOutcomeKind.CombatAttackResult)
+                        .OutcomeTypeId.Value) == 1,
+            "Committed defense action did not publish exactly one attack and one damage row.");
         Require(ledger.GetOutboxSnapshot().Count == 0,
             "Committed defense outcome was not delivered and acknowledged.");
         Require(conflictCount == 1
@@ -226,9 +255,7 @@ public static class DefenseCombatOutcomeTransactionDebugScenarios
                 out _,
                 out _,
                 out string duplicateReason)
-                && duplicateReason.Contains(
-                    OutcomePrepareCode.DuplicateResult.ToString(),
-                    StringComparison.Ordinal),
+                && duplicateReason.Contains("already-applied", StringComparison.Ordinal),
             "Committed defense outcome did not reject a duplicate result key.");
         Require(Mathf.Approximately(
                 health.GetVitals(defender).CurrentHealth,

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 /// <summary>
@@ -36,7 +37,8 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
     private readonly IFacilityBufferPlannedOutputPublicationService publication;
     private readonly IPreparedFacilityBufferOutputPublicationService
         preparedPublication;
-    private readonly ProductionCompletedOutcomeBridge gameplayOutcomes;
+    private readonly ProductionCompletionObservationRuntime observations;
+    private readonly IGameCalendar calendar;
     private readonly IProductionPreparedOutputRoutingAuthority routingAuthority;
     private readonly ProductionMassExplanationCapabilityRegistry
         massExplanations;
@@ -62,7 +64,9 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         IFacilityBufferPlannedOutputPublicationService publication,
         IProductionPreparedOutputRoutingAuthority routingAuthority,
         ProductionMassExplanationCapabilityRegistry massExplanations = null,
-        ProductionCompletedOutcomeBridge gameplayOutcomes = null)
+        IDomainFactStagingPublisher completionObservations = null,
+        IDomainFactRecoveryPublisher completionRecovery = null,
+        IGameCalendar calendar = null)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.outputPlanning = outputPlanning
@@ -93,7 +97,10 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             ?? throw new ArgumentNullException(nameof(routingAuthority));
         this.massExplanations = massExplanations
             ?? ProductionMassExplanationCapabilityRegistry.CreateDefault();
-        this.gameplayOutcomes = gameplayOutcomes;
+        if ((completionObservations == null) != (completionRecovery == null))
+            throw new ArgumentException("Production completion observation ports must be connected together.");
+        observations = completionObservations == null ? null : new ProductionCompletionObservationRuntime(completionObservations, completionRecovery);
+        this.calendar = calendar;
     }
 
     public void RestoreDestinationAuthorities(
@@ -509,7 +516,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                         break;
 
                     case ProductionPreparedOutputPhase.Completed:
-                        if (!TryRequireAcknowledgedGameplayOutcome(
+                        if (!TryRequireCompletedObservation(
                                 record,
                                 out failure))
                         {
@@ -612,7 +619,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                         break;
 
                     case ProductionPreparedOutputPhase.Completed:
-                        if (!TryRequireAcknowledgedGameplayOutcome(
+                        if (!TryRequireCompletedObservation(
                                 record,
                                 out failure))
                         {
@@ -846,7 +853,15 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         return true;
     }
 
-    private bool TryPublishOrJoin(
+    private bool TryPublishOrJoin(ProductionBillRecord record, ProductionFacilityHandle facility,
+        ProductionWorkerHandle worker, out DomainFailure failure)
+    {
+        record.BeginCompletionPublication();
+        try { return TryPublishOrJoinCore(record, facility, worker, out failure); }
+        finally { record.EndCompletionPublication(); }
+    }
+
+    private bool TryPublishOrJoinCore(
         ProductionBillRecord record,
         ProductionFacilityHandle facility,
         ProductionWorkerHandle worker,
@@ -854,7 +869,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
     {
         ProductionPreparedOutputBatchSaveData batch = record.preparedOutput;
 #if UNITY_EDITOR
-        if (gameplayOutcomes == null)
+        if (observations == null)
             return TryPublishOrJoinDetachedEditorFixture(record, out failure);
 #endif
         if (!liveByBatch.TryGetValue(batch.batchCommitId, out LivePublication live))
@@ -875,20 +890,20 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                 }
                 FacilityBufferPlannedOutputPublicationReceipt restoredReceipt =
                     RestorePublicationReceipt(batch, restored, facility);
-                if (!TryPrepareGameplayOutcome(
+                if (!TryPrepareCompletionFact(
                         record,
                         facility,
                         worker,
                         restoredReceipt,
-                        out PreparedProductionGameplayOutcome restoredOutcome,
+                        out IDomainFactStage restoredOutcome,
                         out failure))
                 {
                     return false;
                 }
                 record.MarkPreparedOutputPhysicalBatchCommitted(candidates);
-                OwnerOutcomeCommitResult restoredCommit = gameplayOutcomes.Commit(
-                    restoredOutcome);
-                if (!restoredCommit.DurablyCommitted)
+                DomainFactDelivery restoredCommit = observations.Commit(record, restoredOutcome);
+                restoredOutcome.Cancel();
+                if (restoredCommit.Phase == DomainFactDeliveryPhase.Rejected)
                 {
                     if (!publication.TryRollbackRestoreCandidate(
                             restored,
@@ -906,11 +921,12 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                         return false;
                     }
                     record.RollbackPreparedOutputPhysicalBatch();
-                    gameplayOutcomes.Cancel(restoredOutcome);
+                    record.ClearCompletionObservation();
+                    restoredOutcome.Cancel();
                     failure = Fail(
                         record,
                         "prepared-output-outcome-commit-failed",
-                        restoredCommit.DetailCode);
+                        restoredCommit.Detail);
                     return false;
                 }
                 failure = DomainFailure.None;
@@ -974,12 +990,12 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             preparedPhysical.Cancel();
             return false;
         }
-        if (!TryPrepareGameplayOutcome(
+        if (!TryPrepareCompletionFact(
                 record,
                 facility,
                 worker,
                 receipt,
-                out PreparedProductionGameplayOutcome preparedOutcome,
+                out IDomainFactStage preparedOutcome,
                 out failure))
         {
             preparedPhysical.Cancel();
@@ -990,6 +1006,7 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
             // A durable outcome without the matching physical publication is
             // a split-brain conflict; never mint a second batch.
             preparedPhysical.Cancel();
+            preparedOutcome.Cancel();
             failure = Fail(
                 record,
                 "prepared-output-outcome-replay-without-physical-owner");
@@ -1000,7 +1017,8 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                 out _,
                 out publicationFailure))
         {
-            gameplayOutcomes.Cancel(preparedOutcome);
+            preparedOutcome.Cancel();
+            record.ClearCompletionObservation();
             failure = Fail(
                 record,
                 "prepared-output-publication-failed",
@@ -1011,16 +1029,19 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         {
             record.MarkPreparedOutputPhysicalBatchCommitted(physical);
         }
-        catch
+        catch (Exception transitionError)
         {
-            applied.TryRollback(out _, out _);
-            gameplayOutcomes.Cancel(preparedOutcome);
+            bool rolledBack = applied.TryRollback(out _, out string rollbackFailure);
+            preparedOutcome.Cancel();
+            if (rolledBack) record.ClearCompletionObservation();
+            else throw new InvalidOperationException(
+                "prepared-output-owner-transition-rollback-failed:" + rollbackFailure, transitionError);
             throw;
         }
 
-        OwnerOutcomeCommitResult outcomeCommit = gameplayOutcomes.Commit(
-            preparedOutcome);
-        if (!outcomeCommit.DurablyCommitted)
+        DomainFactDelivery outcomeCommit = observations.Commit(record, preparedOutcome);
+        preparedOutcome.Cancel();
+        if (outcomeCommit.Phase == DomainFactDeliveryPhase.Rejected)
         {
             if (!applied.TryRollback(out _, out string rollbackFailure))
             {
@@ -1034,11 +1055,12 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
                 return false;
             }
             record.RollbackPreparedOutputPhysicalBatch();
-            gameplayOutcomes.Cancel(preparedOutcome);
+            record.ClearCompletionObservation();
+            preparedOutcome.Cancel();
             failure = Fail(
                 record,
                 "prepared-output-outcome-commit-failed",
-                outcomeCommit.DetailCode);
+                outcomeCommit.Detail);
             return false;
         }
         live.SetReceipt(receipt);
@@ -1127,7 +1149,9 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         ProductionBillRecord record,
         out DomainFailure failure)
     {
-        failure = DomainFailure.None;
+        // Keep the physical publication and owner in the same retryable phase
+        // until its frozen completion fact is confirmed by the observer.
+        if (!TryRequireCompletedObservation(record, out failure)) return false;
         ProductionPreparedOutputBatchSaveData batch = record.preparedOutput;
         if (liveByBatch.TryGetValue(batch.batchCommitId, out LivePublication live))
         {
@@ -1183,71 +1207,37 @@ public sealed class ProductionPreparedOutputExecutionAdapter :
         return true;
     }
 
-    private bool TryPrepareGameplayOutcome(
-        ProductionBillRecord record,
-        ProductionFacilityHandle facility,
-        ProductionWorkerHandle worker,
-        in FacilityBufferPlannedOutputPublicationReceipt receipt,
-        out PreparedProductionGameplayOutcome prepared,
-        out DomainFailure failure)
+    private bool TryPrepareCompletionFact(ProductionBillRecord record, ProductionFacilityHandle facility,
+        ProductionWorkerHandle worker, in FacilityBufferPlannedOutputPublicationReceipt receipt,
+        out IDomainFactStage prepared, out DomainFailure failure)
     {
-        prepared = default;
-        if (gameplayOutcomes == null)
-        {
-            failure = Fail(
-                record,
-                "production-gameplay-outcome-bridge-missing");
-            return false;
-        }
-        if (!gameplayOutcomes.TryPreparePreparedOutput(
-                record,
-                facility,
-                worker,
-                receipt,
-                out prepared,
-                out bool capacityDeferred,
-                out string outcomeFailure))
-        {
-            failure = new DomainFailure(
-                capacityDeferred
-                    ? FailureCode.ProductionOutputSpaceUnavailable
-                    : FailureCode.ProductionOutputUnavailable,
-                record.billId.Value,
-                outcomeFailure);
-            return false;
-        }
-        failure = DomainFailure.None;
-        return true;
+        prepared = null;
+        if (observations == null || calendar == null)
+        { failure = Fail(record, "production-completion-observer-not-connected"); return false; }
+        var frozenPreview = receipt;
+        if (!observations.TryPrepare(record,
+                () => ProductionCycleFactCapture.Prepared(record, facility, worker, frozenPreview, calendar.Day),
+                out prepared, out string reason))
+        { failure = Fail(record, "production-completion-fact-prepare-failed", reason); return false; }
+        failure = DomainFailure.None; return true;
     }
 
-    private bool TryRequireAcknowledgedGameplayOutcome(
-        ProductionBillRecord record,
-        out DomainFailure failure)
+    private bool TryRequireCompletedObservation(ProductionBillRecord record, out DomainFailure failure)
     {
-        string outcomeFailure = string.Empty;
 #if UNITY_EDITOR
-        if (gameplayOutcomes == null)
-        {
-            failure = DomainFailure.None;
-            return true;
-        }
+        // Existing detached physical-only fixtures do not prove completion observation.
+        if (observations == null) { failure = DomainFailure.None; return true; }
 #endif
-        if (gameplayOutcomes != null
-            && gameplayOutcomes.TryRequireAcknowledgedPreparedOutcome(
-                record.billId,
-                record.cycleSequence,
-                out outcomeFailure))
+        if (observations == null)
+        { failure = Fail(record, "production-completion-observer-not-connected"); return false; }
+        record.BeginCompletionPublication();
+        try
         {
-            failure = DomainFailure.None;
-            return true;
+            if (observations.TryComplete(record, out string reason))
+            { failure = DomainFailure.None; return true; }
+            failure = Fail(record, "production-completion-awaiting-acknowledgement", reason); return false;
         }
-        failure = Fail(
-            record,
-            "production-gameplay-outcome-awaiting-acknowledgement",
-            gameplayOutcomes == null
-                ? "production-gameplay-outcome-bridge-missing"
-                : outcomeFailure);
-        return false;
+        finally { record.EndCompletionPublication(); }
     }
 
     private static FacilityBufferPlannedOutputPublicationReceipt

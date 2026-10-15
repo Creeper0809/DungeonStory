@@ -525,6 +525,7 @@ public static class Wim040IncidentCompletionDebugScenarios
         MigratedProducerOutcomeEditorFixture outcomeFixture = new(
             "wim040-lineage-compression",
             root);
+        using var socialFacts = new SocialRitualFactEditorFixture(outcomeFixture);
         DungeonStory.Foundation.GameEventBus events = new();
         EventAlertRequest alert = null;
         V20ContentEffectsResolvedEvent effectEvent = default;
@@ -546,7 +547,7 @@ public static class Wim040IncidentCompletionDebugScenarios
             root,
             campaign,
             events,
-            outcomeFixture.Transaction);
+            socialFacts.Journal);
         CharacterId archivedId =
             new("character:wim040:actual-lineage-archive");
         social.ArchiveDeath(

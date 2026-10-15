@@ -56,6 +56,7 @@ public static class FacilityFormulaEvolutionAuthority
             FacilityFormulaEvidenceRecord[] records = BuildEvidence(state, policy).ToArray();
             GameplayOutcomeEvidenceBindingSnapshot[] exactBindings = NormalizeBindings(
                 outcomeBindings);
+            records = RemoveDuplicatedLegacyEvidence(records, exactBindings);
             if (records.Length == 0 && exactBindings.Length == 0)
                 throw new InvalidOperationException("Facility formula requires recorded facility usage evidence.");
             NarrativeFormulaEvidence[] evidence = records.Select(value => new NarrativeFormulaEvidence(
@@ -164,6 +165,7 @@ public static class FacilityFormulaEvolutionAuthority
         FacilityFormulaEvidenceRecord[] records = BuildEvidence(state, policy).ToArray();
         GameplayOutcomeEvidenceBindingSnapshot[] exactBindings = NormalizeBindings(
             outcomeBindings);
+        records = RemoveDuplicatedLegacyEvidence(records, exactBindings);
         if (records.Length == 0 && exactBindings.Length == 0)
             throw new InvalidOperationException(
                 "Facility module selection requires recorded facility usage evidence.");
@@ -221,18 +223,21 @@ public static class FacilityFormulaEvolutionAuthority
                                      "facility:", StringComparison.Ordinal)
                                  && value.BurdenKind ==
                                      EvolutionModuleBurdenKind.OptionalDrawback
-                                 && IsEligibleOptionalDrawbackModule(recipe, value, out _)
-                                 && records.Any(record => record.originalEvent != null
-                                     && value.MatchesNegativeEvidence(
-                                         record.originalEvent.eventId,
-                                         record.originalEvent.outcomeId,
-                                         record.originalEvent.narrativeContext?.resultDetail))
-                                 && HasResolvableOptionalDrawbackPair(
-                                     state,
-                                     recipe,
-                                     offers,
-                                     value,
-                                     records)))
+                                  && IsEligibleOptionalDrawbackModule(recipe, value, out _)
+                                  && (records.Any(record => record.originalEvent != null
+                                          && value.MatchesNegativeEvidence(
+                                              record.originalEvent.eventId,
+                                              record.originalEvent.outcomeId,
+                                              record.originalEvent.narrativeContext?.resultDetail))
+                                      || exactBindings.Any(
+                                          GameplayOutcomeEvidenceFormulaProjection.IsNegative))
+                                  && HasResolvableOptionalDrawbackPair(
+                                      state,
+                                      recipe,
+                                      offers,
+                                      value,
+                                      records,
+                                      exactBindings)))
                 {
                     offers.Add(new EquipmentEvolutionModuleOfferState
                     {
@@ -306,15 +311,21 @@ public static class FacilityFormulaEvolutionAuthority
         FacilityEvolutionRecipeSO recipe,
         IEnumerable<EquipmentEvolutionModuleOfferState> positiveOffers,
         EvolutionModuleDefinition drawbackModule,
-        IEnumerable<FacilityFormulaEvidenceRecord> sourceEvidence)
+        IEnumerable<FacilityFormulaEvidenceRecord> sourceEvidence,
+        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> exactEvidence)
     {
         FacilityFormulaEvidenceRecord[] previewEvidence = (sourceEvidence
                 ?? Array.Empty<FacilityFormulaEvidenceRecord>())
             .Where(value => value != null)
             .Select(value => value.Clone())
             .ToArray();
-        string[] evidenceIds = previewEvidence
-            .Select(value => value.evidenceId)
+        GameplayOutcomeEvidenceBindingSnapshot[] previewExact = (exactEvidence
+                ?? Array.Empty<GameplayOutcomeEvidenceBindingSnapshot>())
+            .Where(value => value != null)
+            .Select(value => value.Clone())
+            .ToArray();
+        string[] evidenceIds = previewEvidence.Select(value => value.evidenceId)
+            .Concat(previewExact.Select(value => value.publicFactId))
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
@@ -337,6 +348,8 @@ public static class FacilityFormulaEvolutionAuthority
             formulaVersion = DrawbackModuleSelectionFormulaVersion,
             formulaCatalogSha256 = recipe.formulaPolicy.RequireCatalogSha256(),
             evidenceIds = evidenceIds.ToList(),
+            gameplayOutcomeEvidence = previewExact
+                .Select(value => value.Clone()).ToList(),
             presentationId = "facility:prospective-drawback",
             moduleSelectionId = "facility:prospective-drawback",
             moduleSelectionOffers = (positiveOffers
@@ -555,6 +568,7 @@ public static class FacilityFormulaEvolutionAuthority
                 && selection.EvidenceFactIds.Contains(value.publicFactId,
                     StringComparer.Ordinal))
             .ToArray();
+        sourceEvidence = RemoveDuplicatedLegacyEvidence(sourceEvidence, selectedExact);
         NarrativeFormulaEvidence[] evidence = sourceEvidence.Select(ToFormulaEvidence)
             .Concat(selectedExact.Select(value =>
                 GameplayOutcomeEvidenceFormulaProjection.ToFormulaEvidence(
@@ -951,6 +965,22 @@ public static class FacilityFormulaEvolutionAuthority
                 originalEvent = item.Clone()
             };
         }
+    }
+
+    private static FacilityFormulaEvidenceRecord[] RemoveDuplicatedLegacyEvidence(
+        IEnumerable<FacilityFormulaEvidenceRecord> records,
+        IReadOnlyList<GameplayOutcomeEvidenceBindingSnapshot> exactBindings)
+    {
+        GameplayOutcomeEvidenceBindingSnapshot[] bindings = (exactBindings
+                ?? Array.Empty<GameplayOutcomeEvidenceBindingSnapshot>())
+            .Where(value => value != null)
+            .ToArray();
+        return (records ?? Array.Empty<FacilityFormulaEvidenceRecord>())
+            .Where(value => value != null
+                && !bindings.Any(binding =>
+                    GameplayOutcomeEvidenceFormulaProjection.HasCommonOrigin(
+                        binding, value.originalEvent)))
+            .ToArray();
     }
 
     private static NarrativeFormulaEvidence ToFormulaEvidence(

@@ -344,7 +344,7 @@ public static class ProductionOutputDestinationDurableSaveProjector
                 equipmentPayload,
                 maintenancePayload)),
             new(FireDamageContributorId,
-                EnvironmentalFireDamageOutcomeAuthority
+                EnvironmentalFireDamageAuthority
                     .ProjectFacilityContribution(
                         facilityId,
                         firePayload?.damageOperations)),
@@ -438,7 +438,7 @@ public static class ProductionOutputDestinationDurableSaveProjector
                 equipmentPayload,
                 maintenancePayload)),
             new(FireDamageContributorId,
-                EnvironmentalFireDamageOutcomeAuthority
+                EnvironmentalFireDamageAuthority
                     .ProjectFacilityContribution(
                         facilityId,
                         firePayload?.damageOperations)),

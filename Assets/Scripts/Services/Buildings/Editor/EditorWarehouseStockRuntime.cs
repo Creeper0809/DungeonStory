@@ -358,6 +358,16 @@ internal sealed class EditorWarehouseStockRuntime : IWorldItemStackRuntime
         return false;
     }
 
+    public bool TryRestoreStackRoute(
+        WorldItemStackSnapshot original,
+        WorldItemStackState appliedState,
+        string appliedDestinationId,
+        out string failureReason)
+    {
+        failureReason = "not supported by warehouse fixture: route restore";
+        return false;
+    }
+
     public bool DeleteStack(string stackId) => false;
 
     public bool TryConsumeStackQuantity(string stackId, int quantity,

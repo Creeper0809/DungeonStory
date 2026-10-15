@@ -4,6 +4,7 @@
   "references": [
     "DungeonStory.Buildings",
     "DungeonStory.Foundation",
+    "DungeonStory.Items",
     "DungeonStory.Characters",
     "DungeonStory.CoreSession",
     "DungeonStory.Environment",

@@ -2,15 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum PowerPriority
-{
-    Critical = 1,
-    Defense = 2,
-    Essential = 3,
-    Production = 4,
-    Optional = 5
-}
-
 public enum ConveyorPortMode
 {
     Input = 0,
@@ -39,16 +30,6 @@ public enum ConveyorNetworkState
     Deadlocked = 2,
     Unpowered = 3,
     Stopped = 4
-}
-
-public enum ConveyorOverflowPolicy
-{
-    // Numeric save values are stable. Warehouse policies retain cargo on failure;
-    // the historical ThenLoose names do not authorize an implicit ground drop.
-    ReserveWarehouseThenLoose = 0,
-    AnyCompatibleWarehouseThenLoose = 1,
-    LooseOnly = 2,
-    ManualApproval = 3
 }
 
 public static class ConveyorNetworkStateEvaluator
@@ -127,6 +108,7 @@ public sealed class PowerFuelCommitSaveData
     public List<string> sourceStackIds = new List<string>();
     public long inputMassGrams;
     public string commitId = string.Empty;
+    public long outcomeOwnerRevision;
 
     public PowerFuelCommitSaveData Clone() => new PowerFuelCommitSaveData
     {
@@ -142,14 +124,15 @@ public sealed class PowerFuelCommitSaveData
         fuelSecondsAfter = fuelSecondsAfter,
         sourceStackIds = new List<string>(sourceStackIds ?? new List<string>()),
         inputMassGrams = inputMassGrams,
-        commitId = commitId ?? string.Empty
+        commitId = commitId ?? string.Empty,
+        outcomeOwnerRevision = outcomeOwnerRevision
     };
 }
 
 [Serializable]
 public sealed class DungeonPowerInfrastructureSaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
     public int version = CurrentVersion;
     public List<PowerNodeSaveData> nodes = new List<PowerNodeSaveData>();
 }
@@ -271,33 +254,32 @@ public sealed class FluidNodeSaveData
     public float transferWork;
     public bool frozenPipeLatched;
     public string frozenPipeOccurrenceInstanceId = string.Empty;
+    public int nextAutonomousOutcomeSequence = 1;
+    public List<FluidAutonomousOutcomeSaveData> pendingAutonomousOutcomes =
+        new List<FluidAutonomousOutcomeSaveData>();
+    public float leakEpisodeStartCleanWater;
+    public float leakEpisodeStartUnsafeWater;
+    public float leakEpisodeStartFoulWater;
+    public float leakEpisodeCleanLoss;
+    public float leakEpisodeUnsafeLoss;
+    public float leakEpisodeFoulLoss;
+    public float leakEpisodeFilthAmount;
+    public List<string> leakEpisodeFilthIds = new List<string>();
+}
+
+[Serializable]
+public sealed class FluidAutonomousOutcomeSaveData
+{
+    public int sequence;
+    public IndustrialTransitionFactData fact = new();
 }
 
 [Serializable]
 public sealed class DungeonFluidInfrastructureSaveData
 {
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 9;
     public int version = CurrentVersion;
     public List<FluidNodeSaveData> nodes = new List<FluidNodeSaveData>();
-}
-
-[Serializable]
-public sealed class ConveyorFilterCriteria
-{
-    public List<string> itemIds = new List<string>();
-    public List<StockCategory> stockCategories =
-        new List<StockCategory>();
-    public List<string> materialIds = new List<string>();
-    public bool allowForbidden;
-    public bool filterQuality;
-    public CombatEquipmentQuality minimumQuality =
-        CombatEquipmentQuality.Awful;
-    public CombatEquipmentQuality maximumQuality =
-        CombatEquipmentQuality.Mythic;
-    public bool filterFreshness;
-    [Range(0f, 1f)] public float minimumFreshness01;
-    [Range(0f, 1f)] public float maximumFreshness01 = 1f;
-    public bool allowContaminated = true;
 }
 
 [Serializable]

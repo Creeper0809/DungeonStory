@@ -80,12 +80,15 @@ public sealed class OffenseFieldMedicalRestoreCandidate
     internal List<RescueConvoyState> Convoys { get; }
 }
 
-public sealed class OffenseFieldMedicalRuntime : IOffenseFieldMedicalRuntime
+public sealed class OffenseFieldMedicalRuntime :
+    IOffenseFieldMedicalRuntime,
+    IDungeonRestoreTransactionParticipant
 {
     private List<FieldStabilizationState> stabilizations = new();
     private List<OffenseCasualtyCarryState> carries = new();
     private List<OffenseStrandedState> stranded = new();
     private List<RescueConvoyState> convoys = new();
+    private readonly DungeonRestorePublication restorePublication = new();
 
     public bool TryApplyPackedStabilization(
         OffenseExpeditionRun expedition,
@@ -500,15 +503,49 @@ public sealed class OffenseFieldMedicalRuntime : IOffenseFieldMedicalRuntime
     internal void PublishRestore(OffenseFieldMedicalRestoreCandidate candidate)
     {
         candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        if (restorePublication.TryStage(
+                () => ApplyRestore(candidate),
+                CaptureRestoreRollback))
+        {
+            return;
+        }
+
+        ApplyRestore(candidate);
+    }
+
+    private void ApplyRestore(OffenseFieldMedicalRestoreCandidate candidate)
+    {
         stabilizations = candidate.Stabilizations;
         carries = candidate.Carries;
         stranded = candidate.Stranded;
         convoys = candidate.Convoys;
     }
 
+    private Action CaptureRestoreRollback()
+    {
+        List<FieldStabilizationState> previousStabilizations = stabilizations;
+        List<OffenseCasualtyCarryState> previousCarries = carries;
+        List<OffenseStrandedState> previousStranded = stranded;
+        List<RescueConvoyState> previousConvoys = convoys;
+        return () =>
+        {
+            stabilizations = previousStabilizations;
+            carries = previousCarries;
+            stranded = previousStranded;
+            convoys = previousConvoys;
+        };
+    }
+
     public void PublishRestoreCandidate(
         OffenseFieldMedicalRestoreCandidate candidate) =>
         PublishRestore(candidate);
+
+    public string ParticipantId => "offense.field-medical";
+    public void BeginRestoreCandidate() => restorePublication.Begin();
+    public void PublishRestoreCandidate() => restorePublication.Publish();
+    public void RollbackPublishedRestoreCandidate() => restorePublication.Discard();
+    public void DiscardRestoreCandidate() => restorePublication.Discard();
+    public void CompleteRestoreCandidate() => restorePublication.Complete();
 
     private static bool HasId(string value) => !string.IsNullOrWhiteSpace(value);
     private static bool Same(string left, string right) => string.Equals(

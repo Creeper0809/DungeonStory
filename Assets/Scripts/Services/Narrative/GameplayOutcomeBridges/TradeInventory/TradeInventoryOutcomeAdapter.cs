@@ -205,7 +205,7 @@ internal static class TradeInventoryOutcomeSchema
     {
         if (outcome.Status is not (GameplayOutcomeStatus.Succeeded
                 or GameplayOutcomeStatus.PartiallySucceeded)
-            || outcome.AnchorCount != 0
+            || outcome.InitialAnchorCount != 0
             || outcome.ParticipantCount == 0
             || outcome.MetricCount == 0
             || outcome.SubjectCount == 0

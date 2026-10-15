@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using DungeonStory.Foundation.Facts;
 
 /// <summary>
 /// Synchronous transaction boundary for the one irreversible gameplay effect of
@@ -21,14 +22,16 @@ public sealed class MemoryErasureSealTransactionService :
     private readonly IGameCalendar calendar;
     private readonly IReversibleCarriedPhysicalItemBatchDispositionService
         physicalDisposition;
-    private readonly IMemoryErasureOutcomeCommitter outcomeCommitter;
+    private readonly IDomainFactStagingPublisher facts;
+    private readonly MemoryErasurePublicationRuntime publications;
 
     public MemoryErasureSealTransactionService(
         IGameContentDefinitionSource definitions,
         IGameCalendar calendar,
         IReversibleCarriedPhysicalItemBatchDispositionService
             physicalDisposition,
-        IMemoryErasureOutcomeCommitter outcomeCommitter = null)
+        IDomainFactStagingPublisher facts,
+        MemoryErasurePublicationRuntime publications)
     {
         this.definitions = definitions
             ?? throw new ArgumentNullException(nameof(definitions));
@@ -36,7 +39,8 @@ public sealed class MemoryErasureSealTransactionService :
             ?? throw new ArgumentNullException(nameof(calendar));
         this.physicalDisposition = physicalDisposition
             ?? throw new ArgumentNullException(nameof(physicalDisposition));
-        this.outcomeCommitter = outcomeCommitter;
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.publications = publications ?? throw new ArgumentNullException(nameof(publications));
     }
 
     [GameplayInternalOnly(
@@ -72,19 +76,13 @@ public sealed class MemoryErasureSealTransactionService :
                 detail: "target, active trait, exact carried stack, or canonical operation is missing");
         }
 
+        if (publications.IsBusy || publications.IsRestoring)
+            return Result(MemoryErasureSealUseStatus.InvalidRequest, operation, auditId, targetId, traitId,
+                detail: "memory-erasure transaction or rollback is already active");
+        if (publications.PendingForOperation(operation) != null)
+            publications.RecoverPending(out _);
         CharacterAcquiredTraitAggregateState before =
             target.Progression.CaptureAcquiredTraitState();
-        if (before.revision == int.MaxValue)
-        {
-            return Result(
-                MemoryErasureSealUseStatus.InvalidRequest,
-                operation,
-                auditId,
-                targetId,
-                traitId,
-                before.revision,
-                detail: "the acquired-trait revision cannot advance further");
-        }
         if (!before.TryGetInstance(
                 traitId,
                 out CharacterAcquiredTraitInstanceState selected))
@@ -118,6 +116,18 @@ public sealed class MemoryErasureSealTransactionService :
                 detail: sameCommit
                     ? "the same erasure transaction is already committed"
                     : "the selected acquired trait was erased by another transaction");
+        }
+
+        if (before.revision == int.MaxValue)
+        {
+            return Result(
+                MemoryErasureSealUseStatus.InvalidRequest,
+                operation,
+                auditId,
+                targetId,
+                traitId,
+                before.revision,
+                detail: "the acquired-trait revision cannot advance further");
         }
 
         CharacterCarriedItemSaveData carried = carry.Items.SingleOrDefault(
@@ -203,13 +213,8 @@ public sealed class MemoryErasureSealTransactionService :
         }
 
         int absoluteDay = Math.Max(0, calendar.Day);
-        ReservedMemoryErasureOutcome reservedOutcome = default;
-        if (outcomeCommitter != null
-            && !outcomeCommitter.TryReserveSuccess(
-                operation,
-                absoluteDay,
-                out reservedOutcome,
-                out string outcomeReserveFailure))
+        CharacterCarryInventorySaveData carryBefore = carry.Capture();
+        if (!publications.TryBegin(operation, out long terminalRevision, out string beginFailure))
         {
             return Result(
                 MemoryErasureSealUseStatus.InvalidRequest,
@@ -218,15 +223,14 @@ public sealed class MemoryErasureSealTransactionService :
                 targetId,
                 traitId,
                 before.revision,
-                detail: "memory-erasure outcome pre-reserve failed: "
-                    + outcomeReserveFailure);
+                detail: beginFailure);
         }
 
-        CharacterCarryInventorySaveData carryBefore = carry.Capture();
         IReversiblePhysicalItemDisposition physical = null;
         bool traitPublished = false;
         bool physicalAcknowledged = false;
-        PreparedEvolutionOutcome preparedOutcome = default;
+        IDomainFactStage stage = null;
+        MemoryErasureSealUseResult committedResult = default;
         try
         {
             if (!carry.TryConsumeCarriedStack(
@@ -235,7 +239,6 @@ public sealed class MemoryErasureSealTransactionService :
                     MemoryErasureSealItemRules.UseQuantity))
             {
                 RestoreCarry(carry, carryBefore);
-                outcomeCommitter?.Cancel(reservedOutcome);
                 return Result(
                     MemoryErasureSealUseStatus.PhysicalCommitFailed,
                     operation,
@@ -254,7 +257,6 @@ public sealed class MemoryErasureSealTransactionService :
                     out string physicalFailure))
             {
                 RestoreCarry(carry, carryBefore);
-                outcomeCommitter?.Cancel(reservedOutcome);
                 return Result(
                     MemoryErasureSealUseStatus.PhysicalCommitFailed,
                     operation,
@@ -273,7 +275,6 @@ public sealed class MemoryErasureSealTransactionService :
                     out IReadOnlyList<CharacterAcquiredTraitValidationIssue>
                         commitIssues))
             {
-                outcomeCommitter?.Cancel(reservedOutcome);
                 return RollBack(
                     target,
                     before,
@@ -293,7 +294,7 @@ public sealed class MemoryErasureSealTransactionService :
             }
             traitPublished = true;
 
-            MemoryErasureSealUseResult committedResult = Result(
+            committedResult = Result(
                 MemoryErasureSealUseStatus.Succeeded,
                 operation,
                 auditId,
@@ -304,15 +305,13 @@ public sealed class MemoryErasureSealTransactionService :
                 erasedAt,
                 physical.Receipt.CommitId,
                 "exact seal consumed and only the selected acquired-trait source erased");
-            MemoryErasureOutcomeReceipt outcomeReceipt = new(
+            MemoryErasureTerminalFact fact = MemoryErasureTerminalFact.Capture(
                 committedResult,
-                absoluteDay);
-            if (outcomeCommitter != null
-                && !outcomeCommitter.TryWriteReservedSuccess(
-                    outcomeReceipt,
-                    reservedOutcome,
-                    out preparedOutcome,
-                    out string outcomeWriteFailure))
+                selected,
+                target.Identity.DisplayName,
+                absoluteDay,
+                terminalRevision);
+            if (!facts.TryStage(fact, out stage, out string stageFailure))
             {
                 return RollBack(
                     target,
@@ -328,13 +327,14 @@ public sealed class MemoryErasureSealTransactionService :
                     auditId,
                     targetId,
                     traitId,
-                    "memory-erasure outcome receipt write failed: "
-                        + outcomeWriteFailure);
+                    "memory-erasure observation stage failed: " + stageFailure);
             }
 
+            // Install the immutable recovery record before crossing the physical ACK.
+            publications.RetainPrepared(fact, stage);
             if (!physical.TryAcknowledge(out string acknowledgeFailure))
             {
-                outcomeCommitter?.Cancel(preparedOutcome);
+                publications.DiscardPrepared(terminalRevision);
                 return RollBack(
                     target,
                     before,
@@ -354,27 +354,17 @@ public sealed class MemoryErasureSealTransactionService :
             }
             physicalAcknowledged = true;
 
-            if (outcomeCommitter != null
-                && !outcomeCommitter.TryCommit(
-                    preparedOutcome,
-                    out string outcomeCommitFailure))
-            {
-                throw new InvalidOperationException(
-                    "Memory-erasure domain committed without its mandatory outcome: "
-                    + outcomeCommitFailure);
-            }
-            return committedResult;
+            DomainFactDelivery delivery = publications.CommitApplied(terminalRevision, stage);
+            return delivery.Completed ? committedResult : WithPendingObservation(committedResult, delivery.Detail);
         }
         catch (Exception exception)
         {
-            outcomeCommitter?.Cancel(preparedOutcome);
-            outcomeCommitter?.Cancel(reservedOutcome);
             if (physicalAcknowledged)
             {
-                throw new InvalidOperationException(
-                    "Memory-erasure outcome commit failed after the physical authority acknowledged its commit.",
-                    exception);
+                // The seal and trait are committed. The retained fact, not the game action, is retried.
+                return WithPendingObservation(committedResult, exception.Message);
             }
+            publications.DiscardPrepared(terminalRevision);
             if (physical == null)
             {
                 RestoreCarry(carry, carryBefore);
@@ -415,7 +405,20 @@ public sealed class MemoryErasureSealTransactionService :
                 traitId,
                 "transaction threw: " + exception.Message);
         }
+        finally
+        {
+            try { stage?.Cancel(); }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                and not StackOverflowException and not AccessViolationException)
+            { Debug.LogError("Memory-erasure observation stage cancellation failed: " + exception); }
+            finally { publications.End(operation); }
+        }
     }
+
+    private static MemoryErasureSealUseResult WithPendingObservation(MemoryErasureSealUseResult result, string failure) => new(
+        result.Status, result.OperationId, result.AuditId, result.TargetCharacterId, result.TraitInstanceId,
+        result.PhysicalCommitId, result.PreviousRevision, result.CommittedRevision, result.AbsoluteHour,
+        result.Detail + "; observation pending: " + failure);
 
     internal static string BuildAuditId(
         string operationId,
@@ -426,7 +429,7 @@ public sealed class MemoryErasureSealTransactionService :
             + "|" + (targetCharacterId?.Trim() ?? string.Empty)
             + "|" + (traitInstanceId?.Trim() ?? string.Empty));
 
-    private static MemoryErasureSealUseResult RollBack(
+    private MemoryErasureSealUseResult RollBack(
         CharacterActor target,
         CharacterAcquiredTraitAggregateState before,
         int expectedPublishedRevision,
@@ -445,42 +448,48 @@ public sealed class MemoryErasureSealTransactionService :
         IReadOnlyList<CharacterAcquiredTraitValidationIssue> rollbackIssues =
             Array.Empty<CharacterAcquiredTraitValidationIssue>();
         bool traitRestored = !traitPublished;
-        if (traitPublished)
+        bool physicalRestored = false;
+        string physicalRollbackFailure = string.Empty;
+        bool RetryRollback()
         {
+            target.Progression.SetMemoryErasureRecoveryBlocked(false);
             try
             {
-                traitRestored = target.Progression.TryRollbackAcquiredTraitState(
-                    before,
-                    expectedPublishedRevision,
-                    settings,
-                    modules,
-                    out rollbackIssues);
+                if (!traitRestored)
+                {
+                    try
+                    {
+                        traitRestored = target.Progression.TryRollbackAcquiredTraitState(
+                            before, expectedPublishedRevision, settings, modules, out rollbackIssues);
+                    }
+                    catch (Exception exception)
+                    {
+                        CharacterAcquiredTraitAggregateState restored = target.Progression.CaptureAcquiredTraitState();
+                        traitRestored = restored.revision == before.revision
+                            && restored.TryGetInstance(traitId, out CharacterAcquiredTraitInstanceState restoredTrait)
+                            && !restoredTrait.erased;
+                        rollbackIssues = new[] { new CharacterAcquiredTraitValidationIssue(
+                            CharacterAcquiredTraitValidationIssueCode.InvalidInstance,
+                            "rollback notification threw: " + exception.Message) };
+                    }
+                }
+                if (!physicalRestored)
+                {
+                    physicalRestored = physical.TryRollback(out physicalRollbackFailure);
+                    // Never mirror failed repository recovery as cargo: that would duplicate authority.
+                    if (physicalRestored) RestoreCarry(carry, carryBefore);
+                }
+                return traitRestored && physicalRestored;
             }
             catch (Exception exception)
             {
-                CharacterAcquiredTraitAggregateState restored =
-                    target.Progression.CaptureAcquiredTraitState();
-                traitRestored = restored.revision == before.revision
-                    && restored.TryGetInstance(
-                        traitId,
-                        out CharacterAcquiredTraitInstanceState restoredTrait)
-                    && !restoredTrait.erased;
-                rollbackIssues = new[]
-                {
-                    new CharacterAcquiredTraitValidationIssue(
-                        CharacterAcquiredTraitValidationIssueCode.InvalidInstance,
-                        "rollback notification threw: " + exception.Message)
-                };
+                physicalRollbackFailure = exception.Message; return false;
             }
+            finally { target.Progression.SetMemoryErasureRecoveryBlocked(!traitRestored || !physicalRestored); }
         }
-        bool physicalRestored = physical.TryRollback(
-            out string physicalRollbackFailure);
-        // A failed repository rollback must never be mirrored as carried cargo;
-        // doing so would duplicate the same physical item authority.
-        if (physicalRestored)
-            RestoreCarry(carry, carryBefore);
-        if (!traitRestored || !physicalRestored)
+        if (!RetryRollback())
         {
+            publications.RetainRollback(operation, RetryRollback);
             string detail = originalFailure
                 + $"; rollback trait={traitRestored}, physical={physicalRestored}"
                 + (traitRestored ? string.Empty

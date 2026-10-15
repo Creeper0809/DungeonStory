@@ -433,7 +433,8 @@ public sealed class ProductionItemGateway :
             physicalReceipt.Quantity,
             physicalReceipt.InputMassGrams,
             physicalReceipt.RequestFingerprint,
-            physicalReceipt.SourceStackIds);
+            physicalReceipt.SourceStackIds,
+            physicalReceipt.OwnerRevision);
         return receipt.IsCommitted;
     }
 

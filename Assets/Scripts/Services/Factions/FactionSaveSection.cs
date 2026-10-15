@@ -40,6 +40,8 @@ public sealed class FactionSaveSection :
         return runtime.Capture();
     }
 
+    protected override void ValidateRawPayload(string json) => FactionCargoSaveValidation.ValidateJson(json);
+
     protected override void NormalizeRestorePayload(
         DungeonFactionSaveData payload,
         DungeonGameRestoreReport report) =>

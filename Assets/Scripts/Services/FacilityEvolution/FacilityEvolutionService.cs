@@ -45,9 +45,10 @@ public readonly struct FacilityEvolutionMaterialCommitReceipt
     public IReadOnlyList<string> SourceStackIds { get; }
     public int Quantity { get; }
     public long InputMassGrams { get; }
-    public bool IsCommitted => OperationId.Length > 0
-        && ReasonCode.Length > 0
-        && CommitId.Length > 0
+    public bool IsCommitted => !string.IsNullOrEmpty(OperationId)
+        && !string.IsNullOrEmpty(ReasonCode)
+        && !string.IsNullOrEmpty(CommitId)
+        && SourceStackIds != null
         && SourceStackIds.Count > 0
         && Quantity > 0
         && InputMassGrams > 0L;
@@ -469,6 +470,13 @@ public sealed class MemoryFacilityEvolutionResourceProvider : IFacilityEvolution
             }
             return pendingReceipts.TryGetValue(operation, out receipt)
                 && receipt.IsCommitted;
+        }
+
+        // Match the warehouse provider: no requirements mean no physical
+        // transaction, not a zero-quantity receipt with a commit identity.
+        if (required.Length == 0)
+        {
+            return true;
         }
 
         Dictionary<string, int> totals = required

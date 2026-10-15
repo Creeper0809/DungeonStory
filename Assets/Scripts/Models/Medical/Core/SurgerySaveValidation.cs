@@ -528,12 +528,29 @@ public static class SurgerySaveValidation
         DungeonGameRestoreReport report)
     {
         int effectCount = procedure?.Effects?.Count ?? 0;
+        try { ValidateObservationState(order, procedure?.Kind); }
+        catch (ArgumentException exception)
+        { report.AddError($"Surgery order '{orderId}' observation is invalid: {exception.Message}"); }
+        if (!Enum.IsDefined(
+                typeof(CharacterCommandOrigin),
+                order.completionOrigin))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' has an invalid completion origin.");
+        }
         if (!order.resultRolled)
         {
             if (order.resultSucceeded
                 || order.outcomeConsequencesApplied
                 || order.outcomeConsequenceStep != 0
                 || order.resolvedEffectCount != 0
+                || !string.IsNullOrEmpty(order.completionDoctorId)
+                || order.completionAbsoluteDay != -1
+                || order.completionFactDelivered
+                || !string.IsNullOrEmpty(order.completionPublicationKey)
+                || order.outcomeAnatomyBeforeCaptured
+                || order.outcomeAnatomyBefore?.IsEmpty != true
+                || order.resolutionFactAccepted
                 || !string.IsNullOrEmpty(order.resultOutcomeId))
             {
                 report.AddError(
@@ -559,6 +576,12 @@ public static class SurgerySaveValidation
             return;
         }
         if (!IsCanonical(order.resultOutcomeId)
+            || !IsCanonical(order.completionDoctorId)
+            || !new CharacterId(order.completionDoctorId).IsValid
+            || order.completionAbsoluteDay < 0
+            || order.resolutionFactAccepted
+                && (!order.outcomeAnatomyBeforeCaptured
+                    || order.outcomeAnatomyBefore?.IsEmpty != false)
             || order.resolvedEffectCount < 0
             || order.resolvedEffectCount > effectCount
             || !order.resultSucceeded && order.resolvedEffectCount != 0
@@ -595,6 +618,13 @@ public static class SurgerySaveValidation
         bool failedTerminal = order.state == SurgeryOrderState.Failed
             || order.state == SurgeryOrderState.TerminalDraining
                 && order.materialTerminalTargetState == SurgeryOrderState.Failed;
+        if ((order.completionFactDelivered || !string.IsNullOrEmpty(order.completionPublicationKey))
+            && (!order.resolutionFactAccepted
+                || !successfulTerminal && !failedTerminal))
+        {
+            report.AddError(
+                $"Surgery order '{orderId}' published a completion before its committed clinical terminal.");
+        }
         if (failedTerminal
             && (order.resultSucceeded
                 || !order.outcomeConsequencesApplied))
@@ -602,6 +632,76 @@ public static class SurgerySaveValidation
             report.AddError(
                 $"Surgery order '{orderId}' has a terminal state that conflicts with its frozen outcome.");
         }
+    }
+
+    public static void ValidateObservationState(SurgeryOrder order, SurgicalProcedureKind? procedureKind = null)
+    {
+        ValidateCompletionObservationState(order);
+        if (order == null || order.outcomeAnatomyBefore == null || order.resolvedFact == null
+            || !SurgeryResolvedFactData.Text(order.resolutionPublicationKey, true)
+            || !SurgeryResolvedFactData.Text(order.resolutionPublicationId, true)
+            || !SurgeryResolvedFactData.Text(order.resolutionFingerprint, true))
+            throw new ArgumentException("surgery-observation-state-missing");
+        order.outcomeAnatomyBefore.Validate(!order.outcomeAnatomyBeforeCaptured);
+        if (!order.outcomeAnatomyBeforeCaptured && !order.outcomeAnatomyBefore.IsEmpty)
+            throw new ArgumentException("surgery-observation-before-without-capture");
+        bool frozen = !order.resolvedFact.IsEmpty;
+        bool hasKey = order.resolutionPublicationKey.Length > 0;
+        bool hasProof = order.resolutionPublicationId.Length > 0 && order.resolutionFingerprint.Length > 0;
+        if (!order.resultRolled && (frozen || hasKey || order.resolutionFactAccepted || order.resolutionFactDelivered)
+            || order.resultRolled && !hasKey
+            || order.resolutionFactAccepted != hasProof
+            || !hasProof && (order.resolutionPublicationId.Length > 0 || order.resolutionFingerprint.Length > 0)
+            || order.resolutionFactDelivered && !order.resolutionFactAccepted
+            || order.resolutionFactAccepted && !frozen
+            || frozen && (!hasKey || !order.outcomeAnatomyBeforeCaptured))
+            throw new ArgumentException("surgery-observation-phase-invalid");
+        bool clinicalTerminal = order.state is SurgeryOrderState.Recovering or SurgeryOrderState.Completed or SurgeryOrderState.Failed
+            || order.state == SurgeryOrderState.TerminalDraining
+                && order.materialTerminalTargetState is SurgeryOrderState.Completed or SurgeryOrderState.Failed;
+        if (clinicalTerminal && !order.resolutionFactAccepted)
+            throw new ArgumentException("surgery-clinical-terminal-without-accepted-fact");
+        if (!frozen) return;
+        var data = order.resolvedFact;
+        data.Validate();
+        if (data.orderId != order.orderId || data.subjectId != order.subject?.subjectId
+            || data.subjectKind != order.subject.kind
+            || data.subjectName != (string.IsNullOrWhiteSpace(order.subject.displayName)
+                ? order.subject.subjectId : order.subject.displayName)
+            || data.procedureId != order.procedureId || procedureKind.HasValue && data.procedureKind != procedureKind.Value
+            || data.doctorId != order.completionDoctorId || data.absoluteDay != order.completionAbsoluteDay
+            || data.facilityId != order.facilityId || data.targetNodeId != order.targetNodeId
+            || data.origin != order.completionOrigin || data.completedWork != order.completedWork
+            || data.resultId != order.resultOutcomeId || data.severity != order.failureSeverity || data.succeeded != order.resultSucceeded
+            || data.materialsConsumed != order.materialsConsumed || data.processFluidConsumed != order.processFluidConsumed
+            || data.anesthesiaConsumed != order.anesthesiaConsumed || data.materialSinkInputMassGrams != order.materialSinkInputMassGrams
+            || data.materialSinkOperationId != order.materialSinkOperationId || data.materialSinkCommitId != order.materialSinkCommitId
+            || data.replacementOperationId != order.replacementOperationId || data.replacementBatchCommitId != order.replacementBatchCommitId
+            || data.replacementOutputStackId != order.replacementOutputStackId
+            || data.replacementOutputItemInstanceId != order.replacementOutputItemInstanceId
+            || !data.before.ContentEquals(order.outcomeAnatomyBefore)
+            || order.materials == null || data.materials.Count != order.materials.Count
+            || data.materials.Where((material, index) => order.materials[index] == null
+                || material.itemId != order.materials[index].itemId || material.quantity != order.materials[index].quantity
+                || material.optional != order.materials[index].optional).Any())
+            throw new ArgumentException("surgery-observation-owner-conflict");
+        // Terminal custody is performed after this observation and may later be checkpoint-compacted.
+        // Its historical references are bound by the observer's canonical proof, not today's custody cursor.
+    }
+
+    public static void ValidateCompletionObservationState(SurgeryOrder order)
+    {
+        if (order == null || !SurgeryResolvedFactData.Text(order.completionPublicationKey, true)
+            || !SurgeryResolvedFactData.Text(order.completionPublicationId, true)
+            || !SurgeryResolvedFactData.Text(order.completionFingerprint, true))
+            throw new ArgumentException("surgery-completion-observation-state-missing");
+        bool hasKey = order.completionPublicationKey.Length > 0;
+        bool hasId = order.completionPublicationId.Length > 0;
+        bool hasFingerprint = order.completionFingerprint.Length > 0;
+        if (hasId != hasFingerprint || order.completionFactDelivered != (hasId && hasFingerprint)
+            || order.completionFactDelivered && !hasKey
+            || hasKey && (!order.resolutionFactAccepted || !order.resultRolled || !order.IsClinicalTerminal))
+            throw new ArgumentException("surgery-completion-observation-phase-invalid");
     }
 
     private static void ValidateReplacement(

@@ -16,7 +16,7 @@ public enum KnowledgeResidueDispositionPhase
 {
     AwaitingInput = 0,
     InputCommitted = 1,
-    OutcomePublished = 2
+    RewardsApplied = 2
 }
 
 public static class KnowledgeResidueTaskIdentity
@@ -101,6 +101,8 @@ public sealed class KnowledgeResidueTaskSaveData
     public string codexCluePayload = string.Empty;
     public float appliedReconnaissanceAmount;
     public long completionOwnerRevision;
+    public string completionPublicationKey = string.Empty;
+    public KnowledgeCompletionFactData completionFact = new();
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -309,6 +311,8 @@ public sealed class KnowledgeResidueAggregateState
             sinkCommitId = source?.sinkCommitId ?? string.Empty,
             codexCluePayload = source?.codexCluePayload ?? string.Empty,
             completionOwnerRevision = source?.completionOwnerRevision ?? 0,
+            completionPublicationKey = source?.completionPublicationKey ?? string.Empty,
+            completionFact = source?.completionFact?.Clone(),
             appliedReconnaissanceAmount =
                 source?.appliedReconnaissanceAmount ?? 0f
         };

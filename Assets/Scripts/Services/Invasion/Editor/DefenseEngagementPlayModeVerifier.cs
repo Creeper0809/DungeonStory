@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using DungeonStory.Environment;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -17,6 +19,8 @@ public static class DefenseEngagementPlayModeVerifier
         "Artifacts/QA/defense-engagement-playmode.txt";
     private const string Phase80ReportArgument = "-phase80DefenseReport";
     private const string Phase80ExitArgument = "-phase80DefenseExit";
+    private const string Wim048ReportArgument = "-wim048Report";
+    private const string Wim048ExitArgument = "-wim048Exit";
     public const string Wim048ReportPath =
         "Artifacts/QA/wim-implementation/wim-048-resident-room-evacuation.txt";
     private const string PendingFlagPath =
@@ -141,6 +145,44 @@ public static class DefenseEngagementPlayModeVerifier
             "EditMode clean-scene preflight evidence is required.");
     }
 
+    public static void StartWim048Batch()
+    {
+        if (Application.isPlaying)
+        {
+            FinishWim048Immediately(
+                false,
+                "Batch verification must start in EditMode.");
+            return;
+        }
+        if (!TryReadCommandLineValue(
+                Wim048ReportArgument,
+                out string reportPath))
+        {
+            FinishWim048Immediately(
+                false,
+                Wim048ReportArgument + " is required.");
+            return;
+        }
+        string absolute = Path.GetFullPath(reportPath);
+        if (File.Exists(absolute))
+        {
+            Debug.LogError(
+                "WIM-048 evidence is immutable and already exists: "
+                + absolute);
+            ExitWim048BatchIfRequested(false);
+            return;
+        }
+        Scene active = SceneManager.GetActiveScene();
+        if (!active.IsValid()
+            || !active.isLoaded
+            || !string.Equals(active.path, GameplayScenePath, StringComparison.Ordinal)
+            || SceneManager.sceneCount != 1)
+        {
+            EditorSceneManager.OpenScene(GameplayScenePath, OpenSceneMode.Single);
+        }
+        RunWim048ResidentRoomEvacuationFocused();
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void BootstrapPendingRun()
     {
@@ -210,11 +252,15 @@ public static class DefenseEngagementPlayModeVerifier
 
         wim048Completed = false;
         wim048Report = "RUNNING: WIM-048 런타임 준비 중";
-        Directory.CreateDirectory(Path.GetDirectoryName(Wim048ReportPath)
+        string reportPath = GetActiveWim048ReportPath();
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath)
             ?? "Artifacts/QA/wim-implementation");
-        if (File.Exists(Wim048ReportPath))
+        if (File.Exists(reportPath))
         {
-            File.Delete(Wim048ReportPath);
+            FinishWim048Immediately(
+                false,
+                "Create-only WIM-048 report appeared after preflight.");
+            return;
         }
         Time.timeScale = 1f;
         GameObject root = new GameObject("WIM-048 Resident Room Evacuation Verifier");
@@ -339,16 +385,38 @@ public static class DefenseEngagementPlayModeVerifier
     {
         wim048Completed = true;
         wim048Report = $"{(success ? "PASS" : "FAIL")}: {detail ?? string.Empty}";
-        Directory.CreateDirectory(Path.GetDirectoryName(Wim048ReportPath)
+        string reportPath = GetActiveWim048ReportPath();
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath)
             ?? "Artifacts/QA/wim-implementation");
-        File.WriteAllLines(Wim048ReportPath, new[]
+        File.WriteAllLines(reportPath, new[]
         {
             "# WIM-048 resident room evacuation focused verification",
             "result=" + (success ? "PASS" : "FAIL"),
             "utc=" + DateTime.UtcNow.ToString("O"),
             "terminal=" + wim048Report
         });
+        ExitWim048BatchIfRequested(success);
     }
+
+    private static string GetActiveWim048ReportPath() =>
+        TryReadCommandLineValue(Wim048ReportArgument, out string configured)
+            ? Path.GetFullPath(configured)
+            : Wim048ReportPath;
+
+    private static void ExitWim048BatchIfRequested(bool success)
+    {
+        if (ShouldExitWim048Batch())
+        {
+            EditorApplication.Exit(success ? 0 : 1);
+        }
+    }
+
+    private static bool ShouldExitWim048Batch() =>
+        Environment.GetCommandLineArgs().Any(argument =>
+            string.Equals(
+                argument,
+                Wim048ExitArgument,
+                StringComparison.OrdinalIgnoreCase));
 
     private readonly struct PendingRunRequest
     {
@@ -1077,6 +1145,7 @@ public static class DefenseEngagementPlayModeVerifier
         private InvasionThreatRuntime naturalThreat;
         private bool naturalThreatWasEnabled;
         private bool cleanupComplete;
+        private bool fireVerificationPassed;
         private readonly List<string> evidence = new();
 
         internal void SetCleanBootEvidence(PendingRunRequest request)
@@ -1259,6 +1328,43 @@ public static class DefenseEngagementPlayModeVerifier
 
             yield return null;
             yield return null;
+            IInvasionOwnerEvacuationService evacuation =
+                defenseRuntime.OwnerEvacuation;
+            float automaticRequestDeadline = Time.realtimeSinceStartup + 5f;
+            while (!evacuation.ResidentEvacuationParticipants.Any(item =>
+                       string.Equals(
+                           item.CharacterId,
+                           subjectId,
+                           StringComparison.Ordinal))
+                   && Time.realtimeSinceStartup < automaticRequestDeadline)
+            {
+                yield return null;
+            }
+            DungeonGameSaveData automaticRequestSave = saveService.Capture();
+            if (!TryReadResidentParticipant(
+                    automaticRequestSave,
+                    subjectId,
+                    out ResidentEvacuationParticipantSaveData automaticParticipant,
+                    out string automaticParticipantReason)
+                || automaticParticipant.initiationKind
+                    != ResidentEvacuationInitiationKind.Automatic)
+            {
+                Finish(false,
+                    "실제 침입 생성 뒤 자동 주민 대피 계약이 시작되지 않았습니다: "
+                    + automaticParticipantReason);
+                yield break;
+            }
+            ResidentEvacuationTerminalKind automaticExpectedTerminal =
+                automaticParticipant.status switch
+                {
+                    ResidentEvacuationParticipantStatus.Holding =>
+                        ResidentEvacuationTerminalKind.Arrived,
+                    ResidentEvacuationParticipantStatus.NoCapacity =>
+                        ResidentEvacuationTerminalKind.NoCapacity,
+                    ResidentEvacuationParticipantStatus.Unreachable =>
+                        ResidentEvacuationTerminalKind.Unreachable,
+                    _ => ResidentEvacuationTerminalKind.ReplacedByRequest
+                };
             if (subjectWork.HasEmergencyResponseWorkGateForDiagnostics)
             {
                 Finish(false,
@@ -1270,55 +1376,67 @@ public static class DefenseEngagementPlayModeVerifier
             }
 
             CharacterActor alarmResponder = FindGuardAlarmResponder(subject);
-            if (alarmResponder == null
-                || !CharacterWorkRoleUtility.TryGetWork(
+            AbilityWork responderWork = null;
+            if (alarmResponder != null)
+            {
+                CharacterWorkRoleUtility.TryGetWork(
                     alarmResponder,
-                    out AbilityWork responderWork))
+                    out responderWork);
+            }
+            if ((alarmResponder == null || responderWork == null)
+                && !ShouldExitWim048Batch())
             {
                 Finish(false, "Guard-enabled 침입 경보 responder를 찾지 못했습니다.");
                 yield break;
             }
-            WorkPriorityLevel responderGuardPriority =
-                responderWork.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Guard);
-            long responderEpoch =
-                responderWork.EmergencyResponseWorkEpochForDiagnostics;
-            yield return null;
-            yield return null;
-            if (!responderWork.HasEmergencyResponseWorkGateForDiagnostics
-                || responderWork.EmergencyResponseWorkEpochForDiagnostics
-                    != responderEpoch
-                || responderWork.EmergencyResponseOnlyWorkTypeForDiagnostics
-                    != BuiltInWorkTypeIds.Guard)
+            if (responderWork != null)
             {
-                Finish(false,
-                    "Guard-enabled responder의 기존 경보 ownership이 유지되지 않았습니다.");
-                yield break;
-            }
-
-            responderWork.SetWorkPriority(
-                BuiltInWorkTypeIds.Guard,
-                WorkPriorityLevel.Off);
-            float responderReleaseDeadline = Time.realtimeSinceStartup + 5f;
-            while (responderWork.HasEmergencyResponseWorkGateForDiagnostics
-                   && Time.realtimeSinceStartup < responderReleaseDeadline)
-            {
+                WorkPriorityLevel responderGuardPriority =
+                    responderWork.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Guard);
+                long responderEpoch =
+                    responderWork.EmergencyResponseWorkEpochForDiagnostics;
                 yield return null;
+                yield return null;
+                if (!responderWork.HasEmergencyResponseWorkGateForDiagnostics
+                    || responderWork.EmergencyResponseWorkEpochForDiagnostics
+                        != responderEpoch
+                    || responderWork.EmergencyResponseOnlyWorkTypeForDiagnostics
+                        != BuiltInWorkTypeIds.Guard)
+                {
+                    Finish(false,
+                        "Guard-enabled responder의 기존 경보 ownership이 유지되지 않았습니다.");
+                    yield break;
+                }
+
+                responderWork.SetWorkPriority(
+                    BuiltInWorkTypeIds.Guard,
+                    WorkPriorityLevel.Off);
+                float responderReleaseDeadline = Time.realtimeSinceStartup + 5f;
+                while (responderWork.HasEmergencyResponseWorkGateForDiagnostics
+                       && Time.realtimeSinceStartup < responderReleaseDeadline)
+                {
+                    yield return null;
+                }
+                if (responderWork.HasEmergencyResponseWorkGateForDiagnostics
+                    || !alarmResponder.CanRunAi
+                    || alarmResponder.IsDead
+                    || alarmResponder.CurrentLifecycleState
+                        != CharacterLifecycleState.Active
+                    || responderWork.WorkPriorities.IsEnabled(BuiltInWorkTypeIds.Guard))
+                {
+                    Finish(false,
+                        "Guard 우선순위 변경만으로 responder ownership을 해제하지 못했습니다.");
+                    yield break;
+                }
+                responderWork.SetWorkPriority(
+                    BuiltInWorkTypeIds.Guard,
+                    responderGuardPriority);
+                evidence.Add("alarm-guard-priority-ownership=PASS");
             }
-            if (responderWork.HasEmergencyResponseWorkGateForDiagnostics
-                || !alarmResponder.CanRunAi
-                || alarmResponder.IsDead
-                || alarmResponder.CurrentLifecycleState
-                    != CharacterLifecycleState.Active
-                || responderWork.WorkPriorities.IsEnabled(BuiltInWorkTypeIds.Guard))
+            else
             {
-                Finish(false,
-                    "Guard 우선순위 변경만으로 responder ownership을 해제하지 못했습니다.");
-                yield break;
+                evidence.Add("alarm-guard-priority-ownership=NOT_APPLICABLE_BATCH_FIXTURE");
             }
-            responderWork.SetWorkPriority(
-                BuiltInWorkTypeIds.Guard,
-                responderGuardPriority);
-            evidence.Add("alarm-guard-priority-ownership=PASS");
 
             DefenseFeatureCommandResult request =
                 defenseCommands.RequestResidentEvacuation();
@@ -1328,8 +1446,26 @@ public static class DefenseEngagementPlayModeVerifier
                 yield break;
             }
 
-            IInvasionOwnerEvacuationService evacuation =
-                defenseRuntime.OwnerEvacuation;
+            IGameplayOutcomeQuery outcomeQuery =
+                ResolveService<IGameplayOutcomeQuery>();
+            if (!HasExactResidentEvacuationOutcome(
+                    outcomeQuery,
+                    automaticParticipant.operationId,
+                    automaticParticipant.requestGroupId,
+                    subjectId,
+                    ResidentEvacuationInitiationKind.Automatic,
+                    automaticExpectedTerminal,
+                    out string automaticOutcomeReason))
+            {
+                Finish(false,
+                    "자동 대피 작업의 실제 terminal 원장이 유효하지 않습니다: "
+                    + automaticOutcomeReason);
+                yield break;
+            }
+            evidence.Add(
+                "automatic-request-terminal=PASS;operation="
+                + automaticParticipant.operationId
+                + ";terminal=" + automaticExpectedTerminal);
             if (!evacuation.ResidentEvacuationParticipants.Any(item =>
                     string.Equals(item.CharacterId, subjectId, StringComparison.Ordinal))
                 || evacuation.ResidentEvacuationParticipants.Any(item =>
@@ -1346,6 +1482,7 @@ public static class DefenseEngagementPlayModeVerifier
                 subjectId,
                 ResidentEvacuationParticipantStatus.Holding,
                 30f);
+            string movingOutcomeReason = "not-evaluated";
             if (!HasResidentStatus(
                     evacuation,
                     subjectId,
@@ -1435,10 +1572,56 @@ public static class DefenseEngagementPlayModeVerifier
                 Finish(false, "현재 대피 저장이 권위 상태와 다릅니다: " + saveReason);
                 yield break;
             }
+            if (!TryReadResidentOperation(
+                    activeSave,
+                    subjectId,
+                    out string subjectOperationId,
+                    out string subjectRequestGroupId,
+                    out string operationReason))
+            {
+                Finish(false,
+                    "현재 대피 작업/원인 저장이 유효하지 않습니다: "
+                    + operationReason);
+                yield break;
+            }
+            outcomeQuery = ResolveService<IGameplayOutcomeQuery>();
+            if (!HasExactResidentEvacuationOutcome(
+                    outcomeQuery,
+                    subjectOperationId,
+                    subjectRequestGroupId,
+                    subjectId,
+                    ResidentEvacuationInitiationKind.Manual,
+                    ResidentEvacuationTerminalKind.Arrived,
+                    out string outcomeReason))
+            {
+                Finish(false,
+                    "실제 도착 terminal 원장이 유효하지 않습니다: "
+                    + outcomeReason);
+                yield break;
+            }
+            evidence.Add(
+                "arrival-outcome=PASS;operation=" + subjectOperationId);
             evidence.Add("active-intruder-life-without-world-actor=PASS");
             string activeSaveJson = saveService.ToJson(activeSave);
             DungeonGameSaveData parsedActiveSave =
                 saveService.FromJson(activeSaveJson);
+            Door invalidDoor = FindObjectsByType<Door>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None)
+                .FirstOrDefault(candidate => candidate != null
+                    && !CanRoundTripDoorOperation(
+                        candidate,
+                        out _));
+            if (invalidDoor != null)
+            {
+                CanRoundTripDoorOperation(
+                    invalidDoor,
+                    out string doorStateReason);
+                Finish(false,
+                    "저장 전 문 operation 상태가 이미 복원 불가입니다: "
+                    + doorStateReason);
+                yield break;
+            }
             if (!saveService.TryRestore(
                     parsedActiveSave,
                     out DungeonGameRestoreReport activeRestore)
@@ -1447,6 +1630,19 @@ public static class DefenseEngagementPlayModeVerifier
                 Finish(false,
                     "현재 대피 whole-save 복원 실패: "
                     + string.Join(" | ", activeRestore.Errors));
+                yield break;
+            }
+            IGameSpeedController activeRestoreGameSpeed =
+                ResolveService<IGameSpeedController>();
+            activeRestoreGameSpeed.SetSpeed(5);
+            activeRestoreGameSpeed.SetPaused(false);
+            yield return null;
+            if (activeRestoreGameSpeed.IsPaused || Time.timeScale <= 0f)
+            {
+                Finish(false,
+                    "Holding whole-save 뒤 실제 저장 UI 재개 계약이 실패했습니다: "
+                    + "paused=" + activeRestoreGameSpeed.IsPaused
+                    + ";timeScale=" + Time.timeScale);
                 yield break;
             }
 
@@ -1493,6 +1689,36 @@ public static class DefenseEngagementPlayModeVerifier
                     + ";target=" + participantAfterRestore.Target);
                 yield break;
             }
+            DungeonGameSaveData restoredEvacuationSave = saveService.Capture();
+            if (!TryReadResidentOperation(
+                    restoredEvacuationSave,
+                    subjectId,
+                    out string restoredOperationId,
+                    out string restoredRequestGroupId,
+                    out operationReason)
+                || !string.Equals(
+                    restoredOperationId,
+                    subjectOperationId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    restoredRequestGroupId,
+                    subjectRequestGroupId,
+                    StringComparison.Ordinal)
+                || !HasExactResidentEvacuationOutcome(
+                    ResolveService<IGameplayOutcomeQuery>(),
+                    restoredOperationId,
+                    restoredRequestGroupId,
+                    subjectId,
+                    ResidentEvacuationInitiationKind.Manual,
+                    ResidentEvacuationTerminalKind.Arrived,
+                    out outcomeReason))
+            {
+                Finish(false,
+                    "복원 뒤 대피 작업 ID/단일 원장이 보존되지 않았습니다: "
+                    + operationReason + ";" + outcomeReason);
+                yield break;
+            }
+            evidence.Add("holding-operation-restore-no-duplicate=PASS");
             yield return null;
             if (evacuation.ResidentZoneStatus
                     != ResidentEvacuationZoneStatus.Active
@@ -1529,6 +1755,551 @@ public static class DefenseEngagementPlayModeVerifier
             BuildingFeatureRoomRow restoredRoom = buildingQuery?.Capture().Rooms
                 .FirstOrDefault(row => row != null
                     && row.IsResidentEvacuationRoom);
+            if (restoredRoom?.Grid == null
+                || restoredRoom.Room == null
+                || !TryFindResidentMovingCell(
+                    restoredRoom.Grid,
+                    restoredRoom.Room,
+                    targetBeforeRestore,
+                    out Vector2Int residentRelocationCell))
+            {
+                Finish(false,
+                    "Moving 복원 검증용 실제 방 내부 이동 시작 칸을 찾지 못했습니다.");
+                yield break;
+            }
+
+            restoredSubject.BuildingVisitor.SetWorldPosition(
+                restoredRoom.Grid.GetWorldPos(residentRelocationCell));
+            defenseCommands = ResolveService<IDefenseFeatureCommandService>();
+            request = defenseCommands.RequestResidentEvacuation();
+            if (!request.Succeeded)
+            {
+                Finish(false,
+                    "Moving 저장 검증용 실제 주민 대피 명령 실패: "
+                    + request.Message);
+                yield break;
+            }
+            yield return WaitForResidentStatus(
+                evacuation,
+                subjectId,
+                ResidentEvacuationParticipantStatus.Moving,
+                8f);
+            if (!HasResidentStatus(
+                    evacuation,
+                    subjectId,
+                    ResidentEvacuationParticipantStatus.Moving))
+            {
+                Finish(false,
+                    "실제 주민 대피가 저장 가능한 Moving 상태를 통과하지 않았습니다: "
+                    + evacuation.ResidentEvacuationStatusText);
+                yield break;
+            }
+
+            float stableMovingDeadline = Time.realtimeSinceStartup + 30f;
+            while (HasResidentStatus(
+                   evacuation,
+                       subjectId,
+                       ResidentEvacuationParticipantStatus.Moving)
+                   && (restoredSubject.GetNowXY() == residentRelocationCell
+                       || !restoredRoom.Room.ContainsCell(
+                           restoredSubject.GetNowXY())
+                       || restoredSubject.GetNowXY() == targetBeforeRestore)
+                   && Time.realtimeSinceStartup < stableMovingDeadline)
+            {
+                yield return null;
+            }
+            Vector2Int stableMovingCell = restoredSubject.GetNowXY();
+            if (!HasResidentStatus(
+                    evacuation,
+                    subjectId,
+                    ResidentEvacuationParticipantStatus.Moving)
+                || !restoredRoom.Room.ContainsCell(stableMovingCell)
+                || stableMovingCell == residentRelocationCell
+                || stableMovingCell == targetBeforeRestore)
+            {
+                Finish(false,
+                    "주민이 목표 전 방 내부의 안정된 Moving 저장 지점을 통과하지 않았습니다: "
+                    + "status=" + evacuation.ResidentEvacuationStatusText
+                    + ";cell=" + stableMovingCell
+                    + ";target=" + targetBeforeRestore);
+                yield break;
+            }
+
+            DungeonGameSaveData movingSave = saveService.Capture();
+            if (!TryReadResidentParticipant(
+                    movingSave,
+                    subjectId,
+                    out ResidentEvacuationParticipantSaveData movingParticipant,
+                    out string movingParticipantReason)
+                || movingParticipant.status
+                    != ResidentEvacuationParticipantStatus.Moving
+                || movingParticipant.initiationKind
+                    != ResidentEvacuationInitiationKind.Manual
+                || movingParticipant.terminalOutcomeQueued)
+            {
+                Finish(false,
+                    "Moving 주민 계약 저장이 정확하지 않습니다: "
+                    + movingParticipantReason);
+                yield break;
+            }
+            string movingSaveJson = saveService.ToJson(movingSave);
+            if (!saveService.TryRestore(
+                    saveService.FromJson(movingSaveJson),
+                    out DungeonGameRestoreReport movingRestore)
+                || !movingRestore.Success)
+            {
+                Finish(false,
+                    "Moving 주민 whole-save 복원 실패: "
+                    + string.Join(" | ", movingRestore?.Errors
+                        ?? Array.Empty<string>()));
+                yield break;
+            }
+
+            defenseRuntime = ResolveRuntime();
+            evacuation = defenseRuntime?.OwnerEvacuation;
+            restoredSubject = FindObjectsByType<CharacterActor>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .FirstOrDefault(actor => actor != null
+                    && string.Equals(
+                        actor.Identity?.PersistentId,
+                        subjectId,
+                        StringComparison.Ordinal));
+            if (evacuation == null || restoredSubject == null)
+            {
+                Finish(false,
+                    "Moving 복원 뒤 실제 주민/대피 서비스를 다시 결합하지 못했습니다.");
+                yield break;
+            }
+            IGameSpeedController restoredGameSpeed =
+                ResolveService<IGameSpeedController>();
+            restoredGameSpeed.SetPaused(false);
+            yield return null;
+            if (restoredGameSpeed.IsPaused || Time.timeScale <= 0f)
+            {
+                Finish(false,
+                    "실제 저장 UI의 로드 완료 재개 계약이 게임 시간을 재개하지 못했습니다: "
+                    + "paused=" + restoredGameSpeed.IsPaused
+                    + ";timeScale=" + Time.timeScale);
+                yield break;
+            }
+            yield return WaitForResidentStatus(
+                evacuation,
+                subjectId,
+                ResidentEvacuationParticipantStatus.Holding,
+                30f);
+            yield return null;
+            ResidentEvacuationParticipantView movingAfterRestore =
+                evacuation.ResidentEvacuationParticipants.FirstOrDefault(item =>
+                    string.Equals(
+                        item.CharacterId,
+                        subjectId,
+                        StringComparison.Ordinal));
+            bool movingRestoreHolding = HasResidentStatus(
+                evacuation,
+                subjectId,
+                ResidentEvacuationParticipantStatus.Holding);
+            movingOutcomeReason = movingRestoreHolding
+                ? "not-evaluated"
+                : "status=" + movingAfterRestore.Status
+                    + ";hasTarget=" + movingAfterRestore.HasTarget
+                    + ";target=" + movingAfterRestore.Target
+                    + ";position=" + restoredSubject.GetNowXY()
+                    + ";zone=" + evacuation.ResidentZoneStatus
+                    + ";summary=" + evacuation.ResidentEvacuationStatusText;
+            bool movingOutcomeValid = movingRestoreHolding
+                && HasExactResidentEvacuationOutcome(
+                    ResolveService<IGameplayOutcomeQuery>(),
+                    movingParticipant.operationId,
+                    movingParticipant.requestGroupId,
+                    subjectId,
+                    ResidentEvacuationInitiationKind.Manual,
+                    ResidentEvacuationTerminalKind.Arrived,
+                    out movingOutcomeReason);
+            if (!movingOutcomeValid)
+            {
+                Finish(false,
+                    "Moving 복원 뒤 동일 작업의 도착 원장을 확정하지 못했습니다: "
+                    + movingOutcomeReason);
+                yield break;
+            }
+            evidence.Add(
+                "moving-operation-restore-arrival=PASS;operation="
+                + movingParticipant.operationId
+                + ";savedCell=" + stableMovingCell);
+
+            buildingQuery = ResolveService<IBuildingFeatureQueryService>();
+            buildingCommands = ResolveService<IBuildingFeatureCommandService>();
+            defenseCommands = ResolveService<IDefenseFeatureCommandService>();
+            restoredRoom = buildingQuery?.Capture().Rooms.FirstOrDefault(row =>
+                row != null && row.IsResidentEvacuationRoom);
+            if (restoredRoom?.Grid == null || restoredRoom.Room == null)
+            {
+                Finish(false, "Moving 복원 뒤 지정 대피 방을 찾지 못했습니다.");
+                yield break;
+            }
+
+            restoredSubject.BuildingVisitor.SetWorldPosition(
+                restoredRoom.Grid.GetWorldPos(residentRelocationCell));
+            request = defenseCommands.RequestResidentEvacuation();
+            DungeonGameSaveData zoneClearPendingSave = saveService.Capture();
+            ResidentEvacuationParticipantSaveData zoneClearParticipant = null;
+            string zoneClearParticipantReason = "request-rejected";
+            if (!request.Succeeded
+                || !TryReadResidentParticipant(
+                    zoneClearPendingSave,
+                    subjectId,
+                    out zoneClearParticipant,
+                    out zoneClearParticipantReason))
+            {
+                Finish(false,
+                    "구역 해제 종료 검증용 주민 작업을 시작하지 못했습니다: "
+                    + request.Message + ";" + zoneClearParticipantReason);
+                yield break;
+            }
+            BuildingFeatureCommandResult clearResult =
+                buildingCommands.ClearResidentEvacuationRoom();
+            yield return null;
+            string zoneClearOutcomeReason = "clear-rejected";
+            if (!clearResult.Success
+                || !HasExactResidentEvacuationOutcome(
+                    ResolveService<IGameplayOutcomeQuery>(),
+                    zoneClearParticipant.operationId,
+                    zoneClearParticipant.requestGroupId,
+                    subjectId,
+                    ResidentEvacuationInitiationKind.Manual,
+                    ResidentEvacuationTerminalKind.ZoneCleared,
+                    out zoneClearOutcomeReason))
+            {
+                Finish(false,
+                    "실제 구역 해제가 주민 ZoneCleared 원장을 만들지 못했습니다: "
+                    + clearResult.Message + ";" + zoneClearOutcomeReason);
+                yield break;
+            }
+            evidence.Add(
+                "zone-cleared-terminal=PASS;operation="
+                + zoneClearParticipant.operationId);
+
+            buildingQuery = ResolveService<IBuildingFeatureQueryService>();
+            restoredRoom = SelectResidentEvacuationTestRoom(buildingQuery);
+            designation = restoredRoom != null
+                ? buildingCommands.DesignateResidentEvacuationRoom(
+                    restoredRoom.Grid,
+                    restoredRoom.Room)
+                : default;
+            if (restoredRoom == null || !designation.Success)
+            {
+                Finish(false,
+                    "Unreachable 검증용 실제 대피 방을 다시 지정하지 못했습니다: "
+                    + designation.Message);
+                yield break;
+            }
+            if (!TryFindIsolatableResidentCell(
+                    restoredRoom.Grid,
+                    restoredRoom.Room,
+                    out Vector2Int isolatedCell,
+                    out Vector2Int[] isolationBoundary))
+            {
+                Finish(false,
+                    "Unreachable 검증용 실제 고립 칸을 찾지 못했습니다.");
+                yield break;
+            }
+            Dictionary<Vector2Int, GridCellAreaType> originalBoundaryAreas =
+                isolationBoundary.ToDictionary(
+                    cell => cell,
+                    cell => restoredRoom.Grid.GetGridCell(cell).AreaType);
+            restoredSubject.BuildingVisitor.SetWorldPosition(
+                restoredRoom.Grid.GetWorldPos(isolatedCell));
+            foreach (Vector2Int cell in isolationBoundary)
+            {
+                restoredRoom.Grid.SetAreaType(
+                    cell,
+                    GridCellAreaType.BlockedExterior);
+            }
+            request = defenseCommands.RequestResidentEvacuation();
+            yield return WaitForResidentStatus(
+                evacuation,
+                subjectId,
+                ResidentEvacuationParticipantStatus.Unreachable,
+                15f);
+            bool unreachableObserved = request.Succeeded
+                && HasResidentStatus(
+                    evacuation,
+                    subjectId,
+                    ResidentEvacuationParticipantStatus.Unreachable);
+            foreach (KeyValuePair<Vector2Int, GridCellAreaType> pair
+                     in originalBoundaryAreas)
+            {
+                restoredRoom.Grid.SetAreaType(pair.Key, pair.Value);
+            }
+            yield return null;
+            DungeonGameSaveData unreachableSave = saveService.Capture();
+            bool unreachableContractValid = TryReadResidentParticipant(
+                unreachableSave,
+                subjectId,
+                out ResidentEvacuationParticipantSaveData unreachableParticipant,
+                out string unreachableParticipantReason);
+            string unreachableOutcomeReason = "precondition-rejected";
+            if (!unreachableObserved
+                || !unreachableContractValid
+                || !HasExactResidentEvacuationOutcome(
+                    ResolveService<IGameplayOutcomeQuery>(),
+                    unreachableParticipant.operationId,
+                    unreachableParticipant.requestGroupId,
+                    subjectId,
+                    ResidentEvacuationInitiationKind.Manual,
+                    ResidentEvacuationTerminalKind.Unreachable,
+                    out unreachableOutcomeReason))
+            {
+                Finish(false,
+                    "실제 고립 경로가 Unreachable 원장으로 닫히지 않았습니다: "
+                    + request.Message + ";" + unreachableParticipantReason
+                    + ";" + unreachableOutcomeReason);
+                yield break;
+            }
+            evidence.Add(
+                "unreachable-terminal=PASS;operation="
+                + unreachableParticipant.operationId);
+
+            CharacterActor[] capacityBlockers =
+                FindObjectsByType<CharacterActor>(
+                        FindObjectsInactive.Exclude,
+                        FindObjectsSortMode.None)
+                    .Where(actor => actor != null
+                        && actor != restoredSubject
+                        && !actor.IsDead
+                        && actor.CurrentLifecycleState
+                            == CharacterLifecycleState.Active)
+                    .Distinct()
+                    .ToArray();
+            BuildingFeatureRoomRow capacityRoom = buildingQuery.Capture().Rooms
+                .Where(row => row?.Grid != null
+                    && ReferenceEquals(row.Grid, restoredRoom.Grid)
+                    && row.Room != null
+                    && row.Room.IsUsable
+                    && !row.Room.IsSelfContained
+                    && row.Room.Cells.Count > 0
+                    && row.Room.Cells.Count <= capacityBlockers.Length)
+                .OrderBy(row => row.Room.Cells.Count)
+                .ThenBy(row => row.Room.Id)
+                .FirstOrDefault();
+            if (capacityRoom == null)
+            {
+                Finish(false,
+                    "실제 actor 점유로 수용 불가를 만들 수 있는 작은 방이 없습니다: blockers="
+                    + capacityBlockers.Length);
+                yield break;
+            }
+            Dictionary<CharacterActor, Vector2Int> blockerOrigins = new();
+            for (int index = 0; index < capacityRoom.Room.Cells.Count; index++)
+            {
+                CharacterActor blocker = capacityBlockers[index];
+                blockerOrigins.Add(blocker, blocker.GetNowXY());
+                blocker.BuildingVisitor.SetWorldPosition(
+                    capacityRoom.Grid.GetWorldPos(
+                        capacityRoom.Room.Cells[index]));
+            }
+            designation = buildingCommands.DesignateResidentEvacuationRoom(
+                capacityRoom.Grid,
+                capacityRoom.Room);
+            request = designation.Success
+                ? defenseCommands.RequestResidentEvacuation()
+                : default;
+            DungeonGameSaveData noCapacitySave = saveService.Capture();
+            bool noCapacityContractValid = TryReadResidentParticipant(
+                noCapacitySave,
+                subjectId,
+                out ResidentEvacuationParticipantSaveData noCapacityParticipant,
+                out string noCapacityParticipantReason);
+            foreach (KeyValuePair<CharacterActor, Vector2Int> pair
+                     in blockerOrigins)
+            {
+                pair.Key.BuildingVisitor.SetWorldPosition(
+                    capacityRoom.Grid.GetWorldPos(pair.Value));
+            }
+            string noCapacityOutcomeReason = "precondition-rejected";
+            if (!designation.Success
+                || !noCapacityContractValid
+                || noCapacityParticipant.status
+                    != ResidentEvacuationParticipantStatus.NoCapacity
+                || !HasExactResidentEvacuationOutcome(
+                    ResolveService<IGameplayOutcomeQuery>(),
+                    noCapacityParticipant.operationId,
+                    noCapacityParticipant.requestGroupId,
+                    subjectId,
+                    ResidentEvacuationInitiationKind.Manual,
+                    ResidentEvacuationTerminalKind.NoCapacity,
+                    out noCapacityOutcomeReason))
+            {
+                Finish(false,
+                    "실제 방 점유가 NoCapacity 원장으로 닫히지 않았습니다: "
+                    + designation.Message + ";request=" + request.Message
+                    + ";" + noCapacityParticipantReason + ";"
+                    + noCapacityOutcomeReason);
+                yield break;
+            }
+            evidence.Add(
+                "no-capacity-terminal=PASS;operation="
+                + noCapacityParticipant.operationId);
+
+            restoredRoom = SelectResidentEvacuationTestRoom(buildingQuery);
+            designation = restoredRoom != null
+                ? buildingCommands.DesignateResidentEvacuationRoom(
+                    restoredRoom.Grid,
+                    restoredRoom.Room)
+                : default;
+            if (restoredRoom == null || !designation.Success
+                || !TryFindResidentRelocationCell(
+                    restoredRoom.Grid,
+                    restoredRoom.Room,
+                    residentRelocationCell,
+                    targetBeforeRestore,
+                    out residentRelocationCell))
+            {
+                Finish(false,
+                    "위협 종료 검증용 실제 대피 방/원거리 칸을 준비하지 못했습니다: "
+                    + designation.Message);
+                yield break;
+            }
+            restoredSubject.BuildingVisitor.SetWorldPosition(
+                restoredRoom.Grid.GetWorldPos(residentRelocationCell));
+            request = defenseCommands.RequestResidentEvacuation();
+            DungeonGameSaveData threatEndPendingSave = saveService.Capture();
+            ResidentEvacuationParticipantSaveData threatEndParticipant = null;
+            string threatEndParticipantReason = "request-rejected";
+            if (!request.Succeeded
+                || !TryReadResidentParticipant(
+                    threatEndPendingSave,
+                    subjectId,
+                    out threatEndParticipant,
+                    out threatEndParticipantReason))
+            {
+                Finish(false,
+                    "위협 종료 검증용 실제 주민 작업을 시작하지 못했습니다: "
+                    + request.Message + ";" + threatEndParticipantReason);
+                yield break;
+            }
+            director = FindFirstObjectByType<InvasionDirectorRuntime>(
+                FindObjectsInactive.Include);
+            InvasionIntruderRuntime threatIntruder = director?.ActiveIntruders
+                .FirstOrDefault(item => item != null
+                    && item.IntruderActor != null
+                    && !item.IntruderActor.IsDead);
+            CharacterBodyHealthRuntime bodyHealth =
+                ResolveService<CharacterBodyHealthRuntime>();
+            CharacterActor threatActor = threatIntruder?.IntruderActor;
+            bool threatResolvedNormally = false;
+            string threatResolutionReason = "active-intruder-missing";
+            if (threatActor != null && bodyHealth != null)
+            {
+                CharacterId defeatedId = CharacterPersistentIdentity.Require(threatActor);
+                ICaptivityOwnedCharacterIdQuery captiveOwners =
+                    ResolveService<ICaptivityOwnedCharacterIdQuery>();
+                CharacterLifecycleState lifecycleBefore = threatActor.CurrentLifecycleState;
+                if (captiveOwners == null
+                    || captiveOwners.GetOwnedCharacterIds().Contains(defeatedId)
+                    || lifecycleBefore == CharacterLifecycleState.Downed)
+                {
+                    Finish(false, "포획 인계 회귀 검사의 살아 있는 미등록 침입자 조건이 맞지 않습니다.");
+                    yield break;
+                }
+                CharacterBodyHealthSnapshot before =
+                    bodyHealth.GetSnapshot(threatActor);
+                List<CharacterBodyPartHealthState> downedParts = before.Parts
+                    .Select(part => new CharacterBodyPartHealthState
+                    {
+                        bodyPart = part.bodyPart,
+                        maxHealth = part.maxHealth,
+                        currentHealth = part.bodyPart
+                            is CombatBodyPart.LeftLeg
+                                or CombatBodyPart.RightLeg
+                            ? Mathf.Min(
+                                part.currentHealth,
+                                part.maxHealth * 0.18f)
+                            : part.currentHealth,
+                        bleedingPerSecond = part.bleedingPerSecond
+                    })
+                    .ToList();
+                bodyHealth.ApplySnapshot(
+                    threatActor,
+                    new CharacterBodyHealthSnapshot(
+                        downedParts,
+                        before.BloodLoss,
+                        before.Suppression,
+                        before.Consciousness,
+                        before.Manipulation,
+                        0.18f,
+                        downed: true),
+                    "WIM-048 controlled invasion terminal");
+                if (threatActor.CurrentLifecycleState != CharacterLifecycleState.Downed
+                    || !captiveOwners.GetOwnedCharacterIds().Contains(defeatedId))
+                {
+                    Finish(false, "실제 body-health downed 이벤트가 포획 소유권으로 인계되지 않았습니다: "
+                        + defeatedId.Value + ";before=" + lifecycleBefore
+                        + ";after=" + threatActor.CurrentLifecycleState);
+                    yield break;
+                }
+                if (director.ActiveIntruders.Contains(threatIntruder))
+                {
+                    threatIntruder.ResolveSuppressedBy(defender: null);
+                }
+                threatResolvedNormally =
+                    bodyHealth.GetSnapshot(threatActor).Downed
+                    && !director.ActiveIntruders.Contains(threatIntruder)
+                    && threatIntruder.State
+                        == InvasionIntruderState.Finished;
+                threatResolutionReason = "downed="
+                    + bodyHealth.GetSnapshot(threatActor).Downed
+                    + ";active="
+                    + director.ActiveIntruders.Contains(threatIntruder)
+                    + ";state=" + threatIntruder.State;
+                evidence.Add("downed-captivity-handoff=PASS;character="
+                    + defeatedId.Value + ";before=" + lifecycleBefore
+                    + ";after=" + threatActor.CurrentLifecycleState
+                    + ";captivityOwned=true");
+            }
+            float threatEndDeadline = Time.realtimeSinceStartup + 5f;
+            while (evacuation.ResidentEvacuationParticipants.Count > 0
+                   && Time.realtimeSinceStartup < threatEndDeadline)
+            {
+                yield return null;
+            }
+            string threatEndOutcomeReason = "precondition-rejected";
+            if (!threatResolvedNormally
+                || evacuation.ResidentEvacuationParticipants.Count != 0
+                || !HasExactResidentEvacuationOutcome(
+                    ResolveService<IGameplayOutcomeQuery>(),
+                    threatEndParticipant.operationId,
+                    threatEndParticipant.requestGroupId,
+                    subjectId,
+                    ResidentEvacuationInitiationKind.Manual,
+                    ResidentEvacuationTerminalKind.ThreatEnded,
+                    out threatEndOutcomeReason))
+            {
+                Finish(false,
+                    "실제 제압 종료가 ThreatEnded 원장으로 닫히지 않았습니다: "
+                    + threatResolutionReason + ";" + threatEndOutcomeReason);
+                yield break;
+            }
+            evidence.Add(
+                "threat-ended-terminal=PASS;operation="
+                + threatEndParticipant.operationId
+                + ";resolution=" + threatResolutionReason);
+
+            if (director == null
+                || !director.TrySpawnIntruder(
+                    threat,
+                    out CharacterActor topologyIntruder)
+                || topologyIntruder == null)
+            {
+                Finish(false,
+                    "LostByTopology 검증용 실제 후속 침입을 시작하지 못했습니다.");
+                yield break;
+            }
+
+            buildingQuery = ResolveService<IBuildingFeatureQueryService>();
+            restoredRoom = buildingQuery?.Capture().Rooms.FirstOrDefault(row =>
+                row != null && row.IsResidentEvacuationRoom);
             BuildableObject[] boundaryDoors = restoredRoom?.Room?.Doors
                 .Where(door => door != null && !door.isDestroy)
                 .ToArray() ?? Array.Empty<BuildableObject>();
@@ -1555,7 +2326,24 @@ public static class DefenseEngagementPlayModeVerifier
                 yield break;
             }
 
-            DungeonGameSaveData lostSave = saveService.Capture();
+            string defeatedCharacterId = threatActor.Identity.PersistentId;
+            DungeonGameSaveData lostSave = null;
+            string captureFailure = null;
+            try
+            {
+                lostSave = saveService.Capture();
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                && exception is not StackOverflowException
+                && exception is not AccessViolationException)
+            {
+                captureFailure = exception.ToString();
+            }
+            if (captureFailure != null)
+            {
+                Finish(false, "LostByTopology 저장 capture failed: " + captureFailure);
+                yield break;
+            }
             DungeonGameRestoreReport lostRestore = null;
             if (!TryReadResidentSave(
                     lostSave,
@@ -1573,7 +2361,26 @@ public static class DefenseEngagementPlayModeVerifier
                         ?? Array.Empty<string>()));
                 yield break;
             }
+            ICaptivityOwnedCharacterIdQuery restoredCaptiveOwners =
+                ResolveService<ICaptivityOwnedCharacterIdQuery>();
+            CharacterActor restoredCaptive = FindObjectsByType<CharacterActor>(
+                    FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                .SingleOrDefault(actor => actor.Identity?.PersistentId == defeatedCharacterId);
+            if (restoredCaptive == null || restoredCaptive.IsDead
+                || restoredCaptive.CurrentLifecycleState != CharacterLifecycleState.Downed
+                || restoredCaptiveOwners == null
+                || !restoredCaptiveOwners.GetOwnedCharacterIds()
+                    .Contains(new CharacterId(defeatedCharacterId)))
+            {
+                Finish(false, "제압된 동일 침입자의 포획 소유권이 전체 저장 왕복에서 유실됐습니다.");
+                yield break;
+            }
+            evidence.Add("downed-captivity-world-restore=PASS;character=" + defeatedCharacterId);
             evidence.Add("topology-loss-current-save=PASS");
+
+            yield return VerifyFireEvacuation();
+            if (!fireVerificationPassed)
+                yield break;
 
             if (!TryRestoreBaseline(out string cleanupReason))
             {
@@ -1581,6 +2388,193 @@ public static class DefenseEngagementPlayModeVerifier
                 yield break;
             }
             Finish(true, string.Join(";", evidence));
+        }
+
+        private IEnumerator VerifyFireEvacuation()
+        {
+            // Separate controlled ignition fixture, after all invasion assertions.
+            // Do not consume cleanupComplete: failure must still restore baseline.
+            if (!saveService.TryRestore(baseline, out DungeonGameRestoreReport restored)
+                || !restored.Success)
+            {
+                Finish(false, "Fire subphase baseline restore failed.");
+                yield break;
+            }
+            IGameSpeedController speed = ResolveService<IGameSpeedController>();
+            speed.SetSpeed(1);
+            speed.SetPaused(false);
+            yield return null;
+            var buildings = ResolveService<IBuildingWorldQuery>();
+            var targets = ResolveService<IEnvironmentalFireTargetQuery>();
+            var fires = ResolveService<IEnvironmentalFireQuery>();
+            var fireCommands = ResolveService<IEnvironmentalFireCommand>();
+            var buildingCommands = ResolveService<IBuildingFeatureCommandService>();
+            var room = SelectResidentEvacuationTestRoom(
+                ResolveService<IBuildingFeatureQueryService>());
+            var evacuation = ResolveRuntime()?.OwnerEvacuation;
+            var director = FindFirstObjectByType<InvasionDirectorRuntime>(FindObjectsInactive.Include);
+            var standings = ResolveService<ICharacterSettlementStandingQuery>();
+            CharacterActor[] residents = FindObjectsByType<CharacterActor>(
+                    FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                .Where(actor => IsNormalResident(actor, standings))
+                .OrderBy(actor => actor.Identity.PersistentId, StringComparer.Ordinal).ToArray();
+            CharacterActor subject = residents.FirstOrDefault(actor =>
+                CharacterWorkRoleUtility.TryGetWork(actor, out _));
+            if (buildings == null || targets == null || fires == null || fireCommands == null
+                || room == null || evacuation == null || director == null || subject == null
+                || director.ActiveIntruders.Count != 0 || fires.ActiveFires.Count != 0)
+            {
+                Finish(false, "Fire-only subphase requires actual services, resident, room and no existing threat.");
+                yield break;
+            }
+            // Test preparation only: non-target workers must not extinguish this
+            // cause before its automatic evacuation request can be observed.
+            foreach (CharacterActor resident in residents)
+            {
+                if (CharacterWorkRoleUtility.TryGetWork(resident, out AbilityWork work))
+                {
+                    work.SetWorkPriority(BuiltInWorkTypeIds.ThreatMitigation, WorkPriorityLevel.Off);
+                    work.SetWorkPriority(BuiltInWorkTypeIds.Guard, WorkPriorityLevel.Off);
+                }
+            }
+            if (combatCommands.IsInCombatStance(subject)
+                && !combatCommands.SetCombatStance(subject, false, out _))
+            {
+                Finish(false, "Fire resident combat stance preparation failed.");
+                yield break;
+            }
+            // Arrival fixture: a remote origin lets the real fire end before
+            // arrival (correctly producing ThreatEnded, observed separately).
+            // Start outside but near the room; movement and fire remain real.
+            GridCell originCell = room.Grid.GetCells()
+                .Where(cell => cell != null && room.Grid.IsWalkable(cell.Position)
+                    && cell.AreaType == GridCellAreaType.DungeonInterior
+                    && !room.Room.ContainsCell(cell.Position)
+                    && cell.GetOccupant(GridLayer.Building) == null)
+                .OrderBy(cell => room.Room.Cells.Min(roomCell =>
+                    Math.Abs(cell.Position.x - roomCell.x)
+                    + Math.Abs(cell.Position.y - roomCell.y)))
+                .ThenBy(cell => cell.Position.y).ThenBy(cell => cell.Position.x)
+                .FirstOrDefault();
+            if (!buildingCommands.DesignateResidentEvacuationRoom(room.Grid, room.Room).Success
+                || originCell == null)
+            {
+                Finish(false, "Fire evacuation room/origin preparation failed.");
+                yield break;
+            }
+            Vector2Int origin = originCell.Position;
+            subject.BuildingVisitor.SetWorldPosition(room.Grid.GetWorldPos(origin));
+            BuildableObject target = buildings.Buildings.Where(value => value != null && !value.isDestroy
+                    && targets.TryGetTarget(new EnvironmentalFireTargetRef(
+                        EnvironmentalFireTargetKind.Building, value.RequirePersistentInstanceId().Value),
+                        out EnvironmentalFireTargetSnapshot candidate)
+                    && candidate.CanBurn && !candidate.HasElectricalHazard
+                    && candidate.Accepts(EnvironmentalFireIgnitionKind.ActiveHeatSource)
+                    && !room.Room.ContainsCell(candidate.Position))
+                .OrderByDescending(value => room.Room.Cells.Min(cell =>
+                    Math.Abs(cell.x - value.centerPos.x) + Math.Abs(cell.y - value.centerPos.y)))
+                .ThenBy(value => value.RequirePersistentInstanceId().Value, StringComparer.Ordinal)
+                .FirstOrDefault();
+            if (target == null || !targets.TryGetTarget(new EnvironmentalFireTargetRef(
+                    EnvironmentalFireTargetKind.Building, target.RequirePersistentInstanceId().Value),
+                    out EnvironmentalFireTargetSnapshot targetSnapshot))
+            {
+                Finish(false, "Fire fixture has no authored combustible target outside the evacuation room.");
+                yield break;
+            }
+            EnvironmentalFireIgnitionResult ignition = fireCommands.TryIgnite(
+                new EnvironmentalFireIgnitionRequest("qa:wim048:resident-fire",
+                    EnvironmentalFireIgnitionKind.ActiveHeatSource, "qa:wim048:resident-fire-fixture",
+                    targetSnapshot.Target, 0.4f, "qa:wim048:resident-fire",
+                    targetDisplayName: targetSnapshot.DisplayName));
+            string[] fireCells = fires.GetActiveFireCells().Select(cell =>
+                    cell.x.ToString(CultureInfo.InvariantCulture) + ","
+                    + cell.y.ToString(CultureInfo.InvariantCulture))
+                .Distinct(StringComparer.Ordinal).OrderBy(value => value, StringComparer.Ordinal).ToArray();
+            if (!ignition.Created || fireCells.Length == 0
+                || !fireCells.Contains(targetSnapshot.Position.x.ToString(CultureInfo.InvariantCulture)
+                    + "," + targetSnapshot.Position.y.ToString(CultureInfo.InvariantCulture)))
+            {
+                Finish(false, "Actual fire ignition did not publish its exact active cell: " + ignition.Reason);
+                yield break;
+            }
+            string subjectId = CharacterPersistentIdentity.Require(subject).Value;
+            float deadline = Time.realtimeSinceStartup + 5f;
+            while (!evacuation.ResidentEvacuationParticipants.Any(value => value.CharacterId == subjectId)
+                && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            DungeonGameSaveData requested = saveService.Capture();
+            if (!DungeonSaveSectionPayload.TryRead(requested, InvasionSaveSection.Id,
+                    out DungeonInvasionSaveData invasion) || invasion?.ownerEvacuation == null)
+            {
+                Finish(false, "Actual fire request has no saved invasion authority.");
+                yield break;
+            }
+            ResidentEvacuationParticipantSaveData participant = invasion.ownerEvacuation.residentParticipants?
+                .SingleOrDefault(value => value != null && value.characterId == subjectId);
+            if (participant == null || participant.initiationKind != ResidentEvacuationInitiationKind.Automatic
+                || participant.threatKind != ResidentEvacuationThreatKind.Fire
+                || participant.intruderRuntimeIds?.Count != 0 || participant.fireCells == null
+                || !participant.fireCells.SequenceEqual(fireCells) || director.ActiveIntruders.Count != 0)
+            {
+                Finish(false, "Actual fire did not cause an automatic Fire-only request with exact cells.");
+                yield break;
+            }
+            WriteFireEvidence("resident-fire-request.json", JsonUtility.ToJson(participant, true));
+            float fireWaitGameTime = ResolveService<IGameClock>().Time;
+            int fireWaitFrame = Time.frameCount;
+            yield return WaitForResidentStatus(evacuation, subjectId,
+                ResidentEvacuationParticipantStatus.Holding, 20f);
+            GameplayOutcomeSnapshot[] exact = ResolveService<IGameplayOutcomeQuery>()
+                .GetForOperation(new GameplayOperationId(participant.operationId)).Items
+                .Where(value => value.Exact != null).Select(value => value.Exact).ToArray();
+            WriteFireEvidence("resident-fire-observed-owner.json", JsonUtility.ToJson(evacuation.Capture(), true));
+            WriteFireEvidence("resident-fire-observed-terminals.json", "["
+                + string.Join(",", exact.Select(value => JsonUtility.ToJson(value, true))) + "]");
+            ResidentEvacuationParticipantView observed = evacuation.ResidentEvacuationParticipants
+                .FirstOrDefault(value => value.CharacterId == subjectId);
+            string observation = "status=" + observed.Status + ";reason=" + observed.Reason
+                + ";position=" + subject.GetNowXY() + ";target=" + observed.Target
+                + ";lifecycle=" + subject.CurrentLifecycleState + ";dead=" + subject.IsDead
+                + ";action=" + subject.Brain?.CurrentActionDebugLabel
+                + ";gameSeconds=" + (ResolveService<IGameClock>().Time - fireWaitGameTime)
+                + ";frames=" + (Time.frameCount - fireWaitFrame)
+                + ";activeFireCells=" + string.Join("|", fires.GetActiveFireCells())
+                + ";exactTerminalCount=" + exact.Length;
+            WriteFireEvidence("resident-fire-observation.txt", observation);
+            GameplayOutcomeSnapshot terminal = exact.Length == 1 ? exact[0] : null;
+            string Fact(GameplayOutcomeFactId id) => terminal?.facts?
+                .SingleOrDefault(value => value.factId == id.Value)?.value;
+            if (!HasResidentStatus(evacuation, subjectId, ResidentEvacuationParticipantStatus.Holding)
+                || exact.Length != 1 || terminal == null
+                || terminal.producerId != ResidentEvacuationOutcomeIds.ProducerId
+                || terminal.outcomeTypeId != ResidentEvacuationOutcomeIds.Terminal.Value
+                || terminal.participants?.Count != 1 || terminal.participants[0].entityId != subjectId
+                || Fact(ResidentEvacuationOutcomeIds.RequestGroupId) != participant.requestGroupId
+                || Fact(ResidentEvacuationOutcomeIds.InitiationKind) != ResidentEvacuationInitiationKind.Automatic.ToString()
+                || Fact(ResidentEvacuationOutcomeIds.ThreatKind) != ResidentEvacuationThreatKind.Fire.ToString()
+                || Fact(ResidentEvacuationOutcomeIds.TerminalKind) != ResidentEvacuationTerminalKind.Arrived.ToString()
+                || Fact(ResidentEvacuationOutcomeIds.IntruderRuntimeIds) != "none"
+                || Fact(ResidentEvacuationOutcomeIds.FireCells) != string.Join("|", fireCells)
+                || terminal.anchors?.Count != 1)
+            {
+                Finish(false, "Actual fire evacuation did not arrive with one exact Fire-only terminal;" + observation);
+                yield break;
+            }
+            WriteFireEvidence("resident-fire-terminal.json", JsonUtility.ToJson(terminal, true));
+            evidence.Add("actual-fire-automatic-arrival=PASS;fire=" + ignition.FireId
+                + ";operation=" + participant.operationId + ";subject=" + subjectId
+                + ";origin=" + origin + ";fireCells=" + string.Join("|", fireCells)
+                + ";canonical=" + terminal.runId + ":" + terminal.sequence);
+            fireVerificationPassed = true;
+        }
+
+        private static void WriteFireEvidence(string fileName, string content)
+        {
+            string path = Path.Combine(Path.GetDirectoryName(GetActiveWim048ReportPath()), fileName);
+            using FileStream stream = new(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            using StreamWriter writer = new(stream);
+            writer.Write(content);
         }
 
         private static CharacterActor FindGuardAlarmResponder(
@@ -1640,6 +2634,161 @@ public static class DefenseEngagementPlayModeVerifier
                 string.Equals(item.CharacterId, actorId, StringComparison.Ordinal)
                 && item.Status == expected) == true;
 
+        private static BuildingFeatureRoomRow SelectResidentEvacuationTestRoom(
+            IBuildingFeatureQueryService buildingQuery) =>
+            buildingQuery?.Capture().Rooms
+                .Where(row => row?.Grid != null
+                    && row.Room != null
+                    && row.Room.IsUsable
+                    && !row.Room.IsSelfContained)
+                .OrderByDescending(row => row.Room.Cells.Count)
+                .ThenBy(row => row.Room.Id)
+                .FirstOrDefault();
+
+        private static bool TryFindResidentMovingCell(
+            Grid grid,
+            RoomInstance room,
+            Vector2Int target,
+            out Vector2Int result)
+        {
+            result = default;
+            if (grid == null || room == null)
+            {
+                return false;
+            }
+            GridCell candidate = room.Cells
+                .Select(grid.GetGridCell)
+                .Where(cell => cell != null
+                    && cell.Position != target
+                    && grid.IsWalkable(cell.Position)
+                    && cell.AreaType == GridCellAreaType.DungeonInterior
+                    && cell.GetOccupant(GridLayer.Building) == null
+                    && Math.Abs(cell.Position.x - target.x)
+                        + Math.Abs(cell.Position.y - target.y) >= 2)
+                .OrderByDescending(cell =>
+                    Math.Abs(cell.Position.x - target.x)
+                    + Math.Abs(cell.Position.y - target.y))
+                .ThenBy(cell => cell.Position.y)
+                .ThenBy(cell => cell.Position.x)
+                .FirstOrDefault();
+            if (candidate == null)
+            {
+                return false;
+            }
+            result = candidate.Position;
+            return true;
+        }
+
+        private static bool TryFindResidentRelocationCell(
+            Grid grid,
+            RoomInstance room,
+            Vector2Int preferred,
+            Vector2Int target,
+            out Vector2Int result)
+        {
+            result = default;
+            if (grid == null || room == null)
+            {
+                return false;
+            }
+
+            bool IsCandidate(Vector2Int cell)
+            {
+                GridCell state = grid.GetGridCell(cell);
+                return state != null
+                    && grid.IsWalkable(cell)
+                    && state.AreaType == GridCellAreaType.DungeonInterior
+                    && !room.ContainsCell(cell)
+                    && cell != target
+                    && state.GetOccupant(GridLayer.Building) == null;
+            }
+
+            if (IsCandidate(preferred))
+            {
+                result = preferred;
+                return true;
+            }
+
+            GridCell candidate = grid.GetCells()
+                .Where(cell => cell != null && IsCandidate(cell.Position))
+                .OrderByDescending(cell =>
+                    Math.Abs(cell.Position.x - target.x)
+                    + Math.Abs(cell.Position.y - target.y))
+                .ThenBy(cell => cell.Position.y)
+                .ThenBy(cell => cell.Position.x)
+                .FirstOrDefault();
+            if (candidate == null)
+            {
+                return false;
+            }
+            result = candidate.Position;
+            return true;
+        }
+
+        private static bool TryFindIsolatableResidentCell(
+            Grid grid,
+            RoomInstance room,
+            out Vector2Int result,
+            out Vector2Int[] boundary)
+        {
+            result = default;
+            boundary = Array.Empty<Vector2Int>();
+            if (grid == null || room == null)
+            {
+                return false;
+            }
+
+            Vector2Int[] offsets =
+            {
+                Vector2Int.left,
+                Vector2Int.right,
+                Vector2Int.up,
+                Vector2Int.down
+            };
+            foreach (GridCell candidate in grid.GetCells()
+                         .Where(cell => cell != null
+                             && grid.IsWalkable(cell.Position)
+                             && cell.AreaType
+                                == GridCellAreaType.DungeonInterior
+                             && !room.ContainsCell(cell.Position)
+                             && cell.TraversalLinks.Count == 0
+                             && cell.GetOccupant(GridLayer.Building) == null)
+                         .OrderByDescending(cell => room.Cells.Min(roomCell =>
+                             Math.Abs(cell.Position.x - roomCell.x)
+                             + Math.Abs(cell.Position.y - roomCell.y)))
+                         .ThenBy(cell => cell.Position.y)
+                         .ThenBy(cell => cell.Position.x))
+            {
+                List<Vector2Int> mutableBoundary = new();
+                bool rejected = false;
+                foreach (Vector2Int neighbour in offsets.Select(offset =>
+                             candidate.Position + offset))
+                {
+                    if (!grid.IsValidGridPos(neighbour)
+                        || !grid.IsWalkable(neighbour))
+                    {
+                        continue;
+                    }
+                    GridCell neighbourState = grid.GetGridCell(neighbour);
+                    if (room.ContainsCell(neighbour)
+                        || neighbourState.GetOccupant(GridLayer.Building) != null)
+                    {
+                        rejected = true;
+                        break;
+                    }
+                    mutableBoundary.Add(neighbour);
+                }
+                if (rejected)
+                {
+                    continue;
+                }
+                result = candidate.Position;
+                boundary = mutableBoundary.ToArray();
+                return true;
+            }
+            return false;
+        }
+
         private static bool TryReadResidentSave(
             DungeonGameSaveData save,
             string subjectId,
@@ -1672,6 +2821,153 @@ public static class DefenseEngagementPlayModeVerifier
             reason = $"version={invasion.version};zone="
                 + invasion.ownerEvacuation.residentZone.status
                 + ";participants=" + participants.Count;
+            return valid;
+        }
+
+        private static bool TryReadResidentParticipant(
+            DungeonGameSaveData save,
+            string subjectId,
+            out ResidentEvacuationParticipantSaveData participant,
+            out string reason)
+        {
+            participant = null;
+            reason = string.Empty;
+            if (!DungeonSaveSectionPayload.TryRead(
+                    save,
+                    InvasionSaveSection.Id,
+                    out DungeonInvasionSaveData invasion)
+                || invasion?.ownerEvacuation == null)
+            {
+                reason = "invasion section missing";
+                return false;
+            }
+            participant = invasion.ownerEvacuation.residentParticipants?
+                .SingleOrDefault(item => item != null
+                    && string.Equals(
+                        item.characterId,
+                        subjectId,
+                        StringComparison.Ordinal));
+            bool valid = participant != null
+                && invasion.ownerEvacuation.residentContractVersion
+                    == OwnerEvacuationSaveSnapshot.ResidentContractVersion
+                && GameplayOutcomeStableIdSyntax.IsValid(
+                    participant.operationId)
+                && GameplayOutcomeStableIdSyntax.IsValid(
+                    participant.requestGroupId)
+                && participant.requestedAbsoluteDay >= 1
+                && participant.initiationKind
+                    is ResidentEvacuationInitiationKind.Manual
+                        or ResidentEvacuationInitiationKind.Automatic
+                && participant.threatKind
+                    == ResidentEvacuationThreatKind.Invasion
+                && participant.intruderRuntimeIds?.Count > 0
+                && participant.fireCells?.Count == 0;
+            reason = "contract="
+                + invasion.ownerEvacuation.residentContractVersion
+                + ";operation=" + participant?.operationId
+                + ";group=" + participant?.requestGroupId
+                + ";initiation=" + participant?.initiationKind
+                + ";status=" + participant?.status
+                + ";threat=" + participant?.threatKind
+                + ";intruders=" + participant?.intruderRuntimeIds?.Count
+                + ";fires=" + participant?.fireCells?.Count
+                + ";terminalQueued=" + participant?.terminalOutcomeQueued;
+            return valid;
+        }
+
+        private static bool TryReadResidentOperation(
+            DungeonGameSaveData save,
+            string subjectId,
+            out string operationId,
+            out string requestGroupId,
+            out string reason)
+        {
+            operationId = string.Empty;
+            requestGroupId = string.Empty;
+            reason = string.Empty;
+            if (!TryReadResidentParticipant(
+                    save,
+                    subjectId,
+                    out ResidentEvacuationParticipantSaveData participant,
+                    out reason))
+            {
+                return false;
+            }
+            operationId = participant.operationId ?? string.Empty;
+            requestGroupId = participant.requestGroupId ?? string.Empty;
+            reason += ";terminal-required=" + participant.terminalOutcomeQueued;
+            return participant.terminalOutcomeQueued;
+        }
+
+        private static bool CanRoundTripDoorOperation(
+            Door door,
+            out string reason)
+        {
+            string state = door?.OperationStateModule?.CaptureState()
+                ?? string.Empty;
+            DoorOperationStateModule probe = new(() => { });
+            string failure = "door-missing";
+            bool valid = door != null
+                && probe.TryRestoreState(
+                    door.OperationStateModule.CurrentVersion,
+                    state,
+                    out failure);
+            reason = "door=" + door?.PersistentInstanceId.Value
+                + ";held=" + door?.IsHeldOpen
+                + ";open=" + door?.IsOpen
+                + ";failure=" + failure
+                + ";state=" + state;
+            return valid;
+        }
+
+        private static bool HasExactResidentEvacuationOutcome(
+            IGameplayOutcomeQuery query,
+            string operationId,
+            string requestGroupId,
+            string subjectId,
+            ResidentEvacuationInitiationKind initiation,
+            ResidentEvacuationTerminalKind terminal,
+            out string reason)
+        {
+            reason = string.Empty;
+            if (query == null
+                || !GameplayOutcomeStableIdSyntax.IsValid(operationId))
+            {
+                reason = "query/operation unavailable";
+                return false;
+            }
+            GameplayOutcomeQueryPage page = query.GetForOperation(
+                new GameplayOperationId(operationId));
+            GameplayOutcomeSnapshot[] exact = page.Items
+                .Where(item => item.Exact != null)
+                .Select(item => item.Exact)
+                .ToArray();
+            GameplayOutcomeSnapshot row = exact.SingleOrDefault();
+            bool valid = exact.Length == 1
+                && row != null
+                && row.producerId == ResidentEvacuationOutcomeIds.ProducerId
+                && row.outcomeTypeId
+                    == ResidentEvacuationOutcomeIds.Terminal.Value
+                && row.participants?.Count == 1
+                && row.participants[0].entityId == subjectId
+                && row.facts?.Count == 10
+                && row.facts[0].value == requestGroupId
+                && row.facts[1].value
+                    == initiation.ToString()
+                && row.facts[2].value
+                    == ResidentEvacuationThreatKind.Invasion.ToString()
+                && row.facts[3].value == terminal.ToString()
+                && row.facts[4].value.StartsWith(
+                    "invasion:",
+                    StringComparison.Ordinal)
+                && row.facts[5].value == "none"
+                && row.anchors?.Count == 1;
+            reason = "exact=" + exact.Length
+                + ";type=" + row?.outcomeTypeId
+                + ";terminal=" + (row?.facts?.Count > 3
+                    ? row.facts[3].value
+                    : "missing")
+                + ";operation=" + operationId;
             return valid;
         }
 
@@ -1772,6 +3068,7 @@ public static class DefenseEngagementPlayModeVerifier
             FinishWim048Immediately(success,
                 "cleanBoot=" + cleanBootEvidence
                 + ";scene=" + cleanBootScenePath
+                + (success ? string.Empty : ";completedChecks=" + string.Join(";", evidence))
                 + ";" + detail);
             Time.timeScale = 0f;
             Debug.Log("WIM048_RESIDENT_EVACUATION " + wim048Report);
@@ -2079,7 +3376,9 @@ public static class DefenseEngagementPlayModeVerifier
                     return false;
                 }
 
-                if (ShouldExitPhase80Batch()
+                bool deterministicBatch = ShouldExitPhase80Batch()
+                    || ShouldExitWim048Batch();
+                if (deterministicBatch
                     && !scope.Container.Resolve<IDungeonSpaceExpansionCommand>()
                         .TryReconcileNewRunTierZero(out _, out string layoutFailure))
                 {
@@ -2093,7 +3392,7 @@ public static class DefenseEngagementPlayModeVerifier
                     return false;
                 }
 
-                int seed = ShouldExitPhase80Batch()
+                int seed = deterministicBatch
                     ? 80019
                     : Environment.TickCount == 0 ? 1 : Environment.TickCount;
                 bool prepared = preparation.TryCreatePreparedSnapshot(
@@ -2101,7 +3400,7 @@ public static class DefenseEngagementPlayModeVerifier
                     seed,
                     out PreparedStartPartySnapshot snapshot,
                     out string snapshotMessage);
-                if (!prepared && ShouldExitPhase80Batch())
+                if (!prepared && deterministicBatch)
                 {
                     prepared = TryCreatePhase80DefenseFixtureSnapshot(
                         preparation.Members,

@@ -2,7 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DamageNumbersPro;
+using DungeonStory.Environment;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using DungeonStory.Narrative.Korean;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -37,13 +40,37 @@ internal static class CharacterAiEditorTestDependencies
             performanceRecorder: PerformanceRecorder, doorAccessQuery: null, costPolicy: null);
     internal static readonly IGameClock GameClock = new UnityGameClock();
     internal static readonly IUiClock UiClock = new UnityUiClock();
-    internal static readonly IStaffDiscontentOutcomeCommitter StaffOutcomes =
-        new EditorUnavailableStaffDiscontentOutcomeCommitter();
     private static readonly IDynamicFrameWorkBudget FrameWorkBudget =
         new DynamicFrameWorkBudget(GameClock, UiClock);
     internal static readonly IGameEventBus GameEvents = new GameEventBus();
+    private static readonly CharacterAiDiagnosticActivityObserver AiDiagnosticActivities = CreateAiDiagnosticActivities();
+    private static readonly CharacterActionActivityObserver ActionActivities = CreateActionActivities();
+    private static readonly CharacterIdentityEventPublisher IdentityEvents =
+        new(GameEvents);
+    // This is deliberately limited to exit-admission coverage. It is not a
+    // custody fixture or a substitute for the composed CaptivityRuntime.
+    private static readonly EditorExitAdmissionCaptivityRuntime
+        ExitAdmissionCaptivity = new();
     private static readonly MigratedProducerOutcomeEditorFixture OutcomeFixture =
         new("run:character-ai-stats");
+    private static readonly EditorFacilityUseFactFixture FacilityUseFactFixture =
+        CreateFacilityUseFacts();
+    internal static DomainFactDispatcher FacilityUseFacts =>
+        FacilityUseFactFixture.Facts;
+    private static readonly RetailPurchaseFactEditorFixture RetailPurchaseFacts =
+        CreateRetailPurchaseFacts();
+    private static readonly DomainFactDispatcher CharacterStatsFacts =
+        CreateCharacterStatsFacts();
+    private static readonly DomainFactDispatcher SkillAcquisitionFacts = CreateSkillAcquisitionFacts();
+    private static readonly CharacterSkillAcquisitionPublicationRuntime SkillAcquisitions =
+        new(SkillAcquisitionFacts, SkillAcquisitionFacts);
+    private static readonly IGameplayOutcomeEvidenceUseTransaction SkillEvidenceUse =
+        new GameplayOutcomeEvidenceUseTransaction(OutcomeFixture.Ledger,
+            new GameplayOutcomeNarrativeEvidenceQuery(OutcomeFixture.Ledger));
+    private static readonly IEconomyTransactionLedger RetailMoneyLedger =
+        new EconomyTransactionLedgerRuntime(
+            GameClock,
+            new TreasuryEconomyAggregateStateStore(OutcomeFixture.AggregateRootStore));
     private static readonly IRandomStreamProvider RandomStreams =
         new RandomStreamProvider(rootSeed: 9173);
     private static readonly IPersistentIdGenerator PersistentIds =
@@ -75,7 +102,8 @@ internal static class CharacterAiEditorTestDependencies
                 EmptyEvolutionModuleRegistry.Instance,
                 EditorAllResearchRuntimeProvider.Instance,
                 new ResourceEquipmentModuleCatalog(GameContent),
-                UnavailableEquipmentPhysicalItemGateway.Instance));
+                UnavailableEquipmentPhysicalItemGateway.Instance,
+                GameCalendar));
     private static readonly Lazy<IRetailStockPhysicalRuntime> RetailStockPhysicalRuntime =
         new Lazy<IRetailStockPhysicalRuntime>(() =>
             new RetailStockPhysicalRuntime(
@@ -93,6 +121,7 @@ internal static class CharacterAiEditorTestDependencies
             ItemCatalog,
             ItemMass);
     internal static IStockQuery PhysicalStock => StockQuery;
+    internal static IPhysicalItemMassQuery PhysicalMass => ItemMass;
     internal static readonly ICharacterAiWorldRegistry WorldRegistry =
         new CharacterAiWorldRegistry(
             new SceneRuntimeRegistry<CharacterActor>(),
@@ -103,6 +132,74 @@ internal static class CharacterAiEditorTestDependencies
             new FixedGameDataProvider(GetGameData()),
             new RestoreWorldCandidateIndex(),
             new EditorNoCharacterLifePublicationService());
+    private static readonly Lazy<WorkExecutionActivityObserver>
+        WorkExecutionActivities = new(() =>
+        {
+            WorkExecutionActivityObserver observer = new(
+                GameEvents,
+                WorldRegistry);
+            observer.Initialize();
+            AssemblyReloadEvents.beforeAssemblyReload += observer.Dispose;
+            return observer;
+        });
+    private static readonly Lazy<WorkControlActivityObserver>
+        WorkControlActivities = new(() =>
+        {
+            WorkControlActivityObserver observer = new(GameEvents, WorldRegistry);
+            observer.Initialize();
+            AssemblyReloadEvents.beforeAssemblyReload += observer.Dispose;
+            return observer;
+        });
+    // Every actor fixture uses the same bus and world; each observer has one lifetime.
+    private static readonly Lazy<OwnerCommandActivityObserver> OwnerCommandActivities = new(() =>
+    {
+        var observer = new OwnerCommandActivityObserver(GameEvents, WorldRegistry);
+        observer.Initialize();
+        AssemblyReloadEvents.beforeAssemblyReload += observer.Dispose;
+        return observer;
+    });
+    private static readonly Lazy<DefenseEngagementActivityObserver> DefenseEngagementActivities = new(() =>
+    {
+        var observer = new DefenseEngagementActivityObserver(GameEvents, WorldRegistry);
+        observer.Initialize();
+        AssemblyReloadEvents.beforeAssemblyReload += observer.Dispose;
+        return observer;
+    });
+    private static readonly Lazy<WildlifeHuntActivityObserver> WildlifeHuntActivities = new(() =>
+    {
+        var observer = new WildlifeHuntActivityObserver(GameEvents, WorldRegistry);
+        observer.Initialize();
+        AssemblyReloadEvents.beforeAssemblyReload += observer.Dispose;
+        return observer;
+    });
+    private static readonly Lazy<CharacterStateNarrativeObserver>
+        CharacterStateNarrative = new(() =>
+        {
+            CharacterStateNarrativeObserver observer = new(
+                GameEvents,
+                WorldRegistry);
+            observer.Initialize();
+            AssemblyReloadEvents.beforeAssemblyReload += observer.Dispose;
+            return observer;
+        });
+    private static readonly Lazy<CharacterVitalsActivityObserver>
+        CharacterVitalsActivities = new(() =>
+        {
+            CharacterVitalsActivityObserver observer = new(GameEvents, WorldRegistry);
+            observer.Initialize();
+            AssemblyReloadEvents.beforeAssemblyReload += observer.Dispose;
+            return observer;
+        });
+    private static readonly Lazy<StaffDiscontentPresentationObserver>
+        StaffDiscontentPresentation = new(() =>
+        {
+            StaffDiscontentPresentationObserver observer = new(
+                WorldRegistry,
+                GameEvents);
+            observer.Initialize();
+            AssemblyReloadEvents.beforeAssemblyReload += observer.Dispose;
+            return observer;
+        });
     internal static readonly IGameCalendar GameCalendar =
         new GameCalendarRuntime(
             new FixedGameDataProvider(GetGameData()),
@@ -115,13 +212,37 @@ internal static class CharacterAiEditorTestDependencies
             performanceRecorder: PerformanceRecorder, survivalFoodRuntime: null, survivalEnvironment: null);
     private static readonly Lazy<CharacterBodyHealthRuntime> BodyHealth =
         new Lazy<CharacterBodyHealthRuntime>(() =>
-            new CharacterBodyHealthRuntime(
+        {
+            var runtime = new CharacterBodyHealthRuntime(
                 WorldRegistry,
                 GameClock,
                 GameEvents,
                 FrameWorkBudget,
                 new ResourceAnatomyProfileCatalog(GameContent),
-                new DungeonRuntimeAggregateRootStore()));
+                new DungeonRuntimeAggregateRootStore(),
+                GameCalendar);
+            var dispatcher = new DomainFactDispatcher();
+            var commits = new GameplayDomainFactCommitGroup(OutcomeFixture.Recorder, OutcomeFixture.Ledger);
+            dispatcher.Subscribe("log:character.critical-health-transition",
+                new MigratedDomainFactObserver<CharacterCriticalHealthTransitionFact>(
+                    CharacterHealingFactMapping.CaptureCritical, OutcomeFixture.Transaction, commits));
+            dispatcher.Subscribe("log:character.mobility-recovered",
+                new MigratedDomainFactObserver<CharacterMobilityRecoveredFact>(
+                    CharacterHealingFactMapping.CaptureRecovered, OutcomeFixture.Transaction, commits));
+            dispatcher.Subscribe("log:character.fatality",
+                new MigratedDomainFactObserver<CharacterFatalityFact>(
+                    CharacterFatalityFactMapping.CaptureDeath, OutcomeFixture.Transaction, commits));
+            dispatcher.Subscribe("log:character.fatal-critical-transition",
+                new MigratedDomainFactObserver<CharacterFatalCriticalTransitionFact>(
+                    CharacterFatalityFactMapping.CaptureCritical, OutcomeFixture.Transaction, commits));
+            dispatcher.Subscribe("log:character.fatal-downed",
+                new MigratedDomainFactObserver<CharacterFatalDownedFact>(
+                    CharacterFatalityFactMapping.CaptureDowned, OutcomeFixture.Transaction, commits));
+            runtime.ConfigureFactPublication(dispatcher, dispatcher);
+            // This shared editor fixture lives for one managed domain only.
+            AssemblyReloadEvents.beforeAssemblyReload += dispatcher.Dispose;
+            return runtime;
+        });
     private static readonly ICharacterSpeciesCommand SpeciesCommands =
         new EditorNoCharacterSpeciesCommand();
     private static readonly IFacilityCandidateCache FacilityCandidates =
@@ -140,6 +261,9 @@ internal static class CharacterAiEditorTestDependencies
         new EditorNoBlueprintResearchWorkService();
     private static readonly IWorkOrderRuntime WorkOrders =
         new EditorNoWorkOrderRuntime();
+    private static readonly WorkAccidentObserverFixture WorkAccidents = new(
+        GameEvents,
+        GameClock);
     private static readonly IWorkAmountCalculator WorkAmounts =
         new EditorFixedWorkAmountCalculator();
     private static readonly ICareerService Careers =
@@ -149,6 +273,8 @@ internal static class CharacterAiEditorTestDependencies
     private static readonly IPaidFacilityContractRuntime PaidFacilities =
         new EditorNoPaidFacilityContractRuntime();
     private static readonly IEmploymentContractRuntime EmploymentContracts =
+        new EditorNoEmploymentContractRuntime();
+    internal static IEmploymentContractRuntime CreateNoEmploymentContractRuntime() =>
         new EditorNoEmploymentContractRuntime();
     private static readonly IEnvironmentWorkPolicy EnvironmentWork =
         new EditorSafeEnvironmentWorkPolicy();
@@ -304,6 +430,36 @@ internal static class CharacterAiEditorTestDependencies
         Inject(actorObject, Scheduling, StaffDiscontent, BlueprintResearch);
     }
 
+    private static CharacterAiDiagnosticActivityObserver CreateAiDiagnosticActivities()
+    {
+        var observer = new CharacterAiDiagnosticActivityObserver(GameEvents);
+        observer.Initialize();
+        return observer;
+    }
+    private static CharacterActionActivityObserver CreateActionActivities()
+    {
+        var observer = new CharacterActionActivityObserver(GameEvents);
+        observer.Initialize();
+        return observer;
+    }
+    internal static void InjectWithDomainEvents(GameObject actorObject, IGameEventBus events) =>
+        Inject(actorObject, Scheduling, StaffDiscontent, BlueprintResearch,
+            actorDomainEvents: events ?? throw new ArgumentNullException(nameof(events)));
+
+    internal static void InjectWithMealCancellation(GameObject actorObject,
+        ICharacterMealOperationCancellation cancellation) =>
+        Inject(actorObject, Scheduling, StaffDiscontent, BlueprintResearch,
+            mealCancellation: cancellation);
+
+    /// <summary>
+    /// Controls only the explicit captive admission query used by editor AI
+    /// exit tests. This does not model or mutate custody state.
+    /// </summary>
+    internal static void SetExitAdmissionCaptive(string actorId, bool captive)
+    {
+        ExitAdmissionCaptivity.SetCaptive(actorId, captive);
+    }
+
     public static void Inject(
         GameObject actorObject,
         ICharacterAiSchedulingService scheduling)
@@ -360,7 +516,9 @@ internal static class CharacterAiEditorTestDependencies
         IGameClock gameClock = null,
         IGridPathSearchBroker pathSearchBroker = null,
         IDynamicFrameWorkBudget frameWorkBudget = null,
-        IFacilityCandidateCache facilityCandidates = null)
+        IFacilityCandidateCache facilityCandidates = null,
+        ICharacterMealOperationCancellation mealCancellation = null,
+        IGameEventBus actorDomainEvents = null)
     {
         if (actorObject == null)
         {
@@ -390,6 +548,7 @@ internal static class CharacterAiEditorTestDependencies
             RandomStreams,
             gameClock, defenseEngagementRuntime: null);
         abilityMove?.ConstructDoorAccessQuery(OpenDoorAccessQuery.Instance);
+        abilityMove?.ConstructExitDungeonAdmission(ExitAdmissionCaptivity);
 
         actorObject.GetComponent<CharacterLifecycle>()?.ConstructCharacterLifecycle(GridSystem);
 
@@ -414,6 +573,8 @@ internal static class CharacterAiEditorTestDependencies
         AbilityWork abilityWork = actorObject.GetComponent<AbilityWork>();
         if (abilityWork != null)
         {
+            _ = WorkExecutionActivities.Value;
+            _ = WorkControlActivities.Value;
             abilityWork.ConstructAbilityWork(
                 blueprintResearch,
                 staffDiscontent,
@@ -425,6 +586,7 @@ internal static class CharacterAiEditorTestDependencies
                 gameClock: gameClock, exteriorZoneQuery: null, workExecutionHandlerRegistry: workRegistry, workOrderRuntime: WorkOrders, workAmountCalculator: WorkAmounts, captiveLaborQuery: null, defenseEngagementRuntime: null, roomEnvironmentExperienceService: RoomExperience, paidFacilityContracts: PaidFacilities, environmentWorkPolicy: EnvironmentWork, characterEnvironment: NoCharacterEnvironmentWorkContext.Instance, environmentalWorkwearCommands: NoEnvironmentalWorkwearCommand.Instance,
                 needDefinitionCatalog: AuthoredGameplay,
                 debugRules: DisabledDungeonDebugRuleQuery.Instance);
+            abilityWork.ConstructIdentityEvents(IdentityEvents);
             abilityWork.ConstructPerformance(
                 NeutralPerformance,
                 new CharacterWorkPerformanceContextResolver(
@@ -438,9 +600,10 @@ internal static class CharacterAiEditorTestDependencies
                 NeutralProficiencies,
                 GameCalendar,
                 combatEquipmentRuntime: null);
-            abilityWork.ConstructWorkAccidentOutcomeTransaction(
+            abilityWork.ConstructWorkAccidentObservation(
                 BodyHealth.Value,
-                EditorNoOpEnvironmentOutcomeCommitter.Instance);
+                WorkAccidents.Facts,
+                WorkAccidents.Observations);
         }
 
         actorObject.GetComponent<AbilityShopping>()?.ConstructAbilityShopping(
@@ -449,6 +612,10 @@ internal static class CharacterAiEditorTestDependencies
             RandomStreams,
             gameClock,
             GameEvents);
+        actorObject.GetComponent<AbilityShopping>()?.ConstructRetailPurchaseFacts(
+            RetailPurchaseFacts.Publisher,
+            RetailPurchaseFacts.Recovery,
+            new FixedGameSessionStateProvider());
 
         actorObject.GetComponent<AIBrain>()?.ConstructAIBrain(
             new AIBrainDecisionServices(
@@ -492,7 +659,7 @@ internal static class CharacterAiEditorTestDependencies
             CharacterMedical,
             null,
             null,
-            null,
+            mealCancellation,
             gameClock,
             WorkAmounts,
             tmpKoreanFontService: null,
@@ -502,7 +669,8 @@ internal static class CharacterAiEditorTestDependencies
                 new CharacterIdentityRuleRouter(),
                 new CharacterPersistentNeedRuntime(
                     new CharacterIdentityStateStore(),
-                    gameClock)));
+                    GameCalendar)),
+            domainEvents: actorDomainEvents ?? GameEvents);
 
         // Editor scenarios construct actors without a world item runtime. Carry
         // inventory is still part of the AI decision snapshot, so the fixture must
@@ -513,6 +681,78 @@ internal static class CharacterAiEditorTestDependencies
             HaulingSettings,
             CarryInventories);
 
+    }
+
+    private sealed class EditorExitAdmissionCaptivityRuntime : ICaptivityRuntime
+    {
+        private readonly HashSet<string> captiveIds = new(StringComparer.Ordinal);
+
+        public IReadOnlyList<CaptiveState> Captives => throw Unsupported();
+        public IReadOnlyList<CaptivePolicyData> Policies => throw Unsupported();
+
+        public void SetCaptive(string actorId, bool captive)
+        {
+            string id = actorId?.Trim() ?? string.Empty;
+            if (id.Length == 0)
+            {
+                throw new ArgumentException(
+                    "Exit-admission fixture requires a persistent actor ID.",
+                    nameof(actorId));
+            }
+
+            if (captive)
+            {
+                captiveIds.Add(id);
+            }
+            else
+            {
+                captiveIds.Remove(id);
+            }
+        }
+
+        public bool IsCaptive(string persistentId) =>
+            captiveIds.Contains(persistentId?.Trim() ?? string.Empty);
+
+        public bool TryGetCaptive(string captiveId, out CaptiveState captive)
+        {
+            captive = null;
+            throw Unsupported();
+        }
+
+        public bool TryGetActor(string captiveId, out CharacterActor actor)
+        {
+            actor = null;
+            throw Unsupported();
+        }
+
+        public bool TryGetHousing(string captiveId, out BuildableObject housing)
+        {
+            housing = null;
+            throw Unsupported();
+        }
+
+        public bool TryGetRehabilitationFacility(
+            string captiveId,
+            out BuildableObject facility)
+        {
+            facility = null;
+            throw Unsupported();
+        }
+
+        public bool HasSecureHousing(
+            CharacterActor captive,
+            out BuildableObject housing,
+            out string reason)
+        {
+            housing = null;
+            reason = string.Empty;
+            throw Unsupported();
+        }
+
+        private static NotSupportedException Unsupported() =>
+            new NotSupportedException(
+                "The editor exit-admission fixture only supports "
+                + $"{nameof(IsCaptive)}.");
     }
 
     /// <summary>
@@ -606,10 +846,11 @@ internal static class CharacterAiEditorTestDependencies
         progression.ConstructCharacterProgression(
             SkillGeneration,
             SkillSettings,
-            GameEvents,
+            new CharacterProgressionNotificationApplicationAdapter(GameEvents),
             new CharacterProgressionProfileProjector(
                 GameContent,
-                new CharacterRuntimeProfileFactory(GameContent)));
+                new CharacterRuntimeProfileFactory(GameContent)),
+            GameEvents, SkillEvidenceUse, SkillAcquisitionFacts, SkillAcquisitions);
         progression.GrowthState.traitSelectionAuthorityVersion =
             CharacterGrowthState.CurrentTraitSelectionAuthorityVersion;
         progression.GrowthState.traitSelectionAuthorityOrigin =
@@ -624,12 +865,26 @@ internal static class CharacterAiEditorTestDependencies
         IGameClock gameClock,
         ICharacterNeedDefinitionCatalog needDefinitions,
         IDungeonDebugRuleQuery debugRules,
-        IMigratedProducerOutcomeTransaction outcomeTransactions = null)
+        IDomainFactPublisher facts = null,
+        IDomainFactRecoveryPublisher recovery = null)
     {
         if (stats == null)
         {
             return;
         }
+
+        if ((facts == null) != (recovery == null))
+        {
+            throw new ArgumentException(
+                "Character stats fixture facts and recovery must be supplied together.");
+        }
+        facts ??= CharacterStatsFacts;
+        recovery ??= CharacterStatsFacts;
+        _ = CharacterStateNarrative.Value;
+        _ = CharacterVitalsActivities.Value;
+        _ = OwnerCommandActivities.Value;
+        _ = DefenseEngagementActivities.Value;
+        _ = WildlifeHuntActivities.Value;
 
         CharacterStatsProjectionService projection =
             new CharacterStatsProjectionService(
@@ -653,6 +908,7 @@ internal static class CharacterAiEditorTestDependencies
                 performance: NeutralPerformance);
         stats.ConstructCharacterStats(
             gameClock,
+            GameCalendar,
             needDefinitions,
             debugRules,
             projection,
@@ -662,7 +918,8 @@ internal static class CharacterAiEditorTestDependencies
             new CharacterMoodStateService(gameClock, needDefinitions),
             new CharacterStatsMaintenanceSchedule(),
             GameEvents,
-            outcomeTransactions ?? OutcomeFixture.Transaction,
+            facts,
+            recovery,
             NeutralPerformance,
             new CharacterWorkPerformanceContextResolver(
                 NeutralProficiencies,
@@ -942,10 +1199,13 @@ internal static class CharacterAiEditorTestDependencies
 
     internal static void InjectCharacterStatsOutcomeForDiagnostics(
         CharacterStats stats,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        IDomainFactPublisher facts,
+        IDomainFactRecoveryPublisher recovery)
     {
-        if (outcomeTransactions == null)
-            throw new ArgumentNullException(nameof(outcomeTransactions));
+        if (facts == null)
+            throw new ArgumentNullException(nameof(facts));
+        if (recovery == null)
+            throw new ArgumentNullException(nameof(recovery));
         InjectCharacterStats(
             stats,
             StaffDiscontent,
@@ -953,7 +1213,49 @@ internal static class CharacterAiEditorTestDependencies
             GameClock,
             AuthoredGameplay,
             DisabledDungeonDebugRuleQuery.Instance,
-            outcomeTransactions);
+            facts,
+            recovery);
+    }
+
+    private static DomainFactDispatcher CreateCharacterStatsFacts()
+    {
+        DomainFactDispatcher facts = OutcomeFixture.CreateCharacterRestFacts();
+        AssemblyReloadEvents.beforeAssemblyReload += facts.Dispose;
+        return facts;
+    }
+
+    private static RetailPurchaseFactEditorFixture CreateRetailPurchaseFacts()
+    {
+        var probe = new MigratedProducerOutcomeProbeTransaction(
+            OutcomeFixture.Transaction,
+            OutcomeFixture.Recorder);
+        var facts = new RetailPurchaseFactEditorFixture(OutcomeFixture, probe);
+        AssemblyReloadEvents.beforeAssemblyReload += facts.Dispose;
+        return facts;
+    }
+
+    private static EditorFacilityUseFactFixture CreateFacilityUseFacts()
+    {
+        var facts = new EditorFacilityUseFactFixture(OutcomeFixture);
+        AssemblyReloadEvents.beforeAssemblyReload += facts.Dispose;
+        return facts;
+    }
+
+    private static DomainFactDispatcher CreateSkillAcquisitionFacts()
+    {
+        var registry = new GameplayOutcomeRegistry(
+            new IGameplayOutcomeDescriptor[] { new CharacterSkillAcquiredOutcomeDescriptor() },
+            new IGameplayOutcomeAdapterRegistration[] { new CharacterSkillAcquiredOutcomeAdapter() });
+        var ledger = new GameplayOutcomeLedger(registry, new GameplayOutcomeBufferLimits(
+            smallPageCount: 128, largePageCount: 8, knownResultKeyCapacity: 512,
+            retainedSmallPageCount: 128, retainedLargePageCount: 8),
+            new GameplayOutcomeRunId("run:character-ai-skill-acquisition"), 1L);
+        var recorder = new GameplayOutcomeRecorder(ledger, registry, GameEvents);
+        var dispatcher = new DomainFactDispatcher();
+        var connection = CharacterSkillAcquiredFactMapping.CreateBinding(registry, ledger, recorder,
+            new GameplayDomainFactCommitGroup(recorder, ledger)).Connect(dispatcher);
+        AssemblyReloadEvents.beforeAssemblyReload += () => { connection.Dispose(); dispatcher.Dispose(); };
+        return dispatcher;
     }
 
     internal static void InjectFeedbackCameraForDiagnostics(
@@ -1034,13 +1336,18 @@ internal static class CharacterAiEditorTestDependencies
 
     public static void Inject(StaffDiscontentRuntime runtime)
     {
-        runtime?.Construct(
+        if (runtime == null)
+            return;
+        _ = StaffDiscontentPresentation.Value;
+        DomainFactDispatcher facts = CreateStaffDiscontentTransitionFacts();
+        runtime.Construct(
             WorldRegistry,
             GameEvents,
             new DungeonRuntimeAggregateRootStore(),
             SettlementStandings,
-            StaffOutcomes,
-            GameClock);
+            facts,
+            facts,
+            GameCalendar);
     }
 
     public static void Inject(BlueprintResearchRuntime runtime)
@@ -1067,18 +1374,65 @@ internal static class CharacterAiEditorTestDependencies
         StaffDiscontentRuntime runtime,
         IEnumerable<GameObject> scenarioRoots)
     {
-        runtime?.Construct(
+        if (runtime == null)
+            return;
+        _ = StaffDiscontentPresentation.Value;
+        DomainFactDispatcher facts = CreateStaffDiscontentTransitionFacts();
+        runtime.Construct(
             WorldRegistry,
             GameEvents,
             new DungeonRuntimeAggregateRootStore(),
             SettlementStandings,
-            StaffOutcomes,
-            GameClock);
+            facts,
+            facts,
+            GameCalendar);
     }
 
-    public static void Inject(BuildableObject building)
+    private static DomainFactDispatcher CreateStaffDiscontentTransitionFacts()
     {
-        Inject(building, BlueprintResearch, RoomPolicy);
+        GameplayOutcomeRegistry registry = new(
+            new IGameplayOutcomeDescriptor[]
+            {
+                new StaffDiscontentTransitionOutcomeDescriptor(
+                    new DungeonStory.Narrative.Korean.KoreanJosaFormatter())
+            },
+            new IGameplayOutcomeAdapterRegistration[]
+            {
+                new StaffDiscontentTransitionOutcomeAdapter()
+            });
+        GameplayOutcomeLedger ledger = new(
+            registry,
+            new GameplayOutcomeBufferLimits(
+                smallPageCount: 8,
+                largePageCount: 0,
+                knownResultKeyCapacity: 128),
+            new GameplayOutcomeRunId(
+                "run:character-ai-staff-discontent-transition"),
+            1L);
+        GameplayOutcomeRecorder recorder = new(
+            ledger,
+            registry,
+            GameEvents);
+        DomainFactDispatcher dispatcher = new();
+        dispatcher.Subscribe(
+            "staff-discontent-transition:character-ai-editor",
+            new GameplayDomainFactObserver<
+                StaffDiscontentTransitionedFact,
+                StaffDiscontentTransitionOutcomeReceipt>(
+                StaffDiscontentFactMapping.Capture,
+                registry,
+                ledger,
+                recorder,
+                new GameplayDomainFactCommitGroup(recorder, ledger)));
+        // Shared editor dependencies intentionally omit the response observer;
+        // response commands must fail visibly outside a dedicated authority fixture.
+        AssemblyReloadEvents.beforeAssemblyReload += dispatcher.Dispose;
+        return dispatcher;
+    }
+
+    public static void Inject(BuildableObject building, IGameClock gameClock = null)
+    {
+        Inject(building, BlueprintResearch, RoomPolicy, gameClock);
     }
 
     public static void InjectWithRoomPolicy(
@@ -1104,7 +1458,8 @@ internal static class CharacterAiEditorTestDependencies
     private static void Inject(
         BuildableObject building,
         IBlueprintResearchWorkService blueprintResearch,
-        IBuildingRoomPolicyPort roomPolicy)
+        IBuildingRoomPolicyPort roomPolicy,
+        IGameClock gameClock = null)
     {
         building?.ConstructPersistentIdentity(PersistentIds);
         building?.ConstructBuildableObject(
@@ -1113,13 +1468,14 @@ internal static class CharacterAiEditorTestDependencies
             roomPolicy,
             worldRegistry: (IBuildingWorldRegistryPort)WorldRegistry,
             abilityRuntimeDispatcher: BuildingAbilities,
-            gameClock: GameClock, combatEquipmentRuntime: null, worldItemStackRuntime: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+            gameClock: gameClock ?? GameClock, combatEquipmentRuntime: null, worldItemStackRuntime: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
         building?.ConstructBuildableObjectEventBus(
             GameEvents,
             new BuildingVisitEventPublisher(
                 GameEvents,
                 new FixedGameSessionStateProvider(),
-                OutcomeFixture.Transaction),
+                FacilityUseFacts,
+                FacilityUseFacts),
             new BuildingInfoPresentationAdapter(GameEvents));
         building?.ConstructDebugRules(DisabledDungeonDebugRuleQuery.Instance);
 
@@ -1146,7 +1502,7 @@ internal static class CharacterAiEditorTestDependencies
     {
         GameSessionState state = GetGameData();
         shop?.ConstructShop(
-            new EditorGameMoneyAccount(state),
+            new GameMoneyAccount(new FixedGameDataProvider(state), RetailMoneyLedger),
             ShopStock,
             new NoopFloatingNumberFeedbackService(),
             new NoopWorkforceReplanService(),
@@ -1434,12 +1790,14 @@ internal static class CharacterAiEditorTestDependencies
         }
     }
 
-    internal static void InjectOwnerRunManagerOutcomeForDiagnostics(
+    internal static void InjectOwnerRunManagerCompletionFactsForDiagnostics(
         OwnerRunManager manager,
-        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        IDomainFactPublisher factPublisher,
         IRunSeedProvider runSeedProvider,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
-        DungeonStory.Content.CoreSession.ICoreSessionRulesProvider rulesProvider)
+        DungeonStory.Content.CoreSession.ICoreSessionRulesProvider rulesProvider,
+        IDomainFactRecoveryPublisher factRecovery,
+        IRunCompletionPreparation completionPreparation)
     {
         if (manager == null)
             throw new ArgumentNullException(nameof(manager));
@@ -1447,14 +1805,18 @@ internal static class CharacterAiEditorTestDependencies
             OwnerCandidates,
             new EditorOwnerCharacterFactory(manager),
             GameEvents,
-            outcomeTransactions
-                ?? throw new ArgumentNullException(nameof(outcomeTransactions)),
+            factPublisher
+                ?? throw new ArgumentNullException(nameof(factPublisher)),
             runSeedProvider
                 ?? throw new ArgumentNullException(nameof(runSeedProvider)),
             aggregateRootStore
                 ?? throw new ArgumentNullException(nameof(aggregateRootStore)),
             rulesProvider
-                ?? throw new ArgumentNullException(nameof(rulesProvider)));
+                ?? throw new ArgumentNullException(nameof(rulesProvider)),
+            factRecovery
+                ?? throw new ArgumentNullException(nameof(factRecovery)),
+            completionPreparation
+                ?? throw new ArgumentNullException(nameof(completionPreparation)));
     }
 
     private sealed class NoopCharacterFeedbackBubbleFactory : ICharacterFeedbackBubbleFactory
@@ -1636,58 +1998,6 @@ internal static class CharacterAiEditorTestDependencies
 
         public bool IsRebellionTarget(CharacterActor target) => false;
         public bool ResolveSuppressedRebel(CharacterActor rebel, CharacterActor defender) => false;
-    }
-
-    private sealed class EditorUnavailableStaffDiscontentOutcomeCommitter :
-        IStaffDiscontentOutcomeCommitter
-    {
-        public bool TryReserve(
-            long ownerRevision,
-            int absoluteDay,
-            bool hasResponder,
-            out ReservedStaffDiscontentOutcome reserved,
-            out string failureReason)
-        {
-            reserved = default;
-            failureReason = "editor-staff-outcome-fixture-not-configured";
-            return false;
-        }
-
-        public bool TryWrite(
-            in StaffDiscontentOutcomeReceipt receipt,
-            in ReservedStaffDiscontentOutcome reserved,
-            out PreparedOwnerOutcome prepared,
-            out string failureReason)
-        {
-            prepared = default;
-            failureReason = "editor-staff-outcome-fixture-not-configured";
-            return false;
-        }
-
-        public OwnerOutcomeCommitResult Commit(
-            in PreparedOwnerOutcome prepared,
-            long expectedOwnerRevision) => new(
-            OwnerOutcomeCommitPhase.Rejected,
-            prepared.ResultKey,
-            default,
-            string.Empty,
-            "editor-staff-outcome-fixture-not-configured");
-
-        public OwnerOutcomeCommitResult Reconcile(
-            GameplayResultKey resultKey) => new(
-            OwnerOutcomeCommitPhase.Rejected,
-            resultKey,
-            default,
-            string.Empty,
-            "editor-staff-outcome-fixture-not-configured");
-
-        public void Cancel(in ReservedStaffDiscontentOutcome reserved)
-        {
-        }
-
-        public void Cancel(in PreparedOwnerOutcome prepared)
-        {
-        }
     }
 
     private sealed class EditorStaffDiscontentRuntimeService : IStaffDiscontentRuntimeService
@@ -2072,6 +2382,16 @@ internal static class CharacterAiEditorTestDependencies
             return false;
         }
 
+        public bool TryAttachConstructionPlacement(
+            string orderId,
+            string placementOperationId,
+            IReadOnlyList<string> supportBuildingIds,
+            out string failureReason)
+        {
+            failureReason = "Editor fixture does not attach construction placement.";
+            return false;
+        }
+
         public bool TryGetOrderFor(
             BuildableObject target,
             WorkTypeId workTypeId,
@@ -2106,6 +2426,117 @@ internal static class CharacterAiEditorTestDependencies
         }
 
         public int DebugCompleteAllOrders() => 0;
+    }
+
+    private sealed class WorkAccidentObserverFixture : IDisposable
+    {
+        private readonly IDisposable binding;
+        private bool disposed;
+
+        internal WorkAccidentObserverFixture(
+            IGameEventBus events,
+            IGameClock clock)
+        {
+            var josa = new KoreanJosaFormatter();
+            var registry = new GameplayOutcomeRegistry(
+                new IGameplayOutcomeDescriptor[]
+                {
+                    new ProcessAccidentOutcomeDescriptor(josa)
+                },
+                new IGameplayOutcomeAdapterRegistration[]
+                {
+                    new ProcessAccidentOutcomeAdapter()
+                });
+            var ledger = new GameplayOutcomeLedger(
+                registry,
+                GameplayOutcomeBufferLimits.Default,
+                new GameplayOutcomeRunId("run:character-ai-work-accident"),
+                1L);
+            var recorder = new GameplayOutcomeRecorder(
+                ledger,
+                registry,
+                events ?? throw new ArgumentNullException(nameof(events)));
+            Facts = new DomainFactDispatcher();
+            binding = WorkAccidentFactMapping.CreateBinding(
+                    registry,
+                    ledger,
+                    recorder,
+                    new GameplayDomainFactCommitGroup(recorder, ledger))
+                .Connect(Facts);
+            Observations = new WorkAccidentObservationRuntime(
+                new WorkOrderAggregateStateStore(
+                    new DungeonRuntimeAggregateRootStore(),
+                    new RestoreWorldCandidateIndex()),
+                Facts,
+                new CharacterIdentityEventPublisher(events),
+                new RecordingEnvironmentalFireCommand(),
+                clock ?? throw new ArgumentNullException(nameof(clock)));
+            AssemblyReloadEvents.beforeAssemblyReload += Dispose;
+        }
+
+        internal DomainFactDispatcher Facts { get; }
+        internal WorkAccidentObservationRuntime Observations { get; }
+
+        public void Dispose()
+        {
+            if (disposed)
+                return;
+            disposed = true;
+            AssemblyReloadEvents.beforeAssemblyReload -= Dispose;
+            binding.Dispose();
+            Facts.Dispose();
+        }
+    }
+
+    private sealed class RecordingEnvironmentalFireCommand :
+        IEnvironmentalFireCommand
+    {
+        private readonly Dictionary<string, string> fingerprints =
+            new(StringComparer.Ordinal);
+
+        public EnvironmentalFireIgnitionResult TryIgnite(
+            EnvironmentalFireIgnitionRequest request)
+        {
+            if (request == null || !request.IsValid)
+            {
+                return new EnvironmentalFireIgnitionResult(
+                    EnvironmentalFireIgnitionDisposition.InvalidRequest,
+                    string.Empty,
+                    "Character AI fixture requires a valid fire request.");
+            }
+            if (fingerprints.TryGetValue(request.CauseId, out string fingerprint))
+            {
+                return new EnvironmentalFireIgnitionResult(
+                    string.Equals(
+                        fingerprint,
+                        request.Fingerprint,
+                        StringComparison.Ordinal)
+                        ? EnvironmentalFireIgnitionDisposition.PreviouslyProcessed
+                        : EnvironmentalFireIgnitionDisposition.CauseConflict,
+                    string.Empty,
+                    "Character AI fixture fire cause replayed.");
+            }
+            fingerprints.Add(request.CauseId, request.Fingerprint);
+            return new EnvironmentalFireIgnitionResult(
+                EnvironmentalFireIgnitionDisposition.Ignited,
+                "fire:character-ai-work-accident:" + fingerprints.Count,
+                string.Empty);
+        }
+
+        public EnvironmentalFireSuppressionResult TryApplySuppression(
+            EnvironmentalFireSuppressionCommand command) =>
+            throw new NotSupportedException(
+                "The work-accident fixture does not apply fire suppression.");
+
+        public EnvironmentalFireSuppressionResult TryCancelSuppression(
+            string operationId) =>
+            throw new NotSupportedException(
+                "The work-accident fixture does not cancel fire suppression.");
+
+        public IReadOnlyList<EnvironmentalFireSuppressionResult>
+            ResumePendingSuppressions() =>
+            throw new NotSupportedException(
+                "The work-accident fixture does not resume fire suppression.");
     }
 
     private sealed class EditorFixedWorkAmountCalculator : IWorkAmountCalculator
@@ -2188,6 +2619,7 @@ internal static class CharacterAiEditorTestDependencies
             Array.Empty<PaidFacilityContractState>();
 
         public int ForecastCost(int days) => 0;
+        public int GetDailyCost(string facilityPersistentId) => 0;
         public int SettleDay(int day) => 0;
         public PaidFacilityContractState GetContract(BuildableObject facility) => null;
 
@@ -2255,6 +2687,9 @@ internal static class CharacterAiEditorTestDependencies
         public IReadOnlyList<MercenaryContract> MercenaryContracts =>
             Array.Empty<MercenaryContract>();
 
+        public IEmploymentSettlementScope BeginSettlement() =>
+            new NoopSettlementScope();
+
         public int ForecastCost(int days) => 0;
         public int GetDailyCost(string characterId) => 0;
 
@@ -2290,6 +2725,13 @@ internal static class CharacterAiEditorTestDependencies
 
         public EmploymentContractSaveData Capture() =>
             new EmploymentContractSaveData();
+
+        private sealed class NoopSettlementScope :
+            IEmploymentSettlementScope
+        {
+            public void Commit() { }
+            public void Dispose() { }
+        }
     }
 }
 

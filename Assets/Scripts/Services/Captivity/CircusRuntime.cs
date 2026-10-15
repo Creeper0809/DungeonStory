@@ -30,6 +30,7 @@ public sealed class CircusRuntime :
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly ICombatResolutionService combat;
     private readonly ICombatEquipmentRuntime equipment;
+    private readonly CharacterCombatTransactionFacade combatTransactions;
     private readonly ICharacterMedicalQuery medicalQuery;
     private readonly ICharacterMedicalCommand medicalCommands;
     private readonly ICharacterPerformanceQuery performance;
@@ -79,6 +80,7 @@ public sealed class CircusRuntime :
         bodyHealthCommands = combatContext.BodyHealthCommands;
         combat = combatContext.Combat;
         equipment = combatContext.Equipment;
+        combatTransactions = combatContext.CombatTransactions;
         medicalQuery = combatContext.MedicalQuery;
         medicalCommands = combatContext.MedicalCommands;
         performance = combatContext.Performance;
@@ -415,7 +417,10 @@ public sealed class CircusRuntime :
 
     public CircusSaveData Capture()
     {
-        return stateSession.Capture(wildlifeCapture.Capture());
+        return stateSession.Capture(
+            wildlifeCapture.Capture(),
+            wildlifeCapture.NextGameplayOutcomeSequence,
+            wildlifeCapture.CaptureGameplayOutcomes());
     }
 
     public string ParticipantId => restoreLifecycle.ParticipantId;
@@ -805,8 +810,8 @@ public sealed class CircusRuntime :
                     : attackerWildlife != null
                         ? CreateWildlifeNaturalWeapon(attackerWildlife)
                         : CombatWeaponSnapshot.CreateUnarmed();
-        CombatAttackResult result = combat.Resolve(new CombatAttackRequest(
-            $"{order.orderId}:{clock.FrameCount}",
+        var request = new CombatAttackRequest(
+            order.orderId,
             attacker.Id,
             defender.Id,
             attackerCharacter != null
@@ -835,19 +840,37 @@ public sealed class CircusRuntime :
                 : null,
             defenderShield: defenderCharacter != null
                 ? equipment.GetShield(defender.Id)
-                : default));
+                : default);
         if (defenderCharacter != null)
         {
-            bodyHealthCommands.ApplyCombatResult(
+            CombatParticipantRef attackerRef = attackerCharacter != null
+                ? new CombatParticipantRef(attackerCharacter)
+                : new CombatParticipantRef(attackerWildlife);
+            CharacterCombatTransactionResult transaction =
+                combatTransactions.ResolveAndApply(
+                request,
+                attackerRef,
                 defenderCharacter,
-                result,
-                "서커스 교전");
+                weapon?.Verb?.damageType ?? CombatDamageType.Blunt,
+                "서커스 교전",
+                CharacterCommandOrigin.ScriptedForced,
+                clock.FrameCount);
+            if (!transaction.Succeeded)
+            {
+                Debug.LogWarning(
+                    "Circus combat transaction failed: "
+                    + transaction.FailureReason);
+            }
         }
-        else if (result.Hit)
+        else
         {
-            defenderWildlife?.ApplyCombatDamage(
-                result,
-                attackerCharacter);
+            CombatAttackResult result = combat.Resolve(request);
+            if (result.Hit)
+            {
+                defenderWildlife?.ApplyCombatDamage(
+                    result,
+                    attackerCharacter);
+            }
         }
     }
 
@@ -1053,7 +1076,7 @@ public sealed class CircusRuntime :
                 "A circus wildlife combatant requires a stable wildlife ID.");
         }
 
-        return $"wildlife:{normalizedId}";
+        return normalizedId;
     }
 
     private static string GetBuildingId(BuildableObject building, string prefix) =>

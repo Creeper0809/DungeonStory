@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
@@ -21,6 +22,7 @@ public class InvasionIntruderRuntime :
     private IInvasionIntruderContext invasionContext;
     private IDefenseStatusRuntimeService defenseStatusRuntimeService;
     private IGameClock gameClock;
+    private IGameCalendar calendar;
     private IGameEventBus gameEventBus;
     private IRandomStreamProvider randomStreamProvider;
     private IRandomStream pathRandomStream;
@@ -64,7 +66,9 @@ public class InvasionIntruderRuntime :
     private InvasionIntruderExecutionCoordinator executionCoordinator;
     private InvasionIntruderRestoreCoordinator restoreCoordinator;
     private ICharacterPerformanceQuery performance;
-    private IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private InvasionFactPublicationRuntime publications;
+    private string invasionStartPublicationKey = string.Empty;
+    private string lastInvasionStagePublicationKey = string.Empty;
 
     public CharacterActor IntruderActor => intruderActor != null ? intruderActor : GetComponent<CharacterActor>();
     public InvasionIntruderState State { get; private set; }
@@ -130,6 +134,7 @@ public class InvasionIntruderRuntime :
     bool IInvasionIntruderExecutionHost.Resolved { get => resolved; set => resolved = value; }
     float IInvasionIntruderExecutionHost.RallyRemainingSeconds { get => rallyRemainingSeconds; set => rallyRemainingSeconds = value; }
     IGameClock IInvasionIntruderExecutionHost.Clock => ResolveGameClock();
+    IGameCalendar IInvasionIntruderExecutionHost.Calendar => calendar;
     IGameEventBus IInvasionIntruderExecutionHost.GameEventBus => gameEventBus;
     IInvasionIntruderContext IInvasionIntruderExecutionHost.Context => ResolveInvasionContext();
     IDefenseEngagementRuntime IInvasionIntruderExecutionHost.DefenseEngagement => defenseEngagementRuntime;
@@ -163,8 +168,6 @@ public class InvasionIntruderRuntime :
     float IInvasionIntruderExecutionHost.MeleeDamageMultiplier => MeleeDamageMultiplier;
     float IInvasionIntruderExecutionHost.AttackSpeedMultiplier => AttackSpeedMultiplier;
     ICharacterPerformanceQuery IInvasionIntruderExecutionHost.Performance => performance;
-    IMigratedProducerOutcomeTransaction IInvasionIntruderExecutionHost.OutcomeTransactions =>
-        outcomeTransactions;
     Queue<GridMoveStep> IInvasionIntruderExecutionHost.CreateNextPath(Grid grid, Vector2Int ownerPosition, out bool direct, out BuildableObject priorityTarget) => CreateNextPath(grid, ownerPosition, out direct, out priorityTarget);
     bool IInvasionIntruderExecutionHost.TryDamageNearbyFacility(Grid grid, BuildableObject preferredTarget) => TryDamageNearbyFacility(grid, preferredTarget);
     void IInvasionIntruderExecutionHost.MarkDungeonBreached(Grid grid, Vector2Int cellPosition) => TryMarkDungeonBreached(grid, cellPosition);
@@ -261,6 +264,10 @@ public class InvasionIntruderRuntime :
         StopCoroutine(routine);
         routine = null;
     }
+
+    void IInvasionIntruderRestorePort.RestorePublicationLineage(
+        string startPublicationKey, string lastPublicationKey) =>
+        RestorePublicationLineage(startPublicationKey, lastPublicationKey);
     void IInvasionIntruderRestorePort.RequireRuntimeComponents() =>
         RequireRuntimeComponents();
     InvasionIntruderPatternDefinition
@@ -272,17 +279,40 @@ public class InvasionIntruderRuntime :
     void IInvasionIntruderRestorePort.StartRestoredInside()
     {
         CommitWarningProjection();
-        routine = StartCoroutine(RunInside());
+        routine = StartCoroutine(ResumeRestoredInside());
     }
     void IInvasionIntruderRestorePort.StartRestoredEntry(
         InvasionIntruderEntry entry,
         bool includeRally)
     {
         CommitWarningProjection(entry);
-        routine = StartCoroutine(Run(
+        routine = StartCoroutine(ResumeRestoredEntry(
             entry.DoorPosition,
             entry.GridPosition,
             includeRally));
+    }
+
+    private IEnumerator ResumeRestoredEntry(
+        Vector3 entryDoorPosition,
+        Vector2Int entryGridPosition,
+        bool includeRally)
+    {
+        // StartCoroutine advances once synchronously. Deferring the restored
+        // routine preserves the exact saved countdown/state until the next
+        // simulation frame instead of consuming one clock tick during load.
+        yield return null;
+        yield return Run(
+            entryDoorPosition,
+            entryGridPosition,
+            includeRally);
+    }
+
+    private IEnumerator ResumeRestoredInside()
+    {
+        // Preserve the saved inside-state at the restore boundary as well.
+        // The normal decision loop resumes on the following simulation frame.
+        yield return null;
+        yield return RunInside();
     }
 
     public void SetEngagementState(bool engaged, Vector2Int? holdCell = null)
@@ -363,7 +393,8 @@ public class InvasionIntruderRuntime :
         IGameEventBus gameEventBus,
         ITreasuryDefenseRuntime treasuryDefenseRuntime,
         ICharacterPerformanceQuery performance,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        InvasionFactPublicationRuntime publications,
+        IGameCalendar calendar)
     {
         this.invasionContext = invasionContext
             ?? throw new ArgumentNullException(nameof(invasionContext));
@@ -371,6 +402,7 @@ public class InvasionIntruderRuntime :
             ?? throw new ArgumentNullException(nameof(defenseStatusRuntimeService));
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.randomStreamProvider = randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider));
         this.gameEventBus = gameEventBus
@@ -379,8 +411,7 @@ public class InvasionIntruderRuntime :
             ?? throw new ArgumentNullException(nameof(treasuryDefenseRuntime));
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.publications = publications ?? throw new ArgumentNullException(nameof(publications));
     }
 
     public void ConfigureDefenseEngagement(
@@ -447,6 +478,8 @@ public class InvasionIntruderRuntime :
         nextDamageTime = ResolveGameClock().Time
             + this.settings.facilityDamageIntervalSeconds;
         resolved = false;
+        invasionStartPublicationKey = string.Empty;
+        lastInvasionStagePublicationKey = string.Empty;
         runtimeId = string.IsNullOrWhiteSpace(preparedRuntimeId)
             ? $"invasion:{Guid.NewGuid():N}"
             : preparedRuntimeId.Trim();
@@ -597,7 +630,67 @@ public class InvasionIntruderRuntime :
             damagedFacilityIds.OrderBy(
                 id => id.Value,
                 StringComparer.Ordinal),
-            enemyIndividual);
+            enemyIndividual,
+            invasionStartPublicationKey,
+            lastInvasionStagePublicationKey);
+    }
+
+    internal void InitializeInvasionPublicationLineage(string publicationKey)
+    {
+        if (!DomainFactValueSyntax.IsText(publicationKey, 2048, false)
+            || invasionStartPublicationKey != string.Empty || lastInvasionStagePublicationKey != string.Empty)
+            throw new InvalidOperationException("invasion-start-publication-invalid");
+        invasionStartPublicationKey = lastInvasionStagePublicationKey = publicationKey;
+    }
+
+    internal void RecordInvasionStagePublication(string publicationKey)
+    {
+        if (!DomainFactValueSyntax.IsText(publicationKey, 2048, false)
+            || !DomainFactValueSyntax.IsText(invasionStartPublicationKey, 2048, false))
+            throw new InvalidOperationException("invasion-stage-publication-without-start");
+        lastInvasionStagePublicationKey = publicationKey;
+    }
+
+    internal void RestorePublicationLineage(string startPublicationKey, string lastPublicationKey)
+    {
+        if (!DomainFactValueSyntax.IsText(startPublicationKey, 2048, true)
+            || !DomainFactValueSyntax.IsText(lastPublicationKey, 2048, true)
+            || (startPublicationKey.Length == 0) != (lastPublicationKey.Length == 0))
+            throw new InvalidOperationException("invasion-publication-lineage-invalid");
+        invasionStartPublicationKey = startPublicationKey;
+        lastInvasionStagePublicationKey = lastPublicationKey;
+    }
+
+    internal InvasionLifecycleFactData CaptureLifecycleFact(InvasionLifecycleStage stage) => new()
+    {
+        runtimeId = runtimeId, intruderId = CharacterPersistentIdentity.Require(intruderActor).Value,
+        intruderName = intruderActor.Identity?.DisplayName ?? intruderActor.name,
+        absoluteDay = calendar.Day, stage = stage, stateBefore = State, stateAfter = State,
+        damageIndexBefore = facilityDamageCount, damageIndexAfter = facilityDamageCount,
+        riskBefore = Mathf.Max(0f, threatSnapshot.threat), riskAfter = Mathf.Max(0f, threatSnapshot.threat)
+    };
+
+    internal bool TryApplyLifecycle(InvasionLifecycleFactData fact, Action apply, Action rollback)
+    {
+        if (apply == null || rollback == null) throw new ArgumentNullException(nameof(apply));
+        if (!DomainFactValueSyntax.IsText(invasionStartPublicationKey, 2048, false))
+        { Debug.LogError("invasion-lifecycle-start-missing"); return false; }
+        if (!publications.TryBegin(fact, out var prepared, out string failure))
+        { Debug.LogError("invasion-lifecycle-reservation-failed:" + failure); return false; }
+        using (prepared)
+        {
+            var actual = prepared.Snapshot();
+            string previous = lastInvasionStagePublicationKey;
+            if (actual.parentPublicationKey != previous)
+            { Debug.LogError("invasion-lifecycle-owner-lineage-conflict"); return false; }
+            prepared.SetRollback(() => { rollback(); lastInvasionStagePublicationKey = previous; });
+            apply();
+            RecordInvasionStagePublication(prepared.PublicationKey);
+            var delivered = prepared.PublishApplied(actual);
+            if (delivered.MayBeCommitted) return true;
+            Debug.LogError("invasion-lifecycle-publication-rejected:" + delivered.Detail);
+            return false;
+        }
     }
 
     public bool TryPrepareRestore(
@@ -713,82 +806,31 @@ public class InvasionIntruderRuntime :
         }
 
         BuildingInstanceId facilityId = target.RequirePersistentInstanceId();
-        string ownerIdentity = runtimeId + ":facility-damage:" + facilityId.Value;
-        if (!outcomeTransactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.InvasionFacilityDamagedEvent,
-                ownerIdentity,
-                ResolveCurrentOutcomeDay(),
-                GameplayOutcomeStatus.Succeeded,
-                out PreparedMigratedProducerOutcome prepared,
-                out string reserveFailure))
-        {
-            Debug.LogError(
-                "invasion-facility-damage-outcome-reservation-failed:"
-                + reserveFailure);
-            return false;
-        }
-
         InvasionIntruderState previousState = State;
+        int previousDamageCount = facilityDamageCount;
         bool wasDamaged = target.IsDamaged;
         bool wasRemembered = damagedFacilityIds.Contains(facilityId);
-        int previousDamageCount = facilityDamageCount;
-        try
-        {
-            State = InvasionIntruderState.DamagingFacility;
-            target.SetDamaged(true);
-            if (!target.IsDamaged)
+        var fact = CaptureLifecycleFact(InvasionLifecycleStage.FacilityDamaged);
+        fact.stateAfter = InvasionIntruderState.DamagingFacility;
+        fact.damageIndexAfter = checked(previousDamageCount + 1);
+        fact.targetKind = InvasionLifecycleTargetKind.Facility;
+        fact.targetId = facilityId.Value; fact.targetName = target.name;
+        if (!TryApplyLifecycle(fact,
+            () =>
             {
-                outcomeTransactions.Cancel(prepared);
-                State = previousState;
-                return false;
-            }
-            damagedFacilityIds.Add(facilityId);
-            facilityDamageCount = checked(facilityDamageCount + 1);
-            MigratedProducerOutcomeCommitResult committed =
-                outcomeTransactions.CommitSingleSubject(
-                    prepared,
-                    new MigratedProducerOutcomeSubject(
-                        MigratedProducerOutcomeIds.FacilityKind,
-                        facilityId.Value,
-                        target.name,
-                        MigratedProducerOutcomeIds.FacilityRole),
-                    $"{target.name}이(가) 침입자에게 손상됐다;damageIndex={facilityDamageCount}.");
-            if (!committed.DurablyCommitted)
+                State = InvasionIntruderState.DamagingFacility;
+                target.SetDamaged(true);
+                if (!target.IsDamaged) throw new InvalidOperationException("invasion-facility-damage-not-applied");
+                damagedFacilityIds.Add(facilityId); facilityDamageCount = fact.damageIndexAfter;
+            },
+            () =>
             {
-                outcomeTransactions.Cancel(prepared);
                 target.SetDamaged(wasDamaged);
-                if (!wasRemembered)
-                    damagedFacilityIds.Remove(facilityId);
-                facilityDamageCount = previousDamageCount;
-                State = previousState;
-                Debug.LogError(
-                    "invasion-facility-damage-outcome-commit-failed:"
-                    + committed.DetailCode);
-                return false;
-            }
-        }
-        catch
-        {
-            outcomeTransactions.Cancel(prepared);
-            target.SetDamaged(wasDamaged);
-            if (!wasRemembered)
-                damagedFacilityIds.Remove(facilityId);
-            facilityDamageCount = previousDamageCount;
-            State = previousState;
-            throw;
-        }
+                if (!wasRemembered) damagedFacilityIds.Remove(facilityId);
+                facilityDamageCount = previousDamageCount; State = previousState;
+            })) return false;
 
-        PublishOutcomeObserver(
-            () => intruderActor.AddActivity(CharacterActivityEvent.Facility(
-                CharacterActivityKinds.Combat,
-                CharacterActivityOutcomes.Damaged,
-                $"{target.name} 손상",
-                target,
-                actionId: "invasion:damage-facility",
-                value: 1f,
-                bubbleEligible: true)),
-            "invasion-facility-damage-activity-observer");
-        PublishOutcomeObserver(
+        PublishDomainNotification(
             () => gameEventBus.Publish(
                 new InvasionFacilityDamagedEvent(intruderActor, target)),
             "invasion-facility-damage-event-observer");
@@ -840,24 +882,15 @@ public class InvasionIntruderRuntime :
                 defended: true,
                 residualRisk: 1f,
                 InvasionIntruderState.Finished,
-                "침입자가 제압되어 침공이 종결됐다."))
+                InvasionResolutionKind.Suppressed,
+                defender))
         {
             throw new InvalidOperationException(
                 "The suppressed invasion result could not be committed.");
         }
-        PublishOutcomeObserver(
-            () => intruderActor?.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Combat,
-                CharacterActivityOutcomes.Defeated,
-                defender != null ? $"{defender.name}에게 제압됨" : "제압됨",
-                actionId: "invasion:suppressed",
-                targetId: defender != null
-                    ? CharacterPersistentIdentity.Require(defender).Value
-                    : string.Empty,
-                targetName: defender != null ? defender.name : string.Empty,
-                sentiment: -0.9f,
-                bubbleEligible: true)),
-            "invasion-suppressed-activity-observer");
+        PublishDomainNotification(
+            () => gameEventBus.Publish(new InvasionSuppressedEvent(intruderActor, defender)),
+            "invasion-suppressed-notification");
         if (intruderActor != null && !intruderActor.IsDead)
         {
             FinishAsDownedCaptureCandidate();
@@ -879,160 +912,55 @@ public class InvasionIntruderRuntime :
                 defended: false,
                 residualRisk: 5f,
                 InvasionIntruderState.Finished,
-                "최종 방어선이 돌파되어 침공이 종결됐다."))
+                InvasionResolutionKind.DefenseFailed,
+                owner))
         {
             throw new InvalidOperationException(
                 "The failed-defense invasion result could not be committed.");
         }
-        PublishOutcomeObserver(
-            () => intruderActor?.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Combat,
-                CharacterActivityOutcomes.Completed,
-                "최종 방어선 돌파",
-                actionId: "invasion:owner-defeated",
-                targetId: owner?.Identity?.PersistentId ?? "owner",
-                targetName: owner?.Identity?.DisplayName ?? "사장",
-                sentiment: 0.8f,
-                bubbleEligible: true)),
-            "invasion-owner-defeated-activity-observer");
+        PublishDomainNotification(
+            () => gameEventBus.Publish(new InvasionDefenseFailedEvent(intruderActor, owner)),
+            "invasion-defense-failed-notification");
         Finish();
     }
 
-    internal bool TryCommitFrontCollapsedOutcome(string reason)
+    internal bool TryCommitFrontCollapsedOutcome(string reason, CharacterActor defender = null)
     {
-        if (resolved || string.IsNullOrWhiteSpace(runtimeId))
-            return false;
-        return TryCommitOutcomeOnly(
-            MigratedProducerOutcomeKind.DefenseFrontCollapsedEvent,
-            runtimeId + ":front-collapse",
-            reason,
-            "방어선이 붕괴했다: " + (reason?.Trim() ?? string.Empty));
+        if (resolved || string.IsNullOrWhiteSpace(runtimeId)) return false;
+        var fact = CaptureLifecycleFact(InvasionLifecycleStage.FrontCollapsed);
+        fact.stateAfter = InvasionIntruderState.FrontBroken;
+        fact.reason = reason?.Trim() ?? string.Empty;
+        SetDefender(fact, defender);
+        var before = State;
+        return TryApplyLifecycle(fact, () => State = InvasionIntruderState.FrontBroken, () => State = before);
     }
 
-    internal bool TryCommitResolution(
-        bool defended,
-        float residualRisk,
-        InvasionIntruderState terminalState,
-        string summary)
+    internal bool TryCommitResolution(bool defended, float residualRisk,
+        InvasionIntruderState terminalState, InvasionResolutionKind resolution, CharacterActor defender = null)
     {
-        if (resolved
-            || string.IsNullOrWhiteSpace(runtimeId)
-            || !float.IsFinite(residualRisk)
-            || residualRisk < 0f)
-        {
+        if (resolved || string.IsNullOrWhiteSpace(runtimeId) || !float.IsFinite(residualRisk) || residualRisk < 0f)
             return false;
-        }
-        if (!outcomeTransactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.InvasionResolvedEvent,
-                runtimeId,
-                ResolveCurrentOutcomeDay(),
-                defended
-                    ? GameplayOutcomeStatus.Succeeded
-                    : GameplayOutcomeStatus.Failed,
-                out PreparedMigratedProducerOutcome prepared,
-                out string reserveFailure))
-        {
-            Debug.LogError(
-                "invasion-resolved-outcome-reservation-failed:"
-                + reserveFailure);
-            return false;
-        }
-
-        bool previousResolved = resolved;
-        InvasionIntruderState previousState = State;
-        try
-        {
-            resolved = true;
-            State = terminalState;
-            MigratedProducerOutcomeCommitResult committed =
-                outcomeTransactions.CommitSingleSubject(
-                    prepared,
-                    new MigratedProducerOutcomeSubject(
-                        MigratedProducerOutcomeIds.OperationKind,
-                        runtimeId,
-                        intruderActor?.Identity?.DisplayName ?? runtimeId,
-                        MigratedProducerOutcomeIds.OperationRole),
-                    (summary?.Trim() ?? string.Empty)
-                    + ";defended=" + defended
-                    + ";residualRisk=" + residualRisk.ToString(
-                        "0.###",
-                        System.Globalization.CultureInfo.InvariantCulture));
-            if (!committed.DurablyCommitted)
-            {
-                outcomeTransactions.Cancel(prepared);
-                resolved = previousResolved;
-                State = previousState;
-                Debug.LogError(
-                    "invasion-resolved-outcome-commit-failed:"
-                    + committed.DetailCode);
-                return false;
-            }
-        }
-        catch
-        {
-            outcomeTransactions.Cancel(prepared);
-            resolved = previousResolved;
-            State = previousState;
-            throw;
-        }
-
-        PublishOutcomeObserver(
-            () => gameEventBus.Publish(new InvasionResolvedEvent(
-                runtimeId,
-                defended,
-                residualRisk)),
-            "invasion-resolved-event-observer");
+        var fact = CaptureLifecycleFact(InvasionLifecycleStage.Resolved);
+        fact.stateAfter = terminalState; fact.riskAfter = residualRisk;
+        fact.defended = defended; fact.resolution = resolution;
+        SetDefender(fact, defender);
+        bool previousResolved = resolved; var previousState = State;
+        if (!TryApplyLifecycle(fact, () => { resolved = true; State = terminalState; },
+            () => { resolved = previousResolved; State = previousState; })) return false;
+        PublishDomainNotification(() => gameEventBus.Publish(
+            new InvasionResolvedEvent(runtimeId, defended, residualRisk)), "invasion-resolved-notification");
         return true;
     }
 
-    private bool TryCommitOutcomeOnly(
-        MigratedProducerOutcomeKind kind,
-        string ownerIdentity,
-        string reason,
-        string summary)
+    private static void SetDefender(InvasionLifecycleFactData fact, CharacterActor defender)
     {
-        if (outcomeTransactions == null
-            || string.IsNullOrWhiteSpace(ownerIdentity))
-        {
-            return false;
-        }
-        if (!outcomeTransactions.TryReserveSingleSubject(
-                kind,
-                ownerIdentity,
-                ResolveCurrentOutcomeDay(),
-                GameplayOutcomeStatus.Succeeded,
-                out PreparedMigratedProducerOutcome prepared,
-                out string reserveFailure))
-        {
-            Debug.LogError(
-                "invasion-outcome-reservation-failed:"
-                + kind + ":" + reserveFailure);
-            return false;
-        }
-        MigratedProducerOutcomeCommitResult committed =
-            outcomeTransactions.CommitSingleSubject(
-                prepared,
-                new MigratedProducerOutcomeSubject(
-                    MigratedProducerOutcomeIds.OperationKind,
-                    runtimeId,
-                    intruderActor?.Identity?.DisplayName ?? runtimeId,
-                    MigratedProducerOutcomeIds.OperationRole),
-                summary + ";reason=" + (reason?.Trim() ?? string.Empty));
-        if (committed.DurablyCommitted)
-            return true;
-        outcomeTransactions.Cancel(prepared);
-        Debug.LogError(
-            "invasion-outcome-commit-failed:"
-            + kind + ":" + committed.DetailCode);
-        return false;
+        if (defender == null) return;
+        fact.targetKind = InvasionLifecycleTargetKind.Defender;
+        fact.targetId = CharacterPersistentIdentity.Require(defender).Value;
+        fact.targetName = defender.Identity?.DisplayName ?? defender.name;
     }
 
-    private int ResolveCurrentOutcomeDay() => Mathf.Max(
-        0,
-        Mathf.FloorToInt(
-            ResolveGameClock().Time / GameCalendarRules.SecondsPerDay));
-
-    private static void PublishOutcomeObserver(Action observer, string context)
+    private static void PublishDomainNotification(Action observer, string context)
     {
         try
         {
@@ -1079,7 +1007,14 @@ public class InvasionIntruderRuntime :
         }
 
         OnFinished?.Invoke(this);
-        Destroy(gameObject);
+        if (Application.isPlaying)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            DestroyImmediate(gameObject);
+        }
     }
 
     private void FinishAsDownedCaptureCandidate()
@@ -1097,7 +1032,14 @@ public class InvasionIntruderRuntime :
         // a downed state to force a healthy intruder through this terminal.
         intruderActor.SetLifecycleState(CharacterLifecycleState.Downed);
         OnFinished?.Invoke(this);
-        Destroy(this);
+        if (Application.isPlaying)
+        {
+            Destroy(this);
+        }
+        else
+        {
+            DestroyImmediate(this);
+        }
     }
 
     private void RequireRuntimeComponents()

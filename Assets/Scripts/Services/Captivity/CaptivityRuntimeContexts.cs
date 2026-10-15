@@ -1,5 +1,6 @@
 using System;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 
 public sealed class CaptivityCharacterContext
 {
@@ -61,7 +62,8 @@ public sealed class CaptivityWorldContext
         IRoomLayoutCache roomLayoutCache,
         IDoorAccessQuery doorAccessQuery,
         IDoorAccessCommandService doorAccessCommands,
-        IDoorAccessSubjectRegistry doorSubjectRegistry)
+        IDoorAccessSubjectRegistry doorSubjectRegistry,
+        IRestoreWorldCandidateQuery restoreWorldCandidates)
     {
         GridProvider = gridProvider
             ?? throw new ArgumentNullException(nameof(gridProvider));
@@ -75,6 +77,8 @@ public sealed class CaptivityWorldContext
             ?? throw new ArgumentNullException(nameof(doorAccessCommands));
         DoorSubjectRegistry = doorSubjectRegistry
             ?? throw new ArgumentNullException(nameof(doorSubjectRegistry));
+        RestoreWorldCandidates = restoreWorldCandidates
+            ?? throw new ArgumentNullException(nameof(restoreWorldCandidates));
     }
 
     public IGridSystemProvider GridProvider { get; }
@@ -83,6 +87,7 @@ public sealed class CaptivityWorldContext
     public IDoorAccessQuery DoorAccessQuery { get; }
     public IDoorAccessCommandService DoorAccessCommands { get; }
     public IDoorAccessSubjectRegistry DoorSubjectRegistry { get; }
+    public IRestoreWorldCandidateQuery RestoreWorldCandidates { get; }
 }
 
 public sealed class CaptivitySessionContext
@@ -91,6 +96,7 @@ public sealed class CaptivitySessionContext
         IGameMoneyAccount money,
         CaptivityInteractionRegistry interactions,
         IGameClock gameClock,
+        IGameCalendar gameCalendar,
         IRandomStreamProvider randomStreamProvider,
         IGameEventBus gameEventBus,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
@@ -99,15 +105,15 @@ public sealed class CaptivitySessionContext
         IFactionCampaignCommand factionCampaign,
         ISurvivalFoodCommand survivalFood,
         ICaptivityInterrogationCodexPort interrogationCodex,
-        ICaptivePerformerMilestoneOutcomeCommitter performerMilestoneOutcomes,
-        ICaptiveEscapeOutcomeCommitter captiveEscapeOutcomes,
-        ICaptiveRansomOutcomeCommitter captiveRansomOutcomes,
-        ICaptivityInteractionOutcomeCommitter captivityInteractionOutcomes)
+        IDomainFactStagingPublisher facts,
+        IDomainFactRecoveryPublisher factRecovery)
     {
         Money = money ?? throw new ArgumentNullException(nameof(money));
         Interactions = interactions
             ?? throw new ArgumentNullException(nameof(interactions));
         GameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        GameCalendar = gameCalendar
+            ?? throw new ArgumentNullException(nameof(gameCalendar));
         RandomStreamProvider = randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider));
         GameEventBus = gameEventBus
@@ -124,19 +130,14 @@ public sealed class CaptivitySessionContext
             ?? throw new ArgumentNullException(nameof(survivalFood));
         InterrogationCodex = interrogationCodex
             ?? throw new ArgumentNullException(nameof(interrogationCodex));
-        PerformerMilestoneOutcomes = performerMilestoneOutcomes
-            ?? throw new ArgumentNullException(nameof(performerMilestoneOutcomes));
-        CaptiveEscapeOutcomes = captiveEscapeOutcomes
-            ?? throw new ArgumentNullException(nameof(captiveEscapeOutcomes));
-        CaptiveRansomOutcomes = captiveRansomOutcomes
-            ?? throw new ArgumentNullException(nameof(captiveRansomOutcomes));
-        CaptivityInteractionOutcomes = captivityInteractionOutcomes
-            ?? throw new ArgumentNullException(nameof(captivityInteractionOutcomes));
+        Facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        FactRecovery = factRecovery ?? throw new ArgumentNullException(nameof(factRecovery));
     }
 
     public IGameMoneyAccount Money { get; }
     public CaptivityInteractionRegistry Interactions { get; }
     public IGameClock GameClock { get; }
+    public IGameCalendar GameCalendar { get; }
     public IRandomStreamProvider RandomStreamProvider { get; }
     public IGameEventBus GameEventBus { get; }
     public DungeonRuntimeAggregateRootStore AggregateRootStore { get; }
@@ -145,8 +146,6 @@ public sealed class CaptivitySessionContext
     public IFactionCampaignCommand FactionCampaign { get; }
     public ISurvivalFoodCommand SurvivalFood { get; }
     public ICaptivityInterrogationCodexPort InterrogationCodex { get; }
-    public ICaptivePerformerMilestoneOutcomeCommitter PerformerMilestoneOutcomes { get; }
-    public ICaptiveEscapeOutcomeCommitter CaptiveEscapeOutcomes { get; }
-    public ICaptiveRansomOutcomeCommitter CaptiveRansomOutcomes { get; }
-    public ICaptivityInteractionOutcomeCommitter CaptivityInteractionOutcomes { get; }
+    public IDomainFactStagingPublisher Facts { get; }
+    public IDomainFactRecoveryPublisher FactRecovery { get; }
 }

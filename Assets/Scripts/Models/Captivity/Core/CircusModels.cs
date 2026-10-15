@@ -131,12 +131,15 @@ public sealed class CircusShowOrder
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CircusSaveData
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 8;
     public int version = CurrentVersion;
     public int nextOrderSequence;
+    public int nextWildlifeGameplayOutcomeSequence;
     public List<CircusShowOrder> orders = new List<CircusShowOrder>();
     public List<CapturedWildlifeState> capturedWildlife =
         new List<CapturedWildlifeState>();
+    public List<WildlifeGameplayOutcomeSaveData> wildlifeGameplayOutcomes =
+        new List<WildlifeGameplayOutcomeSaveData>();
 }
 
 public enum CircusShowSupplyCommitPhase
@@ -656,6 +659,7 @@ public static class CapturedWildlifeCapabilityStateCodec
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CapturedWildlifeState
 {
+    public const float CareIntervalSeconds = 5f;
     public string wildlifeId = string.Empty;
     public string speciesId = string.Empty;
     public string penId = string.Empty;
@@ -668,7 +672,10 @@ public sealed class CapturedWildlifeState
     public bool escaped;
     public bool isTamed;
     public Vector2Int escapeDestination;
-    public float nextCareAt;
+    // Runtime deadline belongs to the current process clock. Save captures
+    // only its remaining delay; an old process timestamp is never restored.
+    [NonSerialized] public float nextCareAt;
+    public float remainingCareSeconds;
     [Range(0f, 100f)] public float escapeRisk;
     public bool foodDeliveryPending;
     public bool waterDeliveryPending;

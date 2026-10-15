@@ -116,8 +116,8 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             string.Empty,
             string.Empty,
             "시설 이용 완료",
-            "service",
-            "visit");
+            eventType.operationId,
+            new[] { "service", "visit" });
         MarkDynamicStateDirty();
     }
 
@@ -428,6 +428,35 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
         string resultDetail,
         params string[] sourceTags)
     {
+        RecordInstanceUsage(
+            facility,
+            eventId,
+            mastery,
+            amount,
+            ledgerActorId,
+            contextActorId,
+            actorDisplayName,
+            counterpartyId,
+            counterpartyDisplayName,
+            resultDetail,
+            string.Empty,
+            sourceTags);
+    }
+
+    private void RecordInstanceUsage(
+        BuildableObject facility,
+        string eventId,
+        float mastery,
+        float amount,
+        string ledgerActorId,
+        string contextActorId,
+        string actorDisplayName,
+        string counterpartyId,
+        string counterpartyDisplayName,
+        string resultDetail,
+        string eventInstanceId,
+        IEnumerable<string> sourceTags)
+    {
         string facilityId = GetFacilityKey(facility).ToString();
         string facilityName = GetFacilityName(facility);
         string resolvedActorId = string.IsNullOrWhiteSpace(contextActorId)
@@ -445,6 +474,7 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             sourceTags,
             new GameplayNarrativeEventContext
             {
+                eventInstanceId = eventInstanceId?.Trim() ?? string.Empty,
                 chainId = facilityId,
                 locationId = facilityId,
                 locationDisplayName = facilityName,

@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 internal sealed class CharacterBreakdownActionPolicyDependencies
@@ -41,9 +43,9 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
         CharacterDeprivationDiagnostics diagnostics,
         CharacterDeprivationConsequences consequences,
         IFieldMealConsumptionCommand fieldMeals,
-        IGameEventBus events,
         IGameCalendar calendar,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        CharacterWaterPublicationOutbox waterPublications,
+        ICharacterVandalismCommand vandalismCommands = null)
     {
         StateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
@@ -57,10 +59,10 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
             ?? throw new ArgumentNullException(nameof(consequences));
         FieldMeals = fieldMeals
             ?? throw new ArgumentNullException(nameof(fieldMeals));
-        Events = events ?? throw new ArgumentNullException(nameof(events));
         Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
-        OutcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        WaterPublications = waterPublications
+            ?? throw new ArgumentNullException(nameof(waterPublications));
+        VandalismCommands = vandalismCommands;
     }
 
     internal CharacterDeprivationStateStore StateStore { get; }
@@ -69,9 +71,9 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
     internal CharacterDeprivationDiagnostics Diagnostics { get; }
     internal CharacterDeprivationConsequences Consequences { get; }
     internal IFieldMealConsumptionCommand FieldMeals { get; }
-    internal IGameEventBus Events { get; }
     internal IGameCalendar Calendar { get; }
-    internal IMigratedProducerOutcomeTransaction OutcomeTransactions { get; }
+    internal CharacterWaterPublicationOutbox WaterPublications { get; }
+    internal ICharacterVandalismCommand VandalismCommands { get; }
 }
 
 internal sealed class CharacterBreakdownActionRunner
@@ -101,9 +103,9 @@ internal sealed class CharacterBreakdownActionRunner
     private readonly IFieldMealConsumptionCommand fieldMeals;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly ICharacterPerformanceQuery performance;
-    private readonly IGameEventBus events;
     private readonly IGameCalendar calendar;
-    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private readonly CharacterWaterPublicationOutbox waterPublications;
+    private readonly ICharacterVandalismCommand vandalismCommands;
     private readonly HashSet<CharacterId> runningActorIds =
         new HashSet<CharacterId>();
     private readonly Dictionary<CharacterBreakdownKind, Func<CharacterActor, CharacterActionIntentLease, IEnumerator>>
@@ -129,9 +131,9 @@ internal sealed class CharacterBreakdownActionRunner
         diagnostics = execution.Diagnostics;
         consequences = execution.Consequences;
         fieldMeals = execution.FieldMeals;
-        events = execution.Events;
         calendar = execution.Calendar;
-        outcomeTransactions = execution.OutcomeTransactions;
+        waterPublications = execution.WaterPublications;
+        vandalismCommands = execution.VandalismCommands;
         CreateActionRoutines();
     }
 
@@ -432,18 +434,14 @@ internal sealed class CharacterBreakdownActionRunner
             if (CanCommit(actor, intentLease)
                 && Manhattan(actor.GetNowXY(), source.Position) <= standDistance)
             {
-                if (!outcomeTransactions.TryReserveSingleSubject(
-                        MigratedProducerOutcomeKind.CharacterWaterConsumedEvent,
-                        "water-consumed:" + actorId.Value,
-                        Math.Max(1, calendar.Day),
-                        GameplayOutcomeStatus.Succeeded,
-                        out PreparedMigratedProducerOutcome prepared,
-                        out string reservationFailure))
+                var data = new CharacterWaterFactData
                 {
-                    throw new InvalidOperationException(
-                        "Breakdown water outcome reservation failed: "
-                        + reservationFailure);
-                }
+                    characterId = actorId.Value, characterName = actor.BuildingDisplayName,
+                    sourceId = source.SourceId, sourceKind = CharacterWaterSourceKind.WorldWater,
+                    quality = source.Quality, pathogenDiseaseId = source.PathogenDiseaseId,
+                    absoluteDay = Math.Max(1, calendar.Day)
+                };
+                DomainFactLease lease = waterPublications.Reserve(new CharacterWaterConsumedFact(data, true));
 
                 CharacterBreakdownWorld.WaterTransactionSnapshot waterBefore;
                 CharacterMoodDeliveryTransactionSnapshot statsBefore;
@@ -468,13 +466,14 @@ internal sealed class CharacterBreakdownActionRunner
                 }
                 catch
                 {
-                    outcomeTransactions.Cancel(prepared);
+                    waterPublications.Cancel(lease);
                     throw;
                 }
 
                 bool drank;
                 WorldWaterQuality quality;
                 float consumed;
+                bool mayBeCommitted = false;
                 try
                 {
                     drank = world.TryDrink(
@@ -482,9 +481,24 @@ internal sealed class CharacterBreakdownActionRunner
                         ApplyPersonalWaterConsumption(1f),
                         out quality,
                         out consumed)
-                        && consumed > 0f;
+                        && consumed > 0f && quality == source.Quality;
                     if (drank)
                     {
+                        float healthBefore = actor.CurrentHealth;
+                        float thirstBefore = SnapshotStat(
+                            statsBefore,
+                            CharacterCondition.THIRST);
+                        float hygieneBefore = SnapshotStat(
+                            statsBefore,
+                            CharacterCondition.HYGIENE);
+                        float moodBefore = SnapshotStat(
+                            statsBefore,
+                            CharacterCondition.MOOD);
+                        float infectionBefore = deprivationBefore.TryGet(
+                            actorId,
+                            out CharacterDeprivationState deprivationSnapshot)
+                                ? deprivationSnapshot.infectionBurden
+                                : 0f;
                         RecoverNeed(
                             actor,
                             CharacterCondition.THIRST,
@@ -510,39 +524,42 @@ internal sealed class CharacterBreakdownActionRunner
                                 1);
                         }
 
-                        MigratedProducerOutcomeCommitResult committed =
-                            outcomeTransactions.CommitSingleSubject(
-                                prepared,
-                                new MigratedProducerOutcomeSubject(
-                                    MigratedProducerOutcomeIds.CharacterKind,
-                                    actorId.Value,
-                                    actor.BuildingDisplayName,
-                                    MigratedProducerOutcomeIds.ActorRole),
-                                $"source={source.SourceId}; quality={quality}; consumed={consumed:0.###}; pathogen={source.PathogenDiseaseId}");
-                        if (!committed.DurablyCommitted)
-                        {
-                            throw new InvalidOperationException(
-                                "Breakdown water outcome commit failed: "
-                                + committed.DetailCode);
-                        }
+                        float infectionAfter = stateStore.TryGet(
+                            actorId,
+                            out CharacterDeprivationState currentDeprivation)
+                                ? currentDeprivation.infectionBurden
+                                : infectionBefore;
+                        data.consumed = consumed;
+                        data.thirstBefore = thirstBefore;
+                        data.thirstAfter = GetNeed(actor, CharacterCondition.THIRST);
+                        data.healthBefore = healthBefore;
+                        data.healthAfter = actor.CurrentHealth;
+                        data.hygieneBefore = hygieneBefore;
+                        data.hygieneAfter = GetNeed(actor, CharacterCondition.HYGIENE);
+                        data.infectionBefore = infectionBefore;
+                        data.infectionAfter = infectionAfter;
+                        data.moodBefore = moodBefore;
+                        data.moodAfter = actor.Stats?.Mood ?? moodBefore;
+                        var delivery = waterPublications.Publish(lease, new CharacterWaterConsumedFact(data));
+                        mayBeCommitted = delivery.MayBeCommitted;
+                        if (!mayBeCommitted)
+                            throw new InvalidOperationException("breakdown-water-publication-rejected:" + delivery.Detail);
                     }
                 }
                 catch
                 {
-                    outcomeTransactions.Cancel(prepared);
-                    RestoreWorldDrinkTransaction(
-                        actor,
-                        waterBefore,
-                        statsBefore,
-                        deprivationBefore,
-                        bodyPersistence,
-                        bodyBefore);
+                    if (!mayBeCommitted)
+                    {
+                        waterPublications.Cancel(lease);
+                        RestoreWorldDrinkTransaction(actor, waterBefore, statsBefore,
+                            deprivationBefore, bodyPersistence, bodyBefore);
+                    }
                     throw;
                 }
 
                 if (!drank)
                 {
-                    outcomeTransactions.Cancel(prepared);
+                    waterPublications.Cancel(lease);
                     RestoreWorldDrinkTransaction(
                         actor,
                         waterBefore,
@@ -553,12 +570,8 @@ internal sealed class CharacterBreakdownActionRunner
                     yield break;
                 }
 
-                events.Publish(new CharacterWaterConsumedEvent(
-                    actorId,
-                    source.SourceId,
-                    quality,
-                    consumed,
-                    source.PathogenDiseaseId));
+                if (!waterPublications.Deliver(actorId.Value, out string deliveryFailure))
+                    throw new InvalidOperationException("water-effects-applied-publication-pending:" + deliveryFailure);
                 yield break;
             }
         }
@@ -627,6 +640,14 @@ internal sealed class CharacterBreakdownActionRunner
                 {
                     consequences.EndActiveBreakdownIfRelieved(actor);
                 }
+                yield break;
+            }
+
+            if (food.ItemId == DarkSurvivalItemDefinitions.HumanoidCorpseItemId)
+            {
+                TryConsumeHumanoidCorpse(actor, food, 75f, 0,
+                    $"breakdown-eat:{GetPersistentId(actor)}:{food.StackId}",
+                    "breakdown-emergency-food");
                 yield break;
             }
 
@@ -720,21 +741,11 @@ internal sealed class CharacterBreakdownActionRunner
         {
             yield return CorpseSpawnDelay;
             WorldItemStackSnapshot corpse = FindHumanoidCorpse(victim);
-            if (CanCommit(actor, intentLease)
-                && corpse != null
-                && world.TryConsumeStack(
-                    corpse.StackId,
-                    1,
-                    $"breakdown-cannibal:{GetPersistentId(actor)}:{corpse.StackId}",
-                    "breakdown-cannibal-corpse",
-                    out WorldItemStackSnapshot consumed))
+            if (CanCommit(actor, intentLease) && corpse != null)
             {
-                RecoverNeed(
-                    actor,
-                    CharacterCondition.HUNGER,
-                    85f,
-                    CharacterNeedRecoverySource.Emergency);
-                ApplyCannibalismConsequences(actor, consumed);
+                TryConsumeHumanoidCorpse(actor, corpse, 85f, 1,
+                    $"breakdown-cannibal:{GetPersistentId(actor)}:{corpse.StackId}",
+                    "breakdown-cannibal-corpse");
             }
         }
     }
@@ -792,7 +803,25 @@ internal sealed class CharacterBreakdownActionRunner
                 && !building.IsDamaged
                 && Manhattan(actor.GetNowXY(), building.centerPos) <= 1)
             {
-                building.SetDamaged(true);
+                if (!(vandalismCommands ?? throw new InvalidOperationException(
+                            $"{nameof(CharacterBreakdownActionRunner)} requires "
+                            + $"{nameof(ICharacterVandalismCommand)} "
+                            + "for violent vandalism."))
+                    .TryCommitDamage(
+                        actor,
+                        building,
+                        FacilityVandalismSourceKind.Deprivation,
+                        "mental-instability",
+                        Array.Empty<string>(),
+                        out _,
+                        out string vandalismFailure))
+                {
+                    actor.AddActivity(CharacterActivityEvent.InternalAi(
+                        CharacterActivityOutcomes.Failed,
+                        "violent-vandalism-transaction-failed",
+                        "Breakdown vandalism failed: " + vandalismFailure));
+                    yield break;
+                }
                 actor.AddActivity(CharacterActivityEvent.Facility(
                     CharacterActivityKinds.Combat,
                     CharacterActivityOutcomes.Damaged,
@@ -881,8 +910,11 @@ internal sealed class CharacterBreakdownActionRunner
             BuildableObject candidate = buildings[index];
             if (candidate == null
                 || candidate.IsGridDestroyed
+                || !FacilityVandalismTargetRules
+                    .IsPersistentAggregateTarget(candidate)
                 || candidate.IsDamaged
                 || candidate.IsGridMovement
+                || candidate.Facility == null
                 || !candidate.CanApplyDamageRules)
             {
                 continue;
@@ -957,7 +989,7 @@ internal sealed class CharacterBreakdownActionRunner
     }
 
 
-    private bool TryFindEmergencyFood(CharacterActor actor, out WorldItemStackSnapshot food)
+    internal bool TryFindEmergencyFood(CharacterActor actor, out WorldItemStackSnapshot food)
     {
         food = null;
         return actor != null
@@ -1121,7 +1153,133 @@ internal sealed class CharacterBreakdownActionRunner
 
     private void ApplyCannibalismConsequences(CharacterActor actor, WorldItemStackSnapshot consumed)
     {
-        bool sameSpecies = !string.IsNullOrWhiteSpace(consumed.SourceSpeciesTag)
+        ResolveCannibalismReaction(actor, consumed,
+            out bool sameSpecies, out float mood, out string reaction);
+        actor.ApplyMoodFactor(
+            sameSpecies ? "survival:same-species-cannibalism" : "survival:cannibalism",
+            reaction, mood, 900f, 1);
+        actor.ChangesStat(CharacterCondition.HYGIENE, -20f);
+        consequences.AddInfection(actor, sameSpecies ? 20f : 12f);
+        string victim = string.IsNullOrWhiteSpace(consumed.SourceDisplayName) ? "이름 모를 사체" : consumed.SourceDisplayName;
+        consequences.RecordTaboo(actor, $"극한의 굶주림 속에서 {victim}을 먹었다");
+        consequences.ApplyWitnessMood(actor, actor.GetNowXY(), "금기의 포식을 목격함",
+            sameSpecies ? -12f : -8f, permanentMemory: true);
+    }
+
+    internal void RecoverCorpsePublications() => world.RecoverCorpsePublications(stateStore);
+
+    internal bool TryConsumeHumanoidCorpse(
+        CharacterActor actor, WorldItemStackSnapshot selected, float recovery, int standDistance,
+        string operationId, string reasonCode)
+    {
+        if (!world.TryGetStack(selected.StackId, out WorldItemStackSnapshot source))
+            return false; // The exact consumed corpse cannot be replayed as another food/victim.
+        if (actor?.Stats == null
+            || source.ItemId != DarkSurvivalItemDefinitions.HumanoidCorpseItemId
+            || source.SourceCharacterId != selected.SourceCharacterId
+            || source.SourceDisplayName != selected.SourceDisplayName
+            || source.SourceSpeciesTag != selected.SourceSpeciesTag
+            || source.SourceDeathReason != selected.SourceDeathReason
+            || source.Position != selected.Position
+            || Manhattan(actor.GetNowXY(), source.Position) > standDistance
+            || source.TotalQuantity != 1 || source.AvailableQuantity != 1
+            || !DomainFactValueSyntax.IsIdentity(source.SourceCharacterId)
+            || string.IsNullOrWhiteSpace(source.SourceDisplayName))
+            throw new InvalidOperationException("corpse-consumption-exact-source-invalid");
+
+        CharacterId actorId = CharacterPersistentIdentity.Require(actor);
+        ResolveCannibalismReaction(actor, source,
+            out bool sameSpecies, out float mood, out string reaction);
+        string moodId = sameSpecies ? "survival:same-species-cannibalism" : "survival:cannibalism";
+        string memory = $"극한의 굶주림 속에서 {source.SourceDisplayName}을 먹었다";
+        int day = Math.Max(1, calendar.Day);
+        CharacterMoodDeliveryTransactionSnapshot statsBefore =
+            actor.Stats.CaptureMoodDeliveryTransactionState();
+        CharacterDeprivationAggregateState deprivationBefore = stateStore.CaptureTransactionState();
+        float hungerBefore = GetNeed(actor, CharacterCondition.HUNGER);
+        float hygieneBefore = GetNeed(actor, CharacterCondition.HYGIENE);
+        float moodBefore = actor.Stats.Mood;
+        CharacterDeprivationState before = stateStore.Ensure(actor);
+        float infectionBefore = before.infectionBurden;
+        int memoriesBefore = before.tabooMemories?.Count ?? 0;
+        bool committed = false;
+        bool moodApplied = false;
+        float resolvedMood = 0f;
+        PhysicalItemBatchDispositionReceipt physicalReceipt = default;
+        string failure = string.Empty;
+        try
+        {
+            actor.Stats.RecoverEmergencyNeedBeforeOutcomeCommit(CharacterCondition.HUNGER, recovery);
+            resolvedMood = actor.ApplyMoodFactorBeforeOutcomeCommit(
+                moodId, reaction, mood, 900f, 1, out moodApplied);
+            actor.Stats.ChangeConditionBeforeOutcomeCommit(CharacterCondition.HYGIENE, -20f);
+            consequences.AddInfection(actor, sameSpecies ? 20f : 12f);
+            consequences.RecordTabooBeforeOutcomeCommit(actor, memory);
+            CharacterDeprivationState after = stateStore.Ensure(actor);
+            float hungerAfter = GetNeed(actor, CharacterCondition.HUNGER);
+            float hygieneAfter = GetNeed(actor, CharacterCondition.HYGIENE);
+            float moodAfter = actor.Stats.Mood;
+            float infectionAfter = after.infectionBurden;
+            int memoriesAfter = after.tabooMemories?.Count ?? 0;
+            var experience = new CharacterCorpseConsumptionExperienceData
+            {
+                characterId = actorId.Value, characterName = actor.Identity.DisplayName,
+                victimId = source.SourceCharacterId, victimName = source.SourceDisplayName,
+                victimSpecies = source.SourceSpeciesTag, deathReason = source.SourceDeathReason,
+                memory = memory, sameSpecies = sameSpecies, absoluteDay = day,
+                hungerBefore = hungerBefore, hungerAfter = hungerAfter,
+                hygieneBefore = hygieneBefore, hygieneAfter = hygieneAfter,
+                infectionBefore = infectionBefore, infectionAfter = infectionAfter,
+                moodBefore = moodBefore, moodAfter = moodAfter,
+                memoriesBefore = memoriesBefore, memoriesAfter = memoriesAfter
+            };
+            committed = world.TryConsumeCorpse(source, operationId, reasonCode,
+                experience, stateStore, out physicalReceipt, out failure);
+            if (!committed)
+                throw new InvalidOperationException("corpse-consumption-commit-rejected:" + failure);
+        }
+        finally
+        {
+            if (!committed)
+            {
+                // The item authority rolls back only before its canonical commit.
+                // Never restore all items after a durable physical outcome exists.
+                stateStore.RestoreTransactionState(deprivationBefore);
+                actor.Stats.RestoreMoodDeliveryTransactionState(statsBefore, publish: false);
+            }
+        }
+
+        var failures = new List<Exception>();
+        void Publish(Action callback)
+        {
+            try { callback(); }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                && exception is not StackOverflowException && exception is not AccessViolationException)
+            { failures.Add(exception); }
+        }
+        Publish(() => consequences.EndActiveBreakdownIfRelieved(actor));
+        if (!world.AcknowledgeCorpseConsumption(physicalReceipt, stateStore, out string ackFailure))
+            failures.Add(new InvalidOperationException("corpse-consumption-ack-pending:" + ackFailure));
+        if (failure.Length > 0)
+            failures.Add(new InvalidOperationException(failure));
+        if (moodApplied)
+            Publish(() => actor.Stats.PublishCommittedMoodFactor(moodId, resolvedMood, day));
+        Publish(() => actor.Stats.PublishCommittedConditionChange(CharacterCondition.HUNGER,
+            hungerBefore, GetNeed(actor, CharacterCondition.HUNGER), day));
+        Publish(() => actor.Stats.PublishCommittedConditionChange(CharacterCondition.HYGIENE,
+            hygieneBefore, GetNeed(actor, CharacterCondition.HYGIENE), day));
+        Publish(() => consequences.PublishCommittedTaboo(actor, memory, source.SourceCharacterId));
+        Publish(() => consequences.ApplyWitnessMood(actor, actor.GetNowXY(),
+            "금기의 포식을 목격함", sameSpecies ? -12f : -8f, permanentMemory: true));
+        if (failures.Count > 0)
+            throw new AggregateException("Corpse consumption committed; publication or acknowledgement failed.", failures);
+        return true;
+    }
+
+    private static void ResolveCannibalismReaction(CharacterActor actor,
+        WorldItemStackSnapshot consumed, out bool sameSpecies, out float mood, out string reaction)
+    {
+        sameSpecies = !string.IsNullOrWhiteSpace(consumed.SourceSpeciesTag)
             && string.Equals(actor.Identity?.SpeciesTag, consumed.SourceSpeciesTag, StringComparison.OrdinalIgnoreCase);
         CharacterAiPersonality personality = GetPersonality(actor);
         float conscience01 = personality != null
@@ -1133,28 +1291,12 @@ internal sealed class CharacterBreakdownActionRunner
             ? (Mathf.InverseLerp(0.25f, 2f, personality.riskTaking)
                 + Mathf.InverseLerp(0.25f, 2f, personality.noveltySeeking)) * 0.5f
             : 0.5f;
-        float mood = (sameSpecies ? -18f : -11f) * Mathf.Lerp(0.45f, 1.25f, conscience01);
-        string reaction = appetite01 > 0.72f && conscience01 < 0.45f
+        mood = (sameSpecies ? -18f : -11f) * Mathf.Lerp(0.45f, 1.25f, conscience01);
+        reaction = appetite01 > 0.72f && conscience01 < 0.45f
             ? "금기의 맛을 다시 떠올림"
             : conscience01 < 0.35f
                 ? "금기에 무감각해짐"
                 : sameSpecies ? "동족을 먹었다" : "인간형 사체를 먹었다";
-        actor.ApplyMoodFactor(
-            sameSpecies ? "survival:same-species-cannibalism" : "survival:cannibalism",
-            reaction,
-            mood,
-            900f,
-            1);
-        actor.ChangesStat(CharacterCondition.HYGIENE, -20f);
-        consequences.AddInfection(actor, sameSpecies ? 20f : 12f);
-        string victim = string.IsNullOrWhiteSpace(consumed.SourceDisplayName) ? "이름 모를 사체" : consumed.SourceDisplayName;
-        consequences.RecordTaboo(actor, $"극한의 굶주림 속에서 {victim}을 먹었다");
-        consequences.ApplyWitnessMood(
-            actor,
-            actor.GetNowXY(),
-            "금기의 포식을 목격함",
-            sameSpecies ? -12f : -8f,
-            permanentMemory: true);
     }
 
 
@@ -1241,6 +1383,15 @@ internal sealed class CharacterBreakdownActionRunner
                 ? Mathf.Clamp(value, 0f, 100f)
                 : 100f;
     }
+
+    private static float SnapshotStat(
+        CharacterMoodDeliveryTransactionSnapshot snapshot,
+        CharacterCondition condition) =>
+        snapshot != null
+        && snapshot.Stats != null
+        && snapshot.Stats.TryGetValue(condition, out float value)
+            ? value
+            : 0f;
 
     private static bool IsEligibleHumanoid(CharacterActor actor)
     {

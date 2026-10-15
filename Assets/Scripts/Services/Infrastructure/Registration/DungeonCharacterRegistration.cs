@@ -16,6 +16,14 @@ public static class DungeonCharacterRegistration
         builder.RegisterSocialLifeGameplayOutcomeBridges();
         builder.RegisterEnvironmentGameplayOutcomeBridges();
         builder.RegisterWorkCompletionIdentityGameplayOutcomes();
+        builder.RegisterVisitorExitGameplayOutcomes();
+        builder.RegisterFacilityVandalismGameplayOutcomes();
+        builder.RegisterCharacterSkillActivationGameplayOutcomes();
+        builder.RegisterCharacterRitualFastingGameplayOutcomes();
+        builder.RegisterEntryPoint<CharacterVitalsActivityObserver>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<CharacterLevelActivityObserver>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<CharacterAiDiagnosticActivityObserver>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<CharacterActionActivityObserver>(Lifetime.Singleton);
 
         builder.RegisterInstance(runtimeReferences
             ?? throw new ArgumentNullException(nameof(runtimeReferences)));
@@ -25,7 +33,8 @@ public static class DungeonCharacterRegistration
             .AsSelf()
             .As<IExperiencePacingRuntime>();
         builder.RegisterEntryPoint<DungeonRunFlowRuntime>(Lifetime.Singleton)
-            .As<IDungeonRunFlowRuntime>();
+            .As<IDungeonRunFlowRuntime>()
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<RunVariableRuntimeReader>(Lifetime.Singleton)
             .As<IRunVariableRuntimeReader>()
             .As<IRunSeedProvider>()
@@ -48,13 +57,16 @@ public static class DungeonCharacterRegistration
         builder.Register<WorkerNarrativeQualificationQuery>(Lifetime.Singleton)
             .As<IWorkerNarrativeQualificationQuery>();
         builder.Register<TraitAnalysisCommandRuntime>(Lifetime.Singleton)
-            .As<ITraitAnalysisCommand>();
+            .As<ITraitAnalysisCommand>()
+            .As<ITraitAnalysisRecovery>();
+        builder.RegisterEntryPoint<TraitAnalysisRecoveryAdapter>(
+            Lifetime.Singleton);
         builder.Register<HeritableTraitEffectQuery>(Lifetime.Singleton)
             .As<IHeritableTraitEffectQuery>();
         builder.Register<CharacterCultureGameplayRuntime>(Lifetime.Singleton)
             .As<ICharacterCultureGameplayQuery>();
         builder.RegisterEntryPoint<CharacterNarrativeApplicationAdapter>(
-            Lifetime.Singleton);
+            Lifetime.Singleton).As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<V20StoryContentCatalog>(Lifetime.Singleton)
             .AsSelf()
             .As<ISocietyEventCatalog>()
@@ -81,6 +93,9 @@ public static class DungeonCharacterRegistration
             .As<IFactionCampaignDeliveryCommand>()
             .As<IEndlessCrisisCommand>()
             .As<IEndlessCrisisQuery>();
+        SeasonalTerminalFactMapping.Register(builder);
+        builder.Register<SeasonalTerminalFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
         builder.Register<FacilityCapabilityQuery>(Lifetime.Singleton)
             .As<IFacilityCapabilityQuery>();
         builder.Register<SocietyVenueQuery>(Lifetime.Singleton)
@@ -109,8 +124,16 @@ public static class DungeonCharacterRegistration
             .As<IV20ObservedMealIncidentDiagnostic>();
         builder.RegisterEntryPoint<SeasonalWildlifeVisitorApplicationAdapter>(
             Lifetime.Singleton);
+        builder.RegisterEntryPoint<SeasonalSocialPresentationObserver>(
+            Lifetime.Singleton);
+        builder.RegisterEntryPoint<CampaignPresentationObserver>(Lifetime.Singleton).AsSelf();
+        builder.RegisterEntryPoint<WorkAccidentPresentationObserver>(Lifetime.Singleton)
+            .As<IWorkAccidentPresentationDiagnostic>();
+        builder.RegisterEntryPoint<GuestRequestDeliveryPresentationObserver>(Lifetime.Singleton)
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.RegisterEntryPoint<FestivalVenueAlertApplicationAdapter>(
             Lifetime.Singleton);
+        builder.RegisterEntryPoint<FestivalExecutionDriverAdapter>(Lifetime.Singleton);
         builder.RegisterEntryPoint<FactionContractDeliveryApplicationAdapter>(
             Lifetime.Singleton);
         builder.RegisterEntryPoint<GuestRequestDeliveryRuntime>(
@@ -126,7 +149,8 @@ public static class DungeonCharacterRegistration
             .AsSelf()
             .As<ICharacterLifeQuery>()
             .As<ICharacterLifeCommand>()
-            .As<ICharacterLifePersistence>();
+            .As<ICharacterLifePersistence>()
+            .As<IAgeConditionAnatomyProjectionStore>();
         builder.RegisterEntryPoint<NarrativeAuthorityContextBootstrap>(
             Lifetime.Singleton);
         builder.Register<PhysicalAgeTreatmentRuntime>(Lifetime.Singleton)
@@ -135,7 +159,13 @@ public static class DungeonCharacterRegistration
         builder.Register<AgeTreatmentCommandRuntime>(Lifetime.Singleton)
             .As<IAgeTreatmentCommand>();
         builder.RegisterEntryPoint<TemporalStasisMaintenanceAdapter>(Lifetime.Singleton);
-        builder.RegisterEntryPoint<CharacterLifeApplicationAdapter>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<TemporalStasisMaintenanceWarningObserver>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<CharacterLifeApplicationAdapter>(Lifetime.Singleton)
+            .As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterEntryPoint<AgeConditionAnatomyProjectionRuntime>(
+                Lifetime.Singleton)
+            .As<IAgeConditionAnatomyProjectionCommand>()
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.RegisterEntryPoint<CharacterLifeCelebrationAdapter>(Lifetime.Singleton);
         builder.RegisterEntryPoint<CharacterAgeConditionBodyHealthAdapter>(
             Lifetime.Singleton);
@@ -146,11 +176,48 @@ public static class DungeonCharacterRegistration
             .As<IKinshipCommand>()
             .As<IHouseholdService>()
             .As<IKinshipHouseholdPersistence>();
+        // RegisterEntryPoint advertises inherited interfaces too; this journal
+        // must not replace the global IDomainFactPublisher it delegates to.
+        builder.Register<SocialRitualFactJournal>(Lifetime.Singleton)
+            .AsSelf().As<ISocialRitualFactPublisher>()
+            .As<ITickable>()
+            .As<IDungeonRestoreTransactionParticipant>().As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<ReproductionRuntime>(Lifetime.Singleton)
             .As<IReproductionService>()
             .As<IReproductionPersistence>();
         builder.Register<ReproductionCommandRuntime>(Lifetime.Singleton)
-            .As<IReproductionCommand>();
+            .As<IReproductionCommand>()
+            .As<IReproductionStartRecovery>();
+        builder.RegisterEntryPoint<ReproductionStartRecoveryAdapter>(
+            Lifetime.Singleton);
+        builder.Register<ReproductionFactNameQuery>(Lifetime.Singleton).As<IReproductionFactNameQuery>();
+        builder.Register<ReproductionTransitionFactSource>(Lifetime.Singleton);
+        builder.Register<ReproductionTransitionPublication>(Lifetime.Singleton);
+        builder.Register<ReproductionProcessTransitionRuntime>(Lifetime.Singleton)
+            .As<IReproductionProcessTransitionCommand>();
+        builder.RegisterEntryPoint<ReproductionTransitionRecoveryAdapter>(
+            Lifetime.Singleton).As<IDungeonSaveRestoreCompletedHook>();
+        builder.Register<ReproductionEmergencyResponderQuery>(Lifetime.Singleton)
+            .As<IReproductionEmergencyResponderQuery>();
+        builder.Register<ReproductionEmergencyExtractionCommandRuntime>(
+                Lifetime.Singleton)
+            .As<IReproductionEmergencyExtractionCommand>();
+        builder.Register<HouseholdBedInventory>(Lifetime.Singleton)
+            .As<IHouseholdBedInventory>();
+        builder.Register<HouseholdBirthAssignmentRuntime>(Lifetime.Singleton)
+            .As<IHouseholdBirthAssignmentCommand>()
+            .As<IHouseholdBirthAssignmentRecovery>();
+        builder.RegisterEntryPoint<HouseholdBirthAssignmentRecoveryAdapter>(
+            Lifetime.Singleton);
+        builder.Register<ReproductionBirthPublicationPort>(Lifetime.Singleton)
+            .As<IReproductionBirthPublicationPort>();
+        builder.Register<ReproductionBirthTransactionRuntime>(Lifetime.Singleton)
+            .As<IReproductionBirthCommand>()
+            .As<IReproductionBirthRecovery>();
+        builder.RegisterEntryPoint<ReproductionBirthRecoveryAdapter>(
+            Lifetime.Singleton);
+        builder.RegisterEntryPoint<FamilyPlanningPolicyCommandRuntime>(Lifetime.Singleton)
+            .As<IFamilyPlanningPolicyCommand>();
         builder.RegisterEntryPoint<ReproductionProposalAdapter>(
             Lifetime.Singleton);
         builder.RegisterEntryPoint<ReproductionApplicationAdapter>(
@@ -184,7 +251,8 @@ public static class DungeonCharacterRegistration
         builder.Register<CharacterMoodPolicyService>(Lifetime.Singleton);
         builder.RegisterEntryPoint<CharacterRitualFastingRuntime>(Lifetime.Singleton)
             .As<ICharacterRitualFastingQuery>()
-            .As<ICharacterRitualFastingCommand>();
+            .As<ICharacterRitualFastingCommand>()
+            .As<ICharacterIdentityDeathStateRetentionPolicy>();
         builder.Register<CharacterDirectOrderCostPreviewService>(Lifetime.Singleton);
         builder.Register<CharacterRelationshipMemoryService>(Lifetime.Singleton);
         builder.Register<CharacterApologyCommandRuntime>(Lifetime.Singleton)
@@ -196,6 +264,8 @@ public static class DungeonCharacterRegistration
             .As<IGoldenHarvestPreparedResolutionQuery>()
             .As<ICharacterIdentityDeathStateRetentionPolicy>();
         builder.RegisterEntryPoint<ExtremeTraitLeaseClock>(Lifetime.Singleton);
+        builder.Register<ArcaneOverchargeSelfDamageRuntime>(Lifetime.Singleton)
+            .As<IArcaneOverchargeSelfDamageRuntime>();
         builder.Register<ArcaneOverchargeCommandRuntime>(Lifetime.Singleton)
             .As<IArcaneOverchargeCommand>();
         builder.RegisterEntryPoint<CombatIdentityEventAdapter>(Lifetime.Singleton);
@@ -236,7 +306,8 @@ public static class DungeonCharacterRegistration
             .As<IPopulationHealthQuery>()
             .As<IDiseaseSymptomEffectQuery>()
             .As<IPopulationHealthPersistence>()
-            .As<IPopulationHealthMutationTransaction>();
+            .As<IPopulationHealthMutationTransaction>()
+            .As<IDiseaseAnatomyBurdenProjectionStore>();
         builder.Register<PhysicalVaccinationRuntime>(Lifetime.Singleton)
             .As<IPhysicalVaccinationService>()
             .As<IPhysicalVaccinationRecovery>();
@@ -247,14 +318,20 @@ public static class DungeonCharacterRegistration
             .As<IDiseaseFieldResponseRecovery>();
         builder.RegisterEntryPoint<DiseaseFieldResponseRecoveryAdapter>(
             Lifetime.Singleton);
+        builder.RegisterEntryPoint<DiseaseAnatomyBurdenProjectionRuntime>(
+                Lifetime.Singleton)
+            .As<IDiseaseAnatomyBurdenProjectionCommand>()
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.RegisterEntryPoint<PopulationHealthApplicationAdapter>(Lifetime.Singleton);
         builder.Register<SpeciesIncidentHandlerRegistry>(Lifetime.Singleton)
             .As<ISpeciesIncidentHandlerRegistry>();
         builder.RegisterEntryPoint<CharacterSpeciesRuntime>(Lifetime.Singleton)
             .As<ICharacterSpeciesQuery>()
             .As<ICharacterSpeciesCommand>()
+            .As<ICharacterSpeciesContributionCommand>()
             .As<ICharacterSpeciesRechargeService>()
-            .As<ICharacterSpeciesPersistence>();
+            .As<ICharacterSpeciesPersistence>()
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<ResourceOwnerCandidateCatalog>(Lifetime.Singleton)
             .As<IOwnerCandidateCatalog>();
         builder.Register<RunStartVariableCatalog>(Lifetime.Singleton)
@@ -329,6 +406,33 @@ public static class DungeonCharacterRegistration
         builder.Register<CharacterPopulationService>(Lifetime.Singleton)
             .As<ICharacterPopulationService>()
             .As<ICharacterSettlementStandingQuery>();
+        builder.Register<CharacterVisitorExitOutcomeRuntime>(Lifetime.Singleton)
+            .As<ICharacterVisitorExitOutcomeRuntime>();
+        builder.RegisterEntryPoint<VisitorExitPublicationRuntime>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreTransactionParticipant>().As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterEntryPoint<SocialInteractionPublicationRuntime>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreTransactionParticipant>().As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterEntryPoint<FacilityVandalismPublicationOutbox>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonSaveRestoreCompletedHook>();
+        builder.Register<CharacterVandalismCommand>(Lifetime.Singleton)
+            .As<ICharacterVandalismCommand>();
+        builder.Register<CharacterSkillActivationEffectExecutor>(
+                Lifetime.Singleton)
+            .As<ICharacterSkillActivationEffectExecutor>();
+        builder.Register<CharacterSkillActivationPublicationRuntime>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreTransactionParticipant>();
+        builder.RegisterEntryPoint<CharacterSkillAcquisitionPublicationRuntime>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreTransactionParticipant>().As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterEntryPoint<CharacterTraitInferencePublicationRuntime>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreTransactionParticipant>().As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterEntryPoint<CharacterTraitReactionPublicationRuntime>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreTransactionParticipant>().As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterEntryPoint<MemoryErasurePublicationRuntime>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreTransactionParticipant>().As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterEntryPoint<CharacterSkillActivationTransaction>(Lifetime.Singleton)
+            .As<ICharacterSkillActivationTransaction>().As<ICharacterSkillAppliedActivationCommand>();
+        builder.RegisterGameplayDomainFact<CharacterSkillActivationFact, CharacterSkillActivationOutcomeReceipt>(
+            "log:character.skill-activated", CharacterSkillActivationFactMapping.Capture);
         builder.Register<PreparedStartPartyCharacterContext>(Lifetime.Singleton);
         builder.Register<PreparedStartPartyWorldContext>(Lifetime.Singleton);
         builder.Register<PreparedStartPartyGameplayApplier>(Lifetime.Singleton)
@@ -344,6 +448,7 @@ public static class DungeonCharacterRegistration
         builder.RegisterEntryPoint<CharacterSkillAutomaticTriggerRuntime>(
                 Lifetime.Singleton)
             .AsSelf();
+        builder.RegisterEntryPoint<InvasionExposureExperienceObserver>(Lifetime.Singleton);
         builder.Register<CharacterRecordTemplateBank>(Lifetime.Singleton);
         builder.Register<CharacterLogNarrativeService>(Lifetime.Singleton)
             .AsSelf()

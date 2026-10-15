@@ -151,7 +151,10 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                 subject = new SurgicalSubjectRef { kind = SurgicalSubjectKind.Character, subjectId = actorId },
                 targetNodeId = targetNodes[i], selectedPartInstanceId = partId,
                 state = SurgeryOrderState.Completed, resultRolled = true, resultSucceeded = true,
-                resultOutcomeId = "success", resolvedEffectCount = 1
+                resultOutcomeId = "success", resolvedEffectCount = 1,
+                completionDoctorId =
+                    "character:wim023-history-terminal-doctor-" + i,
+                completionAbsoluteDay = 10 + i
             });
             node.installedPartId = partId;
             node.installedPartKind = effect.partKind;

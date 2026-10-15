@@ -65,7 +65,7 @@ public interface IRetailEquipmentAuthority
 /// item transfer can consume it without closing the combat -> physical item ->
 /// item transfer dependency cycle.
 /// </summary>
-public sealed class RetailEquipmentAuthority : IRetailEquipmentAuthority
+public sealed class RetailEquipmentAuthority : IRetailEquipmentAuthority, IReversibleRetailEquipmentAuthority
 {
     private readonly ICombatEquipmentCatalog catalog;
     private readonly IItemInstanceRepository items;
@@ -86,6 +86,11 @@ public sealed class RetailEquipmentAuthority : IRetailEquipmentAuthority
             .Where(value => value != null)
             .Select(value => value.Clone())
             .ToArray();
+
+    public bool TryConsumeRetailStockReversible(string id, string operation,
+        out IRetailStockSinkTransaction transaction, out string failure) =>
+        RetailEquipmentSinkTransaction.TryApply(items, loadouts.States.Values, id, operation,
+            out transaction, out failure);
 
     public CombatEquipmentInstance CreateExternalInstance(
         string definitionId,
@@ -280,7 +285,7 @@ public sealed class RetailEquipmentAuthority : IRetailEquipmentAuthority
 }
 
 public sealed class CombatEquipmentRuntimeRetailAuthorityAdapter :
-    IRetailEquipmentAuthority
+    IRetailEquipmentAuthority, IReversibleRetailEquipmentAuthority
 {
     private readonly ICombatEquipmentRuntime runtime;
 
@@ -289,6 +294,13 @@ public sealed class CombatEquipmentRuntimeRetailAuthorityAdapter :
 
     public IReadOnlyCollection<EquipmentModuleInstance> ModuleInstances =>
         runtime.ModuleInstances;
+    public bool TryConsumeRetailStockReversible(string id, string operation,
+        out IRetailStockSinkTransaction transaction, out string failure)
+    {
+        if (runtime is IReversibleRetailEquipmentAuthority authority)
+            return authority.TryConsumeRetailStockReversible(id, operation, out transaction, out failure);
+        transaction = null; failure = "retail-equipment-reversible-sink-unavailable"; return false;
+    }
     public CombatEquipmentInstance CreateExternalInstance(
         string definitionId,
         CombatEquipmentQuality quality) =>
@@ -319,7 +331,7 @@ public sealed class CombatEquipmentRuntimeRetailAuthorityAdapter :
 /// joined to the equipment instance repository while it is retail stock and is
 /// removed from that repository only at the terminal external sink boundary.
 /// </summary>
-public sealed class RetailStockPhysicalRuntime : IRetailStockPhysicalRuntime
+public sealed class RetailStockPhysicalRuntime : IRetailStockPhysicalRuntime, IReversibleRetailStockPhysicalRuntime
 {
     private readonly IRetailEquipmentAuthority equipment;
 
@@ -413,6 +425,26 @@ public sealed class RetailStockPhysicalRuntime : IRetailStockPhysicalRuntime
         RetailStockLotSnapshot lot,
         out string failureReason)
     {
+        if (!ValidateExternalSink(lot, out failureReason)) return false;
+        return string.IsNullOrEmpty(lot.itemInstanceId) || equipment.TryConsumeRetailStock(
+            lot.itemInstanceId, lot.sourceOperationId, out _, out failureReason);
+    }
+
+    public bool TryCommitExternalSinkReversible(RetailStockLotSnapshot lot,
+        out IRetailStockSinkTransaction transaction, out string failureReason)
+    {
+        transaction = null;
+        if (!ValidateExternalSink(lot, out failureReason)) return false;
+        if (string.IsNullOrEmpty(lot.itemInstanceId))
+        { transaction = RetailEquipmentSinkTransaction.NoSecondaryOwner(); return true; }
+        if (equipment is IReversibleRetailEquipmentAuthority authority)
+            return authority.TryConsumeRetailStockReversible(lot.itemInstanceId, lot.sourceOperationId,
+                out transaction, out failureReason);
+        failureReason = "retail-equipment-reversible-sink-unavailable"; return false;
+    }
+
+    private bool ValidateExternalSink(RetailStockLotSnapshot lot, out string failureReason)
+    {
         failureReason = string.Empty;
         if (lot == null
             || lot.quantity != 1
@@ -455,11 +487,7 @@ public sealed class RetailStockPhysicalRuntime : IRetailStockPhysicalRuntime
             return false;
         }
 
-        return equipment.TryConsumeRetailStock(
-            lot.itemInstanceId,
-            lot.sourceOperationId,
-            out _,
-            out failureReason);
+        return true;
     }
 
     public bool TryPrepareExistingUniqueLot(

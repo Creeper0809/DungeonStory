@@ -219,7 +219,7 @@ public static class LlmStaticSchemaCatalog
     private static readonly LlmStaticSchemaDefinition[] Definitions =
     {
         new("CharacterSkill", 3, CharacterSkillSchema, true),
-        new("CharacterSkillModuleSelection", 6, CharacterSkillModuleSelectionBatchSchema, true),
+        new("CharacterSkillModuleSelection", 7, CharacterSkillModuleSelectionBatchSchema, true),
         new("CharacterSkillLegacyV2", 2, CharacterSkillLegacyV2Schema, true),
         new("Persona", 2, PersonaSchema, true),
         new("MacroGoal", 1, MacroGoalSchema, false),

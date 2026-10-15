@@ -42,7 +42,8 @@ public sealed class OffenseRewardGrantResult
         int grantedAmount,
         bool success,
         string detail,
-        IReadOnlyList<OffenseRewardPhysicalItemGrant> physicalItems = null)
+        IReadOnlyList<OffenseRewardPhysicalItemGrant> physicalItems = null,
+        OffenseStockRewardReceipt stockSupply = null)
     {
         this.category = category;
         this.label = label ?? string.Empty;
@@ -51,6 +52,7 @@ public sealed class OffenseRewardGrantResult
         this.success = success;
         this.detail = detail ?? string.Empty;
         this.physicalItems = EventPayloadSnapshot.Copy(physicalItems);
+        this.stockSupply = stockSupply;
     }
 
     public OffenseRewardCategory category { get; }
@@ -60,6 +62,7 @@ public sealed class OffenseRewardGrantResult
     public bool success { get; }
     public string detail { get; }
     public IReadOnlyList<OffenseRewardPhysicalItemGrant> physicalItems { get; }
+    public OffenseStockRewardReceipt stockSupply { get; }
 
     public string ToSummaryText()
     {

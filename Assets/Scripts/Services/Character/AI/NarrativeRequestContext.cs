@@ -243,21 +243,6 @@ public static class NarrativeRequestContextBuilder
         return context;
     }
 
-    public static NarrativeRequestContext ForProgression(
-        string profileId,
-        CharacterProgression progression,
-        bool requireCharacterFact,
-        bool requireMotif)
-    {
-        CharacterActor actor = progression != null
-            ? progression.GetComponent<CharacterActor>()
-            : null;
-        NarrativeRequestContext context = ForActor(
-            profileId, actor, requireCharacterFact, requireMotif);
-        if (actor == null && progression != null) AddProgressionFacts(context, progression);
-        return context;
-    }
-
     public static NarrativePublicContextMaterial BuildPublicMaterialForActor(
         string profileId,
         CharacterActor actor,
@@ -319,7 +304,8 @@ public static class NarrativeRequestContextBuilder
         bool requireMotif,
         IEnumerable<string> requiredOriginalFactIds,
         IEnumerable<NarrativeLedgerPublicationDescriptor> ledgerPublicationDescriptors,
-        bool includeCurrentNeeds)
+        bool includeCurrentNeeds,
+        IEnumerable<string> requiredProjectedFactIds = null)
     {
         if (actor == null) throw new ArgumentNullException(nameof(actor));
         CharacterIdentity identity = actor.Identity
@@ -374,6 +360,21 @@ public static class NarrativeRequestContextBuilder
         }
 
         string cultureOrSpecies = ResolveCultureOrSpecies(actor);
+        var requiredProjected = new HashSet<string>(
+            requiredProjectedFactIds ?? Array.Empty<string>(), StringComparer.Ordinal);
+        if (requiredProjected.Count > NarrativeRequestContext.MaximumFacts)
+            throw new InvalidOperationException(RequiredEvidenceExceedsSelectionCap
+                + ": selected evidence exceeds the public context cap.");
+        // Reserve exact tuples, not a representative with the same event name
+        // but a different domain/target. These priorities are never model scores.
+        facts = facts.Select(fact => requiredProjected.Contains(
+                NarrativePublicContextFactory.BuildProjectedFactId(
+                    fact.Domain, fact.OriginalFactId, fact.SourceSubjectId))
+            ? new NarrativePublicFactInput(fact.Domain, fact.OriginalFactId,
+                fact.SourceSubjectId, fact.Text, Math.Max(10000, fact.Priority),
+                fact.Category, fact.PublicSubjectId, fact.Outcome, fact.LastDay,
+                fact.Count, fact.MilestoneCount, fact.TotalValue, fact.EventData)
+            : fact).ToList();
         NarrativePublicContextMaterial material = NarrativePublicContextFactory.Build(
             profileId,
             subjectId,
@@ -386,6 +387,9 @@ public static class NarrativeRequestContextBuilder
             "public-context:character:v2:required-representative-priority-ordinal-cap24");
         if (includeCurrentNeeds)
             RequireCurrentNeedFactsSelected(material, subjectId);
+        if (requiredProjected.Any(id => !material.Events.Any(value => value.FactId == id)))
+            throw new InvalidOperationException(
+                "Required exact narrative tuple has no selected readable public event.");
         foreach (string required in requiredFacts)
         {
             NarrativePublicFact[] selected = material.PublicFacts
@@ -422,6 +426,16 @@ public static class NarrativeRequestContextBuilder
             requireMotif,
             requiredOriginalFactIds,
             ledgerPublicationDescriptors: null);
+    }
+
+    internal static NarrativePublicContextMaterial BuildSkillMaterialWithRequiredFacts(
+        CharacterProgression progression, IEnumerable<string> requiredProjectedFactIds)
+    {
+        if (progression == null) throw new ArgumentNullException(nameof(progression));
+        return BuildPublicMaterialForActorCore(
+            LocalLlmRequestProfiles.CharacterSkill.Id,
+            progression.GetComponent<CharacterActor>(), true, true, null, null,
+            includeCurrentNeeds: false, requiredProjectedFactIds: requiredProjectedFactIds);
     }
 
     public static NarrativePublicContextMaterial BuildPublicMaterialForProgression(
@@ -510,13 +524,6 @@ public static class NarrativeRequestContextBuilder
                 context.AddFact("fact:age-condition:" + Token(condition.ConditionId),
                     $"Age condition: {condition.ConditionId}; severity: {condition.Severity}", 83);
         }
-    }
-
-    public static NarrativeRequestContext DefaultForProfile(string profileId)
-    {
-        LlmStaticSchemaDefinition schema = LlmStaticSchemaCatalog.Require(profileId);
-        return NarrativeCultureStyleCatalog.Create(
-            profileId, string.Empty, false, schema.PersistentNarrative);
     }
 
     private static void AddProgressionFacts(NarrativeRequestContext context, CharacterProgression progression)

@@ -9,6 +9,7 @@ public sealed class SurvivalBuildingAbilityHandler :
         typeof(BuildingWaterSourceAbility),
         typeof(BuildingCookingAbility),
         typeof(BuildingMedicalAbility),
+        typeof(BuildingFuelConsumerAbility),
         typeof(BuildingGolemRechargeAbility)
     };
 
@@ -45,6 +46,8 @@ public sealed class SurvivalBuildingAbilityHandler :
                 && workTypeId == BuiltInWorkTypeIds.Cook
             || ability is BuildingMedicalAbility
                 && workTypeId == BuiltInWorkTypeIds.Treat
+            || ability is BuildingFuelConsumerAbility
+                && workTypeId == BuiltInWorkTypeIds.Refuel
             || ability is BuildingGolemRechargeAbility
                 && workTypeId == BuiltInWorkTypeIds.Refuel;
     }

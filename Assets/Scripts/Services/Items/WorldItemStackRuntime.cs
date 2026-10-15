@@ -69,6 +69,7 @@ public sealed class WorldItemStackRuntime :
         restoreCandidateDispositions;
     private Dictionary<string, WorldItemStackRecord>
         restoreCandidateStacksByInstanceId;
+    private Dictionary<string, WorldItemStackRecord> restoreCandidateStacksById;
     private Dictionary<string, PhysicalItemRestoreCandidateDispositionSnapshot>
         restoreCandidateDispositionsByOperation;
     private IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
@@ -407,16 +408,22 @@ public sealed class WorldItemStackRuntime :
             }
         }
 
-        IReadOnlyList<OutputClearancePickupSlice> pickedOutputSlices =
-            CapturePlannedOutputPickupSlices(carried);
         bool committed = haulDeliveryIntentCommands.TryCommitPickup(
             operationId,
             inventory,
             out failureReason);
-        if (committed
-            && outputClearanceTelemetry != null
-            && pickedOutputSlices.Count > 0)
+        if (!committed || outputClearanceTelemetry?.IsCaptureActive != true)
+            return committed;
+
+        // Telemetry is not physical custody authority. A historical receipt can
+        // legitimately outlive a split/merge; diagnostics may reject that sample
+        // but must not strand carried items before the intent commit.
+        try
         {
+            IReadOnlyList<OutputClearancePickupSlice> pickedOutputSlices =
+                CapturePlannedOutputPickupSlices(carried);
+            if (pickedOutputSlices.Count == 0)
+                return true;
             long pickedAt = FacilityOutputClearanceTelemetryRuntime
                 .CaptureMicroGameHours(gameClock
                     ?? throw new InvalidOperationException(
@@ -432,6 +439,11 @@ public sealed class WorldItemStackRuntime :
                         slice.MassGrams,
                         pickedAt));
             }
+        }
+        catch (Exception exception)
+        {
+            outputClearanceTelemetry.RecordObservationFailure(
+                "haul-pickup-observation-failed:" + operationId + ":" + exception);
         }
         return committed;
     }
@@ -842,6 +854,20 @@ public sealed class WorldItemStackRuntime :
         return true;
     }
 
+    public bool TryGetStackById(string stackId,
+        out PhysicalItemRestoreCandidateStackSnapshot stack)
+    {
+        stack = null;
+        if (!IsCandidateAvailable || string.IsNullOrWhiteSpace(stackId)
+            || restoreCandidateStacksById == null
+            || !restoreCandidateStacksById.TryGetValue(stackId, out WorldItemStackRecord record))
+            return false;
+        stack = new PhysicalItemRestoreCandidateStackSnapshot(
+            record.stackId, (ItemInstanceId)record.itemInstanceId, record.itemId,
+            record.quantity, record.state, record.position, record.destinationId, record.forbidden);
+        return true;
+    }
+
     IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
         IProductionInputDestinationCustodyDrainRestoreCandidateQuery.Drains =>
         restoreCandidateInputDestinationDrains
@@ -1052,6 +1078,7 @@ public sealed class WorldItemStackRuntime :
         }
         if (restoreCandidateDispositions != null
             || restoreCandidateStacksByInstanceId != null
+            || restoreCandidateStacksById != null
             || restoreCandidateDispositionsByOperation != null
             || restoreCandidateInputDestinationDrains != null
             || restoreCandidateInputDestinationDrainsByStep != null
@@ -1070,6 +1097,14 @@ public sealed class WorldItemStackRuntime :
 
         Dictionary<string, WorldItemStackRecord> stacksByInstanceId =
             new(StringComparer.Ordinal);
+        Dictionary<string, WorldItemStackRecord> stacksById = new(StringComparer.Ordinal);
+        foreach (WorldItemStackRecord record in staged.RepositoryState.Records
+                     .Where(value => value != null && value.quantity > 0))
+        {
+            if (!stacksById.TryAdd(record.stackId, record))
+                throw new InvalidOperationException(
+                    $"Duplicate physical restore candidate stack '{record.stackId}'.");
+        }
         foreach (WorldItemStackRecord record in staged.RepositoryState.Records
                      .Where(value => value != null
                          && value.quantity > 0
@@ -1211,6 +1246,7 @@ public sealed class WorldItemStackRuntime :
         // locals so a rejected candidate cannot leave a partially visible
         // cross-section restore index behind.
         restoreCandidateStacksByInstanceId = stacksByInstanceId;
+        restoreCandidateStacksById = stacksById;
         restoreCandidateDispositions = Array.AsReadOnly(snapshots);
         restoreCandidateDispositionsByOperation = byOperation;
         restoreCandidateInputDestinationDrains = Array.AsReadOnly(inputDrains);
@@ -1279,6 +1315,7 @@ public sealed class WorldItemStackRuntime :
     private void ClearPhysicalRestoreCandidateIndex()
     {
         restoreCandidateStacksByInstanceId = null;
+        restoreCandidateStacksById = null;
         restoreCandidateDispositions = null;
         restoreCandidateDispositionsByOperation = null;
         restoreCandidateInputDestinationDrains = null;
@@ -2413,6 +2450,50 @@ public sealed class WorldItemStackRuntime :
         record.hasDestinationPosition = true;
         record.destinationPosition = destinationPosition;
         record.reservedByPersistentId = string.Empty;
+        MarkStacksChanged();
+        RefreshMarkerAt(record.position);
+        return true;
+    }
+
+    // Undo only routing metadata of the same unreserved item, never invent a
+    // destination or overwrite a route now owned by another operation.
+    public bool TryRestoreStackRoute(
+        WorldItemStackSnapshot original,
+        WorldItemStackState appliedState,
+        string appliedDestinationId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (original == null || string.IsNullOrWhiteSpace(original.StackId)
+            || !stacksById.TryGetValue(original.StackId, out WorldItemStackRecord record)
+            || record == null || record.quantity != original.Quantity
+            || record.itemId != original.ItemId || record.itemInstanceId != original.ItemInstanceId
+            || record.position != original.Position)
+        {
+            failureReason = "items.route-rollback-owner-conflict";
+            return false;
+        }
+        bool alreadyRestored = record.state == original.State
+            && record.reservedQuantity == original.ReservedQuantity
+            && record.destinationId == original.DestinationId
+            && record.sourceStorageDestinationId == original.SourceStorageDestinationId
+            && record.hasDestinationPosition == original.HasDestinationPosition
+            && record.destinationPosition == original.DestinationPosition
+            && record.reservedByPersistentId == original.ReservedByPersistentId;
+        if (alreadyRestored) return true;
+        if (original.ReservedQuantity != 0 || record.reservedQuantity != 0
+            || record.state != appliedState || record.destinationId != appliedDestinationId
+            || FacilityOutputExactRouteCustodyCodec.HasAnyCustody(record.components))
+        {
+            failureReason = "items.route-rollback-route-conflict";
+            return false;
+        }
+        record.state = original.State;
+        record.destinationId = original.DestinationId;
+        record.sourceStorageDestinationId = original.SourceStorageDestinationId;
+        record.hasDestinationPosition = original.HasDestinationPosition;
+        record.destinationPosition = original.DestinationPosition;
+        record.reservedByPersistentId = original.ReservedByPersistentId;
         MarkStacksChanged();
         RefreshMarkerAt(record.position);
         return true;

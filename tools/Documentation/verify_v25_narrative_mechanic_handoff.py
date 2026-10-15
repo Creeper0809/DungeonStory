@@ -20,7 +20,7 @@ from typing import Any, Iterable
 
 
 EXPECTED_PROFILES = {
-    "CharacterSkill",
+    "CharacterSkillModuleSelection",
     "FacilityEvolution",
     "EquipmentChoice",
     "EvolutionHistory",
@@ -29,7 +29,7 @@ EXPECTED_PROFILES = {
 }
 
 EXPECTED_SCENARIO_COUNTS = {
-    "CharacterSkill": 20,
+    "CharacterSkillModuleSelection": 20,
     "FacilityEvolution": 15,
     "EquipmentChoice": 15,
     "EvolutionHistory": 15,
@@ -38,7 +38,7 @@ EXPECTED_SCENARIO_COUNTS = {
 }
 
 STALE_COMBINATION_NEGATIVE_SCENARIO_ID = (
-    "character-skill-negative-passive-need-changed-v17-cleaning-stock-small-stale-combination-id"
+    "character-skill-negative-stale-selection"
 )
 EXPECTED_NEGATIVE_SCENARIO_IDS = {
     "acquired-trait-negative-active-module",
@@ -48,21 +48,34 @@ EXPECTED_NEGATIVE_SCENARIO_IDS = {
     "acquired-trait-negative-consumed-milestone-after-erasure",
     "acquired-trait-negative-duplicate-evidence",
     "acquired-trait-negative-evidence-forgery",
-    "character-skill-negative-duplicate-rule",
-    "character-skill-negative-forged-combination",
+    "character-skill-negative-empty-positive",
+    "character-skill-negative-forged-module",
+    "character-skill-negative-invented-evidence",
     STALE_COMBINATION_NEGATIVE_SCENARIO_ID,
-    "character-skill-negative-wrong-count",
     "equipment-choice-reject-out-of-range-index",
     "evolution-history-reject-changed-effect-budget",
     "facility-evolution-reject-illegal-proposal-id",
     "persona-reject-extra-mechanical-key",
 }
+
+EXPECTED_PUBLIC_CONTEXT_PROFILE_BY_SCENARIO = {
+    "CharacterSkillModuleSelection": "CharacterSkill",
+    "FacilityEvolution": "FacilityEvolutionLegacyV2",
+    "EquipmentChoice": "EquipmentChoiceLegacyV2",
+    "EvolutionHistory": "EvolutionHistoryLegacyV2",
+    "AcquiredTrait": "AcquiredTrait",
+    "Persona": "Persona",
+}
+EXPECTED_PUBLIC_CONTEXT_PROFILES = set(
+    EXPECTED_PUBLIC_CONTEXT_PROFILE_BY_SCENARIO.values()
+)
 EXPECTED_NEGATIVE_SCENARIO_COUNT = len(EXPECTED_NEGATIVE_SCENARIO_IDS)
 CONSUMED_MILESTONE_NEGATIVE_SCENARIO_ID = (
     "acquired-trait-negative-consumed-milestone-after-erasure"
 )
 
 REQUIRED_DELIVERY_FILES = {
+    "b1_a05_g13_accepted_evidence.json",
     "catalog.json",
     "continuity_scenarios.json",
     "delivery_manifest.json",
@@ -76,16 +89,32 @@ REQUIRED_DELIVERY_FILES = {
     "test_evidence.json",
 }
 
-EXPECTED_RESPONSE_KEYS = {
-    "CharacterSkill": {
-        "candidates",
-        "candidates[].ruleId",
-        "candidates[].combinationId",
-        "candidates[].displayName",
-        "candidates[].description",
-        "candidates[].narrativeReason",
+B1_A05_G13_SOURCE_PATH = (
+    "Artifacts/QA/GameplayActionLedgerAudit-20260926-r1/A05/accepted-evidence.json"
+)
+
+MODULE_SELECTION_RESPONSE_KEYS = {
+    "selectionId",
+    "positiveModuleIds",
+    "drawbackModuleIds",
+    "evidenceFactIds",
+    "displayName",
+    "narrativeFlavor",
+}
+
+EXPECTED_PARITY_RESPONSE_KEYS = {
+    "CharacterSkillModuleSelection": MODULE_SELECTION_RESPONSE_KEYS,
+    "AcquiredTrait": MODULE_SELECTION_RESPONSE_KEYS,
+    "EvolutionHistory": MODULE_SELECTION_RESPONSE_KEYS,
+    "FacilityEvolution": MODULE_SELECTION_RESPONSE_KEYS,
+    "AcquiredTraitLegacyV2": {
+        "combinationId",
+        "displayName",
+        "description",
+        "narrativeReason",
+        "evidenceFactIds",
     },
-    "FacilityEvolution": {
+    "FacilityEvolutionLegacyV2": {
         "proposalIds",
         "mutationTags",
         "reasons",
@@ -94,8 +123,8 @@ EXPECTED_RESPONSE_KEYS = {
         "flavorText",
         "confidence",
     },
-    "EquipmentChoice": {"selectedIndex"},
-    "EvolutionHistory": {
+    "EquipmentChoiceLegacyV2": {"selectedIndex"},
+    "EvolutionHistoryLegacyV2": {
         "requestKey",
         "targetPersistentId",
         "nodeId",
@@ -106,13 +135,6 @@ EXPECTED_RESPONSE_KEYS = {
         "displayName",
         "description",
         "historyReason",
-    },
-    "AcquiredTrait": {
-        "combinationId",
-        "displayName",
-        "description",
-        "narrativeReason",
-        "evidenceFactIds",
     },
     "Persona": {"personaName", "flavorText"},
 }
@@ -126,17 +148,23 @@ REQUIRED_EVIDENCE_GATES = {
 
 CHARACTER_SKILL_REQUEST_KEYS = {
     "candidateCount",
+    "candidatePacket",
     "kind",
+    "prompt",
     "requestKey",
+    "requestedUltimateDomain",
     "rules",
+    "selectionRequest",
+    "unlockLevel",
 }
 
 CHARACTER_SKILL_RULE_KEYS = {
     "allowedModuleIds",
     "allowedVariantIds",
     "budget",
-    "combinationOptions",
     "cooldownTurns",
+    "mechanicalPolicySource",
+    "moduleOptions",
     "rarity",
     "ruleId",
     "target",
@@ -144,6 +172,32 @@ CHARACTER_SKILL_RULE_KEYS = {
     "trigger",
     "ultimateDomain",
     "usableFrom",
+}
+
+CHARACTER_SKILL_MODULE_OPTION_KEYS = {
+    "capabilityId",
+    "moduleDisplayName",
+    "moduleId",
+    "polarity",
+}
+
+CHARACTER_SKILL_SELECTION_REQUEST_KEYS = {
+    "evidenceFactIds",
+    "maximumDrawbackModules",
+    "maximumPositiveModules",
+    "minimumPositiveModules",
+    "offers",
+    "qualifiedNegativeEvidenceFactIds",
+    "selectionId",
+}
+
+CHARACTER_SKILL_SELECTION_OFFER_KEYS = {
+    "capabilityId",
+    "moduleId",
+    "polarity",
+    "requiredCompanionGroups",
+    "requiredCompanionModuleIds",
+    "semanticDescription",
 }
 
 CHARACTER_SKILL_COMBINATION_KEYS = {
@@ -574,6 +628,88 @@ def validate_character_skill_request(
     require(isinstance(request, dict), f"{case_id}: CharacterSkill request must be an object")
     missing = sorted(CHARACTER_SKILL_REQUEST_KEYS - set(request))
     require(not missing, f"{case_id}: CharacterSkill request missing {missing}")
+    selection = request.get("selectionRequest")
+    require(
+        isinstance(selection, dict)
+        and set(selection) == CHARACTER_SKILL_SELECTION_REQUEST_KEYS,
+        f"{case_id}: CharacterSkill selectionRequest fields differ",
+    )
+    selection_id = selection.get("selectionId")
+    require(
+        isinstance(selection_id, str) and selection_id.startswith("selection:skill:"),
+        f"{case_id}: selectionId differs",
+    )
+    evidence_ids = selection.get("evidenceFactIds")
+    qualified_negative_ids = selection.get("qualifiedNegativeEvidenceFactIds")
+    require(
+        isinstance(evidence_ids, list)
+        and bool(evidence_ids)
+        and len(evidence_ids) == len(set(evidence_ids))
+        and all(isinstance(value, str) and value for value in evidence_ids),
+        f"{case_id}: selection evidenceFactIds differ",
+    )
+    require(
+        isinstance(qualified_negative_ids, list)
+        and len(qualified_negative_ids) == len(set(qualified_negative_ids))
+        and set(qualified_negative_ids) <= set(evidence_ids),
+        f"{case_id}: qualified negative evidence differs",
+    )
+    minimum_positive = selection.get("minimumPositiveModules")
+    maximum_positive = selection.get("maximumPositiveModules")
+    maximum_drawback = selection.get("maximumDrawbackModules")
+    require(
+        minimum_positive == 1
+        and type(maximum_positive) is int
+        and 1 <= maximum_positive <= 3
+        and type(maximum_drawback) is int
+        and 0 <= maximum_drawback <= 3,
+        f"{case_id}: module-selection cardinality differs",
+    )
+    offers = selection.get("offers")
+    require(isinstance(offers, list) and offers, f"{case_id}: selection offers must be non-empty")
+    selection_module_ids: set[str] = set()
+    positive_offer_ids: set[str] = set()
+    drawback_offer_ids: set[str] = set()
+    for ordinal, offer in enumerate(offers):
+        require(
+            isinstance(offer, dict) and set(offer) == CHARACTER_SKILL_SELECTION_OFFER_KEYS,
+            f"{case_id}: selection offer {ordinal} fields differ",
+        )
+        module_id = offer.get("moduleId")
+        require(
+            isinstance(module_id, str) and module_id and module_id not in selection_module_ids,
+            f"{case_id}: selection offer {ordinal} moduleId differs",
+        )
+        selection_module_ids.add(module_id)
+        polarity = offer.get("polarity")
+        require(polarity in {"Positive", "Drawback"}, f"{case_id}: selection offer {ordinal} polarity differs")
+        (positive_offer_ids if polarity == "Positive" else drawback_offer_ids).add(module_id)
+        require(
+            isinstance(offer.get("semanticDescription"), str)
+            and bool(offer["semanticDescription"]),
+            f"{case_id}: selection offer {ordinal} semanticDescription is empty",
+        )
+        for key in ("requiredCompanionGroups", "requiredCompanionModuleIds"):
+            values = offer.get(key)
+            require(
+                isinstance(values, list)
+                and len(values) == len(set(values))
+                and all(isinstance(value, str) and value for value in values),
+                f"{case_id}: selection offer {ordinal} {key} differs",
+            )
+    require(bool(positive_offer_ids), f"{case_id}: selection has no positive offer")
+    require(
+        maximum_positive <= len(positive_offer_ids)
+        and maximum_drawback <= len(drawback_offer_ids),
+        f"{case_id}: selection cardinality exceeds offered modules",
+    )
+    candidate_packet = request.get("candidatePacket")
+    require(
+        isinstance(candidate_packet, str)
+        and selection_id in candidate_packet
+        and all(value in candidate_packet for value in evidence_ids),
+        f"{case_id}: typed selection request differs from candidatePacket",
+    )
     rules = request.get("rules")
     require(isinstance(rules, list) and rules, f"{case_id}: rules must be non-empty")
     require(request.get("candidateCount") == len(rules), f"{case_id}: candidateCount differs from rules")
@@ -581,62 +717,40 @@ def validate_character_skill_request(
         require(isinstance(rule, dict), f"{case_id}: rule {ordinal} must be an object")
         missing_rule = sorted(CHARACTER_SKILL_RULE_KEYS - set(rule))
         require(not missing_rule, f"{case_id}: rule {ordinal} missing {missing_rule}")
-        combinations = rule.get("combinationOptions")
+        combinations = rule.get("moduleOptions")
         require(
             isinstance(combinations, list) and combinations,
-            f"{case_id}: rule {ordinal} combinationOptions must be non-empty",
+            f"{case_id}: rule {ordinal} moduleOptions must be non-empty",
         )
+        module_ids: set[str] = set()
+        allowed_module_ids = rule.get("allowedModuleIds")
+        require(isinstance(allowed_module_ids, list), f"{case_id}: rule {ordinal} allowedModuleIds differs")
         for combination_ordinal, combination in enumerate(combinations):
             require(
                 isinstance(combination, dict),
-                f"{case_id}: rule {ordinal} combination {combination_ordinal} must be an object",
+                f"{case_id}: rule {ordinal} module option {combination_ordinal} must be an object",
             )
-            missing_combination = sorted(CHARACTER_SKILL_COMBINATION_KEYS - set(combination))
+            missing_combination = sorted(CHARACTER_SKILL_MODULE_OPTION_KEYS - set(combination))
             require(
                 not missing_combination,
-                f"{case_id}: rule {ordinal} combination {combination_ordinal} missing {missing_combination}",
+                f"{case_id}: rule {ordinal} module option {combination_ordinal} missing {missing_combination}",
             )
-            if not require_full_material:
-                continue
-            missing_full_combination = sorted(
-                CHARACTER_SKILL_FULL_COMBINATION_KEYS - set(combination)
+            module_id = combination.get("moduleId")
+            require(
+                isinstance(module_id, str) and module_id and module_id not in module_ids,
+                f"{case_id}: rule {ordinal} module option {combination_ordinal} moduleId differs",
+            )
+            module_ids.add(module_id)
+            require(
+                module_id in allowed_module_ids,
+                f"{case_id}: rule {ordinal} module option {combination_ordinal} is not allowed",
             )
             require(
-                not missing_full_combination,
-                f"{case_id}: rule {ordinal} combination {combination_ordinal} missing full material {missing_full_combination}",
+                combination.get("polarity") in {"Positive", "Drawback"},
+                f"{case_id}: rule {ordinal} module option {combination_ordinal} polarity differs",
             )
-            require(
-                combination.get("ruleId") == rule.get("ruleId"),
-                f"{case_id}: rule {ordinal} combination {combination_ordinal} ruleId differs",
-            )
-            modules = combination.get("modules")
-            require(
-                isinstance(modules, list) and modules,
-                f"{case_id}: rule {ordinal} combination {combination_ordinal} modules must be non-empty",
-            )
-            allowed_module_ids = rule.get("allowedModuleIds")
-            allowed_variant_ids = rule.get("allowedVariantIds")
-            require(isinstance(allowed_module_ids, list), f"{case_id}: rule {ordinal} allowedModuleIds differs")
-            require(isinstance(allowed_variant_ids, list), f"{case_id}: rule {ordinal} allowedVariantIds differs")
-            for module_ordinal, module in enumerate(modules):
-                require(
-                    isinstance(module, dict),
-                    f"{case_id}: rule {ordinal} combination {combination_ordinal} module {module_ordinal} must be an object",
-                )
-                missing_module = sorted(CHARACTER_SKILL_MODULE_KEYS - set(module))
-                require(
-                    not missing_module,
-                    f"{case_id}: rule {ordinal} combination {combination_ordinal} module {module_ordinal} missing {missing_module}",
-                )
-                require(
-                    module.get("moduleId") in allowed_module_ids,
-                    f"{case_id}: rule {ordinal} combination {combination_ordinal} contains an illegal moduleId",
-                )
-                variant_id = module.get("variantId")
-                require(
-                    variant_id in (None, "") or variant_id in allowed_variant_ids,
-                    f"{case_id}: rule {ordinal} combination {combination_ordinal} contains an illegal variantId",
-                )
+        require(set(allowed_module_ids) == module_ids, f"{case_id}: rule {ordinal} module allowlist differs")
+        require(module_ids <= positive_offer_ids, f"{case_id}: rule {ordinal} is absent from positive offers")
 
 
 def require_object_keys(value: Any, required: set[str], label: str) -> dict[str, Any]:
@@ -703,11 +817,16 @@ def validate_public_narrative_context(
     require(isinstance(context, dict), f"{label}: publicNarrativeContext must be an object")
     require(set(context) == PUBLIC_CONTEXT_FIELDS, f"{label}: publicNarrativeContext fields differ")
     require(context.get("schemaVersion") == 1, f"{label}: public context schemaVersion differs")
-    require(context.get("profileId") == profile_id, f"{label}: public context profile differs")
+    expected_context_profile = EXPECTED_PUBLIC_CONTEXT_PROFILE_BY_SCENARIO.get(profile_id)
+    require(expected_context_profile is not None, f"{label}: unknown scenario profile")
+    require(
+        context.get("profileId") == expected_context_profile,
+        f"{label}: public context profile differs",
+    )
     require(context.get("subjectId") == target_id, f"{label}: public context subject differs")
 
     expected_subject_kinds = {
-        "CharacterSkill": {"character"},
+        "CharacterSkillModuleSelection": {"character"},
         "AcquiredTrait": {"character"},
         "Persona": {"character"},
         "EquipmentChoice": {"equipment"},
@@ -840,14 +959,14 @@ def validate_profile_scenario_material(scenario: dict[str, Any]) -> None:
     candidates = scenario["fullLegalCandidates"]
     public_facts = validate_public_narrative_context(scenario, scenario_id)
 
-    if profile_id == "CharacterSkill":
+    if profile_id == "CharacterSkillModuleSelection":
         validate_character_skill_request(request, scenario_id, require_full_material=True)
         require(isinstance(candidates, list), f"{scenario_id}: fullLegalCandidates must be an array")
         require(len(candidates) == len(request["rules"]), f"{scenario_id}: candidate rule count differs")
         for ordinal, (candidate, rule) in enumerate(zip(candidates, request["rules"])):
             candidate = require_object_keys(candidate, {"options", "ruleId"}, f"{scenario_id}: candidate[{ordinal}]")
             require(candidate.get("ruleId") == rule.get("ruleId"), f"{scenario_id}: candidate[{ordinal}] ruleId differs")
-            require(candidate.get("options") == rule.get("combinationOptions"), f"{scenario_id}: candidate[{ordinal}] options differ")
+            require(candidate.get("options") == rule.get("moduleOptions"), f"{scenario_id}: candidate[{ordinal}] options differ")
         kind = request.get("kind")
         require(kind in {"Active", "Passive", "Ultimate"}, f"{scenario_id}: CharacterSkill kind differs")
         for ordinal, rule in enumerate(request["rules"]):
@@ -860,6 +979,46 @@ def validate_profile_scenario_material(scenario: dict[str, Any]) -> None:
                 require(rule.get("ultimateDomain") not in (None, "", "None"), f"{scenario_id}: Ultimate rule {ordinal} lacks domain")
             else:
                 require(rule.get("ultimateDomain") in (None, "", "None"), f"{scenario_id}: non-Ultimate rule {ordinal} has a domain")
+        selection = request["selectionRequest"]
+        response = json.loads(scenario["authorityContext"].get("responseJson", ""))
+        require(
+            isinstance(response, dict)
+            and set(response) == MODULE_SELECTION_RESPONSE_KEYS,
+            f"{scenario_id}: accepted response fields differ",
+        )
+        require(response.get("selectionId") == selection["selectionId"], f"{scenario_id}: response selectionId differs")
+        by_polarity = {
+            polarity: {
+                offer["moduleId"]
+                for offer in selection["offers"]
+                if offer["polarity"] == polarity
+            }
+            for polarity in ("Positive", "Drawback")
+        }
+        positive = response.get("positiveModuleIds")
+        drawbacks = response.get("drawbackModuleIds")
+        evidence = response.get("evidenceFactIds")
+        require(
+            isinstance(positive, list)
+            and len(positive) == len(set(positive))
+            and selection["minimumPositiveModules"] <= len(positive) <= selection["maximumPositiveModules"]
+            and set(positive) <= by_polarity["Positive"],
+            f"{scenario_id}: accepted positive modules differ",
+        )
+        require(
+            isinstance(drawbacks, list)
+            and len(drawbacks) == len(set(drawbacks))
+            and len(drawbacks) <= selection["maximumDrawbackModules"]
+            and set(drawbacks) <= by_polarity["Drawback"],
+            f"{scenario_id}: accepted drawback modules differ",
+        )
+        require(
+            isinstance(evidence, list)
+            and bool(evidence)
+            and len(evidence) == len(set(evidence))
+            and set(evidence) <= set(selection["evidenceFactIds"]),
+            f"{scenario_id}: accepted evidence differs",
+        )
         return
 
     if profile_id == "AcquiredTrait":
@@ -981,7 +1140,10 @@ def validate_parity(packet: dict[str, Any]) -> dict[str, int]:
         require(isinstance(case_id, str) and case_id, "packet parity caseId is empty")
         require(case_id not in case_ids, f"duplicate packet parity caseId: {case_id}")
         case_ids.add(case_id)
-        require(profile_id in EXPECTED_PROFILES, f"{case_id}: unknown or missing profileId={profile_id!r}")
+        require(
+            profile_id in EXPECTED_PARITY_RESPONSE_KEYS,
+            f"{case_id}: unknown or missing profileId={profile_id!r}",
+        )
         expected = case.get("expected")
         require(isinstance(expected, dict), f"{case_id}: expected must be an object")
         require(isinstance(expected.get("accepted"), bool), f"{case_id}: expected.accepted must be boolean")
@@ -991,20 +1153,21 @@ def validate_parity(packet: dict[str, Any]) -> dict[str, int]:
         )
         expected_response_keys = set(expected["responseKeys"])
         require(
-            expected_response_keys == EXPECTED_RESPONSE_KEYS[profile_id],
+            expected_response_keys == EXPECTED_PARITY_RESPONSE_KEYS[profile_id],
             f"{case_id}: response contract keys differ for {profile_id}: "
-            f"expected={sorted(EXPECTED_RESPONSE_KEYS[profile_id])}, "
+            f"expected={sorted(EXPECTED_PARITY_RESPONSE_KEYS[profile_id])}, "
             f"actual={sorted(expected_response_keys)}",
         )
         require(isinstance(case.get("request"), dict), f"{case_id}: request must be an object")
         require(isinstance(case.get("responseJson"), str), f"{case_id}: responseJson must be a string")
-        if profile_id == "CharacterSkill":
-            validate_character_skill_request(case["request"], case_id)
         by_profile[profile_id].append(case)
 
-    missing_profiles = sorted(EXPECTED_PROFILES - set(by_profile))
+    expected_parity_profiles = set(EXPECTED_PARITY_RESPONSE_KEYS)
+    missing_profiles = sorted(expected_parity_profiles - set(by_profile))
     require(not missing_profiles, f"packet parity profiles are missing: {missing_profiles}")
-    for profile in sorted(EXPECTED_PROFILES):
+    unexpected_profiles = sorted(set(by_profile) - expected_parity_profiles)
+    require(not unexpected_profiles, f"packet parity has unexpected profiles: {unexpected_profiles}")
+    for profile in sorted(expected_parity_profiles):
         outcomes = {case["expected"]["accepted"] for case in by_profile[profile]}
         require(outcomes == {False, True}, f"{profile}: parity requires accepted and rejected cases")
     return dict(sorted(Counter(case["profileId"] for case in cases).items()))
@@ -1188,35 +1351,128 @@ def validate_continuity_document(
 
 
 def validate_negative_inventory(scenarios: list[dict[str, Any]]) -> None:
-    """Pin current C# negative coverage, including the removed v17 combination."""
+    """Pin current C# negative coverage, including stale selection rejection."""
     require(len(scenarios) == EXPECTED_NEGATIVE_SCENARIO_COUNT, "negative coverage count differs")
     require(all(isinstance(row, dict) for row in scenarios), "negative scenario must be an object")
     require({row.get("scenarioId") for row in scenarios} == EXPECTED_NEGATIVE_SCENARIO_IDS,
             "negative scenario identity coverage differs")
     stale = next(row for row in scenarios if row["scenarioId"] == STALE_COMBINATION_NEGATIVE_SCENARIO_ID)
     context = stale.get("authorityContext", {})
-    require(stale.get("profileId") == "CharacterSkill" and stale.get("accepted") is False,
-            "stale combination must be a rejected CharacterSkill scenario")
+    require(stale.get("profileId") == "CharacterSkillModuleSelection" and stale.get("accepted") is False,
+            "stale selection must be a rejected CharacterSkill scenario")
     require(context.get("expectedAccepted") is False and context.get("actualAccepted") is False
             and context.get("validatedSkillCount") == 0, "stale combination rejection evidence differs")
-    require(context.get("mutation") == "stale-v17-need-changed-cleaning-small-stock-small-combination-id",
-            "stale combination mutation differs")
+    require(context.get("mutation") == "stale-selection-id", "stale selection mutation differs")
     response = json.loads(context.get("responseJson", ""))
-    candidates = response.get("candidates")
-    require(isinstance(candidates, list) and len(candidates) == 1, "stale response candidate count differs")
-    stale_id = "skill-combination:sha256:80a6b140ecc1f8fbb34490423c1d0772bc2d644f0a54e937ed7a433371eb19b5"
-    require(candidates[0].get("combinationId") == stale_id, "wrong historical combination under stale scenario ID")
+    stale_id = "selection:skill:" + ("0" * 64)
+    require(response.get("selectionId") == stale_id, "wrong stale selection ID")
     reason = stale.get("failureReason", "")
-    require(reason == context.get("actualFailureReason")
-            and reason.startswith("Unknown or illegal combination '") and stale_id in reason,
-            "stale combination failure reason differs")
-    rules = stale.get("request", {}).get("rules", [])
-    require(rules and all(stale_id != combination.get("combinationId")
-            for rule in rules for combination in rule.get("combinationOptions", [])),
-            "historical illegal combination is present in current legal options")
+    require(
+        reason == context.get("actualFailureReason")
+        and reason == "selectionId is stale or does not match the pending offer.",
+        "stale selection failure reason differs",
+    )
+    candidate_packet = stale.get("request", {}).get("candidatePacket", "")
+    require(isinstance(candidate_packet, str) and stale_id not in candidate_packet, "stale selection is present in the legal packet")
+
+
+def validate_b1_a05_g13_evidence(
+    project_root: Path,
+    export_dir: Path,
+    manifest: dict[str, Any],
+) -> None:
+    source_path = (project_root / B1_A05_G13_SOURCE_PATH).resolve()
+    delivered_path = export_dir / "b1_a05_g13_accepted_evidence.json"
+    require(source_path.is_file(), f"B1 A05/G13 source evidence is missing: {source_path}")
+    require(delivered_path.is_file(), f"B1 A05/G13 delivered evidence is missing: {delivered_path}")
+    require(
+        source_path.read_bytes() == delivered_path.read_bytes(),
+        "B1 A05/G13 delivered evidence differs from its Unity source",
+    )
+
+    manifest_files = manifest.get("files")
+    require(isinstance(manifest_files, list), "manifest files must be an array")
+    manifest_by_path = {
+        row.get("path"): row
+        for row in manifest_files
+        if isinstance(row, dict) and isinstance(row.get("path"), str)
+    }
+    source_manifest_row = manifest_by_path.get(B1_A05_G13_SOURCE_PATH)
+    require(isinstance(source_manifest_row, dict), "B1 A05/G13 evidence is absent from input provenance")
+    require(
+        source_manifest_row.get("sha256") == sha256_prefixed(source_path),
+        "B1 A05/G13 evidence provenance hash is stale",
+    )
+
+    evidence = load_json(delivered_path)
+    require(
+        evidence.get("schema") == "gameplay-action-ledger-b1-accepted-evidence@1",
+        "B1 A05/G13 evidence schema differs",
+    )
+    require(evidence.get("workItem") == "A05-G13", "B1 A05/G13 work item differs")
+    require(evidence.get("verdict") == "PASS", "B1 A05/G13 verdict is not PASS")
+    claims = evidence.get("claims")
+    require(isinstance(claims, dict), "B1 A05/G13 claims must be an object")
+    require(claims.get("humanApprovalClaimed") is False, "B1 A05/G13 must not claim human approval")
+    require(claims.get("trainingEligible") is False, "B1 A05/G13 must not claim training eligibility")
+    require(claims.get("migratedProducerCount") == 72, "B1 A05/G13 migrated producer count differs")
+    require(
+        claims.get("migratedProductionEntryCount") == 72,
+        "B1 A05/G13 migrated production-entry count differs",
+    )
+    require(
+        claims.get("phase80Passed") == 142 and claims.get("phase80Failed") == 0,
+        "B1 A05/G13 Phase80 result differs",
+    )
+
+    source_rows = evidence.get("sourceFiles")
+    require(isinstance(source_rows, list) and source_rows, "B1 A05/G13 source files are empty")
+    seen_sources: set[str] = set()
+    root = project_root.resolve()
+    for row in source_rows:
+        require(isinstance(row, dict), "B1 A05/G13 source row must be an object")
+        relative = row.get("path")
+        expected_hash = row.get("sha256")
+        require(isinstance(relative, str) and relative, "B1 A05/G13 source path is empty")
+        require(relative not in seen_sources, f"B1 A05/G13 duplicate source path: {relative}")
+        seen_sources.add(relative)
+        source = (root / relative).resolve()
+        require(root == source or root in source.parents, f"B1 A05/G13 source escaped project root: {relative}")
+        require(source.is_file(), f"B1 A05/G13 source file is missing: {relative}")
+        actual_prefixed = sha256_prefixed(source)
+        require(
+            isinstance(expected_hash, str)
+            and actual_prefixed.removeprefix("sha256:").upper() == expected_hash.upper(),
+            f"B1 A05/G13 source hash is stale: {relative}",
+        )
+        manifest_row = manifest_by_path.get(relative)
+        require(isinstance(manifest_row, dict), f"B1 A05/G13 source is absent from provenance: {relative}")
+        require(
+            manifest_row.get("sha256") == actual_prefixed,
+            f"B1 A05/G13 provenance hash differs: {relative}",
+        )
+
+    accepted_rows = evidence.get("acceptedEvidence")
+    require(isinstance(accepted_rows, list) and accepted_rows, "B1 A05/G13 accepted evidence is empty")
+    evidence_root = source_path.parent
+    for row in accepted_rows:
+        require(isinstance(row, dict), "B1 A05/G13 accepted evidence row must be an object")
+        relative = row.get("path")
+        expected_hash = row.get("sha256")
+        expected_bytes = row.get("bytes")
+        require(isinstance(relative, str) and relative, "B1 A05/G13 accepted evidence path is empty")
+        artifact = (evidence_root / relative).resolve()
+        require(evidence_root == artifact or evidence_root in artifact.parents, f"B1 A05/G13 evidence escaped root: {relative}")
+        require(artifact.is_file(), f"B1 A05/G13 accepted evidence is missing: {relative}")
+        require(artifact.stat().st_size == expected_bytes, f"B1 A05/G13 evidence size is stale: {relative}")
+        require(
+            sha256_prefixed(artifact).removeprefix("sha256:").upper() == str(expected_hash).upper(),
+            f"B1 A05/G13 evidence hash is stale: {relative}",
+        )
 
 
 def validate_delivery_package(
+    project_root: Path,
     export_dir: Path,
     manifest: dict[str, Any],
     catalog_hash: str,
@@ -1255,6 +1511,8 @@ def validate_delivery_package(
         + repr(sorted(delivered_paths)),
     )
 
+    validate_b1_a05_g13_evidence(project_root, export_dir, manifest)
+
     schema = load_json(export_dir / "scenario_schema.json")
     require(
         schema.get("$schema") == "https://json-schema.org/draft/2020-12/schema",
@@ -1276,6 +1534,21 @@ def validate_delivery_package(
             {"$ref": "#/$defs/negativeDocument"},
         ],
         "scenario document alternatives differ",
+    )
+    public_context_schema = schema_definitions.get("publicNarrativeContext")
+    require(
+        isinstance(public_context_schema, dict),
+        "scenario public-context schema is missing",
+    )
+    public_context_properties = public_context_schema.get("properties")
+    require(
+        isinstance(public_context_properties, dict),
+        "scenario public-context properties are missing",
+    )
+    require(
+        set(public_context_properties.get("profileId", {}).get("enum", []))
+        == EXPECTED_PUBLIC_CONTEXT_PROFILES,
+        "scenario public-context profile enum differs",
     )
 
     positive = load_json(export_dir / "scenarios_100.json")
@@ -1365,7 +1638,7 @@ def validate_delivery_package(
             public_fact_counts[profile_id].append(len(scenario["publicFacts"]))
             effect_description_counts[profile_id].append(len(scenario["effectDescriptions"]))
             validate_profile_scenario_material(scenario)
-            if profile_id == "CharacterSkill":
+            if profile_id == "CharacterSkillModuleSelection":
                 kind = scenario["diversityAxes"].get("kind")
                 require(kind in {"Active", "Passive", "Ultimate"}, f"{scenario_id}: CharacterSkill kind differs")
                 skill_kinds.add(kind)
@@ -1459,7 +1732,7 @@ def validate_external_public_context_schema(narrative_ai_root: Path) -> str:
     require(isinstance(properties, dict) and set(properties) == PUBLIC_CONTEXT_FIELDS, "public-context schema properties differ")
     require(properties.get("schemaVersion", {}).get("const") == 1, "public-context schemaVersion differs")
     require(
-        set(properties.get("profileId", {}).get("enum", [])) == EXPECTED_PROFILES,
+        set(properties.get("profileId", {}).get("enum", [])) == EXPECTED_PUBLIC_CONTEXT_PROFILES,
         "public-context schema profiles differ",
     )
     definitions = schema.get("$defs")
@@ -1511,7 +1784,7 @@ def verify(
         negative_scenario_count,
         scenario_material_summary,
         continuity_witness_count,
-    ) = validate_delivery_package(export_dir, manifest, catalog["catalogHash"])
+    ) = validate_delivery_package(project_root, export_dir, manifest, catalog["catalogHash"])
     return {
         "catalogHash": catalog["catalogHash"],
         "continuityWitnessCount": continuity_witness_count,

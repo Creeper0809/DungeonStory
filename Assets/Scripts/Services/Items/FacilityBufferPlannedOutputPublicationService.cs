@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
-using DungeonStory.Narrative.Korean;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
@@ -166,22 +166,25 @@ public readonly struct PreparedFacilityBufferOutputFact
 {
     public PreparedFacilityBufferOutputFact(
         in FacilityBufferPublishedOutputStackReceipt stack,
-        in KoreanNameSnapshot displayName)
+        string displayName)
     {
         Stack = stack;
         DisplayName = displayName;
     }
 
     public FacilityBufferPublishedOutputStackReceipt Stack { get; }
-    public KoreanNameSnapshot DisplayName { get; }
-    public bool IsValid => GameplayOutcomeStableIdSyntax.IsValid(Stack.StackId)
-        && GameplayOutcomeStableIdSyntax.IsValid(Stack.OutputLineId)
-        && Stack.ItemDefinitionId.IsValid
+    public string DisplayName { get; }
+    public bool IsValid => DomainFactValueSyntax.IsIdentity(Stack.StackId)
+        && DomainFactValueSyntax.IsIdentity(Stack.OutputLineId)
+        && DomainFactValueSyntax.IsIdentity(Stack.ItemDefinitionId.Value)
         && (Stack.ItemInstanceId.Length == 0
-            || GameplayOutcomeStableIdSyntax.IsValid(Stack.ItemInstanceId))
+            || DomainFactValueSyntax.IsIdentity(Stack.ItemInstanceId))
         && Stack.Quantity > 0
         && Stack.MassGrams > 0L
-        && GameplayOutcomeLedger.IsValidDisplayNameSnapshot(DisplayName);
+        && DomainFactValueSyntax.IsText(
+            DisplayName,
+            DomainFactValueSyntax.MaximumNameCharacters,
+            false);
 }
 
 public readonly struct PreparedFacilityBufferOutputPublicationPreview
@@ -626,12 +629,7 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
             }
             PreparedFacilityBufferOutputFact fact = new(
                 stack,
-                new KoreanNameSnapshot(
-                    definition.DisplayName,
-                    "item-definition:" + stack.ItemDefinitionId.Value + ":v1",
-                    KoreanPronunciationHint.AutoHangulDisplay(
-                        "item-definition-pronunciation-v1"),
-                    "ko-KR"));
+                definition.DisplayName);
             if (!fact.IsValid)
             {
                 failureReason = "prepared-output-fact-invalid:"
@@ -722,15 +720,7 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
                 out failureCode,
                 out failureReason);
         }
-        outputClearanceTelemetry?.RecordPublication(
-            new FacilityOutputBatchPublishedObservation(
-                preview.Receipt.BatchCommitId,
-                preview.Receipt.OwnerFacilityId,
-                stacks.Aggregate(
-                    0L,
-                    (total, value) => checked(total + value.Mass.Value)),
-                FacilityOutputClearanceTelemetryRuntime
-                    .CaptureMicroGameHours(gameClock)));
+        ObserveOutputClearancePublication(preview.Receipt);
         transaction = new ReversiblePublication(this, preview);
         return true;
     }
@@ -829,17 +819,30 @@ public sealed class FacilityBufferPlannedOutputPublicationService :
         }
 
         receipt = CreateReceipt(token, publish);
-        outputClearanceTelemetry?.RecordPublication(
-            new FacilityOutputBatchPublishedObservation(
-                receipt.BatchCommitId,
-                receipt.OwnerFacilityId,
-                publish.Aggregate(
-                    0L,
-                    (total, value) => checked(
-                        total + value.Mass.Value)),
-                FacilityOutputClearanceTelemetryRuntime
-                    .CaptureMicroGameHours(gameClock)));
+        ObserveOutputClearancePublication(receipt);
         return true;
+    }
+
+    private void ObserveOutputClearancePublication(
+        FacilityBufferPlannedOutputPublicationReceipt receipt)
+    {
+        if (outputClearanceTelemetry?.IsCaptureActive != true)
+            return;
+        try
+        {
+            outputClearanceTelemetry.RecordPublication(
+                new FacilityOutputBatchPublishedObservation(
+                    receipt.BatchCommitId,
+                    receipt.OwnerFacilityId,
+                    receipt.Stacks.Aggregate(0L,
+                        (total, value) => checked(total + value.Mass.Value)),
+                    FacilityOutputClearanceTelemetryRuntime.CaptureMicroGameHours(gameClock)));
+        }
+        catch (Exception exception)
+        {
+            outputClearanceTelemetry.RecordObservationFailure(
+                "publication-observation-failed:" + receipt.BatchCommitId + ":" + exception);
+        }
     }
 
     public bool TryRollbackPublishedBatch(
@@ -2281,6 +2284,8 @@ internal static class FacilityBufferPlannedOutputRestoreCandidateFactory
             IPhysicalItemMassQuery massQuery,
             bool acknowledged)
     {
+        if (massQuery == null)
+            throw new ArgumentNullException(nameof(massQuery));
         WorldItemStackRecord[] all = (records ?? Array.Empty<WorldItemStackRecord>())
             .Where(record => record != null)
             .ToArray();
@@ -2319,6 +2324,29 @@ internal static class FacilityBufferPlannedOutputRestoreCandidateFactory
         List<FacilityBufferPlannedOutputRestoreBatchSnapshot> result = new();
         foreach (string batchId in batchIds)
         {
+            var marked = all.Where(record =>
+                    PlannedOutputPublicationComponentCodec.HasBatchCommitId(
+                        record.components, batchId))
+                .Select(record =>
+                {
+                    PlannedOutputPublicationComponentCodec.TryRead(
+                        record.components, out PlannedOutputPublicationMetadata metadata);
+                    if (!string.Equals(metadata.ItemId, record.itemId, StringComparison.Ordinal))
+                        throw new InvalidOperationException(
+                            $"Planned-output provenance item mismatch: {batchId}:{record.stackId}");
+                    return (Metadata: metadata, Quantity: record.quantity);
+                }).ToArray();
+            PlannedOutputProvenanceValidation.ValidateFrozenBatch(
+                marked.Select(value => value.Metadata).ToArray());
+            if (acknowledged
+                && !PlannedOutputProvenanceValidation.RequiresExactCustody(marked[0].Metadata)
+                && !PlannedOutputProvenanceValidation.HasExactQuantityTopology(marked))
+            {
+                // Historical-only provenance stays on the physical records but
+                // is not an exact custody candidate. Any retained producer that
+                // still claims this batch will fail its required TryGetBatch join.
+                continue;
+            }
             if (!TryCaptureBatch(
                     all,
                     batchId,

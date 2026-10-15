@@ -21,6 +21,7 @@ public static class FactionGoodwillOutbox
         int sequence,
         PhysicalItemBatchDispositionReceipt receipt,
         int transferredPhysicalValue,
+        int campaignRapportBefore,
         int campaignRapportTarget)
     {
         if (faction == null)
@@ -39,6 +40,7 @@ public static class FactionGoodwillOutbox
                 TransferReason,
                 StringComparison.Ordinal)
             || transferredPhysicalValue < 50
+            || campaignRapportBefore is < -100 or > 100
             || campaignRapportTarget is < -100 or > 100)
         {
             throw new InvalidOperationException(
@@ -54,7 +56,15 @@ public static class FactionGoodwillOutbox
         faction.goodwillTransferQuantity = receipt.Quantity;
         faction.goodwillTransferMassGrams = receipt.InputMassGrams;
         faction.goodwillTransferredPhysicalValue = transferredPhysicalValue;
+        faction.goodwillCampaignRapportBefore = campaignRapportBefore;
         faction.goodwillCampaignRapportTarget = campaignRapportTarget;
+        faction.goodwillTransferRevision = receipt.OwnerRevision;
+        faction.goodwillObserved = false;
+        faction.goodwillPublicationKey = string.Empty;
+        faction.goodwillPublicationId = string.Empty;
+        faction.goodwillPublicationFingerprint = string.Empty;
+        faction.goodwillObservationDay = 0;
+        faction.goodwillFactionDisplayName = string.Empty;
         faction.goodwillTransferCompleted = false;
     }
 
@@ -118,6 +128,7 @@ public static class FactionGoodwillOutbox
             || faction.goodwillTransferQuantity <= 0
             || faction.goodwillTransferMassGrams <= 0L
             || faction.goodwillTransferredPhysicalValue < 50
+            || faction.goodwillCampaignRapportBefore is < -100 or > 100
             || faction.goodwillCampaignRapportTarget is < -100 or > 100)
         {
             failureReason = "faction-goodwill-outbox-invalid";
@@ -235,7 +246,15 @@ public static class FactionGoodwillOutbox
         faction.goodwillTransferQuantity = 0;
         faction.goodwillTransferMassGrams = 0L;
         faction.goodwillTransferredPhysicalValue = 0;
+        faction.goodwillCampaignRapportBefore = 0;
         faction.goodwillCampaignRapportTarget = 0;
+        faction.goodwillTransferRevision = 0L;
+        faction.goodwillObserved = false;
+        faction.goodwillPublicationKey = string.Empty;
+        faction.goodwillPublicationId = string.Empty;
+        faction.goodwillPublicationFingerprint = string.Empty;
+        faction.goodwillObservationDay = 0;
+        faction.goodwillFactionDisplayName = string.Empty;
         faction.goodwillTransferCompleted = false;
     }
 
@@ -276,6 +295,8 @@ public static class FactionGoodwillOutbox
             receipt.CommitId,
             faction.goodwillTransferCommitId,
             StringComparison.Ordinal)
+        && receipt.OwnerRevision
+            == faction.goodwillTransferRevision
         && receipt.Quantity == faction.goodwillTransferQuantity
         && receipt.InputMassGrams == faction.goodwillTransferMassGrams
         && receipt.SourceStackIds.OrderBy(

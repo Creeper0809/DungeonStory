@@ -87,6 +87,7 @@ public readonly struct MealConsumptionResult
         int unitPrice,
         bool policyViolation,
         bool contaminated,
+        string outcomeResultKey,
         params string[] parameters)
     {
         Success = success;
@@ -105,6 +106,7 @@ public readonly struct MealConsumptionResult
         UnitPrice = Mathf.Max(0, unitPrice);
         PolicyViolation = policyViolation;
         Contaminated = contaminated;
+        OutcomeResultKey = outcomeResultKey?.Trim() ?? string.Empty;
     }
 
     public bool Success { get; }
@@ -126,13 +128,14 @@ public readonly struct MealConsumptionResult
     public int UnitPrice { get; }
     public bool PolicyViolation { get; }
     public bool Contaminated { get; }
+    public string OutcomeResultKey { get; }
 
     public static MealConsumptionResult Failed(
         CharacterConsumablesFailureCode code,
         params string[] parameters) =>
         new(false, code, default, default, default, string.Empty,
             MealDietClass.Vegan, MealQualityTier.Simple, 0f, 0f, 0, false, false,
-            parameters);
+            string.Empty, parameters);
 
     public static MealConsumptionResult Consumed(
         ItemDefinitionSO item,
@@ -155,7 +158,8 @@ public readonly struct MealConsumptionResult
             food?.mood ?? 0f,
             item?.UnitPrice ?? 0,
             policyViolation,
-            contaminated);
+            contaminated,
+            string.Empty);
     }
 
     internal static MealConsumptionResult FromCore(
@@ -174,6 +178,7 @@ public readonly struct MealConsumptionResult
             result.Meal.UnitPrice,
             result.PolicyViolation,
             result.Contaminated,
+            result.OutcomeResultKey,
             result.Parameters.ToArray());
 }
 
@@ -192,6 +197,7 @@ public readonly struct SubstanceUseResult
         float addiction,
         bool becameAddicted,
         bool overdosed,
+        string outcomeResultKey,
         params string[] parameters)
     {
         Success = success;
@@ -207,6 +213,7 @@ public readonly struct SubstanceUseResult
         Addiction = Mathf.Clamp(addiction, 0f, 100f);
         BecameAddicted = becameAddicted;
         Overdosed = overdosed;
+        OutcomeResultKey = outcomeResultKey?.Trim() ?? string.Empty;
     }
 
     public bool Success { get; }
@@ -220,12 +227,13 @@ public readonly struct SubstanceUseResult
     public float Addiction { get; }
     public bool BecameAddicted { get; }
     public bool Overdosed { get; }
+    public string OutcomeResultKey { get; }
 
     public static SubstanceUseResult Failed(
         CharacterConsumablesFailureCode code,
         params string[] parameters) =>
         new(false, code, string.Empty, default, default, string.Empty,
-            0f, 0f, false, false, parameters);
+            0f, 0f, false, false, string.Empty, parameters);
 
     public static SubstanceUseResult Failed(
         CharacterConsumablesFailureCode code,
@@ -234,7 +242,8 @@ public readonly struct SubstanceUseResult
         ItemStackId stackId,
         params string[] parameters) =>
         new(false, code, feature?.substanceId, item?.StableId ?? default,
-            stackId, item?.DisplayName, 0f, 0f, false, false, parameters);
+            stackId, item?.DisplayName, 0f, 0f, false, false,
+            string.Empty, parameters);
 
     internal static SubstanceUseResult FromCore(
         CharacterConsumablesSubstanceResult result) =>
@@ -249,6 +258,7 @@ public readonly struct SubstanceUseResult
             result.Addiction,
             result.BecameAddicted,
             result.Overdosed,
+            result.OutcomeResultKey,
             result.Parameters.ToArray());
 }
 
@@ -258,17 +268,20 @@ public readonly struct PhysicalMealConsumedEvent
         ConsumableOperationId operationId,
         CharacterActor actor,
         BuildableObject facility,
-        MealConsumptionResult result)
+        MealConsumptionResult result,
+        BuildingInstanceId facilityId = default)
     {
         OperationId = operationId;
         Actor = actor;
         Facility = facility;
+        FacilityId = facility != null ? facility.RequirePersistentInstanceId() : facilityId;
         Result = result;
     }
 
     public ConsumableOperationId OperationId { get; }
     public CharacterActor Actor { get; }
     public BuildableObject Facility { get; }
+    public BuildingInstanceId FacilityId { get; }
     public MealConsumptionResult Result { get; }
 }
 
@@ -305,8 +318,12 @@ public interface ICharacterSubstanceQuery
 
 public interface ICharacterDietPolicyCommand
 {
-    void SetPolicy(CharacterActor actor, CharacterDietPolicyKind policy);
-    void SetMealQualityLimit(CharacterActor actor, CharacterMealQualityLimit qualityLimit);
+    CharacterConsumablesPolicyChangeResult SetPolicy(
+        CharacterActor actor,
+        CharacterDietPolicyKind policy);
+    CharacterConsumablesPolicyChangeResult SetMealQualityLimit(
+        CharacterActor actor,
+        CharacterMealQualityLimit qualityLimit);
 }
 
 public interface IMealConsumptionCommand
@@ -338,7 +355,7 @@ public interface IPrimitiveFieldMealConsumptionCommand
 
 public interface ICharacterSubstanceCommand
 {
-    void SetPolicy(
+    CharacterConsumablesPolicyChangeResult SetPolicy(
         CharacterActor actor,
         string substanceId,
         SubstancePolicyMode mode,

@@ -634,7 +634,7 @@ public static class ResearchEquipmentOverhaulDebugScenarios
             new WorldItemRepository(
                 new GuidPersistentIdGenerator(),
                 new DungeonRuntimeAggregateRootStore()),
-            new CharacterCarryInventoryRegistry(), materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, researchProvider: EditorLockedResearchRuntimeReferences.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            new CharacterCarryInventoryRegistry(), materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, researchProvider: EditorLockedResearchRuntimeReferences.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         Require(locked.IsDefinitionUnlocked("weapon:dagger", out _),
             "day-one dagger is locked", failures);
         bool lockedWithExpectedCode =
@@ -819,7 +819,7 @@ public static class ResearchEquipmentOverhaulDebugScenarios
             itemRepository,
             new CharacterCarryInventoryRegistry(),
             researchProvider: EditorAllResearchRuntimeProvider.Instance,
-            moduleCatalog: moduleCatalog, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            moduleCatalog: moduleCatalog, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         restored.PublishRestoreCandidate(
             restored.BuildRestoreCandidate(save));
         Require(restored.ModuleInstances.Count == 1

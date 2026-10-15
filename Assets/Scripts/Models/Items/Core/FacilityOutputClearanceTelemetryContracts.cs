@@ -143,7 +143,8 @@ public readonly struct FacilityOutputClearanceTelemetrySnapshot
         int conflictingPublicationCount,
         int overPickupCount,
         int capacityExceededCount,
-        int restoreInterruptionCount)
+        int restoreInterruptionCount,
+        string lastObservationFailure = null)
     {
         Completed = completed
             ?? Array.Empty<FacilityOutputClearanceSampleSnapshot>();
@@ -153,6 +154,7 @@ public readonly struct FacilityOutputClearanceTelemetrySnapshot
         OverPickupCount = overPickupCount;
         CapacityExceededCount = capacityExceededCount;
         RestoreInterruptionCount = restoreInterruptionCount;
+        LastObservationFailure = lastObservationFailure ?? string.Empty;
     }
 
     public IReadOnlyList<FacilityOutputClearanceSampleSnapshot> Completed { get; }
@@ -162,6 +164,7 @@ public readonly struct FacilityOutputClearanceTelemetrySnapshot
     public int OverPickupCount { get; }
     public int CapacityExceededCount { get; }
     public int RestoreInterruptionCount { get; }
+    public string LastObservationFailure { get; }
     public bool IsClean => ActiveBatchCount == 0
         && OrphanPickupCount == 0
         && ConflictingPublicationCount == 0
@@ -176,9 +179,12 @@ public readonly struct FacilityOutputClearanceTelemetrySnapshot
 /// </summary>
 public interface IFacilityOutputClearanceTelemetrySink
 {
+    bool IsCaptureActive { get; }
     void RecordPublication(FacilityOutputBatchPublishedObservation observation);
     void RecordCommittedPickup(FacilityOutputBatchPickupObservation observation);
     void RecordPublicationRollback(string batchCommitId);
+    // Marks the diagnostic session invalid; never rejects a gameplay command.
+    void RecordObservationFailure(string reason);
 }
 
 public interface IFacilityOutputClearanceTelemetryQuery

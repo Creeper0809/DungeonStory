@@ -42,7 +42,7 @@ public static class DungeonCoreInfrastructureRegistration
         builder.RegisterInstance(sceneRuntimeReferences.RunVariables
                 ?? throw new InvalidOperationException(
                     "Gameplay composition requires RunVariableRuntime."))
-            .As<IRunVariableRuntime>();
+            .As<IRunVariableRuntime>().As<IDungeonSaveRestoreCompletedHook>();
         builder.RegisterInstance(userSettingsTargets
             ?? throw new ArgumentNullException(nameof(userSettingsTargets)));
         builder.RegisterInstance(validationReferences
@@ -77,6 +77,10 @@ public static class DungeonCoreInfrastructureRegistration
         builder.Register<GameSpeedController>(Lifetime.Singleton)
             .As<IGameSpeedController>();
         builder.Register<TreasuryEconomyAggregateStateStore>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<StockSupplyFactJournal>(Lifetime.Singleton)
+            .AsSelf().As<IStockSupplyFactPublisher>().As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterMigratedDomainFact<StockSupplyCompletedFact>(
+            "log:economy.warehouse-delivery", StockSupplyCompletedFactMapping.Capture);
         builder.Register<TreasuryEconomyPersistence>(Lifetime.Singleton)
             .As<ITreasuryEconomyPersistence>();
         builder.RegisterEntryPoint<EconomyTransactionLedgerRuntime>(
@@ -86,10 +90,15 @@ public static class DungeonCoreInfrastructureRegistration
         builder.Register<GameMoneyAccount>(Lifetime.Singleton)
             .As<IGameMoneyAccount>()
             .As<IIdempotentGameMoneyAccount>();
+        builder.RegisterEntryPoint<OperatingDayFactJournal>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreTransactionParticipant>().As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterMigratedDomainFact<OperatingDaySettledFact>(
+            "log:operating-day-settled", OperatingDaySettledFactMapping.Capture);
         builder.Register<EmploymentContractRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<IEmploymentStandingCommand>()
             .As<IEmploymentContractRuntime>();
+        builder.RegisterEntryPoint<EmploymentContractAlertObserver>(Lifetime.Singleton);
         builder.Register<PaidFacilityContractRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<IPaidFacilityContractRuntime>()

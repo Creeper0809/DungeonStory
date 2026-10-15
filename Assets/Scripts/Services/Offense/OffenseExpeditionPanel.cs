@@ -836,31 +836,6 @@ public class OffenseExpeditionPanel : MonoBehaviour
             : "없음";
     }
 
-    private static string FormatEquipmentStats(CombatEquipmentUiStatBlock stats)
-    {
-        if (stats == null)
-        {
-            return "보정 없음";
-        }
-
-        List<string> parts = new List<string>();
-        AddStat(parts, "체력", stats.maxHealth);
-        AddStat(parts, "공격", stats.attack);
-        AddStat(parts, "근력", stats.strength);
-        AddStat(parts, "맷집", stats.toughness);
-        AddStat(parts, "민첩", stats.dexterity);
-        AddStat(parts, "이동", stats.moveSpeed);
-        return parts.Count > 0 ? string.Join(" ", parts) : "보정 없음";
-    }
-
-    private static void AddStat(ICollection<string> parts, string label, int value)
-    {
-        if (value != 0)
-        {
-            parts.Add($"{label} {value:+#;-#;0}");
-        }
-    }
-
     private static string GetActorName(CharacterActor actor)
     {
         actor?.EnsureRuntimeState();

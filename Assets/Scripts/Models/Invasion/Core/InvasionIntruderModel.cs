@@ -85,7 +85,9 @@ public sealed class InvasionIntruderPersistenceState
         bool enragedBreach = false,
         DefenseRaidAwarenessSaveData raidAwareness = null,
         IEnumerable<BuildingInstanceId> damagedFacilityIds = null,
-        EnemyIndividualSaveData enemyIndividual = null)
+        EnemyIndividualSaveData enemyIndividual = null,
+        string invasionStartPublicationKey = "",
+        string lastInvasionStagePublicationKey = "")
     {
         RuntimeId = runtimeId?.Trim() ?? string.Empty;
         DataId = dataId;
@@ -120,6 +122,19 @@ public sealed class InvasionIntruderPersistenceState
             .OrderBy(id => id.Value, StringComparer.Ordinal)
             .ToArray());
         EnemyIndividual = enemyIndividual?.Clone();
+        InvasionStartPublicationKey = invasionStartPublicationKey
+            ?? string.Empty;
+        LastInvasionStagePublicationKey = lastInvasionStagePublicationKey
+            ?? string.Empty;
+        bool hasStart = InvasionStartPublicationKey.Length > 0;
+        bool hasLast = LastInvasionStagePublicationKey.Length > 0;
+        if (hasStart != hasLast
+            || hasStart && (!IsValidPublicationKey(InvasionStartPublicationKey)
+                || !IsValidPublicationKey(LastInvasionStagePublicationKey)))
+        {
+            throw new ArgumentException(
+                "Invasion publication lineage keys must both be empty or both be valid opaque keys.");
+        }
     }
 
     public int DataId { get; }
@@ -147,6 +162,13 @@ public sealed class InvasionIntruderPersistenceState
     public DefenseRaidAwarenessSaveData RaidAwareness { get; }
     public IReadOnlyList<BuildingInstanceId> DamagedFacilityIds { get; }
     public EnemyIndividualSaveData EnemyIndividual { get; }
+    public string InvasionStartPublicationKey { get; }
+    public string LastInvasionStagePublicationKey { get; }
+
+    private static bool IsValidPublicationKey(string value) =>
+        value.Length <= 2048
+        && !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     public static InvasionIntruderSettings CloneSettings(InvasionIntruderSettings source)
     {

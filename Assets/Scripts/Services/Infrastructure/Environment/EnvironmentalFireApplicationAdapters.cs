@@ -31,17 +31,15 @@ public sealed class EnvironmentalFireWorldAdapter :
     private readonly IPowerInfrastructureQuery power;
     private readonly IItemQuantityReservationService reservations;
     private readonly IWorldItemStackRuntime items;
-    private readonly IReservedPhysicalItemBatchDispositionService reservedSink;
     private readonly IPhysicalItemBatchDispositionService dispositions;
-    private readonly IOutcomeAwareReservedPhysicalItemBatchDispositionService
-        outcomeAwareReservedSink;
-    private readonly IOutcomeAwarePhysicalItemBatchDispositionService
-        outcomeAwareDispositions;
-    private readonly IEnvironmentGameplayOutcomeCommitter environmentOutcomes;
-    private readonly IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics;
+    private readonly IJointReservedPhysicalItemBatchDispositionService
+        jointReservedSink;
+    private readonly IJointPhysicalItemBatchDispositionService
+        jointDispositions;
+    private readonly EnvironmentalFireResourceTransaction resourceFacts;
     private readonly IGameCalendar calendar;
     private readonly ICharacterEnvironmentProtectionResolver protection;
-    private readonly IEnvironmentalFireDamageOutcomeAuthority damageOutcomes;
+    private readonly IEnvironmentalFireDamageAuthority damageOutcomes;
     private readonly ICharacterBodyHealthMutationTransaction bodyHealthMutation;
 
     public EnvironmentalFireWorldAdapter(
@@ -53,16 +51,14 @@ public sealed class EnvironmentalFireWorldAdapter :
         IPowerInfrastructureQuery power,
         IItemQuantityReservationService reservations,
         IWorldItemStackRuntime items,
-        IReservedPhysicalItemBatchDispositionService reservedSink,
         IPhysicalItemBatchDispositionService dispositions,
-        IOutcomeAwareReservedPhysicalItemBatchDispositionService
-            outcomeAwareReservedSink,
-        IOutcomeAwarePhysicalItemBatchDispositionService
-            outcomeAwareDispositions,
-        IEnvironmentGameplayOutcomeCommitter environmentOutcomes,
-        IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics,
+        IJointReservedPhysicalItemBatchDispositionService
+            jointReservedSink,
+        IJointPhysicalItemBatchDispositionService
+            jointDispositions,
+        EnvironmentalFireResourceTransaction resourceFacts,
         IGameCalendar calendar,
-        IEnvironmentalFireDamageOutcomeAuthority damageOutcomes,
+        IEnvironmentalFireDamageAuthority damageOutcomes,
         ICharacterBodyHealthMutationTransaction bodyHealthMutation,
         ICharacterEnvironmentProtectionResolver protection = null)
     {
@@ -76,18 +72,13 @@ public sealed class EnvironmentalFireWorldAdapter :
         this.reservations = reservations
             ?? throw new ArgumentNullException(nameof(reservations));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
-        this.reservedSink = reservedSink
-            ?? throw new ArgumentNullException(nameof(reservedSink));
         this.dispositions = dispositions
             ?? throw new ArgumentNullException(nameof(dispositions));
-        this.outcomeAwareReservedSink = outcomeAwareReservedSink
-            ?? throw new ArgumentNullException(nameof(outcomeAwareReservedSink));
-        this.outcomeAwareDispositions = outcomeAwareDispositions
-            ?? throw new ArgumentNullException(nameof(outcomeAwareDispositions));
-        this.environmentOutcomes = environmentOutcomes
-            ?? throw new ArgumentNullException(nameof(environmentOutcomes));
-        this.outcomeDiagnostics = outcomeDiagnostics
-            ?? throw new ArgumentNullException(nameof(outcomeDiagnostics));
+        this.jointReservedSink = jointReservedSink
+            ?? throw new ArgumentNullException(nameof(jointReservedSink));
+        this.jointDispositions = jointDispositions
+            ?? throw new ArgumentNullException(nameof(jointDispositions));
+        this.resourceFacts = resourceFacts ?? throw new ArgumentNullException(nameof(resourceFacts));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.damageOutcomes = damageOutcomes
             ?? throw new ArgumentNullException(nameof(damageOutcomes));
@@ -247,7 +238,7 @@ public sealed class EnvironmentalFireWorldAdapter :
         string operationId = command.OperationId?.Trim() ?? string.Empty;
         if (damageOutcomes.TryGet(
                 operationId,
-                out EnvironmentalFireDamageOutcomeSaveRecord known))
+                out EnvironmentalFireDamageRecord known))
         {
             if (!damageOutcomes.TryBegin(
                     command,
@@ -263,8 +254,8 @@ public sealed class EnvironmentalFireWorldAdapter :
                     replayFailure);
                 return false;
             }
-            if (known.phase ==
-                EnvironmentalFireDamageOutcomePhase.OutcomeCommitted)
+            if (known.phase is
+                EnvironmentalFireDamagePhase.Delivered or EnvironmentalFireDamagePhase.Applied)
             {
                 result = new EnvironmentalFireDamageResult(
                     true,
@@ -373,8 +364,8 @@ public sealed class EnvironmentalFireWorldAdapter :
         if (lethal)
         {
             if (!damageOutcomes.TryGet(operationId, out known)
-                || known.phase !=
-                    EnvironmentalFireDamageOutcomePhase.OutcomeCommitted)
+                || known.phase is not
+                    EnvironmentalFireDamagePhase.Delivered and not EnvironmentalFireDamagePhase.Applied)
             {
                 result = new EnvironmentalFireDamageResult(
                     false,
@@ -437,7 +428,10 @@ public sealed class EnvironmentalFireWorldAdapter :
                 operationKey,
                 out PhysicalItemBatchDispositionReceipt pending))
         {
-            if (!MatchesPhysicalFuelLoss(pending, request, operationKey))
+            if (!MatchesPhysicalFuelLoss(pending, request, operationKey)
+                || !resourceFacts.TryGet(operationKey, out var known)
+                || known.use != EnvironmentalFireResourceUse.FuelLoss || known.targetId != request.Target.TargetId
+                || known.physical.commitId != pending.CommitId)
             {
                 failureReason = "environmental-fire-fuel-loss-operation-conflict";
                 return false;
@@ -465,13 +459,8 @@ public sealed class EnvironmentalFireWorldAdapter :
             return false;
         }
 
-        var participant = new EnvironmentalFireFuelOutcomeParticipant(
-            environmentOutcomes,
-            outcomeDiagnostics,
-            calendar,
-            request,
-            new CoreGridCell(source.Position.x, source.Position.y));
-        if (!outcomeAwareDispositions.TryCommitPending(
+        var participant = resourceFacts.PrepareFuel(request, source.Position, Math.Max(1, calendar.Day));
+        if (!jointDispositions.TryCommitPending(
                 new[]
                 {
                     new PhysicalItemTransformInput(
@@ -500,7 +489,7 @@ public sealed class EnvironmentalFireWorldAdapter :
     bool IEnvironmentalFireFuelLossSink.TryAcknowledge(
         string commitId,
         out string failureReason) =>
-        dispositions.Acknowledge(commitId, out failureReason);
+        resourceFacts.TryAcknowledge(commitId, out failureReason);
 
     public bool CanSuppress(
         string workerId,
@@ -611,7 +600,9 @@ public sealed class EnvironmentalFireWorldAdapter :
 
         if (TryGetPending(operationKey, leaseKey, out receipt))
         {
-            if (receipt.Quantity == quantity)
+            if (receipt.Quantity == quantity && resourceFacts.TryGet(operationKey, out var known)
+                && known.workerId == workerKey && known.fireId == fireKey
+                && known.positionX == targetPosition.x && known.positionY == targetPosition.y)
             {
                 failureReason = string.Empty;
                 return true;
@@ -693,22 +684,23 @@ public sealed class EnvironmentalFireWorldAdapter :
             return false;
         }
 
-        if (!TryResolveCharacter(workerKey, out CharacterActor worker)
-            || string.IsNullOrWhiteSpace(worker.BuildingDisplayName))
+        if (!TryResolveCharacter(workerKey, out CharacterActor worker))
         {
             failureReason =
                 "environmental-fire-water-worker-display-snapshot-missing";
             return false;
         }
-        var participant = new EnvironmentalFireWaterOutcomeParticipant(
-            environmentOutcomes,
-            outcomeDiagnostics,
-            calendar,
-            leaseKey,
-            new CharacterId(workerKey),
-            worker.BuildingDisplayName,
-            new CoreGridCell(targetPosition.x, targetPosition.y));
-        if (!outcomeAwareReservedSink.TryCommitReservedSinkPending(
+        string workerDisplayName = worker.Identity?.DisplayName?.Trim()
+            ?? string.Empty;
+        if (workerDisplayName.Length == 0)
+        {
+            failureReason =
+                "environmental-fire-water-worker-display-snapshot-missing";
+            return false;
+        }
+        var participant = resourceFacts.PrepareWater(leaseKey, workerKey, workerDisplayName,
+            fireKey, targetPosition, quantity, Math.Max(1, calendar.Day));
+        if (!jointReservedSink.TryCommitReservedSinkPending(
                 leaseKey,
                 quantity,
                 operationKey,
@@ -742,9 +734,12 @@ public sealed class EnvironmentalFireWorldAdapter :
         string leaseKey = leaseId?.Trim() ?? string.Empty;
         if (operationKey.Length == 0
             || leaseKey.Length == 0
+            || !resourceFacts.TryGet(operationKey, out var known)
+            || known.use != EnvironmentalFireResourceUse.SuppressionWater || known.leaseId != leaseKey
             || !dispositions.TryGetPending(
                 operationKey,
                 out PhysicalItemBatchDispositionReceipt physical)
+            || known.physical.commitId != physical.CommitId
             || !MatchesPhysicalReceipt(
                 physical,
                 operationKey,
@@ -762,7 +757,7 @@ public sealed class EnvironmentalFireWorldAdapter :
     }
 
     public bool TryAcknowledge(string commitId, out string failureReason) =>
-        dispositions.Acknowledge(commitId, out failureReason);
+        resourceFacts.TryAcknowledge(commitId, out failureReason);
 
     private bool TryResolveBuilding(
         string targetId,

@@ -211,7 +211,7 @@ public sealed class DefenseFeatureQueryService : IDefenseFeatureQueryService
             Title = text.Get(
                 "IntruderTitle",
                 pattern?.title ?? text.Get("UnknownIntruder"),
-                actor != null ? actor.name : text.Get("IntruderFallback")),
+                actor != null ? actor.Identity.DisplayName : text.Get("IntruderFallback")),
             Detail = text.Get(
                 "IntruderDetail",
                 FormatIntruderState(intruder?.State ?? InvasionIntruderState.Finished),

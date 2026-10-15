@@ -80,6 +80,11 @@ public static class CharacterAcquiredTraitMeaningfulLedgerValidator
                     $"meaningful narrative fact '{fact.factId}' has a negative count";
                 return false;
             }
+            if (!fact.HasCompleteSourceEventIds)
+            {
+                failure = $"meaningful narrative fact '{fact.factId}' has incomplete source occurrence identities";
+                return false;
+            }
             int expected = RecomputeMilestoneCount(fact.count);
             if (fact.milestoneCount != expected)
             {
@@ -218,6 +223,15 @@ public static class CharacterAcquiredTraitStateValidator
             Add(issues, CharacterAcquiredTraitValidationIssueCode.InvalidRevision,
                 "Acquired-trait aggregate revision is negative.");
         }
+        CharacterAcquiredTraitRequestInvalidationState invalidation = state.lastRequestInvalidation;
+        if (invalidation?.HasData == true && (!IsCanonicalRequired(invalidation.requestId)
+            || !IsCanonicalRequired(invalidation.requestKey) || !IsCanonicalRequired(invalidation.reason)
+            || invalidation.registeredRevision <= 0
+            || invalidation.invalidatedRevision <= invalidation.registeredRevision
+            || invalidation.invalidatedRevision > state.revision
+            || (state.pendingRequests?.Any(value => value != null && value.requestId == invalidation.requestId) ?? false)))
+            Add(issues, CharacterAcquiredTraitValidationIssueCode.InvalidPendingRequest,
+                "Acquired-trait request invalidation receipt is incoherent.");
         if (!CharacterAcquiredTraitMeaningfulLedgerValidator.TryValidate(
                 ledger,
                 out string ledgerFailure))
@@ -439,6 +453,23 @@ public static class CharacterAcquiredTraitStateValidator
         ValidateActiveCoexistence(instances, settings, modulesById, issues);
         foreach (CharacterAcquiredTraitPendingRequestState request in pending)
         {
+            if (request.publicContextVersion == 1)
+            {
+                try
+                {
+                    var material = request.RestorePublicContext();
+                    CharacterAcquiredTraitManifestationRuntime.BuildProductionRequestIdentity(settings,
+                        request.targetPersistentId, request.manifestationMilestone, request.evidenceFactIds,
+                        material.SemanticHash, request.ownerBinding, request.registeredRevision - 1,
+                        out string requestId, out string requestKey);
+                    if (requestId != request.requestId || requestKey != request.requestKey)
+                        throw new InvalidOperationException("Frozen public context does not match persisted request identity.");
+                }
+                catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+                {
+                    Add(issues, CharacterAcquiredTraitValidationIssueCode.InvalidPendingRequest, exception.Message);
+                }
+            }
             if (!settings.TryGetGate(request.manifestationMilestone, out _))
             {
                 Add(issues, CharacterAcquiredTraitValidationIssueCode.InvalidMilestone,
@@ -634,6 +665,11 @@ public static class CharacterAcquiredTraitStateValidator
         ISet<string> meaningfulFactIds,
         ICollection<CharacterAcquiredTraitValidationIssue> issues)
     {
+        try { request.RestorePublicContext(); }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            Add(issues, CharacterAcquiredTraitValidationIssueCode.InvalidPendingRequest, exception.Message);
+        }
         if (!IsCanonicalRequired(request.targetPersistentId)
             || !IsCanonicalRequired(request.requestId)
             || !IsCanonicalRequired(request.requestKey)
@@ -676,6 +712,7 @@ public static class CharacterAcquiredTraitStateValidator
                 && request.formulaCatalogSha256.Length == 64
                 && IsCanonicalRequired(request.moduleSelectionId)
                 && request.moduleSelectionId.StartsWith("selection:trait:", StringComparison.Ordinal)
+                && CharacterAcquiredTraitFormulaGeneration.HasValidModuleSelectionLocalFacts(request)
                 && request.offeredBenefitModuleIds != null
                 && request.offeredBenefitModuleIds.Count > 0
                 && IsCanonicalSortedUnique(request.offeredBenefitModuleIds)
@@ -899,6 +936,37 @@ public static class CharacterAcquiredTraitStateValidator
                     && originalEvidenceFactIds.Contains(
                         value.factId?.Trim() ?? string.Empty))
                 .Select(value => value.domain));
+            foreach (GameplayOutcomeEvidenceBindingSnapshot binding in
+                     instance.evidenceBindings
+                     ?? new List<GameplayOutcomeEvidenceBindingSnapshot>())
+            {
+                if (binding == null
+                    || !evidence.Contains(binding.publicFactId ?? string.Empty))
+                    continue;
+                foreach (string tag in binding.semanticTags
+                             ?? new List<string>())
+                {
+                    string domainToken = tag?.Trim() ?? string.Empty;
+                    const string domainPrefix = "domain:";
+                    if (domainToken.StartsWith(
+                            domainPrefix,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        domainToken = domainToken.Substring(
+                            domainPrefix.Length);
+                    }
+                    if (Enum.TryParse(
+                            domainToken,
+                            ignoreCase: true,
+                            out CharacterNarrativeDomain exactDomain)
+                        && Enum.IsDefined(
+                            typeof(CharacterNarrativeDomain),
+                            exactDomain))
+                    {
+                        evidenceDomains.Add(exactDomain);
+                    }
+                }
+            }
             string mismatchedModule = selected
                 .Where(value => !value.DomainAffinities.Any(
                     evidenceDomains.Contains))

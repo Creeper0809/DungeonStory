@@ -267,6 +267,8 @@ public static class CombatEquipmentCraftMaterialOutbox
         order.completionEffectsPublished = false;
         order.qualityOutcomeSchemaVersion = 0;
         order.qualityOutcomeCommitted = false;
+        order.qualityOutcomeResultKey = string.Empty;
+        order.completionFact = new CombatEquipmentCraftCompletionFactData();
         order.outputPublished = false;
         order.outputOperationId = string.Empty;
         order.outputItemId = string.Empty;

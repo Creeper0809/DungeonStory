@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
@@ -18,6 +19,10 @@ internal sealed class CharacterDeprivationAggregateState
 
     internal IReadOnlyDictionary<CharacterId, CharacterDeprivationState> States =>
         states;
+    // Completed physical effects can outlive a character's active deprivation state.
+    internal Dictionary<string, CharacterCorpseConsumptionPublicationData> PendingCorpsePublications { get; } = new(StringComparer.Ordinal);
+    internal Dictionary<string, CharacterWaterPublicationData> PendingWaterPublications { get; } = new(StringComparer.Ordinal);
+    internal Dictionary<string, PrimitiveSurvivalPendingSaveData> PendingPrimitivePublications { get; } = new(StringComparer.Ordinal);
 
     internal bool TryGet(
         CharacterId characterId,
@@ -53,6 +58,12 @@ internal sealed class CharacterDeprivationAggregateState
                     clearTransientTarget: false));
         }
 
+        foreach (var pair in PendingCorpsePublications)
+            clone.PendingCorpsePublications.Add(pair.Key, pair.Value.Clone());
+        foreach (var pair in PendingWaterPublications)
+            clone.PendingWaterPublications.Add(pair.Key, pair.Value.Clone());
+        foreach (var pair in PendingPrimitivePublications)
+            clone.PendingPrimitivePublications.Add(pair.Key, pair.Value.Clone());
         return clone;
     }
 }
@@ -160,7 +171,12 @@ public sealed class CharacterDeprivationAuthorityDependencies
         CharacterDeprivationStateStore stateStore,
         ICharacterBodyHealthCommand bodyHealthCommands,
         ICharacterPerformanceQuery performance,
-        CharacterPrimitiveSurvivalDependencies primitiveSurvival)
+        CharacterPrimitiveSurvivalDependencies primitiveSurvival,
+        ICharacterVandalismCommand vandalismCommands = null,
+        IPhysicalItemBatchDispositionService batchDispositions = null,
+        IDomainFactStagingPublisher facts = null,
+        IDomainFactRecoveryPublisher recovery = null,
+        IDomainFactPublisher notifications = null)
     {
         ItemCatalog = itemCatalog
             ?? throw new ArgumentNullException(nameof(itemCatalog));
@@ -172,6 +188,11 @@ public sealed class CharacterDeprivationAuthorityDependencies
             ?? throw new ArgumentNullException(nameof(performance));
         PrimitiveSurvival = primitiveSurvival
             ?? throw new ArgumentNullException(nameof(primitiveSurvival));
+        VandalismCommands = vandalismCommands;
+        BatchDispositions = batchDispositions;
+        Facts = facts;
+        Recovery = recovery;
+        Notifications = notifications;
     }
 
     public IItemDefinitionCatalog ItemCatalog { get; }
@@ -179,6 +200,11 @@ public sealed class CharacterDeprivationAuthorityDependencies
     public ICharacterBodyHealthCommand BodyHealthCommands { get; }
     public ICharacterPerformanceQuery Performance { get; }
     public CharacterPrimitiveSurvivalDependencies PrimitiveSurvival { get; }
+    public ICharacterVandalismCommand VandalismCommands { get; }
+    internal IPhysicalItemBatchDispositionService BatchDispositions { get; }
+    internal IDomainFactStagingPublisher Facts { get; }
+    internal IDomainFactRecoveryPublisher Recovery { get; }
+    internal IDomainFactPublisher Notifications { get; }
 
     internal CharacterBreakdownActionRunner CreateBreakdownActionRunner(
         CharacterBreakdownWorld world,
@@ -188,7 +214,7 @@ public sealed class CharacterDeprivationAuthorityDependencies
         CharacterEmergencyMovement emergencyMovement,
         CharacterDeprivationDiagnostics diagnostics,
         CharacterDeprivationConsequences consequences,
-        IGameEventBus events)
+        CharacterWaterPublicationOutbox waterPublications)
     {
         return new CharacterBreakdownActionRunner(
             world,
@@ -205,9 +231,9 @@ public sealed class CharacterDeprivationAuthorityDependencies
                 diagnostics,
                 consequences,
                 PrimitiveSurvival.FieldMeals,
-                events,
                 PrimitiveSurvival.Calendar,
-                PrimitiveSurvival.OutcomeTransactions));
+                waterPublications,
+                VandalismCommands));
     }
 }
 
@@ -219,13 +245,13 @@ public sealed class CharacterPrimitiveSurvivalDependencies
         IItemQuantityReservationService quantityReservations,
         IReservedItemTransferService reservedTransfers,
         IGameCalendar calendar,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        IDomainFactPublisher primitiveFacts)
         : this(
             fieldMeals,
             quantityReservations,
             reservedTransfers,
             calendar,
-            outcomeTransactions,
+            primitiveFacts,
             null)
     {
     }
@@ -235,7 +261,7 @@ public sealed class CharacterPrimitiveSurvivalDependencies
         IItemQuantityReservationService quantityReservations,
         IReservedItemTransferService reservedTransfers,
         IGameCalendar calendar,
-        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        IDomainFactPublisher primitiveFacts,
         ICharacterPrimitiveSurvivalCoroutineScheduler coroutineScheduler)
     {
         FieldMeals = fieldMeals ?? throw new ArgumentNullException(nameof(fieldMeals));
@@ -244,8 +270,10 @@ public sealed class CharacterPrimitiveSurvivalDependencies
         ReservedTransfers = reservedTransfers
             ?? throw new ArgumentNullException(nameof(reservedTransfers));
         Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
-        OutcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        PrimitiveFacts = primitiveFacts
+            ?? throw new ArgumentNullException(nameof(primitiveFacts));
+        if (primitiveFacts is not IDomainFactRecoveryPublisher)
+            throw new ArgumentException("Primitive survival requires durable fact replay.", nameof(primitiveFacts));
         CoroutineScheduler = coroutineScheduler
             ?? UnityCharacterPrimitiveSurvivalCoroutineScheduler.Instance;
     }
@@ -254,7 +282,7 @@ public sealed class CharacterPrimitiveSurvivalDependencies
     public IItemQuantityReservationService QuantityReservations { get; }
     public IReservedItemTransferService ReservedTransfers { get; }
     public IGameCalendar Calendar { get; }
-    public IMigratedProducerOutcomeTransaction OutcomeTransactions { get; }
+    public IDomainFactPublisher PrimitiveFacts { get; }
     public ICharacterPrimitiveSurvivalCoroutineScheduler CoroutineScheduler { get; }
 }
 
@@ -377,7 +405,120 @@ public sealed class CharacterDeprivationStateStore
     internal void Remove(CharacterId characterId)
     {
         RequireCharacterId(characterId);
+        if (WriteState.TryGet(characterId, out var state) && state.primitiveSurvivalPending?.IsPending == true)
+        {
+            var pending = state.primitiveSurvivalPending;
+            ValidatePrimitiveSurvivalPending(pending, characterId);
+            if (!WriteState.PendingPrimitivePublications.TryAdd(pending.operationId, pending.Clone()))
+                throw Invalid(characterId, "primitive publication already retired");
+        }
         WriteState.Remove(characterId);
+    }
+
+    internal List<PrimitiveSurvivalPendingSaveData> CaptureRetiredPrimitivePublications() =>
+        ReadState.PendingPrimitivePublications.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => pair.Value.Clone()).ToList();
+
+    internal void ClearRetiredPrimitivePublication(string operationId, string publicationKey)
+    {
+        if (!WriteState.PendingPrimitivePublications.TryGetValue(operationId, out var row)
+            || row.publicationKey != publicationKey)
+            throw new InvalidOperationException("primitive-retired-publication-ack-conflict");
+        WriteState.PendingPrimitivePublications.Remove(operationId);
+    }
+
+    internal static void RestoreRetiredPrimitivePublications(CharacterDeprivationAggregateState target,
+        IReadOnlyList<PrimitiveSurvivalPendingSaveData> saved)
+    {
+        if (saved == null || saved.Count > 16384)
+            throw new InvalidOperationException("primitive-retired-publications-invalid");
+        var operations = new HashSet<string>(target.States.Values
+            .Where(state => state.primitiveSurvivalPending.IsPending)
+            .Select(state => state.primitiveSurvivalPending.operationId), StringComparer.Ordinal);
+        var keys = new HashSet<string>(target.States.Values
+            .Where(state => state.primitiveSurvivalPending.IsPending)
+            .Select(state => state.primitiveSurvivalPending.publicationKey), StringComparer.Ordinal);
+        string previous = string.Empty;
+        foreach (var pending in saved)
+        {
+            PrimitiveSurvivalCompletedFact.ValidateSaved(pending, pending?.characterId);
+            if (!pending.IsPending || !operations.Add(pending.operationId) || !keys.Add(pending.publicationKey)
+                || previous.Length > 0 && string.CompareOrdinal(previous, pending.operationId) >= 0)
+                throw new InvalidOperationException("primitive-retired-publication-duplicate-or-order");
+            target.PendingPrimitivePublications.Add(pending.operationId, pending.Clone());
+            previous = pending.operationId;
+        }
+    }
+
+    internal bool TryGetPrimitiveSurvivalPending(
+        CharacterId characterId,
+        out PrimitiveSurvivalPendingSaveData pending)
+    {
+        pending = null;
+        if (!characterId.IsValid
+            || !ReadState.TryGet(characterId, out CharacterDeprivationState state)
+            || state?.primitiveSurvivalPending?.IsPending != true)
+        {
+            var retired = ReadState.PendingPrimitivePublications.Values
+                .FirstOrDefault(row => row.characterId == characterId.Value);
+            pending = retired?.Clone();
+            return pending != null;
+        }
+
+        pending = ClonePrimitiveSurvivalPending(state.primitiveSurvivalPending);
+        return true;
+    }
+
+    internal void RecordPrimitiveSurvivalPending(
+        CharacterId characterId,
+        PrimitiveSurvivalPendingSaveData pending)
+    {
+        RequireCharacterId(characterId);
+        ValidatePrimitiveSurvivalPending(pending, characterId);
+        CharacterDeprivationState state = Ensure(characterId);
+        if (state.primitiveSurvivalPending?.IsPending == true
+            || WriteState.PendingPrimitivePublications.Values.Any(row => row.characterId == characterId.Value))
+        {
+            throw Invalid(
+                characterId,
+                "already contains a primitive-survival pending receipt");
+        }
+        state.primitiveSurvivalPending = ClonePrimitiveSurvivalPending(pending);
+    }
+
+    internal void ClearPrimitiveSurvivalPending(
+        CharacterId characterId,
+        string expectedParentOperationId)
+    {
+        RequireCharacterId(characterId);
+        string expected = expectedParentOperationId ?? string.Empty;
+        if (WriteState.PendingPrimitivePublications.TryGetValue(expected, out var retired)
+            && retired.characterId == characterId.Value)
+        {
+            WriteState.PendingPrimitivePublications.Remove(expected);
+            return;
+        }
+        if (!TryGetWritable(characterId, out CharacterDeprivationState state)
+            || state?.primitiveSurvivalPending?.IsPending != true
+            || !string.Equals(
+                state.primitiveSurvivalPending.operationId,
+                expected,
+                StringComparison.Ordinal))
+        {
+            throw Invalid(
+                characterId,
+                "does not contain the expected primitive-survival pending receipt");
+        }
+        state.primitiveSurvivalPending = new PrimitiveSurvivalPendingSaveData();
+    }
+
+    internal void BlockPrimitiveSurvivalRecovery(CharacterId characterId, string operationId, string failure)
+    {
+        if (!TryGetWritable(characterId, out CharacterDeprivationState state)
+            || state.primitiveSurvivalPending?.operationId != operationId)
+            throw Invalid(characterId, "cannot mark an unknown primitive operation rollback failure");
+        state.primitiveSurvivalPending.rollbackBlocked = true;
+        state.primitiveSurvivalPending.rollbackFailure = string.IsNullOrEmpty(failure) ? "primitive-rollback-failed" : failure;
     }
 
     internal List<CharacterDeprivationState> Capture()
@@ -386,6 +527,105 @@ public sealed class CharacterDeprivationStateStore
             .OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
             .Select(pair => CloneState(pair.Value, clearTransientTarget: true))
             .ToList();
+    }
+
+    internal List<CharacterCorpseConsumptionPublicationData> CaptureCorpsePublications() =>
+        ReadState.PendingCorpsePublications.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => pair.Value.Clone()).ToList();
+
+    internal List<CharacterWaterPublicationData> CaptureWaterPublications() =>
+        ReadState.PendingWaterPublications.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => pair.Value.Clone()).ToList();
+
+    internal bool TryGetWaterPublication(string characterId, out CharacterWaterPublicationData pending)
+    {
+        bool found = ReadState.PendingWaterPublications.TryGetValue(characterId, out var value);
+        pending = found ? value.Clone() : null; return found;
+    }
+    internal void RecordWaterPublication(CharacterWaterPublicationData pending)
+    {
+        var fact = RequireWaterPublication(pending);
+        if (!WriteState.PendingWaterPublications.TryAdd(fact.Data.characterId, pending.Clone()))
+            throw new InvalidOperationException("water-publication-owner-already-pending");
+    }
+    internal void MarkWaterNotificationDispatched(string characterId, string publicationKey)
+    {
+        if (!WriteState.PendingWaterPublications.TryGetValue(characterId, out var pending)
+            || pending.publicationKey != publicationKey)
+            throw new InvalidOperationException("water-notification-owner-conflict");
+        pending.notificationDispatched = true;
+    }
+    internal void ClearWaterPublication(string characterId, string publicationKey)
+    {
+        if (!WriteState.PendingWaterPublications.TryGetValue(characterId, out var pending)
+            || pending.publicationKey != publicationKey)
+            throw new InvalidOperationException("water-publication-owner-ack-conflict");
+        WriteState.PendingWaterPublications.Remove(characterId);
+    }
+    internal static void RestoreWaterPublications(CharacterDeprivationAggregateState target,
+        IReadOnlyList<CharacterWaterPublicationData> saved)
+    {
+        if (saved == null || saved.Count > 16384) throw new InvalidOperationException("water-publication-list-invalid");
+        string previous = string.Empty;
+        foreach (var pending in saved)
+        {
+            string characterId = RequireWaterPublication(pending).Data.characterId;
+            if (previous.Length > 0 && string.CompareOrdinal(previous, characterId) >= 0
+                || !target.PendingWaterPublications.TryAdd(characterId, pending.Clone()))
+                throw new InvalidOperationException("water-publication-order-or-duplicate-invalid");
+            previous = characterId;
+        }
+    }
+    private static CharacterWaterConsumedFact RequireWaterPublication(CharacterWaterPublicationData pending)
+    {
+        if (pending == null || !DomainFactValueSyntax.IsText(pending.publicationKey, 2048, false)
+            || pending.publicationKey != pending.publicationKey.Trim())
+            throw new InvalidOperationException("water-publication-reference-invalid");
+        return new CharacterWaterConsumedFact(pending.fact);
+    }
+
+    internal bool TryGetCorpsePublication(string operation, out CharacterCorpseConsumptionPublicationData pending)
+    {
+        bool found = ReadState.PendingCorpsePublications.TryGetValue(operation, out var value);
+        pending = found ? value.Clone() : null; return found;
+    }
+
+    internal void RecordCorpsePublication(CharacterCorpseConsumptionPublicationData pending)
+    {
+        var fact = RequireCorpsePublication(pending);
+        if (!WriteState.PendingCorpsePublications.TryAdd(fact.Physical.Receipt.OperationId, pending.Clone()))
+            throw new InvalidOperationException("corpse-publication-owner-already-pending");
+    }
+
+    internal void ClearCorpsePublication(string operation, string publicationKey)
+    {
+        if (!WriteState.PendingCorpsePublications.TryGetValue(operation, out var pending)
+            || pending.publicationKey != publicationKey)
+            throw new InvalidOperationException("corpse-publication-owner-ack-conflict");
+        WriteState.PendingCorpsePublications.Remove(operation);
+    }
+
+    internal static void RestoreCorpsePublications(CharacterDeprivationAggregateState target,
+        IReadOnlyList<CharacterCorpseConsumptionPublicationData> saved)
+    {
+        if (saved == null || saved.Count > 16384) throw new InvalidOperationException("corpse-publication-list-invalid");
+        string previous = string.Empty;
+        foreach (var pending in saved)
+        {
+            string operation = RequireCorpsePublication(pending).Physical.Receipt.OperationId;
+            if (previous.Length > 0 && string.CompareOrdinal(previous, operation) >= 0
+                || !target.PendingCorpsePublications.TryAdd(operation, pending.Clone()))
+                throw new InvalidOperationException("corpse-publication-order-or-duplicate-invalid");
+            previous = operation;
+        }
+    }
+
+    private static CharacterCorpseConsumedFact RequireCorpsePublication(CharacterCorpseConsumptionPublicationData pending)
+    {
+        if (pending == null || !DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(pending.publicationKey, 2048, false)
+            || pending.publicationKey != pending.publicationKey.Trim())
+            throw new InvalidOperationException("corpse-publication-reference-invalid");
+        return CharacterCorpseConsumedFact.FromSave(pending.fact);
     }
 
     internal CharacterDeprivationAggregateState CaptureTransactionState() =>
@@ -592,7 +832,9 @@ public sealed class CharacterDeprivationStateStore
             lastUpdatedAt = state.lastUpdatedAt,
             nextSafeReliefAttemptAt = state.nextSafeReliefAttemptAt,
             breakdownGeneration = state.breakdownGeneration,
-            dispatchedBreakdownGeneration = state.dispatchedBreakdownGeneration
+            dispatchedBreakdownGeneration = state.dispatchedBreakdownGeneration,
+            primitiveSurvivalPending = ClonePrimitiveSurvivalPending(
+                state.primitiveSurvivalPending)
         };
         EnsureNormalized(clone);
         return clone;
@@ -660,6 +902,7 @@ public sealed class CharacterDeprivationStateStore
         state.burdens ??= new List<DeprivationBurdenSaveData>();
         state.breakdown ??= new CharacterBreakdownState();
         state.tabooMemories ??= new List<string>();
+        state.primitiveSurvivalPending ??= new PrimitiveSurvivalPendingSaveData();
         NormalizeBurdens(state.burdens);
     }
 
@@ -818,7 +1061,22 @@ public sealed class CharacterDeprivationStateStore
         {
             throw Invalid(characterId, "contains invalid taboo memories");
         }
+        ValidatePrimitiveSurvivalPending(
+            state.primitiveSurvivalPending,
+            characterId);
     }
+
+    private static PrimitiveSurvivalPendingSaveData ClonePrimitiveSurvivalPending(PrimitiveSurvivalPendingSaveData source) =>
+        source?.Clone() ?? new PrimitiveSurvivalPendingSaveData();
+
+    private static void ValidatePrimitiveSurvivalPending(PrimitiveSurvivalPendingSaveData pending, CharacterId characterId) =>
+        PrimitiveSurvivalCompletedFact.ValidateSaved(pending, characterId.Value);
+
+    private static bool IsCanonicalKindId(string value, string kind) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal)
+        && value.StartsWith(kind + ":", StringComparison.Ordinal)
+        && value.Length > kind.Length + 1;
 
     private static void RequireFiniteRange(
         float value,
@@ -917,7 +1175,13 @@ internal sealed class CharacterDeprivationPersistenceCoordinator
                         new CharacterId(state.characterId)))
                 .ToList(),
             filth = capturedFilth,
-            waterSources = waterQuery.CaptureWaterSources()
+            waterSources = waterQuery.CaptureWaterSources(),
+            pendingCorpsePublications = stateStore.CaptureCorpsePublications(),
+            pendingWaterPublications = stateStore.CaptureWaterPublications(),
+            pendingPrimitivePublications = stateStore.CaptureRetiredPrimitivePublications()
+                .Concat(stateStore.Capture().Where(state => !persistentIds.Contains(new CharacterId(state.characterId))
+                    && state.primitiveSurvivalPending.IsPending).Select(state => state.primitiveSurvivalPending.Clone()))
+                .OrderBy(row => row.operationId, StringComparer.Ordinal).ToList()
         };
     }
 
@@ -931,6 +1195,9 @@ internal sealed class CharacterDeprivationPersistenceCoordinator
             CharacterDeprivationStateStore.BuildValidatedAggregate(
                 source.characters,
                 knownCharacterIds);
+        CharacterDeprivationStateStore.RestoreCorpsePublications(restoredCharacters, source.pendingCorpsePublications);
+        CharacterDeprivationStateStore.RestoreWaterPublications(restoredCharacters, source.pendingWaterPublications);
+        CharacterDeprivationStateStore.RestoreRetiredPrimitivePublications(restoredCharacters, source.pendingPrimitivePublications);
         ValidateWorldPayload(
             source,
             knownCharacterIds,
@@ -976,9 +1243,12 @@ internal sealed class CharacterDeprivationPersistenceCoordinator
         // Preflight is intentionally independent of the current live world.
         // Exact cross-section ownership is checked again while staging, after
         // characters.world has published its detached candidate view.
-        _ = CharacterDeprivationStateStore.BuildValidatedAggregate(
+        var validated = CharacterDeprivationStateStore.BuildValidatedAggregate(
             source.characters,
             payloadCharacterIds);
+        CharacterDeprivationStateStore.RestoreCorpsePublications(validated, source.pendingCorpsePublications);
+        CharacterDeprivationStateStore.RestoreWaterPublications(validated, source.pendingWaterPublications);
+        CharacterDeprivationStateStore.RestoreRetiredPrimitivePublications(validated, source.pendingPrimitivePublications);
         ValidateWorldPayload(
             source,
             payloadCharacterIds,
@@ -1337,8 +1607,8 @@ public static class CharacterDeprivationAuthorityDebugScenarios
 
     private static void VerifyRollbackFreeContract()
     {
-        Require(DungeonDarkSurvivalSaveData.CurrentVersion == 3,
-            "dark-survival payload is not exact V3");
+        Require(DungeonDarkSurvivalSaveData.CurrentVersion == 6,
+            "dark-survival payload is not exact V6");
         Require(typeof(IDungeonRollbackFreeSaveSection).IsAssignableFrom(
                 typeof(DarkSurvivalSaveSection)),
             "dark-survival save section is not rollback-free");

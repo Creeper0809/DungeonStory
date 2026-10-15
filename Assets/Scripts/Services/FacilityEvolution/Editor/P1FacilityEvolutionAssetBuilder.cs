@@ -260,9 +260,18 @@ public static class P1FacilityEvolutionAssetBuilder
         FacilityEvolutionRecipeSO recipe,
         string moduleId)
     {
+        ApplyFormulaAuthoringForControlledSimulation(recipe, moduleId);
+    }
+
+    public static void ApplyFormulaAuthoringForControlledSimulation(
+        FacilityEvolutionRecipeSO recipe,
+        string moduleId)
+    {
         if (recipe == null) throw new ArgumentNullException(nameof(recipe));
         if (string.IsNullOrWhiteSpace(moduleId) || moduleId != moduleId.Trim())
-            throw new ArgumentException("A canonical test facility module ID is required.", nameof(moduleId));
+            throw new ArgumentException(
+                "A canonical controlled-simulation facility module ID is required.",
+                nameof(moduleId));
         ApplyFormulaAuthoring(recipe, recipe.EffectiveId, new[] { moduleId });
     }
 

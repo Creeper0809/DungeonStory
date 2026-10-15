@@ -13,6 +13,82 @@ public static class WildlifeDebugScenarios
 {
     private const string ReportPath = "Temp/wildlife-contracts.tsv";
 
+    public static void RunCarcassCandidateBatch()
+    {
+        string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output) || Directory.Exists(output))
+            throw new InvalidOperationException("A new carcass candidate evidence directory is required.");
+        Directory.CreateDirectory(output);
+        string failure = string.Empty;
+        try { VerifyCarcassRestoreReadsIncomingPhysicalCandidate(); }
+        catch (Exception error) { failure = error.ToString(); }
+        using (FileStream stream = new(Path.Combine(output, "report.json"), FileMode.CreateNew))
+        using (StreamWriter writer = new(stream))
+            writer.Write(Newtonsoft.Json.JsonConvert.SerializeObject(new
+            {
+                passed = failure.Length == 0, failure,
+                checks = new[] { "incoming-carcass", "live-only-rejected", "wrong-item-rejected",
+                    "missing-candidate-rejected", "live-state-unchanged", "discard-clears-index" },
+                trainingEligible = false, humanApprovalClaimed = false
+            }));
+        if (failure.Length > 0) throw new InvalidOperationException(failure);
+        Debug.Log("Wildlife incoming carcass candidate contracts PASS.");
+    }
+
+    private static void VerifyCarcassRestoreReadsIncomingPhysicalCandidate()
+    {
+        using WorldItemStackRuntime live = PhysicalItemDebugScenarios
+            .CreateRuntimeForCrossDomainFixture(out WorldItemRepository liveRepository, out _);
+        using WorldItemStackRuntime incoming = PhysicalItemDebugScenarios
+            .CreateRuntimeForCrossDomainFixture(out WorldItemRepository incomingRepository, out _);
+        string liveOnly = WorldItemRepositoryEditorAccess.AddStack(liveRepository,
+            "wild:carcass:cave_rat", 1, WorldItemStackState.Loose,
+            itemInstanceId: "item-instance:carcass-restore-live");
+        string incomingId = WorldItemRepositoryEditorAccess.AddStack(incomingRepository,
+            "wild:carcass:cave_rat", 1, WorldItemStackState.Loose,
+            itemInstanceId: "item-instance:carcass-restore-incoming");
+        string wrongItem = WorldItemRepositoryEditorAccess.AddStack(incomingRepository,
+            "wild:carcass:shadow_wolf", 1, WorldItemStackState.Loose,
+            itemInstanceId: "item-instance:carcass-restore-wrong-item");
+        string liveBefore = JsonUtility.ToJson(live.Capture());
+        ResourceGameContentCatalog content = new(new UnityGameContentRootLoader());
+        IWildlifeSpeciesCatalogProvider species = new ResourceWildlifeSpeciesCatalogProvider(
+            content, new ResourceItemDefinitionCatalog(content));
+        Grid grid = new(1, 1);
+        RestoreWorldCandidateIndex world = new();
+        world.SetFacilityCandidate(grid, Array.Empty<BuildableObject>());
+        IDungeonSaveRestoreStage stage = null;
+        IPhysicalItemRestoreCandidateStackQuery candidate = live;
+        try
+        {
+            stage = live.StageTransactionalRestore(incoming.Capture(), world);
+            bool Valid(string stackId)
+            {
+                DungeonWildlifeSaveData payload = new();
+                payload.carcasses.Add(new WildlifeCarcassFreshnessSaveData
+                {
+                    stackId = stackId, speciesId = "cave_rat", remainingFreshnessSeconds = 100f
+                });
+                DungeonGameRestoreReport report = new();
+                WildlifeSaveValidation.ValidateWorldReferences(payload, grid, candidate, species, report);
+                return report.Success;
+            }
+            Require(Valid(incomingId), "Incoming carcass was rejected against the live item world.");
+            Require(!Valid(liveOnly), "A live-only carcass satisfied an incoming restore reference.");
+            Require(!Valid(wrongItem), "A mismatched carcass item satisfied the species reference.");
+            Require(JsonUtility.ToJson(live.Capture()) == liveBefore,
+                "Carcass candidate validation mutated live physical state.");
+            ((IDungeonDiscardableSaveRestoreStage)stage).Discard();
+            stage = null;
+            Require(!candidate.IsCandidateAvailable && !candidate.TryGetStackById(incomingId, out _),
+                "Discard retained the incoming stack index.");
+            Require(!Valid(incomingId), "Missing incoming physical candidate was accepted.");
+            Require(JsonUtility.ToJson(live.Capture()) == liveBefore,
+                "Discard changed live physical state.");
+        }
+        finally { (stage as IDungeonDiscardableSaveRestoreStage)?.Discard(); }
+    }
+
     [MenuItem("DungeonStory/Debug/Wildlife/Run Wildlife Contracts")]
     public static void RunAllFromMenu()
     {

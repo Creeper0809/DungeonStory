@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
-using DungeonStory.Operation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 public enum FestivalExecutionPhase
@@ -354,7 +354,7 @@ public sealed class FestivalExecutionRuntime :
     private readonly IV20CampaignPersistence campaignPersistence;
     private readonly ICharacterRitualFastingCommand ritualFasting;
     private readonly CharacterIdentityStateStore identityStates;
-    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private readonly ISocialRitualFactPublisher factPublisher;
     private readonly IEconomyProjectInputOwnerPort inputOwners;
     private readonly IWorldItemStackRuntime items;
     private readonly IPhysicalFacilityItemBatchSinkGateway materialSink;
@@ -363,8 +363,7 @@ public sealed class FestivalExecutionRuntime :
         byOccurrence = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ParticipantRuntime> participantRuntime =
         new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> alertFingerprints =
-        new(StringComparer.Ordinal);
+    private long stateGeneration;
     private FestivalExecutionAggregateState stagedRestore;
     private FestivalExecutionAggregateState rollbackRestore;
     private bool restoreTransactionOpen;
@@ -391,7 +390,7 @@ public sealed class FestivalExecutionRuntime :
         IWorkAmountCalculator workAmounts,
         ICharacterRitualFastingCommand ritualFasting = null,
         CharacterIdentityStateStore identityStates = null,
-        IMigratedProducerOutcomeTransaction outcomeTransactions = null)
+        ISocialRitualFactPublisher factPublisher = null)
     {
         this.festivals = festivals ?? throw new ArgumentNullException(nameof(festivals));
         this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
@@ -418,9 +417,8 @@ public sealed class FestivalExecutionRuntime :
             ?? throw new ArgumentNullException(nameof(workAmounts));
         this.ritualFasting = ritualFasting;
         this.identityStates = identityStates;
-        this.outcomeTransactions = outcomeTransactions;
-        if (outcomeTransactions != null
-            && ritualFasting != null
+        this.factPublisher = factPublisher ?? throw new ArgumentNullException(nameof(factPublisher));
+        if (ritualFasting != null
             && identityStates == null)
         {
             throw new InvalidOperationException(
@@ -437,7 +435,7 @@ public sealed class FestivalExecutionRuntime :
         IFactionCampaignQuery factions,
         IFactionCampaignCommand campaignCommand,
         IV20CampaignPersistence campaignPersistence,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        ISocialRitualFactPublisher factPublisher)
     {
         this.festivals = festivals ?? throw new ArgumentNullException(nameof(festivals));
         this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
@@ -463,8 +461,7 @@ public sealed class FestivalExecutionRuntime :
         workAmounts = null;
         ritualFasting = null;
         identityStates = null;
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.factPublisher = factPublisher ?? throw new ArgumentNullException(nameof(factPublisher));
     }
 
     public IReadOnlyList<FestivalExecutionOccurrenceSaveData> Occurrences =>
@@ -575,6 +572,7 @@ public sealed class FestivalExecutionRuntime :
         out FestivalPreparedOrder order,
         out DomainFailure failure)
     {
+        factPublisher.AssertIdle();
         order = null;
         failure = DomainFailure.None;
         if (request == null
@@ -716,7 +714,7 @@ public sealed class FestivalExecutionRuntime :
         };
         byOccurrence.Add(state.occurrenceId, state);
         order = BuildPreparedOrder(state);
-        PublishAlertIfChanged(state, festival, force: true);
+        PublishProgress(state, festival, FestivalExecutionChange.Scheduled);
         return true;
     }
 
@@ -725,6 +723,7 @@ public sealed class FestivalExecutionRuntime :
         int occurrenceYear,
         out DomainFailure failure)
     {
+        factPublisher.AssertIdle();
         failure = DomainFailure.None;
         FestivalDefinitionSO festival;
         try
@@ -775,12 +774,13 @@ public sealed class FestivalExecutionRuntime :
             lastStatus = "미개최 선택",
             cleanupComplete = true
         });
-        PublishAlertIfChanged(byOccurrence[occurrenceId], festival, force: true);
+        PublishProgress(byOccurrence[occurrenceId], festival, FestivalExecutionChange.Declined);
         return true;
     }
 
     public bool Resolve(FestivalPreparedOrder order, out DomainFailure failure)
     {
+        factPublisher.AssertIdle();
         failure = DomainFailure.None;
         string occurrenceId = order?.OccurrenceId ?? string.Empty;
         if (occurrenceId.Length == 0
@@ -809,6 +809,7 @@ public sealed class FestivalExecutionRuntime :
 
     public void Advance()
     {
+        factPublisher.AssertIdle();
         float deltaSeconds = clock.IsPaused
             ? 0f
             : Mathf.Max(0f, clock.DeltaTime);
@@ -831,12 +832,13 @@ public sealed class FestivalExecutionRuntime :
                     AdvanceTerminalCleanup(state);
                     break;
             }
-            PublishAlertIfChanged(state, festival);
+            PublishProgress(state, festival, FestivalExecutionChange.Advanced);
         }
     }
 
     public FestivalExecutionWorldSaveData CaptureFestivalExecutions()
     {
+        factPublisher.AssertIdle();
         FestivalExecutionWorldSaveData payload = new()
         {
             occurrences = byOccurrence.Values
@@ -876,6 +878,7 @@ public sealed class FestivalExecutionRuntime :
     public void PublishFestivalExecutionRestore(
         FestivalExecutionAggregateState candidate)
     {
+        factPublisher.AssertIdle();
         if (candidate?.Occurrences == null)
             throw new ArgumentNullException(nameof(candidate));
         FestivalExecutionAggregateState detached = CloneAggregate(candidate);
@@ -892,6 +895,7 @@ public sealed class FestivalExecutionRuntime :
 
     public void BeginRestoreCandidate()
     {
+        factPublisher.AssertIdle();
         if (restoreTransactionOpen)
             throw new InvalidOperationException(
                 "Festival execution restore transaction is already open.");
@@ -945,7 +949,7 @@ public sealed class FestivalExecutionRuntime :
         byOccurrence.Clear();
         foreach (FestivalExecutionOccurrenceSaveData value in candidate.Occurrences)
             byOccurrence.Add(value.occurrenceId, value.Clone());
-        alertFingerprints.Clear();
+        ++stateGeneration;
     }
 
     private void ClearRestoreTransaction()
@@ -1403,14 +1407,17 @@ public sealed class FestivalExecutionRuntime :
             + $" · 장소 정원 {state.venueCapacity}명"
             + (stopped ? " · 현장 위험으로 중단" : string.Empty);
 
-        PreparedMigratedProducerOutcome prepared = default;
-        if (outcomeTransactions != null
-            && !outcomeTransactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.FestivalCelebratedEvent,
-                state.occurrenceId,
-                calendar.Day,
-                FestivalOutcomeStatus(grade),
-                out prepared,
+        var fact = new FestivalResolutionFact(new FestivalResolutionFactData
+        {
+            occurrenceId = state.occurrenceId, festivalId = celebrated.FestivalId,
+            displayName = string.IsNullOrWhiteSpace(festival.displayName) ? festival.StableId : festival.displayName,
+            absoluteDay = celebrated.AbsoluteDay, grade = celebrated.Grade,
+            participantIds = celebrated.ParticipantIds.Select(id => id.Value).ToList(),
+            assignedParticipantCount = celebrated.AssignedParticipantCount, venueCapacity = celebrated.VenueCapacity,
+            plannedDurationSeconds = celebrated.PlannedDurationSeconds, elapsedFestivalSeconds = celebrated.ElapsedFestivalSeconds,
+            stoppedByVenueHazard = celebrated.StoppedByVenueHazard
+        });
+        if (!factPublisher.TryReserve(fact, out DomainFactLease prepared,
                 out string reserveFailure))
         {
             throw new InvalidOperationException(
@@ -1485,25 +1492,16 @@ public sealed class FestivalExecutionRuntime :
             state.resultSummary = resultSummary;
             state.lastStatus = state.resultSummary;
 
-            if (outcomeTransactions != null)
+            DomainFactDelivery committed = factPublisher.Publish(prepared, fact);
+            if (!committed.MayBeCommitted)
             {
-                MigratedProducerOutcomeCommitResult committed = outcomeTransactions
-                    .CommitSingleSubject(
-                        prepared,
-                        CreateFestivalOutcomeSubject(state, festival),
-                        CreateFestivalOutcomeSummary(state, celebrated));
-                if (!committed.DurablyCommitted)
-                {
-                    throw new InvalidOperationException(
-                        "Festival outcome durable commit was rejected: "
-                        + committed.DetailCode);
-                }
+                throw new InvalidOperationException("Festival observation was rejected: " + committed.Detail);
             }
         }
         catch
         {
             if (prepared.IsValid)
-                outcomeTransactions.Cancel(prepared);
+                factPublisher.Cancel(prepared);
             if (rollback != null)
                 RestoreFestivalResolutionRollback(rollback);
             throw;
@@ -1755,66 +1753,19 @@ public sealed class FestivalExecutionRuntime :
         participantRuntime.Remove(runtimeKey);
     }
 
-    private void PublishAlertIfChanged(
+    private void PublishProgress(
         FestivalExecutionOccurrenceSaveData state,
         FestivalDefinitionSO festival,
-        bool force = false)
+        FestivalExecutionChange change)
     {
-        string fingerprint = string.Join(
-            "|",
-            (int)state.phase,
-            state.completedPreparationWork.ToString("0.0"),
-            state.elapsedFestivalSeconds.ToString("0.0"),
-            state.attendance.Sum(value => value.attendedSeconds).ToString("0.0"),
-            state.inputOwnerActive,
-            state.materialReceiptPending,
-            state.lastStatus ?? string.Empty);
-        if (!force
-            && alertFingerprints.TryGetValue(state.occurrenceId, out string current)
-            && string.Equals(current, fingerprint, StringComparison.Ordinal))
-            return;
-        bool terminal = state.phase is FestivalExecutionPhase.Cancelled
-            or FestivalExecutionPhase.Stopped
-            or FestivalExecutionPhase.Resolved
-            or FestivalExecutionPhase.Declined;
-        string attendance = state.attendance.Count == 0
-            ? "배정 참가자 없음"
-            : string.Join(
-                ", ",
-                state.attendance.Select(value =>
-                    $"{value.characterId} {FestivalExecutionRules.AttendanceRatio(value.attendedSeconds, state.plannedDurationSeconds) * 100f:0}%"));
-        string detail = $"장소: {state.venueFacilityInstanceId} · 정원 {state.venueCapacity}명 · 배정 {state.attendance.Count}명\n"
-            + $"준비: {state.completedPreparationWork:0.0}/{state.requiredPreparationWork:0.0} WU\n"
-            + $"개최/마감: {state.deadlineAbsoluteDay}일 {state.deadlineHour}:00 · 예정 {state.plannedDurationSeconds / GameCalendarRules.SecondsPerGameHour:0}시간\n"
-            + $"실제 참석: {attendance}\n상태: {state.lastStatus}";
         try
         {
-            events.Publish(new EventAlertRequestedEvent(new EventAlertRequest(
-                festival.displayName,
-                detail,
-                state.phase == FestivalExecutionPhase.Running
-                    ? EventAlertImportance.High
-                    : EventAlertImportance.Medium,
-                "V21 축제",
-                Array.Empty<EventAlertChoice>(),
-                state.occurrenceId,
-                isResolved: terminal,
-                resultSummary: terminal
-                    ? string.IsNullOrWhiteSpace(state.resultSummary)
-                        ? state.lastStatus
-                        : state.resultSummary
-                    : string.Empty)));
-            alertFingerprints[state.occurrenceId] = fingerprint;
+            events.Publish(new FestivalExecutionProgressedFact(
+                state, festival.displayName, stateGeneration, change));
         }
-        catch (Exception exception) when (
-            exception is not OutOfMemoryException
-            && exception is not StackOverflowException
-            && exception is not AccessViolationException)
-        {
-            Debug.LogError(
-                "festival-alert-post-commit-observer:"
-                + exception.GetType().Name);
-        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
+        { Debug.LogError("festival-progress-post-commit-observer:" + exception.GetType().Name); }
     }
 
     private bool ValidateOccurrence(FestivalExecutionOccurrenceSaveData state)
@@ -2229,43 +2180,6 @@ public sealed class FestivalExecutionRuntime :
         }
     }
 
-    private static GameplayOutcomeStatus FestivalOutcomeStatus(
-        FestivalResolutionGrade grade) => grade switch
-    {
-        FestivalResolutionGrade.Success => GameplayOutcomeStatus.Succeeded,
-        FestivalResolutionGrade.Partial => GameplayOutcomeStatus.PartiallySucceeded,
-        _ => GameplayOutcomeStatus.Failed
-    };
-
-    private static MigratedProducerOutcomeSubject CreateFestivalOutcomeSubject(
-        FestivalExecutionOccurrenceSaveData state,
-        FestivalDefinitionSO festival) => new(
-        MigratedProducerOutcomeIds.OperationKind,
-        state.occurrenceId,
-        string.IsNullOrWhiteSpace(festival.displayName)
-            ? festival.StableId
-            : festival.displayName,
-        MigratedProducerOutcomeIds.OperationRole);
-
-    private static string CreateFestivalOutcomeSummary(
-        FestivalExecutionOccurrenceSaveData state,
-        in FestivalCelebratedEvent celebrated) =>
-        "축제 개최: occurrence=" + state.occurrenceId
-        + "; festival=" + celebrated.FestivalId
-        + "; day=" + celebrated.AbsoluteDay.ToString(CultureInfo.InvariantCulture)
-        + "; grade=" + celebrated.Grade
-        + "; participants=["
-        + string.Join(",", celebrated.ParticipantIds.Select(value => value.Value))
-        + "]; assigned="
-        + celebrated.AssignedParticipantCount.ToString(CultureInfo.InvariantCulture)
-        + "; capacity="
-        + celebrated.VenueCapacity.ToString(CultureInfo.InvariantCulture)
-        + "; planned-seconds="
-        + celebrated.PlannedDurationSeconds.ToString("R", CultureInfo.InvariantCulture)
-        + "; elapsed-seconds="
-        + celebrated.ElapsedFestivalSeconds.ToString("R", CultureInfo.InvariantCulture)
-        + "; hazard-stop="
-        + (celebrated.StoppedByVenueHazard ? "true" : "false");
 
     private void PublishFestivalCelebratedObserver(
         in FestivalCelebratedEvent celebrated)

@@ -1069,6 +1069,59 @@ public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionIn
         return false;
     }
 
+    internal bool TryPrepareExactSourceStackConsumption(
+        string sourceStackId,
+        string itemId,
+        ItemInstanceId expectedInstanceId,
+        out ExactPhysicalTransferCandidate candidate,
+        out string failureReason)
+    {
+        candidate = null;
+        failureReason = string.Empty;
+        string source = sourceStackId?.Trim() ?? string.Empty;
+        string item = itemId?.Trim() ?? string.Empty;
+        if (source.Length == 0
+            || item.Length == 0
+            || !expectedInstanceId.IsValid)
+        {
+            failureReason = "carry-exact-equipment-request-invalid";
+            return false;
+        }
+
+        int index = carriedItems.FindIndex(value => value != null
+            && value.quantity == 1
+            && !HasPreparedOutputCustody(value)
+            && string.Equals(value.sourceStackId, source, StringComparison.Ordinal)
+            && string.Equals(value.itemId, item, StringComparison.Ordinal)
+            && string.Equals(
+                value.itemInstanceId,
+                expectedInstanceId.Value,
+                StringComparison.Ordinal));
+        if (index < 0
+            || carriedItems.Count(value => value != null
+                && value.quantity > 0
+                && string.Equals(
+                    value.itemInstanceId,
+                    expectedInstanceId.Value,
+                    StringComparison.Ordinal)) != 1)
+        {
+            failureReason = "carry-exact-equipment-source-missing-or-conflicting";
+            return false;
+        }
+
+        CharacterCarriedItemSaveData live = carriedItems[index];
+        candidate = new ExactPhysicalTransferCandidate(
+            this,
+            new[]
+            {
+                new ExactPhysicalTransferCandidate.Entry(
+                    index,
+                    live,
+                    CloneCarriedItem(live))
+            });
+        return true;
+    }
+
     public bool TryConsumeSourceStack(string sourceStackId, string itemId, int quantity = 1)
     {
         int remaining = Mathf.Max(0, quantity);

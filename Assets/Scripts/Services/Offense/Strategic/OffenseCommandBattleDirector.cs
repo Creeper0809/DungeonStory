@@ -144,8 +144,10 @@ public interface IOffenseBattleDirector
     void Clear();
 }
 
-public sealed class OffenseBattleDirector : IOffenseBattleDirector
+public sealed class OffenseBattleDirector : IOffenseBattleDirector,
+    IDungeonRestoreTransactionParticipant
 {
+    private readonly DungeonRestorePublication restorePublication = new();
     private const int DeckCardCount = 8;
     private const int MaximumPartySize = 5;
     private readonly IOffenseCommandResolutionAdapter resolutionAdapter;
@@ -735,6 +737,44 @@ public sealed class OffenseBattleDirector : IOffenseBattleDirector
         OffenseBattleDirectorRestoreCandidate candidate)
     {
         candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        if (restorePublication.TryStage(() => ApplyRestore(candidate), CaptureRestoreRollback)) return;
+        ApplyRestore(candidate);
+    }
+
+    private Action CaptureRestoreRollback()
+    {
+        var previous0 = State;
+        var previous1 = formations;
+        var previous2 = LastResolvedTurn;
+        var previous3 = LastResolvedEnemyIntents;
+        var previous4 = LastTurnFinalization;
+        var previous5 = lastFinalizedDirectorTurn;
+        var previous6 = pendingFinalizationTurn;
+        var previous7 = pendingResolvedTurn;
+        var previous8 = pendingResolvedEnemyIntents;
+        return () =>
+        {
+            State = previous0;
+            formations = previous1;
+            LastResolvedTurn = previous2;
+            LastResolvedEnemyIntents = previous3;
+            LastTurnFinalization = previous4;
+            lastFinalizedDirectorTurn = previous5;
+            pendingFinalizationTurn = previous6;
+            pendingResolvedTurn = previous7;
+            pendingResolvedEnemyIntents = previous8;
+        };
+    }
+
+    public string ParticipantId => "offense.battle-director";
+    public void BeginRestoreCandidate() => restorePublication.Begin();
+    public void PublishRestoreCandidate() => restorePublication.Publish();
+    public void RollbackPublishedRestoreCandidate() => restorePublication.Discard();
+    public void DiscardRestoreCandidate() => restorePublication.Discard();
+    public void CompleteRestoreCandidate() => restorePublication.Complete();
+
+    private void ApplyRestore(OffenseBattleDirectorRestoreCandidate candidate)
+    {
         State = candidate.State;
         formations = candidate.Formations;
         LastResolvedTurn = Array.Empty<OffenseResolvedCommand>();

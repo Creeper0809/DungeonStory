@@ -52,6 +52,37 @@ public sealed class CharacterEnvironmentExposure
 }
 
 [Serializable]
+public sealed class EnvironmentalExposureOutcomeSaveData
+{
+    public const int CurrentSchemaVersion = 1;
+
+    public int schemaVersion = CurrentSchemaVersion;
+    public string operationId = string.Empty;
+    public string eventKind = string.Empty;
+    public string characterId = string.Empty;
+    public string characterDisplayName = string.Empty;
+    public int x;
+    public int y;
+    public int absoluteDay;
+    public long ownerRevision;
+    public float temperatureC;
+    public float airQuality;
+    public float lightLevel;
+    public float coldBefore;
+    public float coldAfter;
+    public float heatBefore;
+    public float heatAfter;
+    public float airborneBefore;
+    public float airborneAfter;
+    public EnvironmentalExposureBand bandBefore;
+    public EnvironmentalExposureBand bandAfter;
+    public float damage;
+    public float healthBefore;
+    public float healthAfter;
+    public string reasonCode = string.Empty;
+}
+
+[Serializable]
 public sealed class EnvironmentalWorkwearSaveData
 {
     public string characterId = string.Empty;
@@ -61,11 +92,11 @@ public sealed class EnvironmentalWorkwearSaveData
 [Serializable]
 public sealed class DungeonCharacterEnvironmentSaveData
 {
-    public const int CurrentVersion = 12;
+    public const int CurrentVersion = 14;
 
     public int version = CurrentVersion;
     // Arrays intentionally have no initializer. Unity JsonUtility preserves a
-    // missing array as null, allowing the strict V3 boundary to distinguish a
+    // missing array as null, allowing the strict current-version boundary to distinguish a
     // malformed payload from a deliberately captured empty collection.
     public CharacterEnvironmentExposure[] exposures;
     public EnvironmentalWorkwearSaveData[] equippedWorkwear;
@@ -73,6 +104,8 @@ public sealed class DungeonCharacterEnvironmentSaveData
     public CharacterApparelPolicySaveData[] apparelPolicies;
     public ApparelWorkOrderSaveData[] apparelWorkOrders;
     public ApparelWorkOrderTerminalStateSaveData[] apparelWorkOrderTerminalStates;
+    public int nextExposureOutcomeSequence;
+    public EnvironmentalExposureOutcomeSaveData[] exposureOutcomes;
 }
 
 public readonly struct EnvironmentExposureChannelProjection

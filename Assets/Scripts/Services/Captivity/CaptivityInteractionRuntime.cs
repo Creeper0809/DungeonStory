@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation.Facts;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
@@ -18,7 +19,7 @@ internal sealed class CaptivityInteractionRuntime
     private readonly ICharacterBodyHealthQuery bodyHealthQuery;
     private readonly ICharacterBodyHealthMutationTransaction bodyHealthMutations;
     private readonly CaptivityInteractionOutcomeRuntime outcomes;
-    private readonly IGameClock gameClock;
+    private readonly IGameCalendar gameCalendar;
     private readonly ICaptivityInteractionMaterialRuntime materials;
     private readonly TryGetCaptiveHousing tryGetHousing;
 
@@ -30,7 +31,7 @@ internal sealed class CaptivityInteractionRuntime
         ICharacterBodyHealthQuery bodyHealthQuery,
         ICharacterBodyHealthMutationTransaction bodyHealthMutations,
         CaptivityInteractionOutcomeRuntime outcomes,
-        IGameClock gameClock,
+        IGameCalendar gameCalendar,
         ICaptivityInteractionMaterialRuntime materials,
         TryGetCaptiveHousing tryGetHousing)
     {
@@ -45,7 +46,8 @@ internal sealed class CaptivityInteractionRuntime
         this.bodyHealthMutations = bodyHealthMutations
             ?? throw new ArgumentNullException(nameof(bodyHealthMutations));
         this.outcomes = outcomes ?? throw new ArgumentNullException(nameof(outcomes));
-        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.gameCalendar = gameCalendar
+            ?? throw new ArgumentNullException(nameof(gameCalendar));
         this.materials = materials ?? throw new ArgumentNullException(nameof(materials));
         this.tryGetHousing = tryGetHousing ?? throw new ArgumentNullException(nameof(tryGetHousing));
     }
@@ -351,9 +353,20 @@ internal sealed class CaptivityInteractionRuntime
         {
             if (state?.interactionTerminal?.HasOutcome == true)
             {
+                if (state.interactionTerminal.HasCommittedOutcome
+                    && !outcomes.TryEnsureDelivered(state, out string failure))
+                {
+                    state.lastResult = failure;
+                    continue;
+                }
                 CharacterActor subject = actorRuntime.Find(state.captiveId);
                 if (subject != null)
-                    TryCompleteFrozenOutcome(state, subject, out _);
+                {
+                    if (state.status == CaptivityStatus.Dead)
+                        HandleSubjectDeath(state);
+                    else
+                        TryCompleteFrozenOutcome(state, subject, out _);
+                }
                 continue;
             }
 
@@ -449,6 +462,8 @@ internal sealed class CaptivityInteractionRuntime
         return new CaptivityInteractionTerminalState
         {
             attemptId = state.currentInteractionAttemptId,
+            captiveDisplayName = state.displayName?.Trim() ?? string.Empty,
+            absoluteDay = CurrentAbsoluteDay,
             interactionId = handler.InteractionId,
             interactionKind = handler.Kind,
             interactionDisplayName = handler.DisplayName,
@@ -514,11 +529,16 @@ internal sealed class CaptivityInteractionRuntime
         terminal = state.interactionTerminal;
         if (terminal?.HasCommittedOutcome != true)
         {
-            status = "포로 상호작용 결과의 원장 커밋 상태가 사라졌습니다.";
+            status = "포로 상호작용 결과의 적용 상태가 사라졌습니다.";
             state.lastResult = status;
             return false;
         }
 
+        if (!outcomes.TryEnsureDelivered(state, out status))
+        {
+            state.lastResult = status;
+            return false;
+        }
         if (!outcomes.TryEnsureOutput(state, out string outputFailure))
         {
             status = "포로 상호작용 결과는 확정되었지만 출력 전달을 재시도합니다: "
@@ -592,16 +612,16 @@ internal sealed class CaptivityInteractionRuntime
         }
         if (!outcomes.TryPrepare(
                 state,
-                CurrentAbsoluteDay,
-                out PreparedCaptivityInteractionOutcome prepared,
+                out CaptivityInteractionPublication prepared,
                 out long ownerRevision,
                 out string prepareFailure))
         {
-            status = "포로 상호작용 결과 원장 준비를 재시도합니다: "
+            status = "포로 상호작용 결과 전달 준비를 재시도합니다: "
                 + prepareFailure;
             return false;
         }
 
+        using var publication = prepared;
         string stateSnapshot = CaptivityStateTransitionRules
             .CaptureStateSnapshot(state);
         CharacterBodyHealthMutationSnapshot bodySnapshot = default;
@@ -666,8 +686,8 @@ internal sealed class CaptivityInteractionRuntime
             return false;
         }
 
-        OwnerOutcomeCommitResult commit = outcomes.Commit(prepared);
-        if (commit.DurablyCommitted)
+        DomainFactDelivery commit = outcomes.Commit(prepared);
+        if (commit.MayBeCommitted)
             return true;
 
         if (bodyStaged)
@@ -678,11 +698,13 @@ internal sealed class CaptivityInteractionRuntime
                 "captivity-interaction-outcome-rejected");
         }
         CaptivityStateTransitionRules.RestoreStateSnapshot(stateSnapshot, state);
-        status = commit.DetailCode.Length == 0
-            ? "포로 상호작용 결과 원장 커밋이 거절되었습니다."
-            : commit.DetailCode;
+        status = commit.Detail.Length == 0
+            ? "포로 상호작용 결과 전달이 거절되었습니다."
+            : commit.Detail;
         return false;
     }
+
+    public void ValidateBeforeCapture() => outcomes.ValidateBeforeCapture();
 
     private void Clear(CaptiveState state)
     {
@@ -766,9 +788,7 @@ internal sealed class CaptivityInteractionRuntime
         return Mathf.Clamp(value, 0f, 100f);
     }
 
-    private int CurrentAbsoluteDay => Mathf.Max(
-        0,
-        Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
+    private int CurrentAbsoluteDay => gameCalendar.Day;
 
     private static bool Approximately(float left, float right) =>
         Mathf.Abs(left - right) <= 0.001f;

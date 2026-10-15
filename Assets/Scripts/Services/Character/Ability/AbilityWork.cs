@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
@@ -81,10 +82,9 @@ public class AbilityWork : CharacterAbility
     private IReservedItemTransferService reservedItemTransfers;
     private ICharacterSettlementStandingQuery settlementStandings;
     private IBuildingStructuralIntegrityRuntime structuralIntegrity;
-    private IEnvironmentalFireProcessAccidentProducer
-        processAccidentFireProducer;
     private ICharacterBodyHealthMutationTransaction bodyHealthMutation;
-    private IEnvironmentGameplayOutcomeCommitter environmentOutcomes;
+    private IDomainFactPublisher accidentFacts;
+    private WorkAccidentObservationRuntime workAccidentObservations;
     private bool isScheduleBound;
     private float routineOperateCooldownUntil;
     private Coroutine activeWorkRoutine;
@@ -514,6 +514,10 @@ public class AbilityWork : CharacterAbility
         taskExecutor = null;
     }
 
+    internal void PublishControlEvent(in WorkControlChangedEvent value) =>
+        (identityEvents ?? throw new InvalidOperationException("work-control-event-publisher-missing"))
+            .Publish(value);
+
     [Inject]
     public void ConstructPerformance(
         ICharacterPerformanceQuery performance,
@@ -599,23 +603,16 @@ public class AbilityWork : CharacterAbility
     }
 
     [Inject]
-    public void ConstructProcessAccidentFireProducer(
-        IEnvironmentalFireProcessAccidentProducer producer)
-    {
-        processAccidentFireProducer = producer
-            ?? throw new ArgumentNullException(nameof(producer));
-        taskExecutor = null;
-    }
-
-    [Inject]
-    public void ConstructWorkAccidentOutcomeTransaction(
+    public void ConstructWorkAccidentObservation(
         ICharacterBodyHealthMutationTransaction bodyHealthMutation,
-        IEnvironmentGameplayOutcomeCommitter environmentOutcomes)
+        IDomainFactPublisher accidentFacts,
+        WorkAccidentObservationRuntime workAccidentObservations)
     {
         this.bodyHealthMutation = bodyHealthMutation
             ?? throw new ArgumentNullException(nameof(bodyHealthMutation));
-        this.environmentOutcomes = environmentOutcomes
-            ?? throw new ArgumentNullException(nameof(environmentOutcomes));
+        this.accidentFacts = accidentFacts ?? throw new ArgumentNullException(nameof(accidentFacts));
+        this.workAccidentObservations = workAccidentObservations
+            ?? throw new ArgumentNullException(nameof(workAccidentObservations));
         taskExecutor = null;
     }
 
@@ -805,13 +802,9 @@ public class AbilityWork : CharacterAbility
         {
             if (actor != null && actor.Brain != null)
             {
-                actor.AddActivity(CharacterActivityEvent.Work(
-                    requestedWorkType,
-                    CharacterActivityOutcomes.Failed,
-                    "작업 실패: 작업장 없음",
-                    preferredTarget,
-                    reasonCode: "no-workplace",
-                    bubbleEligible: true));
+                WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                    WorkExecutionTransition.WorkplaceUnavailable,
+                    requestedWorkType, preferredTarget);
                 AIAction failedAction = actor.Brain.bestAction;
                 actor.Brain.ReportRuntimeActionFailure(
                     AIActionFailure.Create(
@@ -935,6 +928,17 @@ public class AbilityWork : CharacterAbility
         SetWorkPriority(workTypeId, priority, null);
     }
 
+    public void RestoreWorkPriority(WorkTypeId workTypeId, WorkPriorityLevel priority)
+    {
+        if (actor == null || !actor.IsDetachedRestoreCandidate)
+            throw new InvalidOperationException("Work priority restoration requires a detached world candidate.");
+        if (!WorkTypeCatalog.TryGet(workTypeId, out _)
+            || !Enum.IsDefined(typeof(WorkPriorityLevel), priority))
+            throw new ArgumentException("Restored work priority is not a registered valid setting.");
+        workPriorities ??= WorkPriorityProfile.CreateDefault();
+        workPriorities.SetPriority(workTypeId, priority);
+    }
+
     public void SetWorkPriority(
         WorkTypeId workTypeId,
         WorkPriorityLevel priority,
@@ -992,12 +996,10 @@ public class AbilityWork : CharacterAbility
             }
         }
 
-        actor?.AddActivity(CharacterActivityEvent.Work(
+        WorkExecutionChangedEvent.Publish(identityEvents, actor,
+            WorkExecutionTransition.PriorityChanged,
             workType,
-            CharacterActivityOutcomes.Changed,
-            $"{WorkTaskCatalog.GetLegacyDisplayName(workType)} 우선순위: {priority.ToDisplayText()}",
-            reasonCode: $"priority:{(int)priority}",
-            value: (int)priority));
+            workLabel: WorkTaskCatalog.GetLegacyDisplayName(workType), priority: priority);
     }
 
     private bool ShouldReplanForRaisedPriority(
@@ -1058,6 +1060,11 @@ public class AbilityWork : CharacterAbility
     public WorkDutyStartDiagnostics CaptureWorkStartDiagnostics()
     {
         return DutyController.CaptureStartDiagnostics();
+    }
+
+    public bool RequiresRoutineNeedRecovery(CharacterCondition condition)
+    {
+        return DutyController.RequiresRoutineNeedRecovery(condition);
     }
 
     public bool CanStartAnyWorkAction(GridPathSearchResult searchResult)
@@ -1512,12 +1519,9 @@ public class AbilityWork : CharacterAbility
             && actor.isActiveAndEnabled
             && actor.CurrentLifecycleState == CharacterLifecycleState.Active)
         {
-            actor?.AddActivity(CharacterActivityEvent.Work(
-                stoppedWorkType,
-                CharacterActivityOutcomes.Cancelled,
-                $"작업 종료: {reason}",
-                stoppedTarget,
-                reasonCode: reason));
+            WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                WorkExecutionTransition.Cancelled,
+                stoppedWorkType, stoppedTarget, detail: reason);
         }
 
         if (actor != null && actor.Brain != null)
@@ -1719,9 +1723,9 @@ public class AbilityWork : CharacterAbility
             settlementLaborAccounting,
             reservedItemTransfers,
             settlementStandings,
-            processAccidentFireProducer,
             bodyHealthMutation,
-            environmentOutcomes);
+            accidentFacts,
+            workAccidentObservations);
         dutyController ??= new WorkDutyController(
             this,
             needDefinitionCatalog);

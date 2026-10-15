@@ -4,11 +4,153 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Factions;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
+public static partial class MigratedProducerRunOffenseEntryE2EDebugScenarios
 {
+    private static DomainFactDispatcher CreateCharacterLifeFacts(
+        MigratedProducerOutcomeEditorFixture outcomes,
+        MigratedProducerOutcomeProbeTransaction probe)
+    {
+        var dispatcher = new DomainFactDispatcher();
+        try
+        {
+            dispatcher.Subscribe(
+                "fixture:character-life-transition",
+                new MigratedProducerDomainFactProbeObserver<
+                    CharacterLifeTransitionFact>(
+                    CharacterLifeTransitionFactMapping.Capture,
+                    outcomes.Transaction,
+                    new GameplayDomainFactCommitGroup(
+                        outcomes.Recorder,
+                        outcomes.Ledger),
+                    probe));
+            return dispatcher;
+        }
+        catch
+        {
+            dispatcher.Dispose();
+            throw;
+        }
+    }
+
+    private static DomainFactDispatcher CreateDomainFacts(
+        MigratedProducerOutcomeEditorFixture outcomes,
+        MigratedProducerOutcomeProbeTransaction probe)
+    {
+        var dispatcher = new DomainFactDispatcher();
+        var commits = new GameplayDomainFactCommitGroup(
+            outcomes.Recorder,
+            outcomes.Ledger);
+        var factionMapping = new FactionDomainFactMapping(outcomes.Ledger);
+        try
+        {
+            dispatcher.Subscribe(
+                "fixture:faction-trust-changed",
+                new MigratedProducerDomainFactProbeObserver<
+                    FactionTrustChangedDomainFact>(
+                    factionMapping.Capture,
+                    outcomes.Transaction,
+                    commits,
+                    probe));
+            dispatcher.Subscribe(
+                "fixture:faction-betrayal",
+                new MigratedProducerDomainFactProbeObserver<
+                    FactionBetrayalDomainFact>(
+                    factionMapping.Capture,
+                    outcomes.Transaction,
+                    commits,
+                    probe));
+            dispatcher.Subscribe(
+                "fixture:faction-route-settled",
+                new MigratedProducerDomainFactProbeObserver<
+                    FactionRouteSettlementDomainFact>(
+                    factionMapping.Capture,
+                    outcomes.Transaction,
+                    commits,
+                    probe));
+            dispatcher.Subscribe(
+                "fixture:faction-route-arrived",
+                new MigratedProducerDomainFactProbeObserver<
+                    FactionRouteArrivedDomainFact>(
+                    factionMapping.Capture,
+                    outcomes.Transaction,
+                    commits,
+                    probe));
+            var goodwillMapping = new FactionGoodwillFactMapping(
+                outcomes.Ledger);
+            dispatcher.Subscribe(
+                "fixture:faction-goodwill-transferred",
+                new MigratedProducerDomainFactProbeObserver<
+                    FactionGoodwillTransferredFact>(
+                    goodwillMapping.Capture,
+                    outcomes.Transaction,
+                    commits,
+                    probe));
+            var cargoMapping = new FactionCargoFactMapping(outcomes.Ledger);
+            dispatcher.Subscribe(
+                "fixture:faction-cargo-delivered",
+                new MigratedProducerDomainFactProbeObserver<
+                    FactionCargoDeliveredFact>(
+                    cargoMapping.Capture,
+                    outcomes.Transaction,
+                    commits,
+                    probe));
+            dispatcher.Subscribe(
+                "fixture:meta-upgrade-purchased",
+                new MigratedProducerDomainFactProbeObserver<
+                    MetaUpgradePurchaseDomainFact>(
+                    MetaProgressionFactMapping.Capture,
+                    outcomes.Transaction,
+                    commits,
+                    probe));
+            dispatcher.Subscribe(
+                "fixture:meta-run-result",
+                new MigratedProducerDomainFactProbeObserver<
+                    MetaRunResultDomainFact>(
+                    MetaProgressionFactMapping.Capture,
+                    outcomes.Transaction,
+                    commits,
+                    probe));
+            return dispatcher;
+        }
+        catch
+        {
+            dispatcher.Dispose();
+            throw;
+        }
+    }
+
+    private static DomainFactDispatcher CreateExteriorReceptionFacts(
+        MigratedProducerOutcomeEditorFixture outcomes,
+        MigratedProducerOutcomeProbeTransaction probe)
+    {
+        var dispatcher = new DomainFactDispatcher();
+        try
+        {
+            dispatcher.Subscribe(
+                "fixture:exterior-visitor-reception",
+                new MigratedProducerDomainFactProbeObserver<
+                    ExteriorVisitorReceptionFact>(
+                    ExteriorVisitorReceptionFactMapping.Capture,
+                    outcomes.Transaction,
+                    new GameplayDomainFactCommitGroup(
+                        outcomes.Recorder,
+                        outcomes.Ledger),
+                    probe));
+            return dispatcher;
+        }
+        catch
+        {
+            dispatcher.Dispose();
+            throw;
+        }
+    }
+
     public static IReadOnlyList<MigratedProducerOutcomeKind> CoveredKinds { get; } =
         new[]
         {
@@ -29,6 +171,147 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             MigratedProducerOutcomeKind.CareerMentorshipAwardCommitReceipt,
             MigratedProducerOutcomeKind.CharacterAgeConditionChangedEvent
         };
+
+    internal static IProductionCausalActionFixture CreateCausalRelationshipFixture(
+        string causalRunId = null,
+        string ownerId = null,
+        JObject ownerCheckpoint = null)
+    {
+        const string ActionId = "action:adjust-faction-trust";
+        const string OwnerKind = "faction-relationship";
+        const MigratedProducerOutcomeKind Kind =
+            MigratedProducerOutcomeKind.FactionTrustChangedEvent;
+        bool persistent = !string.IsNullOrWhiteSpace(ownerId);
+        if (!persistent && ownerCheckpoint != null)
+        {
+            throw new ArgumentException(
+                "A relationship owner checkpoint requires a stable owner ID.",
+                nameof(ownerCheckpoint));
+        }
+        string ledgerRunId = persistent
+            ? ProductionCausalOwnerCheckpoint.LedgerRunId(ownerId, OwnerKind)
+            : string.IsNullOrWhiteSpace(causalRunId)
+                ? null
+                : causalRunId + ":relationship-ledger";
+        IDungeonItemCatalogProvider itemCatalog =
+            EditorItemCatalogFactory.Create();
+        WorldItemStackRuntime physicalItems =
+            PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+                itemCatalog,
+                out WorldItemRepository itemRepository,
+                out _,
+                out ItemQuantityReservationService quantityReservations,
+                out _,
+                out _,
+                out _);
+        Require(physicalItems.SpawnItemAt(
+                "resource:clean-water",
+                630,
+                Vector2Int.zero,
+                WorldItemStackState.Loose,
+                string.Empty,
+                out int spawned)
+            && spawned == 630,
+            "Faction goodwill fixture could not stage authored physical water.");
+        var scenario = new FactionTrustScenario(
+            Kind,
+            MigratedProducerOutcomeFaultMode.None,
+            deliveryFault: false,
+            stableRunId: ledgerRunId,
+            factionId: persistent ? ownerId : null,
+            goodwillItems: physicalItems,
+            itemCatalog: itemCatalog,
+            itemRepository: itemRepository,
+            quantityReservations: quantityReservations);
+        try
+        {
+            if (ownerCheckpoint != null)
+            {
+                JObject domainState = ProductionCausalOwnerCheckpoint.RestoreCommon(
+                    ownerCheckpoint,
+                    ownerId,
+                    OwnerKind,
+                    ActionId,
+                    scenario.Outcomes.Ledger,
+                    scenario.Outcomes.Transaction);
+                scenario.RestoreOwnerCheckpoint(domainState);
+            }
+        }
+        catch
+        {
+            scenario.Dispose();
+            throw;
+        }
+        return new DelegateProductionCausalActionFixture(
+            ActionId,
+            "relationship",
+            Kind,
+            () => new Dictionary<string, object>
+            {
+                ["relationship.ownerSnapshot"] = scenario.CaptureDomain()
+            },
+            () =>
+            {
+                scenario.Execute();
+                return true;
+            },
+            () => MigratedProducerOutcomeE2EAssertions.RequireExact(
+                scenario.Outcomes,
+                Kind,
+                scenario.Probe),
+            identity => ProductionCausalOutcomeEvidence.Capture(
+                scenario.Outcomes.Ledger,
+                identity),
+            scenario.Dispose,
+            persistent ? ownerId : null,
+            persistent ? OwnerKind : null,
+            persistent
+                ? () => ProductionCausalOwnerCheckpoint.Capture(
+                    ownerId,
+                    OwnerKind,
+                    ActionId,
+                    scenario.CaptureOwnerCheckpoint(),
+                    scenario.Outcomes.Ledger,
+                    scenario.Outcomes.Transaction)
+                : null);
+    }
+
+    internal static IProductionCausalActionFixture CreateCausalOffenseFixture(
+        string causalRunId = null,
+        string episodeOwnerId = null)
+    {
+        const MigratedProducerOutcomeKind Kind =
+            MigratedProducerOutcomeKind.OffenseBattleCommandResult;
+        var scenario = new OffenseBattleCommandScenario(
+            Kind,
+            MigratedProducerOutcomeFaultMode.None,
+            deliveryFault: false,
+            stableRunId: string.IsNullOrWhiteSpace(causalRunId)
+                ? null
+                : causalRunId + ":offense-ledger",
+            battleOwnerId: episodeOwnerId);
+        return new DelegateProductionCausalActionFixture(
+            "action:execute-offense-battle-command",
+            "combat",
+            Kind,
+            () => new Dictionary<string, object>
+            {
+                ["offense.ownerSnapshot"] = scenario.CaptureDomain()
+            },
+            () =>
+            {
+                scenario.Execute();
+                return true;
+            },
+            () => MigratedProducerOutcomeE2EAssertions.RequireExact(
+                scenario.Outcomes,
+                Kind,
+                scenario.Probe),
+            identity => ProductionCausalOutcomeEvidence.Capture(
+                scenario.Outcomes.Ledger,
+                identity),
+            scenario.Dispose);
+    }
 
     public static bool RunAll(bool throwOnFailure = true)
     {
@@ -69,6 +352,654 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 throw;
             return false;
         }
+    }
+
+    internal static void VerifyCareerMentorshipAwardFocused()
+    {
+        var observed = new HashSet<MigratedProducerOutcomeKind>();
+        VerifyCareerMentorshipAward(observed);
+        Require(
+            observed.SetEquals(new[]
+            {
+                MigratedProducerOutcomeKind.CareerMentorshipAwardCommitReceipt
+            }),
+            "Focused mentorship-award verification did not execute its owner.");
+    }
+
+    public static void RunCareerMentorshipAwardObserverFocused()
+    {
+        VerifyCareerMentorshipAwardFocused();
+        Debug.Log("B115_CAREER_MENTORSHIP_AWARD_OBSERVER=PASS");
+    }
+
+    public static void RunFactionCargoObserverFocused()
+    {
+        var observed = new HashSet<MigratedProducerOutcomeKind>();
+        VerifyFactionRouteCargoDelivery(observed);
+        Require(
+            observed.SetEquals(new[]
+            {
+                MigratedProducerOutcomeKind.FactionRouteCargoDeliveryReceipt
+            }),
+            "Focused faction-cargo verification did not execute its owner.");
+        Debug.Log("B119_FACTION_CARGO_EXISTING=PASS");
+    }
+
+    public static void RunFactionObserverRemainderFocused()
+    {
+        var observed = new HashSet<MigratedProducerOutcomeKind>();
+        VerifyFactionTrustChanged(observed);
+        VerifyFactionRouteSettlement(observed);
+        VerifyFactionRouteArrived(observed);
+        Require(RunFactionWorldMemoryD10(),
+            "Focused faction goodwill/betrayal verification returned false.");
+        Require(
+            observed.SetEquals(new[]
+            {
+                MigratedProducerOutcomeKind.FactionTrustChangedEvent,
+                MigratedProducerOutcomeKind.FactionRouteSettlementReceipt,
+                MigratedProducerOutcomeKind.FactionRouteArrivedEvent
+            }),
+            "Focused faction observer remainder executed an unexpected owner.");
+        Debug.Log("B120_FACTION_EXISTING=PASS");
+    }
+
+    public static void VerifyRunAndReceptionObserversFocused()
+    {
+        var observed = new HashSet<MigratedProducerOutcomeKind>();
+        VerifyRunResult(observed);
+        VerifyExteriorReception(observed);
+        Require(
+            observed.SetEquals(new[]
+            {
+                MigratedProducerOutcomeKind.RunResultReadyEvent,
+                MigratedProducerOutcomeKind.ExteriorVisitorReceptionAppliedEvent
+            }),
+            "Focused run-result/reception verification did not execute exactly "
+            + "its two domain-fact observers.");
+    }
+
+    public static void RunFactionWorldMemoryD10Batch()
+    {
+        try
+        {
+            Require(RunFactionWorldMemoryD10(log: true),
+                "Faction world-memory D10 scenario returned false.");
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception);
+            throw;
+        }
+    }
+
+    public static void VerifyBattleCommandObserverFocused()
+    {
+        VerifyOffenseBattleCommand(new HashSet<MigratedProducerOutcomeKind>());
+        VerifyBattleD11();
+    }
+
+    public static void RunOffenseV20D11Batch()
+    {
+        try
+        {
+            Require(RunOffenseV20D11(log: true),
+                "Offense/V20 D11 scenario returned false.");
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception);
+            throw;
+        }
+    }
+
+    public static void RunV20CausationBatch()
+    {
+        VerifyV20ResolvedEvent(new HashSet<MigratedProducerOutcomeKind>());
+        VerifyV20D11();
+        ObservedMealIncidentResolutionCausalProductionEntryDebugScenarios.RunCausalBatch();
+        Debug.Log("V20 request causation success/rollback/delivery and observed-meal restore PASS");
+    }
+
+    internal static bool RunOffenseV20D11(bool log = false)
+    {
+        Require(
+            RunAll(),
+            "Offense/V20 detailed outcomes broke the success, rejection, or delivery-retry contract.");
+
+        VerifyBattleD11();
+        VerifyExpeditionNodeD11();
+        VerifyExpeditionResultD11();
+        VerifyExpeditionArrivalD11();
+        VerifyV20D11();
+
+        if (log)
+        {
+            Debug.Log(
+                "Offense battle/expedition/arrival and V20 participant, transition, reward, causation, and perspective-query D11 PASS");
+        }
+        return true;
+    }
+
+    private static void VerifyBattleD11()
+    {
+        const MigratedProducerOutcomeKind Kind =
+            MigratedProducerOutcomeKind.OffenseBattleCommandResult;
+        using var scenario = new OffenseBattleCommandScenario(
+            Kind,
+            MigratedProducerOutcomeFaultMode.None,
+            deliveryFault: false);
+        scenario.Execute();
+        GameplayOutcomeSnapshot exact = RequireExact(scenario, Kind);
+        Require(
+            HasParticipant(
+                exact,
+                "character",
+                "character:world:migrated-e2e:battle-ally",
+                "actor")
+            && HasParticipant(
+                exact,
+                "character",
+                "enemy:migrated-e2e:battle",
+                "target")
+            && HasParticipant(
+                exact,
+                "item-definition",
+                "combat:unarmed",
+                "equipment")
+            && HasMetric(
+                exact,
+                "health-before",
+                "enemy:migrated-e2e:battle",
+                100d)
+            && TryMetricValue(
+                exact,
+                "health-after",
+                "enemy:migrated-e2e:battle",
+                out double healthAfter)
+            && healthAfter is >= 0d and <= 100d
+            && string.Equals(
+                exact.rootOperationId,
+                "expedition:migrated-e2e",
+                StringComparison.Ordinal)
+            && string.Equals(
+                exact.causationRelationId,
+                "expedition-battle-command",
+                StringComparison.Ordinal),
+            "D11 battle result lost its actor, target, equipment, health transition, or expedition root.");
+        RequirePerspective(
+            scenario,
+            Kind,
+            "character",
+            "character:world:migrated-e2e:battle-ally");
+        RequirePerspective(
+            scenario,
+            Kind,
+            "character",
+            "enemy:migrated-e2e:battle");
+        // Equipment stays queryable as source evidence, but is not a person's
+        // experience under the current battle-reference-subject policy.
+        var equipment = new GameplayEntityId(
+            new GameplayEntityKindId("item-definition"), "combat:unarmed");
+        var query = new GameplayOutcomeNarrativeEvidenceQuery(scenario.Outcomes.Ledger);
+        var equipmentSources = query.GetExperiencesForEntity(equipment, includeCompacted: true)
+            .SelectMany(episode => episode.Members).ToArray();
+        var equipmentSource = equipmentSources.Single(value => value.HasExactOutcome
+            && value.SubjectId == equipment
+            && value.OutcomeTypeId == MigratedProducerOutcomeCatalog.Get(Kind).OutcomeTypeId.Value);
+        var assessment = GameplayOutcomeEvidenceFormulaProjection.Capture(
+            new[] { equipmentSource })[0].experience;
+        Require(assessment.category == (int)GameplayExperienceCategory.NotExperience
+            && !query.GetForEntity(equipment, 10, 0f, includeCompacted: true).Any(),
+            "Battle equipment evidence disappeared or was promoted to a personal experience.");
+    }
+
+    private static void VerifyExpeditionNodeD11()
+    {
+        const MigratedProducerOutcomeKind Kind =
+            MigratedProducerOutcomeKind.OffenseExpeditionNodeResult;
+        using var scenario = new OffenseExpeditionNodeScenario(
+            Kind,
+            MigratedProducerOutcomeFaultMode.None,
+            deliveryFault: false);
+        scenario.Execute();
+        GameplayOutcomeSnapshot exact = RequireExact(scenario, Kind);
+        Require(
+            HasParticipant(
+                exact,
+                "expedition",
+                "expedition:migrated-e2e:node",
+                "expedition")
+            && HasParticipant(
+                exact,
+                "world-location",
+                "target:migrated-e2e:node",
+                "target")
+            && HasParticipant(
+                exact,
+                "world-location",
+                "node:migrated-e2e:cache",
+                "target")
+            && HasFact(exact, "node-id", "node:migrated-e2e:cache")
+            && string.Equals(
+                exact.rootOperationId,
+                "expedition:migrated-e2e:node",
+                StringComparison.Ordinal)
+            && string.Equals(
+                exact.causationRelationId,
+                "expedition-node-resolved",
+                StringComparison.Ordinal),
+            "D11 expedition-node result lost its expedition, target, site, node fact, or common root.");
+        RequirePerspective(
+            scenario,
+            Kind,
+            "expedition",
+            "expedition:migrated-e2e:node");
+        RequirePerspective(
+            scenario,
+            Kind,
+            "world-location",
+            "node:migrated-e2e:cache");
+    }
+
+    private static void VerifyExpeditionResultD11()
+    {
+        const MigratedProducerOutcomeKind Kind =
+            MigratedProducerOutcomeKind.OffenseExpeditionResult;
+        using var scenario = new OffenseExpeditionResultScenario(
+            Kind,
+            MigratedProducerOutcomeFaultMode.None,
+            deliveryFault: false,
+            detailedD11: true);
+        scenario.Execute();
+        GameplayOutcomeSnapshot exact = RequireExact(scenario, Kind);
+        Require(
+            HasParticipant(exact, "character",
+                "character:migrated-e2e:d11:member-a", "member")
+            && HasParticipant(exact, "character",
+                "character:migrated-e2e:d11:member-b", "member")
+            && HasParticipant(exact, "world-location",
+                "region:migrated-e2e:d11", "destination")
+            && HasParticipant(exact, "faction",
+                "faction:migrated-e2e:d11", "faction")
+            && HasParticipant(exact, "item-definition",
+                "resource:iron-ore", "reward")
+            && HasParticipant(exact, "item-definition",
+                "resource:clean-water", "reward")
+            && HasParticipant(exact, "item-definition",
+                OffenseSettlementCurrencyIds.Gold, "reward")
+            && HasParticipant(exact, "operation",
+                "arrival:migrated-e2e:d11:prisoner", "arrival")
+            && HasParticipant(exact, "operation",
+                "arrival:migrated-e2e:d11:wildlife", "arrival")
+            && HasMetric(exact, "quantity", "resource:iron-ore", 3d)
+            && HasMetric(exact, "quantity", "resource:clean-water", 2d)
+            && HasMetric(exact, "amount", OffenseSettlementCurrencyIds.Gold, 17d)
+            && HasMetric(exact, "secured-count",
+                "arrival:migrated-e2e:d11:prisoner", 1d)
+            && HasMetric(exact, "escaped-count",
+                "arrival:migrated-e2e:d11:wildlife", 1d)
+            && FactValue(exact, "reward-detail").Contains(
+                "item=resource:iron-ore", StringComparison.Ordinal)
+            && FactValue(exact, "reward-detail").Contains(
+                "item=resource:clean-water", StringComparison.Ordinal)
+            && FactValue(exact, "reward-detail").Contains(
+                "currency=currency:gold; amount=17",
+                StringComparison.Ordinal)
+            && FactValue(exact, "reward-detail").Contains(
+                "arrival=arrival:migrated-e2e:d11:prisoner",
+                StringComparison.Ordinal)
+            && FactValue(exact, "reward-detail").Contains(
+                "arrival=arrival:migrated-e2e:d11:wildlife",
+                StringComparison.Ordinal)
+            && string.Equals(
+                exact.rootOperationId,
+                "expedition:migrated-e2e:result",
+                StringComparison.Ordinal)
+            && string.Equals(
+                exact.causationRelationId,
+                "expedition-terminal-resolved",
+                StringComparison.Ordinal),
+            "D11 expedition terminal result lost members, site/faction, multiple rewards, arrival amounts, or common root.");
+
+        RequirePerspective(scenario, Kind, "character",
+            "character:migrated-e2e:d11:member-a");
+        RequirePerspective(scenario, Kind, "character",
+            "character:migrated-e2e:d11:member-b");
+        RequirePerspective(scenario, Kind, "item-definition",
+            "resource:iron-ore");
+        RequirePerspective(scenario, Kind, "item-definition",
+            OffenseSettlementCurrencyIds.Gold);
+        RequirePerspective(scenario, Kind, "operation",
+            "arrival:migrated-e2e:d11:prisoner");
+    }
+
+    private static void VerifyExpeditionArrivalD11()
+    {
+        const MigratedProducerOutcomeKind Kind =
+            MigratedProducerOutcomeKind.OffenseExpeditionArrivalReceipt;
+        using var scenario = new OffenseExpeditionArrivalScenario(
+            Kind,
+            MigratedProducerOutcomeFaultMode.None,
+            deliveryFault: false);
+        scenario.Execute();
+        GameplayOutcomeSnapshot exact = RequireExact(scenario, Kind);
+        Require(
+            HasParticipant(exact, "expedition",
+                "expedition:migrated-e2e:arrival", "expedition")
+            && HasParticipant(exact, "world-location",
+                "target:migrated-e2e:arrival", "target")
+            && HasParticipant(exact, "wildlife", "wild:1", "arrival")
+            && HasMetric(exact, "requested-count",
+                "expedition:migrated-e2e:arrival", 1d)
+            && HasMetric(exact, "materialized-count",
+                "expedition:migrated-e2e:arrival", 1d)
+            && HasMetric(exact, "escaped-count",
+                "expedition:migrated-e2e:arrival", 1d)
+            && string.Equals(exact.rootOperationId,
+                "expedition:migrated-e2e:arrival", StringComparison.Ordinal)
+            && string.Equals(exact.causationRelationId,
+                "expedition-arrival-resolved", StringComparison.Ordinal),
+            "D11 arrival result lost its expedition, target, wildlife, exact counts, or common root.");
+        RequirePerspective(scenario, Kind, "wildlife", "wild:1");
+        RequirePerspective(scenario, Kind, "expedition",
+            "expedition:migrated-e2e:arrival");
+    }
+
+    private static void VerifyV20D11()
+    {
+        const MigratedProducerOutcomeKind Kind =
+            MigratedProducerOutcomeKind.V20ResolvedEventResult;
+        using var scenario = new V20ResolvedEventScenario(
+            Kind,
+            MigratedProducerOutcomeFaultMode.None,
+            deliveryFault: false);
+        scenario.Execute();
+        GameplayOutcomeSnapshot exact = RequireExact(scenario, Kind);
+        string before = FactValue(exact, "state-before-fingerprint");
+        string after = FactValue(exact, "state-after-fingerprint");
+        Require(
+            HasParticipant(exact, "character",
+                "character:migrated-entry-v20:first", "actor")
+            && HasParticipant(exact, "character",
+                "character:migrated-entry-v20:second", "actor")
+            && exact.metrics.Any(value => value != null
+                && string.Equals(value.metricId, "amount",
+                    StringComparison.Ordinal))
+            && exact.facts.Any(value => value != null
+                && string.Equals(value.factId, "effect-detail",
+                    StringComparison.Ordinal)
+                && value.value.Contains("Relationship",
+                    StringComparison.Ordinal)
+                && value.value.Contains("childOutcomeId=none",
+                    StringComparison.Ordinal))
+            && before.StartsWith("sha256:", StringComparison.Ordinal)
+            && after.StartsWith("sha256:", StringComparison.Ordinal)
+            && !string.Equals(before, after, StringComparison.Ordinal)
+            && string.Equals(exact.rootOperationId,
+                "content-resolution:"
+                    + NarrativeInferenceHash.ComputeSha256Utf8(
+                        "content-resolution:migrated-entry-e2e"),
+                StringComparison.Ordinal)
+            && string.Equals(FactValue(exact, "operation-id"),
+                "content-resolution:migrated-entry-e2e", StringComparison.Ordinal)
+            && string.Equals(exact.causationRelationId,
+                "campaign-event-effect-resolved",
+                StringComparison.Ordinal),
+            "D11 V20 result lost a participant, exact effect, before/after state fingerprint, or action root.");
+        RequirePerspective(scenario, Kind, "character",
+            "character:migrated-entry-v20:first");
+        RequirePerspective(scenario, Kind, "character",
+            "character:migrated-entry-v20:second");
+    }
+
+    internal static bool RunFactionWorldMemoryD10(bool log = false)
+    {
+        const string OwnerId = "faction:d10:goodwill-owner";
+        const string OwnerKind = "faction-relationship";
+        const string ActionId = "action:adjust-faction-trust";
+        string ledgerRunId = ProductionCausalOwnerCheckpoint.LedgerRunId(
+            OwnerId,
+            OwnerKind);
+        JObject checkpoint;
+        using (FactionTrustScenario rejected = CreateGoodwillD10Scenario(
+                   ledgerRunId,
+                   OwnerId,
+                   MigratedProducerOutcomeFaultMode.RejectCommit))
+        {
+            rejected.Execute();
+            DungeonFactionState pending = rejected.RequireFaction();
+            Require(pending.goodwillTransferCompleted
+                    && !pending.goodwillObserved
+                    && pending.goodwillTransferRevision > 0L
+                    && rejected.RemainingGoodwillValue() == 560,
+                "Rejected goodwill trust publication did not retain one physical debit and a resumable owner state."
+                + " completed=" + pending.goodwillTransferCompleted
+                + "; observed=" + pending.goodwillObserved
+                + "; transferRevision="
+                + pending.goodwillTransferRevision
+                + "; remaining=" + rejected.RemainingGoodwillValue()
+                + "; rapport=" + pending.trust);
+            checkpoint = ProductionCausalOwnerCheckpoint.Capture(
+                OwnerId,
+                OwnerKind,
+                ActionId,
+                rejected.CaptureOwnerCheckpoint(),
+                rejected.Outcomes.Ledger,
+                rejected.Outcomes.Transaction);
+        }
+
+        using (FactionTrustScenario restored = CreateGoodwillD10Scenario(
+                   ledgerRunId,
+                   OwnerId,
+                   MigratedProducerOutcomeFaultMode.None))
+        {
+            JObject domainState = ProductionCausalOwnerCheckpoint.RestoreCommon(
+                checkpoint,
+                OwnerId,
+                OwnerKind,
+                ActionId,
+                restored.Outcomes.Ledger,
+                restored.Outcomes.Transaction);
+            restored.RestoreOwnerCheckpoint(domainState);
+            DungeonFactionState completed = restored.RequireFaction();
+            Require(!FactionGoodwillOutbox.HasProvenance(completed)
+                    && completed.trust == 42
+                    && restored.RemainingGoodwillValue() == 560,
+                "Fresh goodwill restore did not publish exactly one trust result without a second physical debit.");
+
+            GameplayOutcomeSnapshot trust = restored.Outcomes.Ledger
+                .CaptureGameplayOutcomes().exactOutcomes.Single(value =>
+                    value != null
+                    && string.Equals(
+                        value.outcomeTypeId,
+                        MigratedProducerOutcomeCatalog.Get(
+                            MigratedProducerOutcomeKind.FactionTrustChangedEvent)
+                        .OutcomeTypeId.Value,
+                        StringComparison.Ordinal));
+            GameplayOutcomeSnapshot physical = restored.Outcomes.Ledger
+                .CaptureGameplayOutcomes().exactOutcomes.Single(value =>
+                    value != null
+                    && string.Equals(value.runId, trust.parentRunId,
+                        StringComparison.Ordinal)
+                    && value.sequence == trust.parentSequence);
+            Require(string.Equals(
+                        physical.producerId,
+                        "trade-inventory.physical-item-batch-disposition-receipt",
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        trust.rootOperationId,
+                        physical.rootOperationId.Length > 0
+                            ? physical.rootOperationId
+                            : physical.operationId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        trust.causationRelationId,
+                        "goodwill-trust-from-physical-transfer",
+                        StringComparison.Ordinal)
+                    && HasParticipant(trust, "faction", OwnerId, "faction")
+                    && HasParticipant(
+                        trust,
+                        "operation",
+                        "faction-goodwill:" + OwnerId + ":00000001",
+                        "operation")
+                    && HasMetric(trust, "trust-before", OwnerId, 35d)
+                    && HasMetric(trust, "trust-after", OwnerId, 42d)
+                    && HasMetric(trust, "delta", OwnerId, 7d),
+                "Goodwill trust outcome did not retain its physical parent, exact roles, and trust transition.");
+        }
+
+        using (var betrayal = new BetrayalD10Context(
+                   "run:faction-d10-betrayal-success",
+                   MigratedProducerOutcomeFaultMode.None))
+        {
+            betrayal.RequireSuccess();
+        }
+        using (var rejectedBetrayal = new BetrayalD10Context(
+                   "run:faction-d10-betrayal-rejected",
+                   MigratedProducerOutcomeFaultMode.RejectCommit))
+        {
+            rejectedBetrayal.RequireRejectedRollback();
+        }
+
+        if (log)
+        {
+            Debug.Log(
+                "Faction goodwill physical-parent recovery + betrayal target/witness roles and rollback D10 PASS");
+        }
+        return true;
+    }
+
+    private static FactionTrustScenario CreateGoodwillD10Scenario(
+        string ledgerRunId,
+        string factionId,
+        MigratedProducerOutcomeFaultMode fault)
+    {
+        IDungeonItemCatalogProvider itemCatalog =
+            EditorItemCatalogFactory.Create();
+        WorldItemStackRuntime physicalItems =
+            PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+                itemCatalog,
+                out WorldItemRepository itemRepository,
+                out _,
+                out ItemQuantityReservationService quantityReservations,
+                out _,
+                out _,
+                out _);
+        Require(physicalItems.SpawnItemAt(
+                "resource:clean-water",
+                630,
+                Vector2Int.zero,
+                WorldItemStackState.Loose,
+                string.Empty,
+                out int spawned)
+            && spawned == 630,
+            "D10 goodwill fixture could not stage authored physical water.");
+        return new FactionTrustScenario(
+            MigratedProducerOutcomeKind.FactionTrustChangedEvent,
+            fault,
+            deliveryFault: false,
+            stableRunId: ledgerRunId,
+            factionId: factionId,
+            goodwillItems: physicalItems,
+            itemCatalog: itemCatalog,
+            itemRepository: itemRepository,
+            quantityReservations: quantityReservations);
+    }
+
+    private static bool HasParticipant(
+        GameplayOutcomeSnapshot exact,
+        string kind,
+        string id,
+        string role) => exact?.participants?.Any(value =>
+        value != null
+        && string.Equals(value.entityKindId, kind, StringComparison.Ordinal)
+        && string.Equals(value.entityId, id, StringComparison.Ordinal)
+        && string.Equals(value.roleId, role, StringComparison.Ordinal)) == true;
+
+    private static bool HasMetric(
+        GameplayOutcomeSnapshot exact,
+        string metric,
+        string referenceId,
+        double value) => exact?.metrics?.Any(current =>
+        current != null
+        && string.Equals(current.metricId, metric, StringComparison.Ordinal)
+        && string.Equals(current.referenceId, referenceId,
+            StringComparison.Ordinal)
+        && Math.Abs(current.value - value) < 0.001d) == true;
+
+    private static bool TryMetricValue(
+        GameplayOutcomeSnapshot exact,
+        string metric,
+        string referenceId,
+        out double value)
+    {
+        GameplayOutcomeMetricSnapshot found = exact?.metrics?.FirstOrDefault(
+            current => current != null
+            && string.Equals(current.metricId, metric, StringComparison.Ordinal)
+            && string.Equals(current.referenceId, referenceId,
+                StringComparison.Ordinal));
+        value = found?.value ?? 0d;
+        return found != null;
+    }
+
+    private static bool HasFact(
+        GameplayOutcomeSnapshot exact,
+        string factId,
+        string value) => exact?.facts?.Any(current => current != null
+        && string.Equals(current.factId, factId, StringComparison.Ordinal)
+        && string.Equals(current.value, value, StringComparison.Ordinal)) == true;
+
+    private static string FactValue(
+        GameplayOutcomeSnapshot exact,
+        string factId) => exact?.facts?.SingleOrDefault(current => current != null
+        && string.Equals(current.factId, factId, StringComparison.Ordinal))?.value
+        ?? string.Empty;
+
+    private static GameplayOutcomeSnapshot RequireExact(
+        EntryScenarioBase scenario,
+        MigratedProducerOutcomeKind kind)
+    {
+        string outcomeTypeId = MigratedProducerOutcomeCatalog.Get(kind)
+            .OutcomeTypeId.Value;
+        GameplayOutcomeSnapshot[] matches = scenario.Outcomes.Ledger
+            .CaptureGameplayOutcomes().exactOutcomes
+            .Where(value => value != null
+                && string.Equals(value.outcomeTypeId, outcomeTypeId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        Require(matches.Length == 1,
+            kind + " expected one exact detailed outcome but found "
+            + matches.Length + ".");
+        return matches[0];
+    }
+
+    private static void RequirePerspective(
+        EntryScenarioBase scenario,
+        MigratedProducerOutcomeKind kind,
+        string entityKind,
+        string entityId)
+    {
+        string outcomeTypeId = MigratedProducerOutcomeCatalog.Get(kind)
+            .OutcomeTypeId.Value;
+        var query = new GameplayOutcomeNarrativeEvidenceQuery(
+            scenario.Outcomes.Ledger);
+        GameplayEntityId subject = new(
+            new GameplayEntityKindId(entityKind),
+            entityId);
+        IReadOnlyList<GameplayOutcomeNarrativeEvidenceSource> sources =
+            query.GetForEntity(
+                subject,
+                maximumCount: 10,
+                minimumSalience: 0f,
+                includeCompacted: true);
+        Require(
+            sources.Any(value => value.HasExactOutcome
+                && value.SubjectId == subject
+                && string.Equals(value.OutcomeTypeId, outcomeTypeId,
+                    StringComparison.Ordinal)),
+            kind + " was not queryable from " + entityKind + ":" + entityId
+            + " narrative perspective.");
     }
 
     private static void VerifyRunResult(ISet<MigratedProducerOutcomeKind> observed)
@@ -174,14 +1105,18 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             (kind, fault, delivery) => new OffenseExpeditionResultScenario(
                 kind,
                 fault,
-                delivery));
+                delivery),
+            scenario => ((OffenseExpeditionResultScenario)scenario)
+                .FlushAndRequireIdentity());
         VerifyTriplet(
             MigratedProducerOutcomeKind.OffenseExpeditionResult,
             (kind, fault, delivery) => new OffenseExpeditionResultScenario(
                 kind,
                 fault,
                 delivery,
-                success: true));
+                success: true),
+            scenario => ((OffenseExpeditionResultScenario)scenario)
+                .FlushAndRequireIdentity());
         observed.Add(MigratedProducerOutcomeKind.OffenseExpeditionResult);
     }
 
@@ -277,7 +1212,8 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         Func<MigratedProducerOutcomeKind,
             MigratedProducerOutcomeFaultMode,
             bool,
-            IEntryScenario> create)
+            IEntryScenario> create,
+        Action<IEntryScenario> afterPendingRetry = null)
     {
         using (IEntryScenario scenario = create(
                    kind,
@@ -291,7 +1227,9 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             _ = MigratedProducerOutcomeE2EAssertions.RequireExact(
                 scenario.Outcomes,
                 kind,
-                scenario.Probe);
+                scenario.Probe,
+                before,
+                after);
         }
 
         using (IEntryScenario scenario = create(
@@ -330,6 +1268,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 kind,
                 scenario.Probe,
                 scenario.DeliveryFault);
+            afterPendingRetry?.Invoke(scenario);
             Require(
                 committed == scenario.CaptureDomain(),
                 kind + " delivery retry duplicated or reversed domain mutation.");
@@ -352,7 +1291,9 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             string runPrefix,
             MigratedProducerOutcomeKind target,
             MigratedProducerOutcomeFaultMode fault,
-            bool deliveryFault)
+            bool deliveryFault,
+            string stableRunId = null,
+            bool includeTradeInventory = false)
         {
             DeliveryFault = new MigratedProducerOutcomeDeliveryFault
             {
@@ -360,8 +1301,13 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 Enabled = deliveryFault
             };
             Outcomes = new MigratedProducerOutcomeEditorFixture(
-                runPrefix + Guid.NewGuid().ToString("N"),
-                deliveryFault: DeliveryFault);
+                string.IsNullOrWhiteSpace(stableRunId)
+                    ? runPrefix + Guid.NewGuid().ToString("N")
+                    : CausalGameplaySyntax.RequireId(
+                        stableRunId,
+                        nameof(stableRunId)),
+                deliveryFault: DeliveryFault,
+                includeTradeInventory: includeTradeInventory);
             Probe = new MigratedProducerOutcomeProbeTransaction(
                 Outcomes.Transaction,
                 Outcomes.Recorder)
@@ -395,6 +1341,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
     {
         private readonly GameObject root;
         private readonly MetaProgressionRuntime runtime;
+        private readonly DomainFactDispatcher domainFacts;
 
         internal RunResultScenario(
             MigratedProducerOutcomeKind target,
@@ -402,6 +1349,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             bool deliveryFault)
             : base("run:migrated-entry-run-result-", target, fault, deliveryFault)
         {
+            domainFacts = CreateDomainFacts(Outcomes, Probe);
             root = new GameObject("Migrated Run Result E2E");
             runtime = root.AddComponent<MetaProgressionRuntime>();
             runtime.Construct(
@@ -410,8 +1358,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 new UnityGameClock(),
                 EmptyMetaCatalog.Instance,
                 Outcomes.AggregateRootStore);
-            runtime.ConstructRunResultOutcomeTransactions(
-                new MetaUpgradePurchaseOutcomeTransaction(Probe));
+            runtime.ConstructDomainFacts(domainFacts);
             runtime.SetShowRunResultPanel(false);
         }
 
@@ -423,12 +1370,17 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         public override void Execute() =>
             runtime.EndRun("원장 검증 소유자", "원장 검증 종료");
 
-        public override void Dispose() => Object.DestroyImmediate(root);
+        public override void Dispose()
+        {
+            domainFacts.Dispose();
+            Object.DestroyImmediate(root);
+        }
     }
 
     private abstract class RunVariableScenarioBase : EntryScenarioBase
     {
         private readonly GameObject root;
+        private readonly DomainFactDispatcher runVariableFacts;
         protected readonly RunVariableRuntime Runtime;
         protected const string VariableId = "run:migrated-e2e:operation-variable";
 
@@ -440,6 +1392,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         {
             root = new GameObject("Migrated Run Variable E2E");
             Runtime = root.AddComponent<RunVariableRuntime>();
+            runVariableFacts = Outcomes.CreateRunVariableFacts(Probe);
             var catalog = new SingleRunVariableCatalog(
                 new RunVariableDefinition(
                     VariableId,
@@ -458,7 +1411,8 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 catalog,
                 EmptyOwnerDoctrineCatalog.Instance,
                 Outcomes.AggregateRootStore,
-                Probe);
+                runVariableFacts,
+                runVariableFacts);
             Runtime.StartRun(54123, null, InvasionThreatDifficulty.Normal);
             Probe.ClearObservations();
         }
@@ -466,7 +1420,11 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         public override string CaptureDomain() =>
             JsonUtility.ToJson(Runtime.CaptureForSave());
 
-        public override void Dispose() => Object.DestroyImmediate(root);
+        public override void Dispose()
+        {
+            runVariableFacts.Dispose();
+            Object.DestroyImmediate(root);
+        }
     }
 
     private sealed class RunVariableActivatedScenario : RunVariableScenarioBase
@@ -508,6 +1466,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         private const string ConditionId = "age:migrated-e2e";
         private readonly CharacterLifeRuntime life;
         private readonly GameEventBus events;
+        private readonly DomainFactDispatcher lifeFacts;
         private readonly CharacterLifeApplicationAdapter adapter;
 
         internal CharacterAgeConditionScenario(
@@ -542,11 +1501,13 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             });
             life.PublishRestore(life.PrepareRestore(save));
             events = new GameEventBus();
+            lifeFacts = CreateCharacterLifeFacts(Outcomes, Probe);
             adapter = new CharacterLifeApplicationAdapter(
                 life,
                 events,
                 NeutralHeritableTraitEffects.Instance,
-                Probe);
+                lifeFacts,
+                lifeFacts);
             adapter.Start();
         }
 
@@ -555,7 +1516,11 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         public override void Execute() =>
             events.Publish(new OperatingDayEndedEvent(1));
 
-        public override void Dispose() => adapter.Dispose();
+        public override void Dispose()
+        {
+            adapter.Dispose();
+            lifeFacts.Dispose();
+        }
     }
 
     private sealed class ExteriorReceptionScenario : EntryScenarioBase
@@ -566,6 +1531,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         private readonly ExteriorZoneMarker zone;
         private readonly InformantExteriorIncidentHandler handler;
         private readonly ExteriorIncidentRuntimeState state;
+        private readonly DomainFactDispatcher domainFacts;
 
         internal ExteriorReceptionScenario(
             MigratedProducerOutcomeKind target,
@@ -600,12 +1566,13 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 remainingSeconds = 150f,
                 actorIds = new List<string> { VisitorId }
             };
+            domainFacts = CreateExteriorReceptionFacts(Outcomes, Probe);
             handler = new InformantExteriorIncidentHandler(
                 new EnteredExteriorActorService(VisitorId, visitor),
                 new OffenseRegionRuntime(),
                 new GameEventBus(),
                 EditorFixedGameCalendar.Instance,
-                Probe);
+                domainFacts);
         }
 
         public override string CaptureDomain()
@@ -621,6 +1588,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
 
         public override void Dispose()
         {
+            domainFacts.Dispose();
             if (visitor?.data != null)
                 Object.DestroyImmediate(visitor.data);
             if (visitor != null)
@@ -641,6 +1609,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         private readonly CareerRuntime careers;
         private readonly CareerDurableEquipmentAwardRuntime runtime;
         private readonly CareerEquipmentSlots slots;
+        private readonly SocialRitualFactEditorFixture socialFacts;
 
         internal CareerMentorshipAwardScenario(
             MigratedProducerOutcomeKind target,
@@ -650,6 +1619,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         {
             careers = new CareerRuntime(Outcomes.AggregateRootStore);
             slots = new CareerEquipmentSlots();
+            socialFacts = new SocialRitualFactEditorFixture(Outcomes, Probe);
             runtime = new CareerDurableEquipmentAwardRuntime(
                 new DurableFacilityEquipmentPolicyRegistry(
                     new IDurableFacilityEquipmentPolicySource[]
@@ -659,7 +1629,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 slots,
                 new CareerEquipmentUse(slots),
                 careers,
-                Probe);
+                socialFacts.Journal);
         }
 
         public override string CaptureDomain() =>
@@ -694,21 +1664,75 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             Require(committed, "Career mentorship award entry was rejected.");
         }
 
-        public override void Dispose() { }
+        public override void Dispose() => socialFacts.Dispose();
     }
 
     private sealed class OffenseBattleCommandScenario : EntryScenarioBase
     {
-        private const string AllyId = "character:world:migrated-e2e:battle-ally";
-        private const string EnemyId = "enemy:migrated-e2e:battle";
+        private readonly string allyId;
+        private readonly string enemyId;
+        private readonly string battleId;
+        private readonly string expeditionId;
+        private readonly string targetId;
         private readonly OffenseBattleRuntime runtime;
+        private readonly DomainFactDispatcher commandFacts;
+        private readonly IDisposable commandFactBinding;
+        private readonly OffenseBattleCommandPublicationRuntime
+            commandPublications;
 
         internal OffenseBattleCommandScenario(
             MigratedProducerOutcomeKind target,
             MigratedProducerOutcomeFaultMode fault,
-            bool deliveryFault)
-            : base("run:migrated-entry-offense-battle-", target, fault, deliveryFault)
+            bool deliveryFault,
+            string stableRunId = null,
+            string battleOwnerId = null)
+            : base(
+                "run:migrated-entry-offense-battle-",
+                target,
+                fault,
+                deliveryFault,
+                stableRunId)
         {
+            string stableBattle = battleOwnerId?.Trim() ?? string.Empty;
+            string scopeHash = stableBattle.Length == 0
+                ? string.Empty
+                : ProductionCausalOutcomeEvidence.Sha256Text(stableBattle)
+                    .Substring("sha256:".Length);
+            allyId = stableBattle.Length == 0
+                ? "character:world:migrated-e2e:battle-ally"
+                : "character:causal-offense-ally:" + stableBattle;
+            enemyId = stableBattle.Length == 0
+                ? "enemy:migrated-e2e:battle"
+                : "enemy:causal-offense:" + stableBattle;
+            battleId = stableBattle.Length == 0
+                ? "battle:migrated-e2e"
+                : stableBattle;
+            expeditionId = stableBattle.Length == 0
+                ? "expedition:migrated-e2e"
+                : "expedition:causal-offense:" + scopeHash;
+            targetId = stableBattle.Length == 0
+                ? "target:migrated-e2e"
+                : "target:causal-offense:" + scopeHash;
+            commandFacts = new DomainFactDispatcher();
+            var commits = new GameplayDomainFactCommitGroup(
+                Outcomes.Recorder,
+                Outcomes.Ledger);
+            var observer = new OffenseBattleCommandFactObserver(
+                Outcomes.Transaction,
+                commits);
+            commandFactBinding = commandFacts.Subscribe(
+                "fixture:offense-battle-command",
+                new MigratedProducerDomainFactProbeObserver<
+                    OffenseBattleCommandFact>(
+                    _ => MigratedProducerOutcomeKind
+                        .OffenseBattleCommandResult,
+                    observer,
+                    observer,
+                    commits,
+                    Probe));
+            commandPublications = new OffenseBattleCommandPublicationRuntime(
+                commandFacts,
+                commandFacts);
             ICombatEquipmentRuntime equipment =
                 OffenseEditorTestDependencies.CreateCombatEquipmentRuntime();
             runtime = new OffenseBattleRuntime(
@@ -731,26 +1755,26 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             runtime.ConstructProficiencyProgression(
                 null,
                 EditorFixedGameCalendar.Instance,
-                Probe);
+                commandPublications);
 
             var ally = new OffenseBattleCombatant(
-                AllyId,
+                allyId,
                 "원장 검증 아군",
                 "Slime",
                 OffenseBattleTeam.Allies,
                 new OffenseBattleStats(100f, 10f, 8f, 7f, 12f, 6f),
                 100f);
             var enemy = new OffenseBattleCombatant(
-                EnemyId,
+                enemyId,
                 "원장 검증 적군",
                 "Orc",
                 OffenseBattleTeam.Enemies,
                 new OffenseBattleStats(100f, 8f, 7f, 6f, 8f, 5f),
                 100f);
             var session = new OffenseBattleSession(
-                "battle:migrated-e2e",
-                "expedition:migrated-e2e",
-                "target:migrated-e2e",
+                battleId,
+                expeditionId,
+                targetId,
                 "원장 검증 표적",
                 DungeonDifficulty.Normal,
                 new[] { ally, enemy },
@@ -772,15 +1796,20 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             Require(
                 runtime.TryExecutePlannedCommand(
                     1,
-                    AllyId,
-                    EnemyId,
+                    allyId,
+                    enemyId,
                     OffenseBattleActionType.BasicAttack,
                     string.Empty,
                     out _),
                 "Offense battle production command entry was rejected.");
         }
 
-        public override void Dispose() => runtime.Dispose();
+        public override void Dispose()
+        {
+            runtime.Dispose();
+            commandFactBinding.Dispose();
+            commandFacts.Dispose();
+        }
     }
 
     private sealed class OffenseExpeditionNodeScenario : EntryScenarioBase
@@ -789,6 +1818,8 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         private readonly GameObject root;
         private readonly GameObject worldRoot;
         private readonly OffenseExpeditionRuntime runtime;
+        private readonly EditorOffenseTruthFactFixture truthFacts;
+        private readonly EditorOffenseNodeFactFixture nodeFacts;
 
         internal OffenseExpeditionNodeScenario(
             MigratedProducerOutcomeKind target,
@@ -801,18 +1832,28 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             OffenseWorldMapRuntime world =
                 worldRoot.AddComponent<OffenseWorldMapRuntime>();
             var campaign = new OffenseCampaignRuntime();
+            truthFacts = new EditorOffenseTruthFactFixture(
+                events,
+                "run:migrated-entry-offense-node-truth");
             world.Construct(
                 events,
                 null,
                 campaign,
                 campaign,
                 OffenseEditorTestDependencies.CreateCampaignCatalog(),
-                EditorNoOpOffenseOutcomeCommitter.Instance,
+                truthFacts.Facts,
+                truthFacts.Facts,
                 EditorFixedGameCalendar.Instance);
             world.StartWorldMap();
 
             root = new GameObject("Migrated Offense Node Runtime");
             runtime = root.AddComponent<OffenseExpeditionRuntime>();
+            nodeFacts = new EditorOffenseNodeFactFixture(
+                events,
+                Outcomes.Transaction,
+                Outcomes.Recorder,
+                Outcomes.Ledger,
+                Probe);
             runtime.Construct(
                 EmptyExpeditionMemberQuery.Instance,
                 new OffenseSceneRuntimeReferences(
@@ -824,9 +1865,9 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 EmptyOffensePanelService.Instance,
                 events,
                 EmptyExpeditionResultFinalizer.Instance);
-            runtime.ConstructOutcomeTransaction(
+            runtime.ConstructNodePublications(
                 EditorFixedGameCalendar.Instance,
-                Probe);
+                nodeFacts.Publications);
 
             const string EntranceId = "node:migrated-e2e:entrance";
             const string CacheId = "node:migrated-e2e:cache";
@@ -905,6 +1946,8 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
 
         public override void Dispose()
         {
+            nodeFacts.Dispose();
+            truthFacts.Dispose();
             Object.DestroyImmediate(root);
             Object.DestroyImmediate(worldRoot);
         }
@@ -912,7 +1955,11 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
 
     private sealed class OffenseExpeditionResultScenario : EntryScenarioBase
     {
+        private readonly List<ExpeditionOutcomeEvent> identityOutcomes = new();
+        private readonly IDisposable identitySubscription;
         private readonly GameObject root;
+        private readonly EditorOffenseExpeditionResultFactFixture resultFacts;
+        private readonly EditorOffenseArrivalSettlementFactFixture arrivalFacts;
         private readonly OffenseExpeditionResultFinalizer finalizer;
         private readonly OffenseExpeditionRun expedition;
         private readonly OffenseExpeditionResult result;
@@ -923,22 +1970,31 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         private readonly OffenseExpeditionReturnCoordinator returnCoordinator;
         private readonly CharacterActor participant;
         private readonly CharacterSO participantData;
+        private readonly CharacterActor secondParticipant;
+        private readonly CharacterSO secondParticipantData;
 
         internal OffenseExpeditionResultScenario(
             MigratedProducerOutcomeKind target,
             MigratedProducerOutcomeFaultMode fault,
             bool deliveryFault,
-            bool success = false)
+            bool success = false,
+            bool detailedD11 = false)
             : base("run:migrated-entry-offense-result-", target, fault, deliveryFault)
         {
             root = new GameObject("Migrated Offense Result E2E");
             rewards = root.AddComponent<OffenseRewardRuntime>();
+            var events = new GameEventBus();
+            arrivalFacts = new EditorOffenseArrivalSettlementFactFixture(
+                events,
+                Outcomes.Transaction,
+                Outcomes.Recorder,
+                Outcomes.Ledger);
             var arrivals = new OffenseReturnArrivalRuntime(
                 new DungeonRuntimeAggregateRootStore(),
                 PositiveGameClock.Instance,
                 EditorFixedGameCalendar.Instance,
-                new GameEventBus(),
-                Probe);
+                events,
+                arrivalFacts.Settlements);
             rewards.Construct(
                 new ScenarioOffenseRewardContextBuilder(arrivals),
                 new ScenarioOffenseRewardGrantService());
@@ -951,7 +2007,13 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 new DungeonRuntimeAggregateRootStore());
             campaign = new ScenarioOffenseCampaign(
                 "target:migrated-e2e:result");
-            var events = new GameEventBus();
+            identitySubscription = events.Subscribe<ExpeditionOutcomeEvent>(identityOutcomes.Add);
+            resultFacts = new EditorOffenseExpeditionResultFactFixture(
+                events,
+                Outcomes.Transaction,
+                Outcomes.Recorder,
+                Outcomes.Ledger,
+                Probe);
             finalizer = new OffenseExpeditionResultFinalizer(
                 new OffenseSceneRuntimeReferences(
                     null,
@@ -960,36 +2022,39 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                     null,
                     null),
                 new ProgressionSceneRuntimeReferences(null, null, meta),
-                events,
                 campaign);
-            finalizer.ConstructOutcomeTransaction(
+            finalizer.ConstructFactPublication(
                 EditorFixedGameCalendar.Instance,
-                Probe);
+                resultFacts.Publications);
             CharacterActor[] members = Array.Empty<CharacterActor>();
-            if (success)
+            if (success || detailedD11)
             {
-                GameObject participantObject = new(
-                    "Migrated Offense Return Participant");
-                participantObject.SetActive(false);
-                participantObject.AddComponent<SpriteRenderer>();
-                participantObject.AddComponent<AIBrain>();
-                participant = participantObject.AddComponent<CharacterActor>();
-                CharacterAiEditorTestDependencies.Inject(participantObject);
-                participantData = CharacterAiEditorTestDependencies
-                    .CreateCharacterFixtureData(
-                        CharacterType.NPC,
-                        "원정 귀환 검증 대원",
-                        "Orc");
-                participant.Initialization(participantData);
-                participant.Identity.SetPersistentId(
-                    "character:migrated-e2e:offense-return:"
-                    + Guid.NewGuid().ToString("N"));
+                participant = CreateExpeditionParticipant(
+                    "Migrated Offense Return Participant A",
+                    "원정 귀환 검증 대원 가",
+                    detailedD11
+                        ? "character:migrated-e2e:d11:member-a"
+                        : "character:migrated-e2e:offense-return:"
+                          + Guid.NewGuid().ToString("N"),
+                    out participantData);
                 members = new[] { participant };
-                returnCoordinator = new OffenseExpeditionReturnCoordinator(
-                    NoOpOffenseExpeditionReturnPort.Instance,
-                    finalizer,
-                    events,
-                    CharacterAiEditorTestDependencies.NeutralPerformance);
+                if (detailedD11)
+                {
+                    secondParticipant = CreateExpeditionParticipant(
+                        "Migrated Offense Return Participant B",
+                        "원정 귀환 검증 대원 나",
+                        "character:migrated-e2e:d11:member-b",
+                        out secondParticipantData);
+                    members = new[] { participant, secondParticipant };
+                }
+                else
+                {
+                    returnCoordinator = new OffenseExpeditionReturnCoordinator(
+                        NoOpOffenseExpeditionReturnPort.Instance,
+                        finalizer,
+                        events,
+                        CharacterAiEditorTestDependencies.NeutralPerformance);
+                }
             }
             expedition = new OffenseExpeditionRun(
                 "expedition:migrated-e2e:result",
@@ -999,12 +2064,90 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                     title = "원장 검증 결과 표적",
                     requiredMembers = 1,
                     requiredPower = 10f,
-                    durationSeconds = 10f
+                    durationSeconds = 10f,
+                    regionId = detailedD11
+                        ? "region:migrated-e2e:d11"
+                        : string.Empty,
+                    regionDisplayName = detailedD11
+                        ? "원장 검증 지역"
+                        : string.Empty,
+                    factionId = detailedD11
+                        ? "faction:migrated-e2e:d11"
+                        : string.Empty
                 },
                 members,
                 0f);
             if (success)
                 expedition.MemberStates.Single().AddStress(23f);
+            IReadOnlyList<OffenseExpeditionItemReceipt> itemReceipts =
+                detailedD11
+                    ? new[]
+                    {
+                        new OffenseExpeditionItemReceipt(
+                            OffenseExpeditionItemReceiptKind.LootRecovered,
+                            "resource:iron-ore",
+                            3,
+                            string.Empty,
+                            0f,
+                            new OffenseItemValuationSnapshot(
+                                "resource:iron-ore",
+                                3,
+                                OffenseSettlementValuationState.UnvaluedItem)),
+                        new OffenseExpeditionItemReceipt(
+                            OffenseExpeditionItemReceiptKind.SupplyReturned,
+                            "resource:clean-water",
+                            2,
+                            string.Empty,
+                            0f,
+                            new OffenseItemValuationSnapshot(
+                                "resource:clean-water",
+                                2,
+                                OffenseSettlementValuationState.UnvaluedItem))
+                    }
+                    : Array.Empty<OffenseExpeditionItemReceipt>();
+            IReadOnlyList<OffenseExpeditionTreatmentReceipt> treatmentReceipts =
+                detailedD11
+                    ? new[]
+                    {
+                        new OffenseExpeditionTreatmentReceipt(
+                            OffenseExpeditionTreatmentKind.Healing,
+                            "character:migrated-e2e:d11:member-a",
+                            "anatomy:torso",
+                            4f)
+                    }
+                    : Array.Empty<OffenseExpeditionTreatmentReceipt>();
+            IReadOnlyList<OffenseExpeditionArrivalReceipt> arrivalReceipts =
+                detailedD11
+                    ? new[]
+                    {
+                        new OffenseExpeditionArrivalReceipt(
+                            "arrival:migrated-e2e:d11:prisoner",
+                            OffenseReturnArrivalKind.Prisoner.ToString(),
+                            1,
+                            1,
+                            1,
+                            0,
+                            OffenseExpeditionArrivalResolution.Secured),
+                        new OffenseExpeditionArrivalReceipt(
+                            "arrival:migrated-e2e:d11:wildlife",
+                            OffenseReturnArrivalKind.SpecialWildlife.ToString(),
+                            2,
+                            2,
+                            1,
+                            1,
+                            OffenseExpeditionArrivalResolution.Escaped)
+                    }
+                    : Array.Empty<OffenseExpeditionArrivalReceipt>();
+            IReadOnlyList<OffenseExpeditionCurrencyReceipt> currencyReceipts =
+                detailedD11
+                    ? new[]
+                    {
+                        new OffenseExpeditionCurrencyReceipt(
+                            OffenseSettlementCurrencyIds.Gold,
+                            17,
+                            "currency-award:migrated-e2e:d11")
+                    }
+                    : Array.Empty<OffenseExpeditionCurrencyReceipt>();
             result = new OffenseExpeditionResult(
                 expedition.ExpeditionId,
                 expedition.Target.id,
@@ -1015,7 +2158,11 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 1f,
                 5f,
                 Array.Empty<OffenseExpeditionMemberSnapshot>(),
-                new[] { "원장 검증 실패 결과" });
+                new[] { "원장 검증 실패 결과" },
+                itemReceipts: itemReceipts,
+                treatmentReceipts: treatmentReceipts,
+                arrivalReceipts: arrivalReceipts,
+                currencyReceipts: currencyReceipts);
         }
 
         public override string CaptureDomain() =>
@@ -1040,23 +2187,64 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                     "원정 귀환 검증",
                     history,
                     null);
-                return;
             }
-            _ = finalizer.Finalize(expedition, result, history);
+            else
+                _ = finalizer.Finalize(expedition, result, history);
+            if (!DeliveryFault.Enabled)
+                FlushAndRequireIdentity();
+        }
+
+        internal void FlushAndRequireIdentity()
+        {
+            resultFacts.FlushNotifications();
+            if (participant != null && history.Count > 0)
+                Require(identityOutcomes.Count > 0
+                    && identityOutcomes.All(value => value.AbsoluteDay == EditorFixedGameCalendar.Instance.Day),
+                    "Expedition identity outcomes must share the result ledger's session calendar day.");
         }
 
         public override void Dispose()
         {
+            resultFacts.Dispose();
+            arrivalFacts.Dispose();
+            identitySubscription.Dispose();
+            if (secondParticipantData != null)
+                Object.DestroyImmediate(secondParticipantData);
+            if (secondParticipant != null)
+                Object.DestroyImmediate(secondParticipant.gameObject);
             if (participantData != null)
                 Object.DestroyImmediate(participantData);
             if (participant != null)
                 Object.DestroyImmediate(participant.gameObject);
             Object.DestroyImmediate(root);
         }
+
+        private static CharacterActor CreateExpeditionParticipant(
+            string objectName,
+            string displayName,
+            string persistentId,
+            out CharacterSO data)
+        {
+            GameObject participantObject = new(objectName);
+            participantObject.SetActive(false);
+            participantObject.AddComponent<SpriteRenderer>();
+            participantObject.AddComponent<AIBrain>();
+            CharacterActor actor =
+                participantObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(participantObject);
+            data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+                CharacterType.NPC,
+                displayName,
+                "Orc");
+            actor.Initialization(data);
+            actor.Identity.SetPersistentId(persistentId);
+            return actor;
+        }
     }
 
     private sealed class OffenseExpeditionArrivalScenario : EntryScenarioBase
     {
+        private readonly EditorOffenseArrivalSettlementFactFixture arrivalFacts;
         private readonly OffenseReturnArrivalRuntime runtime;
 
         internal OffenseExpeditionArrivalScenario(
@@ -1065,12 +2253,19 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             bool deliveryFault)
             : base("run:migrated-entry-offense-arrival-", target, fault, deliveryFault)
         {
+            var events = new GameEventBus();
+            arrivalFacts = new EditorOffenseArrivalSettlementFactFixture(
+                events,
+                Outcomes.Transaction,
+                Outcomes.Recorder,
+                Outcomes.Ledger,
+                Probe);
             runtime = new OffenseReturnArrivalRuntime(
                 Outcomes.AggregateRootStore,
                 PositiveGameClock.Instance,
                 EditorFixedGameCalendar.Instance,
-                new GameEventBus(),
-                Probe);
+                events,
+                arrivalFacts.Settlements);
             var save = new DungeonOffenseReturnArrivalSaveData
             {
                 nextArrivalSequence = 2
@@ -1104,14 +2299,17 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
 
         public override void ExecuteExpectingRejectedCommit() => Execute();
 
-        public override void Dispose() { }
+        public override void Dispose() => arrivalFacts.Dispose();
     }
 
     private abstract class FactionScenarioBase : EntryScenarioBase
     {
-        protected const string FactionId = "faction:migrated-entry-e2e";
+        protected const string DefaultFactionId = "faction:migrated-entry-e2e";
+        protected readonly string FactionId;
         protected readonly FactionCampaignDouble Campaign;
         protected readonly FactionRuntimeApplicationAdapter Runtime;
+        internal readonly FactionObservationTestTransport ObservationTransport;
+        private readonly DomainFactDispatcher factionFacts;
 
         protected FactionScenarioBase(
             string runPrefix,
@@ -1127,10 +2325,86 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             IOffenseWorldSimulation world = null,
             IFactionRouteEconomicPolicyRegistry routeEconomicPolicies = null,
             IGameSessionStateStore gameSessionState = null,
-            TreasuryEconomyAggregateStateStore treasuryState = null)
-            : base(runPrefix, target, fault, deliveryFault)
+            TreasuryEconomyAggregateStateStore treasuryState = null,
+            string stableRunId = null,
+            string factionId = null,
+            IPhysicalItemBatchDispositionService physicalBatch = null,
+            IDungeonItemCatalogProvider itemCatalog = null,
+            WorldItemRepository itemRepository = null,
+            ItemQuantityReservationService quantityReservations = null)
+            : base(
+                runPrefix,
+                target,
+                fault,
+                deliveryFault,
+                stableRunId,
+                includeTradeInventory: itemRepository != null)
         {
-            Campaign = new FactionCampaignDouble(FactionId, 35);
+            FactionId = string.IsNullOrWhiteSpace(factionId)
+                ? DefaultFactionId
+                : CausalGameplaySyntax.RequireId(factionId, nameof(factionId));
+            var allianceBudget =
+                new ResourceFactionAllianceBenefitBudgetApplicationAdapter();
+            if (string.IsNullOrEmpty(initialState.AllianceBenefitAuthorityDigest))
+            {
+                initialState.AllianceBenefitAuthorityDigest =
+                    allianceBudget.AuthorityDigest;
+                initialState.AllianceBenefitBalanceMilliEwu =
+                    allianceBudget.CapacityMilliEwu;
+                initialState.AllianceBenefitRefillRemainder = 0L;
+                initialState.AllianceBenefitLastRefillDay =
+                    Math.Max(1, initialState.CurrentDay);
+            }
+            int initialRapport = initialState.Factions.TryGetValue(
+                FactionId,
+                out DungeonFactionState initialFaction)
+                    ? initialFaction.trust
+                    : 35;
+            Campaign = new FactionCampaignDouble(FactionId, initialRapport);
+            factionFacts = CreateDomainFacts(Outcomes, Probe);
+            ObservationTransport = new FactionObservationTestTransport(factionFacts);
+            IPhysicalItemBatchDispositionService effectivePhysicalBatch =
+                physicalBatch;
+            IWorldItemSpawner effectiveItemSpawner = null;
+            if (itemRepository != null)
+            {
+                if (itemCatalog == null
+                    || quantityReservations == null
+                    || itemRuntime is not WorldItemStackRuntime worldItems)
+                {
+                    throw new InvalidOperationException(
+                        "Outcome-aware faction goodwill requires the physical item authorities.");
+                }
+                factionFacts.Subscribe(
+                    "physical-disposition",
+                    new GameplayDomainFactObserver<
+                        PhysicalItemDisposedFact,
+                        TradeInventoryOutcomeReceipt>(
+                        PhysicalItemDispositionFactObservation.Capture,
+                        Outcomes.Registry,
+                        Outcomes.Ledger,
+                        Outcomes.Recorder,
+                        new GameplayDomainFactCommitGroup(
+                            Outcomes.Recorder,
+                            Outcomes.Ledger)));
+                effectivePhysicalBatch =
+                    new PhysicalItemBatchDispositionService(
+                        itemRepository,
+                        worldItems.MassQuery,
+                        EditorNullItemMarkerPresenter.Instance,
+                        quantityReservations,
+                        itemCatalog,
+                        factionFacts,
+                        factionFacts,
+                        new GameplayDomainFactDeliveryQuery(
+                            Outcomes.Recorder,
+                            Outcomes.Ledger),
+                        EditorFixedGameCalendar.Instance);
+                effectiveItemSpawner = new WorldItemSpawner(
+                    itemCatalog,
+                    itemRepository,
+                    EditorNullItemMarkerPresenter.Instance);
+            }
             Runtime = new FactionRuntimeApplicationAdapter(
                 initialState,
                 PositiveGameClock.Instance,
@@ -1139,72 +2413,507 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 Campaign,
                 Campaign,
                 Campaign,
-                Probe,
+                ObservationTransport,
+                factionFacts,
                 Outcomes.AggregateRootStore,
                 dropZones,
                 exactSources,
                 itemRuntime,
-                definitions,
-                world,
+                definitions ?? CreateDefaultDefinitions(FactionId),
+                world ?? new FactionWorldDouble(),
                 routeEconomicPolicies,
                 gameSessionState,
-                treasuryState);
+                treasuryState,
+                allianceBudget,
+                effectivePhysicalBatch,
+                effectiveItemSpawner);
         }
 
-        public override void Dispose() { }
+        private static IReadOnlyList<FactionDefinitionSnapshot> CreateDefaultDefinitions(
+            string factionId)
+        {
+            return new[]
+            {
+                new FactionDefinitionSnapshot(
+                    factionId,
+                    "인과 원장 검증 세력",
+                    "species:test",
+                    "장기 캠페인 관계 상태의 저장·복원을 검증하는 세력이다.",
+                    new[] { "relation:campaign-ledger" },
+                    new[] { "trade:test" },
+                    "reinforcement:test",
+                    Array.Empty<FactionCargoLine>(),
+                    Array.Empty<FactionCargoLine>(),
+                    FactionRouteEconomicPolicyDescriptor.Create(
+                        FactionRouteEconomicPolicyIds.PaidMarketPurchase,
+                        1),
+                    FactionRouteEconomicPolicyDescriptor.Create(
+                        FactionRouteEconomicPolicyIds.AllianceBenefit,
+                        1),
+                    7,
+                    20,
+                    10)
+            };
+        }
+
+        public override void Dispose() => factionFacts.Dispose();
     }
 
     private sealed class FactionTrustScenario : FactionScenarioBase
     {
+        private readonly WorldItemStackRuntime goodwillItems;
+
         internal FactionTrustScenario(
             MigratedProducerOutcomeKind target,
             MigratedProducerOutcomeFaultMode fault,
-            bool deliveryFault)
+            bool deliveryFault,
+            string stableRunId = null,
+            string factionId = null,
+            WorldItemStackRuntime goodwillItems = null,
+            IPhysicalItemBatchDispositionService physicalBatch = null,
+            IDungeonItemCatalogProvider itemCatalog = null,
+            WorldItemRepository itemRepository = null,
+            ItemQuantityReservationService quantityReservations = null)
             : base(
                 "run:migrated-entry-faction-trust-",
                 target,
                 fault,
                 deliveryFault,
-                CreateState()) { }
+                CreateState(factionId),
+                itemRuntime: goodwillItems,
+                stableRunId: stableRunId,
+                factionId: factionId,
+                physicalBatch: physicalBatch,
+                itemCatalog: itemCatalog,
+                itemRepository: itemRepository,
+                quantityReservations: quantityReservations)
+        {
+            this.goodwillItems = goodwillItems;
+        }
+
+        internal JObject CaptureOwnerCheckpoint()
+        {
+            DungeonFactionSaveData faction = Runtime.Capture();
+            if (goodwillItems != null)
+            {
+                var report = new DungeonGameRestoreReport();
+                FactionObservationPreflight.Validate(
+                    faction,
+                    Outcomes.Ledger.CaptureGameplayOutcomes(),
+                    Outcomes.Transaction.Capture(),
+                    report);
+                Require(
+                    report.Success,
+                    "Faction goodwill checkpoint observation join failed: "
+                    + string.Join("; ", report.Errors));
+            }
+            var checkpoint = new JObject
+            {
+                ["faction"] = JObject.Parse(JsonUtility.ToJson(faction)),
+                ["campaignRelationship"] = JObject.Parse(
+                    JsonUtility.ToJson(Campaign.CaptureFactions()))
+            };
+            if (goodwillItems != null)
+                checkpoint["physicalItems"] = JObject.Parse(
+                    JsonUtility.ToJson(goodwillItems.Capture()));
+            return checkpoint;
+        }
+
+        internal void RestoreOwnerCheckpoint(JObject domainState)
+        {
+            string[] fields = domainState?.Properties()
+                .Select(value => value.Name)
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray() ?? Array.Empty<string>();
+            if (!fields.SequenceEqual(
+                    goodwillItems == null
+                        ? new[] { "campaignRelationship", "faction" }
+                        : new[] { "campaignRelationship", "faction", "physicalItems" },
+                    StringComparer.Ordinal)
+                || domainState["faction"] is not JObject factionJson
+                || domainState["campaignRelationship"] is not JObject campaignJson
+                || (goodwillItems != null
+                    && domainState["physicalItems"] is not JObject))
+            {
+                throw new InvalidOperationException(
+                    "Faction relationship owner checkpoint shape is invalid.");
+            }
+            DungeonFactionSaveData faction = JsonUtility.FromJson<
+                DungeonFactionSaveData>(factionJson.ToString(Formatting.None));
+            if (goodwillItems != null)
+            {
+                var report = new DungeonGameRestoreReport();
+                FactionObservationPreflight.Validate(
+                    faction,
+                    Outcomes.Ledger.CaptureGameplayOutcomes(),
+                    Outcomes.Transaction.Capture(),
+                    report);
+                Require(
+                    report.Success,
+                    "Faction goodwill checkpoint restore observation join failed: "
+                    + string.Join("; ", report.Errors));
+            }
+            FactionCampaignWorldSaveData campaign = JsonUtility.FromJson<
+                FactionCampaignWorldSaveData>(
+                    campaignJson.ToString(Formatting.None));
+            FactionCampaignAggregateState campaignCandidate =
+                Campaign.PrepareFactionsRestore(campaign);
+            FactionRestoreCandidate factionCandidate =
+                Runtime.PrepareRestoreCandidate(faction);
+            if (goodwillItems != null)
+            {
+                DungeonPhysicalItemSaveData physical = JsonUtility.FromJson<
+                    DungeonPhysicalItemSaveData>(
+                        domainState["physicalItems"].ToString(Formatting.None));
+                goodwillItems.Restore(physical);
+            }
+            Campaign.PublishFactions(campaignCandidate);
+            Runtime.PublishRestoreCandidate(factionCandidate);
+            if (goodwillItems != null)
+                Runtime.Tick();
+            Require(
+                Runtime.TryGetFaction(FactionId, out DungeonFactionState restored)
+                && restored.trust
+                    == campaign.factions.Single(value => string.Equals(
+                        value.factionId,
+                        FactionId,
+                        StringComparison.Ordinal)).rapport,
+                "Faction relationship checkpoint restored a different owner state.");
+            if (goodwillItems != null)
+                Require(
+                    RemainingGoodwillValue() == 630 - (restored.trust - 35) * 10,
+                    "Faction goodwill checkpoint does not match transferred goods.");
+        }
 
         public override string CaptureDomain()
         {
             Require(
                 Runtime.TryGetFaction(FactionId, out DungeonFactionState faction),
                 "Faction trust fixture lost its production faction owner.");
-            return faction.trust + ":" + Campaign.CaptureRelationship();
+            return faction.trust + ":" + Campaign.CaptureRelationship()
+                + (goodwillItems == null
+                    ? string.Empty
+                    : ":goodwillValueRemaining=" + RemainingGoodwillValue());
         }
 
         public override void Execute()
         {
-            bool applied = Runtime.TryAdjustTrust(
-                FactionId,
-                7,
-                "migrated producer entry E2E",
-                out string message);
+            int beforeValue = goodwillItems == null ? 0 : RemainingGoodwillValue();
+            bool applied;
+            string message;
+            if (goodwillItems == null)
+                applied = Runtime.TryAdjustTrust(
+                    FactionId,
+                    7,
+                    "migrated producer entry E2E",
+                    out message);
+            else
+                applied = Runtime.TryOfferGoodwill(FactionId, 70, out message);
             if (Probe.FaultMode == MigratedProducerOutcomeFaultMode.RejectCommit)
             {
-                Require(!applied, "Faction trust rejection was reported as applied.");
+                if (goodwillItems == null)
+                {
+                    Require(!applied,
+                        "Faction trust rejection was reported as applied.");
+                }
+                else
+                {
+                    Require(applied
+                            && beforeValue - RemainingGoodwillValue() == 70
+                            && Runtime.TryGetFaction(
+                                FactionId,
+                                out DungeonFactionState pending)
+                            && FactionGoodwillOutbox.HasProvenance(pending)
+                            && pending.goodwillTransferCompleted
+                            && !pending.goodwillObserved,
+                        "Goodwill trust rejection did not preserve its durable physical parent and pending owner state.");
+                }
                 return;
             }
             Require(applied, "Faction trust entry failed: " + message);
+            if (goodwillItems != null)
+                Require(
+                    beforeValue - RemainingGoodwillValue() == 70,
+                    "Faction goodwill changed trust without consuming 70 physical value.");
         }
+
+        internal DungeonFactionState RequireFaction()
+        {
+            Require(Runtime.TryGetFaction(
+                    FactionId,
+                    out DungeonFactionState faction),
+                "Faction goodwill fixture lost its owner state.");
+            return faction;
+        }
+
+        internal DungeonFactionSaveData CaptureFactionObservationState() =>
+            Runtime.Capture();
+
+        internal void RecoverFactionObservations() => Runtime.Tick();
+
+        internal int RemainingGoodwillValue() => goodwillItems.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.ItemId == "resource:clean-water")
+            .Sum(stack => stack.AvailableQuantity * stack.UnitPrice);
 
         public override void ExecuteExpectingRejectedCommit() => Execute();
 
-        private static FactionAggregateState CreateState()
+        private static FactionAggregateState CreateState(string factionId)
         {
+            string id = string.IsNullOrWhiteSpace(factionId)
+                ? DefaultFactionId
+                : CausalGameplaySyntax.RequireId(factionId, nameof(factionId));
             var state = new FactionAggregateState { CurrentDay = 3 };
             state.Factions.Add(
-                FactionId,
+                id,
                 new DungeonFactionState
                 {
-                    factionId = FactionId,
+                    factionId = id,
                     discovered = true,
                     trust = 35
                 });
             return state;
         }
+    }
+
+    private sealed class BetrayalD10Context : IDisposable
+    {
+        private const string TargetFaction = "faction:d10:betrayed";
+        private const string WitnessOne = "faction:d10:witness-one";
+        private const string WitnessTwo = "faction:d10:witness-two";
+        private const string LootItem = "resource:clean-water";
+
+        private readonly MigratedProducerOutcomeEditorFixture outcomes;
+        private readonly MigratedProducerOutcomeProbeTransaction probe;
+        private readonly DomainFactDispatcher factionFacts;
+        private readonly WorldItemStackRuntime items;
+        private readonly MultiFactionCampaignDouble campaign;
+        private readonly FactionRuntimeApplicationAdapter runtime;
+
+        internal BetrayalD10Context(
+            string runId,
+            MigratedProducerOutcomeFaultMode fault)
+        {
+            outcomes = new MigratedProducerOutcomeEditorFixture(runId);
+            probe = new MigratedProducerOutcomeProbeTransaction(
+                outcomes.Transaction,
+                outcomes.Recorder)
+            {
+                TargetKind =
+                    MigratedProducerOutcomeKind.FactionTrustChangedEvent,
+                FaultMode = fault
+            };
+            IDungeonItemCatalogProvider itemCatalog =
+                EditorItemCatalogFactory.Create();
+            items = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+                itemCatalog,
+                out WorldItemRepository repository,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _);
+            FactionAggregateState state = CreateState();
+            campaign = new MultiFactionCampaignDouble(state.Factions.Values);
+            var allianceBudget =
+                new ResourceFactionAllianceBenefitBudgetApplicationAdapter();
+            state.AllianceBenefitAuthorityDigest = allianceBudget.AuthorityDigest;
+            state.AllianceBenefitBalanceMilliEwu = allianceBudget.CapacityMilliEwu;
+            state.AllianceBenefitLastRefillDay = state.CurrentDay;
+            factionFacts = CreateDomainFacts(outcomes, probe);
+            runtime = new FactionRuntimeApplicationAdapter(
+                state,
+                PositiveGameClock.Instance,
+                new GameEventBus(),
+                new ScenarioMoneyAccount(),
+                campaign,
+                campaign,
+                campaign,
+                factionFacts,
+                factionFacts,
+                outcomes.AggregateRootStore,
+                dropZones: FixedDropZone.Instance,
+                itemRuntime: items,
+                definitions: CreateDefinitions(),
+                world: new FactionWorldDouble(),
+                allianceBenefitBudget: allianceBudget,
+                itemSpawner: new WorldItemSpawner(
+                    itemCatalog,
+                    repository,
+                    EditorNullItemMarkerPresenter.Instance));
+        }
+
+        internal void RequireSuccess()
+        {
+            Dictionary<string, int> before = CaptureTrust();
+            Require(runtime.TryBetray(TargetFaction, 50, out string message),
+                "D10 betrayal success path failed: " + message);
+            Dictionary<string, int> after = CaptureTrust();
+            GameplayOutcomeSnapshot exact = RequireOnlyTrustOutcome();
+            Require(HasParticipant(
+                        exact,
+                        "operation",
+                        "dungeon-authority",
+                        "betrayer")
+                    && HasParticipant(
+                        exact,
+                        "faction",
+                        TargetFaction,
+                        "target")
+                    && HasParticipant(
+                        exact,
+                        "faction",
+                        WitnessOne,
+                        "witness")
+                    && HasParticipant(
+                        exact,
+                        "faction",
+                        WitnessTwo,
+                        "witness"),
+                "D10 betrayal did not preserve distinct betrayer, target, and witness roles.");
+            foreach (string factionId in before.Keys)
+            {
+                Require(HasMetric(
+                            exact,
+                            "trust-before",
+                            factionId,
+                            before[factionId])
+                        && HasMetric(
+                            exact,
+                            "trust-after",
+                            factionId,
+                            after[factionId]),
+                    "D10 betrayal omitted the exact trust transition for "
+                    + factionId + ".");
+            }
+            Require(after[TargetFaction] < before[TargetFaction]
+                    && after[WitnessOne] < before[WitnessOne]
+                    && after[WitnessTwo] < before[WitnessTwo]
+                    && exact.metrics.Any(value => value != null
+                        && string.Equals(
+                            value.metricId,
+                            "value",
+                            StringComparison.Ordinal)
+                        && value.value >= 50d)
+                    && items.GetAllStacks().Any(value => value != null
+                        && string.Equals(value.ItemId, LootItem,
+                            StringComparison.Ordinal)),
+                "D10 betrayal did not couple its exact trust losses with physical loot value.");
+        }
+
+        internal void RequireRejectedRollback()
+        {
+            Dictionary<string, int> before = CaptureTrust();
+            int stackCountBefore = items.GetAllStacks().Count;
+            Require(!runtime.TryBetray(TargetFaction, 50, out _),
+                "Rejected D10 betrayal was reported as committed.");
+            Dictionary<string, int> after = CaptureTrust();
+            Require(before.OrderBy(value => value.Key)
+                        .SequenceEqual(after.OrderBy(value => value.Key))
+                    && items.GetAllStacks().Count == stackCountBefore
+                    && outcomes.Ledger.CaptureGameplayOutcomes()
+                        .exactOutcomes.Count == 0,
+                "Rejected D10 betrayal did not atomically restore loot, campaign trust, and ledger state.");
+        }
+
+        public void Dispose()
+        {
+            factionFacts.Dispose();
+            items.Dispose();
+        }
+
+        private Dictionary<string, int> CaptureTrust() => new[]
+            {
+                TargetFaction,
+                WitnessOne,
+                WitnessTwo
+            }
+            .ToDictionary(
+                value => value,
+                value =>
+                {
+                    Require(runtime.TryGetFaction(
+                            value,
+                            out DungeonFactionState faction),
+                        "D10 betrayal fixture lost faction " + value + ".");
+                    return faction.trust;
+                },
+                StringComparer.Ordinal);
+
+        private GameplayOutcomeSnapshot RequireOnlyTrustOutcome()
+        {
+            string type = MigratedProducerOutcomeCatalog.Get(
+                MigratedProducerOutcomeKind.FactionTrustChangedEvent)
+                .OutcomeTypeId.Value;
+            return outcomes.Ledger.CaptureGameplayOutcomes().exactOutcomes
+                .Single(value => value != null
+                    && string.Equals(
+                        value.outcomeTypeId,
+                        type,
+                        StringComparison.Ordinal));
+        }
+
+        private static FactionAggregateState CreateState()
+        {
+            var state = new FactionAggregateState { CurrentDay = 9 };
+            foreach (string factionId in new[]
+                     {
+                         TargetFaction,
+                         WitnessOne,
+                         WitnessTwo
+                     })
+            {
+                state.Factions.Add(factionId, new DungeonFactionState
+                {
+                    factionId = factionId,
+                    discovered = true,
+                    trust = 60,
+                    homeQ = 1,
+                    homeR = 1
+                });
+            }
+            return state;
+        }
+
+        private static IReadOnlyList<FactionDefinitionSnapshot>
+            CreateDefinitions() => new[]
+            {
+                CreateDefinition(TargetFaction, "배신 대상", includeLoot: true),
+                CreateDefinition(WitnessOne, "목격 세력 하나", includeLoot: false),
+                CreateDefinition(WitnessTwo, "목격 세력 둘", includeLoot: false)
+            };
+
+        private static FactionDefinitionSnapshot CreateDefinition(
+            string factionId,
+            string displayName,
+            bool includeLoot) => new(
+            factionId,
+            displayName,
+            "species:test",
+            "D10 세력 세계 기억 검증",
+            Array.Empty<string>(),
+            Array.Empty<string>(),
+            string.Empty,
+            includeLoot
+                ? new[]
+                {
+                    new FactionCargoLine
+                    {
+                        itemId = LootItem,
+                        amount = 100
+                    }
+                }
+                : Array.Empty<FactionCargoLine>(),
+            Array.Empty<FactionCargoLine>(),
+            FactionRouteEconomicPolicyDescriptor.Create(
+                FactionRouteEconomicPolicyIds.PaidMarketPurchase,
+                1),
+            FactionRouteEconomicPolicyDescriptor.Create(
+                FactionRouteEconomicPolicyIds.AllianceBenefit,
+                1),
+            7,
+            20,
+            10);
     }
 
     private sealed class FactionRouteArrivalScenario : FactionScenarioBase
@@ -1241,7 +2950,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             state.Routes.Add(new FactionRouteState
             {
                 routeId = "faction-route:1",
-                factionId = FactionId,
+                factionId = DefaultFactionId,
                 kind = FactionRouteKind.TradeCaravan,
                 status = FactionRouteStatus.Traveling,
                 path = new List<FactionHexCoordSaveData>
@@ -1302,7 +3011,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             state.Routes.Add(new FactionRouteState
             {
                 routeId = "faction-route:1",
-                factionId = FactionId,
+                factionId = DefaultFactionId,
                 kind = FactionRouteKind.TradeCaravan,
                 status = FactionRouteStatus.Arrived,
                 path = new List<FactionHexCoordSaveData>
@@ -1331,6 +3040,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         private const string FactionId = "faction:migrated-entry-settlement";
         private readonly FactionRuntimeApplicationAdapter runtime;
         private readonly GameSessionState sessionState;
+        private readonly DomainFactDispatcher factionFacts;
 
         internal FactionRouteSettlementScenario(
             MigratedProducerOutcomeKind target,
@@ -1359,6 +3069,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             var treasury = new TreasuryEconomyAggregateStateStore(
                 Outcomes.AggregateRootStore);
             FactionDefinitionSnapshot definition = CreateDefinition();
+            factionFacts = CreateDomainFacts(Outcomes, Probe);
             runtime = new FactionRuntimeApplicationAdapter(
                 domain,
                 PositiveGameClock.Instance,
@@ -1367,7 +3078,8 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 campaign,
                 campaign,
                 campaign,
-                Probe,
+                factionFacts,
+                factionFacts,
                 Outcomes.AggregateRootStore,
                 definitions: new[] { definition },
                 world: new FactionWorldDouble(),
@@ -1402,7 +3114,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         }
 
         public override void ExecuteExpectingRejectedCommit() => Execute();
-        public override void Dispose() { }
+        public override void Dispose() => factionFacts.Dispose();
 
         private static FactionDefinitionSnapshot CreateDefinition() => new(
             FactionId,
@@ -1439,6 +3151,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         private readonly FestivalExecutionRuntime runtime;
         private readonly GriefTraumaRuntime psychosocial;
         private readonly FestivalPreparedOrder order;
+        private readonly SocialRitualFactEditorFixture socialFacts;
 
         internal FestivalCelebratedScenario(
             MigratedProducerOutcomeKind target,
@@ -1469,6 +3182,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             var campaign = new FactionCampaignDouble(
                 "faction:migrated-entry-festival",
                 10);
+            socialFacts = new SocialRitualFactEditorFixture(Outcomes, Probe);
             runtime = new FestivalExecutionRuntime(
                 new SingleFestivalCatalog(definition),
                 EmptyCharacterWorldQuery.Instance,
@@ -1478,7 +3192,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 campaign,
                 campaign,
                 campaign,
-                Probe);
+                socialFacts.Journal);
 
             string occurrenceId = FestivalExecutionRules.OccurrenceId(
                 FestivalId,
@@ -1538,7 +3252,11 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 "Festival production resolution entry failed: " + failure);
         }
 
-        public override void Dispose() => Object.DestroyImmediate(definition);
+        public override void Dispose()
+        {
+            socialFacts.Dispose();
+            Object.DestroyImmediate(definition);
+        }
     }
 
     private sealed class V20ResolvedEventScenario : EntryScenarioBase
@@ -1551,6 +3269,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
         private readonly CharacterActor secondActor;
         private readonly CharacterSO firstActorData;
         private readonly CharacterSO secondActorData;
+        private readonly SocialRitualFactEditorFixture socialFacts;
 
         internal V20ResolvedEventScenario(
             MigratedProducerOutcomeKind target,
@@ -1634,6 +3353,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 riskReason = definition.riskReason
             });
             campaign.PublishSociety(campaign.PrepareSociety(society));
+            socialFacts = new SocialRitualFactEditorFixture(Outcomes, Probe);
             service = new V20ContentResolutionService(
                 campaign,
                 catalog,
@@ -1641,7 +3361,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 new FixedCharacterWorldQuery(firstActor, secondActor),
                 EmptyStockQuery.Instance,
                 EmptyAtomicItemConsumption.Instance,
-                Probe,
+                socialFacts.Journal,
                 narrative);
             request = new ContentResolutionRequest
             {
@@ -1676,6 +3396,7 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
 
         public override void Dispose()
         {
+            socialFacts.Dispose();
             if (firstActorData != null)
                 Object.DestroyImmediate(firstActorData);
             if (secondActorData != null)
@@ -2640,6 +4361,164 @@ public static class MigratedProducerRunOffenseEntryE2EDebugScenarios
             failureReason = string.Empty;
             return true;
         }
+    }
+
+    private sealed class MultiFactionCampaignDouble :
+        IFactionCampaignQuery,
+        IFactionCampaignCommand,
+        IV20CampaignPersistence
+    {
+        private Dictionary<string, FactionCampaignStateSaveData> relationships;
+
+        internal MultiFactionCampaignDouble(
+            IEnumerable<DungeonFactionState> factions)
+        {
+            relationships = (factions ?? Array.Empty<DungeonFactionState>())
+                .Where(value => value != null)
+                .ToDictionary(
+                    value => value.factionId,
+                    value => new FactionCampaignStateSaveData
+                    {
+                        factionId = value.factionId,
+                        rapport = value.trust
+                    },
+                    StringComparer.Ordinal);
+        }
+
+        public IReadOnlyList<FactionCampaignStateSaveData> Factions =>
+            relationships.Values
+                .OrderBy(value => value.factionId, StringComparer.Ordinal)
+                .ToArray();
+
+        public bool TryGetFaction(
+            string factionId,
+            out FactionCampaignStateSaveData state) =>
+            relationships.TryGetValue(factionId ?? string.Empty, out state);
+
+        public void ApplyFactionChange(
+            string factionId,
+            int rapportDelta,
+            int grievanceDelta,
+            int obligationDelta)
+        {
+            if (!relationships.TryGetValue(
+                    factionId ?? string.Empty,
+                    out FactionCampaignStateSaveData state))
+            {
+                throw new InvalidOperationException(
+                    "Multi-faction campaign fixture received an unknown faction: "
+                    + factionId);
+            }
+            state.rapport = Math.Clamp(state.rapport + rapportDelta, -100, 100);
+            state.grievance = Math.Clamp(
+                state.grievance + grievanceDelta,
+                0,
+                100);
+            state.obligationTokens = Math.Clamp(
+                state.obligationTokens + obligationDelta,
+                0,
+                5);
+        }
+
+        public FactionCampaignWorldSaveData CaptureFactions()
+        {
+            var data = new FactionCampaignWorldSaveData();
+            data.factions = Factions.Select(Clone).ToList();
+            return data;
+        }
+
+        public FactionCampaignAggregateState PrepareFactions(
+            FactionCampaignWorldSaveData data) => new()
+        {
+            Data = Clone(data)
+        };
+
+        public FactionCampaignAggregateState PrepareFactionsPreflight(
+            FactionCampaignWorldSaveData data) => PrepareFactions(data);
+
+        public FactionCampaignAggregateState PrepareFactionsRestore(
+            FactionCampaignWorldSaveData data) => PrepareFactions(data);
+
+        public void PublishFactions(FactionCampaignAggregateState state)
+        {
+            relationships = (state?.Data?.factions
+                    ?? new List<FactionCampaignStateSaveData>())
+                .Where(value => value != null)
+                .ToDictionary(
+                    value => value.factionId,
+                    Clone,
+                    StringComparer.Ordinal);
+        }
+
+        public bool TryResolveChapter(
+            string factionId,
+            string choiceId,
+            RunMilestoneEvaluationSnapshot requirements,
+            out V20ResolvedEventResult result,
+            out string failure) => Unsupported(out result, out failure);
+
+        public bool TryAcceptContract(
+            string factionId,
+            string contractId,
+            int absoluteDay,
+            out string failure)
+        {
+            failure = "unsupported fixture command";
+            return false;
+        }
+
+        public bool TryResolveContract(
+            string factionId,
+            bool success,
+            RunMilestoneEvaluationSnapshot requirements,
+            out V20ResolvedEventResult result,
+            out string failure) => Unsupported(out result, out failure);
+
+        public SeasonalEventWorldSaveData CaptureSeasonal() => new();
+        public SocietyEventWorldSaveData CaptureSociety() => new();
+        public RunMilestoneWorldSaveData CaptureMilestones() => new();
+        public SeasonalEventAggregateState PrepareSeasonal(
+            SeasonalEventWorldSaveData data) => new();
+        public SeasonalEventAggregateState PrepareSeasonalRestore(
+            SeasonalEventWorldSaveData data) => new();
+        public SocietyEventAggregateState PrepareSociety(
+            SocietyEventWorldSaveData data) => new();
+        public RunMilestoneAggregateState PrepareMilestones(
+            RunMilestoneWorldSaveData data) => new();
+        public void PublishSeasonal(SeasonalEventAggregateState state) { }
+        public void PublishSeasonalRestore(SeasonalEventAggregateState state) { }
+        public void PublishSociety(SocietyEventAggregateState state) { }
+        public void PublishMilestones(RunMilestoneAggregateState state) { }
+
+        private static bool Unsupported(
+            out V20ResolvedEventResult result,
+            out string failure)
+        {
+            result = default;
+            failure = "unsupported fixture command";
+            return false;
+        }
+
+        private static FactionCampaignWorldSaveData Clone(
+            FactionCampaignWorldSaveData source)
+        {
+            var data = new FactionCampaignWorldSaveData();
+            data.factions = (source?.factions
+                    ?? new List<FactionCampaignStateSaveData>())
+                .Where(value => value != null)
+                .Select(Clone)
+                .ToList();
+            return data;
+        }
+
+        private static FactionCampaignStateSaveData Clone(
+            FactionCampaignStateSaveData source) => new()
+        {
+            factionId = source?.factionId ?? string.Empty,
+            rapport = source?.rapport ?? 0,
+            grievance = source?.grievance ?? 0,
+            obligationTokens = source?.obligationTokens ?? 0
+        };
     }
 
     private sealed class FactionCampaignDouble :

@@ -6,7 +6,8 @@ using UnityEngine;
 public sealed class CombatEquipmentRuntime :
     ICombatEquipmentRuntime,
     ICombatLoadoutRuntime,
-    ICombatEquipmentBurdenQuery
+    ICombatEquipmentBurdenQuery,
+    IReversibleRetailEquipmentAuthority
 {
     private readonly ICombatEquipmentCatalog catalog;
     private readonly IItemInstanceRepository itemInstances;
@@ -957,6 +958,11 @@ public sealed class CombatEquipmentRuntime :
         return true;
     }
 
+    public bool TryConsumeRetailStockReversible(string instanceId, string sourceOperationId,
+        out IRetailStockSinkTransaction transaction, out string failure) =>
+        RetailEquipmentSinkTransaction.TryApply(itemInstances, stateStore.Current.Loadouts.Values,
+            instanceId, sourceOperationId, out transaction, out failure);
+
     public bool TryRestoreRetailStockToPhysical(
         string instanceId,
         string retailSourceOperationId,
@@ -1029,6 +1035,76 @@ public sealed class CombatEquipmentRuntime :
                     sourceStackId,
                     (ItemInstanceId)normalizedInstanceId),
             out failureReason);
+    }
+
+    public bool TryAssignPickedEquipmentToCharacter(
+        string characterId,
+        string instanceId,
+        CharacterCarryInventory inventory,
+        string sourceStackId,
+        string itemId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string normalizedInstanceId = instanceId?.Trim() ?? string.Empty;
+        string normalizedSourceStackId = sourceStackId?.Trim() ?? string.Empty;
+        string normalizedItemId = itemId?.Trim() ?? string.Empty;
+        if (inventory == null
+            || !instances.TryGetValue(
+                normalizedInstanceId,
+                out CombatEquipmentInstance instance)
+            || !string.Equals(
+                instance.sourceStackId,
+                normalizedSourceStackId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                normalizedItemId,
+                PhysicalItemIds.ForEquipment(instance.definitionId),
+                StringComparison.Ordinal)
+            || !inventory.TryPrepareExactSourceStackConsumption(
+                normalizedSourceStackId,
+                normalizedItemId,
+                (ItemInstanceId)normalizedInstanceId,
+                out CharacterCarryInventory.ExactPhysicalTransferCandidate
+                    carryRemoval,
+                out failureReason))
+        {
+            if (failureReason.Length == 0)
+                failureReason = "equipment.assign.picked-custody-invalid";
+            return false;
+        }
+
+        string custodyFailure = string.Empty;
+        bool assigned = loadoutRuntime.TryAssign(
+            characterId,
+            normalizedInstanceId,
+            () =>
+            {
+                if (!carryRemoval.TryPublish(out custodyFailure))
+                    return false;
+                if (itemStackRuntime.TryAbsorbUniqueItemStack(
+                        normalizedSourceStackId,
+                        (ItemInstanceId)normalizedInstanceId))
+                {
+                    return true;
+                }
+
+                carryRemoval.Rollback();
+                custodyFailure = "equipment.assign.physical_absorb_failed";
+                return false;
+            },
+            out failureReason);
+        if (!assigned)
+        {
+            carryRemoval.Rollback();
+            if (custodyFailure.Length > 0)
+                failureReason = custodyFailure;
+            return false;
+        }
+
+        carryRemoval.Complete();
+        PersistPhysicalState(instance);
+        return true;
     }
 
     public bool TryUnassignSlot(
@@ -1387,6 +1463,62 @@ public sealed class CombatEquipmentRuntime :
         return true;
     }
 
+    public bool TryApplyArcaneOverchargeDurabilityDamage(
+        string instanceId,
+        float damage)
+    {
+        if (!float.IsFinite(damage)
+            || damage <= 0f
+            || !instances.TryGetValue(
+                instanceId?.Trim() ?? string.Empty,
+                out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState)
+            || !CharacterArcaneWeaponRules.IsArcane(instance.definitionId)
+            || !catalog.TryGet(
+                instance.definitionId,
+                out CombatEquipmentDefinitionSO definition)
+            || instance.durabilityRatio <= 0f)
+        {
+            return false;
+        }
+
+        float maxDurability = statProjector.Build(
+            definition,
+            crafting.ResolveInstanceMaterial(instance, definition),
+            instance).MaxDurability;
+        float before = instance.durabilityRatio;
+        instance.durabilityRatio = Mathf.Clamp01(
+            before - damage / maxDurability);
+        if (instance.durabilityRatio >= before)
+            return false;
+        PersistPhysicalState(instance);
+        return true;
+    }
+
+    public bool TryRollbackArcaneOverchargeDurabilityDamage(
+        string instanceId,
+        float durabilityRatio)
+    {
+        if (!float.IsFinite(durabilityRatio)
+            || durabilityRatio <= 0f
+            || durabilityRatio > 1f
+            || !instances.TryGetValue(
+                instanceId?.Trim() ?? string.Empty,
+                out CombatEquipmentInstance instance)
+            || CombatEquipmentWorldStateRules.IsExternalCustody(
+                instance.worldState)
+            || !CharacterArcaneWeaponRules.IsArcane(instance.definitionId)
+            || instance.durabilityRatio >= durabilityRatio)
+        {
+            return false;
+        }
+
+        instance.durabilityRatio = durabilityRatio;
+        PersistPhysicalState(instance);
+        return true;
+    }
+
     public bool TryDetachForMaintenance(
         string instanceId,
         out CombatEquipmentInstance detached)
@@ -1540,9 +1672,175 @@ public sealed class CombatEquipmentRuntime :
         return false;
     }
 
+    public bool TryUnequipSlotToWorld(
+        string characterId,
+        CombatEquipmentLoadoutSlot slot,
+        Vector2Int position,
+        out IReadOnlyList<string> stackIds,
+        out string failureReason)
+    {
+        stackIds = Array.Empty<string>();
+        failureReason = string.Empty;
+        string normalizedCharacterId = characterId?.Trim() ?? string.Empty;
+        CharacterCombatLoadoutProfile profile = normalizedCharacterId.Length == 0
+            ? null
+            : loadoutRuntime.GetActiveProfileSnapshot(normalizedCharacterId);
+        List<string> instanceIds = slot == CombatEquipmentLoadoutSlot.Weapon
+            ? profile?.weaponInstanceIds?.ToList() ?? new List<string>()
+            : (profile?.armorInstanceIds ?? new List<string>())
+                .Concat(string.IsNullOrWhiteSpace(profile?.shieldInstanceId)
+                    ? Array.Empty<string>()
+                    : new[] { profile.shieldInstanceId })
+                .ToList();
+        if (instanceIds.Count == 0
+            || instanceIds.Distinct(StringComparer.Ordinal).Count()
+                != instanceIds.Count)
+        {
+            failureReason = "equipment.unequip.slot_empty_or_conflicting";
+            return false;
+        }
+
+        List<(CombatEquipmentInstance Instance, string ItemId)> prepared = new();
+        foreach (string instanceId in instanceIds)
+        {
+            if (!instances.TryGetValue(instanceId, out CombatEquipmentInstance instance)
+                || instance.worldState != CombatEquipmentWorldState.Equipped
+                || !string.Equals(
+                    instance.ownerCharacterId,
+                    normalizedCharacterId,
+                    StringComparison.Ordinal)
+                || !string.IsNullOrWhiteSpace(instance.sourceStackId)
+                || !catalog.TryGet(
+                    instance.definitionId,
+                    out CombatEquipmentDefinitionSO definition)
+                || definition == null
+                || string.IsNullOrWhiteSpace(definition.ItemId))
+            {
+                failureReason = "equipment.unequip.custody-invalid:" + instanceId;
+                return false;
+            }
+            prepared.Add((instance, definition.ItemId));
+        }
+
+        List<(CombatEquipmentInstance Instance, string StackId)> spawned = new();
+        foreach ((CombatEquipmentInstance instance, string item) in prepared)
+        {
+            if (!itemStackRuntime.SpawnExistingUniqueItemAt(
+                    item,
+                    (ItemInstanceId)instance.instanceId,
+                    position,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out string stackId))
+            {
+                RollbackSpawnedEquipment(spawned);
+                failureReason = "equipment.unequip.physical_spawn_failed";
+                return false;
+            }
+
+            WorldItemStackSnapshot exact = itemStackRuntime.GetAllStacks()
+                .SingleOrDefault(candidate => candidate != null
+                    && string.Equals(
+                        candidate.StackId,
+                        stackId,
+                        StringComparison.Ordinal));
+            if (exact == null
+                || exact.Quantity != 1
+                || exact.State != WorldItemStackState.Loose
+                || exact.Position != position
+                || !string.Equals(exact.ItemId, item, StringComparison.Ordinal)
+                || !string.Equals(
+                    exact.ItemInstanceId,
+                    instance.instanceId,
+                    StringComparison.Ordinal))
+            {
+                if (!itemStackRuntime.TryAbsorbUniqueItemStack(
+                        stackId,
+                        (ItemInstanceId)instance.instanceId))
+                {
+                    throw new InvalidOperationException(
+                        $"Equipment unequip invalid-stack rollback failed for '{stackId}'.");
+                }
+                RollbackSpawnedEquipment(spawned);
+                failureReason = "equipment.unequip.physical_spawn_invalid";
+                return false;
+            }
+            spawned.Add((instance, stackId));
+        }
+
+        if (!TryPersistSpawnedEquipmentState(spawned, out failureReason))
+        {
+            RollbackSpawnedEquipment(spawned);
+            return false;
+        }
+        if (!loadoutRuntime.TryUnassign(
+                normalizedCharacterId,
+                slot,
+                out failureReason))
+        {
+            RollbackSpawnedEquipment(spawned);
+            return false;
+        }
+
+        foreach ((CombatEquipmentInstance instance, string stackId) in spawned)
+        {
+            instance.ownerCharacterId = string.Empty;
+            instance.sourceStackId = stackId;
+            instance.worldState = CombatEquipmentWorldState.Loose;
+        }
+        stackIds = spawned.Select(value => value.StackId).ToArray();
+        return true;
+    }
+
+    private bool TryPersistSpawnedEquipmentState(
+        IReadOnlyList<(CombatEquipmentInstance Instance, string StackId)> spawned,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        try
+        {
+            foreach ((CombatEquipmentInstance instance, string stackId) in spawned)
+            {
+                CombatEquipmentInstance projected = instance.Clone();
+                projected.ownerCharacterId = string.Empty;
+                projected.sourceStackId = stackId;
+                projected.worldState = CombatEquipmentWorldState.Loose;
+                PersistPhysicalState(projected);
+            }
+            return true;
+        }
+        catch (InvalidOperationException error)
+        {
+            failureReason = "equipment.unequip.physical_state_persist_failed:"
+                + error.Message;
+            return false;
+        }
+    }
+
+    private void RollbackSpawnedEquipment(
+        IReadOnlyList<(CombatEquipmentInstance Instance, string StackId)> spawned)
+    {
+        for (int index = (spawned?.Count ?? 0) - 1; index >= 0; index--)
+        {
+            (CombatEquipmentInstance instance, string stackId) = spawned[index];
+            if (!itemStackRuntime.TryAbsorbUniqueItemStack(
+                    stackId,
+                    (ItemInstanceId)instance.instanceId))
+            {
+                throw new InvalidOperationException(
+                    $"Equipment unequip rollback failed for stack '{stackId}'.");
+            }
+        }
+    }
+
     public void HandleCharacterDeath(string characterId)
     {
         loadoutRuntime.HandleCharacterDeath(characterId);
+    }
+
+    public void RetireCharacterEquipment(string characterId)
+    {
+        loadoutRuntime.RetireCharacterEquipment(characterId);
     }
 
     public bool TryRestoreDurability(string instanceId, float durabilityRatio)

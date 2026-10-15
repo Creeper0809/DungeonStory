@@ -529,8 +529,8 @@ public static class ModularFacilityDebugScenarios
                         new BuildingVisitEventPublisher(
                             CharacterAiEditorTestDependencies.GameEvents,
                             new FixedGameSessionStateProvider(),
-                            new MigratedProducerOutcomeEditorFixture(
-                                "run:modular-facility-placement-visits").Transaction),
+                            CharacterAiEditorTestDependencies.FacilityUseFacts,
+                            CharacterAiEditorTestDependencies.FacilityUseFacts),
                         new BuildingInfoPresentationAdapter(
                             CharacterAiEditorTestDependencies.GameEvents));
                 },
@@ -1637,8 +1637,8 @@ public static class ModularFacilityDebugScenarios
             new BuildingVisitEventPublisher(
                 CharacterAiEditorTestDependencies.GameEvents,
                 new FixedGameSessionStateProvider(),
-                new MigratedProducerOutcomeEditorFixture(
-                    "run:modular-facility-visits").Transaction),
+                CharacterAiEditorTestDependencies.FacilityUseFacts,
+                CharacterAiEditorTestDependencies.FacilityUseFacts),
             new BuildingInfoPresentationAdapter(
                 CharacterAiEditorTestDependencies.GameEvents));
         if (building is Facility facility)

@@ -33,7 +33,10 @@ public sealed class SocialRumor
     public string targetFacilityTag;
     public string targetCharacterId = string.Empty;
     public string targetCharacterName;
+    [Range(-1f, 1f)] public float baseSentiment;
     [Range(-1f, 1f)] public float sentiment;
+    public string relationshipSkillModifierProvenance =
+        WorkCompletionIdentityReferenceDefaults.None;
     [Range(0f, 1f)] public float spreadChance;
     [Range(-1f, 1f)] public float trustImpact;
     public float validUntil;
@@ -63,7 +66,10 @@ public sealed class SocialRumorSnapshot
     public string targetFacilityTag = string.Empty;
     public string targetCharacterId = string.Empty;
     public string targetCharacterName = string.Empty;
+    public float baseSentiment;
     public float sentiment;
+    public string relationshipSkillModifierProvenance =
+        WorkCompletionIdentityReferenceDefaults.None;
     public float spreadChance;
     public float trustImpact;
     public float remainingSeconds;
@@ -87,7 +93,13 @@ public sealed class SocialRumorSnapshot
             targetFacilityTag = rumor.targetFacilityTag,
             targetCharacterId = rumor.targetCharacterId,
             targetCharacterName = rumor.targetCharacterName,
+            baseSentiment = ResolveBaseSentiment(rumor),
             sentiment = rumor.sentiment,
+            relationshipSkillModifierProvenance =
+                string.IsNullOrWhiteSpace(
+                    rumor.relationshipSkillModifierProvenance)
+                    ? WorkCompletionIdentityReferenceDefaults.None
+                    : rumor.relationshipSkillModifierProvenance,
             spreadChance = rumor.spreadChance,
             trustImpact = rumor.trustImpact,
             remainingSeconds = rumor.validUntil > 0f
@@ -110,7 +122,13 @@ public sealed class SocialRumorSnapshot
             targetFacilityTag = targetFacilityTag,
             targetCharacterId = targetCharacterId,
             targetCharacterName = targetCharacterName,
+            baseSentiment = ResolveBaseSentiment(this),
             sentiment = sentiment,
+            relationshipSkillModifierProvenance =
+                string.IsNullOrWhiteSpace(
+                    relationshipSkillModifierProvenance)
+                    ? WorkCompletionIdentityReferenceDefaults.None
+                    : relationshipSkillModifierProvenance,
             spreadChance = spreadChance,
             trustImpact = trustImpact,
             validUntil = remainingSeconds > 0f ? now + remainingSeconds : 0f,
@@ -123,6 +141,24 @@ public sealed class SocialRumorSnapshot
     {
         return (SocialRumorSnapshot)MemberwiseClone();
     }
+
+    private static float ResolveBaseSentiment(SocialRumor rumor) =>
+        string.IsNullOrWhiteSpace(rumor.relationshipSkillModifierProvenance)
+        || string.Equals(
+            rumor.relationshipSkillModifierProvenance,
+            WorkCompletionIdentityReferenceDefaults.None,
+            StringComparison.Ordinal)
+            ? rumor.sentiment
+            : rumor.baseSentiment;
+
+    private static float ResolveBaseSentiment(SocialRumorSnapshot rumor) =>
+        string.IsNullOrWhiteSpace(rumor.relationshipSkillModifierProvenance)
+        || string.Equals(
+            rumor.relationshipSkillModifierProvenance,
+            WorkCompletionIdentityReferenceDefaults.None,
+            StringComparison.Ordinal)
+            ? rumor.sentiment
+            : rumor.baseSentiment;
 }
 
 [Serializable]

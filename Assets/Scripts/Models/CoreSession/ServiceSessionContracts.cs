@@ -67,6 +67,23 @@ public enum ServiceSessionStage
     Cancelled = 6
 }
 
+public enum ServiceSessionTerminalPhase
+{
+    None = 0,
+    Prepared = 1,
+    PaymentCommitted = 2,
+    ObservationCommitted = 3,
+    Acknowledged = 4
+}
+
+public static class ServiceSessionTerminalIdentity
+{
+    public const long OwnerRevision = 1L;
+
+    public static string PaymentSourceId(string sessionId) =>
+        "service-payment:" + (sessionId ?? string.Empty);
+}
+
 public enum ServiceOperatingState
 {
     Closed = 0,
@@ -144,9 +161,23 @@ public sealed class ServiceSessionSnapshot
     public ServiceSessionStage Stage { get; set; }
     public float StartedAt { get; set; }
     public float StageStartedAt { get; set; }
+    public float ProvidedServiceSeconds { get; set; }
     public bool AdvertisedDemand { get; set; }
     public bool PaymentCommitted { get; set; }
     public string CancellationReason { get; set; } = string.Empty;
+    public ServiceSessionTerminalPhase TerminalPhase { get; set; }
+    public ServiceSessionStage PreviousStage { get; set; }
+    public int TerminalAbsoluteDay { get; set; }
+    public long TerminalOwnerRevision { get; set; }
+    public string EconomyTransactionId { get; set; } = string.Empty;
+    public string EconomyTransactionSourceId { get; set; } = string.Empty;
+    public int PaymentAmount { get; set; }
+    public int BalanceBefore { get; set; }
+    public int BalanceAfter { get; set; }
+    public string TerminalPublicationKey { get; set; } = string.Empty;
+    public string TerminalHubName { get; set; } = string.Empty;
+    public string TerminalPublicationId { get; set; } = string.Empty;
+    public string TerminalPublicationFingerprint { get; set; } = string.Empty;
     public ServiceSessionContractSnapshot Contract { get; set; } = new();
     public bool IsActive =>
         Stage != ServiceSessionStage.Completed
@@ -171,9 +202,23 @@ public sealed class ServiceSessionSaveData
     public ServiceSessionStage stage;
     public float startedAt;
     public float stageStartedAt;
+    public float providedServiceSeconds;
     public bool advertisedDemand;
     public bool paymentCommitted;
     public string cancellationReason = string.Empty;
+    public ServiceSessionTerminalPhase terminalPhase;
+    public ServiceSessionStage previousStage;
+    public int terminalAbsoluteDay;
+    public long terminalOwnerRevision;
+    public string economyTransactionId = string.Empty;
+    public string economyTransactionSourceId = string.Empty;
+    public int paymentAmount;
+    public int balanceBefore;
+    public int balanceAfter;
+    public string terminalPublicationKey = string.Empty;
+    public string terminalHubName = string.Empty;
+    public string terminalPublicationId = string.Empty;
+    public string terminalPublicationFingerprint = string.Empty;
     public ServiceSessionContractSnapshot contract = new();
 
     public ServiceSessionSnapshot ToSnapshot() => new()
@@ -186,9 +231,23 @@ public sealed class ServiceSessionSaveData
         Stage = stage,
         StartedAt = startedAt,
         StageStartedAt = stageStartedAt,
+        ProvidedServiceSeconds = providedServiceSeconds,
         AdvertisedDemand = advertisedDemand,
         PaymentCommitted = paymentCommitted,
         CancellationReason = cancellationReason,
+        TerminalPhase = terminalPhase,
+        PreviousStage = previousStage,
+        TerminalAbsoluteDay = terminalAbsoluteDay,
+        TerminalOwnerRevision = terminalOwnerRevision,
+        EconomyTransactionId = economyTransactionId,
+        EconomyTransactionSourceId = economyTransactionSourceId,
+        PaymentAmount = paymentAmount,
+        BalanceBefore = balanceBefore,
+        BalanceAfter = balanceAfter,
+        TerminalPublicationKey = terminalPublicationKey,
+        TerminalHubName = terminalHubName,
+        TerminalPublicationId = terminalPublicationId,
+        TerminalPublicationFingerprint = terminalPublicationFingerprint,
         Contract = contract.Clone()
     };
 }
@@ -196,12 +255,15 @@ public sealed class ServiceSessionSaveData
 [Serializable]
 public sealed class ServiceRoomsSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 7;
 
     public int version = CurrentVersion;
+    // Service timeline at capture, not the current process's Unity Time.time.
+    public float timelineTime;
     public List<ServiceHubModeSaveData> hubs = new();
     public List<ServiceCategory> advertisedCategories = new();
     public List<ServiceSessionSaveData> sessions = new();
+    public List<ServiceModePendingFactData> pendingModeFacts = new();
 
     public static ServiceSessionSaveData FromSnapshot(
         ServiceSessionSnapshot source) => source == null
@@ -216,9 +278,23 @@ public sealed class ServiceRoomsSaveData
                 stage = source.Stage,
                 startedAt = source.StartedAt,
                 stageStartedAt = source.StageStartedAt,
+                providedServiceSeconds = source.ProvidedServiceSeconds,
                 advertisedDemand = source.AdvertisedDemand,
                 paymentCommitted = source.PaymentCommitted,
                 cancellationReason = source.CancellationReason,
+                terminalPhase = source.TerminalPhase,
+                previousStage = source.PreviousStage,
+                terminalAbsoluteDay = source.TerminalAbsoluteDay,
+                terminalOwnerRevision = source.TerminalOwnerRevision,
+                economyTransactionId = source.EconomyTransactionId,
+                economyTransactionSourceId = source.EconomyTransactionSourceId,
+                paymentAmount = source.PaymentAmount,
+                balanceBefore = source.BalanceBefore,
+                balanceAfter = source.BalanceAfter,
+                terminalPublicationKey = source.TerminalPublicationKey,
+                terminalHubName = source.TerminalHubName,
+                terminalPublicationId = source.TerminalPublicationId,
+                terminalPublicationFingerprint = source.TerminalPublicationFingerprint,
                 contract = source.Contract?.Clone()
                     ?? new ServiceSessionContractSnapshot()
             };

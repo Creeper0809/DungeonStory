@@ -6,6 +6,7 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonMetaProgressionSaveData
 {
+    public const int CurrentVersion = 3;
     public int lifetimeEarnedCurrency;
     public int spentCurrency;
     public int completedRunCount;
@@ -18,6 +19,18 @@ public sealed class DungeonMetaProgressionSaveData
     public bool hasLatestResult;
     public DungeonRunResultSaveData latestResult =
         new DungeonRunResultSaveData();
+    public bool hasPendingCompletion;
+    public MetaRunCompletionSnapshotSaveData pendingCompletion = new();
+}
+
+[Serializable]
+public sealed class MetaRunCompletionSnapshotSaveData
+{
+    public OwnerRunCompletionFactData fact = new();
+    public int runSequence;
+    public int preservedRecipeSlots;
+    public DungeonRunResultSaveData result = new();
+    public List<string> recipeCandidates = new();
 }
 
 [Serializable]

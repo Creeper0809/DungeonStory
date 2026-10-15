@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using DungeonStory.Infrastructure;
 using DungeonStory.Narrative.Korean;
 
@@ -121,10 +122,25 @@ public sealed partial class GameplayOutcomeLedger
             }
             payload.outbox.Sort(CompareSnapshotsBySequence);
             payload.exactOutcomes.Sort(CompareSnapshotsBySequence);
+            if (deliveryCalendar != null)
+            {
+                if (!GameplayOutcomeDeliveryTime.TryReadCalendarHour(deliveryCalendar, out long capturedHour))
+                    throw new InvalidOperationException("Outcome capture calendar clock is inconsistent.");
+                foreach (GameplayOutcomeSnapshot record in payload.outbox)
+                    GameplayOutcomeDeliveryTime.RequireCapturedAt(record, capturedHour, false);
+                foreach (GameplayOutcomeSnapshot record in payload.exactOutcomes)
+                    GameplayOutcomeDeliveryTime.RequireCapturedAt(record, capturedHour, false);
+            }
             for (int index = 0; index < state.CompactedMemories.Count; index++)
                 payload.compactedMemories.Add(CloneCompacted(state.CompactedMemories[index]));
+            if (deliveryCalendar != null)
+                foreach (CompactedNarrativeMemorySnapshot memory in payload.compactedMemories)
+                    GameplayOutcomeDeliveryTime.RequireCapturedAt(memory, deliveryCalendar.AbsoluteHour);
             for (int index = 0; index < state.Tombstones.Count; index++)
                 payload.tombstones.Add(CloneTombstone(state.Tombstones[index]));
+            if (deliveryCalendar != null)
+                foreach (GameplayOutcomeTombstoneSnapshot tombstone in payload.tombstones)
+                    GameplayOutcomeDeliveryTime.RequireCapturedAt(tombstone, deliveryCalendar.AbsoluteHour, false);
             for (int index = 0; index < state.ConsolidationJobs.Count; index++)
             {
                 GameplayOutcomeConsolidationJob job = state.ConsolidationJobs[index];
@@ -190,6 +206,21 @@ public sealed partial class GameplayOutcomeLedger
         RestoreConsolidationJobs(candidate, payload.consolidationJobs, payload.worldEpoch, restoredEpoch);
         ValidateRestoreReferences(candidate);
         ValidateNextSequence(candidate);
+        foreach (int index in candidate.PublishedPageIndices)
+        {
+            GameplayOutcomeValuePage page = candidate.Pool.Get(index);
+            candidate.QueryTimeUpperBoundHour = Math.Max(candidate.QueryTimeUpperBoundHour,
+                GameplayOutcomeDeliveryTime.QueryTimeUpperBound(page.AbsoluteDay,
+                    page.DeliveryMetadataVersion, page.RecordedAbsoluteHour));
+        }
+        foreach (GameplayOutcomeTombstoneSnapshot tombstone in candidate.Tombstones)
+            if (tombstone.temporalMetadataVersion != 0)
+                candidate.QueryTimeUpperBoundHour = Math.Max(candidate.QueryTimeUpperBoundHour,
+                    GameplayOutcomeDeliveryTime.QueryTimeUpperBound(tombstone.absoluteDay,
+                        tombstone.deliveryMetadataVersion, tombstone.recordedAbsoluteHour));
+        foreach (CompactedNarrativeMemorySnapshot memory in candidate.CompactedMemories)
+            candidate.QueryTimeUpperBoundHour = Math.Max(candidate.QueryTimeUpperBoundHour,
+                GameplayOutcomeDeliveryTime.OccurrenceStartHour(memory.lastDay));
         EnsureLongRunCapacity(candidate);
         return new GameplayOutcomeLedgerRestoreCandidate(candidate);
     }
@@ -304,6 +335,7 @@ public sealed partial class GameplayOutcomeLedger
         long restoredEpoch)
     {
         RequireSnapshotCollections(snapshot);
+        GameplayOutcomeDeliveryTime.Validate(snapshot, published, candidate.Revision);
         GameplayOperationId operationId = new GameplayOperationId(snapshot.operationId);
         GameplayResultKey resultKey = new GameplayResultKey(
             snapshot.producerId,
@@ -356,6 +388,11 @@ public sealed partial class GameplayOutcomeLedger
         page.AnchorRevision = snapshot.anchorRevision;
         page.DeliveryFaultCount = snapshot.deliveryFaultCount;
         page.LastDeliveryFaultCode = snapshot.lastDeliveryFaultCode ?? string.Empty;
+        page.DeliveryMetadataVersion = snapshot.deliveryMetadataVersion;
+        page.DeliveryClockId = snapshot.deliveryClockId ?? string.Empty;
+        page.RecordedAbsoluteHour = snapshot.recordedAbsoluteHour;
+        page.PublishedRevision = snapshot.publishedRevision;
+        page.DeliveryDelayReason = snapshot.deliveryDelayReason ?? string.Empty;
         page.Location = new GameplayLocationReference(
             snapshot.locationId,
             snapshot.roomId,
@@ -420,9 +457,39 @@ public sealed partial class GameplayOutcomeLedger
         if (validation.Valid)
             validation = descriptor.Validate(new GameplayOutcomeReadView(page));
         if (!validation.Valid)
-            throw new InvalidOperationException($"Gameplay outcome '{outcomeId}' failed descriptor restore validation: {validation.DetailCode}.");
+            throw new InvalidOperationException(
+                $"Gameplay outcome '{outcomeId}' failed descriptor restore validation: "
+                + validation.DetailCode + "; "
+                + DescribeRestoreValidation(new GameplayOutcomeReadView(page)) + ".");
         if (published && lifecycle == GameplayOutcomePageState.PublishedAcknowledged)
             PromoteRestoredAcknowledgedPage(candidate, pageIndex, page);
+    }
+
+    private static string DescribeRestoreValidation(
+        in GameplayOutcomeReadView outcome)
+    {
+        var builder = new StringBuilder(256);
+        builder.Append("type=").Append(outcome.OutcomeTypeId.Value)
+            .Append(",participants=").Append(outcome.ParticipantCount)
+            .Append(",subjects=").Append(outcome.SubjectCount)
+            .Append(",tags=").Append(outcome.TagCount)
+            .Append(",anchors=").Append(outcome.AnchorCount)
+            .Append(",provenance=").Append(outcome.ProvenanceCount)
+            .Append(",facts=").Append(outcome.FactCount)
+            .Append(",tagValues=[");
+        for (int index = 0; index < outcome.TagCount; index++)
+        {
+            if (index > 0) builder.Append(',');
+            builder.Append(outcome.GetTag(index).Value);
+        }
+        builder.Append("],factValues=[");
+        for (int index = 0; index < outcome.FactCount; index++)
+        {
+            if (index > 0) builder.Append(',');
+            GameplayOutcomeFact fact = outcome.GetFact(index);
+            builder.Append(fact.FactId.Value).Append('=').Append(fact.Value);
+        }
+        return builder.Append(']').ToString();
     }
 
     private static void PromoteRestoredAcknowledgedPage(
@@ -734,6 +801,12 @@ public sealed partial class GameplayOutcomeLedger
                 throw new InvalidOperationException("Gameplay outcome restore contains an invalid or duplicate tombstone.");
             candidate.Tombstones.Add(CloneTombstone(tombstone));
             candidate.TombstoneByResultKey.Add(resultKey, candidate.Tombstones.Count - 1);
+            GameplayOutcomeDeliveryTime.Validate(tombstone, candidate.Revision);
+            if (candidate.TombstoneByOutcomeId.ContainsKey(new GameplayOutcomeId(candidate.RunId, tombstone.sequence)))
+                throw new InvalidOperationException("Gameplay outcome restore contains a duplicate tombstone outcome ID.");
+            candidate.TombstoneByOutcomeId.Add(
+                new GameplayOutcomeId(new GameplayOutcomeRunId(tombstone.runId), tombstone.sequence),
+                candidate.Tombstones.Count - 1);
             if (tombstone.terminalTier == NarrativeMemoryTier.Forgotten)
                 candidate.ForgottenCount++;
         }
@@ -971,8 +1044,22 @@ public sealed partial class GameplayOutcomeLedger
                 continue;
             if (page.Causation.HasParent && !knownOutcomeIds.Contains(page.Causation.ParentOutcomeId.ToString()))
                 throw new InvalidOperationException($"Gameplay outcome '{page.OutcomeId}' has a broken parent outcome reference.");
+            if (page.Causation.HasParent)
+                RequireParentTime(page.Causation.ParentOutcomeId, page.AbsoluteDay);
             // Anchor referent semantics are owned by typed integration ports;
             // the ledger validates only the generic stable-ID contract here.
+        }
+        foreach (GameplayOutcomeTombstoneSnapshot tombstone in candidate.Tombstones)
+            if (tombstone.temporalMetadataVersion != 0 && !string.IsNullOrEmpty(tombstone.parentRunId))
+                RequireParentTime(new GameplayOutcomeId(new GameplayOutcomeRunId(tombstone.parentRunId),
+                    tombstone.parentSequence), tombstone.absoluteDay);
+
+        void RequireParentTime(GameplayOutcomeId parent, int childDay)
+        {
+            if (!GameplayOutcomeDeliveryTime.TryValidateParent(candidate, parent, childDay,
+                    allowUnknownHistoricalParent: true, out string failure))
+                throw new InvalidOperationException(failure == "parent-occurs-after-child"
+                    ? "Gameplay outcome parent occurs after its child." : failure);
         }
     }
 
@@ -1059,6 +1146,16 @@ public sealed partial class GameplayOutcomeLedger
             commitRevision = source.commitRevision,
             localResultIndex = source.localResultIndex,
             ownerRevision = source.ownerRevision,
+            temporalMetadataVersion = source.temporalMetadataVersion,
+            absoluteDay = source.absoluteDay,
+            parentRunId = source.parentRunId,
+            parentSequence = source.parentSequence,
+            deliveryMetadataVersion = source.deliveryMetadataVersion,
+            deliveryClockId = source.deliveryClockId,
+            recordedAbsoluteHour = source.recordedAbsoluteHour,
+            publishedRevision = source.publishedRevision,
+            deliveryFaultCount = source.deliveryFaultCount,
+            deliveryDelayReason = source.deliveryDelayReason,
             terminalTier = source.terminalTier,
             canonicalHash = source.canonicalHash,
             influenceUseCount = source.influenceUseCount,

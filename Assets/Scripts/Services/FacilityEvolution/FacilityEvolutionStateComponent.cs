@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 [Serializable]
@@ -52,6 +53,12 @@ public sealed class FacilityEvolutionPendingMaterialCommitSnapshot
     public string evidenceAnchorId = string.Empty;
     public List<GameplayOutcomeEvidenceBindingSnapshot> evidenceBindings = new();
     public bool evidenceUseCompleted;
+    public FacilityEvolutionCompletedFactData completedFact;
+    public string publicationKey = string.Empty;
+    public string publicationId = string.Empty;
+    public string publicationFingerprint = string.Empty;
+    public bool observationAccepted;
+    public bool observationDelivered;
 
     public FacilityEvolutionPendingMaterialCommitSnapshot Clone()
     {
@@ -77,7 +84,13 @@ public sealed class FacilityEvolutionPendingMaterialCommitSnapshot
                 .Where(value => value != null)
                 .Select(value => value.Clone())
                 .ToList(),
-            evidenceUseCompleted = evidenceUseCompleted
+            evidenceUseCompleted = evidenceUseCompleted,
+            completedFact = completedFact?.Clone(),
+            publicationKey = publicationKey,
+            publicationId = publicationId,
+            publicationFingerprint = publicationFingerprint,
+            observationAccepted = observationAccepted,
+            observationDelivered = observationDelivered
         };
     }
 
@@ -90,7 +103,7 @@ public sealed class FacilityEvolutionPendingMaterialCommitSnapshot
         }
 
         FacilityEvolutionStateSnapshot resolved =
-            JsonUtility.FromJson<FacilityEvolutionStateSnapshot>(
+            DungeonSaveJson.Deserialize<FacilityEvolutionStateSnapshot>(
                 resolvedResultPayload);
         if (resolved == null)
         {
@@ -172,10 +185,10 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
     [SerializeField] private FacilityEvolutionFormulaPresentationPendingSnapshot pendingFormulaPresentation;
 
     public string ModuleId => BuildingStateModuleIds.FacilityEvolution;
-    // v8 introduced formula-backed facility lineage nodes. v9 adds unresolved
-    // module-selection state. v10 persists exact evidence-use intent across the
-    // material-publication acknowledgement window; v6/v7 remain immutable legacy state.
-    public int CurrentVersion => 10;
+    // Current-only v11 freezes domain observation and its opaque publication proof,
+    // including material-free evolution. No legacy-save migration is performed.
+    public const int SchemaVersion = 11;
+    public int CurrentVersion => SchemaVersion;
 
     public string BaseFacilityId => baseFacilityId;
     public string CurrentFacilityId => currentFacilityId;
@@ -653,47 +666,35 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
         pendingFormulaPresentation = pending.Clone();
     }
 
-    public void RecordPendingMaterialCommit(
-        FacilityEvolutionMaterialCommitReceipt receipt,
-        FacilityEvolutionRecipeSO recipe,
+    public void RecordPendingEvolution(
+        FacilityEvolutionCompletedFactData fact,
+        string reasonCode,
         string sourceFacilityDefinitionId,
-        int historySequence,
         FacilityEvolutionStateSnapshot resolvedResultState,
-        IReadOnlyList<string> resolvedMutationTags,
-        FacilityEvolutionMaterialCommitPhase phase =
-            FacilityEvolutionMaterialCommitPhase.MaterialCommitted)
+        IReadOnlyList<string> resolvedMutationTags)
     {
-        if (!receipt.IsCommitted)
-        {
-            throw new InvalidOperationException(
-                "Facility evolution pending material receipt is incomplete.");
-        }
-        if (recipe == null || recipe.resultBuilding == null)
-        {
-            throw new InvalidOperationException(
-                "Facility evolution pending material receipt requires an exact recipe result.");
-        }
+        if (fact == null) throw new ArgumentNullException(nameof(fact));
+        fact.Validate();
+        if (HasPendingMaterialCommit)
+            throw new InvalidOperationException("Facility evolution already owns an unfinished operation.");
         if (resolvedResultState == null)
         {
             throw new InvalidOperationException(
                 "Facility evolution pending material receipt requires a resolved result state.");
         }
 
-        pendingMaterialCommit = new FacilityEvolutionPendingMaterialCommitSnapshot
+        FacilityEvolutionStateSnapshot candidate = CreateSnapshot();
+        candidate.pendingMaterialCommit = new FacilityEvolutionPendingMaterialCommitSnapshot
         {
-            operationId = receipt.OperationId,
-            reasonCode = receipt.ReasonCode,
-            commitId = receipt.CommitId,
-            sourceStackIds = receipt.SourceStackIds.ToArray(),
-            quantity = receipt.Quantity,
-            inputMassGrams = receipt.InputMassGrams,
-            recipeId = recipe.EffectiveId,
-            sourceFacilityPersistentId = FacilityPersistentId,
-            sourceFacilityDefinitionId = sourceFacilityDefinitionId ?? string.Empty,
-            resultFacilityDefinitionId =
-                FacilityEvolutionUtility.GetFacilityId(recipe.resultBuilding),
-            historySequence = historySequence,
-            phase = phase,
+            operationId = fact.operationId, reasonCode = reasonCode,
+            commitId = fact.materialCommitId, sourceStackIds = fact.sourceStackIds.ToArray(),
+            quantity = fact.materialQuantity, inputMassGrams = fact.materialInputMassGrams,
+            recipeId = fact.recipeId, sourceFacilityPersistentId = fact.facilityPersistentId,
+            sourceFacilityDefinitionId = sourceFacilityDefinitionId,
+            resultFacilityDefinitionId = fact.resultFacilityDefinitionId,
+            historySequence = fact.historySequence,
+            phase = FacilityEvolutionMaterialCommitPhase.MaterialCommitted,
+            completedFact = fact.Clone(),
             resolvedMutationTags = EventPayloadSnapshot.Copy(
                     resolvedMutationTags)
                 .Where(tag => !string.IsNullOrWhiteSpace(tag))
@@ -705,21 +706,46 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
                 includePendingMaterialCommit: false))
         };
 
-        FacilityEvolutionAggregateAdapter.ValidatePendingMaterialCommit(
-            CreateSnapshot());
+        ApplySnapshot(candidate);
     }
 
-    public void MarkPendingMaterialCommitDomainApplied()
+    public void PublishPendingEvolutionResult(FacilityEvolutionPendingMaterialCommitSnapshot pending)
+    {
+        if (pending == null || pending.phase != FacilityEvolutionMaterialCommitPhase.MaterialCommitted)
+            throw new InvalidOperationException("Facility evolution has no reserved result to publish.");
+        var resolved = pending.ReadResolvedResultState();
+        resolved.pendingMaterialCommit = pending.Clone();
+        resolved.pendingMaterialCommit.phase = FacilityEvolutionMaterialCommitPhase.DomainApplied;
+        ApplySnapshot(resolved);
+    }
+
+    public void SetPendingObservationKey(string operationId, string key)
+    {
+        if (!HasPendingMaterialCommit || pendingMaterialCommit.operationId != operationId
+            || !FacilityEvolutionCompletedFactData.Text(key, false)
+            || pendingMaterialCommit.publicationKey.Length > 0 && pendingMaterialCommit.publicationKey != key)
+            throw new InvalidOperationException("Facility evolution observation identity changed.");
+        var candidate = CreateSnapshot();
+        candidate.pendingMaterialCommit.publicationKey = key;
+        ApplySnapshot(candidate);
+    }
+
+    public void ConfirmPendingObservation(DomainFactDelivery delivery)
     {
         if (!HasPendingMaterialCommit
-            || pendingMaterialCommit.phase
-                != FacilityEvolutionMaterialCommitPhase.MaterialCommitted)
-        {
-            throw new InvalidOperationException(
-                "Facility evolution has no material-committed operation to advance.");
-        }
-
-        pendingMaterialCommit.phase = FacilityEvolutionMaterialCommitPhase.DomainApplied;
+            || pendingMaterialCommit.phase != FacilityEvolutionMaterialCommitPhase.DomainApplied
+            || delivery.Phase is not (DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery)
+            || delivery.OperationKey != pendingMaterialCommit.publicationKey
+            || !FacilityEvolutionCompletedFactData.Text(delivery.PublicationId, false)
+            || !FacilityEvolutionCompletedFactData.Text(delivery.Fingerprint, false))
+            throw new InvalidOperationException("Facility evolution observation proof is inconsistent.");
+        var candidate = CreateSnapshot();
+        var pending = candidate.pendingMaterialCommit;
+        pending.publicationId = delivery.PublicationId;
+        pending.publicationFingerprint = delivery.Fingerprint;
+        pending.observationAccepted = true;
+        pending.observationDelivered = delivery.Completed;
+        ApplySnapshot(candidate);
     }
 
     public void RecordPendingEvidenceUseIntent(
@@ -763,6 +789,7 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
     public void MarkPendingEvidenceUseCompleted(string expectedAnchorId)
     {
         if (!HasPendingMaterialCommit
+            || !pendingMaterialCommit.observationDelivered
             || string.IsNullOrWhiteSpace(pendingMaterialCommit.evidenceAnchorId)
             || !string.Equals(
                 pendingMaterialCommit.evidenceAnchorId,
@@ -790,16 +817,18 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
         pendingMaterialCommit.evidenceUseCompleted = false;
     }
 
-    public void ClearPendingMaterialCommit(string expectedCommitId)
+    public void ClearPendingEvolution(string expectedOperationId)
     {
         if (!HasPendingMaterialCommit)
         {
             return;
         }
         if (!string.Equals(
-                pendingMaterialCommit.commitId,
-                expectedCommitId,
-                StringComparison.Ordinal))
+                pendingMaterialCommit.operationId,
+                expectedOperationId,
+                StringComparison.Ordinal)
+            || !pendingMaterialCommit.observationDelivered
+            || pendingMaterialCommit.evidenceBindings.Count > 0 && !pendingMaterialCommit.evidenceUseCompleted)
         {
             throw new InvalidOperationException(
                 "Facility evolution pending material commit identity changed before acknowledgement.");
@@ -824,7 +853,7 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
     public bool TryRestoreState(int version, string payload, out string error)
     {
         error = string.Empty;
-        if (version < 6 || version > CurrentVersion)
+        if (version != CurrentVersion)
         {
             error = $"Unsupported facility evolution state version {version}.";
             return false;
@@ -832,8 +861,9 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
 
         try
         {
+            FacilityEvolutionAggregateAdapter.ValidateObservationJson(payload);
             FacilityEvolutionStateSnapshot snapshot =
-                JsonUtility.FromJson<FacilityEvolutionStateSnapshot>(
+                DungeonSaveJson.Deserialize<FacilityEvolutionStateSnapshot>(
                     payload ?? string.Empty);
             if (snapshot == null)
             {
@@ -845,16 +875,6 @@ public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModu
             // preparation clones it: clone normalization would otherwise clamp
             // malformed scalar values or prune null list entries.
             NormalizeAndValidatePendingFormulaSnapshot(snapshot);
-
-            if (version is 6 or 7)
-            {
-                // Legacy nodes retain formulaVersion=0 and their historical static
-                // behavior; migration never synthesizes a formula or an effect.
-                snapshot.instanceEvolution ??= new FacilityEvolutionState();
-                snapshot.instanceEvolution.evolutionNodes ??= new List<EvolutionNode>();
-                snapshot.instanceEvolution.narrativeRequests ??=
-                    new List<EvolutionNarrativeRequestSnapshot>();
-            }
 
             FacilityEvolutionPreparedState prepared =
                 FacilityEvolutionAggregateAdapter.Prepare(snapshot);

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Infrastructure;
+using Newtonsoft.Json.Linq;
 
 public sealed class CharacterNarrativeSaveSection :
     DungeonStrictJsonSaveSection<CharacterNarrativeWorldSaveData, CharacterNarrativeAggregateState>,
@@ -20,12 +21,77 @@ public sealed class CharacterNarrativeSaveSection :
         KinshipHouseholdSaveSection.Id,
         CharacterCareerSaveSection.Id
     };
-    protected override void ValidateRawPayload(string payloadJson) =>
+    protected override void ValidateRawPayload(string payloadJson)
+    {
         RequireTopLevelArrayFields(
             payloadJson,
             "characters",
             "identityStates",
-            "workCompletionDeliveries");
+            "workCompletionDeliveries",
+            "ambitionTransitionObservations");
+
+        var root = JObject.Parse(payloadJson, new JsonLoadSettings
+        {
+            DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error
+        });
+        if (root["workCompletionDeliveries"] is not JArray deliveries)
+        {
+            throw new InvalidOperationException(
+                "Character-narrative work-completion deliveries array is missing.");
+        }
+        foreach (JToken delivery in deliveries)
+        {
+            if (delivery is not JObject cursor
+                || cursor["notificationAttempted"]?.Type != JTokenType.Boolean
+                || cursor["publicationKey"]?.Type != JTokenType.String || cursor["publicationId"]?.Type != JTokenType.String
+                || cursor["publicationFingerprint"]?.Type != JTokenType.String || cursor["observation"] is not JObject observation)
+            {
+                throw new InvalidOperationException(
+                    "Character-narrative work-completion observation fields must be explicit JSON values.");
+            }
+            foreach (string field in new[] { "deliveryId", "producerStreamId", "characterId", "workId", "productId",
+                "operationId", "terminalOwnerId", "childResultKey", "targetEntityId", "skillModifierProvenance", "characterDisplayName" })
+                if (observation[field]?.Type != JTokenType.String)
+                    throw new InvalidOperationException("Work identity frozen text field is missing: " + field);
+            foreach (string field in new[] { "operationSequence", "absoluteDay", "origin" })
+                if (observation[field]?.Type != JTokenType.Integer)
+                    throw new InvalidOperationException("Work identity frozen integer field is missing: " + field);
+            if (observation["requiresTerminalDelivery"]?.Type != JTokenType.Boolean
+                || observation["contributionWorkUnits"]?.Type is not (JTokenType.Float or JTokenType.Integer))
+                throw new InvalidOperationException("Work identity frozen delivery/work fields are missing.");
+        }
+        ValidateTraitAnalysisObservationJson(root);
+        ValidateAmbitionObservationJson(root);
+    }
+    internal static void ValidateTraitAnalysisObservationJson(JObject root)
+    {
+        if (root["pendingTraitAnalysis"] is not JObject pending)
+            throw new InvalidOperationException("Trait-analysis pending owner is missing.");
+        foreach (string field in new[] { "publicationKey", "publicationId", "publicationFingerprint" })
+            if (pending[field]?.Type != JTokenType.String)
+                throw new InvalidOperationException("Trait-analysis saved observation field is missing: " + field);
+    }
+    internal static void ValidateAmbitionObservationJson(JObject root)
+    {
+        if (root["ambitionTransitionObservations"] is not JArray pending || pending.Count > 1)
+            throw new InvalidOperationException("Ambition transition observation array is missing or exceeds its single owner.");
+        foreach (var token in pending)
+        {
+            if (token is not JObject row || row["fact"] is not JObject fact)
+                throw new InvalidOperationException("Ambition transition pending fact is missing.");
+            foreach (string field in new[] { "publicationKey", "publicationId", "publicationFingerprint" })
+                if (row[field]?.Type != JTokenType.String)
+                    throw new InvalidOperationException("Ambition transition observation field is missing: " + field);
+            foreach (string field in new[] { "characterId", "characterDisplayName", "ambitionId", "ambitionDisplayName", "reasonCode" })
+                if (fact[field]?.Type != JTokenType.String)
+                    throw new InvalidOperationException("Ambition transition fact field is missing: " + field);
+            foreach (string field in new[] { "definitionRevision", "beforeStatus", "afterStatus", "transitionDay",
+                "startDayBefore", "startDayAfter", "dueDayBefore", "dueDayAfter", "progressBefore", "progressAfter",
+                "nextAllowedDayBefore", "nextAllowedDayAfter" })
+                if (fact[field]?.Type != JTokenType.Integer)
+                    throw new InvalidOperationException("Ambition transition fact number is missing: " + field);
+        }
+    }
     protected override CharacterNarrativeWorldSaveData CapturePayload() => persistence.Capture();
     protected override CharacterNarrativeAggregateState BuildRestoreCandidate(CharacterNarrativeWorldSaveData payload) => persistence.PrepareRestore(payload);
     protected override void PublishRestoreCandidate(CharacterNarrativeAggregateState candidate) => persistence.PublishRestore(candidate);
@@ -58,6 +124,37 @@ public sealed class SeasonalWorldEventsSaveSection :
         ModularFacilityWorldSaveSection.Id
     };
     protected override SeasonalEventWorldSaveData CapturePayload() => persistence.CaptureSeasonal();
+    protected override void ValidateRawPayload(string payloadJson) => ValidateObservationJson(payloadJson);
+    internal static void ValidateObservationJson(string payloadJson)
+    {
+        var root = JObject.Parse(payloadJson, new JsonLoadSettings
+        { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
+        if (root["activeEvents"] is not JArray events)
+            throw new InvalidOperationException("Seasonal active events must be explicit.");
+        foreach (JToken occurrence in events)
+        foreach (string ownerName in new[] { "seasonalWildlifeArrival", "seasonalDriftCargo" })
+        {
+            if (occurrence is not JObject row || row[ownerName] is not JObject owner
+                || owner["observation"] is not JObject fact || owner["publication"] is not JObject proof)
+                throw new InvalidOperationException("Seasonal observation owner must be explicit: " + ownerName);
+            foreach (string field in new[] { "key", "id", "fingerprint" })
+                if (proof[field]?.Type != JTokenType.String)
+                    throw new InvalidOperationException("Seasonal publication field is missing: " + field);
+            bool wildlife = ownerName == "seasonalWildlifeArrival";
+            foreach (string field in wildlife
+                ? new[] { "occurrenceId", "speciesId", "speciesDisplayName", "habitatId" }
+                : new[] { "occurrenceId", "itemId", "itemDisplayName", "dispositionCommitId" })
+                if (fact[field]?.Type != JTokenType.String)
+                    throw new InvalidOperationException("Seasonal frozen text is missing: " + field);
+            foreach (string field in wildlife ? new[] { "absoluteDay" }
+                : new[] { "absoluteDay", "exactQuantity", "securedQuantity", "expiredQuantity", "positionX", "positionY", "unitMassGrams", "expiredMassGrams" })
+                if (fact[field]?.Type != JTokenType.Integer)
+                    throw new InvalidOperationException("Seasonal frozen number is missing: " + field);
+            if (fact[wildlife ? "wildlifeIds" : "sourceStackIds"] is not JArray ids
+                || ids.Any(id => id.Type != JTokenType.String))
+                throw new InvalidOperationException("Seasonal frozen identities must be explicit strings.");
+        }
+    }
     protected override SeasonalEventAggregateState BuildRestoreCandidate(
         SeasonalEventWorldSaveData payload)
     {
@@ -76,6 +173,13 @@ public sealed class SeasonalWorldEventsSaveSection :
                 wildlife);
         }
         return persistence.PrepareSeasonalRestore(payload);
+    }
+    protected override void ValidateParsedPayload(
+        SeasonalEventWorldSaveData payload)
+    {
+        _ = persistence.PrepareSeasonal(payload)
+            ?? throw new InvalidOperationException(
+                "Seasonal event restore candidate builder returned null.");
     }
     protected override void PublishRestoreCandidate(
         SeasonalEventAggregateState candidate) =>

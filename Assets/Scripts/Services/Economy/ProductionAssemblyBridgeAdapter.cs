@@ -114,7 +114,8 @@ internal static class ProductionFacilityHandleProjection
                 : ProductionFacilityCapacitySubjectAdapter
                     .CaptureWorkstationLaneProfile(facility.BuildingData),
             (facility.BuildingData?.GetAbility<BuildingAutomationAbility>()
-                ?.automaticQualityCap ?? 1f) * 100f);
+                ?.automaticQualityCap ?? 1f) * 100f,
+            facility.BuildingData?.objectName ?? string.Empty);
     }
 }
 
@@ -202,7 +203,8 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge,
                 nameof(runtimeObject));
         return new ProductionWorkerHandle(
             worker,
-            worker.Identity?.PersistentId ?? string.Empty);
+            worker.Identity?.PersistentId ?? string.Empty,
+            worker.Identity?.DisplayName?.Trim() ?? string.Empty);
     }
 
     public bool IsWorkerEligible(

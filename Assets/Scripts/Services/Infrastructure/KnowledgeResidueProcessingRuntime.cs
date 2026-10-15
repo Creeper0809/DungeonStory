@@ -37,17 +37,20 @@ public sealed class KnowledgeResidueExecutionServices
         IWorkforceReplanService workforce,
         IGameEventBus eventBus,
         IGameClock gameClock,
+        IGameCalendar calendar,
         IDungeonDebugRuleQuery debugRules)
     {
         Workforce = workforce ?? throw new ArgumentNullException(nameof(workforce));
         EventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         GameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         DebugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
     }
 
     public IWorkforceReplanService Workforce { get; }
     public IGameEventBus EventBus { get; }
     public IGameClock GameClock { get; }
+    public IGameCalendar Calendar { get; }
     public IDungeonDebugRuleQuery DebugRules { get; }
 }
 
@@ -68,10 +71,12 @@ public sealed class KnowledgeResidueProcessingRuntime :
     private readonly IWorkforceReplanService workforce;
     private readonly IGameEventBus eventBus;
     private readonly IGameClock gameClock;
+    private readonly IGameCalendar calendar;
     private readonly IDungeonDebugRuleQuery debugRules;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private BlueprintResearchOutcomeTransaction gameplayOutcomes;
     private KnowledgeResidueCompletionTransaction completionOutcomes;
+    private double nextPausedCompletionRecovery;
 
     [Inject]
     public void ConstructCompletionOutcomes(KnowledgeResidueCompletionTransaction outcomes) =>
@@ -111,6 +116,7 @@ public sealed class KnowledgeResidueProcessingRuntime :
         workforce = execution.Workforce;
         eventBus = execution.EventBus;
         gameClock = execution.GameClock;
+        calendar = execution.Calendar;
         debugRules = execution.DebugRules;
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
@@ -206,6 +212,18 @@ public sealed class KnowledgeResidueProcessingRuntime :
     public void Tick()
     {
         KnowledgeResidueAggregateState current = CurrentState;
+        if (gameClock.IsPaused && current.HasTasks
+            && current.FirstTask.dispositionPhase == KnowledgeResidueDispositionPhase.RewardsApplied)
+        {
+            double now = Time.realtimeSinceStartupAsDouble;
+            if (now >= nextPausedCompletionRecovery)
+            {
+                nextPausedCompletionRecovery = now + DeliveryCheckInterval;
+                if (!TryFinalizeCommittedTask(current, current.FirstTask, out _, out string failure))
+                    ReportFinalizationPending(failure);
+            }
+            return;
+        }
         if (gameClock.IsPaused
             || !current.HasTasks
             || !current.IsDeliveryCheckDue(gameClock.Time))
@@ -372,14 +390,14 @@ public sealed class KnowledgeResidueProcessingRuntime :
             researcherId = id.Value;
         }
         if (!gameplayOutcomes.TryApplyKnowledgeProgress(aggregateRootStore, added,
-                Mathf.Max(0, Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay)),
+                calendar.Day,
                 GetTaskLabel(task), researcherId, researcher?.Identity.DisplayName,
                 facility.RequirePersistentInstanceId().Value,
                 FacilityShopService.GetBuildingName(facility.BuildingData),
-                equipment == null ? null : new ResearchEquipmentOutcomeEvidence(equipment),
+                equipment == null ? null : new ResearchEquipmentUseSnapshot(equipment),
                 out BlueprintResearchWorkResult progress))
             return progress;
-        if (progress.TotalProgress + .001f < progress.RequiredWork)
+        if (progress.PublicationPending || progress.TotalProgress + .001f < progress.RequiredWork)
             return progress;
 
         // Progress and the exact equipment use are already committed. Re-query the
@@ -414,10 +432,10 @@ public sealed class KnowledgeResidueProcessingRuntime :
         if (task.dispositionPhase ==
             KnowledgeResidueDispositionPhase.AwaitingInput)
         {
-            if (completionOutcomes == null || physicalSinks is not IOutcomeAwarePhysicalFacilityItemSinkGateway joint)
+            if (completionOutcomes == null || physicalSinks is not IJointPhysicalFacilityItemSinkGateway joint)
             { failureReason = "knowledge-joint-completion-unavailable"; return false; }
             var participant = completionOutcomes.Prepare(aggregateRootStore, task, codex, regions,
-                Math.Max(0, (int)(gameClock.Time / GameCalendarRules.SecondsPerDay)),
+                calendar.Day,
                 FacilityShopService.GetBuildingName(ResolveAssignedFacility(task)?.BuildingData));
             if (!joint.TryCommitSinkPending(
                     task.destinationId,
@@ -440,7 +458,7 @@ public sealed class KnowledgeResidueProcessingRuntime :
             }
             catch (Exception exception) when (IsRecoverable(exception))
             { ReportFinalizationPending("knowledge-completion-observer:" + exception.GetType().Name); }
-            return true;
+            return completionOutcomes.TryDeliver(CurrentState.FirstTask, receipt, out failureReason);
         }
 
         if (!physicalSinks.TryGetPending(task.sinkOperationId, out receipt))
@@ -456,9 +474,9 @@ public sealed class KnowledgeResidueProcessingRuntime :
                 + task.sinkOperationId;
             return false;
         }
-        if (completionOutcomes == null || !completionOutcomes.IsCommitted(task, receipt))
-        { failureReason = "knowledge-completion-canonical-proof-missing"; return false; }
-        return true;
+        if (completionOutcomes == null)
+        { failureReason = "knowledge-completion-publication-unavailable"; return false; }
+        return completionOutcomes.TryDeliver(task, receipt, out failureReason);
     }
 
     private bool TryFinalizeCommittedTask(
@@ -468,6 +486,8 @@ public sealed class KnowledgeResidueProcessingRuntime :
         out string failureReason)
     {
         completed = false;
+        if (new BlueprintResearchState(aggregateRootStore).HasPendingPublication)
+        { failureReason = "knowledge-progress-publication-pending"; return false; }
         try
         {
             return TryFinalizeCommittedTaskCore(state, task, out completed, out failureReason);
@@ -492,13 +512,13 @@ public sealed class KnowledgeResidueProcessingRuntime :
             failureReason = "knowledge-residue-committed-task-missing";
             return false;
         }
-        // Old split-commit saves require explicit reconciliation; do not apply
-        // an uncertain legacy reward again or consume a second input.
+        // A pending physical debit must have its applied reward and frozen fact.
+        // Never repair a torn owner by consuming input or granting rewards again.
         if (task.dispositionPhase == KnowledgeResidueDispositionPhase.AwaitingInput
             && physicalSinks.TryGetPending(task.sinkOperationId, out _)
             || task.dispositionPhase != KnowledgeResidueDispositionPhase.AwaitingInput
                 && task.completionOwnerRevision <= 0)
-        { failureReason = "knowledge-legacy-completion-reconciliation-required"; return false; }
+        { failureReason = "knowledge-completion-owner-state-torn"; return false; }
         if (!CanApplyResult(task, out string invalidReason))
         {
             BuildableObject facility = ResolveAssignedFacility(task);
@@ -527,9 +547,9 @@ public sealed class KnowledgeResidueProcessingRuntime :
         state = WritableState;
         task = state.FirstTask;
         if (task.dispositionPhase !=
-            KnowledgeResidueDispositionPhase.OutcomePublished)
+            KnowledgeResidueDispositionPhase.RewardsApplied)
         {
-            failureReason = "knowledge-residue-outcome-not-published";
+            failureReason = "knowledge-residue-rewards-not-applied";
             return false;
         }
         string resultMessage = GetPublishedResultMessage(task);
@@ -537,7 +557,7 @@ public sealed class KnowledgeResidueProcessingRuntime :
         {
             return false;
         }
-        if (physicalSinks is not IOutcomeAwarePhysicalFacilityItemSinkGateway cleanupGateway)
+        if (physicalSinks is not IJointPhysicalFacilityItemSinkGateway cleanupGateway)
         { failureReason = "knowledge-joint-cleanup-unavailable"; return false; }
         if (!cleanupGateway.Acknowledge(
                 receipt.CommitId,
@@ -598,7 +618,7 @@ public sealed class KnowledgeResidueProcessingRuntime :
             KnowledgeResidueDispositionPhase.InputCommitted;
     }
 
-    private static bool ReceiptMatches(
+    internal static bool ReceiptMatches(
         KnowledgeResidueTaskSaveData task,
         PhysicalItemBatchDispositionReceipt receipt) =>
         task != null
@@ -702,10 +722,12 @@ public sealed class KnowledgeResidueProcessingRuntime :
                     $"Knowledge residue task '{saved.taskId}' has non-canonical destination id.");
             }
             ValidatePhysicalContract(saved);
-            if (saved.completionOwnerRevision < 0
-                || saved.completionOwnerRevision > 0
-                    && saved.dispositionPhase != KnowledgeResidueDispositionPhase.OutcomePublished)
-                throw new InvalidOperationException("Knowledge completion phase/identity is invalid: " + saved.taskId);
+            if (saved.dispositionPhase == KnowledgeResidueDispositionPhase.RewardsApplied)
+                KnowledgeResidueCompletionTransaction.RestoreFact(saved);
+            else if (saved.dispositionPhase != KnowledgeResidueDispositionPhase.AwaitingInput
+                || saved.completionOwnerRevision != 0 || saved.completionFact?.IsEmpty != true
+                || saved.completionPublicationKey != string.Empty)
+                throw new InvalidOperationException("Knowledge completion phase/fact is invalid: " + saved.taskId);
             if (saved.use == KnowledgeResidueUse.RegionReconnaissance)
             {
                 RequireCanonicalId(saved.regionId, "knowledge region");
@@ -818,10 +840,10 @@ public sealed class KnowledgeResidueProcessingRuntime :
         }
         else if (!string.IsNullOrEmpty(task.codexCluePayload)
                  || task.dispositionPhase !=
-                     KnowledgeResidueDispositionPhase.OutcomePublished
+                     KnowledgeResidueDispositionPhase.RewardsApplied
                     && task.appliedReconnaissanceAmount != 0f
                  || task.dispositionPhase ==
-                     KnowledgeResidueDispositionPhase.OutcomePublished
+                     KnowledgeResidueDispositionPhase.RewardsApplied
                     && task.appliedReconnaissanceAmount <= 0f)
         {
             throw new InvalidOperationException(
@@ -1105,6 +1127,8 @@ public sealed class KnowledgeResidueProcessingRuntime :
             sinkCommitId = source?.sinkCommitId ?? string.Empty,
             codexCluePayload = source?.codexCluePayload ?? string.Empty,
             completionOwnerRevision = source?.completionOwnerRevision ?? 0,
+            completionPublicationKey = source?.completionPublicationKey ?? string.Empty,
+            completionFact = source?.completionFact?.Clone(),
             appliedReconnaissanceAmount =
                 source?.appliedReconnaissanceAmount ?? 0f
         };

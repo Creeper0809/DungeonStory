@@ -25,6 +25,17 @@ public sealed class GameplayOutcomeTombstoneSnapshot
     public long commitRevision;
     public int localResultIndex;
     public long ownerRevision;
+    // Version zero is an old tombstone with unknown occurrence/causation time.
+    public int temporalMetadataVersion;
+    public int absoluteDay;
+    public string parentRunId = string.Empty;
+    public long parentSequence;
+    public int deliveryMetadataVersion;
+    public string deliveryClockId = string.Empty;
+    public long recordedAbsoluteHour;
+    public long publishedRevision;
+    public int deliveryFaultCount;
+    public string deliveryDelayReason = string.Empty;
     public NarrativeMemoryTier terminalTier;
     public string canonicalHash = string.Empty;
     public int influenceUseCount;
@@ -155,6 +166,7 @@ internal sealed class GameplayOutcomeLedgerRuntimeState
         CompactedByKey = new Dictionary<CompactedMemoryKey, int>(addressableCapacity / 4 + 4);
         Tombstones = new List<GameplayOutcomeTombstoneSnapshot>(addressableCapacity);
         TombstoneByResultKey = new Dictionary<GameplayResultKey, int>(addressableCapacity);
+        TombstoneByOutcomeId = new Dictionary<GameplayOutcomeId, int>(addressableCapacity);
         ConsolidationJobs = new List<GameplayOutcomeConsolidationJob>(16);
         // A sorted flat buffer avoids one tree-node allocation for every
         // acknowledged outcome. Its bounded hot capacity is reserved with the
@@ -179,6 +191,7 @@ internal sealed class GameplayOutcomeLedgerRuntimeState
     public Dictionary<CompactedMemoryKey, int> CompactedByKey { get; set; }
     public List<GameplayOutcomeTombstoneSnapshot> Tombstones { get; }
     public Dictionary<GameplayResultKey, int> TombstoneByResultKey { get; }
+    public Dictionary<GameplayOutcomeId, int> TombstoneByOutcomeId { get; }
     public List<GameplayOutcomeConsolidationJob> ConsolidationJobs { get; }
     public List<GameplayOutcomeDueEntry> DueEntries { get; }
     public Dictionary<int, GameplayOutcomeDueEntry> DueByPageIndex { get; }
@@ -193,6 +206,9 @@ internal sealed class GameplayOutcomeLedgerRuntimeState
     public int ForgottenCount;
     public int KnownResultKeyHighWater;
     public long CompactedRevision;
+    // Derived from published immutable occurrences and observed publication times.
+    // Not persisted; detached restore reconstructs it, retirement cannot lower it.
+    public long QueryTimeUpperBoundHour = -1L;
     public long CapacityDeferredCount;
     public int ConsecutiveCapacityDeferredCount;
     public int CapacityDeferredStreakHighWater;

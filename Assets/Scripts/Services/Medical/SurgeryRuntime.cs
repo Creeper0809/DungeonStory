@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -38,13 +39,15 @@ public sealed class SurgeryRuntime :
     private readonly ISurgicalPatientTransportRuntime patientTransport;
     private readonly IWorkforceReplanService workforce;
     private readonly IGameClock clock;
+    private readonly IGameCalendar calendar;
     private readonly IRandomStream outcomeRandom;
     private readonly IProcessFluidUseRuntime processFluids;
     private readonly ISurgeryEnvironmentRiskEvaluator
         environmentRiskEvaluator;
     private readonly ExtremeTraitRuntime extremeTraits;
     private readonly IRunSeedProvider runSeedProvider;
-    private readonly CharacterIdentityEventPublisher identityEvents;
+    private readonly IDomainFactPublisher facts;
+    private readonly IDomainFactRecoveryPublisher factRecovery;
     private readonly ICharacterSpeciesCatalog speciesCatalog;
     private readonly ICharacterSpeciesQuery speciesRuntime;
     private readonly ICharacterPerformanceQuery performance;
@@ -69,7 +72,9 @@ public sealed class SurgeryRuntime :
         SurgeryWorldServices world,
         SurgeryResourceServices resources,
         SurgeryExecutionServices execution,
-        SurgeryAggregateStateStore stateStore)
+        SurgeryAggregateStateStore stateStore,
+        IDomainFactPublisher facts,
+        IDomainFactRecoveryPublisher factRecovery)
     {
         SurgeryContentServices requiredContent = content ?? throw new ArgumentNullException(nameof(content));
         SurgeryWorldServices requiredWorld = world ?? throw new ArgumentNullException(nameof(world));
@@ -108,11 +113,13 @@ public sealed class SurgeryRuntime :
         workforce = requiredResources.Workforce;
         processFluids = requiredResources.ProcessFluids;
         clock = requiredExecution.Clock;
+        calendar = requiredExecution.Calendar;
         outcomeRandom = requiredExecution.OutcomeRandom;
         environmentRiskEvaluator = requiredExecution.EnvironmentRisk;
         extremeTraits = requiredExecution.ExtremeTraits;
         runSeedProvider = requiredExecution.RunSeedProvider;
-        identityEvents = requiredExecution.IdentityEvents;
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.factRecovery = factRecovery ?? throw new ArgumentNullException(nameof(factRecovery));
         planning = new SurgeryOrderPlanningService(
             requiredContent,
             requiredWorld,
@@ -153,6 +160,22 @@ public sealed class SurgeryRuntime :
         }
 
         TryActivateQueuedOrders();
+
+        // Delivery recovery observes the frozen fact, never today's anatomy or RNG.
+        foreach (SurgeryOrder order in orders.Where(candidate => candidate != null
+                     && candidate.resolutionFactAccepted && !candidate.resolutionFactDelivered).ToArray())
+            TryPublishSurgeryResolvedFact(order, default, out _);
+
+        // A closed clinical order can still own a pending identity command.
+        // Do not re-enter surgery effects, input consumption, RNG, or AI work.
+        foreach (SurgeryOrder order in orders.Where(candidate => candidate != null
+                     && candidate.resolutionFactAccepted
+                     && !candidate.completionFactDelivered
+                     && candidate.IsClinicalTerminal)
+                     .ToArray())
+        {
+            PublishSurgeryWorkCompleted(order);
+        }
 
         foreach (SurgeryOrder order in orders
                      .Where(candidate => candidate != null && candidate.IsActive)
@@ -582,8 +605,22 @@ public sealed class SurgeryRuntime :
         BuildableObject facility,
         CharacterActor doctor,
         out SurgeryOrder order,
+        out DomainFailure failure) => TryReserveWork(
+        facility,
+        doctor,
+        CharacterCommandOrigin.Autonomous,
+        out order,
+        out failure);
+
+    public bool TryReserveWork(
+        BuildableObject facility,
+        CharacterActor doctor,
+        CharacterCommandOrigin origin,
+        out SurgeryOrder order,
         out DomainFailure failure)
     {
+        if (!Enum.IsDefined(typeof(CharacterCommandOrigin), origin))
+            throw new ArgumentOutOfRangeException(nameof(origin));
         failure = DomainFailure.None;
         if (doctor == null || doctor.IsDead || !doctor.CanRunAi)
         {
@@ -673,6 +710,7 @@ public sealed class SurgeryRuntime :
         }
 
         order.doctorId = doctor.Identity?.PersistentId ?? string.Empty;
+        order.completionOrigin = origin;
         order.risk = riskEvaluator.Evaluate(
             doctor,
             order.subject,
@@ -1494,6 +1532,10 @@ public sealed class SurgeryRuntime :
 
     public DungeonSurgerySaveData Capture()
     {
+        // Item disposition can finish after this frame's freshness Tick. Sync
+        // through its owner before saving so a consumed corpse is not retained
+        // as an incoming-world reference. This never advances freshness time.
+        corpseFreshness.Capture();
         return persistence.Capture();
     }
 
@@ -1736,8 +1778,15 @@ public sealed class SurgeryRuntime :
         CharacterActor doctor = SurgicalSubjectResolver.FindCharacter(
             characters,
             order.doctorId);
+        DomainFactLease outcomeReservation = default;
         if (!order.resultRolled)
         {
+            if (!DomainFactValueSyntax.IsIdentity(order.doctorId)
+                || calendar.Day < 0)
+            {
+                throw new InvalidOperationException(
+                    "Surgery outcome requires its actual completing doctor and day before freezing.");
+            }
             IReadOnlyList<SurgicalProcedureEffect> pendingEffects =
                 procedure.Effects ?? Array.Empty<SurgicalProcedureEffect>();
             foreach (SurgicalProcedureEffect pendingEffect in pendingEffects)
@@ -1763,6 +1812,23 @@ public sealed class SurgeryRuntime :
                 }
             }
 
+            // The required observer must reserve before RNG or clinical mutation.
+            if (!TryReserveSurgeryOutcome(
+                    order, procedure, out outcomeReservation, out failure))
+            {
+                order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
+                return false;
+            }
+
+            bool priorSucceeded = order.resultSucceeded;
+            SurgeryFailureSeverity priorSeverity = order.failureSeverity;
+            string priorOutcomeId = order.resultOutcomeId;
+            string priorCompletionDoctor = order.completionDoctorId;
+            int priorCompletionDay = order.completionAbsoluteDay;
+            try
+            {
+            order.completionDoctorId = order.doctorId;
+            order.completionAbsoluteDay = calendar.Day;
             bool critical = procedure.Urgency ==
                     MedicalProcedureUrgency.Emergency
                 || order.risk.deathChance >= .15f
@@ -1808,7 +1874,35 @@ public sealed class SurgeryRuntime :
                     ? "severe-complication"
                     : order.resultSucceeded ? "success" : "failure";
             order.resultRolled = true;
+            }
+            catch
+            {
+                order.resultSucceeded = priorSucceeded;
+                order.failureSeverity = priorSeverity;
+                order.resultOutcomeId = priorOutcomeId;
+                order.completionDoctorId = priorCompletionDoctor;
+                order.completionAbsoluteDay = priorCompletionDay;
+                facts.Cancel(outcomeReservation);
+                order.resolutionPublicationKey = string.Empty;
+                throw;
+            }
         }
+
+        if (!outcomeReservation.IsValid
+            && !TryReserveSurgeryOutcome(
+                order, procedure,
+                out outcomeReservation, out failure))
+        {
+            order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
+            return false;
+        }
+        try
+        {
+            if (!order.outcomeAnatomyBeforeCaptured)
+            {
+                order.outcomeAnatomyBefore = CaptureSurgeryAnatomy(order);
+                order.outcomeAnatomyBeforeCaptured = true;
+            }
 
         if (order.resultSucceeded)
         {
@@ -1852,6 +1946,12 @@ public sealed class SurgeryRuntime :
                 order.resolvedEffectCount = index + 1;
             }
 
+            if (!TryCommitSurgeryOutcome(
+                    order, procedure, outcomeReservation, out failure))
+            {
+                order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
+                return false;
+            }
             order.failureSeverity = SurgeryFailureSeverity.None;
             order.incisionOpen = false;
             order.state = SurgeryOrderState.Recovering;
@@ -1866,11 +1966,7 @@ public sealed class SurgeryRuntime :
             order.recoveryUntil = clock.Time
                 + RecoverySeconds * Mathf.Max(0f, recoveryDurationMultiplier);
             order.statusData.Set(SurgeryStatusCode.RecoveryObservation);
-            PublishSurgeryWorkCompleted(
-                doctor,
-                order,
-                procedure,
-                order.resultOutcomeId);
+            PublishSurgeryWorkCompleted(order);
             return true;
         }
 
@@ -1895,6 +1991,12 @@ public sealed class SurgeryRuntime :
             }
             order.outcomeConsequencesApplied = true;
         }
+        if (!TryCommitSurgeryOutcome(
+                order, procedure, outcomeReservation, out failure))
+        {
+            order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
+            return false;
+        }
         order.incisionOpen = false;
         order.statusData.Set(order.failureSeverity switch
         {
@@ -1909,30 +2011,194 @@ public sealed class SurgeryRuntime :
         failure = new DomainFailure(
             FailureCode.SurgeryOutcomeFailed,
             order.failureSeverity.ToString());
-        PublishSurgeryWorkCompleted(
-            doctor,
-            order,
-            procedure,
-            order.resultOutcomeId);
+        PublishSurgeryWorkCompleted(order);
+        return false;
+        }
+        finally
+        {
+            if (outcomeReservation.IsValid)
+                facts.Cancel(outcomeReservation);
+        }
+    }
+
+    private bool PublishSurgeryWorkCompleted(
+        SurgeryOrder order)
+    {
+        if (order == null)
+            throw new ArgumentNullException(nameof(order));
+        return SurgeryWorkCompletionPublication.TryDeliver(facts, factRecovery, order);
+    }
+    private bool TryReserveSurgeryOutcome(
+        SurgeryOrder order, SurgicalProcedureSO procedure,
+        out DomainFactLease reservation, out DomainFailure failure)
+    {
+        reservation = default;
+        failure = DomainFailure.None;
+        if (!order.resolvedFact.IsEmpty) return true; // Exact recovery, never re-reserve current state.
+        var proposal = new SurgeryResolvedFact(CaptureResolvedFact(order, procedure, true), proposal: true);
+        if (!facts.TryReserve(proposal, out reservation, out string detail))
+        {
+            failure = new DomainFailure(FailureCode.SurgeryEffectFailed, order.orderId, detail);
+            return false;
+        }
+        string key = reservation.PublicationKey;
+        if (string.IsNullOrWhiteSpace(key)
+            || !string.IsNullOrEmpty(order.resolutionPublicationKey) && order.resolutionPublicationKey != key)
+        {
+            facts.Cancel(reservation);
+            throw new InvalidOperationException("Surgery observer reservation changed its publication identity.");
+        }
+        order.resolutionPublicationKey = key;
+        return true;
+    }
+
+    private bool TryCommitSurgeryOutcome(
+        SurgeryOrder order, SurgicalProcedureSO procedure,
+        in DomainFactLease reservation, out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (order.resolutionFactAccepted) return true;
+        if (order.resolvedFact.IsEmpty)
+        {
+            if (!reservation.IsValid)
+            {
+                failure = new DomainFailure(FailureCode.SurgeryEffectFailed, order.orderId,
+                    "surgery-fact-reservation-missing");
+                return false;
+            }
+            var frozen = CaptureResolvedFact(order, procedure, false);
+            frozen.Validate();
+            // Persist the exact observation before crossing the publication boundary.
+            order.resolvedFact = frozen;
+        }
+        return TryPublishSurgeryResolvedFact(order, reservation, out failure);
+    }
+
+    private bool TryPublishSurgeryResolvedFact(
+        SurgeryOrder order, in DomainFactLease reservation, out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        var fact = new SurgeryResolvedFact(order.resolvedFact);
+        DomainFactDelivery delivery;
+        if (reservation.IsValid)
+            delivery = facts.Publish(reservation, fact);
+        else
+        {
+            var results = new DomainFactDelivery[1];
+            factRecovery.ReplayBatch(
+                new[] { DomainFactReplay.Create(order.resolutionPublicationKey, fact) },
+                results, out _);
+            delivery = results[0];
+        }
+        bool accepted = delivery.Phase is DomainFactDeliveryPhase.Delivered
+            or DomainFactDeliveryPhase.AcceptedPendingDelivery;
+        if (accepted)
+        {
+            if (delivery.OperationKey != order.resolutionPublicationKey
+                || string.IsNullOrWhiteSpace(delivery.PublicationId)
+                || string.IsNullOrWhiteSpace(delivery.Fingerprint)
+                || !string.IsNullOrEmpty(order.resolutionPublicationId)
+                    && order.resolutionPublicationId != delivery.PublicationId
+                || !string.IsNullOrEmpty(order.resolutionFingerprint)
+                    && order.resolutionFingerprint != delivery.Fingerprint)
+                throw new InvalidOperationException("Surgery observer returned inconsistent publication proof.");
+            order.resolutionPublicationId = delivery.PublicationId;
+            order.resolutionFingerprint = delivery.Fingerprint;
+            order.resolutionFactAccepted = true;
+            order.resolutionFactDelivered = delivery.Completed;
+            return true;
+        }
+        failure = new DomainFailure(FailureCode.SurgeryEffectFailed, order.orderId, delivery.Detail);
         return false;
     }
 
-    private void PublishSurgeryWorkCompleted(
-        CharacterActor doctor,
-        SurgeryOrder order,
-        SurgicalProcedureSO procedure,
-        string outcomeId)
+    private SurgeryResolvedFactData CaptureResolvedFact(
+        SurgeryOrder order, SurgicalProcedureSO procedure, bool proposal) => new()
     {
-        if (identityEvents == null
-            || doctor == null
-            || !CharacterPersistentIdentity.TryGet(doctor, out CharacterId id))
-            return;
-        identityEvents.Publish(new WorkCompletedIdentityEvent(
-            id,
-            $"surgery:{procedure?.ProcedureId ?? order.procedureId}",
-            outcomeId,
-            CharacterCommandOrigin.Autonomous,
-            Mathf.Max(0, Mathf.FloorToInt(clock.Time / GameCalendarRules.SecondsPerDay))));
+        orderId = order.orderId,
+        subjectId = order.subject.subjectId,
+        subjectName = string.IsNullOrWhiteSpace(order.subject.displayName)
+            ? order.subject.subjectId : order.subject.displayName,
+        subjectKind = order.subject.kind,
+        procedureId = order.procedureId,
+        procedureKind = procedure.Kind,
+        doctorId = order.resultRolled ? order.completionDoctorId : order.doctorId,
+        facilityId = order.facilityId,
+        targetNodeId = order.targetNodeId,
+        origin = order.completionOrigin,
+        absoluteDay = order.resultRolled ? order.completionAbsoluteDay : calendar.Day,
+        completedWork = order.completedWork,
+        resultId = order.resultOutcomeId,
+        severity = order.failureSeverity,
+        succeeded = order.resultSucceeded,
+        materialsConsumed = order.materialsConsumed,
+        processFluidConsumed = order.processFluidConsumed,
+        anesthesiaConsumed = order.anesthesiaConsumed,
+        materialSinkInputMassGrams = order.materialSinkInputMassGrams,
+        materials = SurgeryResolvedFactData.CopyMaterials(order.materials),
+        materialSinkOperationId = order.materialSinkOperationId,
+        materialSinkCommitId = order.materialSinkCommitId,
+        materialTerminalParentOperationId = order.materialTerminalParentOperationId,
+        materialTerminalCommitId = order.materialTerminalCommitId,
+        replacementOperationId = order.replacementOperationId,
+        replacementBatchCommitId = order.replacementBatchCommitId,
+        replacementOutputStackId = order.replacementOutputStackId,
+        replacementOutputItemInstanceId = order.replacementOutputItemInstanceId,
+        before = order.outcomeAnatomyBefore.Clone(),
+        after = proposal ? new SurgeryAnatomyFactData() : CaptureSurgeryAnatomy(order)
+    };
+
+    private SurgeryAnatomyFactData CaptureSurgeryAnatomy(SurgeryOrder order)
+    {
+        AnatomyHealthSnapshot snapshot;
+        bool alive;
+        CharacterActor characterPatient = null;
+        switch (order.subject?.kind)
+        {
+            case SurgicalSubjectKind.Character:
+                characterPatient = SurgicalSubjectResolver.FindCharacter(characters, order.subject.subjectId);
+                if (characterPatient == null)
+                    return new() { availability = SurgeryAnatomyAvailability.CharacterUnavailable };
+                snapshot = anatomy.GetAnatomySnapshot(characterPatient);
+                alive = !characterPatient.IsDead;
+                break;
+            case SurgicalSubjectKind.Wildlife:
+                WildlifeActor animal = SurgicalSubjectResolver.FindWildlife(wildlife, order.subject.subjectId);
+                if (animal == null)
+                    return new() { availability = SurgeryAnatomyAvailability.WildlifeUnavailable };
+                snapshot = wildlifeAnatomy.GetAnatomySnapshot(animal);
+                alive = animal.IsAlive;
+                break;
+            default:
+                return new() { availability = SurgeryAnatomyAvailability.NoLivingAnatomy };
+        }
+        AnatomyNodeHealthState target = snapshot.Nodes.FirstOrDefault(
+            node => node != null && string.Equals(node.nodeId, order.targetNodeId, StringComparison.Ordinal));
+        if (target == null)
+            return new()
+            {
+                availability = SurgeryAnatomyAvailability.NodeUnavailable,
+                profileId = snapshot.ProfileId, nodeId = order.targetNodeId
+            };
+        var observed = new SurgeryAnatomyFactData
+        {
+            availability = SurgeryAnatomyAvailability.Available, profileId = snapshot.ProfileId,
+            nodeId = target.nodeId, alive = alive, currentHealth = target.currentHealth,
+            maxHealth = target.maxHealth, bleeding = target.bleedingPerSecond, infection = target.infection,
+            missing = target.missing, installedPartId = target.installedPartId,
+            installedPartKind = target.installedPartKind, rejection = target.rejectionBurden,
+            mutation = target.mutationBurden
+        };
+        if (characterPatient != null
+            && CharacterPersistentIdentity.TryGet(characterPatient, out CharacterId patientId)
+            && speciesRuntime.TryGet(patientId, out CharacterSpeciesRuntimeState speciesState)
+            && speciesState.SpeciesId.Equals(new CharacterSpeciesId("Golem")))
+        {
+            observed.hasGolemState = true;
+            observed.charge = speciesState.Charge;
+            observed.integrity = speciesState.Integrity;
+        }
+        return observed;
     }
 
     private bool TryApplyFailureConsequences(
@@ -2303,5 +2569,86 @@ public sealed class SurgeryRuntime :
                 facilityId,
                 StringComparison.Ordinal));
         return facility != null;
+    }
+}
+// The clinical owner retains only opaque delivery proof. Identity effects and optional
+// notification attempts belong to the explicitly connected observer and its cursor.
+public static class SurgeryWorkCompletionPublication
+{
+    public static bool TryDeliver(
+        IDomainFactPublisher facts, IDomainFactRecoveryPublisher recovery, SurgeryOrder order)
+    {
+        if (facts == null) throw new ArgumentNullException(nameof(facts));
+        if (recovery == null) throw new ArgumentNullException(nameof(recovery));
+        if (order == null) throw new ArgumentNullException(nameof(order));
+        SurgerySaveValidation.ValidateObservationState(order);
+        bool successfulTerminal = order.state is SurgeryOrderState.Recovering or SurgeryOrderState.Completed
+            || order.state == SurgeryOrderState.TerminalDraining
+                && order.materialTerminalTargetState == SurgeryOrderState.Completed;
+        if (!order.resolutionFactAccepted || !order.IsClinicalTerminal
+            || successfulTerminal != order.resultSucceeded)
+            throw new InvalidOperationException("Surgery completed labor requires its accepted clinical terminal.");
+        if (order.completionFactDelivered) return true;
+
+        var fact = new SurgeryWorkCompletedFact(order.resolvedFact);
+        DomainFactLease lease = default;
+        try
+        {
+            DomainFactDelivery delivery;
+            if (order.completionPublicationKey.Length == 0)
+            {
+                if (!facts.TryReserve(fact, out lease, out string reserveFailure))
+                {
+                    order.statusData.Set(SurgeryStatusCode.ProcedurePaused,
+                        "completion-observer-reserve:" + reserveFailure);
+                    return false;
+                }
+                if (string.IsNullOrWhiteSpace(lease.PublicationKey))
+                    throw new InvalidOperationException("Surgery completion observer has no publication identity.");
+                order.completionPublicationKey = lease.PublicationKey;
+                delivery = facts.Publish(lease, fact);
+            }
+            else
+            {
+                var results = new DomainFactDelivery[1];
+                recovery.ReplayBatch(new[] { DomainFactReplay.Create(order.completionPublicationKey, fact) },
+                    results, out _);
+                delivery = results[0];
+            }
+            if (!delivery.Completed)
+            {
+                order.statusData.Set(SurgeryStatusCode.ProcedurePaused,
+                    "completion-observation-incomplete:" + delivery.Phase + ":" + delivery.Detail);
+                return false;
+            }
+            if (delivery.OperationKey != order.completionPublicationKey
+                || string.IsNullOrWhiteSpace(delivery.PublicationId)
+                || string.IsNullOrWhiteSpace(delivery.Fingerprint))
+                throw new InvalidOperationException("Surgery completion observer returned inconsistent proof.");
+            order.completionPublicationId = delivery.PublicationId;
+            order.completionFingerprint = delivery.Fingerprint;
+            order.completionFactDelivered = true;
+            if (order.statusData.code == SurgeryStatusCode.ProcedurePaused
+                && (order.statusData.primaryId.StartsWith("completion-observer-reserve:", StringComparison.Ordinal)
+                    || order.statusData.primaryId.StartsWith("completion-observation-incomplete:", StringComparison.Ordinal)))
+            {
+                // Clear only this observation's diagnostic after recovery; never
+                // turn a failed clinical result into a successful status.
+                order.statusData.Set(order.resultSucceeded
+                    ? order.state == SurgeryOrderState.Recovering
+                        ? SurgeryStatusCode.RecoveryObservation : SurgeryStatusCode.RecoveryCompleted
+                    : order.failureSeverity switch
+                    {
+                        SurgeryFailureSeverity.Minor => SurgeryStatusCode.CompletedWithMinorFailure,
+                        SurgeryFailureSeverity.Fatal => SurgeryStatusCode.FailedFatal,
+                        _ => SurgeryStatusCode.CompletedWithMajorFailure
+                    });
+            }
+            return true;
+        }
+        finally
+        {
+            if (lease.IsValid) facts.Cancel(lease);
+        }
     }
 }

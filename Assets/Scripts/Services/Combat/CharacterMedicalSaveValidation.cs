@@ -6,6 +6,7 @@ using System.Linq;
 public static class CharacterMedicalSaveValidation
 {
     internal const int MaximumOrders = 512;
+    internal const int MaximumPendingProcedureFacts = 512;
 
     public static void Validate(
         DungeonCharacterMedicalSaveData payload,
@@ -46,6 +47,7 @@ public static class CharacterMedicalSaveValidation
                 $"Character medical payload exceeds {MaximumOrders} orders.");
         }
 
+        ValidatePendingProcedureFacts(payload, report);
         HashSet<string> orderIds = new(StringComparer.Ordinal);
         HashSet<string> activePatients = new(StringComparer.Ordinal);
         int highestSequence = 0;
@@ -81,6 +83,15 @@ public static class CharacterMedicalSaveValidation
                 || order.treatmentSourceStackIds == null
                 || order.treatmentPhysicalCommitId == null
                 || order.treatmentSupplyOperationSequence <= 0
+                || order.nextTerminalOutcomeSequence <= 0
+                || order.stabilizationLaborSequence < 0
+                || order.treatmentLaborSequence < 0
+                || order.nextLaborCheckpointSequence < 0
+                || !float.IsFinite(
+                    order.currentReservationStabilizationWork)
+                || order.currentReservationStabilizationWork < 0f
+                || !float.IsFinite(order.currentReservationTreatmentWork)
+                || order.currentReservationTreatmentWork < 0f
                 || !Enum.IsDefined(
                     typeof(CharacterMedicalSupplyCommitPhase),
                     order.treatmentSupplyCommitPhase))
@@ -307,6 +318,35 @@ public static class CharacterMedicalSaveValidation
         }
     }
 
+    internal static void ValidatePendingProcedureFacts(DungeonCharacterMedicalSaveData payload,
+        DungeonGameRestoreReport report)
+    {
+        if (payload.pendingProcedureFacts == null || payload.pendingProcedureFacts.Count > MaximumPendingProcedureFacts)
+        { report.AddError("medical-pending-procedure-list-invalid"); return; }
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        var identities = new HashSet<(string, int)>();
+        foreach (var pending in payload.pendingProcedureFacts)
+        {
+            try
+            {
+                if (pending == null || string.IsNullOrWhiteSpace(pending.publicationKey)
+                    || !keys.Add(pending.publicationKey))
+                    throw new ArgumentException("medical-pending-publication-key-invalid");
+                var fact = new CharacterMedicalProcedureFact(pending.fact).Snapshot();
+                if (!identities.Add((fact.orderId, fact.sequence))
+                    || !TryParseOrderId(fact.orderId, out int ordinal) || ordinal > payload.orderSequence)
+                    throw new ArgumentException("medical-pending-procedure-identity-invalid");
+                foreach (var order in payload.orders)
+                    if (order != null && order.orderId == fact.orderId
+                        && (order.patientId != fact.patientId || order.nextTerminalOutcomeSequence <= fact.sequence))
+                        throw new ArgumentException("medical-pending-procedure-owner-conflict");
+                // Completed orders may be retired; subsequent injuries/treatment may
+                // change the live body. Neither invalidates an immutable past fact.
+            }
+            catch (ArgumentException exception) { report.AddError(exception.Message); }
+        }
+    }
+
     private static bool IsCanonicalRequired(string value) =>
         !string.IsNullOrWhiteSpace(value)
         && string.Equals(value, value.Trim(), StringComparison.Ordinal);
@@ -330,10 +370,12 @@ public static class CharacterMedicalSaveValidation
                 CharacterMedicalOrderPersistence.Clone(order));
         }
 
+        foreach (var pending in payload.pendingProcedureFacts)
+            restored.PendingProcedureFacts.Add(pending.Clone());
         return restored;
     }
 
-    private static bool TryParseOrderId(
+    internal static bool TryParseOrderId(
         string orderId,
         out int sequence)
     {

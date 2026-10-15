@@ -246,7 +246,8 @@ public sealed class AbilityUseSubstance : MonoBehaviour
         }
         else
         {
-            actor.AddLog($"{request.DisplayName}을 복용했다.");
+            actor.PublishDomainEvent(new SubstanceUseCompletedEvent(
+                actor, consumeOperation, request.ItemDefinitionId, physicalStackId, request.DisplayName));
         }
 
         yield return null;

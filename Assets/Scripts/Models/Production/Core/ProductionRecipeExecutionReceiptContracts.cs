@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 
 /// <summary>
 /// An explicit diagnostics correlation established before a generic recipe
@@ -80,7 +81,8 @@ public sealed class ProductionDeclaredLossCycleReceipt
         string recipeId,
         BuildingInstanceId facilityId,
         string workerPersistentId,
-        ProductionPreparedOutputBatchSaveData completedBatch)
+        ProductionPreparedOutputBatchSaveData completedBatch,
+        DomainFactDelivery parentPublication = default)
     {
         if (!billId.IsValid)
             throw new ArgumentException("A valid production bill is required.", nameof(billId));
@@ -117,6 +119,7 @@ public sealed class ProductionDeclaredLossCycleReceipt
             nameof(completedBatch));
         DeclaredLossMassGrams = completedBatch.totalDeclaredLossMassGrams;
         SourceOperationId = "production-declared-loss:" + BatchCommitId;
+        ParentPublication = parentPublication;
     }
 
     public ProductionBillId BillId { get; }
@@ -128,6 +131,7 @@ public sealed class ProductionDeclaredLossCycleReceipt
     public string OutcomeFingerprint { get; }
     public long DeclaredLossMassGrams { get; }
     public string SourceOperationId { get; }
+    public DomainFactDelivery ParentPublication { get; }
 
     private static string RequireCanonical(string value, string parameter)
     {
@@ -647,6 +651,7 @@ public interface IProductionRecipeExecutionReceiptAuthority :
         BuildingInstanceId facilityId,
         string workerPersistentId,
         IReadOnlyList<ProductionResolvedOutputSaveData> completedOutputs,
+        string facilityDisplayName, string workerDisplayName, int absoluteDay,
         out string failureReason);
 
     bool TryPublishCompleted(
@@ -802,6 +807,7 @@ public sealed class EmptyProductionRecipeExecutionReceiptAuthority :
         BuildingInstanceId facilityId,
         string workerPersistentId,
         IReadOnlyList<ProductionResolvedOutputSaveData> completedOutputs,
+        string facilityDisplayName, string workerDisplayName, int absoluteDay,
         out string failureReason)
     {
         failureReason = "production-gameplay-outcome-committer-missing";

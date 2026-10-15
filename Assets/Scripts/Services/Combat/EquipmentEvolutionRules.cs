@@ -575,8 +575,15 @@ public static class EquipmentEvolutionRules
             .Where(value => value != null)
             .Select(value => value.Clone())
             .OrderBy(value => value.publicFactId, StringComparer.Ordinal).ToArray();
+        sourceEvidence = sourceEvidence.Where(value =>
+                !exactBindings.Any(binding =>
+                    GameplayOutcomeEvidenceFormulaProjection.HasCommonOrigin(
+                        binding, value.originalEvent)))
+            .ToArray();
         if (sourceEvidence.Length == 0 && exactBindings.Length == 0)
             throw new InvalidOperationException("Equipment formula generation requires original evidence.");
+        EquipmentEvolutionFormulaEvidenceRecord[] presentationEvidence =
+            SelectPresentationEvidenceWindow(sourceEvidence, exactBindings);
         NarrativeFormulaEvidence[] evidence = sourceEvidence.Select(value =>
             new NarrativeFormulaEvidence(
                 value.evidenceId,
@@ -672,7 +679,8 @@ public static class EquipmentEvolutionRules
                 policy.FormulaVersion, catalogSha256,
                 string.Join(",", offers.Select(value =>
                     value.moduleId + ":" + (int)value.polarity)),
-                string.Join(",", evidence.Select(value => value.EvidenceId))));
+                string.Join(",", presentationEvidence.Select(value => value.evidenceId)
+                    .Concat(exactBindings.Select(value => value.publicFactId)))));
             string selectionId = "presentation:equipment:" + selectionHash;
         return new EvolutionNode
         {
@@ -688,7 +696,8 @@ public static class EquipmentEvolutionRules
                 formulaVersion = policy.FormulaVersion,
                 formulaCatalogSha256 = catalogSha256,
                 formulaBudget = budget,
-                evidenceIds = evidence.Select(value => value.EvidenceId)
+                evidenceIds = presentationEvidence.Select(value => value.evidenceId)
+                    .Concat(exactBindings.Select(value => value.publicFactId))
                     .OrderBy(value => value, StringComparer.Ordinal).ToList(),
                 gameplayOutcomeEvidence = exactBindings
                     .Select(value => value.Clone()).ToList(),
@@ -796,6 +805,63 @@ public static class EquipmentEvolutionRules
         ValidateFormulaNode(node, catalog);
         return node;
     }
+
+    /// <summary>
+    /// Keeps the complete formula ledger authoritative for strength while bounding the
+    /// immutable public evidence window used for module narration and selection.
+    /// </summary>
+    private static EquipmentEvolutionFormulaEvidenceRecord[] SelectPresentationEvidenceWindow(
+        IEnumerable<EquipmentEvolutionFormulaEvidenceRecord> source,
+        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> exactBindings)
+    {
+        GameplayOutcomeEvidenceBindingSnapshot[] exact = (exactBindings
+                ?? Array.Empty<GameplayOutcomeEvidenceBindingSnapshot>())
+            .Where(value => value != null)
+            .ToArray();
+        if (exact.Length > NarrativeRequestContext.MaximumFacts)
+            throw new InvalidOperationException(
+                "Equipment exact evidence exceeds its public context window: "
+                + $"{exact.Length} > {NarrativeRequestContext.MaximumFacts}.");
+
+        int capacity = NarrativeRequestContext.MaximumFacts - exact.Length;
+        if (capacity == 0) return Array.Empty<EquipmentEvolutionFormulaEvidenceRecord>();
+
+        EquipmentEvolutionFormulaEvidenceRecord[] candidates = (source
+                ?? Array.Empty<EquipmentEvolutionFormulaEvidenceRecord>())
+            .Where(value => value != null)
+            .ToArray();
+        List<EquipmentEvolutionFormulaEvidenceRecord> selected = new(capacity);
+        HashSet<string> selectedIds = new(StringComparer.Ordinal);
+
+        // Keep one strong representative per event group before filling the
+        // remainder by global relevance so varied gameplay is not crowded out.
+        foreach (EquipmentEvolutionFormulaEvidenceRecord representative in
+                 OrderPresentationEvidence(candidates
+                     .GroupBy(value => value.eventGroupKey, StringComparer.Ordinal)
+                     .Select(group => OrderPresentationEvidence(group).First())))
+        {
+            if (selected.Count >= capacity) break;
+            if (selectedIds.Add(representative.evidenceId)) selected.Add(representative);
+        }
+
+        foreach (EquipmentEvolutionFormulaEvidenceRecord candidate in
+                 OrderPresentationEvidence(candidates))
+        {
+            if (selected.Count >= capacity) break;
+            if (selectedIds.Add(candidate.evidenceId)) selected.Add(candidate);
+        }
+
+        return selected.OrderBy(value => value.evidenceId, StringComparer.Ordinal).ToArray();
+    }
+
+    private static IOrderedEnumerable<EquipmentEvolutionFormulaEvidenceRecord>
+        OrderPresentationEvidence(IEnumerable<EquipmentEvolutionFormulaEvidenceRecord> source) =>
+        source.OrderByDescending(value => value.importancePoints)
+            .ThenByDescending(value => value.attainedMilestoneCount)
+            .ThenBy(value => value.influenceUseCount)
+            .ThenByDescending(value => value.originalEvent?.sequence ?? 0L)
+            .ThenByDescending(value => value.originalEvent?.repeatCount ?? 0)
+            .ThenBy(value => value.evidenceId, StringComparer.Ordinal);
 
     private static string ComputeSha256(string value)
     {
@@ -1018,6 +1084,11 @@ public static class EquipmentEvolutionRules
                 ?? new List<GameplayOutcomeEvidenceBindingSnapshot>())
             .Where(value => value != null
                 && selected.EvidenceFactIds.Contains(value.publicFactId, StringComparer.Ordinal))
+            .ToArray();
+        sourceEvidence = sourceEvidence.Where(value =>
+                !selectedExact.Any(binding =>
+                    GameplayOutcomeEvidenceFormulaProjection.HasCommonOrigin(
+                        binding, value.originalEvent)))
             .ToArray();
         if (selectedExact.Length != exactIds.Count(id =>
                 selected.EvidenceFactIds.Contains(id, StringComparer.Ordinal)))
@@ -1402,6 +1473,8 @@ public static class EquipmentEvolutionRules
             || state.presentationRequests.Select(value => value.presentationId)
                 .Distinct(StringComparer.Ordinal).Count() != state.presentationRequests.Count)
             throw new InvalidOperationException("Equipment presentation request ledger is invalid.");
+        foreach (EquipmentEvolutionPresentationRequest request in state.presentationRequests)
+            request.ValidatePublicContext();
         if (state.evolutionNodes.Any(value => value != null && value.formulaVersion < 0))
             throw new InvalidOperationException("Equipment formula version cannot be negative.");
         EvolutionNode[] formulaNodes = state.evolutionNodes
@@ -1453,6 +1526,7 @@ public static class EquipmentEvolutionRules
                         .SequenceEqual(node.evidenceIds.OrderBy(value => value, StringComparer.Ordinal),
                             StringComparer.Ordinal)))
                 throw new InvalidOperationException("Equipment formula node and presentation request diverged.");
+            request?.ValidateFrozenNodeBinding(node);
             if (node.presentationState == EquipmentEvolutionPresentationState.Ready)
             {
                 if (!node.active || !node.mechanicallyUnlocked || !node.narrativeReady

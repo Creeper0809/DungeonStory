@@ -20,6 +20,8 @@ public class Shop : BuildableObject,
     private ShopCrimeRuntime crimeRuntime;
     private ShopServiceCompletion serviceCompletion;
     private ShopCustomerInteractionService customerInteraction;
+    private ShopInteractionState interactionState = new();
+    internal ShopInteractionState InteractionState => interactionState;
     private IBuildingVisitorPort worker;
     private CharacterId workerCharacterId;
     private IGameMoneyAccount moneyAccount;
@@ -102,6 +104,8 @@ public class Shop : BuildableObject,
         Inventory.Reset();
         TryInitializeStock(requireCatalog: false);
         RegisterStateModule(new ShopStockStateModule(this));
+        interactionState = new ShopInteractionState();
+        RegisterStateModule(new ShopUseExecutionStateModule(this));
     }
 
     [Inject]
@@ -146,13 +150,12 @@ public class Shop : BuildableObject,
     }
 
     [Inject]
-    public void ConstructShopOutcomeTransactions(
-        IMigratedProducerOutcomeTransaction outcomeTransactions,
+    public void ConstructShopCrimeFacts(
+        ShopliftingFactJournal facts,
         IGameSessionStateProvider gameDataProvider)
     {
-        Crime.ConfigureOutcomeTransactions(
-            outcomeTransactions
-                ?? throw new ArgumentNullException(nameof(outcomeTransactions)),
+        Crime.ConfigureFacts(
+            facts ?? throw new ArgumentNullException(nameof(facts)),
             gameDataProvider
                 ?? throw new ArgumentNullException(nameof(gameDataProvider)));
     }
@@ -173,6 +176,79 @@ public class Shop : BuildableObject,
     public IEnumerator Interact(IBuildingVisitorPort actor) =>
         CustomerInteraction.Interact(actor);
 
+    internal ShopUseExecutionState FindActiveShopUse(string actorId) =>
+        interactionState.activeUses.SingleOrDefault(value => value.actorId == actorId);
+
+    internal ShopUseExecutionState BeginShopExecution(IBuildingVisitorPort actor, ServiceSessionSnapshot session)
+    {
+        if (FindActiveShopUse(actor.BuildingCharacterId.Value) != null)
+            throw new InvalidOperationException("A shop execution already owns this actor.");
+        long sequence = interactionState.nextSequence;
+        long next = checked(sequence + 1);
+        AIAction action = actor.CurrentActionToken as AIAction;
+        var state = new ShopUseExecutionState
+        {
+            sequence = sequence,
+            operationId = ShopUseExecutionState.OperationFor(RequirePersistentInstanceId().Value, sequence),
+            actorId = actor.BuildingCharacterId.Value,
+            actionType = action?.actionset?.GetType().FullName ?? string.Empty,
+            actionBranch = (int)(action?.actionset?.Branch ?? CharacterAiBranch.None),
+            serviceSessionId = session?.SessionId ?? string.Empty,
+            selectionCount = actor.Shopping.GetShoppingCount(),
+            createsRevenue = CreatesRevenueFor(actor),
+            phase = ShopUseExecutionPhase.Selection
+        };
+        interactionState.nextSequence = next;
+        interactionState.activeUses.Add(state);
+        MarkFacilityDynamicStateDirty();
+        return state;
+    }
+
+    internal ShopUseCartLine RequirePurchaseLine(string operationId, int cartIndex, string actorId)
+    {
+        ShopUseExecutionState use = FindActiveShopUse(actorId);
+        if (use == null || use.operationId != operationId || use.phase != ShopUseExecutionPhase.Purchase
+            || use.purchaseIndex != cartIndex || cartIndex < 0 || cartIndex >= use.cart.Count)
+            throw new InvalidOperationException("Retail purchase execution/actor/slot mismatch.");
+        return use.cart[cartIndex];
+    }
+
+    internal void ValidatePurchaseBinding(RetailPurchaseRecoverySaveData recovery)
+    {
+        if (string.IsNullOrEmpty(recovery.shopUseOperationId)) return;
+        ShopUseExecutionState use = FindActiveShopUse(recovery.buyerId);
+        if (use == null) throw new InvalidOperationException("Retail purchase execution owner missing.");
+        use.ValidatePurchaseBinding(RequirePersistentInstanceId().Value, recovery);
+    }
+
+    internal void RecordPurchaseBinding(RetailPurchaseRecoverySaveData recovery)
+    {
+        ValidatePurchaseBinding(recovery);
+        if (string.IsNullOrEmpty(recovery.shopUseOperationId)) return;
+        ShopUseCartLine line = RequirePurchaseLine(recovery.shopUseOperationId,
+            recovery.shopUseCartIndex, recovery.buyerId);
+        line.purchaseOperationId = recovery.operationId;
+        line.pendingPurchaseOperationId = string.Empty;
+        line.committedLot = recovery.lot.Clone();
+        MarkFacilityDynamicStateDirty();
+    }
+
+    internal ShopInteractionState CaptureInteractionState()
+    {
+        ShopInteractionState snapshot = interactionState.Clone();
+        if (!snapshot.IsValid(RequirePersistentInstanceId().Value, out string error))
+            throw new InvalidOperationException(error);
+        return snapshot;
+    }
+
+    internal void RestoreInteractionState(ShopInteractionState snapshot)
+    {
+        if (snapshot == null || !snapshot.IsValid(RequirePersistentInstanceId().Value, out string error))
+            throw new InvalidOperationException("Invalid shop interaction restore.");
+        interactionState = snapshot.Clone();
+        MarkFacilityDynamicStateDirty();
+    }
+
     public override void ReleaseTransientCharacterOwnership(
         IBuildingVisitorPort actor,
         string reason)
@@ -182,7 +258,15 @@ public class Shop : BuildableObject,
             return;
         }
 
+        if (serviceSessionRuntime?.IsReplacedFacility(this) == true)
+        {
+            base.ReleaseTransientCharacterOwnership(actor, reason);
+            return;
+        }
+
         string actorId = actor.BuildingCharacterId.Value;
+        if (FindActiveShopUse(actorId)?.cart.Any(value => !string.IsNullOrEmpty(value.pendingPurchaseOperationId)) == true)
+            throw new InvalidOperationException("Shop release is deferred until its purchase receipt is settled.");
         string hubId = PersistentInstanceId.IsValid
             ? PersistentInstanceId.Value
             : string.Empty;
@@ -195,18 +279,21 @@ public class Shop : BuildableObject,
             .Select(session => session.SessionId)
             .ToArray() ?? Array.Empty<string>();
 
-        base.ReleaseTransientCharacterOwnership(actor, reason);
         for (int index = 0; index < sessions.Length; index++)
         {
-            serviceSessionRuntime.CancelSession(
+            if (!serviceSessionRuntime.CancelSession(
                 sessions[index],
                 string.IsNullOrWhiteSpace(reason)
                     ? "character-lifecycle-ended"
-                    : reason);
+                    : reason))
+                throw new InvalidOperationException("Shop release cancellation remains pending.");
         }
+        base.ReleaseTransientCharacterOwnership(actor, reason);
 
         // CharacterActor owns actor-wide meal cancellation once per lifecycle
         // transition.  A shop only releases ownership scoped to itself.
+        interactionState.activeUses.RemoveAll(value => value.actorId == actorId);
+        MarkFacilityDynamicStateDirty();
     }
 
     public static bool CreatesRevenueFor(IBuildingVisitorPort actor)
@@ -460,6 +547,29 @@ public class Shop : BuildableObject,
             out failureReason);
     }
 
+    internal RetailRevenueModifierSnapshot CaptureRevenueModifierSnapshot()
+    {
+        PruneInvalidWorker();
+        if (worker == null)
+            return RetailRevenueModifierSnapshot.Unmodified;
+
+        BuildingVisitorSnapshot visitor = worker.VisitorSnapshot;
+        CharacterActor workerActor =
+            CharacterBuildingVisitorAdapter.GetActorOrNull(worker);
+        string provenance = CharacterSkillRuntimeEffects
+            .CaptureManagementModifierProvenance(
+                workerActor,
+                CharacterSkillTrigger.WorkCompleted,
+                new[] { "revenue" });
+        return new RetailRevenueModifierSnapshot(
+            visitor.PersistentId,
+            Mathf.Clamp(
+                visitor.RevenueMultiplier,
+                1f,
+                GoldEconomyBalanceRules.MaximumWorkerRevenuePremium),
+            provenance);
+    }
+
     internal bool TryTakeExactRetailLot(
         int saleItemId,
         out RetailStockLotSnapshot taken,
@@ -476,9 +586,13 @@ public class Shop : BuildableObject,
     internal bool TryPreviewExactRetailLotOperationId(
         int saleItemId,
         out string unitOperationId)
+        => TryPreviewExactRetailLot(saleItemId, out _, out unitOperationId);
+
+    internal bool TryPreviewExactRetailLot(int saleItemId,
+        out RetailStockLotSnapshot source, out string unitOperationId)
     {
         SynchronizeAuthoredStock();
-        RetailStockLotSnapshot source = Inventory.CreateSnapshot().lots
+        source = Inventory.CreateSnapshot().lots
             .Where(lot => lot != null
                 && lot.saleItemId == saleItemId
                 && lot.quantity > 0)
@@ -522,6 +636,18 @@ public class Shop : BuildableObject,
             out failureReason);
     }
 
+    internal bool TryCommitRetailSinkReversible(RetailStockLotSnapshot lot,
+        out IRetailStockSinkTransaction transaction, out string failure)
+    {
+        transaction = null; failure = string.Empty;
+        if (lot == null) { failure = "retail-terminal-lot-missing"; return false; }
+        if (string.IsNullOrEmpty(lot.itemInstanceId))
+        { transaction = RetailEquipmentSinkTransaction.NoSecondaryOwner(); return true; }
+        if (retailStockPhysicalRuntime is IReversibleRetailStockPhysicalRuntime reversible)
+            return reversible.TryCommitExternalSinkReversible(lot, out transaction, out failure);
+        failure = "retail-reversible-physical-runtime-unavailable"; return false;
+    }
+
     private bool TryInitializeStock(bool requireCatalog)
     {
         return Inventory.TryInitialize(requireCatalog);
@@ -551,6 +677,8 @@ public class Shop : BuildableObject,
         if (!completed)
         {
             EndUse(actor);
+            interactionState.activeUses.RemoveAll(value => value.actorId == actor?.BuildingCharacterId.Value);
+            MarkFacilityDynamicStateDirty();
             return;
         }
 
@@ -561,7 +689,12 @@ public class Shop : BuildableObject,
                 + $"shop={RequirePersistentInstanceId().Value}; "
                 + $"actor={actor?.BuildingCharacterId.Value ?? "<missing>"}.");
         }
+        interactionState.activeUses.RemoveAll(value => value.actorId == actor?.BuildingCharacterId.Value);
+        MarkFacilityDynamicStateDirty();
     }
+
+    internal void ResumeFailedServiceCleanup(IBuildingVisitorPort actor, ShopUseExecutionState state) =>
+        CustomerInteraction.ResumeFailedServiceCleanup(actor, state);
 
     internal string DisplayNameForActivity => objectNameOrDefault();
     internal int CurrentGameFrame => GameFrameCount;
@@ -581,26 +714,15 @@ public class Shop : BuildableObject,
         PublishGameEvent(new FacilityStockConsumedEvent(actor, this, category, 1));
     }
 
-    internal void PublishShopliftingCrime(
-        IBuildingVisitorPort actor,
-        string detail,
-        int lossValue,
-        string commitOperationId,
-        RetailStockLotSnapshot committedLot)
+    internal void PublishShopliftingCompleted(IBuildingVisitorPort actor, ShopliftingFact fact)
     {
-        PublishGameEvent(new FacilityCrimeEvent(
-            actor,
-            this,
-            FacilityCrimeKind.Shoplifting,
-            detail,
-            lossValue,
-            committedLot,
-            commitOperationId));
-        GameEventBus.RaiseAlert(
-            "도난 발생",
-            detail,
-            EventAlertImportance.Medium,
-            "범죄");
+        try { PublishGameEvent(new ShopliftingCompletedEvent(this, actor, fact)); }
+        catch (Exception error) when (error is not OutOfMemoryException
+            && error is not StackOverflowException && error is not AccessViolationException)
+        {
+            // Observation cannot turn an already-applied stock transaction into a failed checkout.
+            Debug.LogError("shoplifting-completed-observation:" + error.GetType().Name);
+        }
     }
 
     internal void PublishRestockEvent(
@@ -805,6 +927,38 @@ public class Shop : BuildableObject,
     internal IShopServiceSessionCompletionPort CustomerServiceSessionCompletion =>
         serviceSessionCompletionPort;
     internal IGameMoneyAccount CustomerMoneyAccount => moneyAccount;
+    internal bool TryCommitExactRetailRevenue(
+        string unitOperationId,
+        string buyerId,
+        int amount,
+        out string failureReason)
+    {
+        int revenue = Mathf.Max(0, amount);
+        if (revenue == 0)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+        if (moneyAccount is not IIdempotentGameMoneyAccount idempotent)
+        {
+            failureReason = "retail-revenue-account-not-idempotent";
+            return false;
+        }
+        string operation = unitOperationId?.Trim() ?? string.Empty;
+        if (operation.Length == 0)
+        {
+            failureReason = "retail-revenue-operation-id-missing";
+            return false;
+        }
+        return idempotent.TryCreditOnce(
+            revenue,
+            new EconomyTransactionContext(
+                EconomyTransactionKind.GuestServiceIncome,
+                "retail-revenue:" + operation,
+                buyerId?.Trim() ?? string.Empty,
+                "손님 물품 판매"),
+            out failureReason);
+    }
     internal IRoomEnvironmentExperienceService CustomerRoomEnvironmentExperienceService =>
         roomEnvironmentExperienceService;
     internal IMealConsumptionRuntime CustomerMealConsumptionRuntime =>

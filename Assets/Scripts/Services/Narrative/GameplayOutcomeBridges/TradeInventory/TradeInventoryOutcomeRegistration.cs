@@ -10,15 +10,31 @@ public static class TradeInventoryOutcomeRegistration
         builder.Register<DefaultPhysicalBatchDispositionOutcomeParticipant>(
                 Lifetime.Singleton)
             .As<IDefaultPhysicalItemBatchDispositionOutcomeParticipant>();
-        builder.Register<DefaultPhysicalItemRelocationOutcomeParticipant>(
+        builder.Register<PhysicalItemLegacyOutcomeServices>(Lifetime.Singleton)
+            .As<IOutcomeAwarePhysicalItemBatchDispositionService>()
+            .As<IOutcomeAwareReservedPhysicalItemBatchDispositionService>();
+        builder.Register(resolver => new GameplayDomainFactObserverBinding<
+                PhysicalItemDisposedFact, TradeInventoryOutcomeReceipt>(
+                "items.physical-disposition-observer", PhysicalItemDispositionFactObservation.Capture,
+                resolver.Resolve<IGameplayOutcomeRegistry>(), resolver.Resolve<GameplayOutcomeLedger>(),
+                resolver.Resolve<IGameplayOutcomeRecorder>(), resolver.Resolve<GameplayDomainFactCommitGroup>()),
                 Lifetime.Singleton)
-            .As<IPhysicalItemRelocationOutcomeParticipant>();
-        builder.Register<WastePolicyGameplayOutcomeParticipant>(
+            .As<DungeonStory.Foundation.Facts.IDomainFactObserverBinding>();
+        builder.Register(resolver => new GameplayDomainFactObserverBinding<
+                PhysicalItemRelocatedFact, TradeInventoryOutcomeReceipt>(
+                "items.physical-relocation-observer", PhysicalItemRelocationFactObservation.Capture,
+                resolver.Resolve<IGameplayOutcomeRegistry>(), resolver.Resolve<GameplayOutcomeLedger>(),
+                resolver.Resolve<IGameplayOutcomeRecorder>(), resolver.Resolve<GameplayDomainFactCommitGroup>()),
                 Lifetime.Singleton)
-            .As<IWastePolicyGameplayOutcomeParticipant>();
-        builder.Register<TradeInventoryOutcomeAdapter>(Lifetime.Singleton)
-            .As<IGameplayOutcomeAdapterRegistration>();
-        builder.Register<TradeInventoryOutcomeDescriptor>(Lifetime.Singleton)
-            .As<IGameplayOutcomeDescriptor>();
+            .As<DungeonStory.Foundation.Facts.IDomainFactObserverBinding>();
+        builder.RegisterGameplayDomainFact<WastePolicyChangedFact, TradeInventoryOutcomeReceipt>(
+            "waste.policy-change-observer", WastePolicyFactObservation.Capture);
+        builder.Register<WastePolicyFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
+        builder.RegisterGameplayActionLogs(nameof(TradeInventoryOutcomeAdapter));
+        builder.Register<PhysicalItemRelocationFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
+        builder.Register<PhysicalItemDispositionFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
     }
 }

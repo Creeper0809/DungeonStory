@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public interface IGameplayOutcomeAdapterRegistration
 {
@@ -195,8 +196,50 @@ public interface IGameplayOutcomeRegistry
     int ConsolidationPolicyVersion { get; }
 }
 
-public sealed class GameplayOutcomeRegistry : IGameplayOutcomeRegistry
+public sealed class GameplayOutcomeRegistry : IGameplayOutcomeRegistry, IGameplayActionLogRegistry
 {
+    public IReadOnlyList<IGameplayActionLogModule> ActionModules { get; } = Array.Empty<IGameplayActionLogModule>();
+    public GameplayExperienceObserverRegistry ExperienceObservers { get; }
+
+    public static GameplayOutcomeRegistry FromModules(IEnumerable<IGameplayActionLogModule> modules)
+    {
+        var frozen = (modules ?? throw new ArgumentNullException(nameof(modules))).ToArray();
+        if (frozen.Length == 0 || frozen.Any(value => value == null))
+            throw new ArgumentException("Action logging requires nonempty, nonnull modules.");
+        // Revalidate implementations of the public extension interface, not just our concrete class.
+        foreach (var module in frozen)
+            _ = new GameplayActionLogModule(module.Adapter, module.Descriptor, module.ExperienceObserver);
+        if (frozen.Any(value => value.OutcomeTypeId != value.Descriptor.OutcomeTypeId))
+            throw new ArgumentException("Action module identity differs from its descriptor.");
+        return new GameplayOutcomeRegistry(frozen);
+    }
+
+    private GameplayOutcomeRegistry(IGameplayActionLogModule[] modules)
+        : this(modules.Select(value => value.Descriptor), DistinctModuleAdapters(modules))
+    {
+        ActionModules = Array.AsReadOnly(modules.OrderBy(value => value.OutcomeTypeId.Value,
+            StringComparer.Ordinal).ToArray());
+        ExperienceObservers = new GameplayExperienceObserverRegistry(
+            ActionModules.Select(value => value.ExperienceObserver));
+    }
+
+    private static IEnumerable<IGameplayOutcomeAdapterRegistration> DistinctModuleAdapters(
+        IEnumerable<IGameplayActionLogModule> modules)
+    {
+        var found = new Dictionary<Type, IGameplayOutcomeAdapterRegistration>();
+        foreach (var module in modules)
+        {
+            var adapter = module.Adapter;
+            if (found.TryGetValue(adapter.ReceiptType, out var existing))
+            {
+                if (!ReferenceEquals(adapter, existing))
+                    throw new InvalidOperationException("Action modules cannot replace a shared receipt adapter.");
+            }
+            else found.Add(adapter.ReceiptType, adapter);
+        }
+        return found.Values;
+    }
+
     private readonly Dictionary<GameplayOutcomeTypeId, IGameplayOutcomeDescriptor> descriptors;
     private readonly Dictionary<Type, IGameplayOutcomeAdapterRegistration> adapters;
     private readonly GameplayOutcomeTypeId[] registeredOutcomeTypes;

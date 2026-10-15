@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 public sealed class WorkTaskCoreDependencies
@@ -161,10 +162,9 @@ public sealed class WorkTaskExecutor
     private readonly ISettlementLaborAccountingService settlementLaborAccounting;
     private readonly IReservedItemTransferService reservedItemTransfers;
     private readonly ICharacterSettlementStandingQuery settlementStandings;
-    private readonly IEnvironmentalFireProcessAccidentProducer
-        processAccidentFireProducer;
     private readonly ICharacterBodyHealthMutationTransaction bodyHealthMutation;
-    private readonly IEnvironmentGameplayOutcomeCommitter environmentOutcomes;
+    private readonly IDomainFactPublisher accidentFacts;
+    private readonly WorkAccidentObservationRuntime workAccidentObservations;
     private float nextEnvironmentRecheckAt;
     private bool environmentInterrupted;
     private float approvedProficiencyWork;
@@ -199,7 +199,6 @@ public sealed class WorkTaskExecutor
     private WorkPreWuExitKind lastPreWuExitKind;
     private string lastPreWuExitDetail = string.Empty;
     private string lastWorkOrderExecutionDetail = string.Empty;
-    private string lastWorkAccidentFireFailureDetail = string.Empty;
 
     internal bool HasActiveGenericProgressForDiagnostics =>
         genericProgressActive;
@@ -216,7 +215,7 @@ public sealed class WorkTaskExecutor
     internal string LastWorkOrderExecutionDetailForDiagnostics =>
         lastWorkOrderExecutionDetail;
     internal string LastWorkAccidentFireFailureDetailForDiagnostics =>
-        lastWorkAccidentFireFailureDetail;
+        workAccidentObservations.LastFailure;
 
     public WorkTaskExecutor(
         WorkTaskCoreDependencies core,
@@ -236,10 +235,9 @@ public sealed class WorkTaskExecutor
         ISettlementLaborAccountingService settlementLaborAccounting = null,
         IReservedItemTransferService reservedItemTransfers = null,
         ICharacterSettlementStandingQuery settlementStandings = null,
-        IEnvironmentalFireProcessAccidentProducer
-            processAccidentFireProducer = null,
         ICharacterBodyHealthMutationTransaction bodyHealthMutation = null,
-        IEnvironmentGameplayOutcomeCommitter environmentOutcomes = null)
+        IDomainFactPublisher accidentFacts = null,
+        WorkAccidentObservationRuntime workAccidentObservations = null)
     {
         core = core ?? throw new ArgumentNullException(nameof(core));
         execution = execution ?? throw new ArgumentNullException(nameof(execution));
@@ -275,11 +273,11 @@ public sealed class WorkTaskExecutor
         this.settlementLaborAccounting = settlementLaborAccounting;
         this.reservedItemTransfers = reservedItemTransfers;
         this.settlementStandings = settlementStandings;
-        this.processAccidentFireProducer = processAccidentFireProducer;
         this.bodyHealthMutation = bodyHealthMutation
             ?? throw new ArgumentNullException(nameof(bodyHealthMutation));
-        this.environmentOutcomes = environmentOutcomes
-            ?? throw new ArgumentNullException(nameof(environmentOutcomes));
+        this.accidentFacts = accidentFacts ?? throw new ArgumentNullException(nameof(accidentFacts));
+        this.workAccidentObservations = workAccidentObservations
+            ?? throw new ArgumentNullException(nameof(workAccidentObservations));
     }
 
     public IEnumerator Work(int runId)
@@ -309,7 +307,6 @@ public sealed class WorkTaskExecutor
         lastPreWuExitKind = WorkPreWuExitKind.None;
         lastPreWuExitDetail = string.Empty;
         lastWorkOrderExecutionDetail = string.Empty;
-        lastWorkAccidentFireFailureDetail = string.Empty;
         proficiencyAwarded = false;
         proficiencyRepetitionMultiplier = 1f;
         workAccidentOccurred = false;
@@ -325,14 +322,9 @@ public sealed class WorkTaskExecutor
         Grid grid = work.WorkGridResolver.ResolveActiveGrid(work, null);
         if (move == null || grid == null)
         {
-            WorkDebugLog.LogEnd(actor, "이동 정보 없음");
-            actor?.AddActivity(CharacterActivityEvent.Work(
-                work.AssignedWorkType,
-                CharacterActivityOutcomes.Failed,
-                "작업 실패: 이동 정보 없음",
-                work.assignedShop,
-                reasonCode: "missing-movement",
-                bubbleEligible: true));
+            WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                WorkExecutionTransition.MovementUnavailable,
+                work.AssignedWorkType, work.assignedShop);
             work.isWorking = false;
             EndAiAction(actor, currentAction);
             work.ClearActiveWorkRoutine(runId);
@@ -453,13 +445,9 @@ public sealed class WorkTaskExecutor
                     preparation.Failure,
                     CharacterOperationBlockAxis.Environment,
                     requestImmediateReplan: false);
-                actor.AddActivity(CharacterActivityEvent.Work(
-                    work.AssignedWorkType,
-                    CharacterActivityOutcomes.Blocked,
-                    "이동 전 환경 보호 의복을 준비할 수 없어 작업을 시작하지 못했습니다.",
-                    plannedTarget,
-                    reasonCode: "environment-apparel-approach-blocked",
-                    bubbleEligible: true));
+                WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                    WorkExecutionTransition.ApproachProtectionUnavailable,
+                    work.AssignedWorkType, plannedTarget);
                 ReturnEnvironmentalWorkwear(actor);
                 work.isWorking = false;
                 work.AssignWork(null, FacilityWorkType.None);
@@ -519,13 +507,9 @@ public sealed class WorkTaskExecutor
                     "work-order-invalidated-during-approach",
                     assignedTarget),
                 requestImmediateReplan: false);
-            actor?.AddActivity(CharacterActivityEvent.Work(
-                plannedWorkTypeId,
-                CharacterActivityOutcomes.Failed,
-                "작업 실패: 이동 중 작업 주문이 취소되거나 교체되었습니다.",
-                assignedTarget,
-                reasonCode: "work-order-invalidated-during-approach",
-                bubbleEligible: true));
+            WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                WorkExecutionTransition.ApproachedOrderReplaced,
+                plannedWorkTypeId, assignedTarget);
             ReturnEnvironmentalWorkwear(actor);
             work.isWorking = false;
             work.AssignWork(null, FacilityWorkType.None);
@@ -594,6 +578,11 @@ public sealed class WorkTaskExecutor
             bool completedImmediately = false;
             bool completedSuccessfully = true;
             bool completionEffectsAlreadyApplied = false;
+            bool completionIdentityAlreadyPublished = false;
+            string executionTerminalOwnerId = string.Empty;
+            string executionChildResultKey = string.Empty;
+            string executionTargetEntityId = string.Empty;
+            float? executionContributionWorkUnits = null;
             string executionFailureCode = string.Empty;
             DomainFailure executionDomainFailure = DomainFailure.None;
             CharacterOperationBlockAxis executionFailureAxis =
@@ -660,13 +649,9 @@ public sealed class WorkTaskExecutor
                     activePreparation.Failure,
                     CharacterOperationBlockAxis.Environment,
                     requestImmediateReplan: false);
-                actor.AddActivity(CharacterActivityEvent.Work(
-                    workType,
-                    CharacterActivityOutcomes.Blocked,
-                    "환경 보호 의복을 준비할 수 없어 작업을 시작하지 못했습니다.",
-                    assignedTarget,
-                    reasonCode: "environment-apparel-work-start-blocked",
-                    bubbleEligible: true));
+                WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                    WorkExecutionTransition.WorkProtectionUnavailable,
+                    workType, assignedTarget);
                 characterEnvironment.ClearWorkContext(
                     new CharacterId(actor?.Identity?.PersistentId));
                 ReturnEnvironmentalWorkwear(actor);
@@ -685,13 +670,10 @@ public sealed class WorkTaskExecutor
                     paidOrderKey,
                     out string paidFailureReason))
             {
-                actor?.AddActivity(CharacterActivityEvent.Work(
-                    workType,
-                    CharacterActivityOutcomes.Blocked,
-                    $"{workDefinition?.DisplayName ?? "작업"} 중단: {paidFailureReason}",
-                    assignedTarget,
-                    reasonCode: "paid-facility-order",
-                    bubbleEligible: true));
+                WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                    WorkExecutionTransition.PaidFacilityRejected,
+                    workType, assignedTarget,
+                    workLabel: workDefinition?.DisplayName ?? "작업", detail: paidFailureReason);
                 characterEnvironment.ClearWorkContext(
                     new CharacterId(actor?.Identity?.PersistentId));
                 ReturnEnvironmentalWorkwear(actor);
@@ -710,7 +692,8 @@ public sealed class WorkTaskExecutor
                 assignedTarget,
                 workTypeId,
                 $"work:{runId}:{assignedTargetPersistentId}:started");
-            WorkDebugLog.LogStarted(actor);
+            WorkControlChangedEvent.PublishAssigned(actor,
+                WorkControlTransition.AssignedWorkStarted);
             lastWorkOrderExecutionDetail = FormatWorkOrderExecutionDetail(
                 executionOrderMatchesPlan
                     ? "execution-ready"
@@ -831,12 +814,22 @@ public sealed class WorkTaskExecutor
                         actor,
                         assignedTarget,
                         workTypeId),
-                    RegisterActiveExecutionCancellationResource);
+                    RegisterActiveExecutionCancellationResource,
+                    ResolveCommandOrigin(),
+                    () => approvedProficiencyWork);
                 yield return executionHandler.Execute(executionContext, executionResult);
                 ReleaseActiveExecutionCancellationResource();
                 completedSuccessfully = executionResult.CompletedSuccessfully;
                 completionEffectsAlreadyApplied =
                     executionResult.CompletionEffectsAlreadyApplied;
+                completionIdentityAlreadyPublished =
+                    executionResult.CompletionIdentityAlreadyPublished
+                    || executionResult.CompletionIdentityOwnedByDomain;
+                executionTerminalOwnerId = executionResult.TerminalOwnerId;
+                executionChildResultKey = executionResult.ChildResultKey;
+                executionTargetEntityId = executionResult.TargetEntityId;
+                executionContributionWorkUnits =
+                    executionResult.ContributionWorkUnits;
                 executionDomainFailure = executionResult.Failure;
                 executionFailureAxis = executionResult.FailureAxis;
                 executionFailureSourceRevisionReader =
@@ -869,7 +862,9 @@ public sealed class WorkTaskExecutor
             else
             {
                 work.isWorking = false;
-                WorkDebugLog.LogEnd(actor, "작업량 완료");
+                if (completedSuccessfully)
+                    WorkControlChangedEvent.PublishAssigned(actor,
+                        WorkControlTransition.WorkAmountFinished);
             }
 
             // Dismantle completion intentionally removes its own target. All
@@ -877,7 +872,8 @@ public sealed class WorkTaskExecutor
             // Cache identity above and never dereference Unity fake-null during
             // successful dismantle finalization.
             bool expectedDismantleRemoval =
-                workTypeId == BuiltInWorkTypeIds.Dismantle
+                (workTypeId == BuiltInWorkTypeIds.Dismantle
+                    || workTypeId == BuiltInWorkTypeIds.Construct)
                 && completedSuccessfully
                 && completionEffectsAlreadyApplied;
             if (!expectedDismantleRemoval
@@ -925,12 +921,35 @@ public sealed class WorkTaskExecutor
             }
             if (completedSuccessfully)
             {
-                AwardApprovedWork(actor, ProficiencyWorkOutcome.Success);
+                AwardApprovedWork(
+                    actor,
+                    ProficiencyWorkOutcome.Success,
+                    string.IsNullOrWhiteSpace(expectedWorkOrderId)
+                        ? "work-run:" + runId
+                        : expectedWorkOrderId);
                 RecordSpeciesCompletedWork(
                     actor,
                     workTypeId,
-                    approvedProficiencyWork);
-                PublishWorkCompleted(actor, workTypeId, string.Empty);
+                    approvedProficiencyWork,
+                    string.IsNullOrWhiteSpace(expectedWorkOrderId)
+                        ? "work-run:" + runId
+                        : expectedWorkOrderId);
+                if (WorkCompletionIdentityEmissionPolicy.ShouldPublishGeneric(
+                        completionIdentityAlreadyPublished))
+                {
+                    PublishWorkCompleted(
+                        actor,
+                        workTypeId,
+                        string.Empty,
+                        runId,
+                        executionTerminalOwnerId,
+                        executionChildResultKey,
+                        string.IsNullOrEmpty(executionTargetEntityId)
+                            ? assignedTargetPersistentId
+                            : executionTargetEntityId,
+                        executionContributionWorkUnits
+                            ?? approvedProficiencyWork);
+                }
                 CharacterSkillRuntimeEffects.TriggerWorkCompleted(
                     actor,
                     assignedTarget,
@@ -952,25 +971,45 @@ public sealed class WorkTaskExecutor
             }
             else if (routineNeedInterrupted)
             {
-                AwardApprovedWork(actor, ProficiencyWorkOutcome.PartialSuccess);
+                AwardApprovedWork(
+                    actor,
+                    ProficiencyWorkOutcome.PartialSuccess,
+                    string.IsNullOrWhiteSpace(expectedWorkOrderId)
+                        ? "work-run:" + runId
+                        : expectedWorkOrderId);
                 RecordSpeciesCompletedWork(
                     actor,
                     workTypeId,
-                    approvedProficiencyWork);
-                actor?.AddActivity(CharacterActivityEvent.Work(
-                    workTypeId,
-                    CharacterActivityOutcomes.Changed,
-                    "생리 욕구 해결 후 재개하도록 작업 진행 상태 보존",
-                    assignedTarget,
-                    reasonCode: "routine-need-suspended"));
+                    approvedProficiencyWork,
+                    "work-run:" + runId + ":routine-checkpoint");
+                WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                    WorkExecutionTransition.RoutineNeedSuspended,
+                    workTypeId, assignedTarget);
             }
             else
             {
-                AwardApprovedWork(actor, ProficiencyWorkOutcome.SafeFailure);
-                PublishWorkCompleted(
+                AwardApprovedWork(
                     actor,
-                    workTypeId,
-                    "outcome:failure");
+                    ProficiencyWorkOutcome.SafeFailure,
+                    string.IsNullOrWhiteSpace(expectedWorkOrderId)
+                        ? "work-run:" + runId
+                        : expectedWorkOrderId);
+                if (WorkCompletionIdentityEmissionPolicy.ShouldPublishGeneric(
+                        completionIdentityAlreadyPublished))
+                {
+                    PublishWorkCompleted(
+                        actor,
+                        workTypeId,
+                        "outcome:failure",
+                        runId,
+                        executionTerminalOwnerId,
+                        executionChildResultKey,
+                        string.IsNullOrEmpty(executionTargetEntityId)
+                            ? assignedTargetPersistentId
+                            : executionTargetEntityId,
+                        executionContributionWorkUnits
+                            ?? approvedProficiencyWork);
+                }
                 actor?.Brain?.ReportRuntimeActionFailure(
                     AIActionFailure.Create(
                         AIActionFailureKind.ResourceUnavailable,
@@ -1019,14 +1058,9 @@ public sealed class WorkTaskExecutor
         else
         {
             work.isWorking = false;
-            WorkDebugLog.LogEnd(actor, "작업 도달 실패");
-            actor?.AddActivity(CharacterActivityEvent.Work(
-                work.AssignedWorkType,
-                CharacterActivityOutcomes.Failed,
-                "작업 실패: 작업 도달 실패",
-                assignedTarget,
-                reasonCode: "target-unreachable",
-                bubbleEligible: true));
+            WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                WorkExecutionTransition.TargetUnreachable,
+                work.AssignedWorkType, assignedTarget);
             actor?.AiMemory?.RecordWork(
                 work.AssignedWorkTypeId,
                 assignedTarget,
@@ -1122,13 +1156,9 @@ public sealed class WorkTaskExecutor
                     AIActionFailureKind.Unsupported,
                     "restock-target-not-restockable"),
                 requestImmediateReplan: false);
-            actor?.AddActivity(CharacterActivityEvent.Work(
-                FacilityWorkType.Restock,
-                CharacterActivityOutcomes.Failed,
-                "보충 실패: 재고를 받을 수 없는 시설",
-                restockTarget,
-                reasonCode: "target-not-restockable",
-                bubbleEligible: true));
+            WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                WorkExecutionTransition.RestockTargetUnsupported,
+                FacilityWorkType.Restock, restockTarget);
             work.isWorking = false;
             yield break;
         }
@@ -1151,13 +1181,9 @@ public sealed class WorkTaskExecutor
                         ? "restock-haul-plan-unavailable"
                         : failureReason),
                 requestImmediateReplan: false);
-            actor?.AddActivity(CharacterActivityEvent.Work(
-                FacilityWorkType.Restock,
-                CharacterActivityOutcomes.Failed,
-                $"보충 실패: {failureReason}",
-                restockTarget,
-                reasonCode: failureReason,
-                bubbleEligible: true));
+            WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                WorkExecutionTransition.RestockPlanRejected,
+                FacilityWorkType.Restock, restockTarget, detail: failureReason);
             work.isWorking = false;
             yield break;
         }
@@ -1396,12 +1422,10 @@ public sealed class WorkTaskExecutor
             "\uC774\uB3D9",
             warehouseBuilding,
             "restock:move-to-stock");
-        actor?.AddActivity(CharacterActivityEvent.Work(
-            FacilityWorkType.Restock,
-            CharacterActivityOutcomes.Progress,
-            $"보충 이동: {warehouseBuilding.name} -> {restockTarget.name}",
-            restockTarget,
-            reasonCode: "moving-to-stock"));
+        WorkExecutionChangedEvent.Publish(identityEvents, actor,
+            WorkExecutionTransition.RestockSourceApproach,
+            FacilityWorkType.Restock, restockTarget,
+            sourceName: warehouseBuilding.name, destinationName: restockTarget.name);
         yield return move.MoveByPath(
             pathToWarehouse,
             currentAction,
@@ -1479,13 +1503,10 @@ public sealed class WorkTaskExecutor
             }
 
             carriedAmount++;
-            actor?.AddActivity(CharacterActivityEvent.Work(
-                FacilityWorkType.Restock,
-                CharacterActivityOutcomes.Progress,
-                $"보충 적재: {saleItem.Name} {carriedAmount}/{loadAmount}",
-                warehouseBuilding,
-                reasonCode: "loading-stock",
-                quantity: carriedAmount));
+            WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                WorkExecutionTransition.RestockLoadProgress,
+                FacilityWorkType.Restock, warehouseBuilding,
+                itemName: saleItem.Name, quantity: carriedAmount, requestedQuantity: loadAmount);
             work.FloatingIconFeedbackService.Show(
                 actor,
                 saleItem.Sprite,
@@ -1543,13 +1564,9 @@ public sealed class WorkTaskExecutor
 
         if (carriedAmount <= 0)
         {
-            actor?.AddActivity(CharacterActivityEvent.Work(
-                FacilityWorkType.Restock,
-                CharacterActivityOutcomes.Failed,
-                "보충 실패: 창고 재고 부족",
-                warehouseBuilding,
-                reasonCode: "warehouse-stock-shortage",
-                bubbleEligible: true));
+            WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                WorkExecutionTransition.RestockStockUnavailable,
+                FacilityWorkType.Restock, warehouseBuilding);
             work.isWorking = false;
             yield break;
         }
@@ -1631,13 +1648,9 @@ public sealed class WorkTaskExecutor
                 CharacterOperationBlockAxis.Access,
                 requestImmediateReplan: false);
             ReleaseActiveRestockLease(ItemReservationReleaseReason.Replanned);
-            actor?.AddActivity(CharacterActivityEvent.Work(
-                FacilityWorkType.Restock,
-                CharacterActivityOutcomes.Blocked,
-                "보충 실패: 상점 경로 없음",
-                restockTarget,
-                reasonCode: "shop-path-missing",
-                bubbleEligible: true));
+            WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                WorkExecutionTransition.RestockDeliveryPathUnavailable,
+                FacilityWorkType.Restock, restockTarget);
             work.isWorking = false;
             yield break;
         }
@@ -1812,27 +1825,27 @@ public sealed class WorkTaskExecutor
             ReleaseActiveRestockLease(ItemReservationReleaseReason.Completed);
         }
 
-        actor?.AddActivity(CharacterActivityEvent.Work(
-            FacilityWorkType.Restock,
-            restocked > 0 ? CharacterActivityOutcomes.Completed : CharacterActivityOutcomes.Failed,
-            restocked > 0
-                ? $"보충 완료: {restockTarget.name} {resultMessage}"
-                : $"보충 실패: {resultMessage}",
-            restockTarget,
-            reasonCode: resultMessage,
-            quantity: restocked,
-            bubbleEligible: restocked <= 0));
+        WorkExecutionChangedEvent.Publish(identityEvents, actor,
+            WorkExecutionTransition.RestockFinished,
+            FacilityWorkType.Restock, restockTarget,
+            detail: resultMessage, destinationName: restockTarget.name, quantity: restocked);
         if (restocked > 0)
         {
             RecordApprovedWork(restocked, actor, remainingWork: 0f);
             RecordSpeciesCompletedWork(
                 actor,
                 BuiltInWorkTypeIds.Restock,
-                restocked);
+                restocked,
+                "work-run:" + runId);
             PublishWorkCompleted(
                 actor,
                 BuiltInWorkTypeIds.Restock,
-                saleItem.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                saleItem.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                runId,
+                WorkCompletionIdentityReferenceDefaults.ExecutorTerminalOwner,
+                string.Empty,
+                restockTarget.RequirePersistentInstanceId().Value,
+                restocked);
             CharacterSkillRuntimeEffects.TriggerWorkCompleted(
                 actor,
                 restockTarget,
@@ -1851,7 +1864,8 @@ public sealed class WorkTaskExecutor
         onCompleted?.Invoke(restocked > 0);
         yield return new WaitForSeconds(0.5f * durationMultiplier);
         work.isWorking = false;
-        WorkDebugLog.LogEnd(actor, "보충 완료");
+        WorkControlChangedEvent.PublishAssigned(actor,
+            WorkControlTransition.RestockRunFinished);
     }
 
     private bool TryCreateRestockHaulPlan(
@@ -2141,13 +2155,10 @@ public sealed class WorkTaskExecutor
                 workTypeId,
                 expectedWorkOrderId,
                 beforeLoopOrder) + ",reason=" + (workforceFailure ?? string.Empty);
-            actor?.AddActivity(CharacterActivityEvent.Work(
-                workType,
-                CharacterActivityOutcomes.Blocked,
-                $"{label} 중단: {workforceFailure ?? "건설 인력 권위 없음"}",
-                target,
-                reasonCode: "construction-workforce-blocked",
-                bubbleEligible: true));
+            WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                WorkExecutionTransition.ConstructionWorkforceRejected,
+                workType, target,
+                workLabel: label, detail: workforceFailure ?? "건설 인력 권위 없음");
             onCompleted?.Invoke(false, false);
             yield break;
         }
@@ -2288,13 +2299,9 @@ public sealed class WorkTaskExecutor
 
             if (order.Status == WorkOrderStatus.WaitingForMaterials)
             {
-                actor?.AddActivity(CharacterActivityEvent.Work(
-                    workType,
-                    CharacterActivityOutcomes.Blocked,
-                    $"{label} 대기: 재료가 아직 도착하지 않음",
-                    target,
-                    reasonCode: "waiting-for-materials",
-                    value: order.ProgressRatio));
+                WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                    WorkExecutionTransition.MaterialsPending,
+                    workType, target, workLabel: label, progress: order.ProgressRatio);
                 yield return new WaitForSeconds(0.35f);
                 if (!workOrderRuntime.RefreshMaterialsReady(target as ConstructionSite))
                 {
@@ -2370,13 +2377,9 @@ public sealed class WorkTaskExecutor
                     WorkPreWuExitKind.WorkOrderApplyRejected,
                     (message ?? string.Empty) + "; "
                     + CaptureTimedWorkGateDetail(runId, actor, target));
-                actor?.AddActivity(CharacterActivityEvent.Work(
-                    workType,
-                    CharacterActivityOutcomes.Blocked,
-                    $"{label} 중단: {message}",
-                    target,
-                    reasonCode: "work-order-blocked",
-                    bubbleEligible: true));
+                WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                    WorkExecutionTransition.WorkOrderRejected,
+                    workType, target, workLabel: label, detail: message);
                 onCompleted?.Invoke(false, false);
                 yield break;
             }
@@ -2397,13 +2400,9 @@ public sealed class WorkTaskExecutor
             {
                 lastReportTime = gameClock.Time;
                 actor?.Brain?.SetActionPhase($"{label} {Mathf.RoundToInt(order.ProgressRatio * 100f)}%", target);
-                actor?.AddActivity(CharacterActivityEvent.Work(
-                    workType,
-                    CharacterActivityOutcomes.Progress,
-                    $"{label} 진행 {Mathf.RoundToInt(order.ProgressRatio * 100f)}%",
-                    target,
-                    reasonCode: "work-progress",
-                    value: order.ProgressRatio));
+                WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                    WorkExecutionTransition.ProgressAdvanced,
+                    workType, target, workLabel: label, progress: order.ProgressRatio);
             }
 
             if (completed)
@@ -2414,13 +2413,9 @@ public sealed class WorkTaskExecutor
                     workTypeId,
                     expectedWorkOrderId,
                     order) + ",effects=" + appliedCompletionEffects;
-                actor?.AddActivity(CharacterActivityEvent.Work(
-                    workType,
-                    CharacterActivityOutcomes.Completed,
-                    $"{label} 완료",
-                    target,
-                    reasonCode: "work-order-completed",
-                    value: 1f));
+                WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                    WorkExecutionTransition.WorkOrderCompleted,
+                    workType, target, workLabel: label, progress: 1f);
                 onCompleted?.Invoke(true, appliedCompletionEffects);
                 yield break;
             }
@@ -2578,9 +2573,12 @@ public sealed class WorkTaskExecutor
                 yield break;
             }
 
-            float tickDeltaTime = gameClock.DeltaTime > 0f
-                ? gameClock.DeltaTime
-                : 1f / 60f;
+            float tickDeltaTime = gameClock.DeltaTime;
+            if (gameClock.IsPaused || tickDeltaTime <= 0f)
+            {
+                yield return null;
+                continue;
+            }
             float deltaWork = CalculateWorkPerSecond(
                     workAmountCalculator,
                     actor,
@@ -2602,13 +2600,9 @@ public sealed class WorkTaskExecutor
                 lastReportTime = gameClock.Time;
                 float ratio = Mathf.Clamp01(completedWork / requiredWork);
                 actor?.Brain?.SetActionPhase($"{label} {Mathf.RoundToInt(ratio * 100f)}%", target);
-                actor?.AddActivity(CharacterActivityEvent.Work(
-                    workType,
-                    CharacterActivityOutcomes.Progress,
-                    $"{label} 진행 {Mathf.RoundToInt(ratio * 100f)}%",
-                    target,
-                    reasonCode: "work-progress",
-                    value: ratio));
+                WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                    WorkExecutionTransition.ProgressAdvanced,
+                    workType, target, workLabel: label, progress: ratio);
             }
 
             yield return null;
@@ -2720,9 +2714,12 @@ public sealed class WorkTaskExecutor
                 yield break;
             }
 
-            float tickDeltaTime = gameClock.DeltaTime > 0f
-                ? gameClock.DeltaTime
-                : 1f / 60f;
+            float tickDeltaTime = gameClock.DeltaTime;
+            if (gameClock.IsPaused || tickDeltaTime <= 0f)
+            {
+                yield return null;
+                continue;
+            }
             float deltaWork = Mathf.Min(
                 requiredWork - completedWork,
                 CalculateWorkPerSecond(
@@ -2751,13 +2748,9 @@ public sealed class WorkTaskExecutor
                 actor?.Brain?.SetActionPhase(
                     $"{label} {Mathf.RoundToInt(ratio * 100f)}%",
                     target);
-                actor?.AddActivity(CharacterActivityEvent.Work(
-                    workType,
-                    CharacterActivityOutcomes.Progress,
-                    $"{label} 진행 {Mathf.RoundToInt(ratio * 100f)}%",
-                    target,
-                    reasonCode: "persistent-work-progress",
-                    value: ratio));
+                WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                    WorkExecutionTransition.PersistentProgressAdvanced,
+                    workType, target, workLabel: label, progress: ratio);
             }
 
             yield return null;
@@ -2784,11 +2777,9 @@ public sealed class WorkTaskExecutor
         }
 
         work.MarkCurrentWorkInterruptedFromExecutor(interruptReason);
-        actor?.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Duty,
-            CharacterActivityOutcomes.Changed,
-            $"생리 욕구로 작업 중단: {interruptReason}",
-            reasonCode: "routine-need-interrupt"));
+        WorkExecutionChangedEvent.Publish(identityEvents, actor,
+            WorkExecutionTransition.RoutineNeedInterrupted,
+            default(WorkTypeId), detail: interruptReason);
         return true;
     }
 
@@ -2880,15 +2871,9 @@ public sealed class WorkTaskExecutor
             assessment.Failure,
             CharacterOperationBlockAxis.Environment,
             requestImmediateReplan: false);
-        actor.AddActivity(CharacterActivityEvent.Work(
-            work.AssignedWorkType,
-            CharacterActivityOutcomes.Blocked,
-            reason,
-            target,
-            reasonCode: evacuate
-                ? "environment-evacuation"
-                : "environment-reassignment",
-            bubbleEligible: true));
+        WorkExecutionChangedEvent.Publish(identityEvents, actor,
+            evacuate ? WorkExecutionTransition.EnvironmentEvacuation : WorkExecutionTransition.EnvironmentReassignment,
+            work.AssignedWorkType, target, detail: reason);
         environmentInterrupted = true;
         work.isWorking = false;
         if (actor.Brain != null)
@@ -3048,12 +3033,29 @@ public sealed class WorkTaskExecutor
         ReleaseActiveRestockLease(ItemReservationReleaseReason.Cancelled);
         if (emergencySuspended)
         {
+            WorkTypeId suspendedWorkTypeId = work.AssignedWorkTypeId;
+            BuildableObject suspendedTarget = work.assignedShop;
             CompleteEmergencyAccounting("suspended-for-emergency");
-            AwardApprovedWork(actor, ProficiencyWorkOutcome.PartialSuccess);
+            AwardApprovedWork(
+                actor,
+                ProficiencyWorkOutcome.PartialSuccess,
+                "work-run:" + runId);
+            PublishWorkCompleted(
+                actor,
+                suspendedWorkTypeId,
+                "checkpoint:emergency-suspended",
+                runId,
+                WorkCompletionIdentityReferenceDefaults.CheckpointTerminalOwner,
+                string.Empty,
+                suspendedTarget != null
+                    ? suspendedTarget.RequirePersistentInstanceId().Value
+                    : string.Empty,
+                approvedProficiencyWork);
             RecordSpeciesCompletedWork(
                 actor,
-                work.AssignedWorkTypeId,
-                approvedProficiencyWork);
+                suspendedWorkTypeId,
+                approvedProficiencyWork,
+                "work-run:" + runId);
             CharacterSkillRuntimeEffects.EndWork(actor);
             characterEnvironment.ClearWorkContext(
                 new CharacterId(actor?.Identity?.PersistentId));
@@ -3096,7 +3098,8 @@ public sealed class WorkTaskExecutor
                 ? ProficiencyWorkOutcome.PartialSuccess
                 : environmentInterrupted || workAccidentOccurred
                 ? ProficiencyWorkOutcome.AccidentOrForcedStop
-                : ProficiencyWorkOutcome.SafeFailure);
+                : ProficiencyWorkOutcome.SafeFailure,
+            "work-run:" + runId);
         if (!routineNeedInterrupted)
         {
             PublishWorkCompleted(
@@ -3106,20 +3109,36 @@ public sealed class WorkTaskExecutor
                     ? "outcome:accident"
                     : environmentInterrupted
                         ? "outcome:environment-interrupted"
-                        : "outcome:failure");
+                        : "outcome:failure",
+                runId,
+                WorkCompletionIdentityReferenceDefaults.ExecutorTerminalOwner,
+                string.Empty,
+                interruptedTarget != null
+                    ? interruptedTarget.RequirePersistentInstanceId().Value
+                    : string.Empty,
+                approvedProficiencyWork);
         }
         else
         {
+            PublishWorkCompleted(
+                actor,
+                interruptedWorkTypeId,
+                "checkpoint:routine-need-suspended",
+                runId,
+                WorkCompletionIdentityReferenceDefaults.CheckpointTerminalOwner,
+                string.Empty,
+                interruptedTarget != null
+                    ? interruptedTarget.RequirePersistentInstanceId().Value
+                    : string.Empty,
+                approvedProficiencyWork);
             RecordSpeciesCompletedWork(
                 actor,
                 interruptedWorkTypeId,
-                approvedProficiencyWork);
-            actor?.AddActivity(CharacterActivityEvent.Work(
-                interruptedWorkTypeId,
-                CharacterActivityOutcomes.Changed,
-                "생리 욕구 해결 후 재개하도록 작업 진행 상태 보존",
-                interruptedTarget,
-                reasonCode: "routine-need-suspended"));
+                approvedProficiencyWork,
+                "work-run:" + runId + ":routine-checkpoint");
+            WorkExecutionChangedEvent.Publish(identityEvents, actor,
+                WorkExecutionTransition.RoutineNeedSuspended,
+                interruptedWorkTypeId, interruptedTarget);
         }
         CharacterSkillRuntimeEffects.EndWork(actor);
         characterEnvironment.ClearWorkContext(
@@ -3450,12 +3469,9 @@ public sealed class WorkTaskExecutor
         actor.Brain?.SetActionPhase(
             "비상 대응을 위해 안전 지점에서 작업 일시중단",
             target);
-        actor.AddActivity(CharacterActivityEvent.Work(
-            workTypeId,
-            CharacterActivityOutcomes.Changed,
-            "비상 대응을 위해 진행 상태를 보존하고 작업을 일시중단했습니다.",
-            target,
-            reasonCode: "suspended-for-emergency"));
+        WorkExecutionChangedEvent.Publish(identityEvents, actor,
+            WorkExecutionTransition.EmergencySuspended,
+            workTypeId, target);
         actor.Brain.SuspendCurrentActionAtSafeCheckpoint(
             "suspended-for-emergency");
         return true;
@@ -3664,7 +3680,12 @@ public sealed class WorkTaskExecutor
     private void PublishWorkCompleted(
         CharacterActor actor,
         WorkTypeId workTypeId,
-        string productId)
+        string productId,
+        int runId = -1,
+        string terminalOwnerId = "",
+        string childResultKey = "",
+        string targetEntityId = "",
+        float contributionWorkUnits = 0f)
     {
         if (!workStartedPublished
             || identityEvents == null
@@ -3676,7 +3697,27 @@ public sealed class WorkTaskExecutor
             workTypeId.Value,
             productId,
             ResolveCommandOrigin(),
-            calendar?.Day ?? 0));
+            calendar?.Day ?? 0,
+            runId >= 0
+                ? $"work-run:{id.Value}:{runId}"
+                : WorkCompletionIdentityReferenceDefaults.None,
+            string.IsNullOrEmpty(terminalOwnerId)
+                ? runId >= 0
+                    ? WorkCompletionIdentityReferenceDefaults
+                        .ExecutorTerminalOwner
+                    : WorkCompletionIdentityReferenceDefaults
+                        .LegacyTerminalOwner
+                : terminalOwnerId,
+            string.IsNullOrEmpty(childResultKey)
+                ? WorkCompletionIdentityReferenceDefaults.None
+                : childResultKey,
+            string.IsNullOrEmpty(targetEntityId)
+                ? WorkCompletionIdentityReferenceDefaults.None
+                : targetEntityId,
+            Mathf.Max(0f, contributionWorkUnits),
+            CharacterSkillRuntimeEffects.CaptureWorkModifierProvenance(
+                actor,
+                workTypeId)));
     }
 
     private CharacterCommandOrigin ResolveCommandOrigin() =>
@@ -3786,6 +3827,7 @@ public sealed class WorkTaskExecutor
             throw new InvalidOperationException(
                 "Work accident execution requires the persistent work-operation ID authority before damage can commit.");
         }
+        workAccidentObservations.RequireReady(committedWorkerId.Value);
         string workOperationId = operationIds.AllocateWorkAccidentOperationId(
             committedWorkerId,
             approvedWorkTypeId,
@@ -3817,143 +3859,77 @@ public sealed class WorkTaskExecutor
         if (workerDisplayName.Length == 0 || facilityDisplayName.Length == 0)
             throw new InvalidOperationException(
                 "Work accident requires immutable worker and facility display snapshots.");
-        ProcessAccidentOutcomeReceipt accidentReceipt =
-            EnvironmentOutcomeReceiptFactory.CreateProcessAccident(
-                workOperationId,
-                committedWorkerId,
-                workerDisplayName,
-                assignedTarget.PersistentInstanceId,
-                facilityDisplayName,
-                approvedWorkTypeId,
-                injured.nodeId,
-                expectedAppliedDamage,
-                riskContext.ObservationDetail,
-                new CoreGridCell(
-                    assignedTarget.centerPos.x,
-                    assignedTarget.centerPos.y),
-                calendar?.Day ?? 0);
-        if (!environmentOutcomes.TryPrepare(
-                accidentReceipt,
-                out PreparedEnvironmentOutcome preparedAccident,
-                out string prepareFailure))
-            throw new InvalidOperationException(
-                "Work accident outcome prepare failed: " + prepareFailure);
-        CharacterBodyHealthMutationSnapshot bodyBefore =
-            bodyHealthMutation.CaptureCombatMutation(actor);
+        var snapshot = new WorkAccidentFactSaveData
+        {
+            operationId = workOperationId, workerId = committedWorkerId.Value,
+            workerDisplayName = workerDisplayName, facilityId = assignedTarget.PersistentInstanceId.Value,
+            facilityDisplayName = facilityDisplayName, workTypeId = approvedWorkTypeId.Value,
+            anatomyNodeId = injured.nodeId, appliedDamage = expectedAppliedDamage,
+            observedCause = riskContext.ObservationDetail, accidentMultiplier = accidentMultiplier,
+            x = assignedTarget.centerPos.x, y = assignedTarget.centerPos.y,
+            absoluteDay = calendar?.Day ?? 0, commandOrigin = (int)ResolveCommandOrigin()
+        };
+        WorkAccidentObservationRuntime.CaptureFirePlan(snapshot, assignedTarget);
+        var proposed = new WorkAccidentFact(snapshot);
+        if (!accidentFacts.TryReserve(proposed, out var lease, out string failure))
+            throw new InvalidOperationException("work-accident-observer-reservation-failed:" + failure);
+        CharacterBodyHealthMutationSnapshot bodyBefore = default;
+        bool capturedBody = false;
+        bool appliedRecorded = false;
+        bool mayBeCommitted = false;
         try
         {
-            if (!anatomyHealth.TryDamageNode(
-                    actor,
-                    injured.nodeId,
-                    WorkAccidentDamage,
-                    bleeding: 0f,
-                    reason: "work-accident"))
-                throw new InvalidOperationException(
-                    $"Work accident failed to damage anatomy node '{injured.nodeId}'.");
+            bodyBefore = bodyHealthMutation.CaptureCombatMutation(actor);
+            capturedBody = true;
+            if (!anatomyHealth.TryDamageNode(actor, injured.nodeId, WorkAccidentDamage,
+                    bleeding: 0f, reason: "work-accident"))
+                throw new InvalidOperationException("work-accident-damage-failed:" + injured.nodeId);
+            var after = anatomyHealth.GetAnatomySnapshot(actor).Nodes.FirstOrDefault(value =>
+                value != null && string.Equals(value.nodeId, injured.nodeId, StringComparison.Ordinal));
+            float appliedDamage = after == null ? 0f : Mathf.Max(0f, nodeHealthBefore - after.currentHealth);
+            if (appliedDamage <= 0f || !Mathf.Approximately(appliedDamage, expectedAppliedDamage))
+                throw new InvalidOperationException("work-accident-authoritative-damage-mismatch");
+            snapshot.appliedDamage = appliedDamage;
+            var actual = new WorkAccidentFact(snapshot);
+            workAccidentObservations.RecordApplied(actual, lease.PublicationKey);
+            appliedRecorded = true;
+            var delivery = accidentFacts.Publish(lease, actual);
+            mayBeCommitted = delivery.MayBeCommitted;
+            if (!mayBeCommitted)
+                throw new InvalidOperationException("work-accident-observation-rejected:" + delivery.Detail);
+            // No rollback after an ambiguous publication; the frozen fact survives
+            // both executor lifetime and whole-world restore in work.orders.
+            workAccidentOccurred = true;
+            work.isWorking = false;
+            workAccidentObservations.MarkDelivery(workOperationId, delivery);
         }
         catch
         {
-            bodyHealthMutation.RestoreCombatMutation(
-                actor,
-                bodyBefore,
-                "work-accident-outcome-rollback");
-            environmentOutcomes.Cancel(preparedAccident);
+            if (!mayBeCommitted && capturedBody)
+            {
+                void Rollback() => bodyHealthMutation.RestoreCombatMutation(
+                    actor, bodyBefore, "work-accident-observation-rollback");
+                try
+                {
+                    if (appliedRecorded) workAccidentObservations.RollbackRejected(workOperationId, Rollback);
+                    else Rollback();
+                }
+                catch
+                {
+                    workAccidentOccurred = true;
+                    work.isWorking = false;
+                    throw;
+                }
+            }
             throw;
         }
-        AnatomyNodeHealthState committedInjury = anatomyHealth
-            .GetAnatomySnapshot(actor)
-            .Nodes
-            .FirstOrDefault(value => value != null
-                && string.Equals(
-                    value.nodeId,
-                    injured.nodeId,
-                    StringComparison.Ordinal));
-        float appliedDamage = committedInjury == null
-            ? 0f
-            : Mathf.Max(0f, nodeHealthBefore - committedInjury.currentHealth);
-        if (appliedDamage <= 0f)
+        finally
         {
-            bodyHealthMutation.RestoreCombatMutation(
-                actor,
-                bodyBefore,
-                "work-accident-zero-damage-rollback");
-            environmentOutcomes.Cancel(preparedAccident);
-            throw new InvalidOperationException(
-                $"Work accident damage did not change anatomy node '{injured.nodeId}'.");
+            try { accidentFacts.Cancel(lease); }
+            catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
+            { Debug.LogError("work-accident-reservation-cleanup-failed:" + exception.Message); }
         }
-        if (!Mathf.Approximately(appliedDamage, expectedAppliedDamage))
-        {
-            bodyHealthMutation.RestoreCombatMutation(
-                actor,
-                bodyBefore,
-                "work-accident-receipt-mismatch");
-            environmentOutcomes.Cancel(preparedAccident);
-            throw new InvalidOperationException(
-                "Work accident authoritative damage differed from its prepared receipt.");
-        }
-        EnvironmentOutcomeCommitResult committedAccident;
-        try
-        {
-            committedAccident = environmentOutcomes.Commit(preparedAccident, 0L);
-        }
-        catch
-        {
-            committedAccident = environmentOutcomes.Reconcile(
-                accidentReceipt.Payload.ResultKey);
-            if (!committedAccident.DurablyCommitted)
-            {
-                bodyHealthMutation.RestoreCombatMutation(
-                    actor,
-                    bodyBefore,
-                    "work-accident-outcome-exception-rollback");
-                environmentOutcomes.Cancel(preparedAccident);
-                throw;
-            }
-        }
-        if (!committedAccident.DurablyCommitted)
-        {
-            bodyHealthMutation.RestoreCombatMutation(
-                actor,
-                bodyBefore,
-                "work-accident-outcome-commit-rollback");
-            throw new InvalidOperationException(
-                "Work accident outcome commit failed: "
-                + committedAccident.DetailCode);
-        }
-        workAccidentOccurred = true;
-        work.isWorking = false;
-        identityEvents.Publish(new CharacterInjuredIdentityEvent(
-            committedWorkerId,
-            default,
-            CombatDamageType.Blunt,
-            appliedDamage,
-            calendar?.Day ?? 0,
-            workOperationId,
-            actor.name,
-            approvedWorkTypeId,
-            assignedTarget.PersistentInstanceId,
-            assignedTarget.name,
-            new CoreGridCell(
-                assignedTarget.centerPos.x,
-                assignedTarget.centerPos.y),
-            injured.nodeId,
-            riskContext.ObservationDetail,
-            ResolveCommandOrigin()));
-        actor.AddActivity(CharacterActivityEvent.Work(
-            approvedWorkTypeId,
-            CharacterActivityOutcomes.Failed,
-            $"작업 사고로 작업이 중단됨 ({riskContext.ObservationDetail})",
-            assignedTarget,
-            reasonCode: "work-accident",
-            value: accidentMultiplier,
-            bubbleEligible: true));
-        PublishProcessAccidentFireAfterCanonicalInjury(
-            workOperationId,
-            actor,
-            assignedTarget,
-            approvedWorkTypeId,
-            injured.nodeId,
-            appliedDamage);
+        workAccidentObservations.CompleteFollowups(workOperationId);
         return true;
     }
 
@@ -3981,37 +3957,6 @@ public sealed class WorkTaskExecutor
         requestedEmergencyEpochId = receipt.AlertEpochId;
     }
 
-    private void PublishProcessAccidentFireAfterCanonicalInjury(
-        string workOperationId,
-        CharacterActor actor,
-        BuildableObject assignedTarget,
-        WorkTypeId approvedWorkTypeId,
-        string injuredNodeId,
-        float appliedDamage)
-    {
-        if (processAccidentFireProducer == null)
-        {
-            return;
-        }
-
-        try
-        {
-            processAccidentFireProducer.TryPublish(
-                new ProcessAccidentFireReceipt(
-                    workOperationId,
-                    actor,
-                    assignedTarget,
-                    approvedWorkTypeId,
-                    injuredNodeId,
-                    appliedDamage));
-        }
-        catch (Exception exception)
-        {
-            lastWorkAccidentFireFailureDetail = FormattableString.Invariant(
-                $"work-accident-fire-follow-up-failed;operation={workOperationId};worker={actor?.Identity?.PersistentId ?? "<null>"};workType={approvedWorkTypeId.Value};facility={assignedTarget?.PersistentInstanceId.Value ?? "<null>"};node={injuredNodeId};damage={appliedDamage:R};injuryCommitted=true;identityEventPublished=true;activityRecorded=true;error={exception.GetType().FullName}:{exception.Message}");
-            Debug.LogError(lastWorkAccidentFireFailureDetail, assignedTarget);
-        }
-    }
 
     private float CalculateWorkPerSecond(
         IWorkAmountCalculator calculator,
@@ -4031,7 +3976,8 @@ public sealed class WorkTaskExecutor
 
     private void AwardApprovedWork(
         CharacterActor actor,
-        ProficiencyWorkOutcome outcome)
+        ProficiencyWorkOutcome outcome,
+        string sourceOperationId = null)
     {
         if (proficiencyAwarded
             || approvedProficiencyWork <= 0f
@@ -4070,24 +4016,48 @@ public sealed class WorkTaskExecutor
                 == BuiltInWorkTypeIds.Dismantle
                     ? Mathf.Min(0.20f, proficiencyRepetitionMultiplier)
                     : proficiencyRepetitionMultiplier,
-            absoluteHour: calendar.AbsoluteHour);
+            absoluteHour: calendar.AbsoluteHour,
+            sourceOperationId: string.IsNullOrWhiteSpace(sourceOperationId)
+                ? "work:"
+                    + characterId.Value
+                    + ":"
+                    + work.AssignedWorkTypeId.Value
+                    + ":"
+                    + calendar.AbsoluteHour
+                : sourceOperationId);
     }
 
     private void RecordSpeciesCompletedWork(
         CharacterActor actor,
         WorkTypeId workTypeId,
-        float completedWork)
+        float completedWork,
+        string sourceOperationId)
     {
         if (completedWork <= 0f)
             return;
         if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
             throw new InvalidOperationException(
                 "Species completed-work projection requires a persistent character id.");
-        if (!speciesCommands.RecordCompletedWork(
+        DomainFailure failure;
+        bool recorded;
+        if (speciesCommands is ICharacterSpeciesContributionCommand exact)
+        {
+            recorded = exact.RecordCompletedWork(
+                characterId,
+                sourceOperationId,
+                workTypeId.Value,
+                completedWork,
+                out failure);
+        }
+        else
+        {
+            recorded = speciesCommands.RecordCompletedWork(
                 characterId,
                 workTypeId.Value,
                 completedWork,
-                out DomainFailure failure))
+                out failure);
+        }
+        if (!recorded)
             throw new InvalidOperationException(
                 $"Species completed-work projection failed: {failure.Code}");
     }

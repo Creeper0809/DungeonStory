@@ -555,39 +555,6 @@ internal sealed class CharacterBodyHealthStateRules
         };
     }
 
-    public CombatBodyPart? GetLegacyBodyPart(
-        string profileId,
-        string nodeId)
-    {
-        if (string.Equals(profileId, "anatomy:slime", StringComparison.Ordinal))
-        {
-            return nodeId == "membrane" ? CombatBodyPart.Torso : null;
-        }
-
-        if (string.Equals(profileId, "anatomy:quadruped", StringComparison.Ordinal))
-        {
-            return nodeId switch
-            {
-                "head" => CombatBodyPart.Head,
-                "torso" => CombatBodyPart.Torso,
-                "forelegs" => CombatBodyPart.LeftLeg,
-                "hindlegs" => CombatBodyPart.RightLeg,
-                _ => null
-            };
-        }
-
-        return nodeId switch
-        {
-            "head" => CombatBodyPart.Head,
-            "torso" => CombatBodyPart.Torso,
-            "arm:left" => CombatBodyPart.LeftArm,
-            "arm:right" => CombatBodyPart.RightArm,
-            "leg:left" => CombatBodyPart.LeftLeg,
-            "leg:right" => CombatBodyPart.RightLeg,
-            _ => null
-        };
-    }
-
     public AnatomyNodeHealthState CloneAnatomyNode(
         AnatomyNodeHealthState source)
     {
@@ -668,6 +635,8 @@ internal sealed class CharacterBodyHealthStateRules
 /// </summary>
 internal sealed class CharacterVitalsAggregateState
 {
+    internal List<CharacterHealingPendingFactData> PendingHealingFacts { get; } = new();
+    internal List<CharacterFatalityPendingFactData> PendingFatalityFacts { get; } = new();
     private readonly Dictionary<CharacterId, CharacterBodyHealthState> characters =
         new Dictionary<CharacterId, CharacterBodyHealthState>();
 
@@ -708,6 +677,8 @@ internal sealed class CharacterVitalsAggregateState
         }
 
         CharacterVitalsAggregateState clone = new CharacterVitalsAggregateState();
+        foreach (var fact in PendingHealingFacts) clone.PendingHealingFacts.Add(fact.Clone());
+        foreach (var fact in PendingFatalityFacts) clone.PendingFatalityFacts.Add(fact.Clone());
         foreach (KeyValuePair<CharacterId, CharacterBodyHealthState> entry in characters)
         {
             clone.Set(entry.Key, stateRules.CloneState(entry.Value));
@@ -855,9 +826,12 @@ internal sealed class CharacterVitalsAuthority
             return;
         }
 
+        float previousHealth = state.currentHealth;
         state.currentHealth = Mathf.Max(
             allowDeath ? 0f : 1f,
             state.currentHealth - amount);
+        if (state.currentHealth < previousHealth)
+            state.lastDamageReason = reasonCode?.Trim() ?? string.Empty;
         UpdateInjuryProjection(state);
         Project(actor, state);
         actor.Stats?.NotifyAggregateDamage(
@@ -945,6 +919,8 @@ internal sealed class CharacterVitalsAuthority
         return new DungeonCharacterBodyHealthSaveData
         {
             version = DungeonCharacterBodyHealthSaveData.CurrentVersion,
+            pendingHealingFacts = ReadState.PendingHealingFacts.Select(value => value.Clone()).ToList(),
+            pendingFatalityFacts = ReadState.PendingFatalityFacts.Select(value => value.Clone()).ToList(),
             characters = ReadState.Characters.Values
                 .Select(CloneForCapture)
                 .OrderBy(state => state.characterId, StringComparer.Ordinal)
@@ -974,6 +950,10 @@ internal sealed class CharacterVitalsAuthority
             return;
         }
 
+        try { CharacterHealingFact.ValidatePending(saveData.pendingHealingFacts); }
+        catch (ArgumentException exception) { report.AddError(exception.Message); }
+        try { CharacterFatalityFact.ValidatePending(saveData.pendingFatalityFacts); }
+        catch (ArgumentException exception) { report.AddError(exception.Message); }
         HashSet<CharacterId> characterIds = new HashSet<CharacterId>();
         string previousCharacterId = null;
         foreach (CharacterBodyHealthState state in saveData.characters)
@@ -992,6 +972,20 @@ internal sealed class CharacterVitalsAuthority
             previousCharacterId = rawCharacterId;
             ValidateCharacterState(state, report);
         }
+        if (saveData.pendingHealingFacts != null)
+            foreach (var pending in saveData.pendingHealingFacts)
+                if (pending?.fact != null && !characterIds.Contains(new CharacterId(pending.fact.characterId)))
+                    report.AddError("character-healing-pending-owner-missing");
+        if (saveData.pendingFatalityFacts != null)
+            foreach (var pending in saveData.pendingFatalityFacts)
+                if (pending?.fact != null)
+                {
+                    var state = saveData.characters.FirstOrDefault(value => value?.characterId == pending.fact.characterId);
+                    if (state == null || state.currentHealth != 0f)
+                        report.AddError("character-fatality-pending-owner-missing-or-alive");
+                    if (saveData.pendingHealingFacts?.Any(value => value?.fact?.characterId == pending.fact.characterId) == true)
+                        report.AddError("character-vitals-pending-owner-conflict");
+                }
     }
 
     internal CharacterBodyHealthRestoreCandidate PrepareRestore(
@@ -1002,11 +996,13 @@ internal sealed class CharacterVitalsAuthority
         if (!validation.Success)
         {
             throw new InvalidOperationException(
-                "Character body-health restore rejected an invalid V5 candidate: "
+                "Character body-health restore rejected an invalid V7 candidate: "
                 + string.Join(" | ", validation.Errors));
         }
 
         CharacterVitalsAggregateState restoredAggregate = new CharacterVitalsAggregateState();
+        foreach (var fact in saveData.pendingHealingFacts) restoredAggregate.PendingHealingFacts.Add(fact.Clone());
+        foreach (var fact in saveData.pendingFatalityFacts) restoredAggregate.PendingFatalityFacts.Add(fact.Clone());
         foreach (CharacterBodyHealthState source in saveData.characters)
         {
             CharacterId characterId = new CharacterId(source.characterId);
@@ -1189,14 +1185,15 @@ internal sealed class CharacterVitalsAuthority
 }
 
 /// <summary>
-/// Publishes the UI, mood, activity, lifecycle, and run effects produced by
+/// Applies mood, lifecycle, and run effects and publishes neutral notifications of
 /// authoritative vital changes without making <see cref="CharacterStats"/> own them.
 /// </summary>
 internal static class CharacterVitalsSideEffectAdapter
 {
     internal static void NotifyDamage(
         CharacterStats owner,
-        CharacterLog log,
+        CharacterActor actor,
+        IGameEventBus gameEventBus,
         float amount,
         string reason,
         bool died,
@@ -1213,17 +1210,13 @@ internal static class CharacterVitalsSideEffectAdapter
                 180f,
                 2);
         }
-        log?.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Health,
-            CharacterActivityOutcomes.Damaged,
-            string.IsNullOrWhiteSpace(reason)
-                ? $"피해 {amount:0.#}"
-                : $"피해 {amount:0.#}: {reason}",
-            actionId: "health:damage",
-            reasonCode: reason,
-            value: amount,
-            sentiment: -0.8f,
-            bubbleEligible: true));
+        gameEventBus.Publish(new CharacterVitalsChangedEvent(
+            CharacterPersistentIdentity.Require(actor),
+            CharacterVitalTransition.Damaged,
+            amount,
+            reason,
+            died,
+            deathCause));
 
         if (died)
         {
@@ -1235,7 +1228,8 @@ internal static class CharacterVitalsSideEffectAdapter
 
     internal static void NotifyHealing(
         CharacterStats owner,
-        CharacterLog log,
+        CharacterActor actor,
+        IGameEventBus gameEventBus,
         float amount)
     {
         owner.ApplyMoodFactor(
@@ -1244,27 +1238,22 @@ internal static class CharacterVitalsSideEffectAdapter
             Mathf.Clamp(amount * 0.15f, 1f, 6f),
             120f,
             1);
-        log?.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Health,
-            CharacterActivityOutcomes.Completed,
-            $"회복 {amount:0.#}",
-            actionId: "health:heal",
-            value: amount,
-            sentiment: 0.55f));
+        gameEventBus.Publish(new CharacterVitalsChangedEvent(
+            CharacterPersistentIdentity.Require(actor),
+            CharacterVitalTransition.Healed,
+            amount));
     }
 
     internal static float NotifyInjurySeverity(
-        CharacterLog log,
+        CharacterActor actor,
+        IGameEventBus gameEventBus,
         float value)
     {
         float injurySeverity = Mathf.Clamp01(value);
-        log?.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Health,
-            CharacterActivityOutcomes.Changed,
-            $"부상도 변경: {Mathf.RoundToInt(injurySeverity * 100f)}%",
-            actionId: "health:injury-severity",
-            value: injurySeverity,
-            sentiment: -injurySeverity));
+        gameEventBus.Publish(new CharacterVitalsChangedEvent(
+            CharacterPersistentIdentity.Require(actor),
+            CharacterVitalTransition.InjurySeverityChanged,
+            injurySeverity));
         return injurySeverity;
     }
 
@@ -1274,12 +1263,12 @@ internal static class CharacterVitalsSideEffectAdapter
         CharacterIdentity identity,
         CharacterVisual visual,
         CharacterLifecycle lifecycle,
-        CharacterLog log,
         IGameEventBus gameEventBus,
         ICharacterDeathEventFactory deathEventFactory,
         IOwnerRunLifecycleService ownerRunLifecycleService,
         CharacterDeathCauseCode cause,
-        string reasonCode)
+        string reasonCode,
+        string parentPublicationKey = "")
     {
         if (lifecycle != null
             && lifecycle.CurrentState == CharacterLifecycleState.Despawned)
@@ -1288,15 +1277,13 @@ internal static class CharacterVitalsSideEffectAdapter
         }
 
         visual?.SetRenderersVisible(true);
-        log?.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Health,
-            CharacterActivityOutcomes.Defeated,
-            string.IsNullOrWhiteSpace(reasonCode) ? "사망" : $"사망: {reasonCode}",
-            actionId: "health:death",
-            reasonCode: reasonCode,
-            value: 1f,
-            sentiment: -1f,
-            bubbleEligible: true));
+        gameEventBus.Publish(new CharacterVitalsChangedEvent(
+            CharacterPersistentIdentity.Require(actor),
+            CharacterVitalTransition.Died,
+            1f,
+            reasonCode,
+            wasFatal: true,
+            deathCause: cause));
         lifecycle?.SetLifecycleState(CharacterLifecycleState.Despawned);
 
         (gameEventBus
@@ -1305,7 +1292,10 @@ internal static class CharacterVitalsSideEffectAdapter
             .Publish((deathEventFactory
                 ?? throw new InvalidOperationException(
                     $"{nameof(CharacterBodyHealthStateRules)} requires {nameof(ICharacterDeathEventFactory)} before publishing a death."))
-                .Create(actor, cause));
+                .Create(
+                    actor,
+                    cause,
+                    parentPublicationKey));
 
         if (identity != null && identity.IsOwner && actor != null)
         {

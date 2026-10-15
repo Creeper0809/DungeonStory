@@ -59,7 +59,22 @@ public enum MigratedProducerOutcomeKind
     RegularCustomerRecruitResult = 54,
     RegularCustomerVisitResult = 55,
     ServiceModeChangeResult = 56,
-    StockSupplyResult = 57
+    StockSupplyResult = 57,
+    ObservedProductionLossLifeEventReceipt = 58,
+    WorkOrderTerminalResult = 59,
+    RegionalSupplyContractResult = 60,
+    RegularCustomerRecruitDeliveryResult = 61,
+    SeasonalWildlifeArrivalResult = 62,
+    SeasonalDriftCargoResult = 63,
+    ApparelWorkOrderTerminalResult = 64,
+    CombatEquipmentCraftCompletionResult = 65,
+    RepairWorkResult = 66,
+    WorldResourceCycleResult = 67,
+    AnimalHusbandryCommandResult = 68,
+    AnimalHusbandryWorkResult = 69,
+    ResourceStockPolicySaleResult = 70,
+    QualityRejectedSaleResult = 71,
+    CharacterFoulWaterConsequenceResult = 72
 }
 
 public sealed class MigratedProducerOutcomeDefinition
@@ -155,6 +170,7 @@ public static class MigratedProducerOutcomeCatalog
         D(MigratedProducerOutcomeKind.ObservedFuneralLifeEventReceipt, "character.funeral-observed", "장례 목격", "domain:life", 0.94f, NarrativeMemoryTier.Core),
         D(MigratedProducerOutcomeKind.ObservedLastLessonLifeEventReceipt, "character.last-lesson-observed", "마지막 가르침", "domain:life", 0.88f, NarrativeMemoryTier.Core),
         D(MigratedProducerOutcomeKind.ObservedLineageCompressionLifeEventReceipt, "character.lineage-compression-observed", "계보 압축", "domain:life", 0.84f, NarrativeMemoryTier.Core),
+        D(MigratedProducerOutcomeKind.ObservedProductionLossLifeEventReceipt, "character.production-loss-observed", "생산 손실 목격", "domain:career", 0.76f, NarrativeMemoryTier.Episodic),
         D(MigratedProducerOutcomeKind.ObservedMealIncidentCaptureResult, "survival.meal-incident-observed", "식사 사건 목격", "domain:survival", 0.68f, NarrativeMemoryTier.Episodic),
         D(MigratedProducerOutcomeKind.ObservedQuietPromotionLifeEventReceipt, "character.quiet-promotion-observed", "조용한 승진", "domain:career", 0.78f, NarrativeMemoryTier.Episodic),
         D(MigratedProducerOutcomeKind.OwnerRunEndedEvent, "run.owner-ended", "사장 런 종료", "domain:run", 1f, NarrativeMemoryTier.Core),
@@ -170,7 +186,21 @@ public static class MigratedProducerOutcomeCatalog
         D(MigratedProducerOutcomeKind.RegularCustomerRecruitResult, "service.regular-customer-recruited", "단골 영입", "domain:service", 0.82f, NarrativeMemoryTier.Core),
         D(MigratedProducerOutcomeKind.RegularCustomerVisitResult, "service.regular-customer-visited", "단골 방문", "domain:service", 0.64f, NarrativeMemoryTier.Episodic),
         D(MigratedProducerOutcomeKind.ServiceModeChangeResult, "service.mode-changed", "서비스 모드 변경", "domain:service", 0.56f, NarrativeMemoryTier.Recent),
-        D(MigratedProducerOutcomeKind.StockSupplyResult, "inventory.stock-supplied", "재고 공급", "domain:inventory", 0.48f, NarrativeMemoryTier.Recent)
+        D(MigratedProducerOutcomeKind.StockSupplyResult, "inventory.stock-supplied", "재고 공급", "domain:inventory", 0.48f, NarrativeMemoryTier.Recent),
+        D(MigratedProducerOutcomeKind.WorkOrderTerminalResult, "work.order-terminal", "공사 주문 종결", "domain:work", 0.72f, NarrativeMemoryTier.Episodic),
+        D(MigratedProducerOutcomeKind.RegionalSupplyContractResult, "economy.regional-supply-contract", "지역 공급 계약", "domain:economy", 0.74f, NarrativeMemoryTier.Episodic),
+        D(MigratedProducerOutcomeKind.RegularCustomerRecruitDeliveryResult, "service.regular-customer-recruit-delivered", "영입 인물 배치", "domain:service", 0.78f, NarrativeMemoryTier.Episodic),
+        D(MigratedProducerOutcomeKind.SeasonalWildlifeArrivalResult, "world.seasonal-wildlife-arrived", "계절 야생동물 도착", "domain:world", 0.72f, NarrativeMemoryTier.Episodic),
+        D(MigratedProducerOutcomeKind.SeasonalDriftCargoResult, "world.seasonal-drift-cargo-resolved", "계절 표류 화물 정산", "domain:world", 0.66f, NarrativeMemoryTier.Episodic),
+        D(MigratedProducerOutcomeKind.ApparelWorkOrderTerminalResult, "equipment.apparel-work-order-completed", "의복 작업 완료", "domain:equipment", 0.58f, NarrativeMemoryTier.Recent),
+        D(MigratedProducerOutcomeKind.CombatEquipmentCraftCompletionResult, "equipment.combat-craft-completed", "전투 장비 제작 완료", "domain:equipment", 0.68f, NarrativeMemoryTier.Episodic),
+        D(MigratedProducerOutcomeKind.RepairWorkResult, "work.repair-resolved", "수리 결과", "domain:work", 0.58f, NarrativeMemoryTier.Episodic),
+        D(MigratedProducerOutcomeKind.WorldResourceCycleResult, "world.resource-cycle-resolved", "자원 작업 결과", "domain:world", 0.54f, NarrativeMemoryTier.Recent),
+        D(MigratedProducerOutcomeKind.AnimalHusbandryCommandResult, "economy.animal-husbandry-command-resolved", "축산 명령 결과", "domain:economy", 0.5f, NarrativeMemoryTier.Recent),
+        D(MigratedProducerOutcomeKind.AnimalHusbandryWorkResult, "economy.animal-husbandry-work-completed", "축산 작업 완료", "domain:economy", 0.66f, NarrativeMemoryTier.Episodic),
+        D(MigratedProducerOutcomeKind.ResourceStockPolicySaleResult, "economy.stock-policy-sale-completed", "초과 재고 판매", "domain:economy", 0.54f, NarrativeMemoryTier.Recent),
+        D(MigratedProducerOutcomeKind.QualityRejectedSaleResult, "economy.quality-rejected-sale-completed", "품질 미달 완제품 판매", "domain:economy", 0.62f, NarrativeMemoryTier.Episodic),
+        D(MigratedProducerOutcomeKind.CharacterFoulWaterConsequenceResult, "survival.foul-water-consequence", "오염수 후속 피해", "domain:survival", 0.72f, NarrativeMemoryTier.Episodic)
     };
 
     private static readonly Dictionary<MigratedProducerOutcomeKind, MigratedProducerOutcomeDefinition>
@@ -181,8 +211,8 @@ public static class MigratedProducerOutcomeCatalog
 
     static MigratedProducerOutcomeCatalog()
     {
-        if (DefinitionsInternal.Length != 57)
-            throw new InvalidOperationException("The migrated producer outcome catalog must contain exactly 57 definitions.");
+        if (DefinitionsInternal.Length != 72)
+            throw new InvalidOperationException("The migrated producer outcome catalog must contain exactly 72 definitions.");
         SupportedTypesInternal = new GameplayOutcomeTypeId[DefinitionsInternal.Length];
         for (int index = 0; index < DefinitionsInternal.Length; index++)
         {
@@ -211,6 +241,20 @@ public static class MigratedProducerOutcomeCatalog
         GameplayOutcomeTypeId outcomeTypeId,
         out MigratedProducerOutcomeDefinition definition) =>
         ByOutcomeType.TryGetValue(outcomeTypeId, out definition);
+
+    public static GameplayResultKey ResultKey(
+        MigratedProducerOutcomeKind kind, string ownerIdentity, long revision)
+    {
+        string producer = Get(kind).ProducerId;
+        string identity = ownerIdentity?.Trim() ?? string.Empty;
+        if (identity.Length == 0 || identity.Length > 512)
+            throw new ArgumentException("A bounded owner identity is required.", nameof(ownerIdentity));
+        string hash = NarrativeInferenceHash.ComputeSha256Utf8(producer + "|" + identity)
+            .Substring(0, 32);
+        return new GameplayResultKey(producer,
+            new GameplayOperationId("migrated:" + ((int)kind) + ":" + hash + ":" + revision),
+            revision, 0);
+    }
 
     private static MigratedProducerOutcomeDefinition D(
         MigratedProducerOutcomeKind kind,

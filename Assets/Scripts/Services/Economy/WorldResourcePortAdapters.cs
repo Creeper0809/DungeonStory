@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
@@ -377,8 +378,10 @@ public sealed class WorldResourceOutputPublicationPortAdapter :
     public WorldResourceOutputCommitStatus CommitReleased(
         WorldResourceOutputPublicationTransaction transaction,
         Vector2Int position,
+        out WorldResourceOutputCommitReceipt receipt,
         out string failureReason)
     {
+        receipt = default;
         failureReason = string.Empty;
         if (!TryUnwrap(transaction, out var prepared))
         {
@@ -389,9 +392,23 @@ public sealed class WorldResourceOutputPublicationPortAdapter :
                 prepared,
                 position,
                 ReleaseReason,
-                out _,
+                out PhysicalItemExactSourcePublicationReceipt committed,
                 out failureReason))
         {
+            receipt = new WorldResourceOutputCommitReceipt(
+                committed.BatchCommitId,
+                committed.DestinationId,
+                committed.TotalMassGrams,
+                committed.Stacks.Select(value =>
+                    new WorldResourcePublishedStackSaveData
+                    {
+                        stackId = value.StackId,
+                        outputLineId = value.OutputLineId,
+                        itemId = value.ItemDefinitionId.Value,
+                        quantity = value.Quantity,
+                        massGrams = value.MassGrams,
+                        itemInstanceId = value.ItemInstanceId
+                    }).ToArray());
             return WorldResourceOutputCommitStatus.Committed;
         }
 

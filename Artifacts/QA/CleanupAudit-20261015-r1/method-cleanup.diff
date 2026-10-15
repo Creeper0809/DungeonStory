@@ -1,0 +1,177 @@
+--- before/Assets/Scripts/Views/UI/CharacterSummaryTextFormatter.cs
++++ after/Assets/Scripts/Views/UI/CharacterSummaryTextFormatter.cs
+@@ -178,11 +178,6 @@
+         return CharacterSummaryUiTextQuery.Get(
+             "CharacterSummary.Weight.Kilograms",
+             Mathf.Max(0f, weight));
+-    }
+-
+-    public static string FormatSigned(int value)
+-    {
+-        return value > 0 ? "+" + value : value.ToString();
+     }
+ 
+     public static string Fallback(string text, string fallback)
+--- before/Assets/Scripts/Views/UI/CharacterSummaryCombatPresenter.cs
++++ after/Assets/Scripts/Views/UI/CharacterSummaryCombatPresenter.cs
+@@ -6,18 +6,6 @@
+ using TMPro;
+ using UnityEngine;
+ using UnityEngine.UI;
+-
+-internal sealed class CombatEquipmentUiStatBlock
+-{
+-    public static CombatEquipmentUiStatBlock Empty => new CombatEquipmentUiStatBlock();
+-
+-    public int maxHealth;
+-    public int attack;
+-    public int strength;
+-    public int toughness;
+-    public int dexterity;
+-    public int moveSpeed;
+-}
+ 
+ /// <summary>
+ /// Owns the combat-tab projection and commands for the character summary view.
+@@ -517,19 +505,6 @@
+         RefreshCommandLabels(profile, weapon);
+     }
+ 
+-    internal CombatEquipmentUiStatBlock GetCurrentEquipmentBonuses(CharacterActor actor)
+-    {
+-        string characterId = actor?.Identity?.PersistentId;
+-        if (string.IsNullOrWhiteSpace(characterId))
+-        {
+-            return CombatEquipmentUiStatBlock.Empty;
+-        }
+-
+-        // Detailed equipment contributions are projected by the item-backed
+-        // equipment runtime once character-stat component effects are exposed.
+-        return CombatEquipmentUiStatBlock.Empty;
+-    }
+-
+     private bool TryGetRuntime(CharacterActor actor, out string characterId)
+     {
+         characterId = actor?.Identity?.PersistentId ?? string.Empty;
+--- before/Assets/Scripts/Views/Character/UI/StartPartyPreparationPresentation.cs
++++ after/Assets/Scripts/Views/Character/UI/StartPartyPreparationPresentation.cs
+@@ -135,14 +135,6 @@
+             _ => rarity.ToString()
+         };
+ 
+-    public static void AppendFlags(StringBuilder builder, string label, string value)
+-    {
+-        if (!string.IsNullOrWhiteSpace(value))
+-        {
+-            builder.AppendLine($"{label}  {value}");
+-        }
+-    }
+-
+     public static string FormatFacilityRoles(FacilityRole roles)
+     {
+         if (roles == FacilityRole.None)
+@@ -198,12 +190,6 @@
+         return member.CharacterData != null ? member.CharacterData.characterName : "-";
+     }
+ 
+-    public static string FormatTraitIds(IEnumerable<int> traitIds)
+-    {
+-        int[] ids = traitIds?.Distinct().ToArray() ?? Array.Empty<int>();
+-        return ids.Length == 0 ? "-" : string.Join(", ", ids.Select(id => $"Trait {id}"));
+-    }
+-
+     public static string PotentialLabel(CharacterPotentialGrade grade)
+     {
+         return grade switch
+--- before/Assets/Scripts/Services/Codex/CodexRuntimeApplicationAdapter.cs
++++ after/Assets/Scripts/Services/Codex/CodexRuntimeApplicationAdapter.cs
+@@ -678,13 +678,6 @@
+                 : workTypeId.ToString()));
+     }
+ 
+-    internal static string FormatLegacyWorkTypes(FacilityWorkType workTypes)
+-    {
+-        return string.Join(", ", FacilityWorkTypeMap
+-            .Enumerate(workTypes)
+-            .Select(definition => definition.DisplayName));
+-    }
+-
+     public static string FormatDefenseConcept(DefenseAttackConcept concept)
+     {
+         return concept switch
+--- before/Assets/Scripts/Services/Combat/CharacterBodyHealthStateRules.cs
++++ after/Assets/Scripts/Services/Combat/CharacterBodyHealthStateRules.cs
+@@ -555,39 +555,6 @@
+         };
+     }
+ 
+-    public CombatBodyPart? GetLegacyBodyPart(
+-        string profileId,
+-        string nodeId)
+-    {
+-        if (string.Equals(profileId, "anatomy:slime", StringComparison.Ordinal))
+-        {
+-            return nodeId == "membrane" ? CombatBodyPart.Torso : null;
+-        }
+-
+-        if (string.Equals(profileId, "anatomy:quadruped", StringComparison.Ordinal))
+-        {
+-            return nodeId switch
+-            {
+-                "head" => CombatBodyPart.Head,
+-                "torso" => CombatBodyPart.Torso,
+-                "forelegs" => CombatBodyPart.LeftLeg,
+-                "hindlegs" => CombatBodyPart.RightLeg,
+-                _ => null
+-            };
+-        }
+-
+-        return nodeId switch
+-        {
+-            "head" => CombatBodyPart.Head,
+-            "torso" => CombatBodyPart.Torso,
+-            "arm:left" => CombatBodyPart.LeftArm,
+-            "arm:right" => CombatBodyPart.RightArm,
+-            "leg:left" => CombatBodyPart.LeftLeg,
+-            "leg:right" => CombatBodyPart.RightLeg,
+-            _ => null
+-        };
+-    }
+-
+     public AnatomyNodeHealthState CloneAnatomyNode(
+         AnatomyNodeHealthState source)
+     {
+--- before/Assets/Scripts/Services/Offense/OffenseExpeditionPanel.cs
++++ after/Assets/Scripts/Services/Offense/OffenseExpeditionPanel.cs
+@@ -836,31 +836,6 @@
+             : "없음";
+     }
+ 
+-    private static string FormatEquipmentStats(CombatEquipmentUiStatBlock stats)
+-    {
+-        if (stats == null)
+-        {
+-            return "보정 없음";
+-        }
+-
+-        List<string> parts = new List<string>();
+-        AddStat(parts, "체력", stats.maxHealth);
+-        AddStat(parts, "공격", stats.attack);
+-        AddStat(parts, "근력", stats.strength);
+-        AddStat(parts, "맷집", stats.toughness);
+-        AddStat(parts, "민첩", stats.dexterity);
+-        AddStat(parts, "이동", stats.moveSpeed);
+-        return parts.Count > 0 ? string.Join(" ", parts) : "보정 없음";
+-    }
+-
+-    private static void AddStat(ICollection<string> parts, string label, int value)
+-    {
+-        if (value != 0)
+-        {
+-            parts.Add($"{label} {value:+#;-#;0}");
+-        }
+-    }
+-
+     private static string GetActorName(CharacterActor actor)
+     {
+         actor?.EnsureRuntimeState();

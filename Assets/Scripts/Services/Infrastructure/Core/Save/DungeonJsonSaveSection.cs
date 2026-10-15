@@ -25,8 +25,10 @@ public abstract class DungeonStrictJsonSaveSection<TPayload, TRestoreCandidate> 
         TPayload payload = CapturePayload()
             ?? throw new InvalidOperationException(
                 $"{SectionId} capture returned a null payload.");
-        return JsonUtility.ToJson(payload);
+        return SerializePayload(payload);
     }
+
+    protected virtual string SerializePayload(TPayload payload) => JsonUtility.ToJson(payload);
 
     public void ValidatePayload(
         string payloadJson,
@@ -211,7 +213,7 @@ public abstract class DungeonStrictJsonSaveSection<TPayload, TRestoreCandidate> 
 
         try
         {
-            return JsonUtility.FromJson<TPayload>(payloadJson)
+            return DungeonSaveSectionPayload.Deserialize<TPayload>(payloadJson)
                 ?? throw new InvalidOperationException(
                     $"{SectionId} payload deserialized to null.");
         }
@@ -304,6 +306,37 @@ public static class DungeonStrictJsonShape
         reader.RequireObjectArrayFieldsWhenBooleanTrue(
             conditionFieldName,
             objectFieldName,
+            required);
+    }
+
+    /// <summary>
+    /// Requires a top-level JSON array whose elements are objects containing
+    /// each named field exactly once as a non-negative Int64-range JSON integer.
+    /// This deliberately validates the raw token because JsonUtility can
+    /// normalize invalid numeric DTO values during deserialization.
+    /// </summary>
+    public static void RequireObjectArrayNonNegativeInt64Fields(
+        string sectionId,
+        string payloadJson,
+        string arrayFieldName,
+        params string[] fieldNames)
+    {
+        if (string.IsNullOrWhiteSpace(arrayFieldName))
+        {
+            throw new ArgumentException(
+                "An array field name is required.",
+                nameof(arrayFieldName));
+        }
+
+        HashSet<string> required = new HashSet<string>(
+            fieldNames ?? Array.Empty<string>(),
+            StringComparer.Ordinal);
+
+        JsonShapeReader reader = new JsonShapeReader(
+            sectionId,
+            payloadJson);
+        reader.RequireObjectArrayNonNegativeInt64Fields(
+            arrayFieldName,
             required);
     }
 
@@ -476,6 +509,70 @@ public static class DungeonStrictJsonShape
             }
         }
 
+        public void RequireObjectArrayNonNegativeInt64Fields(
+            string arrayFieldName,
+            ISet<string> required)
+        {
+            bool arraySeen = false;
+
+            SkipWhitespace();
+            Require('{');
+            SkipWhitespace();
+            if (!TryConsume('}'))
+            {
+                while (true)
+                {
+                    string fieldName = ReadString();
+                    SkipWhitespace();
+                    Require(':');
+                    SkipWhitespace();
+                    if (string.Equals(
+                            fieldName,
+                            arrayFieldName,
+                            StringComparison.Ordinal))
+                    {
+                        if (arraySeen)
+                        {
+                            Fail(
+                                $"contains duplicate array field "
+                                + $"'{arrayFieldName}'");
+                        }
+
+                        arraySeen = true;
+                        if (Peek() != '[')
+                        {
+                            Fail(
+                                $"field '{arrayFieldName}' must be a "
+                                + "JSON array and cannot be null");
+                        }
+
+                        ReadObjectArrayNonNegativeInt64Fields(
+                            arrayFieldName,
+                            required);
+                    }
+                    else
+                    {
+                        SkipValue();
+                    }
+
+                    SkipWhitespace();
+                    if (TryConsume('}'))
+                    {
+                        break;
+                    }
+
+                    Require(',');
+                    SkipWhitespace();
+                }
+            }
+
+            RequireEnd();
+            if (!arraySeen)
+            {
+                Fail($"is missing required array field '{arrayFieldName}'");
+            }
+        }
+
         private HashSet<string> ReadObjectArrayFields(ISet<string> required)
         {
             HashSet<string> found = new HashSet<string>(StringComparer.Ordinal);
@@ -510,6 +607,145 @@ public static class DungeonStrictJsonShape
 
                 Require(',');
                 SkipWhitespace();
+            }
+        }
+
+        private void ReadObjectArrayNonNegativeInt64Fields(
+            string arrayFieldName,
+            ISet<string> required)
+        {
+            Require('[');
+            SkipWhitespace();
+            if (TryConsume(']'))
+            {
+                return;
+            }
+
+            int elementIndex = 0;
+            while (true)
+            {
+                if (Peek() != '{')
+                {
+                    Fail(
+                        $"field '{arrayFieldName}' must contain only "
+                        + "JSON objects");
+                }
+
+                ReadObjectNonNegativeInt64Fields(
+                    arrayFieldName,
+                    elementIndex,
+                    required);
+                SkipWhitespace();
+                if (TryConsume(']'))
+                {
+                    return;
+                }
+
+                Require(',');
+                SkipWhitespace();
+                elementIndex++;
+            }
+        }
+
+        private void ReadObjectNonNegativeInt64Fields(
+            string arrayFieldName,
+            int elementIndex,
+            ISet<string> required)
+        {
+            HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
+            Require('{');
+            SkipWhitespace();
+            if (!TryConsume('}'))
+            {
+                while (true)
+                {
+                    string fieldName = ReadString();
+                    SkipWhitespace();
+                    Require(':');
+                    SkipWhitespace();
+                    if (required.Contains(fieldName))
+                    {
+                        if (!seen.Add(fieldName))
+                        {
+                            Fail(
+                                $"field '{arrayFieldName}' element "
+                                + $"{elementIndex} contains duplicate "
+                                + $"required field '{fieldName}'");
+                        }
+
+                        RequireNonNegativeInt64(fieldName);
+                    }
+                    else
+                    {
+                        SkipValue();
+                    }
+
+                    SkipWhitespace();
+                    if (TryConsume('}'))
+                    {
+                        break;
+                    }
+
+                    Require(',');
+                    SkipWhitespace();
+                }
+            }
+
+            string[] missing = required
+                .Where(fieldName => !seen.Contains(fieldName))
+                .OrderBy(fieldName => fieldName, StringComparer.Ordinal)
+                .ToArray();
+            if (missing.Length > 0)
+            {
+                Fail(
+                    $"field '{arrayFieldName}' element {elementIndex} "
+                    + "is missing required non-negative Int64 field(s): "
+                    + string.Join(", ", missing));
+            }
+        }
+
+        private void RequireNonNegativeInt64(string fieldName)
+        {
+            if (index >= source.Length || !IsDigit(source[index]))
+            {
+                Fail(
+                    $"field '{fieldName}' must be a non-negative Int64 "
+                    + "JSON integer");
+            }
+
+            long value = 0;
+            if (source[index] == '0')
+            {
+                index++;
+                if (index < source.Length && IsDigit(source[index]))
+                {
+                    Fail("contains a JSON number with a leading zero");
+                }
+            }
+            else
+            {
+                while (index < source.Length && IsDigit(source[index]))
+                {
+                    int digit = source[index] - '0';
+                    if (value > (long.MaxValue - digit) / 10)
+                    {
+                        Fail(
+                            $"field '{fieldName}' exceeds Int64.MaxValue");
+                    }
+
+                    value = value * 10 + digit;
+                    index++;
+                }
+            }
+
+            if (index < source.Length
+                && (source[index] == '.'
+                    || source[index] == 'e'
+                    || source[index] == 'E'))
+            {
+                Fail(
+                    $"field '{fieldName}' must be a JSON integer without "
+                    + "a fraction or exponent");
             }
         }
 

@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
@@ -13,6 +14,8 @@ public static class RestoredCarrySubsetReleaseDebugScenarios
     private const string ActorId = "character:qa:restored-carry-release";
     private const string DestinationId =
         "production-input:building:qa:restored-carry-release";
+    private const int HistoricalOriginalQuantity = 12;
+    private const int HistoricalCarriedQuantity = 8;
     private static readonly Vector2Int ActorCell = new(3, 1);
     private static readonly Vector2Int DestinationCell = new(8, 1);
 
@@ -26,11 +29,74 @@ public static class RestoredCarrySubsetReleaseDebugScenarios
 
     public static void RunAll()
     {
+        VerifyHistoricalProvenanceCommitWithTelemetryInactive();
+        VerifyHistoricalProvenanceCommitWithTelemetryActive();
         VerifyExactDetachedRestoreDropsAtDownedCell();
         VerifyMixedOwnerFailsWithoutMutation();
         VerifyUnownedCargoFailsWithoutMutation();
         VerifyForeignOwnerFailsWithoutMutation();
         VerifyActivePlanDelegatesToExistingStopPath();
+    }
+
+    private static void VerifyHistoricalProvenanceCommitWithTelemetryInactive()
+    {
+        using Fixture fixture = Fixture.Create();
+        Require(!fixture.Telemetry.IsCaptureActive,
+            "Inactive telemetry fixture unexpectedly began capture.");
+        Cargo cargo = fixture.CreateCommittedCargo(
+            HistoricalCarriedQuantity,
+            fixture.CreateHistoricalAcknowledgedOutputComponents(
+                HistoricalOriginalQuantity));
+
+        fixture.RequireHistoricalCommittedCarry(
+            cargo,
+            HistoricalOriginalQuantity);
+        FacilityOutputClearanceTelemetrySnapshot telemetry =
+            fixture.Telemetry.Capture();
+        Require(telemetry.IsClean
+                && telemetry.ConflictingPublicationCount == 0
+                && string.IsNullOrEmpty(telemetry.LastObservationFailure),
+            "Inactive telemetry observed or invalidated a gameplay pickup.");
+
+        fixture.RestoreDetachedCarry();
+        fixture.RequireHistoricalCommittedCarry(
+            cargo,
+            HistoricalOriginalQuantity);
+        fixture.RequireOperationAuthorityPresent(cargo);
+    }
+
+    private static void VerifyHistoricalProvenanceCommitWithTelemetryActive()
+    {
+        using Fixture fixture = Fixture.Create();
+        fixture.Telemetry.BeginCapture(
+            "qa:restored-carry-historical-provenance");
+        Cargo cargo = fixture.CreateCommittedCargo(
+            HistoricalCarriedQuantity,
+            fixture.CreateHistoricalAcknowledgedOutputComponents(
+                HistoricalOriginalQuantity));
+
+        fixture.RequireHistoricalCommittedCarry(
+            cargo,
+            HistoricalOriginalQuantity);
+        fixture.RequireOperationAuthorityPresent(cargo);
+        FacilityOutputClearanceTelemetrySnapshot telemetry =
+            fixture.Telemetry.Capture();
+        Require(!telemetry.IsClean
+                && telemetry.ConflictingPublicationCount == 1
+                && telemetry.Completed.Count == 0
+                && !string.IsNullOrWhiteSpace(
+                    telemetry.LastObservationFailure)
+                && telemetry.LastObservationFailure.StartsWith(
+                    "haul-pickup-observation-failed:" + cargo.OperationId,
+                    StringComparison.Ordinal),
+            "Active telemetry hid a historical-provenance observation failure "
+            + "or changed the successful gameplay pickup.");
+        FacilityOutputClearanceTelemetrySnapshot ended =
+            fixture.Telemetry.EndCapture();
+        Require(ended.ConflictingPublicationCount == 1
+                && !ended.IsClean
+                && !string.IsNullOrWhiteSpace(ended.LastObservationFailure),
+            "Ending capture disguised the failed observation as a clean sample.");
     }
 
     /// <summary>
@@ -318,7 +384,8 @@ public static class RestoredCarrySubsetReleaseDebugScenarios
             GameObject actorObject,
             CharacterActor actor,
             CharacterCarryInventory inventory,
-            AbilityHaul ability)
+            AbilityHaul ability,
+            FacilityOutputClearanceTelemetryRuntime telemetry)
         {
             Runtime = runtime;
             this.repository = repository;
@@ -330,12 +397,14 @@ public static class RestoredCarrySubsetReleaseDebugScenarios
             Actor = actor;
             Inventory = inventory;
             Ability = ability;
+            Telemetry = telemetry;
         }
 
         internal WorldItemStackRuntime Runtime { get; }
         internal CharacterActor Actor { get; }
         internal CharacterCarryInventory Inventory { get; }
         internal AbilityHaul Ability { get; }
+        internal FacilityOutputClearanceTelemetryRuntime Telemetry { get; }
 
         internal static Fixture Create()
         {
@@ -372,7 +441,8 @@ public static class RestoredCarrySubsetReleaseDebugScenarios
                     actorObject,
                     actor,
                     inventory,
-                    ability);
+                    ability,
+                    ResolveTelemetry(runtime));
             }
             catch
             {
@@ -384,7 +454,9 @@ public static class RestoredCarrySubsetReleaseDebugScenarios
             }
         }
 
-        internal Cargo CreateCommittedCargo(int quantity)
+        internal Cargo CreateCommittedCargo(
+            int quantity,
+            IReadOnlyList<ItemInstanceComponentSaveData> components = null)
         {
             string operationId = repository
                 .AllocateEditorTestHaulDeliveryOperationId(ActorId);
@@ -392,10 +464,11 @@ public static class RestoredCarrySubsetReleaseDebugScenarios
                 ItemId,
                 quantity,
                 WorldItemStackState.Loose,
+                components: components,
                 position: ActorCell);
             string signature = ItemReservationSignature.Create(
                 ItemId,
-                Array.Empty<ItemInstanceComponentSaveData>());
+                components ?? Array.Empty<ItemInstanceComponentSaveData>());
             Require(reservations.TryReserve(
                     operationId,
                     ActorId,
@@ -451,6 +524,78 @@ public static class RestoredCarrySubsetReleaseDebugScenarios
                 carried.carriedStackId,
                 lease.leaseId,
                 quantity);
+        }
+
+        internal IReadOnlyList<ItemInstanceComponentSaveData>
+            CreateHistoricalAcknowledgedOutputComponents(int originalQuantity)
+        {
+            Require(originalQuantity > 0,
+                "Historical provenance quantity must be positive.");
+            PhysicalItemMassSubject subject =
+                PhysicalItemMassSubject.ForDefinition((ItemDefinitionId)ItemId);
+            long originalMass = Runtime.MassQuery.GetQuantityMass(
+                (ItemDefinitionId)ItemId,
+                subject,
+                originalQuantity).Value;
+            string componentSignature =
+                FacilityBufferPlannedOutputPublicationService
+                    .CreateRuntimeComponentSignature(
+                        Array.Empty<ItemInstanceComponentSaveData>());
+
+            // Synthetic fixture history: a terminal acknowledged receipt keeps
+            // its original 12-unit facts after physical custody falls to 8.
+            PlannedOutputPublicationMetadata metadata = new(
+                "physical-source-batch:faction.route-cargo:qa-subset",
+                new string('a', 64),
+                new string('b', 64),
+                "line:route-cargo",
+                0,
+                1,
+                originalQuantity,
+                originalMass,
+                1,
+                originalQuantity,
+                originalMass,
+                ItemId,
+                originalQuantity,
+                originalMass,
+                componentSignature,
+                string.Empty,
+                acknowledged: true);
+            return new[]
+            {
+                PlannedOutputPublicationComponentCodec.CreateProvenance(metadata)
+            };
+        }
+
+        internal void RequireHistoricalCommittedCarry(
+            Cargo cargo,
+            int originalQuantity)
+        {
+            CharacterCarriedItemSaveData carried = Inventory.Items.Single(
+                value => string.Equals(
+                    value.ownerOperationId,
+                    cargo.OperationId,
+                    StringComparison.Ordinal));
+            WorldItemStackSnapshot physical = RequireStack(cargo.CarriedStackId);
+            Require(carried.quantity == cargo.Quantity
+                    && physical.Quantity == cargo.Quantity
+                    && PlannedOutputPublicationComponentCodec.TryRead(
+                        carried.components,
+                        out PlannedOutputPublicationMetadata carriedHistory)
+                    && carriedHistory.Acknowledged
+                    && carriedHistory.Quantity == originalQuantity
+                    && carriedHistory.LineQuantity == originalQuantity
+                    && carriedHistory.BatchQuantity == originalQuantity
+                    && PlannedOutputPublicationComponentCodec.TryRead(
+                        physical.Components,
+                        out PlannedOutputPublicationMetadata physicalHistory)
+                    && physicalHistory.Acknowledged
+                    && physicalHistory.Quantity == originalQuantity
+                    && physicalHistory.LineQuantity == originalQuantity
+                    && physicalHistory.BatchQuantity == originalQuantity,
+                "Fixture lost the acknowledged original quantity while "
+                + "carrying its smaller live quantity.");
         }
 
         internal void PrimeEditorRuntimeBinding()
@@ -593,9 +738,14 @@ public static class RestoredCarrySubsetReleaseDebugScenarios
 
         internal void RequireOperationAuthorityPresent(Cargo cargo)
         {
+            CharacterCarriedItemSaveData carried = Inventory.Items.Single(
+                value => string.Equals(
+                    value.ownerOperationId,
+                    cargo.OperationId,
+                    StringComparison.Ordinal));
             string signature = ItemReservationSignature.Create(
-                ItemId,
-                Array.Empty<ItemInstanceComponentSaveData>());
+                carried.itemId,
+                carried.components);
             Require(Runtime.TryCaptureHaulDeliveryIntent(
                         cargo.OperationId,
                         out HaulDeliveryIntentSaveData intent)
@@ -638,6 +788,23 @@ public static class RestoredCarrySubsetReleaseDebugScenarios
                         signature,
                         StringComparison.Ordinal),
                 "Committed carried cargo lost its exact lease/intent projection.");
+        }
+
+        private static FacilityOutputClearanceTelemetryRuntime ResolveTelemetry(
+            WorldItemStackRuntime runtime)
+        {
+            // The shared runtime fixture owns telemetry construction but exposes
+            // no editor hook; read that exact instance without replacing state.
+            FieldInfo field = typeof(WorldItemStackRuntime).GetField(
+                "outputClearanceTelemetry",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field?.GetValue(runtime) is
+                FacilityOutputClearanceTelemetryRuntime telemetry)
+            {
+                return telemetry;
+            }
+            throw new InvalidOperationException(
+                "World-item fixture did not expose clearance telemetry.");
         }
 
         internal void RequirePhysicalRestoreExact(

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
-using DungeonStory.Operation;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -497,8 +496,6 @@ public sealed class GuestRequestDeliveryRuntime :
     private readonly IV20MilestoneWorldSnapshotQuery world;
     private readonly IGameCalendar calendar;
     private readonly IGameEventBus events;
-    private readonly Dictionary<string, string> publishedAlertFingerprints =
-        new(StringComparer.Ordinal);
     private float nextEvaluationTime;
 
     public GuestRequestDeliveryRuntime(
@@ -595,7 +592,7 @@ public sealed class GuestRequestDeliveryRuntime :
         {
             AdvanceOne(instanceId);
             if (TryGetDelivery(instanceId, out GuestRequestDeliverySnapshot view))
-                PublishAlertIfChanged(view);
+                PublishProgress(view);
         }
     }
 
@@ -951,10 +948,9 @@ public sealed class GuestRequestDeliveryRuntime :
         }
         foreach (V20ResolvedEventResult resolved in result.Resolutions)
         {
-            V20SocietyEventAlertProjection.PublishResolved(
-                events,
+            events.Publish(new V20ContentEffectsResolvedEvent(
                 resolved,
-                physicalEffectsApplied: true);
+                physicalEffectsApplied: true));
         }
     }
 
@@ -1010,7 +1006,7 @@ public sealed class GuestRequestDeliveryRuntime :
                 out string finalizeFailure),
             finalizeFailure,
             active.instanceId);
-        publishedAlertFingerprints.Remove(active.instanceId);
+        events.Publish(new GuestRequestDeliveryFinalizedFact(active.instanceId));
     }
 
     private GuestRequestDeliverySnapshot BuildSnapshot(
@@ -1093,61 +1089,14 @@ public sealed class GuestRequestDeliveryRuntime :
         };
     }
 
-    private void PublishAlertIfChanged(GuestRequestDeliverySnapshot snapshot)
+    private void PublishProgress(GuestRequestDeliverySnapshot snapshot)
     {
-        string fingerprint = BuildAlertFingerprint(snapshot);
-        if (publishedAlertFingerprints.TryGetValue(
-                snapshot.InstanceId,
-                out string current)
-            && string.Equals(current, fingerprint, StringComparison.Ordinal))
-        {
-            return;
-        }
         GuestRequestDefinitionSO definition = catalog.GuestRequests.Single(value =>
-            string.Equals(
-                value.StableId,
-                snapshot.DefinitionId,
-                StringComparison.Ordinal));
+            string.Equals(value.StableId, snapshot.DefinitionId, StringComparison.Ordinal));
         V20ActiveEventSaveData active = FindActive(snapshot.InstanceId);
-        EventAlertChoice[] choices = snapshot.Phase is
-                GuestRequestDeliveryPhase.AwaitingVenue
-                or GuestRequestDeliveryPhase.Delivering
-            ? new[]
-            {
-                new EventAlertChoice(
-                    "요청 취소",
-                    "아직 인도되지 않은 물품을 기존 물류 소유권으로 회수한 뒤 요청을 거절합니다.",
-                    V21ContentAlertActionIds.Society(
-                        snapshot.InstanceId,
-                        "decline"))
-            }
-            : Array.Empty<EventAlertChoice>();
-        string venue = string.IsNullOrEmpty(snapshot.VenueFacilityInstanceId)
-            ? "배정 대기"
-            : $"{snapshot.VenueDisplayName} ({snapshot.Destination.x}, {snapshot.Destination.y})"
-                + (string.IsNullOrWhiteSpace(snapshot.VenueCapacitySummary)
-                    ? string.Empty
-                    : $"\n장소 여유: {snapshot.VenueCapacitySummary}");
-        string progress = string.Join("\n", snapshot.Items.Select(value =>
-            $"- {value.DisplayName}: 배정 {value.Assigned}, 운반 {value.Hauling}, "
-            + $"도착 {value.Arrived}, 인도 {value.Delivered}/{value.Required}"));
-        string reason = string.IsNullOrWhiteSpace(snapshot.StatusReason)
-            ? string.Empty
-            : "\n상태 이유: " + snapshot.StatusReason;
-        string risk = V20SocietyEventAlertProjection.FormatRisk(
-            active.riskTier,
-            active.riskReason);
-        events.Publish(new EventAlertRequestedEvent(new EventAlertRequest(
-            definition.DisplayName,
-            $"{definition.Description}\n납품 장소: {venue}\n"
-            + $"진행: {DescribePhase(snapshot.Phase)}\n{progress}{reason}\n{risk}\n"
-            + $"기한: {active?.deadlineAbsoluteDay ?? 0}일",
-            V20SocietyEventAlertProjection.ToAlertImportance(
-                active.riskTier),
-            "V21 사회 사건",
-            choices,
-            snapshot.InstanceId)));
-        publishedAlertFingerprints[snapshot.InstanceId] = fingerprint;
+        events.Publish(new GuestRequestDeliveryProgressedFact(
+            snapshot, definition.DisplayName, definition.Description,
+            active.riskTier, active.riskReason, active.deadlineAbsoluteDay));
     }
 
     private int CountQuantity(
@@ -1224,32 +1173,4 @@ public sealed class GuestRequestDeliveryRuntime :
                 $"Guest request '{instanceId}' state mutation failed: "
                 + failure);
     }
-
-    private static string BuildAlertFingerprint(
-        GuestRequestDeliverySnapshot value) =>
-        string.Join("|",
-            value.Phase,
-            value.VenueFacilityInstanceId,
-            value.VenueAccessCell,
-            value.VenueCapacitySummary,
-            value.Destination,
-            value.OperationId,
-            value.CommitId,
-            value.TerminalResolutionId,
-            value.StatusReason,
-            string.Join(";", value.Items.Select(item =>
-                $"{item.ItemId}:{item.Assigned}:{item.Hauling}:"
-                + $"{item.Arrived}:{item.Delivered}/{item.Required}")));
-
-    private static string DescribePhase(GuestRequestDeliveryPhase phase) =>
-        phase switch
-        {
-            GuestRequestDeliveryPhase.AwaitingVenue => "시설 배정 대기",
-            GuestRequestDeliveryPhase.Delivering => "물품 운반 중",
-            GuestRequestDeliveryPhase.ReleasePending => "물품 회수 중",
-            GuestRequestDeliveryPhase.PhysicalCommitted => "물품 인도 완료 · 보상 정산 대기",
-            GuestRequestDeliveryPhase.RewardPublished => "보상 반영 완료 · 인도 확인 중",
-            _ => "대기"
-        };
-
 }

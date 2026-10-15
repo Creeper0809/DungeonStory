@@ -142,7 +142,7 @@ public static class CharacterCarryTuning
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonPhysicalItemSaveData
 {
-    public const int CurrentVersion = 18;
+    public const int CurrentVersion = 22;
 
     public int version = CurrentVersion;
     public long nextHaulOperationSequence = 1;
@@ -154,6 +154,7 @@ public sealed class DungeonPhysicalItemSaveData
     public List<ItemReservationIntentSaveData> reservationIntents = new();
     public List<PhysicalItemBatchDispositionSaveData> pendingBatchDispositions = new();
     public List<PhysicalItemRelocationSaveData> physicalItemRelocations = new();
+    public List<PhysicalItemTransformationSaveData> physicalItemTransformations = new();
     public List<FacilityOutputExactRouteOutboxSaveData> pendingExactOutputRoutes =
         new();
     public List<ProductionPhysicalCustodyDrainSaveData>
@@ -177,21 +178,21 @@ public sealed class PhysicalItemBatchDispositionSaveData
     public int quantity;
     public long inputMassGrams;
     public string commitId = string.Empty;
-    public long outcomeOwnerRevision;
-    public bool gameplayOutcomeExpected;
-    public string expectedOutcomeProducerId = string.Empty;
-    public string expectedOutcomeOperationId = string.Empty;
-    public long expectedOutcomeCommitRevision;
-    public int expectedOutcomeLocalResultIndex;
+    public long ownerRevision;
+    public bool publicationExpected;
+    public string publicationKey = string.Empty;
+    public string publicationId = string.Empty;
+    public string publicationFingerprint = string.Empty;
+    public bool publicationDelivered;
+    public int defaultObservationDay;
     public List<PhysicalItemDispositionSourceFactSaveData> sourceFacts = new();
-    public PhysicalGameplayOutcomeAttachmentSaveData gameplayOutcome;
 }
 
 public enum PhysicalItemRelocationJournalPhase
 {
     DomainCommitted = 1,
-    CanonicalOutcomeCommitted = 2,
-    PublishedAcknowledged = 3
+    PublicationAccepted = 2,
+    Delivered = 3
 }
 
 [Serializable]
@@ -213,19 +214,14 @@ public sealed class PhysicalItemRelocationSaveData
     public int destinationY;
     public int destinationState;
     public string destinationId = string.Empty;
-    public long outcomeOwnerRevision;
+    public long ownerRevision;
+    public int absoluteDay;
     public string displayText = string.Empty;
-    public string displaySnapshotRevision = string.Empty;
-    public int pronunciationMode;
-    public string pronunciationValue = string.Empty;
-    public int explicitFinalConsonant;
-    public string pronunciationRevision = string.Empty;
-    public string locale = string.Empty;
-    public string expectedOutcomeProducerId = string.Empty;
-    public string expectedOutcomeOperationId = string.Empty;
-    public long expectedOutcomeCommitRevision;
-    public int expectedOutcomeLocalResultIndex;
-    public PhysicalGameplayOutcomeAttachmentSaveData gameplayOutcome;
+    public string publicationKey = string.Empty;
+    public string publicationId = string.Empty;
+    public string publicationFingerprint = string.Empty;
+
+    public PhysicalItemRelocationSaveData Clone() => (PhysicalItemRelocationSaveData)MemberwiseClone();
 }
 
 [Serializable]
@@ -239,12 +235,6 @@ public sealed class PhysicalItemDispositionSourceFactSaveData
     public int sourceX;
     public int sourceY;
     public string displayText = string.Empty;
-    public string displaySnapshotRevision = string.Empty;
-    public int pronunciationMode;
-    public string pronunciationValue = string.Empty;
-    public int explicitFinalConsonant;
-    public string pronunciationRevision = string.Empty;
-    public string locale = string.Empty;
 }
 
 [Serializable]

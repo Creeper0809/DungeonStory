@@ -2,16 +2,15 @@ using System;
 using System.Linq;
 using DungeonStory.Foundation;
 using DungeonStory.Operation;
+using UnityEngine;
 using VContainer.Unity;
 
 public sealed class FestivalVenueAlertApplicationAdapter :
     IStartable,
-    ITickable,
     IDisposable
 {
     private readonly IFestivalDefinitionCatalog festivals;
     private readonly IFestivalExecutionQuery executions;
-    private readonly IFestivalExecutionDriver driver;
     private readonly IGameCalendar calendar;
     private readonly IGameEventBus events;
     private IDisposable dayStartedSubscription;
@@ -19,7 +18,6 @@ public sealed class FestivalVenueAlertApplicationAdapter :
     public FestivalVenueAlertApplicationAdapter(
         IFestivalDefinitionCatalog festivals,
         IFestivalExecutionQuery executions,
-        IFestivalExecutionDriver driver,
         IGameCalendar calendar,
         IGameEventBus events)
     {
@@ -27,19 +25,17 @@ public sealed class FestivalVenueAlertApplicationAdapter :
             ?? throw new ArgumentNullException(nameof(festivals));
         this.executions = executions
             ?? throw new ArgumentNullException(nameof(executions));
-        this.driver = driver ?? throw new ArgumentNullException(nameof(driver));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public void Start()
     {
-        dayStartedSubscription ??=
+        if (dayStartedSubscription != null) return;
+        dayStartedSubscription =
             events.Subscribe<OperatingDayStartedEvent>(OnDayStarted);
-        PublishForDay(calendar.Day);
+        TryPublishForDay(calendar.Day);
     }
-
-    public void Tick() => driver.Advance();
 
     public void Dispose()
     {
@@ -48,7 +44,19 @@ public sealed class FestivalVenueAlertApplicationAdapter :
     }
 
     private void OnDayStarted(OperatingDayStartedEvent started) =>
-        PublishForDay(started.day);
+        TryPublishForDay(started.day);
+
+    private void TryPublishForDay(int absoluteDay)
+    {
+        try { PublishForDay(absoluteDay); }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError("festival-venue-presentation-observer:"
+                + exception.GetType().Name);
+        }
+    }
 
     private void PublishForDay(int absoluteDay)
     {

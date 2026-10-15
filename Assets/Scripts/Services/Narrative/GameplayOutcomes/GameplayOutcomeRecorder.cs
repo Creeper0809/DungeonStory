@@ -181,7 +181,17 @@ public sealed class GameplayOutcomeRecorder : IGameplayOutcomeRecorder
     {
         OutcomeDeliveryResult result = ledger.TryPublishCore(committed);
         if (result.Code == OutcomeDeliveryCode.Published)
+        {
+#if UNITY_EDITOR
+            GameplayOutcomePublishedEvidenceCapture.Record(
+                ledger.TryGetExact(
+                    result.OutcomeId,
+                    out GameplayOutcomeSnapshot snapshot)
+                    ? snapshot
+                    : null);
+#endif
             NotifyPublished(result.OutcomeId.Sequence);
+        }
         return result;
     }
 
@@ -279,3 +289,105 @@ public sealed class GameplayOutcomeRecorder : IGameplayOutcomeRecorder
             ? dynamicAdapter.SupportsOutcomeType(outcomeTypeId)
             : adapter.OutcomeTypeId == outcomeTypeId;
 }
+
+#if UNITY_EDITOR
+internal static class GameplayOutcomePublishedEvidenceCapture
+{
+    private static Action<string, GameplayOutcomeSnapshot> current;
+    private static string context = string.Empty;
+    private static Exception failure;
+
+    internal static IDisposable Begin(
+        Action<string, GameplayOutcomeSnapshot> capture)
+    {
+        if (capture == null)
+            throw new ArgumentNullException(nameof(capture));
+        if (current != null)
+        {
+            throw new InvalidOperationException(
+                "A gameplay outcome evidence capture is already active.");
+        }
+        current = capture;
+        context = string.Empty;
+        failure = null;
+        return new CaptureScope(capture);
+    }
+
+    internal static IDisposable PushContext(string value)
+    {
+        string prior = context;
+        context = value?.Trim() ?? string.Empty;
+        return new ContextScope(prior);
+    }
+
+    internal static void Record(GameplayOutcomeSnapshot snapshot)
+    {
+        if (current == null)
+            return;
+        if (snapshot == null)
+        {
+            failure ??= new InvalidOperationException(
+                "A published gameplay outcome could not be materialized.");
+            return;
+        }
+        try
+        {
+            current(context, snapshot);
+        }
+        catch (Exception exception)
+        {
+            failure ??= exception;
+        }
+    }
+
+    internal static void ThrowIfFaulted()
+    {
+        if (failure != null)
+        {
+            throw new InvalidOperationException(
+                "Gameplay outcome evidence capture failed.",
+                failure);
+        }
+    }
+
+    private sealed class CaptureScope : IDisposable
+    {
+        private readonly Action<string, GameplayOutcomeSnapshot> capture;
+        private bool disposed;
+
+        internal CaptureScope(
+            Action<string, GameplayOutcomeSnapshot> capture) =>
+            this.capture = capture;
+
+        public void Dispose()
+        {
+            if (disposed)
+                return;
+            disposed = true;
+            if (!ReferenceEquals(current, capture))
+            {
+                throw new InvalidOperationException(
+                    "Gameplay outcome evidence capture scope changed unexpectedly.");
+            }
+            current = null;
+            context = string.Empty;
+        }
+    }
+
+    private sealed class ContextScope : IDisposable
+    {
+        private readonly string prior;
+        private bool disposed;
+
+        internal ContextScope(string prior) => this.prior = prior;
+
+        public void Dispose()
+        {
+            if (disposed)
+                return;
+            disposed = true;
+            context = prior;
+        }
+    }
+}
+#endif

@@ -15,6 +15,7 @@ public sealed class ConveyorRestoreState
 
 internal interface IConveyorRestoreProjection
 {
+    void AssertIdle();
     void EnsureTopology();
     void ResetAfterRestore();
 }
@@ -49,6 +50,7 @@ internal sealed class ConveyorPersistenceAdapter :
 
     public DungeonConveyorInfrastructureSaveData Capture()
     {
+        projection.AssertIdle();
         projection.EnsureTopology();
         ConveyorAggregateState state = aggregateRootStore.GetOrCreateWritable(
             () => new ConveyorAggregateState(),
@@ -63,6 +65,7 @@ internal sealed class ConveyorPersistenceAdapter :
     public ConveyorRestoreState PrepareRestore(
         DungeonConveyorInfrastructureSaveData snapshot)
     {
+        projection.AssertIdle();
         IndustrialInfrastructureSaveValidation.RequireValid(snapshot);
         foreach (var node in snapshot.nodes)
         {
@@ -87,6 +90,7 @@ internal sealed class ConveyorPersistenceAdapter :
 
     public void Restore(ConveyorRestoreState restored)
     {
+        projection.AssertIdle();
         if (restored == null)
         {
             throw new ArgumentNullException(nameof(restored));

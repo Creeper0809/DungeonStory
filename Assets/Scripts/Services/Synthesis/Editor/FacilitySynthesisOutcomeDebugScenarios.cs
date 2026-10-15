@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.Narrative.Korean;
 using UnityEngine;
 
@@ -42,19 +43,21 @@ public static class FacilitySynthesisOutcomeDebugScenarios
     private static bool VerifyPublishQueryReplayAndSave()
     {
         using Fixture fixture = new();
-        FacilitySynthesisOutcomeReceipt exact = CreateReceipt(2);
-        if (!fixture.Bridge.TryPrepare(
-                exact,
-                out PreparedFacilitySynthesisOutcome prepared,
+        FacilitySynthesisCompletedFact exactFact = CreateFact(2);
+        FacilitySynthesisOutcomeReceipt exact =
+            FacilitySynthesisFactObserver.Capture(exactFact);
+        if (!fixture.Facts.TryStage(
+                exactFact,
+                out IDomainFactStage prepared,
                 out string prepareFailure))
         {
             Debug.LogError("Synthesis outcome prepare failed: " + prepareFailure);
             return false;
         }
-        OwnerOutcomeCommitResult committed = fixture.Bridge.Commit(prepared);
-        if (!committed.DurablyCommitted)
+        DomainFactDelivery committed = prepared.Commit();
+        if (!committed.Completed)
         {
-            Debug.LogError("Synthesis outcome commit failed: " + committed.DetailCode);
+            Debug.LogError("Synthesis outcome commit failed: " + committed.Detail);
             return false;
         }
 
@@ -103,15 +106,15 @@ public static class FacilitySynthesisOutcomeDebugScenarios
             && survivorView.Text.Contains("대장간은", StringComparison.Ordinal)
             && consumedView.Text.Contains("작업대가", StringComparison.Ordinal);
 
-        bool replayPrepared = fixture.Bridge.TryPrepare(
-            exact,
-            out PreparedFacilitySynthesisOutcome replay,
+        bool replayPrepared = fixture.Facts.TryStage(
+            exactFact,
+            out IDomainFactStage replay,
             out _);
-        OwnerOutcomeCommitResult replayCommit = replayPrepared
-            ? fixture.Bridge.Commit(replay)
+        DomainFactDelivery replayCommit = replayPrepared
+            ? replay.Commit()
             : default;
-        FacilitySynthesisOutcomeReceipt conflicting = CreateReceipt(3);
-        bool conflictRejected = !fixture.Bridge.TryPrepare(
+        FacilitySynthesisCompletedFact conflicting = CreateFact(3);
+        bool conflictRejected = !fixture.Facts.TryStage(
             conflicting,
             out _,
             out _);
@@ -141,7 +144,7 @@ public static class FacilitySynthesisOutcomeDebugScenarios
                 FacilitySynthesisOutcomeIds.Completed.Value,
                 StringComparison.Ordinal)
             && replayPrepared
-            && replayCommit.DurablyCommitted
+            && replayCommit.Completed
             && conflictRejected
             && fixture.Ledger.GetGlobal(
                 OutcomeCursor.FirstPage(10),
@@ -157,18 +160,18 @@ public static class FacilitySynthesisOutcomeDebugScenarios
     private static bool VerifyDeliveryFaultRetainsOutbox()
     {
         using Fixture fixture = new(rejectDelivery: true);
-        FacilitySynthesisOutcomeReceipt exact = CreateReceipt(2);
-        bool prepared = fixture.Bridge.TryPrepare(
+        FacilitySynthesisCompletedFact exact = CreateFact(2);
+        bool prepared = fixture.Facts.TryStage(
             exact,
-            out PreparedFacilitySynthesisOutcome token,
+            out IDomainFactStage token,
             out _);
-        OwnerOutcomeCommitResult committed = prepared
-            ? fixture.Bridge.Commit(token)
+        DomainFactDelivery committed = prepared
+            ? token.Commit()
             : default;
         IReadOnlyList<GameplayOutcomeOutboxSnapshot> outbox =
             fixture.Ledger.GetOutboxSnapshot();
         return prepared
-            && committed.Phase == OwnerOutcomeCommitPhase.CommittedPendingDelivery
+            && committed.Phase == DomainFactDeliveryPhase.AcceptedPendingDelivery
             && fixture.Ledger.GetGlobal(
                 OutcomeCursor.FirstPage(10),
                 OutcomeFilter.All).Items.Count == 0
@@ -177,28 +180,28 @@ public static class FacilitySynthesisOutcomeDebugScenarios
                 GameplayOutcomeRecordLifecycle.DeliveryFaultPending;
     }
 
-    private static FacilitySynthesisOutcomeReceipt CreateReceipt(int level)
+    private static FacilitySynthesisCompletedFact CreateFact(int level)
     {
         string survivor = "building:synthesis-a";
         string consumed = "building:synthesis-b";
-        return new FacilitySynthesisOutcomeReceipt(
-            survivor,
-            1L,
-            "recipe_commercial_grill",
-            "상업 조리대 조합",
-            "building:103",
-            FacilitySynthesisOutcomeNames.Snapshot(survivor, "대장간"),
-            new[] { survivor, consumed },
-            new[] { "building:101", "building:102" },
-            new[]
+        return new FacilitySynthesisCompletedFact(
+            new FacilitySynthesisCompletedFactData
             {
-                FacilitySynthesisOutcomeNames.Snapshot(survivor, "가마"),
-                FacilitySynthesisOutcomeNames.Snapshot(consumed, "작업대")
-            },
-            level,
-            3,
-            4,
-            7);
+                survivorFacilityId = survivor,
+                revision = 1L,
+                recipeId = "recipe_commercial_grill",
+                recipeDisplayName = "상업 조리대 조합",
+                resultDefinitionId = "building:103",
+                resultDisplayName = "대장간",
+                materialIds = new[] { survivor, consumed },
+                materialDefinitionIds =
+                    new[] { "building:101", "building:102" },
+                materialDisplayNames = new[] { "가마", "작업대" },
+                inheritedLevel = level,
+                absoluteDay = 3,
+                x = 4,
+                y = 7
+            });
     }
 
     private sealed class Fixture : IDisposable
@@ -207,6 +210,7 @@ public static class FacilitySynthesisOutcomeDebugScenarios
             smallPageCount: 8,
             largePageCount: 0,
             knownResultKeyCapacity: 128);
+        private readonly IDisposable binding;
 
         internal Fixture(bool rejectDelivery = false)
         {
@@ -226,16 +230,21 @@ public static class FacilitySynthesisOutcomeDebugScenarios
                 });
             Ledger = CreateLedger("run:facility-synthesis-test");
             Recorder = new GameplayOutcomeRecorder(Ledger, Registry, Events);
-            Bridge = new FacilitySynthesisGameplayOutcomeBridge(
-                Recorder,
-                Ledger);
+            GameplayDomainFactCommitGroup commits = new(Recorder, Ledger);
+            Facts = new DomainFactDispatcher();
+            binding = FacilitySynthesisFactObserver.CreateBinding(
+                    Registry,
+                    Ledger,
+                    Recorder,
+                    commits)
+                .Connect(Facts);
         }
 
         internal GameEventBus Events { get; }
         internal GameplayOutcomeRegistry Registry { get; }
         internal GameplayOutcomeLedger Ledger { get; }
         internal GameplayOutcomeRecorder Recorder { get; }
-        internal FacilitySynthesisGameplayOutcomeBridge Bridge { get; }
+        internal DomainFactDispatcher Facts { get; }
 
         internal GameplayOutcomeLedger CreateLedger(string runId) => new(
             Registry,
@@ -245,6 +254,8 @@ public static class FacilitySynthesisOutcomeDebugScenarios
 
         public void Dispose()
         {
+            binding.Dispose();
+            Facts.Dispose();
         }
     }
 

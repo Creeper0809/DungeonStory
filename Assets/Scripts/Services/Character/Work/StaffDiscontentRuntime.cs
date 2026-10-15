@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
-using DungeonStory.Narrative.Korean;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
@@ -27,13 +27,16 @@ public class StaffDiscontentRuntime : MonoBehaviour
     private ICharacterWorldQuery characterWorldQuery;
     private ICharacterSettlementStandingQuery settlementStandings;
     private DungeonStory.Foundation.IGameEventBus gameEventBus;
-    private IStaffDiscontentOutcomeCommitter outcomes;
-    private IGameClock gameClock;
+    private StaffDiscontentPublicationRuntime publications;
+    private bool commandActive;
+    private float nextPublicationRetry;
+    private IGameCalendar calendar;
     private IDisposable operatingDayEndedSubscription;
 
     public StaffDiscontentState State => state;
     public StaffDiscontentRules Rules => rules;
     public long OutcomeRevision => state.OutcomeRevision;
+    public long TransitionRevision => state.TransitionRevision;
 
     [Inject]
     public void Construct(
@@ -41,8 +44,9 @@ public class StaffDiscontentRuntime : MonoBehaviour
         DungeonStory.Foundation.IGameEventBus gameEventBus,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         ICharacterSettlementStandingQuery settlementStandings,
-        IStaffDiscontentOutcomeCommitter outcomes,
-        IGameClock gameClock)
+        IDomainFactStagingPublisher facts,
+        IDomainFactRecoveryPublisher recovery,
+        IGameCalendar calendar)
     {
         this.characterWorldQuery = characterWorldQuery
             ?? throw new ArgumentNullException(nameof(characterWorldQuery));
@@ -52,10 +56,9 @@ public class StaffDiscontentRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.settlementStandings = settlementStandings
             ?? throw new ArgumentNullException(nameof(settlementStandings));
-        this.outcomes = outcomes
-            ?? throw new ArgumentNullException(nameof(outcomes));
-        this.gameClock = gameClock
-            ?? throw new ArgumentNullException(nameof(gameClock));
+        publications = new StaffDiscontentPublicationRuntime(facts, recovery);
+        this.calendar = calendar
+            ?? throw new ArgumentNullException(nameof(calendar));
         SubscribeToScopedEvents();
     }
 
@@ -66,57 +69,87 @@ public class StaffDiscontentRuntime : MonoBehaviour
 
     public StaffDiscontentRecord ProcessStaff(CharacterActor staff, out StaffDiscontentOutcome outcome)
     {
-        if (settlementStandings?.IsMinion(staff) == true)
+        outcome = StaffDiscontentOutcome.None;
+        if (commandActive) throw new InvalidOperationException("staff-discontent-command-active");
+        commandActive = true;
+        try
         {
-            outcome = StaffDiscontentOutcome.None;
-            return null;
+            var pending = state.TransitionObservation;
+            if (!RecoverAndNotify(out string recoveryFailure)) throw new InvalidOperationException(recoveryFailure);
+            if (settlementStandings?.IsMinion(staff) == true || !StaffDiscontentService.IsTrackableStaff(staff)) return null;
+            if (pending.pending && pending.fact.absoluteDay == CurrentAbsoluteDay
+                && pending.fact.after.staffId == StaffDiscontentService.GetStaffId(staff))
+            {
+                outcome = pending.fact.transition;
+                state.TryGetRecord(pending.fact.after.staffId, out var recovered);
+                return recovered;
+            }
+            int absoluteDay = CurrentAbsoluteDay;
+            Action rollback = CaptureRollback();
+            var before = state.TryGetRecord(staff, out var existing) ? existing.ToSnapshot() : CreateInitialDailySnapshot(staff);
+            var lifecycleBefore = staff.CurrentLifecycleState;
+            IDomainFactStage stage = null;
+            bool preserveApplied = false;
+            try
+            {
+                var record = state.ProcessStaff(staff, rules, absoluteDay, out outcome);
+                if (record == null || outcome == StaffDiscontentOutcome.None) return record;
+                var data = new StaffDiscontentFactData
+                {
+                    kind = StaffDiscontentFactKind.DailyTransition, revision = state.GetNextTransitionRevision(),
+                    absoluteDay = absoluteDay, transition = outcome,
+                    before = StaffDiscontentFactValues.Capture(before),
+                    after = StaffDiscontentFactValues.Capture(record.ToSnapshot(outcome))
+                };
+                if (!publications.TryStage(data, out stage, out string failure))
+                    throw new InvalidOperationException("staff-discontent-transition-prepare:" + failure);
+                if (outcome == StaffDiscontentOutcome.PermanentDeparture)
+                    staff.Lifecycle?.SetLifecycleState(CharacterLifecycleState.Despawned);
+                var delivery = publications.CommitApplied(state, data, stage);
+                preserveApplied = delivery.MayBeCommitted;
+                if (!preserveApplied) throw new InvalidOperationException("staff-discontent-transition-rejected:" + delivery.Detail);
+                if (!delivery.Completed) Debug.LogWarning("staff-discontent-transition-publication-pending:" + delivery.Detail);
+                NotifyDelivered();
+                return record;
+            }
+            catch (Exception exception) when (IsRecoverableOutcomeException(exception))
+            {
+                if (!preserveApplied)
+                {
+                    rollback();
+                    if (staff.CurrentLifecycleState != lifecycleBefore) staff.Lifecycle?.SetLifecycleState(lifecycleBefore);
+                    outcome = StaffDiscontentOutcome.None;
+                }
+                throw new InvalidOperationException("Staff-discontent transition failed.", exception);
+            }
+            finally { Cancel(stage); }
         }
-
-        StaffDiscontentRecord record = state.ProcessStaff(staff, rules, out outcome);
-        if (record == null)
-        {
-            return null;
-        }
-
-        ApplyOutcome(staff, record, outcome);
-        if (record.IsInLocalRebellion && !record.IsIsolated && !record.IsSuppressed)
-        {
-            DispatchAutoSuppress(staff);
-        }
-        return record;
+        finally { commandActive = false; }
     }
 
     public IReadOnlyList<StaffDiscontentSnapshot> CaptureSnapshots()
-    {
-        return state.CaptureSnapshots();
-    }
+    { ValidateCapture(); return state.CaptureSnapshots(); }
+    public StaffDiscontentObservationData ResponseObservation { get { ValidateCapture(); return state.ResponseObservation; } }
+    public StaffDiscontentObservationData TransitionObservation { get { ValidateCapture(); return state.TransitionObservation; } }
 
-    public void RestoreSnapshots(
-        IEnumerable<StaffDiscontentSnapshot> savedRecords,
-        long outcomeRevision = 0L)
-    {
-        PublishRestoreCandidate(PrepareRestoreCandidate(
-            savedRecords,
-            outcomeRevision));
-    }
+    public void RestoreSnapshots(IEnumerable<StaffDiscontentSnapshot> records, long outcomeRevision = 0L,
+        long transitionRevision = 0L, StaffDiscontentObservationData responseObservation = null,
+        StaffDiscontentObservationData transitionObservation = null) =>
+        PublishRestoreCandidate(PrepareRestoreCandidate(records, outcomeRevision, transitionRevision, responseObservation, transitionObservation));
 
-    public StaffDiscontentRestoreCandidate PrepareRestoreCandidate(
-        IEnumerable<StaffDiscontentSnapshot> savedRecords,
-        long outcomeRevision = 0L)
+    public StaffDiscontentRestoreCandidate PrepareRestoreCandidate(IEnumerable<StaffDiscontentSnapshot> records,
+        long outcomeRevision = 0L, long transitionRevision = 0L, StaffDiscontentObservationData responseObservation = null,
+        StaffDiscontentObservationData transitionObservation = null)
     {
-        StaffDiscontentState restored = new StaffDiscontentState();
-        restored.Restore(savedRecords, outcomeRevision);
+        ValidateCapture();
+        var restored = new StaffDiscontentState();
+        restored.Restore(records, outcomeRevision, transitionRevision, responseObservation, transitionObservation);
         return new StaffDiscontentRestoreCandidate(restored);
     }
-
-    public void PublishRestoreCandidate(
-        StaffDiscontentRestoreCandidate candidate)
+    public void PublishRestoreCandidate(StaffDiscontentRestoreCandidate candidate)
     {
-        if (candidate == null)
-        {
-            throw new ArgumentNullException(nameof(candidate));
-        }
-
+        ValidateCapture();
+        if (candidate == null) throw new ArgumentNullException(nameof(candidate));
         aggregateRootStore.Replace(candidate.State);
     }
 
@@ -212,361 +245,114 @@ public class StaffDiscontentRuntime : MonoBehaviour
 
         if (assignedCount > 0 && state.TryGetRecord(rebel, out StaffDiscontentRecord record))
         {
-            gameEventBus.RaiseStaffComplaint(
-                $"{record.DisplayName}: 자동 제압 {assignedCount}명 배정",
-                EventAlertImportance.Medium);
+            gameEventBus.Publish(new StaffRebellionGuardsAssignedFact(record.DisplayName, assignedCount));
         }
 
         return assignedCount;
     }
 
-    public bool TryIsolateRebel(CharacterActor rebel, CharacterActor actor, out StaffRebellionResponseResult result)
+    public bool TryIsolateRebel(CharacterActor rebel, CharacterActor actor, out StaffRebellionResponseResult result) =>
+        TryExecuteResponse(rebel, actor, StaffRebellionResponseType.Isolate, out result);
+
+    public bool TryCalmStaff(CharacterActor staff, CharacterActor actor, out StaffRebellionResponseResult result) =>
+        TryExecuteResponse(staff, actor, StaffRebellionResponseType.Calm, out result);
+
+    public bool ResolveSuppressedRebel(CharacterActor rebel, CharacterActor defender) =>
+        TryExecuteResponse(rebel, defender, StaffRebellionResponseType.SuppressCommand, out _);
+
+    private bool TryExecuteResponse(CharacterActor staff, CharacterActor actor, StaffRebellionResponseType type,
+        out StaffRebellionResponseResult result)
     {
-        if (!state.TryGetRecord(rebel, out StaffDiscontentRecord record)
-            || !record.IsInLocalRebellion)
-        {
-            result = new StaffRebellionResponseResult(false, StaffRebellionResponseType.Isolate, null, actor, "격리할 반란 대상이 없습니다");
-            return false;
-        }
-
-        StaffDiscontentSnapshot before = record.ToSnapshot();
-        IReadOnlyList<StaffDiscontentSnapshot> ownerBefore = state.CaptureSnapshots();
-        long revisionBefore = state.OutcomeRevision;
-        if (!TryReserveResponse(
-                actor,
-                out CharacterId responder,
-                out KoreanNameSnapshot responderName,
-                out long ownerRevision,
-                out int absoluteDay,
-                out ReservedStaffDiscontentOutcome reserved,
-                out string reserveFailure))
-        {
-            result = FailedResponse(
-                StaffRebellionResponseType.Isolate,
-                before,
-                actor,
-                "격리 결과를 기록할 수 없습니다: " + reserveFailure);
-            return false;
-        }
-        if (!record.MarkIsolated())
-        {
-            outcomes.Cancel(reserved);
-            result = new StaffRebellionResponseResult(false, StaffRebellionResponseType.Isolate, record.ToSnapshot(), actor, "격리할 수 없습니다");
-            return false;
-        }
-
-        StaffDiscontentSnapshot after = record.ToSnapshot();
-        if (!TryCommitResponse(
-                StaffRebellionResponseType.Isolate,
-                before,
-                after,
-                responder,
-                responderName,
-                ownerRevision,
-                absoluteDay,
-                reserved,
-                out string failureReason))
-        {
-            state.Restore(ownerBefore, revisionBefore);
-            result = FailedResponse(
-                StaffRebellionResponseType.Isolate,
-                before,
-                actor,
-                "격리 결과 커밋 실패: " + failureReason);
-            return false;
-        }
-
-        PublishCommittedResponseObservers(
-            rebel,
-            after,
-            StaffRebellionResponseType.Isolate);
-        result = new StaffRebellionResponseResult(
-            true,
-            StaffRebellionResponseType.Isolate,
-            after,
-            actor,
-            "격리 완료");
-        return true;
-    }
-
-    public bool TryCalmStaff(CharacterActor staff, CharacterActor actor, out StaffRebellionResponseResult result)
-    {
-        if (!state.TryGetRecord(staff, out StaffDiscontentRecord record))
-        {
-            result = new StaffRebellionResponseResult(false, StaffRebellionResponseType.Calm, null, actor, "진정할 직원 기록이 없습니다");
-            return false;
-        }
-
-        StaffDiscontentSnapshot before = record.ToSnapshot();
-        IReadOnlyList<StaffDiscontentSnapshot> ownerBefore = state.CaptureSnapshots();
-        long revisionBefore = state.OutcomeRevision;
-        if (!TryReserveResponse(
-                actor,
-                out CharacterId responder,
-                out KoreanNameSnapshot responderName,
-                out long ownerRevision,
-                out int absoluteDay,
-                out ReservedStaffDiscontentOutcome reserved,
-                out string reserveFailure))
-        {
-            result = FailedResponse(
-                StaffRebellionResponseType.Calm,
-                before,
-                actor,
-                "진정 결과를 기록할 수 없습니다: " + reserveFailure);
-            return false;
-        }
-
-        float negotiationMultiplier = actor == null
-            ? 1f
-            : actor.GetDetailedStatMultiplier(
-                "social:negotiation",
-                actor.Identity?.IsOwner == true
-                    ? new[] { "state:formal-status" }
-                    : Array.Empty<string>());
-        CharacterMoodDeliveryTransactionSnapshot moodBefore =
-            staff?.Stats?.CaptureMoodDeliveryTransactionState();
-        if (!record.TryCalm(
-                staff,
-                rules,
-                negotiationMultiplier,
-                out string failureReason))
-        {
-            outcomes.Cancel(reserved);
-            result = new StaffRebellionResponseResult(false, StaffRebellionResponseType.Calm, record.ToSnapshot(), actor, failureReason);
-            return false;
-        }
-
-        StaffDiscontentSnapshot after = record.ToSnapshot();
-        if (!TryCommitResponse(
-                StaffRebellionResponseType.Calm,
-                before,
-                after,
-                responder,
-                responderName,
-                ownerRevision,
-                absoluteDay,
-                reserved,
-                out failureReason))
-        {
-            state.Restore(ownerBefore, revisionBefore);
-            if (moodBefore != null)
-                staff?.Stats?.RestoreMoodDeliveryTransactionState(moodBefore);
-            result = FailedResponse(
-                StaffRebellionResponseType.Calm,
-                before,
-                actor,
-                "진정 결과 커밋 실패: " + failureReason);
-            return false;
-        }
-
-        PublishCommittedResponseObservers(
-            staff,
-            after,
-            StaffRebellionResponseType.Calm);
-        result = new StaffRebellionResponseResult(
-            true,
-            StaffRebellionResponseType.Calm,
-            after,
-            actor,
-            "진정 완료");
-        return true;
-    }
-
-    public bool ResolveSuppressedRebel(CharacterActor rebel, CharacterActor defender)
-    {
-        if (!state.TryGetRecord(rebel, out StaffDiscontentRecord record))
-        {
-            return false;
-        }
-
-        StaffDiscontentSnapshot before = record.ToSnapshot();
-        IReadOnlyList<StaffDiscontentSnapshot> ownerBefore = state.CaptureSnapshots();
-        long revisionBefore = state.OutcomeRevision;
-        if (!TryReserveResponse(
-                defender,
-                out CharacterId responder,
-                out KoreanNameSnapshot responderName,
-                out long ownerRevision,
-                out int absoluteDay,
-                out ReservedStaffDiscontentOutcome reserved,
-                out string reserveFailure))
-        {
-            Debug.LogError(
-                "Staff suppression result reservation failed: "
-                + reserveFailure);
-            return false;
-        }
-        if (!record.MarkSuppressed())
-        {
-            outcomes.Cancel(reserved);
-            return false;
-        }
-
-        StaffDiscontentSnapshot after = record.ToSnapshot();
-        if (!TryCommitResponse(
-                StaffRebellionResponseType.SuppressCommand,
-                before,
-                after,
-                responder,
-                responderName,
-                ownerRevision,
-                absoluteDay,
-                reserved,
-                out string failureReason))
-        {
-            state.Restore(ownerBefore, revisionBefore);
-            Debug.LogError(
-                "Staff suppression result commit failed: "
-                + failureReason);
-            return false;
-        }
-
-        PublishCommittedResponseObservers(
-            rebel,
-            after,
-            StaffRebellionResponseType.SuppressCommand);
-        return true;
-    }
-
-    private bool TryReserveResponse(
-        CharacterActor responderActor,
-        out CharacterId responder,
-        out KoreanNameSnapshot responderName,
-        out long ownerRevision,
-        out int absoluteDay,
-        out ReservedStaffDiscontentOutcome reserved,
-        out string failureReason)
-    {
-        responder = default;
-        responderName = default;
-        ownerRevision = 0L;
-        absoluteDay = CurrentAbsoluteDay;
-        reserved = default;
-        failureReason = string.Empty;
-        if (!TryCaptureResponder(
-                responderActor,
-                out responder,
-                out responderName,
-                out failureReason))
-        {
-            return false;
-        }
-
+        result = FailedResponse(type, null, actor, "staff-discontent-command-active");
+        if (commandActive) return false;
+        commandActive = true;
         try
         {
-            ownerRevision = state.GetNextOutcomeRevision();
-        }
-        catch (Exception exception) when (IsRecoverableOutcomeException(exception))
-        {
-            failureReason = "staff-response-revision-invalid:"
-                + exception.Message;
-            return false;
-        }
-
-        return outcomes.TryReserve(
-            ownerRevision,
-            absoluteDay,
-            responder.IsValid,
-            out reserved,
-            out failureReason);
-    }
-
-    private bool TryCommitResponse(
-        StaffRebellionResponseType responseType,
-        StaffDiscontentSnapshot before,
-        StaffDiscontentSnapshot after,
-        CharacterId responder,
-        KoreanNameSnapshot responderName,
-        long ownerRevision,
-        int absoluteDay,
-        in ReservedStaffDiscontentOutcome reserved,
-        out string failureReason)
-    {
-        PreparedOwnerOutcome prepared = default;
-        try
-        {
-            StaffDiscontentOutcomeReceipt receipt = new(
-                ownerRevision,
-                absoluteDay,
-                responseType,
-                before,
-                after,
-                responder,
-                responderName);
-            if (!outcomes.TryWrite(
-                    receipt,
-                    reserved,
-                    out prepared,
-                    out failureReason))
+            var pending = state.ResponseObservation;
+            if (!RecoverAndNotify(out string failure))
+            { result = FailedResponse(type, null, actor, failure); return false; }
+            string staffId = StaffDiscontentService.GetStaffId(staff);
+            if (pending.pending && pending.fact.after.staffId == staffId && pending.fact.responseType == type)
             {
-                return false;
-            }
-
-            state.AdvanceOutcomeRevision(ownerRevision);
-            OwnerOutcomeCommitResult committed = outcomes.Commit(
-                prepared,
-                ownerRevision);
-            if (!committed.DurablyCommitted)
-            {
-                outcomes.Cancel(prepared);
-                failureReason = committed.DetailCode;
-                return false;
-            }
-
-            failureReason = committed.DetailCode;
-            return true;
-        }
-        catch (Exception exception) when (IsRecoverableOutcomeException(exception))
-        {
-            OwnerOutcomeCommitResult reconciled = outcomes.Reconcile(
-                reserved.ResultKey);
-            if (reconciled.DurablyCommitted)
-            {
-                failureReason = reconciled.DetailCode;
+                result = new StaffRebellionResponseResult(true, type, StaffDiscontentFactValues.Restore(pending.fact.after), actor, "이전 대응 결과 전달 완료");
                 return true;
             }
-
-            outcomes.Cancel(prepared);
-            outcomes.Cancel(reserved);
-            failureReason = "staff-response-transaction-fault:"
-                + exception.GetType().Name + ":" + exception.Message;
-            return false;
+            if (!state.TryGetRecord(staff, out var record)
+                || type != StaffRebellionResponseType.Calm && !record.IsInLocalRebellion)
+            { result = FailedResponse(type, null, actor, "대응할 직원 기록이나 반란 대상을 찾을 수 없습니다."); return false; }
+            if (!TryCaptureResponder(actor, out string responderId, out string responderName, out failure))
+            { result = FailedResponse(type, record.ToSnapshot(), actor, failure); return false; }
+            var before = record.ToSnapshot();
+            Action rollback = CaptureRollback();
+            var moodBefore = type == StaffRebellionResponseType.Calm ? staff?.Stats?.CaptureMoodDeliveryTransactionState() : null;
+            IDomainFactStage stage = null;
+            bool preserveApplied = false;
+            try
+            {
+                bool changed;
+                bool moodApplied = false;
+                float resolvedMoodDelta = 0f;
+                if (type == StaffRebellionResponseType.Calm)
+                {
+                    float negotiation = actor == null ? 1f : actor.GetDetailedStatMultiplier("social:negotiation",
+                        actor.Identity?.IsOwner == true ? new[] { "state:formal-status" } : Array.Empty<string>());
+                    changed = record.TryCalm(staff, rules, negotiation, out failure, out moodApplied, out resolvedMoodDelta);
+                }
+                else
+                {
+                    changed = type == StaffRebellionResponseType.Isolate ? record.MarkIsolated() : record.MarkSuppressed();
+                    failure = changed ? string.Empty : "현재 직원 상태에는 대응을 적용할 수 없습니다.";
+                }
+                if (!changed)
+                { result = FailedResponse(type, before, actor, failure); return false; }
+                var after = record.ToSnapshot();
+                var data = new StaffDiscontentFactData
+                {
+                    kind = StaffDiscontentFactKind.Response, revision = state.GetNextOutcomeRevision(),
+                    absoluteDay = CurrentAbsoluteDay, responseType = type,
+                    responderId = responderId, responderDisplayName = responderName,
+                    moodApplied = moodApplied, resolvedMoodDelta = resolvedMoodDelta,
+                    before = StaffDiscontentFactValues.Capture(before), after = StaffDiscontentFactValues.Capture(after)
+                };
+                if (!publications.TryStage(data, out stage, out failure))
+                    throw new InvalidOperationException("staff-response-prepare:" + failure);
+                var delivery = publications.CommitApplied(state, data, stage);
+                preserveApplied = delivery.MayBeCommitted;
+                if (!preserveApplied) throw new InvalidOperationException("staff-response-rejected:" + delivery.Detail);
+                NotifyDelivered();
+                result = new StaffRebellionResponseResult(true, type, after, actor,
+                    delivery.Completed ? type switch
+                    {
+                        StaffRebellionResponseType.Calm => "진정 완료",
+                        StaffRebellionResponseType.Isolate => "격리 완료",
+                        _ => "제압 완료"
+                    } : "대응 적용됨 · 결과 전달 대기: " + delivery.Detail);
+                return true;
+            }
+            catch (Exception exception) when (IsRecoverableOutcomeException(exception))
+            {
+                if (!preserveApplied)
+                {
+                    rollback();
+                    if (moodBefore != null) staff?.Stats?.RestoreMoodDeliveryTransactionState(moodBefore, publish: false);
+                }
+                result = FailedResponse(type, before, actor, "staff-response-transaction:" + exception.Message);
+                return false;
+            }
+            finally { Cancel(stage); }
         }
+        finally { commandActive = false; }
     }
 
-    private static bool TryCaptureResponder(
-        CharacterActor actor,
-        out CharacterId responder,
-        out KoreanNameSnapshot responderName,
-        out string failureReason)
+    private static bool TryCaptureResponder(CharacterActor actor, out string id, out string name, out string failure)
     {
-        responder = default;
-        responderName = default;
-        failureReason = string.Empty;
-        if (actor == null)
-            return true;
-        if (!CharacterPersistentIdentity.TryGet(actor, out responder))
-        {
-            failureReason = "staff-response-responder-id-missing";
-            return false;
-        }
-
-        try
-        {
-            responderName = StaffDiscontentOutcomeReceipt.CaptureName(
-                responder.Value,
-                StaffDiscontentService.GetStaffDisplayName(
-                    actor,
-                    responder.Value));
-            return true;
-        }
-        catch (Exception exception) when (IsRecoverableOutcomeException(exception))
-        {
-            failureReason = "staff-response-responder-name-invalid:"
-                + exception.Message;
-            return false;
-        }
+        id = string.Empty; name = string.Empty; failure = string.Empty;
+        if (actor == null) return true;
+        if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId identity))
+        { failure = "staff-response-responder-id-missing"; return false; }
+        id = identity.Value; name = StaffDiscontentService.GetStaffDisplayName(actor, id)?.Trim() ?? string.Empty;
+        if (!StaffDiscontentFactValues.Name(name)) { failure = "staff-response-responder-name-invalid"; return false; }
+        return true;
     }
 
     private static StaffRebellionResponseResult FailedResponse(
@@ -580,127 +366,86 @@ public class StaffDiscontentRuntime : MonoBehaviour
         actor,
         message);
 
-    private void PublishCommittedResponseObservers(
-        CharacterActor staff,
-        StaffDiscontentSnapshot snapshot,
-        StaffRebellionResponseType responseType)
+    public bool TryRecoverPendingPublications(out string failure)
     {
-        try
+        if (commandActive) { failure = "staff-discontent-command-active"; return false; }
+        commandActive = true;
+        try { return RecoverAndNotify(out failure); }
+        finally { commandActive = false; }
+    }
+    private bool RecoverAndNotify(out string failure)
+    {
+        if (!publications.TryRecover(state, out failure)) return false;
+        NotifyDelivered();
+        return true;
+    }
+    private void NotifyDelivered()
+    {
+        foreach (var kind in new[] { StaffDiscontentFactKind.DailyTransition, StaffDiscontentFactKind.Response })
         {
-            switch (responseType)
+            var fact = state.TakePublicationNotification(kind);
+            if (fact == null) continue;
+            // Auxiliary activity/UI notifications were already best-effort. Take once before callbacks;
+            // replaying a canonical fact never repeats the producing mood/lifecycle mutation.
+            try
             {
-                case StaffRebellionResponseType.Isolate:
-                    RecordSocial(
-                        staff,
-                        CharacterActivityOutcomes.Completed,
-                        "반란 대응: 격리",
-                        "rebellion-isolated",
-                        0.1f);
-                    break;
-                case StaffRebellionResponseType.Calm:
-                    RecordSocial(
-                        staff,
-                        CharacterActivityOutcomes.Completed,
-                        "반란 대응: 진정",
-                        "rebellion-calmed",
-                        0.35f);
-                    break;
+                if (kind == StaffDiscontentFactKind.DailyTransition) gameEventBus.Publish(new StaffDiscontentTransitionedFact(fact));
+                else gameEventBus.Publish(new StaffRebellionResponseResolvedFact(fact));
+            }
+            catch (Exception exception) when (IsRecoverableOutcomeException(exception)) { Debug.LogException(exception); }
+            if (kind == StaffDiscontentFactKind.DailyTransition
+                && state.TryGetRecord(fact.after.staffId, out var record)
+                && record.IsInLocalRebellion && !record.IsIsolated && !record.IsSuppressed)
+            {
+                var staff = RequireCharacterWorldQuery().Characters.FirstOrDefault(value => value != null
+                    && StaffDiscontentService.GetStaffId(value) == fact.after.staffId);
+                if (staff != null) DispatchAutoSuppress(staff);
             }
         }
-        catch (Exception exception) when (IsRecoverableObserverException(exception))
-        {
-            Debug.LogException(exception);
-        }
-
-        try
-        {
-            EventAlertImportance importance = responseType ==
-                StaffRebellionResponseType.Calm
-                ? EventAlertImportance.Low
-                : EventAlertImportance.Medium;
-            string label = responseType switch
-            {
-                StaffRebellionResponseType.Calm => "진정",
-                StaffRebellionResponseType.Isolate => "격리",
-                _ => "제압 완료"
-            };
-            gameEventBus.RaiseStaffComplaint(
-                $"{snapshot.displayName}: {label}",
-                importance);
-        }
-        catch (Exception exception) when (IsRecoverableObserverException(exception))
-        {
-            Debug.LogException(exception);
-        }
     }
-
-    private int CurrentAbsoluteDay => Mathf.Max(
-        0,
-        Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
-
-    private static bool IsRecoverableOutcomeException(Exception exception) =>
-        exception is not OutOfMemoryException
-            && exception is not StackOverflowException
-            && exception is not AccessViolationException;
-
-    private static bool IsRecoverableObserverException(Exception exception) =>
-        IsRecoverableOutcomeException(exception);
-
-    private void ApplyOutcome(CharacterActor staff, StaffDiscontentRecord record, StaffDiscontentOutcome outcome)
+    private void Update()
     {
-        if (outcome == StaffDiscontentOutcome.None)
-        {
-            return;
-        }
-
-        StaffDiscontentSnapshot snapshot = record.ToSnapshot(outcome);
-
-        switch (outcome)
-        {
-            case StaffDiscontentOutcome.Warning:
-                RecordSocial(staff, CharacterActivityOutcomes.Changed, "직원 불만: 만족도 낮음", "low-satisfaction", -0.45f);
-                gameEventBus.RaiseStaffComplaint($"{snapshot.displayName}: 만족도 낮음", EventAlertImportance.Low);
-                break;
-            case StaffDiscontentOutcome.EfficiencyPenalty:
-                RecordSocial(staff, CharacterActivityOutcomes.Changed, "직원 불만: 효율 저하", "efficiency-penalty", -0.55f);
-                gameEventBus.RaiseStaffComplaint($"{snapshot.displayName}: 효율 저하", EventAlertImportance.Medium);
-                break;
-            case StaffDiscontentOutcome.WorkDisruption:
-                RecordSocial(staff, CharacterActivityOutcomes.Blocked, "직원 불만: 태업/결근", "work-disruption", -0.7f);
-                gameEventBus.RaiseStaffComplaint($"{snapshot.displayName}: 태업/결근", EventAlertImportance.Medium);
-                break;
-            case StaffDiscontentOutcome.PermanentDeparture:
-                RecordSocial(staff, CharacterActivityOutcomes.Departed, "직원 이탈: 영구 손실", "permanent-departure", -1f);
-                staff?.Lifecycle?.SetLifecycleState(CharacterLifecycleState.Despawned);
-                gameEventBus.RaiseStaffComplaint($"{snapshot.displayName}: 이탈", EventAlertImportance.High);
-                break;
-            case StaffDiscontentOutcome.LocalRebellion:
-                RecordSocial(staff, CharacterActivityOutcomes.Started, "국지 반란: 주변 피해 시작", "local-rebellion", -1f);
-                gameEventBus.RaiseStaffComplaint($"{snapshot.displayName}: 국지 반란", EventAlertImportance.High);
-                DispatchAutoSuppress(staff);
-                break;
-            case StaffDiscontentOutcome.OwnerThreat:
-                RecordSocial(staff, CharacterActivityOutcomes.Changed, "반란 확산: 사장 위협", "owner-threat", -1f);
-                gameEventBus.RaiseStaffComplaint($"{snapshot.displayName}: 반란 확산", EventAlertImportance.High);
-                break;
-        }
+        if (publications == null || commandActive || !(state.HasPendingPublication || state.HasPendingNotification) || Time.unscaledTime < nextPublicationRetry) return;
+        nextPublicationRetry = Time.unscaledTime + 1f;
+        if (!TryRecoverPendingPublications(out string failure)) Debug.LogWarning(failure);
     }
-
-    private static void RecordSocial(
-        CharacterActor actor,
-        string outcomeId,
-        string factText,
-        string reasonCode,
-        float sentiment)
+    private Action CaptureRollback()
     {
-        actor?.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Social,
-            outcomeId,
-            factText,
-            actionId: "staff-discontent",
-            reasonCode: reasonCode,
-            sentiment: sentiment,
-            bubbleEligible: true));
+        var records = state.CaptureSnapshots();
+        long responseRevision = state.OutcomeRevision, transitionRevision = state.TransitionRevision;
+        var response = state.ResponseObservation;
+        var transition = state.TransitionObservation;
+        return () => state.Restore(records, responseRevision, transitionRevision, response, transition);
+    }
+    private void ValidateCapture()
+    { if (commandActive) throw new InvalidOperationException("staff-discontent-command-active"); }
+    private static void Cancel(IDomainFactStage stage)
+    {
+        try { stage?.Cancel(); }
+        catch (Exception exception) when (IsRecoverableOutcomeException(exception)) { Debug.LogWarning("staff-discontent-cancel:" + exception); }
+    }
+    private int CurrentAbsoluteDay => calendar.Day;
+    private static bool IsRecoverableOutcomeException(Exception exception) => exception is not OutOfMemoryException
+        && exception is not StackOverflowException && exception is not AccessViolationException;
+
+    private static StaffDiscontentSnapshot CreateInitialDailySnapshot(
+        CharacterActor staff)
+    {
+        string staffId = StaffDiscontentService.GetStaffId(staff);
+        return new StaffDiscontentSnapshot(
+            staffId,
+            StaffDiscontentService.GetStaffDisplayName(staff, staffId),
+            StaffDiscontentStage.Stable,
+            StaffDiscontentOutcome.None,
+            StaffDiscontentService.GetMood(staff),
+            0,
+            permanentLoss: false,
+            departed: false,
+            localRebellion: false,
+            ownerThreat: false,
+            isolated: false,
+            suppressed: false,
+            lastProcessedAbsoluteDay: -1);
     }
 
     private ICharacterWorldQuery RequireCharacterWorldQuery()

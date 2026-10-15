@@ -779,6 +779,7 @@ public sealed class OffenseBattleCombatant
     {
         statuses.Clear();
         statuses.AddRange(values?.Where(value => value != null) ?? Array.Empty<OffenseBattleStatus>());
+        UpdateDowned();
     }
 
     public void RemoveStatus(OffenseBattleStatus status)
@@ -804,6 +805,8 @@ public sealed class OffenseBattleCombatant
             }
         }
 
+        if (removed > 0)
+            UpdateDowned();
         return removed;
     }
 

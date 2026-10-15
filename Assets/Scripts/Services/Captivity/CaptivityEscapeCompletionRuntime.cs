@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 internal sealed class CaptivityEscapeCompletionRuntime
@@ -9,14 +10,14 @@ internal sealed class CaptivityEscapeCompletionRuntime
     private readonly CaptivityActorAccess actors;
     private readonly CaptivityActorRuntimeLookup actorRuntime;
     private readonly IDoorAccessSubjectRegistry doorSubjectRegistry;
-    private readonly IGameClock gameClock;
+    private readonly IGameCalendar gameCalendar;
     private readonly CaptiveEscapeOutcomeRuntime outcomes;
 
     public CaptivityEscapeCompletionRuntime(
         CaptivityActorAccess actors,
         CaptivityActorRuntimeLookup actorRuntime,
         IDoorAccessSubjectRegistry doorSubjectRegistry,
-        IGameClock gameClock,
+        IGameCalendar gameCalendar,
         CaptiveEscapeOutcomeRuntime outcomes)
     {
         this.actors = actors ?? throw new ArgumentNullException(nameof(actors));
@@ -24,7 +25,8 @@ internal sealed class CaptivityEscapeCompletionRuntime
             ?? throw new ArgumentNullException(nameof(actorRuntime));
         this.doorSubjectRegistry = doorSubjectRegistry
             ?? throw new ArgumentNullException(nameof(doorSubjectRegistry));
-        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.gameCalendar = gameCalendar
+            ?? throw new ArgumentNullException(nameof(gameCalendar));
         this.outcomes = outcomes ?? throw new ArgumentNullException(nameof(outcomes));
     }
 
@@ -41,6 +43,12 @@ internal sealed class CaptivityEscapeCompletionRuntime
                      .Where(value => value != null)
                      .OrderBy(value => value.captiveId, StringComparer.Ordinal))
         {
+            if (candidate.escapeObservation?.HasFact == true
+                && (candidate.escapeObservation.pending || candidate.escapeObservation.observersPending))
+            {
+                attempted = true;
+                return outcomes.Recover(candidate, out failureReason);
+            }
             if (candidate.status != CaptivityStatus.EscapeAttempt
                 || candidate.escapeOutcomeRevision > 0L)
             {
@@ -87,12 +95,12 @@ internal sealed class CaptivityEscapeCompletionRuntime
         }
         if (state.status == CaptivityStatus.Escaped)
             return true;
-        CaptiveEscapeOutcomeKind kind = state.status switch
+        CaptiveEscapeKind kind = state.status switch
         {
             CaptivityStatus.EscapeAttempt =>
-                CaptiveEscapeOutcomeKind.PhysicalEscape,
+                CaptiveEscapeKind.PhysicalEscape,
             CaptivityStatus.AwaitingCapture =>
-                CaptiveEscapeOutcomeKind.ArrivalCustodyLoss,
+                CaptiveEscapeKind.ArrivalCustodyLoss,
             _ => 0
         };
         if (kind == 0
@@ -107,7 +115,7 @@ internal sealed class CaptivityEscapeCompletionRuntime
         {
             normalizedTrigger = !string.IsNullOrWhiteSpace(state.betrayalTrigger)
                 ? state.betrayalTrigger.Trim()
-                : kind == CaptiveEscapeOutcomeKind.ArrivalCustodyLoss
+                : kind == CaptiveEscapeKind.ArrivalCustodyLoss
                     && !string.IsNullOrWhiteSpace(state.lastResult)
                         ? state.lastResult.Trim()
                         : "감방에서 탈출";
@@ -122,7 +130,7 @@ internal sealed class CaptivityEscapeCompletionRuntime
                 previousStatus,
                 resultingPressure,
                 CurrentAbsoluteDay,
-                out PreparedCaptiveEscapeOutcome prepared,
+                out CaptiveEscapePublication prepared,
                 out long ownerRevision,
                 out normalizedTrigger,
                 out failureReason))
@@ -130,6 +138,7 @@ internal sealed class CaptivityEscapeCompletionRuntime
             return false;
         }
 
+        using var publication = prepared;
         string stateSnapshot =
             CaptivityStateTransitionRules.CaptureStateSnapshot(state);
         CharacterType previousActorType = actor.characterType;
@@ -164,8 +173,8 @@ internal sealed class CaptivityEscapeCompletionRuntime
             return false;
         }
 
-        OwnerOutcomeCommitResult commit = outcomes.Commit(prepared);
-        if (!commit.DurablyCommitted)
+        DomainFactDelivery commit = outcomes.Commit(prepared);
+        if (!commit.MayBeCommitted)
         {
             RestoreCompletionState(
                 state,
@@ -175,14 +184,15 @@ internal sealed class CaptivityEscapeCompletionRuntime
                 previousLifecycle,
                 previousAiPaused,
                 previousDoorCaptive);
-            failureReason = commit.DetailCode.Length == 0
+            failureReason = commit.Detail.Length == 0
                 ? "포로 탈출 원장 커밋이 거절되었습니다."
-                : commit.DetailCode;
+                : commit.Detail;
             return false;
         }
 
-        if (!prepared.IsReplay)
-            outcomes.NotifyCommitted(state, normalizedTrigger, betrayal: false);
+        if (state.escapeObservation.pending)
+            failureReason = "captive-escape-delivery-pending:" + commit.Detail;
+        outcomes.NotifyCommitted(prepared);
         try
         {
             actor.GetAbility<AbilityMove>()?.StartSystemExitDungeon();
@@ -212,9 +222,7 @@ internal sealed class CaptivityEscapeCompletionRuntime
         doorSubjectRegistry.SetCaptive(state.captiveId, previousDoorCaptive);
     }
 
-    private int CurrentAbsoluteDay => Mathf.Max(
-        0,
-        Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
+    private int CurrentAbsoluteDay => gameCalendar.Day;
 
     private static float ClampStat(float value) => Mathf.Clamp(value, 0f, 100f);
 }

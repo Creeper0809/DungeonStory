@@ -187,6 +187,30 @@ public sealed class BuildingOccupancy
         return true;
     }
 
+    internal bool TryRestoreActiveUse(IBuildingCharacterPort visitor, out string failureReason)
+    {
+        CharacterId id = GetVisitorId(visitor);
+        failureReason = string.Empty;
+        if (!id.IsValid || visitor == null || !visitor.IsBuildingInteractionAvailable
+            || owner == null || owner.isDestroy)
+        {
+            failureReason = "restored-facility-user-unavailable";
+            return false;
+        }
+        if (activeUsers.Contains(id)) return true;
+        if (activeUsers.Count >= owner.EffectiveCapacity)
+        {
+            failureReason = "restored-facility-capacity-conflict";
+            return false;
+        }
+        // The saved execution already passed admission and any charge at entry.
+        // Rebuild transient occupancy only; never invoke TryChargeUse again.
+        ReleaseVisitReservation(visitor);
+        activeUsers.Add(id);
+        owner.NotifyOccupancyOrAssignmentChanged();
+        return true;
+    }
+
     public bool CompleteUse(IBuildingCharacterPort visitor)
     {
         CharacterId visitorId = GetVisitorId(visitor);
@@ -196,6 +220,23 @@ public sealed class BuildingOccupancy
         }
 
         owner.RecordFacilityUse(visitor);
+        return true;
+    }
+
+    public bool CompleteUse(
+        IBuildingCharacterPort visitor,
+        CharacterFacilityUseOutcomeReceipt receipt,
+        out FacilityVisitCommitResult commitResult)
+    {
+        CharacterId visitorId = GetVisitorId(visitor);
+        if (!visitorId.IsValid || !activeUsers.Remove(visitorId))
+        {
+            commitResult = FacilityVisitCommitResult.Rejected(
+                "facility-occupancy-completion-missing");
+            return false;
+        }
+
+        commitResult = owner.RecordFacilityUse(visitor, receipt);
         return true;
     }
 

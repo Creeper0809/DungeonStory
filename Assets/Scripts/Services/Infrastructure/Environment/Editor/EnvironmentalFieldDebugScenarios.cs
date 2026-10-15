@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Stopwatch = System.Diagnostics.Stopwatch;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 using EnvironmentalFieldRestoreCandidate =
@@ -936,12 +937,12 @@ public static class EnvironmentalFieldDebugScenarios
                 typeof(EnvironmentalFieldSaveSection)),
             "environmental-field save is not required, preflighted, and rollback-free");
         Require(
-            DungeonEnvironmentalFieldSaveData.CurrentVersion == 2
+            DungeonEnvironmentalFieldSaveData.CurrentVersion == 3
             && typeof(EnvironmentalThermostatSaveData)
                 .GetField("buildingInstanceId") != null
             && typeof(EnvironmentalThermostatSaveData).GetField("x") == null
             && typeof(EnvironmentalThermostatSaveData).GetField("y") == null,
-            "environmental thermostat persistence is not canonical BuildingInstanceId V2");
+            "environmental thermostat persistence is not canonical BuildingInstanceId V3");
 
         TestWorld world = new(4, 2, 20f);
         try
@@ -1203,18 +1204,31 @@ public static class EnvironmentalFieldDebugScenarios
         }
     }
 
-    private sealed class TestWorld : IDisposable
+    internal sealed class TestWorld : IDisposable
     {
         private readonly List<UnityEngine.Object> objects =
             new List<UnityEngine.Object>();
         private readonly MutableClock clock = new MutableClock();
         private readonly TestBuildingWorld buildings =
             new TestBuildingWorld();
+        private readonly DomainFactDispatcher ownedFactDispatcher;
 
-        public TestWorld(int width, int height, float outdoorTemperature)
+        public TestWorld(
+            int width,
+            int height,
+            float outdoorTemperature,
+            IDomainFactPublisher factPublisher = null)
         {
             Grid = new Grid(width, height);
             Environment = new TestEnvironment(outdoorTemperature);
+            if (factPublisher == null)
+            {
+                ownedFactDispatcher = new DomainFactDispatcher();
+                ownedFactDispatcher.Subscribe(
+                    "test:environment-control",
+                    new AcceptingEnvironmentalControlObserver());
+                factPublisher = ownedFactDispatcher;
+            }
             Runtime = new EnvironmentalFieldRuntimeApplicationAdapter(
                 new TestGridProvider(Grid),
                 buildings,
@@ -1224,13 +1238,14 @@ public static class EnvironmentalFieldDebugScenarios
                 Calendar,
                 new EnvironmentalFieldAggregateStateStore(
                     new DungeonRuntimeAggregateRootStore()),
-                new RestoreWorldCandidateIndex());
+                new RestoreWorldCandidateIndex(),
+                factPublisher);
         }
 
         public Grid Grid { get; }
-        public TestEnvironment Environment { get; }
-        public ControlledCalendar Calendar { get; } = new ControlledCalendar();
-        public AlwaysPoweredRuntime Power { get; } = new AlwaysPoweredRuntime();
+        internal TestEnvironment Environment { get; }
+        internal ControlledCalendar Calendar { get; } = new ControlledCalendar();
+        internal AlwaysPoweredRuntime Power { get; } = new AlwaysPoweredRuntime();
         public EnvironmentalFieldRuntimeApplicationAdapter Runtime { get; }
 
         public BuildableObject CreateBuilding(
@@ -1298,6 +1313,7 @@ public static class EnvironmentalFieldDebugScenarios
 
         public void Dispose()
         {
+            ownedFactDispatcher?.Dispose();
             for (int i = objects.Count - 1; i >= 0; i--)
             {
                 if (objects[i] != null)
@@ -1322,7 +1338,9 @@ public static class EnvironmentalFieldDebugScenarios
                 apparelPolicies = Array.Empty<CharacterApparelPolicySaveData>(),
                 apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>(),
                 apparelWorkOrderTerminalStates =
-                    Array.Empty<ApparelWorkOrderTerminalStateSaveData>()
+                    Array.Empty<ApparelWorkOrderTerminalStateSaveData>(),
+                exposureOutcomes =
+                    Array.Empty<EnvironmentalExposureOutcomeSaveData>()
             };
         public CharacterEnvironmentRestoreCandidate BuildRestoreCandidate(
             DungeonCharacterEnvironmentSaveData saveData)
@@ -1452,7 +1470,7 @@ public static class EnvironmentalFieldDebugScenarios
         }
     }
 
-    private sealed class TestEnvironment : ISurvivalEnvironmentQuery
+    internal sealed class TestEnvironment : ISurvivalEnvironmentQuery
     {
         public bool HasFuelSupply(BuildableObject building) =>
             building != null && building.HasFacilityFuelSupply;
@@ -1476,7 +1494,7 @@ public static class EnvironmentalFieldDebugScenarios
         }
     }
 
-    private sealed class ControlledCalendar : IGameCalendar
+    internal sealed class ControlledCalendar : IGameCalendar
     {
         public int Day { get; set; } = 1;
         public int Hour => TimeOfDay == global::TimeOfDay.Night ? 22 : 12;
@@ -1494,6 +1512,113 @@ public static class EnvironmentalFieldDebugScenarios
         public void SetDateTime(int day, int hour) => throw new NotSupportedException("Use the controlled phase input.");
     }
 
+    private sealed class AcceptingEnvironmentalControlObserver :
+        IDurableDomainFactObserver<EnvironmentalControlFact>
+    {
+        private readonly AcceptingEnvironmentalControlCommitGroup commits = new();
+
+        public bool TryReserve(
+            in EnvironmentalControlFact proposed,
+            out object reservation,
+            out string failure)
+        {
+            if (proposed == null)
+            {
+                reservation = null;
+                failure = "test-environment-control-fact-null";
+                return false;
+            }
+            reservation = proposed.Snapshot().operationId;
+            failure = string.Empty;
+            return true;
+        }
+
+        public bool TryPrepare(
+            in EnvironmentalControlFact actual,
+            object reservation,
+            out IDomainFactPreparedPublication prepared,
+            out string failure)
+        {
+            EnvironmentalControlOutcomeSaveData snapshot = actual?.Snapshot();
+            if (snapshot == null
+                || reservation is not string operationId
+                || !string.Equals(
+                    operationId,
+                    snapshot.operationId,
+                    StringComparison.Ordinal))
+            {
+                prepared = null;
+                failure = "test-environment-control-fact-mismatch";
+                return false;
+            }
+            prepared = new AcceptingEnvironmentalControlPublication(
+                commits,
+                operationId);
+            failure = string.Empty;
+            return true;
+        }
+
+        public DomainFactDelivery Replay(in EnvironmentalControlFact fact)
+        {
+            EnvironmentalControlOutcomeSaveData snapshot = fact?.Snapshot();
+            return snapshot == null
+                ? DomainFactDelivery.Reject("test-environment-control-fact-null")
+                : Delivered(snapshot.operationId);
+        }
+
+        public void Cancel(object reservation) { }
+
+        private static DomainFactDelivery Delivered(string operationId) =>
+            new(
+                DomainFactDeliveryPhase.Delivered,
+                operationId,
+                "test:environment-control",
+                new string('a', 64),
+                string.Empty);
+
+        private sealed class AcceptingEnvironmentalControlPublication :
+            IDomainFactPreparedPublication
+        {
+            internal AcceptingEnvironmentalControlPublication(
+                IDomainFactCommitGroup commits,
+                string operationId)
+            {
+                CommitGroup = commits;
+                OperationId = operationId;
+            }
+
+            public IDomainFactCommitGroup CommitGroup { get; }
+            internal string OperationId { get; }
+            public void Cancel() { }
+        }
+
+        private sealed class AcceptingEnvironmentalControlCommitGroup :
+            IDomainFactCommitGroup
+        {
+            public bool Commit(
+                IReadOnlyList<IDomainFactPreparedPublication> publications,
+                DomainFactDelivery[] results,
+                out string failure)
+            {
+                if (publications == null
+                    || results == null
+                    || publications.Count == 0
+                    || publications.Count != results.Length)
+                    throw new ArgumentException("Invalid test fact publication cohort.");
+                for (int i = 0; i < publications.Count; i++)
+                {
+                    if (publications[i]
+                        is not AcceptingEnvironmentalControlPublication publication
+                        || !ReferenceEquals(publication.CommitGroup, this))
+                        throw new ArgumentException("Unexpected test fact publication.");
+                    results[i] = Delivered(publication.OperationId);
+                }
+                failure = string.Empty;
+                return true;
+            }
+        }
+    }
+
     private sealed class MutableClock : IGameClock
     {
         public float DeltaTime { get; private set; }
@@ -1509,7 +1634,7 @@ public static class EnvironmentalFieldDebugScenarios
         }
     }
 
-    private sealed class AlwaysPoweredRuntime : IPowerInfrastructureQuery
+    internal sealed class AlwaysPoweredRuntime : IPowerInfrastructureQuery
     {
         public bool Powered { get; set; } = true;
         public int Version => 0;

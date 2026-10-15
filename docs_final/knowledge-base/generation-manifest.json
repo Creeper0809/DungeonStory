@@ -1,14 +1,14 @@
 {
   "artifact_kind": "dungeonstory-system-knowledge-base",
   "generator": "tools/Documentation/generate_knowledge_base.py",
-  "output_digest": "dced415e4351d09376f5f8a39d447f36b31b993a264e4673b7950235aafa95b0",
-  "output_file_count": 89,
-  "output_files_manifest_sha256": "5a2afaf5dddb96fcbf8d0140de9702f8af2d370794112f49b792883e3dbaa0f5",
+  "output_digest": "d02cacd229347a7de7bf33d13d39efec32b1d4d50e11e8b151cad82153fff9ce",
+  "output_file_count": 90,
+  "output_files_manifest_sha256": "7b5ffa54595e9708e025606bf82b33a3a5fa2ecbf0c5f490e8e2530b8b4bd752",
   "output_root": "docs_final/knowledge-base",
   "schema_version": 1,
-  "source_digest": "e5817ec1064a78bb6ff1806707ed9a8aa7a4b11788460fc5485ad118d52bb876",
-  "source_file_count": 2849,
-  "source_files_manifest_sha256": "f5e78f0bda477f074c6e09e0d5367b8c8418d5e18bfcda270cd02194e44b99c2",
+  "source_digest": "cd90bd5ed7be43e4cbd51b9132652694f312dd48d8876bd689cd14e8ae9c7ab8",
+  "source_file_count": 3871,
+  "source_files_manifest_sha256": "9b0501c0c1a1cd04cfeeba79b88ecd87106737cfdee0998133746c173f9a0218",
   "source_specs": [
     {
       "name": "csharp-implementation",
@@ -71,17 +71,17 @@
     "architecture_mapped_code_file_count": 168,
     "architecture_source_link_count": 179,
     "architecture_system_count": 19,
-    "code_source_file_count": 2693,
-    "code_system_count": 75,
+    "code_source_file_count": 3715,
+    "code_system_count": 76,
     "content_impact_type_count": 75,
-    "content_source_digest": "7be6a15e848d0380aacab78d9d4d4aad76f0fbc6f7bd08f9b3063b7a37d11f69",
+    "content_source_digest": "df7ea6284d5ede123ff411eae2527a868042525ec61fd410bbc6853d5705337c",
     "document_broken_link_count": 0,
     "document_count": 74,
     "implementation_status_count": 37,
-    "observation_code_file_count": 1175,
-    "persistence_code_file_count": 410,
+    "observation_code_file_count": 1415,
+    "persistence_code_file_count": 531,
     "research_unlock_relation_count": 938,
     "state_authority_count": 36,
-    "system_content_relation_count": 291
+    "system_content_relation_count": 300
   }
 }

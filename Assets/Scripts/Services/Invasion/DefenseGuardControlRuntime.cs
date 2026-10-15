@@ -1,14 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 
 internal sealed class DefenseGuardControlRuntime
 {
+    private readonly IGameEventBus events;
     private readonly Dictionary<string, bool> pauseStateBeforeDefense =
         new Dictionary<string, bool>(StringComparer.Ordinal);
     private readonly Dictionary<string, CharacterActor> controlledGuards =
         new Dictionary<string, CharacterActor>(StringComparer.Ordinal);
+
+    public DefenseGuardControlRuntime(IGameEventBus events)
+    {
+        this.events = events ?? throw new ArgumentNullException(nameof(events));
+    }
 
     public void Prepare(CharacterActor guard, string activity)
     {
@@ -38,12 +45,10 @@ internal sealed class DefenseGuardControlRuntime
         guard.GetAbility<AbilityMove>()?.CancelActiveMovement(
             "defense-guard-takeover");
         DefenseCombatPresentation.Ensure(guard)?.SetStatus(activity, false);
-        guard.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Combat,
-            CharacterActivityOutcomes.Started,
-            activity,
-            actionId: "defense:dispatch",
-            sentiment: -0.05f));
+        events.Publish(new DefenseEngagementChangedEvent(
+            DefenseEngagementTransition.Dispatched,
+            CharacterPersistentIdentity.Require(guard),
+            dispatchDetail: activity));
     }
 
     public void Release(CharacterActor guard, Coroutine movement, bool resumeAi)

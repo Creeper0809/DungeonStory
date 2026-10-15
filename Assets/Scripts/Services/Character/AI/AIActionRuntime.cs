@@ -326,7 +326,8 @@ public class AIAction
     public bool SetResolvedDestinationWithFailure(
         CharacterActor actor,
         BuildableObject resolvedDestination,
-        out AIActionFailure failure)
+        out AIActionFailure failure,
+        GridPathSearchPriority pathPriority = GridPathSearchPriority.Normal)
     {
         ReleaseReservation(actor);
         plan = AIActionPlan.None;
@@ -374,7 +375,7 @@ public class AIAction
             grid,
             actor.GetNowXY(),
             pathDestination,
-            GridPathSearchPriority.Normal,
+            pathPriority,
             GridTraversalContext.ForCharacter(CharacterPersistentIdentity.Require(actor)));
         if (resolvedPath == null)
         {

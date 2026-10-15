@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 internal delegate bool CaptivityRansomTerminalPhysicalFinalizer(
@@ -36,7 +37,7 @@ internal sealed class CaptivityRansomRuntime
     private readonly IGameMoneyAccount money;
     private readonly ICaptivityRansomTerminalPhysicalPort terminalPhysical;
     private readonly IDoorAccessSubjectRegistry doorSubjectRegistry;
-    private readonly IGameClock gameClock;
+    private readonly IGameCalendar gameCalendar;
     private readonly CaptiveRansomOutcomeRuntime outcomes;
 
     public CaptivityRansomRuntime(
@@ -47,7 +48,7 @@ internal sealed class CaptivityRansomRuntime
         IGameMoneyAccount money,
         ICaptivityRansomTerminalPhysicalPort terminalPhysical,
         IDoorAccessSubjectRegistry doorSubjectRegistry,
-        IGameClock gameClock,
+        IGameCalendar gameCalendar,
         CaptiveRansomOutcomeRuntime outcomes)
     {
         this.actors = actors ?? throw new ArgumentNullException(nameof(actors));
@@ -61,7 +62,8 @@ internal sealed class CaptivityRansomRuntime
             ?? throw new ArgumentNullException(nameof(terminalPhysical));
         this.doorSubjectRegistry = doorSubjectRegistry
             ?? throw new ArgumentNullException(nameof(doorSubjectRegistry));
-        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.gameCalendar = gameCalendar
+            ?? throw new ArgumentNullException(nameof(gameCalendar));
         this.outcomes = outcomes ?? throw new ArgumentNullException(nameof(outcomes));
     }
 
@@ -105,7 +107,7 @@ internal sealed class CaptivityRansomRuntime
             failureReason = "현재 수용 정책은 몸값 협상을 허용하지 않습니다.";
             return false;
         }
-        if (!CaptiveRansomOutcomeIds.IsPreviousStatusValid(state.status))
+        if (!CaptiveRansomAcceptedFact.IsPreviousStatusValid(state.status))
         {
             failureReason = "현재 진행 중인 포로 작업을 먼저 끝내야 합니다.";
             return false;
@@ -121,13 +123,14 @@ internal sealed class CaptivityRansomRuntime
                 amount,
                 resultingPressure,
                 CurrentAbsoluteDay,
-                out PreparedCaptiveRansomOutcome prepared,
+                out CaptiveRansomPublication prepared,
                 out long ownerRevision,
                 out failureReason))
         {
             return false;
         }
 
+        using var publication = prepared;
         string stateSnapshot =
             CaptivityStateTransitionRules.CaptureStateSnapshot(state);
         try
@@ -137,7 +140,7 @@ internal sealed class CaptivityRansomRuntime
             state.ransomOutcomeRevision = ownerRevision;
             state.ransomAcceptedAmount = amount;
             state.ransomIncomeCredited = false;
-            state.ransomObserversPending = !prepared.IsReplay;
+            state.ransomObserversPending = false;
         }
         catch (Exception exception)
         {
@@ -150,18 +153,20 @@ internal sealed class CaptivityRansomRuntime
             return false;
         }
 
-        OwnerOutcomeCommitResult commit = outcomes.Commit(prepared);
-        if (!commit.DurablyCommitted)
+        DomainFactDelivery commit = outcomes.Commit(prepared);
+        if (!commit.MayBeCommitted)
         {
             CaptivityStateTransitionRules.RestoreStateSnapshot(
                 stateSnapshot,
                 state);
-            failureReason = commit.DetailCode.Length == 0
+            failureReason = commit.Detail.Length == 0
                 ? "포로 몸값 원장 커밋이 거절되었습니다."
-                : commit.DetailCode;
+                : commit.Detail;
             return false;
         }
 
+        // Delivery recovery/finalization owns the next guard; never overlap it with an active stage.
+        publication.Dispose();
         if (TryFinalizePending(
                 state,
                 actor,
@@ -170,7 +175,7 @@ internal sealed class CaptivityRansomRuntime
         {
             return true;
         }
-        failureReason = "몸값 결과는 확정되었지만 마무리를 재시도합니다: "
+        failureReason = "몸값 합의 상태를 보존하고 기록 전달/마무리를 재시도합니다: "
             + failureReason;
         return false;
     }
@@ -227,6 +232,9 @@ internal sealed class CaptivityRansomRuntime
             return false;
         }
 
+        if (!outcomes.TryBeginFinalization(state, out IDisposable finalization, out failureReason))
+            return false;
+        using var finalizationGuard = finalization;
         int amount = state.ransomAcceptedAmount;
         if (!state.ransomIncomeCredited)
         {
@@ -240,13 +248,18 @@ internal sealed class CaptivityRansomRuntime
                 state.captiveId,
                 state.captiveId,
                 "포로 몸값");
-            if (!idempotentMoney.TryCreditOnce(
-                    amount,
-                    context,
-                    out failureReason))
+            try
             {
-                failureReason = "포로 몸값을 중복 없이 입금할 수 없습니다: "
-                    + failureReason;
+                if (!idempotentMoney.TryCreditOnce(amount, context, out failureReason))
+                {
+                    failureReason = "포로 몸값을 중복 없이 입금할 수 없습니다: " + failureReason;
+                    return false;
+                }
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                && exception is not StackOverflowException && exception is not AccessViolationException)
+            {
+                failureReason = "포로 몸값 입금을 재확인해야 합니다: " + exception.Message;
                 return false;
             }
             state.ransomIncomeCredited = true;
@@ -268,7 +281,6 @@ internal sealed class CaptivityRansomRuntime
             doorSubjectRegistry.SetCaptive(state.captiveId, false);
             state.restrained = false;
             state.lastResult = $"몸값 {amount:N0}을 받고 석방";
-            state.ransomObserversPending = false;
             state.status = CaptivityStatus.Released;
         }
         catch (Exception exception)
@@ -280,7 +292,7 @@ internal sealed class CaptivityRansomRuntime
 
         paidAmount = amount;
         if (notify)
-            outcomes.NotifyCommitted(state, actor, amount);
+            outcomes.NotifyCommitted(state);
         try
         {
             actor.GetAbility<AbilityMove>()?.StartSystemExitDungeon();
@@ -308,9 +320,7 @@ internal sealed class CaptivityRansomRuntime
             state?.captiveId,
             StringComparison.Ordinal);
 
-    private int CurrentAbsoluteDay => Mathf.Max(
-        0,
-        Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
+    private int CurrentAbsoluteDay => gameCalendar.Day;
 
     private static float ClampStat(float value) => Mathf.Clamp(value, 0f, 100f);
 }

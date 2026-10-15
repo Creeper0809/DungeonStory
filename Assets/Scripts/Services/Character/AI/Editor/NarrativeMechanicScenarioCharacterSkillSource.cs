@@ -759,7 +759,49 @@ public sealed class NarrativeMechanicScenarioCharacterSkillSource
                 draft.requestedUltimateDomain.ToString())),
             Property("rules", new NarrativeMechanicCatalogCanonicalJsonArray(
                 ruleOptions.Select((options) => ToRuleJson(options, settings, draft.kind)))),
+            Property("selectionRequest", ToModuleSelectionRequestJson(draft, settings)),
             Property("unlockLevel", Integer(draft.unlockLevel)));
+    }
+
+    private static NarrativeMechanicCatalogCanonicalJsonValue ToModuleSelectionRequestJson(
+        CharacterSkillDraft draft,
+        CharacterSkillSystemSettingsSO settings)
+    {
+        NarrativeFormulaModuleSelectionRequest selection =
+            CharacterSkillFormulaGeneration.BuildModuleSelectionRequest(draft, settings);
+        CharacterSkillModuleOfferState state =
+            draft.moduleSelectionOffers[draft.nextPresentationIndex];
+        return NarrativeMechanicCatalogCanonicalJson.Object(
+            Property("evidenceFactIds", StringArray(selection.EvidenceFactIds)),
+            Property("maximumDrawbackModules", Integer(selection.MaximumDrawbackModules)),
+            Property("maximumPositiveModules", Integer(selection.MaximumPositiveModules)),
+            Property("minimumPositiveModules", Integer(1)),
+            Property("offers", new NarrativeMechanicCatalogCanonicalJsonArray(
+                selection.Offers.Select(ToModuleSelectionOfferJson))),
+            Property("qualifiedNegativeEvidenceFactIds", StringArray(
+                (state.qualifiedNegativeEvidenceFactIds ?? new List<string>())
+                    .OrderBy(value => value, StringComparer.Ordinal))),
+            Property("selectionId", String(selection.SelectionId)));
+    }
+
+    private static NarrativeMechanicCatalogCanonicalJsonValue ToModuleSelectionOfferJson(
+        NarrativeFormulaModuleOffer offer)
+    {
+        if (offer == null)
+        {
+            throw Unsupported(
+                "character-skill-scenario-selection-offer-null",
+                "CharacterSkill module-selection request contained a null offer.");
+        }
+        return NarrativeMechanicCatalogCanonicalJson.Object(
+            Property("capabilityId", String(offer.Capability.Descriptor.CapabilityId)),
+            Property("moduleId", String(offer.ModuleId)),
+            Property("polarity", String(offer.Polarity.ToString())),
+            Property("requiredCompanionGroups", StringArray(
+                offer.RequiredCompanionGroups)),
+            Property("requiredCompanionModuleIds", StringArray(
+                offer.RequiredCompanionModuleIds)),
+            Property("semanticDescription", String(offer.SemanticDescription)));
     }
 
     private static NarrativeMechanicCatalogCanonicalJsonValue ToRuleJson(

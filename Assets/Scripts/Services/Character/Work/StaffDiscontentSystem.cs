@@ -18,7 +18,9 @@ public sealed class StaffDiscontentSnapshot
         bool localRebellion,
         bool ownerThreat,
         bool isolated,
-        bool suppressed)
+        bool suppressed,
+        int lastProcessedAbsoluteDay = -1,
+        int localRebellionDays = 0)
     {
         CharacterId typedStaffId = new CharacterId(staffId);
         if (!typedStaffId.IsValid
@@ -57,11 +59,17 @@ public sealed class StaffDiscontentSnapshot
                 nameof(mood),
                 "Mood must be finite and between 0 and 100.");
         }
-        if (lowMoodDays < 0)
+        if (lowMoodDays < 0 || localRebellionDays < 0)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(lowMoodDays),
                 "Low-mood day count cannot be negative.");
+        }
+        if (lastProcessedAbsoluteDay < -1)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(lastProcessedAbsoluteDay),
+                "Last processed absolute day cannot be below -1.");
         }
 
         this.staffId = staffId;
@@ -70,12 +78,14 @@ public sealed class StaffDiscontentSnapshot
         this.outcome = outcome;
         this.mood = mood;
         this.lowMoodDays = lowMoodDays;
+        this.localRebellionDays = localRebellionDays;
         this.permanentLoss = permanentLoss;
         this.departed = departed;
         this.localRebellion = localRebellion;
         this.ownerThreat = ownerThreat;
         this.isolated = isolated;
         this.suppressed = suppressed;
+        this.lastProcessedAbsoluteDay = lastProcessedAbsoluteDay;
     }
 
     public string staffId { get; }
@@ -84,12 +94,14 @@ public sealed class StaffDiscontentSnapshot
     public StaffDiscontentOutcome outcome { get; }
     public float mood { get; }
     public int lowMoodDays { get; }
+    public int localRebellionDays { get; }
     public bool permanentLoss { get; }
     public bool departed { get; }
     public bool localRebellion { get; }
     public bool ownerThreat { get; }
     public bool isolated { get; }
     public bool suppressed { get; }
+    public int lastProcessedAbsoluteDay { get; }
 
     public string ToSummaryText()
     {
@@ -118,12 +130,14 @@ public sealed class StaffDiscontentRecord
             Stage = snapshot.stage,
             LastMood = snapshot.mood,
             LowMoodDays = snapshot.lowMoodDays,
+            LocalRebellionDays = snapshot.localRebellionDays,
             IsPermanentLoss = snapshot.permanentLoss,
             IsDeparted = snapshot.departed,
             IsInLocalRebellion = snapshot.localRebellion,
             IsOwnerThreat = snapshot.ownerThreat,
             IsIsolated = snapshot.isolated,
-            IsSuppressed = snapshot.suppressed
+            IsSuppressed = snapshot.suppressed,
+            LastProcessedAbsoluteDay = snapshot.lastProcessedAbsoluteDay
         };
         return record;
     }
@@ -140,14 +154,28 @@ public sealed class StaffDiscontentRecord
     public bool IsOwnerThreat { get; private set; }
     public bool IsIsolated { get; private set; }
     public bool IsSuppressed { get; private set; }
+    public int LastProcessedAbsoluteDay { get; private set; } = -1;
 
-    public StaffDiscontentOutcome Update(CharacterActor staff, StaffDiscontentRules rules)
+    public StaffDiscontentOutcome Update(
+        CharacterActor staff,
+        StaffDiscontentRules rules,
+        int absoluteDay)
     {
         rules ??= StaffDiscontentRules.CreateDefault();
+        if (absoluteDay < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        }
         if (staff != null)
         {
             DisplayName = StaffDiscontentService.GetStaffDisplayName(staff, StaffId);
         }
+
+        if (absoluteDay <= LastProcessedAbsoluteDay)
+        {
+            return StaffDiscontentOutcome.None;
+        }
+        LastProcessedAbsoluteDay = absoluteDay;
 
         if (IsDeparted || IsSuppressed)
         {
@@ -236,10 +264,14 @@ public sealed class StaffDiscontentRecord
         CharacterActor staff,
         StaffDiscontentRules rules,
         float negotiationMultiplier,
-        out string failureReason)
+        out string failureReason,
+        out bool moodApplied,
+        out float resolvedMoodDelta)
     {
         rules ??= StaffDiscontentRules.CreateDefault();
         failureReason = string.Empty;
+        moodApplied = false;
+        resolvedMoodDelta = 0f;
 
         if (IsDeparted)
         {
@@ -259,13 +291,18 @@ public sealed class StaffDiscontentRecord
             return false;
         }
 
-        staff?.Stats?.ApplyMoodFactor(
-            "management:calmed",
-            "상담으로 진정됨",
-            Mathf.Max(0f, rules.calmMoodRecovery)
-                * Mathf.Max(0f, negotiationMultiplier),
-            240f,
-            1);
+        if (staff?.Stats != null)
+        {
+            float resolved = staff.ApplyMoodFactorBeforeOutcomeCommit(
+                "management:calmed",
+                "상담으로 진정됨",
+                Mathf.Max(0f, rules.calmMoodRecovery)
+                    * Mathf.Max(0f, negotiationMultiplier),
+                240f,
+                1,
+                out moodApplied);
+            if (moodApplied) resolvedMoodDelta = resolved;
+        }
         LastMood = StaffDiscontentService.GetMood(staff);
         LowMoodDays = 0;
         Stage = StaffDiscontentService.EvaluateStage(LastMood, LowMoodDays, rules);
@@ -286,7 +323,9 @@ public sealed class StaffDiscontentRecord
             IsInLocalRebellion,
             IsOwnerThreat,
             IsIsolated,
-            IsSuppressed);
+            IsSuppressed,
+            LastProcessedAbsoluteDay,
+            LocalRebellionDays);
     }
 }
 
@@ -320,6 +359,43 @@ public sealed class StaffDiscontentState
 
     public IReadOnlyCollection<StaffDiscontentRecord> Records => records.Values;
     public long OutcomeRevision { get; private set; }
+    public long TransitionRevision { get; private set; }
+    private StaffDiscontentObservationData responseObservation = new();
+    private StaffDiscontentObservationData transitionObservation = new();
+    public StaffDiscontentObservationData ResponseObservation => responseObservation.Clone();
+    public StaffDiscontentObservationData TransitionObservation => transitionObservation.Clone();
+    public bool HasPendingPublication => responseObservation.pending || transitionObservation.pending;
+    public bool HasPendingNotification => responseObservation.notificationPending || transitionObservation.notificationPending;
+
+    internal void RecordAppliedPublication(StaffDiscontentFactData fact, string key)
+    {
+        if (HasPendingPublication) throw new InvalidOperationException("staff-discontent-publication-pending");
+        var observation = new StaffDiscontentObservationData
+        { fact = fact.Clone(), publicationKey = key, pending = true, notificationPending = true };
+        StaffDiscontentFactValues.ValidateObservation(observation, fact.kind, fact.revision);
+        if (!records.TryGetValue(fact.after.staffId, out var record)
+            || !StaffDiscontentFactValues.SameState(StaffDiscontentFactValues.Capture(record.ToSnapshot()), fact.after))
+            throw new InvalidOperationException("staff-discontent-applied-state-conflict");
+        if (fact.kind == StaffDiscontentFactKind.DailyTransition)
+        { AdvanceTransitionRevision(fact.revision); transitionObservation = observation; }
+        else { AdvanceOutcomeRevision(fact.revision); responseObservation = observation; }
+    }
+
+    internal void MarkPublicationDelivered(StaffDiscontentFactKind kind, string key)
+    {
+        var observation = kind == StaffDiscontentFactKind.DailyTransition ? transitionObservation : responseObservation;
+        if (observation.fact == null || StaffDiscontentFactValues.IsEmpty(observation.fact) || observation.publicationKey != key)
+            throw new InvalidOperationException("staff-discontent-publication-identity-conflict");
+        observation.pending = false;
+    }
+
+    internal StaffDiscontentFactData TakePublicationNotification(StaffDiscontentFactKind kind)
+    {
+        var observation = kind == StaffDiscontentFactKind.DailyTransition ? transitionObservation : responseObservation;
+        if (observation.pending || !observation.notificationPending) return null;
+        observation.notificationPending = false;
+        return observation.fact.Clone();
+    }
 
     public long GetNextOutcomeRevision()
     {
@@ -341,7 +417,31 @@ public sealed class StaffDiscontentState
         OutcomeRevision = expectedNextRevision;
     }
 
-    public StaffDiscontentRecord ProcessStaff(CharacterActor staff, StaffDiscontentRules rules, out StaffDiscontentOutcome outcome)
+    public long GetNextTransitionRevision()
+    {
+        if (TransitionRevision == long.MaxValue)
+        {
+            throw new InvalidOperationException(
+                "Staff-discontent transition revision is exhausted.");
+        }
+        return TransitionRevision + 1L;
+    }
+
+    public void AdvanceTransitionRevision(long expectedNextRevision)
+    {
+        if (expectedNextRevision != GetNextTransitionRevision())
+        {
+            throw new InvalidOperationException(
+                $"Staff-discontent transition revision mismatch: current={TransitionRevision}, next={expectedNextRevision}.");
+        }
+        TransitionRevision = expectedNextRevision;
+    }
+
+    public StaffDiscontentRecord ProcessStaff(
+        CharacterActor staff,
+        StaffDiscontentRules rules,
+        int absoluteDay,
+        out StaffDiscontentOutcome outcome)
     {
         outcome = StaffDiscontentOutcome.None;
         if (!StaffDiscontentService.IsTrackableStaff(staff))
@@ -351,7 +451,7 @@ public sealed class StaffDiscontentState
 
         string staffId = StaffDiscontentService.GetStaffId(staff);
         StaffDiscontentRecord record = GetOrCreate(staffId, staff);
-        outcome = record.Update(staff, rules);
+        outcome = record.Update(staff, rules, absoluteDay);
         return record;
     }
 
@@ -388,7 +488,10 @@ public sealed class StaffDiscontentState
 
     public void Restore(
         IEnumerable<StaffDiscontentSnapshot> savedRecords,
-        long outcomeRevision = 0L)
+        long outcomeRevision = 0L,
+        long transitionRevision = 0L,
+        StaffDiscontentObservationData responseObservation = null,
+        StaffDiscontentObservationData transitionObservation = null)
     {
         if (savedRecords == null)
         {
@@ -398,7 +501,15 @@ public sealed class StaffDiscontentState
         {
             throw new ArgumentOutOfRangeException(nameof(outcomeRevision));
         }
+        if (transitionRevision < 0L)
+        {
+            throw new ArgumentOutOfRangeException(nameof(transitionRevision));
+        }
 
+        var response = responseObservation?.Clone() ?? new StaffDiscontentObservationData();
+        var transition = transitionObservation?.Clone() ?? new StaffDiscontentObservationData();
+        StaffDiscontentFactValues.ValidateObservation(response, StaffDiscontentFactKind.Response, outcomeRevision);
+        StaffDiscontentFactValues.ValidateObservation(transition, StaffDiscontentFactKind.DailyTransition, transitionRevision);
         Dictionary<string, StaffDiscontentRecord> restored =
             new Dictionary<string, StaffDiscontentRecord>(StringComparer.Ordinal);
         foreach (StaffDiscontentSnapshot snapshot in savedRecords)
@@ -410,8 +521,18 @@ public sealed class StaffDiscontentState
             }
         }
 
+        foreach (var observation in new[] { response, transition })
+        {
+            if (StaffDiscontentFactValues.IsEmpty(observation.fact)) continue;
+            if (!restored.TryGetValue(observation.fact.after.staffId, out var record)
+                || observation.pending && !StaffDiscontentFactValues.SameState(StaffDiscontentFactValues.Capture(record.ToSnapshot()), observation.fact.after))
+                throw new ArgumentException("staff-discontent-restored-observation-owner-conflict");
+        }
         records = restored;
         OutcomeRevision = outcomeRevision;
+        TransitionRevision = transitionRevision;
+        this.responseObservation = response;
+        this.transitionObservation = transition;
     }
 
     private StaffDiscontentRecord GetOrCreate(string staffId, CharacterActor staff)

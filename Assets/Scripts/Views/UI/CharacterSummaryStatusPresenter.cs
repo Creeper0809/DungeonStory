@@ -50,8 +50,13 @@ public sealed class CharacterSummaryStatusPresenter
     public void BindPopulation(
         TMP_Text summary,
         Button globalPolicy,
-        Button characterPermission) =>
-        population.Bind(summary, globalPolicy, characterPermission);
+        Button characterPermission,
+        Button familyPlanningPolicy) =>
+        population.Bind(
+            summary,
+            globalPolicy,
+            characterPermission,
+            familyPlanningPolicy);
 
     public void RefreshPopulation(CharacterActor actor) =>
         population.Refresh(actor);
@@ -61,6 +66,9 @@ public sealed class CharacterSummaryStatusPresenter
 
     public void ToggleCharacterApprenticeship(CharacterActor actor) =>
         population.ToggleCharacterPermission(actor);
+
+    public void CycleFamilyPlanningPolicy(CharacterActor actor) =>
+        population.CycleFamilyPlanningPolicy(actor);
 
     public void Bind(TMP_Text generatedProfileText, Slider generatedHealth, TMP_Text generatedCarrySummary)
     {

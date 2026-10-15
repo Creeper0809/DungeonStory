@@ -7,6 +7,7 @@ using System.Linq;
 using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 using VContainer;
 
 public static class CropPlotDebugScenarios
@@ -45,13 +46,38 @@ public static class CropPlotDebugScenarios
             fieldPersistence = scope.Container.Resolve<IEnvironmentalFieldPersistence>();
             originalField = fieldPersistence.Capture();
             Require(catalog.TryGetCrop("crop:twilight-grain", out CropDefinitionSO crop), "Missing authored grain.");
+            CropDefinitionSO alternateCrop = catalog.Crops.FirstOrDefault(value =>
+                value != null
+                && !string.Equals(
+                    value.CropId,
+                    crop.CropId,
+                    StringComparison.Ordinal));
+            Require(alternateCrop != null, "Missing alternate authored crop for UI command reachability.");
+            if (!string.IsNullOrWhiteSpace(alternateCrop.RequiredResearchId))
+            {
+                Require(research.TryCompleteProjectImmediatelyForVerification(
+                    new ResearchProjectId(alternateCrop.RequiredResearchId),
+                    out string alternateResearchFailure),
+                    alternateResearchFailure);
+            }
             fixture = new GameObject("Wim016_Light_Observation_Witness");
             var plot = fixture.AddComponent<Facility>();
             scope.Container.Inject(plot);
             plot.SetGrid(grid);
             plot.Initialization(LoadBuilding("P23"), new Vector2Int(4, 0));
             runtime.Restore(runtime.BuildRestore(runtime.Capture()));
-            Require(runtime.TrySetCrop(plot, crop.CropId, out string cropFailure), cropFailure);
+            var presenter = scope.Container.Resolve<ICropPlotBuildingPanelPresenter>();
+            InvokeCropChoice(alternateCrop.CropId);
+            Require(runtime.Plots.Single(value =>
+                    value.PlotId == plot.RequirePersistentInstanceId().Value).CropId
+                == alternateCrop.CropId,
+                "Actual crop panel alternate-choice command did not reach CropPlotRuntime.");
+            InvokeCropChoice(crop.CropId);
+            Require(runtime.Plots.Single(value =>
+                    value.PlotId == plot.RequirePersistentInstanceId().Value).CropId
+                == crop.CropId,
+                "Actual crop panel restore-choice command did not reach CropPlotRuntime.");
+            lines.Add("[PASS] actual PlayMode crop panel Button.onClick -> TrySetCrop alternate/current commands");
             runtime.Tick();
             string plotId = plot.RequirePersistentInstanceId().Value;
             var waiting = runtime.Plots.Single(p => p.PlotId == plotId);
@@ -64,7 +90,6 @@ public static class CropPlotDebugScenarios
                 "Sow unavailable: " + sow.UnavailableReason);
             Require(runtime.ApplyWork(plot, BuiltInWorkTypeIds.Sow, sow.RequiredWork, out bool done) && done,
                 "Actual sow failed.");
-            var presenter = scope.Container.Resolve<ICropPlotBuildingPanelPresenter>();
             string before = JsonUtility.ToJson(runtime.Capture());
             foreach (var row in new (float Light, float Multiplier, CropGrowthLightStatus Status, string Ui)[] {
                 (0, 0, CropGrowthLightStatus.Stopped, "광량·현재0·정지5·충분50·성장0%"),
@@ -97,9 +122,39 @@ public static class CropPlotDebugScenarios
                 UnityEngine.Object.DestroyImmediate(panel);
                 panel = null;
             }
-            lines.Add("result=PASS; controlled main-service/presenter witness, not natural UI selection or growth");
+            lines.Add("result=PASS; controlled main-service/presenter witness, not natural player pointer input or growth");
             report = string.Join("\n", lines);
             return true;
+
+            void InvokeCropChoice(string cropId)
+            {
+                panel = new GameObject(
+                    "Wim016_Crop_Command_Panel",
+                    typeof(RectTransform),
+                    typeof(Canvas));
+                string feedback = string.Empty;
+                int refreshCount = 0;
+                IReadOnlyList<GameObject> created = presenter.Render(
+                    panel.transform,
+                    plot,
+                    TMPro.TMP_Settings.defaultFontAsset,
+                    value => feedback = value,
+                    () => refreshCount++);
+                GameObject row = created.SingleOrDefault(value =>
+                    value != null
+                    && string.Equals(
+                        value.name,
+                        "CropChoice_" + cropId,
+                        StringComparison.Ordinal));
+                Button button = row?.GetComponentInChildren<Button>(true);
+                Require(button != null && button.interactable,
+                    "Actual crop panel choice button is unavailable: " + cropId);
+                button.onClick.Invoke();
+                Require(refreshCount == 1 && !string.IsNullOrWhiteSpace(feedback),
+                    "Actual crop panel choice did not publish feedback/refresh: " + cropId);
+                UnityEngine.Object.DestroyImmediate(panel);
+                panel = null;
+            }
         }
         catch (Exception error)
         {

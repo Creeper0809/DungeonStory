@@ -124,7 +124,8 @@ internal sealed class OffenseUrgentMitigationRestoreCandidate
 public sealed class OffenseUrgentMitigationRuntime :
     IOffenseUrgentMitigationRuntime,
     IInitializable,
-    ITickable
+    ITickable,
+    IDungeonRestoreTransactionParticipant
 {
     private const float EvaluationInterval = 0.5f;
     private const string PhysicalOperationPrefix =
@@ -145,6 +146,7 @@ public sealed class OffenseUrgentMitigationRuntime :
     private IReadOnlyList<OffenseUrgentMitigationOrderStateData> ordersView;
     private float nextEvaluationTime;
     private int nextOrderSequence;
+    private readonly DungeonRestorePublication restorePublication = new();
 
     public OffenseUrgentMitigationRuntime(
         IOffenseWorldSimulation world,
@@ -511,6 +513,18 @@ public sealed class OffenseUrgentMitigationRuntime :
         OffenseUrgentMitigationRestoreCandidate candidate)
     {
         candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        if (restorePublication.TryStage(
+                () => ApplyRestore(candidate),
+                CaptureRestoreRollback))
+        {
+            return;
+        }
+
+        ApplyRestore(candidate);
+    }
+
+    private void ApplyRestore(OffenseUrgentMitigationRestoreCandidate candidate)
+    {
         orders = candidate.Orders;
         boundFacilities = candidate.BoundFacilities;
         ordersView = null;
@@ -518,6 +532,34 @@ public sealed class OffenseUrgentMitigationRuntime :
         nextEvaluationTime = candidate.NextEvaluationTime;
         Version = candidate.Version;
     }
+
+    private Action CaptureRestoreRollback()
+    {
+        List<OffenseUrgentMitigationOrderStateData> previousOrders = orders;
+        Dictionary<string, BuildableObject> previousBoundFacilities =
+            boundFacilities;
+        IReadOnlyList<OffenseUrgentMitigationOrderStateData> previousOrdersView =
+            ordersView;
+        float previousNextEvaluationTime = nextEvaluationTime;
+        int previousNextOrderSequence = nextOrderSequence;
+        int previousVersion = Version;
+        return () =>
+        {
+            orders = previousOrders;
+            boundFacilities = previousBoundFacilities;
+            ordersView = previousOrdersView;
+            nextEvaluationTime = previousNextEvaluationTime;
+            nextOrderSequence = previousNextOrderSequence;
+            Version = previousVersion;
+        };
+    }
+
+    public string ParticipantId => "offense.urgent-mitigation";
+    public void BeginRestoreCandidate() => restorePublication.Begin();
+    public void PublishRestoreCandidate() => restorePublication.Publish();
+    public void RollbackPublishedRestoreCandidate() => restorePublication.Discard();
+    public void DiscardRestoreCandidate() => restorePublication.Discard();
+    public void CompleteRestoreCandidate() => restorePublication.Complete();
 
     private static bool IsFinite(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value);
@@ -1378,7 +1420,7 @@ public sealed class ThreatMitigationWorkExecutionHandler :
                     {
                         // Another responder may have extinguished this fire while
                         // the worker was entering or completing a bounded chunk.
-                        result.CompletedSuccessfully = true;
+                        MarkFireResolvedByAnotherResponder(result);
                         yield break;
                     }
                     if (!fireWork.Available
@@ -1416,11 +1458,12 @@ public sealed class ThreatMitigationWorkExecutionHandler :
                             context.Actor,
                             chunk,
                             out EnvironmentalFireSuppressionAttempt attempt,
-                            out string beginFailure))
+                            out string beginFailure,
+                            context.CommandOrigin))
                     {
                         if (!TryGetSameFireWork(context, fireId, out _))
                         {
-                            result.CompletedSuccessfully = true;
+                            MarkFireResolvedByAnotherResponder(result);
                         }
                         else
                         {
@@ -1443,7 +1486,7 @@ public sealed class ThreatMitigationWorkExecutionHandler :
                     }
                     if (!TryGetSameFireWork(context, fireId, out _))
                     {
-                        result.CompletedSuccessfully = true;
+                        MarkFireResolvedByAnotherResponder(result);
                         yield break;
                     }
                     if (!fireRuntime.ApplyResponderExposure(
@@ -1453,7 +1496,7 @@ public sealed class ThreatMitigationWorkExecutionHandler :
                     {
                         if (!TryGetSameFireWork(context, fireId, out _))
                         {
-                            result.CompletedSuccessfully = true;
+                            MarkFireResolvedByAnotherResponder(result);
                         }
                         else
                         {
@@ -1470,7 +1513,7 @@ public sealed class ThreatMitigationWorkExecutionHandler :
                     if (chunkSuppression.Disposition
                         == EnvironmentalFireSuppressionDisposition.FireMissing)
                     {
-                        result.CompletedSuccessfully = true;
+                        MarkFireResolvedByAnotherResponder(result);
                         yield break;
                     }
                     if (!chunkSuppression.Applied)
@@ -1478,6 +1521,11 @@ public sealed class ThreatMitigationWorkExecutionHandler :
                         RejectFireWork(result, chunkSuppression);
                         yield break;
                     }
+                    MarkFireDomainOutcome(
+                        result,
+                        fireWork,
+                        chunkSuppression,
+                        approvedWork);
                     if (chunkSuppression.Disposition
                         == EnvironmentalFireSuppressionDisposition.Extinguished)
                     {
@@ -1495,11 +1543,12 @@ public sealed class ThreatMitigationWorkExecutionHandler :
                     context.Actor,
                     fireWork,
                     out EnvironmentalFireSuppressionAttempt waterAttempt,
-                    out string waterBeginFailure))
+                    out string waterBeginFailure,
+                    context.CommandOrigin))
             {
                 if (!TryGetSameFireWork(context, fireId, out _))
                 {
-                    result.CompletedSuccessfully = true;
+                    MarkFireResolvedByAnotherResponder(result);
                 }
                 else
                 {
@@ -1523,7 +1572,7 @@ public sealed class ThreatMitigationWorkExecutionHandler :
 
             if (!TryGetSameFireWork(context, fireId, out _))
             {
-                result.CompletedSuccessfully = true;
+                MarkFireResolvedByAnotherResponder(result);
                 yield break;
             }
             if (!fireRuntime.ApplyResponderExposure(
@@ -1533,7 +1582,7 @@ public sealed class ThreatMitigationWorkExecutionHandler :
             {
                 if (!TryGetSameFireWork(context, fireId, out _))
                 {
-                    result.CompletedSuccessfully = true;
+                    MarkFireResolvedByAnotherResponder(result);
                 }
                 else
                 {
@@ -1546,6 +1595,19 @@ public sealed class ThreatMitigationWorkExecutionHandler :
             }
             EnvironmentalFireSuppressionResult suppression =
                 fireRuntime.Complete(waterAttempt);
+            if (suppression.Applied)
+            {
+                MarkFireDomainOutcome(
+                    result,
+                    fireWork,
+                    suppression,
+                    fireWork.RequiredWork);
+            }
+            else if (suppression.Disposition
+                     == EnvironmentalFireSuppressionDisposition.FireMissing)
+            {
+                MarkFireResolvedByAnotherResponder(result);
+            }
             result.CompletedSuccessfully = suppression.Applied
                 || suppression.Disposition
                     == EnvironmentalFireSuppressionDisposition.FireMissing;
@@ -1583,6 +1645,39 @@ public sealed class ThreatMitigationWorkExecutionHandler :
             });
         result.CompletedSuccessfully = progressApplied && completed;
         result.CompletionEffectsAlreadyApplied = completed;
+    }
+
+    private static void MarkFireDomainOutcome(
+        WorkExecutionResult result,
+        EnvironmentalFireSuppressionWorkSnapshot work,
+        in EnvironmentalFireSuppressionResult suppression,
+        float contributionWork)
+    {
+        result.CompletionEffectsAlreadyApplied = true;
+        // Suppression owns mandatory identity delivery (including durable pending
+        // delivery after its child commit). Never publish a generic duplicate here.
+        result.CompletionIdentityAlreadyPublished = true;
+        if (string.IsNullOrWhiteSpace(suppression.OutcomeResultKey))
+        {
+            throw new InvalidOperationException(
+                "Applied environmental-fire suppression lost its canonical outcome result key.");
+        }
+
+        result.SetTerminalReference(
+            EnvironmentOutcomeIds.FireSuppressionProducer,
+            suppression.OutcomeResultKey,
+            work.Fire?.Target.TargetId ?? string.Empty,
+            Mathf.Max(0f, contributionWork));
+    }
+
+    private static void MarkFireResolvedByAnotherResponder(
+        WorkExecutionResult result)
+    {
+        result.CompletedSuccessfully = true;
+        result.CompletionEffectsAlreadyApplied = true;
+        // The live target was already resolved by the domain owner. Do not
+        // fabricate a second generic terminal identity for this stale attempt.
+        result.CompletionIdentityAlreadyPublished = true;
     }
 
     private bool TryGetSameFireWork(

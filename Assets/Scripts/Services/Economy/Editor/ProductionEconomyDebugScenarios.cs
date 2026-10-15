@@ -4,10 +4,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 
-public static class ProductionEconomyDebugScenarios
+public static partial class ProductionEconomyDebugScenarios
 {
     [MenuItem("DungeonStory/Debug/Economy/Run Production Economy Contracts")]
     public static void RunFromMenu()
@@ -44,6 +45,33 @@ public static class ProductionEconomyDebugScenarios
         ValidateGrandProjectPhysicalTransaction();
         ValidateEconomyPlanningLateFailureDiscard();
         Debug.Log("Production economy contracts passed.");
+    }
+
+    public static void RunNonProductionRetargetFocused()
+    {
+        string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output) || Directory.Exists(output))
+            throw new InvalidOperationException("A new retarget evidence directory is required.");
+        Directory.CreateDirectory(output);
+        string failure = string.Empty;
+        try
+        {
+            ValidateProductionFacilityEnumerationBoundary();
+            ProductionActiveMultiFacilityRetargetDebugScenarios.VerifyFromMenu();
+        }
+        catch (Exception error) { failure = error.ToString(); }
+        using (FileStream stream = new(Path.Combine(output, "report.json"), FileMode.CreateNew))
+        using (StreamWriter writer = new(stream))
+            writer.Write(Newtonsoft.Json.JsonConvert.SerializeObject(new
+            {
+                passed = failure.Length == 0, failure,
+                checks = new[] { "non-production-retarget-apply", "non-production-exact-rollback",
+                    "non-production-restore", "malformed-workstation-rejected",
+                    "active-production-identity-and-rollback" },
+                trainingEligible = false, humanApprovalClaimed = false
+            }));
+        if (failure.Length > 0) throw new InvalidOperationException(failure);
+        Debug.Log("Non-production facility retarget contracts PASS.");
     }
 
     [MenuItem("DungeonStory/V27/Production/Verify Frozen Standard Output")]
@@ -2642,6 +2670,36 @@ public static class ProductionEconomyDebugScenarios
                 nonProductionRuntime.GetBills(nonProduction).Count == 0
                 && !nonProductionRuntime.HasStockSensor(nonProduction),
                 "read-only production queries did not safely ignore a non-production entry");
+
+            using (WorldItemStackRuntime physical = PhysicalItemDebugScenarios
+                       .CreateRuntimeForCrossDomainFixture(out WorldItemRepository repository, out _))
+            {
+                nonProductionDefinition.ConfigureAuthoredContentIdentity(
+                    "building:qa:non-production-retarget", 1,
+                    "QA non-production facility retarget identity.");
+                ProductionOnlyRetargetPersistence persistence = new(nonProductionRuntime.Core);
+                ProductionActiveFacilityRetargetStateStore retarget = new(
+                    persistence, physical, repository.HaulDeliveryIntents, nonProductionRuntime.Bridge);
+                ProductionFacilityHandle source = nonProductionRuntime.Bridge.CaptureFacility(nonProduction);
+                ProductionFacilityRetargetRequest[] requests =
+                    { new(source, ProductionFacilityMutationKind.Evolution) };
+                ProductionFacilityRetargetBinding[] bindings =
+                    { new(source.InstanceId, source) };
+                Require(retarget.TryCapture(requests, out ProductionActiveFacilityRetargetSnapshot before,
+                    out string captureFailure), "Non-production retarget capture failed: " + captureFailure);
+                Require(retarget.TryApply(before, requests, bindings, out var applied, out string applyFailure)
+                    && applied.Fingerprint == before.Fingerprint,
+                    "Non-production retarget mutated production authority: " + applyFailure);
+                persistence.FailNextRestore = true;
+                Require(!retarget.TryApply(before, requests, bindings, out _, out string rejected)
+                    && rejected.StartsWith("active-retarget-apply-failed:", StringComparison.Ordinal)
+                    && retarget.TryCaptureCurrentFingerprint(out string afterFailure, out _)
+                    && afterFailure == before.Fingerprint,
+                    "Failed non-production retarget did not restore exact authority: " + rejected);
+                Require(retarget.TryRestore(before, requests, out string restored, out string restoreFailure)
+                    && restored == before.Fingerprint && persistence.RestoreCount == 4,
+                    "Non-production source restore failed: " + restoreFailure);
+            }
 
             ProductionRuntimeFixture invalidRuntime = CreateRuntime(
                 catalog,
@@ -5313,14 +5371,30 @@ public static class ProductionEconomyDebugScenarios
         IGameClock clock = null,
         IProductionPreparedOutputExecutionPort preparedOutputExecution = null,
         IProductionPreparedOutputRoutingAuthority preparedOutputRouting = null,
-        IEnumerable<IProductionOutputHandler> outputHandlers = null)
+        IEnumerable<IProductionOutputHandler> outputHandlers = null,
+        Func<IProductionAssemblyBridge, IProductionPreparedOutputExecutionPort>
+            preparedOutputFactory = null,
+        IProductionRecipeExecutionReceiptAuthority recipeExecutionReceipts = null,
+        IDomainFactStagingPublisher commandObservations = null,
+        IDomainFactRecoveryPublisher commandRecovery = null,
+        IGameCalendar calendar = null,
+        Func<
+            ProductionAggregateStateStore,
+            IProductionRecipeExecutionReceiptAuthority>
+            recipeExecutionReceiptsFactory = null)
     {
+        if (recipeExecutionReceipts != null
+            && recipeExecutionReceiptsFactory != null)
+        {
+            throw new InvalidOperationException(
+                "Production fixture cannot accept both a recipe-execution receipt instance and factory.");
+        }
         workshops ??= EmptyProductionWorkshopRuntime.Instance;
         buildingWorld ??= new FixedBuildingWorldQuery();
         power ??= new MutablePowerRuntime();
         clock ??= new MutableGameClock();
-        preparedOutputExecution ??=
-            FailLoudPreparedOutputExecutionPort.Instance;
+        // Each isolated production fixture uses one explicit session date.
+        calendar ??= new EditorFixedGameCalendar(137, 9);
         NoOpWorkforceReplanService workforce =
             NoOpWorkforceReplanService.Instance;
         IProductionInputLogisticsService inputLogistics =
@@ -5357,6 +5431,22 @@ public static class ProductionEconomyDebugScenarios
                 CharacterAiEditorTestDependencies.NeutralPerformance);
         IProductionOutputPlanningService outputPlanning =
             new ProductionOutputPlanningService(catalog, bridge);
+        if (preparedOutputFactory != null)
+        {
+            if (preparedOutputExecution != null)
+            {
+                throw new InvalidOperationException(
+                    "Production fixture cannot accept both a prepared-output instance and factory.");
+            }
+            preparedOutputExecution = preparedOutputFactory(bridge)
+                ?? throw new InvalidOperationException(
+                    "Production fixture prepared-output factory returned null.");
+        }
+        preparedOutputExecution ??=
+            FailLoudPreparedOutputExecutionPort.Instance;
+        IProductionRuinedBatchExecutionPort ruinedBatchExecution =
+            preparedOutputExecution as IProductionRuinedBatchExecutionPort
+            ?? FailLoudPreparedOutputExecutionPort.Instance;
         IProductionOutputExecutionService outputExecution =
             new ProductionOutputExecutionService(
                 bridge,
@@ -5366,6 +5456,13 @@ public static class ProductionEconomyDebugScenarios
         DungeonRuntimeAggregateRootStore productionRoots = new();
         ProductionAggregateStateStore stateStore =
             new ProductionAggregateStateStore(productionRoots);
+        if (recipeExecutionReceiptsFactory != null)
+        {
+            recipeExecutionReceipts = recipeExecutionReceiptsFactory(
+                    stateStore)
+                ?? throw new InvalidOperationException(
+                    "Production fixture recipe-execution receipt factory returned null.");
+        }
         FacilityBufferDestinationClaimRegistry destinationClaims = new();
         EmptyFacilityBufferPhysicalOccupancyQuery occupancy = new();
         FacilityBufferMassAdmissionService destinationCapacities = new(
@@ -5414,16 +5511,20 @@ public static class ProductionEconomyDebugScenarios
             stockSensors,
             stateStore,
             inputDestinationClaims,
-            new ProductionFacilityMutationEpochRuntime());
+            new ProductionFacilityMutationEpochRuntime(),
+            commandObservations: commandObservations,
+            commandRecovery: commandRecovery,
+            calendar: calendar);
         ProductionBillExecutionDependencies execution = new(
             outputPlanning,
             outputExecution,
             preparedOutputExecution,
-            FailLoudPreparedOutputExecutionPort.Instance,
+            ruinedBatchExecution,
             snapshots,
             bridge,
             clock,
-            preparedOutputRouting);
+            preparedOutputRouting,
+            recipeExecutionReceipts);
         ProductionBillRuntime core = new(order, execution);
         ProductionBillSceneFacade scene = new(
             core,
@@ -5433,6 +5534,7 @@ public static class ProductionEconomyDebugScenarios
             ManualExecutionModeQuery.Instance,
             new ExtremeTraitRuntime(new CharacterIdentityStateStore()),
             clock,
+            calendar,
             new CharacterIdentityEventPublisher(new GameEventBus()));
         return new ProductionRuntimeFixture(
             core,
@@ -5741,6 +5843,31 @@ public static class ProductionEconomyDebugScenarios
             ProductionRecipeSO recipe) => new(
             "The production Economy fixture cannot execute migrated prepared-output recipe "
             + $"'{recipe?.RecipeId ?? "null"}' without an explicit Items adapter.");
+    }
+
+    private sealed class ProductionOnlyRetargetPersistence : IProductionBillDetachedFacilityPersistence
+    {
+        private readonly ProductionBillRuntime core;
+        public ProductionOnlyRetargetPersistence(ProductionBillRuntime core) => this.core = core;
+        public bool FailNextRestore { get; set; }
+        public int RestoreCount { get; private set; }
+        public DungeonProductionBillSaveData Capture() => core.Capture();
+        public ProductionBillRestoreCandidate BuildRestore(DungeonProductionBillSaveData snapshot) =>
+            core.BuildRestore(snapshot);
+        public void Restore(ProductionBillRestoreCandidate candidate) => core.Restore(candidate);
+        public void Restore(ProductionBillRestoreCandidate candidate,
+            IReadOnlyList<ProductionFacilityHandle> detachedFacilities)
+        {
+            RestoreCount++;
+            Require(detachedFacilities.Count == 0,
+                "Non-production replacement leaked into production capacity restore.");
+            if (FailNextRestore)
+            {
+                FailNextRestore = false;
+                throw new InvalidOperationException("Injected retarget publication failure.");
+            }
+            core.Restore(candidate, detachedFacilities);
+        }
     }
 
     private sealed class ProductionRuntimeFixture
@@ -6675,10 +6802,16 @@ public static class ProductionEconomyDebugScenarios
                 return false;
             }
             int quantity = costs.Values.Sum();
+            long massGrams = costs.Aggregate(
+                0L,
+                (current, cost) => checked(
+                    current + GetDefinitionQuantityMassGrams(
+                        cost.Key,
+                        cost.Value)));
             receipt = new ProductionWipInputReceipt(
                 "test-wip:" + operationId,
                 quantity,
-                quantity * 1000L);
+                massGrams);
             return true;
         }
 

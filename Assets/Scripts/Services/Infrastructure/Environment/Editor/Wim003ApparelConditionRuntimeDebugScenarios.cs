@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 using VContainer;
@@ -11,12 +13,18 @@ using VContainer;
 public static class Wim003ApparelConditionRuntimeDebugScenarios
 {
     public static void RunProtectedPlay(DungeonRuntimeLifetimeScope scope)
-        => RunProtected(scope, false);
+        => RunProtected(scope, false, true);
 
     public static void RunProtectedSelectionAndRecovery(DungeonRuntimeLifetimeScope scope)
-        => RunProtected(scope, true);
+        => RunProtected(scope, true, true);
 
-    private static void RunProtected(DungeonRuntimeLifetimeScope scope, bool selectionOnly)
+    public static JObject RunProtectedEec05(DungeonRuntimeLifetimeScope scope)
+        => RunProtected(scope, false, false);
+
+    private static JObject RunProtected(
+        DungeonRuntimeLifetimeScope scope,
+        bool selectionOnly,
+        bool writeLegacyReport)
     {
         Require(EditorApplication.isPlaying && Time.timeScale == 0f && scope?.Container != null,
             "Requires paused protected main Play after StartParty, with persistence writers disabled.");
@@ -30,6 +38,7 @@ public static class Wim003ApparelConditionRuntimeDebugScenarios
         EquippedApparelSaveData[] originalApparel = persistence.CaptureApparel().ToArray();
         CharacterApparelPolicySaveData[] originalPolicies = persistence.CaptureApparelPolicies().ToArray();
         string[] evidence = null;
+        JObject focusedEvidence = null;
         try
         {
         command.RefreshAutomaticSelections();
@@ -175,6 +184,77 @@ public static class Wim003ApparelConditionRuntimeDebugScenarios
             }
 
             VerifyAutomaticSelection();
+            if (!selectionOnly)
+            {
+                ResetWorn();
+                work[id] = EnvironmentalWorkKind.General;
+                float actualWearBefore = Read(lower.ItemInstanceId).durability;
+                int wearDays = 0;
+                while (Read(lower.ItemInstanceId).durability >= 60f
+                    && wearDays++ < 64)
+                {
+                    Advance(GameCalendarRules.SecondsPerDay);
+                }
+                work.Clear();
+                ApparelInstanceState actuallyWorn = Read(lower.ItemInstanceId);
+                Require(actuallyWorn.durability >= 20f
+                    && actuallyWorn.durability < 60f,
+                    "Actual condition runtime did not reach the material-backed repair band.");
+                WorldItemStackSnapshot wornStack = Stack(lower.ItemInstanceId);
+                Require(definitions.TryGetByItemId(
+                        wornStack.ItemId,
+                        out ApparelDefinitionSO wornDefinition),
+                    "Actual worn apparel definition is missing.");
+                Require(items.SpawnUniqueItemAt(
+                        wornDefinition.PhysicalItemId,
+                        actor.GetNowXY(),
+                        WorldItemStackState.Loose,
+                        string.Empty,
+                        out string replacementStackId)
+                    && items.TrySetInstanceComponent(
+                        replacementStackId,
+                        ApparelItemStateCodec.Create(NewState(wornDefinition))),
+                    "Actual worn apparel replacement fixture failed.");
+                ItemInstanceId replacement = new(items.GetAllStacks()
+                    .Single(value => value.StackId == replacementStackId)
+                    .ItemInstanceId);
+                Require(command.TryPlanChange(
+                        id,
+                        replacement,
+                        out ApparelChangePlan wearReplacementPlan,
+                        out failure)
+                    && command.TryCommitChange(
+                        wearReplacementPlan,
+                        out failure),
+                    "Actual worn apparel replacement failed: " + failure);
+                Require(!Equipped(lower.ItemInstanceId),
+                    "Actual worn apparel remained equipped before its repair order.");
+                JObject terminalEvidence = VerifyServiceRecovery(
+                    services,
+                    items,
+                    lower.ItemInstanceId,
+                    requireRepairMaterialParent: true);
+                focusedEvidence = new JObject
+                {
+                    ["passed"] = true,
+                    ["test"] = "apparel-work-order-eec05",
+                    ["actualWear"] = new JObject
+                    {
+                        ["itemInstanceId"] = lower.ItemInstanceId.Value,
+                        ["beforeDurability"] = actualWearBefore,
+                        ["afterDurability"] = actuallyWorn.durability,
+                        ["workingDays"] = wearDays,
+                        ["productionRuntimeEntry"] = "ApparelConditionRuntime.TryAdvance"
+                    },
+                    ["entryResults"] = terminalEvidence["entryResults"],
+                    ["terminals"] = terminalEvidence["terminals"],
+                    ["repairMaterialParent"] = terminalEvidence[
+                        "repairMaterialParent"],
+                    ["fullAuditClosure"] = false,
+                    ["humanApprovalClaimed"] = false,
+                    ["trainingEligible"] = false
+                };
+            }
             evidence = new[]
             {
                 "scope=main-protected-play;real-start-party-physical-items-and-apparel-aggregate",
@@ -251,7 +331,11 @@ public static class Wim003ApparelConditionRuntimeDebugScenarios
             Require(!Equipped(preferred), "Restored spare availability did not replace dirty apparel.");
             Require(Stack(preferred).Quantity == 1, "Replacement erased displaced garment.");
             Set(preferred, 70f, 0f, 60f);
-            VerifyServiceRecovery(services, items, preferred);
+            _ = VerifyServiceRecovery(
+                services,
+                items,
+                preferred,
+                requireRepairMaterialParent: false);
             command.RefreshAutomaticSelections();
             Require(Equipped(preferred), "Eligible direct preference did not regain priority.");
         }
@@ -268,22 +352,39 @@ public static class Wim003ApparelConditionRuntimeDebugScenarios
             persistence.PublishRestoreApparel(candidate);
         }
         Require(evidence != null, "Missing completed test evidence.");
-        System.IO.Directory.CreateDirectory("Artifacts/QA/wim-implementation");
-        System.IO.File.WriteAllLines("Artifacts/QA/wim-implementation/wim-003-apparel-condition-runtime.txt", evidence);
+        if (writeLegacyReport)
+        {
+            System.IO.Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+            System.IO.File.WriteAllLines(
+                "Artifacts/QA/wim-implementation/wim-003-apparel-condition-runtime.txt",
+                evidence);
+        }
+        return focusedEvidence ?? new JObject
+        {
+            ["passed"] = true,
+            ["test"] = "apparel-selection-and-recovery"
+        };
     }
 
-    private static void VerifyServiceRecovery(IObjectResolver services, WorldItemStackRuntime items, ItemInstanceId target)
+    private static JObject VerifyServiceRecovery(
+        IObjectResolver services,
+        WorldItemStackRuntime items,
+        ItemInstanceId target,
+        bool requireRepairMaterialParent)
     {
         Require(services.Resolve<IApparelWorkOrderQuery>().Orders.Count == 0,
             "Protected setup contains pre-existing apparel orders; cannot share lease owner sequence.");
         List<GameObject> objects = new();
         List<BuildableObject> facilities = new();
         ApparelWorkOrderRuntime runtime = null;
+        DomainFactDispatcher facts = null;
+        JObject result = null;
         try
         {
             AddFacility("V22_9303_손세탁_수조.asset", ResearchFacilityCommandKind.HandLaundry);
             AddFacility("V22_9304_실내_건조대.asset", ResearchFacilityCommandKind.IndoorDrying);
             AddFacility("V22_9308_수선_접수대.asset", ResearchFacilityCommandKind.ApparelRepair);
+            AddFacility("V22_9301_재단_재봉_작업대.asset", ResearchFacilityCommandKind.ApparelTailoring);
             IFacilityCapabilityQuery facilityQuery = Proxy<IFacilityCapabilityQuery>((method, args) =>
             {
                 if (args.Length == 1 && args[0] is ResearchFacilityCommandKind kind)
@@ -291,37 +392,255 @@ public static class Wim003ApparelConditionRuntimeDebugScenarios
                 if (args.Length == 2) return Array.Empty<BuildableObject>();
                 throw Unexpected(method);
             });
+            var outcomes = new MigratedProducerOutcomeEditorFixture(
+                requireRepairMaterialParent
+                    ? "run:wim003-apparel-service-material"
+                    : "run:wim003-apparel-service-selection");
+            facts = outcomes.CreateApparelWorkFacts();
             runtime = new(
                 services.Resolve<IApparelDefinitionCatalog>(), services.Resolve<ITextileMaterialCatalog>(),
                 items, services.Resolve<ILeasedItemReservationService>(), facilityQuery, services.Resolve<IGameClock>(),
+                services.Resolve<IGameCalendar>(),
                 services.Resolve<IPhysicalItemBatchDispositionService>(), services.Resolve<IApparelPhysicalTransaction>(),
                 services.Resolve<IProductionOutputMaximumMassRegistry>(), services.Resolve<IProductionFacilityMutationEpochQuery>(),
-                services.Resolve<IBalanceWorkCalculator>(), performance: services.Resolve<ICharacterPerformanceQuery>());
+                services.Resolve<IBalanceWorkCalculator>(), performance: services.Resolve<ICharacterPerformanceQuery>(),
+                facts: facts);
+            ApparelInstanceState initial = State();
+            Require(services.Resolve<IApparelDefinitionCatalog>().TryGet(
+                    initial.apparelDefinitionId,
+                    out ApparelDefinitionSO definition),
+                "Target apparel definition is missing.");
+            Require(services.Resolve<ITextileMaterialCatalog>().TryGet(
+                    initial.primaryMaterialId,
+                    out TextileMaterialDefinitionSO material),
+                "Target textile material is missing.");
+            Vector2Int supplyPosition = items.GetAllStacks()
+                .Single(value => value.ItemInstanceId == target.Value)
+                .Position;
+            if (requireRepairMaterialParent)
+            {
+                int craftMaterialAmount = Mathf.Max(
+                    1,
+                    Mathf.CeilToInt(2f * definition.TailoringCoefficient));
+                Require(items.SpawnItemAt(
+                        material.PhysicalItemId,
+                        craftMaterialAmount,
+                        supplyPosition,
+                        WorldItemStackState.Loose,
+                        string.Empty,
+                        out int craftMaterialSpawned)
+                    && craftMaterialSpawned == craftMaterialAmount,
+                    "Craft material fixture failed.");
+                Require(items.SpawnItemAt(
+                        "material:sewing-thread",
+                        1,
+                        supplyPosition,
+                        WorldItemStackState.Loose,
+                        string.Empty,
+                        out int threadSpawned)
+                    && threadSpawned == 1
+                    && items.SpawnItemAt(
+                        "material:mending-scrap",
+                        1,
+                        supplyPosition,
+                        WorldItemStackState.Loose,
+                        string.Empty,
+                        out int scrapSpawned)
+                    && scrapSpawned == 1,
+                    "Repair material fixture failed.");
+            }
             string custody = Ownership(items);
             string starting = JsonUtility.ToJson(State());
-            Require(runtime.CreateLaundry(new[] { target }, false, out string cancelled, out DomainFailure failure),
+            DomainFailure failure = DomainFailure.None;
+            if (requireRepairMaterialParent)
+            {
+                ApparelCraftOrderRequest craftRequest = new(
+                    definition.ApparelId,
+                    initial.size,
+                    ApparelModificationKind.None,
+                    ApparelMaterialSelectionPolicy.ExactMaterial,
+                    material.MaterialId,
+                    CraftsmanshipQualityTier.Awful,
+                    WorkerSelectionPolicySaveData.Anyone(),
+                    RejectedOutputDisposition.MarkForSale,
+                    QualityRepeatLimitMode.SafeLimits,
+                    maximumAttempts: 1,
+                    requiredAcceptedCount: 1);
+                Require(runtime.CreateCraft(
+                        craftRequest,
+                        out string craft,
+                        out failure),
+                    "Create craft entry failed: " + failure);
+                Require(runtime.Cancel(craft, out failure),
+                    "Cancel craft entry failed: " + failure);
+                Require(runtime.Orders.All(value => !string.Equals(
+                        value.orderId,
+                        craft,
+                        StringComparison.Ordinal)),
+                    "Cancelled craft order remained live.");
+                Require(custody == Ownership(items),
+                    "Craft cancellation changed material custody or leaked a lease.");
+            }
+            Require(runtime.CreateLaundry(new[] { target }, false, out string cancelled, out failure),
                 "Create cancel witness: " + failure);
             Require(runtime.ApplyWork(cancelled, 6f, out failure), "Partial laundry: " + failure);
             Require(starting == JsonUtility.ToJson(State()), "Partial work applied premature laundering.");
             Require(runtime.Cancel(cancelled, out failure), "Cancel laundry: " + failure);
+            Require(runtime.Orders.All(value => !string.Equals(
+                    value.orderId,
+                    cancelled,
+                    StringComparison.Ordinal)),
+                "Cancelled laundry order remained live.");
             Require(starting == JsonUtility.ToJson(State()) && custody == Ownership(items),
                 "Cancel changed garment or leaked lease.");
             Require(runtime.CreateLaundry(new[] { target }, false, out string laundry, out failure), "Create laundry: " + failure);
             Require(runtime.ApplyWork(laundry, 11f, out failure), "Laundry partial: " + failure);
-            Near(State().contamination, 60f, "Laundry cannot finish before twelve WU");
+            Near(State().contamination, initial.contamination, "Laundry cannot finish before twelve WU");
             Require(runtime.ApplyWork(laundry, 1f, out failure), "Laundry complete: " + failure);
             Near(State().contamination, 0f, "Hand laundry dirt");
             Near(State().moisture, 100f, "Hand laundry wets fabric");
-            Near(State().durability, 70f, "Laundry must not repair wear");
+            Near(State().durability, initial.durability, "Laundry must not repair wear");
             Require(runtime.CreateDrying(new[] { target }, out string drying, out failure), "Create drying: " + failure);
             Require(runtime.ApplyWork(drying, 24f, out failure), "Drying complete: " + failure);
             Near(State().moisture, 0f, "Drying moisture");
-            Near(State().durability, 70f, "Drying must not repair wear");
+            Near(State().durability, initial.durability, "Drying must not repair wear");
             Require(runtime.CreateRepair(target, out string repair, out failure), "Create repair: " + failure);
-            Require(runtime.ApplyWork(repair, 8f, out failure), "Repair complete: " + failure);
-            Near(State().durability, 95f, "Repair sixty-plus band recovers twenty-five durability");
+            float repairWork = initial.durability >= 60f ? 8f : 18f;
+            Require(runtime.ApplyWork(repair, repairWork, out failure), "Repair complete: " + failure);
+            float expectedRepairDurability = initial.durability >= 60f
+                ? Mathf.Min(100f, initial.durability + 25f)
+                : 70f;
+            Near(State().durability, expectedRepairDurability, "Repair durability result");
             Near(State().contamination, 0f, "Repair must not add dirt");
-            Require(custody == Ownership(items), "Recovery changed custody, count or leaked reservations.");
+            if (requireRepairMaterialParent)
+            {
+                ApparelSizeClass alterationSize = State().size == ApparelSizeClass.Small
+                    ? ApparelSizeClass.Medium
+                    : ApparelSizeClass.Small;
+                Require(runtime.CreateAlteration(
+                        target,
+                        alterationSize,
+                        ApparelModificationKind.None,
+                        false,
+                        out string alteration,
+                        out failure),
+                    "Create alteration: " + failure);
+                Require(runtime.ApplyWork(alteration, 14f, out failure),
+                    "Alteration complete: " + failure);
+                Require(State().size == alterationSize,
+                    "Alteration did not apply the exact requested size.");
+                WorldItemStackSnapshot repairedTarget = items.GetAllStacks()
+                    .Single(value => value.ItemInstanceId == target.Value);
+                Require(repairedTarget.Quantity == 1
+                    && repairedTarget.ReservedQuantity == 0,
+                    "Material-backed recovery changed target custody or leaked a lease.");
+            }
+            else
+            {
+                Require(custody == Ownership(items),
+                    "Recovery changed custody, count or leaked reservations.");
+            }
+
+            ApparelWorkOrderSaveData[] terminals = runtime.Orders
+                .Where(value => value.state == ApparelWorkOrderState.Completed)
+                .ToArray();
+            ApparelWorkOrderKind[] expectedKinds = requireRepairMaterialParent
+                ? new[]
+                {
+                    ApparelWorkOrderKind.Laundry,
+                    ApparelWorkOrderKind.Drying,
+                    ApparelWorkOrderKind.Repair,
+                    ApparelWorkOrderKind.Alteration
+                }
+                : new[]
+                {
+                    ApparelWorkOrderKind.Laundry,
+                    ApparelWorkOrderKind.Drying,
+                    ApparelWorkOrderKind.Repair
+                };
+            Require(terminals.Length == expectedKinds.Length,
+                "Expected exact apparel terminal rows.");
+            var terminalRows = new JArray();
+            foreach (ApparelWorkOrderKind kind in expectedKinds)
+            {
+                ApparelWorkOrderSaveData source = terminals.Single(value =>
+                    value?.kind == kind);
+                ApparelWorkOrderOutcomeItemStateSaveData state = source
+                    .terminalOutcomeItemStates.Single();
+                Require(string.Equals(
+                        state.itemInstanceId,
+                        target.Value,
+                        StringComparison.Ordinal)
+                    && !string.IsNullOrWhiteSpace(state.beforeStatePayload)
+                    && !string.IsNullOrWhiteSpace(state.afterStatePayload)
+                    && !string.Equals(
+                        state.beforeStatePayload,
+                        state.afterStatePayload,
+                        StringComparison.Ordinal)
+                    && source.terminalPublicationConfirmed
+                    && !string.IsNullOrWhiteSpace(source.terminalPublicationKey),
+                    "Terminal row omitted exact instance, before/after, or parent identity: " + kind);
+                string terminalPublicationKey = source.terminalPublicationKey;
+                string afterState = JsonUtility.ToJson(State());
+                Require(!runtime.ApplyWork(source.orderId, 1f, out failure)
+                    && failure.Code == FailureCode.ApparelWorkOrderInvalid
+                    && source.terminalPublicationConfirmed
+                    && string.Equals(
+                        source.terminalPublicationKey,
+                        terminalPublicationKey,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        JsonUtility.ToJson(State()),
+                        afterState,
+                        StringComparison.Ordinal),
+                    "Completed order replay mutated state or terminal identity: " + kind);
+                terminalRows.Add(new JObject
+                {
+                    ["kind"] = kind.ToString(),
+                    ["orderId"] = source.orderId,
+                    ["itemInstanceId"] = state.itemInstanceId,
+                    ["beforeStatePayload"] = state.beforeStatePayload,
+                    ["afterStatePayload"] = state.afterStatePayload,
+                    ["terminalPublicationKey"] = source.terminalPublicationKey
+                });
+            }
+            ApparelWorkOrderSaveData repairTerminal = terminals.Single(value =>
+                value?.kind == ApparelWorkOrderKind.Repair);
+            if (requireRepairMaterialParent)
+            {
+                Require(repairTerminal.terminalMaterialQuantity == 2
+                    && repairTerminal.terminalMaterialMassGrams > 0L
+                    && repairTerminal.terminalMaterialSourceStackIds.Count == 2
+                    && !string.IsNullOrWhiteSpace(
+                        repairTerminal.terminalMaterialOperationId)
+                    && !string.IsNullOrWhiteSpace(
+                        repairTerminal.terminalMaterialCommitId),
+                    "Material-backed repair omitted its exact physical parent.");
+            }
+            result = new JObject
+            {
+                ["entryResults"] = new JObject
+                {
+                    ["CreateCraft"] = "Succeeded",
+                    ["CreateLaundry"] = "Succeeded",
+                    ["CreateDrying"] = "Succeeded",
+                    ["CreateRepair"] = "Succeeded",
+                    ["CreateAlteration"] = "Succeeded",
+                    ["ApplyWork"] = "Succeeded",
+                    ["Cancel"] = "Succeeded"
+                },
+                ["terminals"] = terminalRows,
+                ["repairMaterialParent"] = new JObject
+                {
+                    ["required"] = requireRepairMaterialParent,
+                    ["operationId"] = repairTerminal.terminalMaterialOperationId,
+                    ["commitId"] = repairTerminal.terminalMaterialCommitId,
+                    ["sourceStackIds"] = new JArray(
+                        repairTerminal.terminalMaterialSourceStackIds),
+                    ["quantity"] = repairTerminal.terminalMaterialQuantity,
+                    ["massGrams"] = repairTerminal.terminalMaterialMassGrams
+                }
+            };
 
             ApparelInstanceState State() => ReadState(items.GetAllStacks().Single(value => value.ItemInstanceId == target.Value));
             void AddFacility(string filename, ResearchFacilityCommandKind expected)
@@ -350,8 +669,15 @@ public static class Wim003ApparelConditionRuntimeDebugScenarios
         finally
         {
             try { runtime?.ResetOrders(); }
-            finally { foreach (GameObject obj in objects) UnityEngine.Object.DestroyImmediate(obj); }
+            finally
+            {
+                facts?.Dispose();
+                foreach (GameObject obj in objects)
+                    UnityEngine.Object.DestroyImmediate(obj);
+            }
         }
+        return result ?? throw new InvalidOperationException(
+            "WIM003: apparel service evidence was not produced.");
     }
 
     private static ApparelInstanceState ReadState(WorldItemStackSnapshot stack)

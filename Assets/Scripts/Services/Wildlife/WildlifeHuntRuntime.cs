@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation.Facts;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
@@ -12,7 +13,6 @@ internal sealed class WildlifeHuntRuntime
     private readonly ICombatResolutionService combatResolution;
     private readonly ICombatEquipmentRuntime combatEquipmentRuntime;
     private readonly ICharacterBodyHealthQuery bodyHealthQuery;
-    private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly ICharacterPerformanceQuery performance;
     private readonly ICombatLineOfSightService lineOfSightService;
     private readonly ICombatCoverQuery coverQuery;
@@ -21,10 +21,13 @@ internal sealed class WildlifeHuntRuntime
     private readonly IWorldItemStackRuntime itemStackRuntime;
     private readonly IWildlifeCarcassService carcassService;
     private readonly IGameClock gameClock;
+    private readonly IGameEventBus events;
     private readonly IWorldUiHierarchy worldUiHierarchy;
     private readonly List<WildlifeActor> wildlife;
     private readonly Action<string, string> cancelFoodRaid;
     private readonly Action<WildlifeActor> destroyActor;
+    private readonly WildlifeGameplayOutcomeRuntime gameplayOutcomes;
+    private readonly CharacterCombatTransactionFacade combatTransactions;
 
     public WildlifeHuntRuntime(
         WildlifeWorldServices world,
@@ -32,7 +35,8 @@ internal sealed class WildlifeHuntRuntime
         WildlifeExecutionServices execution,
         List<WildlifeActor> wildlife,
         Action<string, string> cancelFoodRaid,
-        Action<WildlifeActor> destroyActor)
+        Action<WildlifeActor> destroyActor,
+        WildlifeGameplayOutcomeRuntime gameplayOutcomes)
     {
         WildlifeWorldServices requiredWorld = world
             ?? throw new ArgumentNullException(nameof(world));
@@ -40,12 +44,12 @@ internal sealed class WildlifeHuntRuntime
             ?? throw new ArgumentNullException(nameof(combat));
         gridSystemProvider = requiredWorld.Grid;
         gameDataProvider = requiredWorld.Session;
+        events = requiredWorld.Events;
         ecosystemRuntime = requiredWorld.Ecosystem;
         itemStackRuntime = requiredWorld.Items;
         combatResolution = requiredCombat.Resolution;
         combatEquipmentRuntime = requiredCombat.Equipment;
         bodyHealthQuery = requiredCombat.BodyHealthQuery;
-        bodyHealthCommands = requiredCombat.BodyHealthCommands;
         performance = requiredCombat.Performance;
         lineOfSightService = requiredCombat.LineOfSight;
         coverQuery = requiredCombat.Cover;
@@ -59,6 +63,11 @@ internal sealed class WildlifeHuntRuntime
             ?? throw new ArgumentNullException(nameof(cancelFoodRaid));
         this.destroyActor = destroyActor
             ?? throw new ArgumentNullException(nameof(destroyActor));
+        this.gameplayOutcomes = gameplayOutcomes
+            ?? throw new ArgumentNullException(nameof(gameplayOutcomes));
+        combatTransactions = requiredCombat.CombatTransactions
+            ?? throw new ArgumentNullException(
+                nameof(requiredCombat.CombatTransactions));
     }
 
     public bool HasAvailableHuntJob(CharacterActor actor)
@@ -110,7 +119,60 @@ internal sealed class WildlifeHuntRuntime
             return false;
         }
 
+        bool expectedPriority = designated && priority;
+        WildlifeState expectedState = designated && target.State != WildlifeState.Dead
+            ? WildlifeState.Hunted
+            : !designated && target.State == WildlifeState.Hunted
+                ? WildlifeState.Idle
+                : target.State;
+        if (target.HuntDesignated == designated
+            && target.PriorityHunt == expectedPriority
+            && target.State == expectedState)
+        {
+            return true;
+        }
+
+        long revision = gameplayOutcomes.NextOwnerRevision;
+        var outcome = new WildlifeGameplayOutcomeSaveData
+        {
+            profile = WildlifeGameplayOutcomeProfile.Command,
+            eventKind = "hunt-designation",
+            wildlifeId = target.WildlifeId,
+            wildlifeSpeciesId = target.SpeciesId,
+            wildlifeDisplayName = target.DisplayName,
+            x = target.GridPosition.x,
+            y = target.GridPosition.y,
+            stateBefore = (int)target.State,
+            stateAfter = (int)expectedState,
+            flagBefore = target.HuntDesignated,
+            flagAfter = designated,
+            priorityBefore = target.PriorityHunt,
+            priorityAfter = expectedPriority,
+            reasonCode = designated
+                ? expectedPriority ? "priority-hunt-designated" : "hunt-designated"
+                : "hunt-designation-cleared",
+            absoluteDay = gameplayOutcomes.AbsoluteDay,
+            ownerRevision = revision
+        };
+        outcome.operationId = gameplayOutcomes.CreateOperationId(
+            outcome.profile,
+            outcome.eventKind,
+            outcome.wildlifeId,
+            revision);
+        if (!gameplayOutcomes.TryReserve(
+                outcome,
+                out DomainFactLease reserved,
+                out _))
+        {
+            return false;
+        }
+
         target.SetHuntDesignation(designated, priority);
+        outcome.stateAfter = (int)target.State;
+        outcome.flagAfter = target.HuntDesignated;
+        outcome.priorityAfter = target.PriorityHunt;
+        gameplayOutcomes.RecordMutation(outcome);
+        gameplayOutcomes.CommitReserved(outcome, reserved, out _);
         return true;
     }
 
@@ -281,7 +343,6 @@ internal sealed class WildlifeHuntRuntime
 
         ICombatEquipmentRuntime equipment = combatEquipmentRuntime;
         ICharacterBodyHealthQuery healthQuery = bodyHealthQuery;
-        ICharacterBodyHealthCommand healthCommands = bodyHealthCommands;
         string hunterId = GetCharacterId(hunter);
         CombatWeaponSnapshot weapon = CombatWeaponSnapshot.CreateUnarmed();
         if (equipment != null)
@@ -347,6 +408,83 @@ internal sealed class WildlifeHuntRuntime
             return false;
         }
 
+        bool predictedKill = target.WouldCombatDamageKill(result);
+        if (predictedKill
+            && target.Species != null
+            && !itemStackRuntime.CatalogProvider.TryGetDefinition(
+                target.Species.CarcassItemId,
+                out _))
+        {
+            message = "사체 아이템 정의가 없어 사냥 결과를 확정할 수 없습니다.";
+            return false;
+        }
+
+        int healthBefore = target.CurrentHealth;
+        WildlifeState stateBefore = target.State;
+        int ammunitionBefore = weapon.RequiresAmmo ? weapon.LoadedAmmo : 0;
+        long revision = gameplayOutcomes.NextOwnerRevision;
+        var outcome = new WildlifeGameplayOutcomeSaveData
+        {
+            profile = WildlifeGameplayOutcomeProfile.Action,
+            eventKind = "hunt-attack",
+            wildlifeId = target.WildlifeId,
+            wildlifeSpeciesId = target.SpeciesId,
+            wildlifeDisplayName = target.DisplayName,
+            actorId = hunterId,
+            actorDisplayName = GetCharacterDisplayName(hunter),
+            x = target.GridPosition.x,
+            y = target.GridPosition.y,
+            stateBefore = (int)stateBefore,
+            stateAfter = (int)stateBefore,
+            healthBefore = healthBefore,
+            healthAfter = healthBefore,
+            weaponDefinitionId = OptionalStable(weapon.DefinitionId),
+            weaponInstanceId = OptionalStable(weapon.InstanceId),
+            ammunitionItemId = OptionalStable(
+                string.IsNullOrWhiteSpace(result.AmmunitionItemId)
+                    ? weapon.AmmunitionItemId
+                    : result.AmmunitionItemId),
+            ammunitionBefore = ammunitionBefore,
+            ammunitionAfter = ammunitionBefore,
+            bodyPart = result.BodyPart.ToString(),
+            coverSourceId = OptionalStable(result.CoverSourceId),
+            coverDamage = Mathf.Max(0, Mathf.RoundToInt(result.CoverDamage)),
+            absoluteDay = gameplayOutcomes.AbsoluteDay,
+            ownerRevision = revision,
+            reasonCode = ResolveOutcomeReason(result, killed: false)
+        };
+        outcome.operationId = gameplayOutcomes.CreateOperationId(
+            outcome.profile,
+            outcome.eventKind,
+            outcome.wildlifeId,
+            revision);
+        if (!gameplayOutcomes.TryReserve(
+                outcome,
+                out DomainFactLease reserved,
+                out string reserveFailure))
+        {
+            message = "사냥 결과 관찰을 예약하지 못했습니다: " + reserveFailure;
+            return false;
+        }
+
+        string preparedCarcassStackId = string.Empty;
+        long preparedCarcassMassGrams = 0L;
+        if (predictedKill)
+        {
+            if (carcassService?.TrySpawnCarcass(
+                    target,
+                    out preparedCarcassStackId) != true)
+            {
+                gameplayOutcomes.Cancel(reserved);
+                message = "사체를 물리 아이템으로 확보하지 못해 치명타를 확정하지 않았습니다.";
+                return false;
+            }
+            preparedCarcassMassGrams = itemStackRuntime.MassQuery
+                .GetDefinitionUnitMass(
+                    (ItemDefinitionId)target.Species.CarcassItemId)
+                .Value;
+        }
+
         PresentHuntAttack(hunter, target, weapon);
         ConsumeHuntWeapon(equipment, weapon, result, target.GridPosition);
         if (result.CoverBlocked)
@@ -358,22 +496,16 @@ internal sealed class WildlifeHuntRuntime
         target.SetHuntDesignation(true, target.PriorityHunt);
         int applied = result.Hit ? target.ApplyCombatDamage(result, hunter) : 0;
         bool killed = !target.IsAlive;
-        hunter.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Combat,
-            killed ? CharacterActivityOutcomes.Completed : CharacterActivityOutcomes.Progress,
-            killed
-                ? $"{GetCharacterDisplayName(hunter)}이(가) {target.DisplayName} 사냥을 끝냈다."
-                : result.Hit
-                    ? $"{GetCharacterDisplayName(hunter)}이(가) {target.DisplayName}의 {GetBodyPartName(result.BodyPart)}에 {applied} 피해를 입혔다."
-                    : result.CoverBlocked
-                        ? $"{GetCharacterDisplayName(hunter)}의 공격이 엄폐물에 막혔다."
-                        : $"{GetCharacterDisplayName(hunter)}의 공격을 {target.DisplayName}이(가) 피했다.",
-            actionId: "survival/hunt",
-            targetId: "wildlife:" + target.WildlifeId,
-            targetName: target.DisplayName,
-            value: applied,
-            sentiment: killed ? 0.45f : result.Hit ? 0.1f : -0.1f,
-            bubbleEligible: true));
+        if (killed != predictedKill)
+        {
+            throw new InvalidOperationException(
+                $"Wildlife lethal preflight diverged for '{target.WildlifeId}': "
+                + $"predicted={predictedKill};actual={killed}.");
+        }
+        bool destroyKilledTarget = false;
+        events.Publish(new WildlifeHuntAttackResolvedEvent(
+            CharacterPersistentIdentity.Require(hunter), GetCharacterDisplayName(hunter),
+            target.WildlifeId, target.DisplayName, result.BodyPart, applied, result.Hit, result.CoverBlocked, killed));
 
         if (target.RetaliationDamage > 0
             && !killed
@@ -381,11 +513,12 @@ internal sealed class WildlifeHuntRuntime
             && distance <= 1)
         {
             ApplyWildlifeRetaliation(
+                outcome.operationId,
+                revision,
                 target,
                 hunter,
                 equipment,
-                healthQuery,
-                healthCommands);
+                healthQuery);
         }
 
         if (killed)
@@ -395,14 +528,33 @@ internal sealed class WildlifeHuntRuntime
                 "습격 늑대가 처치되어 도난이 취소되었습니다.");
             ecosystemRuntime?.NotifyWildlifeKilled(target, byHunt: true);
             hunter.Progression?.AddExperience(target.IsDangerous ? 20 : 10);
-            RecordHuntNarrative(hunter, target);
-            carcassService?.SpawnCarcass(target);
+            PublishHuntCompleted(hunter, target);
+            outcome.carcassStackId = preparedCarcassStackId;
+            outcome.outputQuantity = 1;
+            outcome.outputMassGrams = preparedCarcassMassGrams;
             wildlife.Remove(target);
-            if (target != null)
-            {
-                destroyActor(target);
-            }
+            destroyKilledTarget = target != null;
         }
+
+        outcome.stateAfter = (int)target.State;
+        outcome.healthAfter = target.CurrentHealth;
+        outcome.damage = healthBefore - target.CurrentHealth;
+        outcome.hit = result.Hit;
+        outcome.killed = killed;
+        outcome.reasonCode = ResolveOutcomeReason(result, killed);
+        outcome.ammunitionAfter = ResolveAmmunitionAfter(
+            equipment,
+            hunterId,
+            weapon,
+            ammunitionBefore);
+        outcome.ammunitionConsumed = ammunitionBefore - outcome.ammunitionAfter;
+        gameplayOutcomes.RecordMutation(outcome);
+        DomainFactDelivery commit = gameplayOutcomes.CommitReserved(
+            outcome,
+            reserved,
+            out string commitFailure);
+        if (destroyKilledTarget)
+            destroyActor(target);
 
         message = killed
             ? "사냥감 처치"
@@ -413,15 +565,54 @@ internal sealed class WildlifeHuntRuntime
                     : result.Evaded
                         ? "사냥감이 회피"
                         : "빗나감";
+        if (!commit.Completed && !string.IsNullOrWhiteSpace(commitFailure))
+            message += " · 관찰 전달 대기(" + commitFailure + ")";
         return true;
     }
 
+    private static int ResolveAmmunitionAfter(
+        ICombatEquipmentRuntime equipment,
+        string hunterId,
+        CombatWeaponSnapshot before,
+        int ammunitionBefore)
+    {
+        if (before?.RequiresAmmo != true)
+            return 0;
+        if (equipment != null
+            && equipment.TryGetActiveWeapon(hunterId, out CombatWeaponSnapshot after)
+            && after != null
+            && string.Equals(after.InstanceId, before.InstanceId, StringComparison.Ordinal))
+        {
+            return Mathf.Clamp(after.LoadedAmmo, 0, ammunitionBefore);
+        }
+        return ammunitionBefore;
+    }
+
+    private static string ResolveOutcomeReason(
+        CombatAttackResult result,
+        bool killed)
+    {
+        if (killed)
+            return "hunt-killed";
+        if (result.Hit)
+            return "hunt-hit";
+        if (result.CoverBlocked)
+            return "hunt-cover-blocked";
+        if (result.Evaded)
+            return "hunt-evaded";
+        return "hunt-missed";
+    }
+
+    private static string OptionalStable(string value) =>
+        string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+
     private void ApplyWildlifeRetaliation(
+        string huntOperationId,
+        long huntRevision,
         WildlifeActor wildlifeActor,
         CharacterActor hunter,
         ICombatEquipmentRuntime equipment,
-        ICharacterBodyHealthQuery healthQuery,
-        ICharacterBodyHealthCommand healthCommands)
+        ICharacterBodyHealthQuery healthQuery)
     {
         if (wildlifeActor == null || hunter == null || hunter.IsDead)
         {
@@ -432,9 +623,9 @@ internal sealed class WildlifeHuntRuntime
         CharacterBodyHealthSnapshot hunterBody = healthQuery?.GetSnapshot(hunter)
             ?? CreateHealthyBodySnapshot();
         CombatWeaponSnapshot naturalWeapon = CreateWildlifeNaturalWeapon(wildlifeActor);
-        CombatAttackResult retaliation = combatResolution.Resolve(new CombatAttackRequest(
-            $"wildlife-retaliation:{wildlifeActor.WildlifeId}:{hunterId}:{gameClock.FrameCount}",
-            "wildlife:" + wildlifeActor.WildlifeId,
+        var request = new CombatAttackRequest(
+            huntOperationId,
+            wildlifeActor.WildlifeId,
             hunterId,
             CreateWildlifeCombatStats(wildlifeActor),
             CreateHunterCombatStats(hunter, hunterBody),
@@ -446,11 +637,24 @@ internal sealed class WildlifeHuntRuntime
             defenderMeleeLocked: true,
             defenderSuppression: hunterBody.Suppression,
             defenderArmor: equipment?.GetArmor(hunterId),
-            defenderShield: equipment?.GetShield(hunterId) ?? default));
-        if (!retaliation.Executed)
+            defenderShield: equipment?.GetShield(hunterId) ?? default);
+        CharacterCombatTransactionResult transaction =
+            combatTransactions.ResolveAndApply(
+                request,
+                new CombatParticipantRef(wildlifeActor),
+                hunter,
+                naturalWeapon.Verb?.damageType ?? CombatDamageType.Pierce,
+                $"{wildlifeActor.DisplayName}의 반격",
+                CharacterCommandOrigin.Autonomous,
+                huntRevision);
+        if (!transaction.Succeeded)
         {
+            Debug.LogWarning(
+                "Wildlife retaliation transaction failed: "
+                + transaction.FailureReason);
             return;
         }
+        CombatAttackResult retaliation = transaction.AttackResult;
 
         DefenseCombatPresentation.Ensure(hunter)?.PlayHit(
             retaliation.AppliedDamage,
@@ -458,29 +662,12 @@ internal sealed class WildlifeHuntRuntime
             worldUiHierarchy);
         if (retaliation.Hit)
         {
-            if (healthCommands != null)
-            {
-                healthCommands.ApplyCombatResult(
-                    hunter,
-                    retaliation,
-                    $"{wildlifeActor.DisplayName}의 반격");
-            }
-            else
-            {
-                hunter.ApplyDamage(retaliation.AppliedDamage, wildlifeActor.DisplayName + "의 반격");
-            }
-
-            ApplyArmorDurabilityDamage(equipment, retaliation);
             hunter.ApplyMoodFactor(
                 "survival:hunt:retaliation",
                 $"{wildlifeActor.DisplayName}에게 반격당함",
                 -4f,
                 180f,
                 1);
-        }
-        else if (healthCommands != null)
-        {
-            healthCommands.AddSuppression(hunter, retaliation.Suppression);
         }
     }
 
@@ -672,34 +859,6 @@ internal sealed class WildlifeHuntRuntime
         }
     }
 
-    private static void ApplyArmorDurabilityDamage(
-        ICombatEquipmentRuntime equipment,
-        CombatAttackResult result)
-    {
-        if (equipment == null)
-        {
-            return;
-        }
-
-        if (result.ArmorDurabilityHits.Count > 0)
-        {
-            for (int i = 0; i < result.ArmorDurabilityHits.Count; i++)
-            {
-                CombatArmorDurabilityHit hit = result.ArmorDurabilityHits[i];
-                equipment.TryApplyDurabilityDamage(hit.InstanceId, hit.Damage);
-            }
-
-            return;
-        }
-
-        if (!string.IsNullOrWhiteSpace(result.ArmorInstanceId))
-        {
-            equipment.TryApplyDurabilityDamage(
-                result.ArmorInstanceId,
-                result.ArmorDurabilityDamage);
-        }
-    }
-
     private static string GetCharacterId(CharacterActor actor)
     {
         return actor != null
@@ -787,7 +946,7 @@ internal sealed class WildlifeHuntRuntime
             && string.Equals(candidate.WildlifeId, normalized, StringComparison.Ordinal));
         return target != null;
     }
-    private void RecordHuntNarrative(CharacterActor hunter, WildlifeActor target)
+    private void PublishHuntCompleted(CharacterActor hunter, WildlifeActor target)
     {
         int day = 0;
         if (gameDataProvider != null && gameDataProvider.TryGetSessionState(out GameSessionState data))
@@ -795,12 +954,7 @@ internal sealed class WildlifeHuntRuntime
             day = data.day != null ? data.day.Value : 0;
         }
 
-        hunter.Progression?.RecordNarrative(
-            CharacterNarrativeDomain.Survival,
-            "survival/hunt",
-            target != null ? "wildlife:" + target.SpeciesId : "wildlife",
-            target != null && target.IsDangerous ? "dangerous-hunt" : "hunt",
-            target != null ? target.MaxHealth : 0f,
-            day);
+        events.Publish(new WildlifeHuntCompletedEvent(CharacterPersistentIdentity.Require(hunter),
+            target.SpeciesId, target.IsDangerous, target.MaxHealth, day));
     }
 }

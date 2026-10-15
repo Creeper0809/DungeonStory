@@ -183,7 +183,8 @@ public sealed class Wim041FestivalExecutionLiveWitness
             scope.Container.Resolve<IEconomyProjectInputOwnerPort>(),
             scope.Container.Resolve<IWorldItemStackRuntime>(),
             scope.Container.Resolve<IPhysicalFacilityItemBatchSinkGateway>(),
-            scope.Container.Resolve<IWorkAmountCalculator>());
+            scope.Container.Resolve<IWorkAmountCalculator>(),
+            factPublisher: scope.Container.Resolve<ISocialRitualFactPublisher>());
         celebratedSubscription = scope.Container.Resolve<IGameEventBus>()
             .Subscribe<FestivalCelebratedEvent>(value => celebrated.Add(value));
 
@@ -209,7 +210,6 @@ public sealed class Wim041FestivalExecutionLiveWitness
             value => requested.Add(value.request));
         using FestivalVenueAlertApplicationAdapter alerts = new(
             new SingleFestivalCatalog(definition),
-            runtime,
             runtime,
             calendar,
             events);

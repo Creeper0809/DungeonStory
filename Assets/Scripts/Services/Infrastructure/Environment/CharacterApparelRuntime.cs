@@ -611,9 +611,9 @@ public sealed class CharacterApparelAggregate :
     // contamination, moisture, or wear threshold.
     private const float ExistingRepairableDurabilityFloor = 20f;
 
-    private readonly struct ApparelOutcomeChange
+    private readonly struct ApparelLoadoutChange
     {
-        public ApparelOutcomeChange(string apparelId, bool equipped)
+        public ApparelLoadoutChange(string apparelId, bool equipped)
         {
             ApparelId = apparelId ?? string.Empty;
             Equipped = equipped;
@@ -631,8 +631,8 @@ public sealed class CharacterApparelAggregate :
     private readonly ICharacterWorldQuery characters;
     private readonly IApparelAvailabilityIndex availability;
     private readonly CharacterIdentityEventPublisher identityEvents;
-    private readonly IGameClock gameClock;
-    private readonly IApparelChangeOutcomeCommitter outcomeCommitter;
+    private readonly IGameCalendar calendar;
+    private readonly ApparelChangePublicationRuntime publications;
     private readonly Dictionary<CharacterId, string> observedPolicyFingerprints =
         new();
     private readonly Dictionary<CharacterId, DomainFailure> observedPolicyFailures =
@@ -650,8 +650,8 @@ public sealed class CharacterApparelAggregate :
         ICharacterWorldQuery characters,
         IApparelAvailabilityIndex availability,
         CharacterIdentityEventPublisher identityEvents,
-        IGameClock gameClock,
-        IApparelChangeOutcomeCommitter outcomeCommitter)
+        IGameCalendar calendar,
+        ApparelChangePublicationRuntime publications)
     {
         this.stateStore = stateStore ?? throw new ArgumentNullException(nameof(stateStore));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -664,9 +664,9 @@ public sealed class CharacterApparelAggregate :
             ?? throw new ArgumentNullException(nameof(availability));
         this.identityEvents = identityEvents
             ?? throw new ArgumentNullException(nameof(identityEvents));
-        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
-        this.outcomeCommitter = outcomeCommitter
-            ?? throw new ArgumentNullException(nameof(outcomeCommitter));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.publications = publications
+            ?? throw new ArgumentNullException(nameof(publications));
     }
 
     public int Version => stateStore.Current.Version;
@@ -918,227 +918,103 @@ public sealed class CharacterApparelAggregate :
         ApparelChangePlan plan,
         CharacterCommandOrigin origin,
         bool clearTemporaryOverride,
-        out DomainFailure failure)
+        out DomainFailure failure,
+        CharacterApparelTemporaryOverride temporaryOverride = null)
     {
         failure = DomainFailure.None;
-        if (plan == null
-            || plan.ApparelVersion != Version
-            || plan.ItemVersion != items.ItemStackVersion)
-        {
-            failure = new DomainFailure(FailureCode.ApparelPlanStale);
-            return false;
-        }
+        if (!TryRequireIdle(out failure)) return false;
+        if (plan == null || plan.ApparelVersion != Version || plan.ItemVersion != items.ItemStackVersion)
+        { failure = new DomainFailure(FailureCode.ApparelPlanStale); return false; }
 
         CharacterActor actor = FindActor(plan.CharacterId);
         WorldItemStackSnapshot candidate = FindStack(plan.ItemInstanceId);
         if (actor == null || candidate == null || candidate.AvailableQuantity <= 0)
+        { failure = new DomainFailure(FailureCode.ApparelPlanStale, plan.ItemInstanceId.Value); return false; }
+        if (!anatomy.CanEquip(plan.CharacterId, plan.Definition, plan.Instance, out _, out failure)) return false;
+        var displacedStacks = new List<WorldItemStackSnapshot>();
+        foreach (var displaced in plan.Displaced)
         {
-            failure = new DomainFailure(FailureCode.ApparelPlanStale, plan.ItemInstanceId.Value);
-            return false;
-        }
-        if (!anatomy.CanEquip(
-                plan.CharacterId,
-                plan.Definition,
-                plan.Instance,
-                out _,
-                out failure))
-        {
-            return false;
-        }
-
-        List<WorldItemStackSnapshot> displacedStacks = new();
-        foreach (EquippedApparelSaveData displaced in plan.Displaced)
-        {
-            WorldItemStackSnapshot stack = FindStack((ItemInstanceId)displaced.itemInstanceId);
+            var stack = FindStack((ItemInstanceId)displaced.itemInstanceId);
             if (stack == null)
-            {
-                failure = new DomainFailure(
-                    FailureCode.ApparelPhysicalItemMissing,
-                    displaced.itemInstanceId);
-                return false;
-            }
+            { failure = new DomainFailure(FailureCode.ApparelPhysicalItemMissing, displaced.itemInstanceId); return false; }
             displacedStacks.Add(stack);
         }
 
-        ApparelOutcomeChange[] outcomeChanges = plan.Displaced
-            .Select(value => new ApparelOutcomeChange(
-                value.apparelDefinitionId,
-                equipped: false))
-            .Append(new ApparelOutcomeChange(
-                plan.Definition.ApparelId,
-                equipped: true))
-            .ToArray();
-        long outcomeRevision = checked((long)Version + 1L);
-        if (!TryPrepareApparelOutcomes(
-                plan.CharacterId,
-                outcomeRevision,
-                origin,
-                outcomeChanges,
-                out List<PreparedEvolutionOutcome> preparedOutcomes,
-                out string outcomePrepareFailure))
+        var changes = plan.Displaced.Select(value => new ApparelLoadoutChange(value.apparelDefinitionId, false))
+            .Append(new ApparelLoadoutChange(plan.Definition.ApparelId, true)).ToArray();
+        if (!TryPrepareApparelChanges(plan.CharacterId, origin, changes, out var prepared, out string reason))
+        { failure = new DomainFailure(FailureCode.ApparelTransferFailed, reason); return false; }
+        using (prepared)
         {
-            failure = new DomainFailure(
-                FailureCode.ApparelTransferFailed,
-                outcomePrepareFailure);
-            return false;
-        }
-
-        Vector2Int position = actor.GetNowXY();
-        if (!items.TryRouteStackToDestination(
-                candidate.StackId,
-                WorldItemStackState.Carried,
-                EquippedDestinationPrefix + plan.CharacterId.Value,
-                position,
-                out _))
-        {
-            CancelApparelOutcomes(preparedOutcomes);
-            failure = new DomainFailure(FailureCode.ApparelTransferFailed, candidate.ItemId);
-            return false;
-        }
-
-        int moved = 0;
-        for (; moved < displacedStacks.Count; moved++)
-        {
-            WorldItemStackSnapshot displaced = displacedStacks[moved];
-            if (items.TryRouteStackToDestination(
-                    displaced.StackId,
-                    WorldItemStackState.Stored,
-                    RecoveryLockerDestination,
-                    position,
-                    out _))
+            // Build the owner candidate before changing any physical route.
+            var next = stateStore.Current.Copy();
+            if (!next.Characters.TryGetValue(plan.CharacterId, out var record))
+            { record = new CharacterApparelRecord(); next.Characters.Add(plan.CharacterId, record); }
+            var displacedIds = plan.Displaced.Select(value => value.itemInstanceId).ToHashSet(StringComparer.Ordinal);
+            record.Equipped.RemoveAll(value => displacedIds.Contains(value.itemInstanceId));
+            record.Equipped.Add(new EquippedApparelSaveData
             {
-                continue;
-            }
+                characterId = plan.CharacterId.Value, itemInstanceId = plan.ItemInstanceId.Value,
+                apparelDefinitionId = plan.Definition.ApparelId, layer = plan.Definition.Layer,
+                occupiedPoints = (uint)plan.Definition.OccupiedPoints
+            });
+            if (clearTemporaryOverride) record.TemporaryOverride = null;
+            else if (temporaryOverride != null) record.TemporaryOverride = temporaryOverride;
 
-            for (int rollback = 0; rollback < moved; rollback++)
+            string equippedDestination = EquippedDestinationPrefix + plan.CharacterId.Value;
+            var routes = new List<(WorldItemStackSnapshot before, WorldItemStackState applied, string destination)>();
+            prepared.SetRollback(() => RestoreRoutes(routes));
+            Vector2Int position = actor.GetNowXY();
+            // Record the attempt before invoking a port: a post-mutation notification
+            // exception must not lose the exact route that needs restoring.
+            routes.Add((candidate, WorldItemStackState.Carried, equippedDestination));
+            if (!items.TryRouteStackToDestination(candidate.StackId, WorldItemStackState.Carried,
+                    equippedDestination, position, out reason))
+            { failure = new DomainFailure(FailureCode.ApparelTransferFailed, reason); return false; }
+            foreach (var displaced in displacedStacks)
             {
-                RestoreRoute(displacedStacks[rollback]);
+                routes.Add((displaced, WorldItemStackState.Stored, RecoveryLockerDestination));
+                if (!items.TryRouteStackToDestination(displaced.StackId, WorldItemStackState.Stored,
+                        RecoveryLockerDestination, position, out reason))
+                { failure = new DomainFailure(FailureCode.ApparelTransferFailed, reason); return false; }
             }
-            RestoreRoute(candidate);
-            CancelApparelOutcomes(preparedOutcomes);
-            failure = new DomainFailure(FailureCode.ApparelTransferFailed, displaced.ItemId);
-            return false;
-        }
+            if (!ApparelItemStateCodec.TryRead(candidate.Components, out _)
+                && !items.TrySetInstanceComponent(candidate.StackId, ApparelItemStateCodec.Create(plan.Instance)))
+            { failure = new DomainFailure(FailureCode.ApparelTransferFailed, candidate.StackId); return false; }
 
-        if (!ApparelItemStateCodec.TryRead(candidate.Components, out _))
-        {
-            if (!items.TrySetInstanceComponent(
-                    candidate.StackId,
-                    ApparelItemStateCodec.Create(plan.Instance)))
-            {
-                foreach (WorldItemStackSnapshot displaced in displacedStacks)
-                {
-                    RestoreRoute(displaced);
-                }
-                RestoreRoute(candidate);
-                CancelApparelOutcomes(preparedOutcomes);
-                failure = new DomainFailure(
-                    FailureCode.ApparelTransferFailed,
-                    candidate.StackId);
-                return false;
-            }
+            stateStore.Replace(next);
+            CommitAndNotifyApparelChange(prepared);
+            return true;
         }
-
-        CharacterApparelAggregateState next = stateStore.Current.Copy();
-        if (!next.Characters.TryGetValue(plan.CharacterId, out CharacterApparelRecord record))
-        {
-            record = new CharacterApparelRecord();
-            next.Characters.Add(plan.CharacterId, record);
-        }
-        HashSet<string> displacedIds = plan.Displaced
-            .Select(value => value.itemInstanceId)
-            .ToHashSet(StringComparer.Ordinal);
-        record.Equipped.RemoveAll(value => displacedIds.Contains(value.itemInstanceId));
-        record.Equipped.Add(new EquippedApparelSaveData
-        {
-            characterId = plan.CharacterId.Value,
-            itemInstanceId = plan.ItemInstanceId.Value,
-            apparelDefinitionId = plan.Definition.ApparelId,
-            layer = plan.Definition.Layer,
-            occupiedPoints = (uint)plan.Definition.OccupiedPoints
-        });
-        if (clearTemporaryOverride)
-        {
-            record.TemporaryOverride = null;
-        }
-        stateStore.Replace(next);
-        availability.Invalidate();
-        CommitApparelOutcomesOrThrow(preparedOutcomes, outcomeRevision);
-        foreach (EquippedApparelSaveData displaced in plan.Displaced)
-        {
-            PublishApparelChanged(
-                plan.CharacterId,
-                displaced.apparelDefinitionId,
-                equipped: false,
-                origin);
-        }
-        PublishApparelChanged(
-            plan.CharacterId,
-            plan.Definition.ApparelId,
-            equipped: true,
-            origin);
-        return true;
     }
 
-    public bool TryUnequip(
-        CharacterId characterId,
-        ItemInstanceId itemInstanceId,
-        out DomainFailure failure)
+    public bool TryUnequip(CharacterId characterId, ItemInstanceId itemInstanceId, out DomainFailure failure)
     {
         failure = DomainFailure.None;
-        if (!TryGetByItemInstance(itemInstanceId, out EquippedApparelSnapshot equipped)
-            || !equipped.CharacterId.Equals(characterId))
-        {
-            failure = new DomainFailure(FailureCode.EnvironmentWorkwearNotEquipped, characterId.Value);
-            return false;
-        }
-
-        WorldItemStackSnapshot stack = FindStack(itemInstanceId);
-        CharacterActor actor = FindActor(characterId);
+        if (!TryRequireIdle(out failure)) return false;
+        if (!TryGetByItemInstance(itemInstanceId, out var equipped) || !equipped.CharacterId.Equals(characterId))
+        { failure = new DomainFailure(FailureCode.EnvironmentWorkwearNotEquipped, characterId.Value); return false; }
+        var stack = FindStack(itemInstanceId);
+        var actor = FindActor(characterId);
         if (stack == null || actor == null)
+        { failure = new DomainFailure(FailureCode.ApparelTransferFailed, itemInstanceId.Value); return false; }
+        if (!TryPrepareApparelChanges(characterId, CharacterCommandOrigin.DirectPlayerOrder,
+                new[] { new ApparelLoadoutChange(equipped.ApparelDefinitionId, false) }, out var prepared, out string reason))
+        { failure = new DomainFailure(FailureCode.ApparelTransferFailed, reason); return false; }
+        using (prepared)
         {
-            failure = new DomainFailure(FailureCode.ApparelTransferFailed, itemInstanceId.Value);
-            return false;
+            var next = stateStore.Current.Copy();
+            next.Characters[characterId].Equipped.RemoveAll(value => value.itemInstanceId == itemInstanceId.Value);
+            next.Characters[characterId].TemporaryOverride = null;
+            prepared.SetRollback(() => items.TryRestoreStackRoute(stack, WorldItemStackState.Stored,
+                RecoveryLockerDestination, out _));
+            if (!items.TryRouteStackToDestination(stack.StackId, WorldItemStackState.Stored,
+                    RecoveryLockerDestination, actor.GetNowXY(), out reason))
+            { failure = new DomainFailure(FailureCode.ApparelTransferFailed, reason); return false; }
+            stateStore.Replace(next);
+            CommitAndNotifyApparelChange(prepared);
+            return true;
         }
-        long outcomeRevision = checked((long)Version + 1L);
-        if (!TryPrepareApparelOutcomes(
-                characterId,
-                outcomeRevision,
-                CharacterCommandOrigin.DirectPlayerOrder,
-                new[] { new ApparelOutcomeChange(equipped.ApparelDefinitionId, false) },
-                out List<PreparedEvolutionOutcome> preparedOutcomes,
-                out string outcomePrepareFailure))
-        {
-            failure = new DomainFailure(
-                FailureCode.ApparelTransferFailed,
-                outcomePrepareFailure);
-            return false;
-        }
-        if (!items.TryRouteStackToDestination(
-                stack.StackId,
-                WorldItemStackState.Stored,
-                RecoveryLockerDestination,
-                actor.GetNowXY(),
-                out _))
-        {
-            CancelApparelOutcomes(preparedOutcomes);
-            failure = new DomainFailure(FailureCode.ApparelTransferFailed, itemInstanceId.Value);
-            return false;
-        }
-
-        CharacterApparelAggregateState next = stateStore.Current.Copy();
-        next.Characters[characterId].Equipped.RemoveAll(value =>
-            string.Equals(value.itemInstanceId, itemInstanceId.Value, StringComparison.Ordinal));
-        next.Characters[characterId].TemporaryOverride = null;
-        stateStore.Replace(next);
-        availability.Invalidate();
-        CommitApparelOutcomesOrThrow(preparedOutcomes, outcomeRevision);
-        PublishApparelChanged(
-            characterId,
-            equipped.ApparelDefinitionId,
-            equipped: false,
-            CharacterCommandOrigin.DirectPlayerOrder);
-        return true;
     }
 
     [GameplayEntryPoint("Character apparel purpose controls; CharacterEnvironmentUnityAdapter work context")]
@@ -1148,6 +1024,7 @@ public sealed class CharacterApparelAggregate :
         out DomainFailure failure)
     {
         failure = DomainFailure.None;
+        if (!TryRequireIdle(out failure)) return false;
         if (!characterId.IsValid
             || FindActor(characterId) == null
             || !Enum.IsDefined(typeof(ApparelSelectionPurpose), purpose))
@@ -1189,6 +1066,7 @@ public sealed class CharacterApparelAggregate :
         out DomainFailure failure)
     {
         failure = DomainFailure.None;
+        if (!TryRequireIdle(out failure)) return false;
         WorldItemStackSnapshot stack = FindStack(itemInstanceId);
         if (!characterId.IsValid
             || FindActor(characterId) == null
@@ -1263,6 +1141,7 @@ public sealed class CharacterApparelAggregate :
         out DomainFailure failure)
     {
         failure = DomainFailure.None;
+        if (!TryRequireIdle(out failure)) return false;
         if (!characterId.IsValid
             || FindActor(characterId) == null
             || !Enum.IsDefined(typeof(ApparelSelectionPurpose), purpose))
@@ -1296,6 +1175,7 @@ public sealed class CharacterApparelAggregate :
 
     public void RefreshAutomaticSelections()
     {
+        if (!TryRequireIdle(out _)) return;
         if (observedItemVersion == items.ItemStackVersion
             && observedApparelVersion == Version
             && observedCharacterVersion == characters.CharacterVersion)
@@ -1359,6 +1239,7 @@ public sealed class CharacterApparelAggregate :
         out DomainFailure failure)
     {
         failure = DomainFailure.None;
+        if (!TryRequireIdle(out failure)) return false;
         if (stateStore.Current.Characters.TryGetValue(
                 characterId,
                 out CharacterApparelRecord current)
@@ -1380,28 +1261,15 @@ public sealed class CharacterApparelAggregate :
         {
             return false;
         }
-        EquippedApparelSaveData[] displaced = plan.Displaced
-            .Select(CharacterApparelRecord.Clone)
-            .ToArray();
-        if (!TryCommitChange(
-                plan,
-                CharacterCommandOrigin.Autonomous,
-                clearTemporaryOverride: false,
-                out failure))
-        {
-            return false;
-        }
-
-        CharacterApparelAggregateState next = stateStore.Current.Copy();
-        CharacterApparelRecord record = next.Characters[characterId];
-        CharacterApparelTemporaryOverride temporary = new()
+        var temporary = new CharacterApparelTemporaryOverride
         {
             OverrideItemInstanceId = itemInstanceId,
             Source = source?.Trim() ?? string.Empty
         };
-        temporary.Displaced.AddRange(displaced);
-        record.TemporaryOverride = temporary;
-        stateStore.Replace(next);
+        temporary.Displaced.AddRange(plan.Displaced.Select(CharacterApparelRecord.Clone));
+        if (!TryCommitChange(plan, CharacterCommandOrigin.Autonomous, clearTemporaryOverride: false,
+                out failure, temporary))
+            return false;
         ObservePolicy(characterId, DomainFailure.None);
         return true;
     }
@@ -1411,6 +1279,7 @@ public sealed class CharacterApparelAggregate :
         out DomainFailure failure)
     {
         failure = DomainFailure.None;
+        if (!TryRequireIdle(out failure)) return false;
         if (!stateStore.Current.Characters.TryGetValue(
                 characterId,
                 out CharacterApparelRecord current)
@@ -1469,111 +1338,44 @@ public sealed class CharacterApparelAggregate :
             displacedStacks.Add(stack);
         }
 
-        List<ApparelOutcomeChange> outcomeChanges = new();
-        bool hasOverrideDefinition = catalog.TryGetByItemId(
-            overrideStack.ItemId,
-            out ApparelDefinitionSO overrideDefinition);
-        if (hasOverrideDefinition)
+        if (!catalog.TryGetByItemId(overrideStack.ItemId, out var overrideDefinition))
         {
-            outcomeChanges.Add(new ApparelOutcomeChange(
-                overrideDefinition.ApparelId,
-                equipped: false));
-        }
-        outcomeChanges.AddRange(temporary.Displaced.Select(value =>
-            new ApparelOutcomeChange(value.apparelDefinitionId, equipped: true)));
-        long outcomeRevision = checked((long)Version + 1L);
-        if (!TryPrepareApparelOutcomes(
-                characterId,
-                outcomeRevision,
-                CharacterCommandOrigin.Autonomous,
-                outcomeChanges,
-                out List<PreparedEvolutionOutcome> preparedOutcomes,
-                out string outcomePrepareFailure))
-        {
-            failure = new DomainFailure(
-                FailureCode.ApparelTransferFailed,
-                outcomePrepareFailure);
+            failure = new DomainFailure(FailureCode.ApparelPhysicalItemMissing, overrideStack.ItemId);
             return false;
         }
+        var changes = new[] { new ApparelLoadoutChange(overrideDefinition.ApparelId, false) }
+            .Concat(temporary.Displaced.Select(value => new ApparelLoadoutChange(value.apparelDefinitionId, true))).ToArray();
+        if (!TryPrepareApparelChanges(characterId, CharacterCommandOrigin.Autonomous, changes,
+                out var prepared, out string reason))
+        { failure = new DomainFailure(FailureCode.ApparelTransferFailed, reason); return false; }
+        using (prepared)
+        {
+            var next = stateStore.Current.Copy();
+            var record = next.Characters[characterId];
+            record.Equipped.RemoveAll(value => value.itemInstanceId == temporary.OverrideItemInstanceId.Value);
+            foreach (var displaced in temporary.Displaced)
+                if (!record.Equipped.Any(value => value.itemInstanceId == displaced.itemInstanceId))
+                    record.Equipped.Add(CharacterApparelRecord.Clone(displaced));
+            record.TemporaryOverride = null;
 
-        Vector2Int position = actor.GetNowXY();
-        int moved = 0;
-        for (; moved < displacedStacks.Count; moved++)
-        {
-            WorldItemStackSnapshot displaced = displacedStacks[moved];
-            if (items.TryRouteStackToDestination(
-                    displaced.StackId,
-                    WorldItemStackState.Carried,
-                    EquippedDestinationPrefix + characterId.Value,
-                    position,
-                    out _))
+            var routes = new List<(WorldItemStackSnapshot before, WorldItemStackState applied, string destination)>();
+            prepared.SetRollback(() => RestoreRoutes(routes));
+            string equippedDestination = EquippedDestinationPrefix + characterId.Value;
+            Vector2Int position = actor.GetNowXY();
+            foreach (var displaced in displacedStacks)
             {
-                continue;
+                routes.Add((displaced, WorldItemStackState.Carried, equippedDestination));
+                if (!items.TryRouteStackToDestination(displaced.StackId, WorldItemStackState.Carried,
+                        equippedDestination, position, out reason))
+                { failure = new DomainFailure(FailureCode.ApparelTransferFailed, reason); return false; }
             }
-            for (int rollback = 0; rollback < moved; rollback++)
-            {
-                RestoreRoute(displacedStacks[rollback]);
-            }
-            CancelApparelOutcomes(preparedOutcomes);
-            failure = new DomainFailure(
-                FailureCode.ApparelTransferFailed,
-                displaced.ItemId);
-            return false;
-        }
+            routes.Add((overrideStack, WorldItemStackState.Stored, RecoveryLockerDestination));
+            if (!items.TryRouteStackToDestination(overrideStack.StackId, WorldItemStackState.Stored,
+                    RecoveryLockerDestination, position, out reason))
+            { failure = new DomainFailure(FailureCode.ApparelTransferFailed, reason); return false; }
 
-        if (!items.TryRouteStackToDestination(
-                overrideStack.StackId,
-                WorldItemStackState.Stored,
-                RecoveryLockerDestination,
-                position,
-                out _))
-        {
-            foreach (WorldItemStackSnapshot displaced in displacedStacks)
-            {
-                RestoreRoute(displaced);
-            }
-            CancelApparelOutcomes(preparedOutcomes);
-            failure = new DomainFailure(
-                FailureCode.ApparelTransferFailed,
-                overrideStack.ItemId);
-            return false;
-        }
-
-        CharacterApparelAggregateState next = stateStore.Current.Copy();
-        CharacterApparelRecord record = next.Characters[characterId];
-        record.Equipped.RemoveAll(value => string.Equals(
-            value.itemInstanceId,
-            temporary.OverrideItemInstanceId.Value,
-            StringComparison.Ordinal));
-        foreach (EquippedApparelSaveData displaced in temporary.Displaced)
-        {
-            if (!record.Equipped.Any(value => string.Equals(
-                    value.itemInstanceId,
-                    displaced.itemInstanceId,
-                    StringComparison.Ordinal)))
-            {
-                record.Equipped.Add(CharacterApparelRecord.Clone(displaced));
-            }
-        }
-        record.TemporaryOverride = null;
-        stateStore.Replace(next);
-        availability.Invalidate();
-        CommitApparelOutcomesOrThrow(preparedOutcomes, outcomeRevision);
-        if (hasOverrideDefinition)
-        {
-            PublishApparelChanged(
-                characterId,
-                overrideDefinition.ApparelId,
-                equipped: false,
-                CharacterCommandOrigin.Autonomous);
-        }
-        foreach (EquippedApparelSaveData displaced in temporary.Displaced)
-        {
-            PublishApparelChanged(
-                characterId,
-                displaced.apparelDefinitionId,
-                equipped: true,
-                CharacterCommandOrigin.Autonomous);
+            stateStore.Replace(next);
+            CommitAndNotifyApparelChange(prepared);
         }
 
         observedPolicyFingerprints.Remove(characterId);
@@ -1921,118 +1723,69 @@ public sealed class CharacterApparelAggregate :
             EquippedDestinationPrefix,
             StringComparison.Ordinal);
 
-    private bool TryPrepareApparelOutcomes(
+    private bool TryPrepareApparelChanges(
         CharacterId characterId,
-        long ownerRevision,
         CharacterCommandOrigin origin,
-        IReadOnlyList<ApparelOutcomeChange> changes,
-        out List<PreparedEvolutionOutcome> prepared,
+        IReadOnlyList<ApparelLoadoutChange> changes,
+        out ApparelChangePublicationRuntime.Preparation prepared,
         out string failureReason)
     {
-        prepared = new List<PreparedEvolutionOutcome>();
-        failureReason = string.Empty;
-        if (changes == null || changes.Count == 0)
-            return true;
-        string operationId = "apparel-change:"
-            + characterId.Value
-            + ":revision:"
-            + ownerRevision.ToString("D8");
-        int absoluteDay = Mathf.Max(
-            0,
-            Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
-        for (int index = 0; index < changes.Count; index++)
+        prepared = null;
+        string displayName = FindActor(characterId)?.Identity?.DisplayName?.Trim() ?? string.Empty;
+        if (displayName.Length == 0 || changes == null || changes.Count == 0)
+        { failureReason = "apparel-change-actor-or-changes-missing"; return false; }
+        try
         {
-            ApparelOutcomeChange change = changes[index];
-            ApparelChangeOutcomeReceipt receipt;
+            long revision = publications.NextTransitionRevision;
+            int day = calendar.Day;
+            var facts = changes.Select((change, index) => new ApparelLoadoutChangedFact(
+                new ApparelLoadoutChangedFactData
+                {
+                    characterId = characterId.Value, characterDisplayName = displayName,
+                    apparelId = change.ApparelId, equipped = change.Equipped,
+                    origin = (int)origin, absoluteDay = day, transitionRevision = revision,
+                    changeIndex = index, changeCount = changes.Count
+                })).ToArray();
+            return publications.TryPrepare(facts, out prepared, out failureReason);
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or OverflowException)
+        { failureReason = "apparel-change-fact-invalid:" + exception.Message; return false; }
+    }
+
+    private void CommitAndNotifyApparelChange(ApparelChangePublicationRuntime.Preparation prepared)
+    {
+        prepared.PublishApplied();
+        availability.Invalidate();
+        foreach (var fact in prepared.Facts)
+        {
+            var change = fact.Snapshot();
             try
             {
-                receipt = new ApparelChangeOutcomeReceipt(
-                    operationId,
-                    ownerRevision,
-                    index,
-                    characterId,
-                    change.ApparelId,
-                    change.Equipped,
-                    origin,
-                    absoluteDay);
+                identityEvents.Publish(new ApparelChangedEvent(
+                    new CharacterId(change.characterId), change.apparelId, change.equipped,
+                    (CharacterCommandOrigin)change.origin, change.absoluteDay));
             }
-            catch (Exception exception) when (exception is ArgumentException
-                                               or InvalidOperationException
-                                               or OverflowException)
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                && exception is not StackOverflowException && exception is not AccessViolationException)
             {
-                CancelApparelOutcomes(prepared);
-                failureReason = "apparel-outcome-receipt-invalid:" + exception.Message;
-                return false;
-            }
-            if (!outcomeCommitter.TryPrepare(
-                    receipt,
-                    out PreparedEvolutionOutcome next,
-                    out failureReason))
-            {
-                CancelApparelOutcomes(prepared);
-                return false;
-            }
-            prepared.Add(next);
-        }
-        return true;
-    }
-
-    private void CancelApparelOutcomes(
-        IReadOnlyList<PreparedEvolutionOutcome> prepared)
-    {
-        if (prepared == null)
-            return;
-        for (int index = 0; index < prepared.Count; index++)
-            outcomeCommitter.Cancel(prepared[index]);
-    }
-
-    private void CommitApparelOutcomesOrThrow(
-        IReadOnlyList<PreparedEvolutionOutcome> prepared,
-        long ownerRevision)
-    {
-        if (prepared == null)
-            return;
-        for (int index = 0; index < prepared.Count; index++)
-        {
-            if (!outcomeCommitter.TryCommit(
-                    prepared[index],
-                    ownerRevision,
-                    out string failureReason))
-            {
-                for (int cancelIndex = index + 1;
-                     cancelIndex < prepared.Count;
-                     cancelIndex++)
-                {
-                    outcomeCommitter.Cancel(prepared[cancelIndex]);
-                }
-                throw new InvalidOperationException(
-                    "Apparel domain committed without its mandatory outcome: "
-                    + failureReason);
+                // Already-applied clothing must not be reported as a failed
+                // command. Identity listeners are not replayed by the journal.
+                Debug.LogError("apparel-change-identity-notification-failed:" + exception);
             }
         }
     }
 
-    private void PublishApparelChanged(
-        CharacterId characterId,
-        string apparelId,
-        bool equipped,
-        CharacterCommandOrigin origin)
+    private bool TryRequireIdle(out DomainFailure failure)
     {
-        if (!characterId.IsValid || string.IsNullOrWhiteSpace(apparelId))
-            return;
-        identityEvents.Publish(new ApparelChangedEvent(
-            characterId,
-            apparelId,
-            equipped,
-            origin,
-            Mathf.Max(
-                0,
-                Mathf.FloorToInt(
-                    gameClock.Time / GameCalendarRules.SecondsPerDay))));
+        failure = DomainFailure.None;
+        if (!publications.IsBusy && !publications.IsRestoring) return true;
+        failure = new DomainFailure(FailureCode.ApparelTransferFailed, "apparel-change-publication-busy");
+        return false;
     }
 
     public IReadOnlyList<EquippedApparelSaveData> CaptureApparel()
     {
+        publications.RequireIdlePersistence();
         return stateStore.Current.Characters
             .OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
             .SelectMany(pair => pair.Value.Equipped
@@ -2044,6 +1797,7 @@ public sealed class CharacterApparelAggregate :
 
     public IReadOnlyList<CharacterApparelPolicySaveData> CaptureApparelPolicies()
     {
+        publications.RequireIdlePersistence();
         return stateStore.Current.Characters
             .OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
             .Select(pair => new CharacterApparelPolicySaveData
@@ -2074,6 +1828,7 @@ public sealed class CharacterApparelAggregate :
         IEnumerable<CharacterApparelPolicySaveData> policies,
         DungeonGameRestoreReport report)
     {
+        publications.RequireIdlePersistence();
         CharacterApparelAggregateState restored = new()
         {
             Version = stateStore.Current.Version + 1
@@ -2247,6 +2002,7 @@ public sealed class CharacterApparelAggregate :
 
     public void PublishRestoreApparel(CharacterApparelRestoreCandidate candidate)
     {
+        publications.RequireIdlePersistence();
         stateStore.Replace((candidate
             ?? throw new ArgumentNullException(nameof(candidate))).State);
         availability.Invalidate();
@@ -2259,6 +2015,7 @@ public sealed class CharacterApparelAggregate :
 
     public void ResetApparel()
     {
+        publications.RequireIdlePersistence();
         stateStore.Replace(new CharacterApparelAggregateState
         {
             Version = stateStore.Current.Version + 1
@@ -2353,16 +2110,15 @@ public sealed class CharacterApparelAggregate :
         durability = 100f
     };
 
-    private void RestoreRoute(WorldItemStackSnapshot stack)
+    private bool RestoreRoutes(
+        IReadOnlyList<(WorldItemStackSnapshot before, WorldItemStackState applied, string destination)> routes)
     {
-        string destination = string.IsNullOrWhiteSpace(stack.DestinationId)
-            ? "apparel-rollback:" + stack.StackId
-            : stack.DestinationId;
-        items.TryRouteStackToDestination(
-            stack.StackId,
-            stack.State,
-            destination,
-            stack.Position,
-            out _);
+        bool restored = true;
+        for (int index = routes.Count - 1; index >= 0; index--)
+        {
+            var route = routes[index];
+            restored &= items.TryRestoreStackRoute(route.before, route.applied, route.destination, out _);
+        }
+        return restored;
     }
 }

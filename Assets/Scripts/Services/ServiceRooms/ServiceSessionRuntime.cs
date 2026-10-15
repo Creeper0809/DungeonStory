@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Content.CoreSession;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.ServiceRooms;
 using VContainer.Unity;
 
@@ -12,6 +13,19 @@ public interface IServiceSessionRuntime :
 {
     int Version { get; }
     IReadOnlyList<ServiceSessionSnapshot> ActiveSessions { get; }
+    bool IsReplacedFacility(BuildableObject facility) => false;
+    bool TryGetSessionSnapshot(
+        string sessionId,
+        out ServiceSessionSnapshot session)
+    {
+        session = ActiveSessions?.FirstOrDefault(value =>
+            value != null
+            && string.Equals(
+                value.SessionId,
+                sessionId,
+                StringComparison.Ordinal));
+        return session != null;
+    }
     ServiceHubSnapshot GetHubSnapshot(BuildableObject hub);
     ServiceModeChangeResult SetMode(
         BuildableObject hub,
@@ -75,6 +89,7 @@ public sealed class BlueprintServiceRoomResearchQuery :
 public sealed class ServiceSessionRuntime :
     IServiceSessionRuntime,
     ISurvivalServiceSessionCapability,
+    IDungeonSaveRestoreCompletedHook,
     ITickable,
     IDisposable
 {
@@ -87,7 +102,8 @@ public sealed class ServiceSessionRuntime :
             IServiceRoomResearchQuery research,
             ICoreSessionRulesProvider rulesProvider,
             IGameSessionStateProvider gameDataProvider,
-            IMigratedProducerOutcomeTransaction outcomeTransactions)
+            IDomainFactPublisher facts,
+            IDomainFactRecoveryPublisher factRecovery)
         {
             Clock = clock ?? throw new ArgumentNullException(nameof(clock));
             Money = money ?? throw new ArgumentNullException(nameof(money));
@@ -101,8 +117,8 @@ public sealed class ServiceSessionRuntime :
                     "Core-session rules are not authored.");
             GameDataProvider = gameDataProvider
                 ?? throw new ArgumentNullException(nameof(gameDataProvider));
-            OutcomeTransactions = outcomeTransactions
-                ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+            Facts = facts ?? throw new ArgumentNullException(nameof(facts));
+            FactRecovery = factRecovery ?? throw new ArgumentNullException(nameof(factRecovery));
         }
 
         public IGameClock Clock { get; }
@@ -111,7 +127,8 @@ public sealed class ServiceSessionRuntime :
         public IServiceRoomResearchQuery Research { get; }
         public CoreSessionRulesDefinition Rules { get; }
         public IGameSessionStateProvider GameDataProvider { get; }
-        public IMigratedProducerOutcomeTransaction OutcomeTransactions { get; }
+        public IDomainFactPublisher Facts { get; }
+        public IDomainFactRecoveryPublisher FactRecovery { get; }
     }
 
     private readonly IBuildingWorldQuery buildings;
@@ -119,11 +136,16 @@ public sealed class ServiceSessionRuntime :
     private readonly IServiceProcessCatalog processCatalog;
     private readonly IGameClock clock;
     private readonly IGameMoneyAccount money;
+    private readonly IIdempotentGameMoneyAccount idempotentMoney;
+    private readonly IGameMoneyTransactionQuery moneyTransactions;
     private readonly IPowerInfrastructureQuery power;
     private readonly IServiceRoomResearchQuery research;
     private readonly CoreSessionRulesDefinition rules;
     private readonly IGameSessionStateProvider gameDataProvider;
-    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private readonly IDomainFactPublisher facts;
+    private readonly IDomainFactRecoveryPublisher factRecovery;
+    private float nextFactRecoveryAt;
+    private string lastModeFailure = string.Empty;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
     private readonly ICharacterWorldPersistenceIdentityQuery persistentCharacters;
@@ -131,6 +153,7 @@ public sealed class ServiceSessionRuntime :
         hubSubscriptions;
     private int projectedRestoreRevision;
     private IFacilityEvolutionModifierQuery evolutionModifiers;
+    private ICharacterWorldSaveService characterWorldSave;
 
     private ServiceSessionAggregate Aggregate => aggregateRootStore.GetOrCreate(
         () => new ServiceSessionAggregate());
@@ -153,11 +176,14 @@ public sealed class ServiceSessionRuntime :
             ?? throw new ArgumentNullException(nameof(dependencies));
         clock = dependencies.Clock;
         money = dependencies.Money;
+        idempotentMoney = money as IIdempotentGameMoneyAccount;
+        moneyTransactions = money as IGameMoneyTransactionQuery;
         power = dependencies.Power;
         research = dependencies.Research;
         rules = dependencies.Rules;
         gameDataProvider = dependencies.GameDataProvider;
-        outcomeTransactions = dependencies.OutcomeTransactions;
+        facts = dependencies.Facts;
+        factRecovery = dependencies.FactRecovery;
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.restoreWorldCandidates = restoreWorldCandidates
@@ -171,10 +197,13 @@ public sealed class ServiceSessionRuntime :
 
     [VContainer.Inject]
     public void InjectFacilityEvolutionModifiers(
-        IFacilityEvolutionModifierQuery value)
+        IFacilityEvolutionModifierQuery value,
+        ICharacterWorldSaveService characterWorldSave)
     {
         evolutionModifiers = value
             ?? throw new ArgumentNullException(nameof(value));
+        this.characterWorldSave = characterWorldSave
+            ?? throw new ArgumentNullException(nameof(characterWorldSave));
     }
 
     public int Version => Aggregate.Version;
@@ -182,8 +211,26 @@ public sealed class ServiceSessionRuntime :
     public IReadOnlyList<ServiceSessionSnapshot> ActiveSessions =>
         Aggregate.ActiveSessions;
 
+    public bool TryGetSessionSnapshot(
+        string sessionId,
+        out ServiceSessionSnapshot session) =>
+        Aggregate.TryGetSession(sessionId, out session);
+
+    public bool IsReplacedFacility(BuildableObject facility) => facility != null
+        && facility.PersistentInstanceId.IsValid
+        && (buildings.Buildings ?? Array.Empty<BuildableObject>()).Any(value =>
+            value != null && !ReferenceEquals(value, facility)
+            && string.Equals(value.PersistentInstanceId.Value,
+                facility.PersistentInstanceId.Value, StringComparison.Ordinal));
+
     public void Tick()
     {
+        if (UnityEngine.Time.unscaledTime >= nextFactRecoveryAt)
+        {
+            nextFactRecoveryAt = UnityEngine.Time.unscaledTime + 0.5f;
+            RecoverPendingModeFacts();
+        }
+        ResumePendingTerminals();
         int publishedRevision = aggregateRootStore.PublishedRestoreRevision;
         if (projectedRestoreRevision == publishedRevision)
         {
@@ -195,6 +242,42 @@ public sealed class ServiceSessionRuntime :
     }
 
     public void Dispose() => hubSubscriptions.Clear();
+
+    public void OnRestoreCompleted()
+    {
+        // All detached owners have been validated/published at this point.
+        // Restore occupancy for the entire set before any coroutine can admit
+        // another customer, and never replay the entry charge.
+        var bindings = new List<(Facility facility, CharacterActor actor, FacilityUseExecutionState state)>();
+        var shopBindings = new List<(Shop shop, CharacterActor actor, ShopUseExecutionState state)>();
+        foreach (Facility facility in (buildings.Buildings ?? Array.Empty<BuildableObject>()).OfType<Facility>())
+        foreach (FacilityUseExecutionState state in facility.FacilityState.activeUses.ToArray())
+        {
+            if (characterWorldSave == null
+                || !characterWorldSave.TryGetRestoredActor(state.actorId, out CharacterActor actor)
+                || actor == null || !actor.TryGetAbility(out AbilityShopping _)
+                || !facility.TryRestoreActiveUse(actor.BuildingVisitor, out _))
+                throw new InvalidOperationException("Facility execution restore binding is unavailable: " + state.operationId);
+            bindings.Add((facility, actor, state));
+        }
+        foreach (Shop shop in (buildings.Buildings ?? Array.Empty<BuildableObject>()).OfType<Shop>())
+        foreach (ShopUseExecutionState state in shop.InteractionState.activeUses.ToArray())
+        {
+            if (characterWorldSave == null
+                || !characterWorldSave.TryGetRestoredActor(state.actorId, out CharacterActor actor)
+                || actor == null || !actor.TryGetAbility(out AbilityShopping _)
+                || !(Aggregate.TryGetSession(state.serviceSessionId, out var cleanupSession)
+                    && state.MatchesCancelledSession(cleanupSession, shop.RequirePersistentInstanceId().Value))
+                    && !shop.TryRestoreActiveUse(actor.BuildingVisitor, out _))
+                throw new InvalidOperationException("Shop execution restore binding is unavailable: " + state.operationId);
+            shopBindings.Add((shop, actor, state));
+        }
+        SynchronizeHubSubscriptions();
+        foreach (var binding in bindings)
+            binding.actor.GetAbility<AbilityShopping>().ResumeFacilityUse(binding.facility, binding.state);
+        foreach (var binding in shopBindings)
+            binding.actor.GetAbility<AbilityShopping>().ResumeShopUse(binding.shop, binding.state);
+    }
 
     public bool IsAdvertisingEnabled(ServiceCategory category) =>
         Aggregate.IsAdvertisingEnabled(category);
@@ -344,45 +427,62 @@ public sealed class ServiceSessionRuntime :
         }
 
         if (!TryGetCurrentAbsoluteDay(out int absoluteDay)
-            || !outcomeTransactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.ServiceModeChangeResult,
-                CreateModeChangeOwnerIdentity(hubId, mode),
-                absoluteDay,
-                GameplayOutcomeStatus.Succeeded,
-                out PreparedMigratedProducerOutcome prepared,
-                out _))
+            || Aggregate.HasPendingModeFact(hubId)
+            || Aggregate.PendingModeFacts.Count >= ServiceModeChangedFact.MaximumPending)
+            return Failure(previous, mode, new DomainFailure(FailureCode.ServiceHubUnavailable,
+                "service-mode-day-or-observation-unavailable"));
+
+        var fact = new ServiceModeChangedFact(new ServiceModeChangedFactData
         {
-            return Failure(
-                previous,
-                mode,
-                new DomainFailure(FailureCode.ServiceHubUnavailable));
+            hubId = hubId, hubName = GetHubDisplayName(hub, hubId),
+            previousMode = previous, requestedMode = mode, absoluteDay = absoluteDay
+        });
+        if (!facts.TryReserve(fact, out var lease, out string reserveFailure))
+            return Failure(previous, mode, new DomainFailure(FailureCode.ServiceHubUnavailable, reserveFailure));
+        string publicationKey = lease.PublicationKey;
+        if (string.IsNullOrWhiteSpace(publicationKey))
+        {
+            facts.Cancel(lease);
+            return Failure(previous, mode, new DomainFailure(FailureCode.ServiceHubUnavailable,
+                "service-mode-publication-reference-missing"));
         }
 
-        ServiceSessionAggregate.ServiceModeMutationSnapshot before =
-            Aggregate.CaptureModeMutationSnapshot(hubId);
-        if (!Aggregate.SetMode(hubId, mode, out _))
+        var before = Aggregate.CaptureModeMutationSnapshot(hubId);
+        try
         {
-            outcomeTransactions.Cancel(prepared);
-            return Success(previous, mode);
+            if (!Aggregate.SetMode(hubId, mode, out _))
+            {
+                facts.Cancel(lease);
+                return Success(previous, mode);
+            }
+            Aggregate.RecordModeFact(new ServiceModePendingFactData
+            { publicationKey = publicationKey, fact = fact.Snapshot() });
         }
-
-        MigratedProducerOutcomeCommitResult commit =
-            outcomeTransactions.CommitSingleSubject(
-                prepared,
-                new MigratedProducerOutcomeSubject(
-                    MigratedProducerOutcomeIds.FacilityKind,
-                    hubId,
-                    GetHubDisplayName(hub, hubId),
-                    MigratedProducerOutcomeIds.FacilityRole),
-                CreateModeChangeSummary(hub, hubId, previous, mode));
-        if (!commit.DurablyCommitted)
+        catch
         {
+            Aggregate.ClearModeFact(hubId, publicationKey);
             Aggregate.RestoreModeMutationSnapshot(before);
-            return Failure(
-                previous,
-                mode,
-                new DomainFailure(FailureCode.ServiceHubUnavailable));
+            facts.Cancel(lease);
+            throw;
         }
+
+        DomainFactDelivery delivery;
+        try { delivery = facts.Publish(lease, fact); }
+        catch (Exception exception)
+        {
+            // The effect and its frozen source remain when the commit response is unknown.
+            delivery = DomainFactDelivery.Uncertain("service-mode-publication-in-doubt:" + exception.GetType().Name);
+        }
+        finally { facts.Cancel(lease); }
+        if (!delivery.MayBeCommitted)
+        {
+            Aggregate.ClearModeFact(hubId, publicationKey);
+            Aggregate.RestoreModeMutationSnapshot(before);
+            return Failure(previous, mode, new DomainFailure(FailureCode.ServiceHubUnavailable, delivery.Detail));
+        }
+        if (delivery.Completed && delivery.OperationKey == publicationKey)
+            Aggregate.ClearModeFact(hubId, publicationKey);
+        else ReportModeFactFailure(delivery.Detail);
 
         try
         {
@@ -473,7 +573,7 @@ public sealed class ServiceSessionRuntime :
                 ProcessId = processId,
                 Category = ability.serviceCategory,
                 Capacity = hubState.Capacity,
-                StartedAt = clock.Time,
+                StartedAt = Aggregate.GetTimelineTime(clock.Time),
                 AdvertisedDemand = request.AdvertisedDemand,
                 Contract = contract
             },
@@ -489,7 +589,7 @@ public sealed class ServiceSessionRuntime :
         return Aggregate.TrySetStage(
             sessionId,
             stage,
-            clock.Time,
+            Aggregate.GetTimelineTime(clock.Time),
             out failure);
     }
 
@@ -498,40 +598,122 @@ public sealed class ServiceSessionRuntime :
         out ServiceSessionSnapshot completed,
         out DomainFailure failure)
     {
-        if (!Aggregate.TryComplete(
+        completed = null;
+        if (!Aggregate.TryGetSession(
                 sessionId,
-                clock.Time,
-                out ServiceSessionCompletionTransition transition,
-                out failure))
+                out ServiceSessionSnapshot active)
+            || !active.IsActive)
         {
-            completed = null;
+            failure = new DomainFailure(FailureCode.ServiceSessionMissing);
             return false;
         }
-
-        ServiceSessionEconomicCommand command = transition.EconomicCommand;
-        if (command != null)
+        if (!TryGetCurrentAbsoluteDay(out int absoluteDay))
         {
-            money.Add(
-                command.Amount,
-                new EconomyTransactionContext(
-                    EconomyTransactionKind.GuestServiceIncome,
-                    command.HubId,
-                    command.ActorId,
-                    command.CommandId));
+            failure = new DomainFailure(FailureCode.ServiceHubUnavailable);
+            return false;
         }
-        completed = transition.Completed;
+        float completedAt = Aggregate.GetTimelineTime(clock.Time);
+        string terminalHubName = ResolveHubDisplayName(active.HubId);
+        if (!TryReserveTerminal(active, ServiceSessionStage.Completed, absoluteDay, terminalHubName,
+                out DomainFactLease reserved, out string publicationKey, out _))
+        {
+            failure = new DomainFailure(FailureCode.ServiceHubUnavailable);
+            return false;
+        }
+        ServiceSessionCompletionTransition transition;
+        try
+        {
+            if (!Aggregate.TryComplete(
+                    sessionId,
+                    completedAt,
+                    absoluteDay,
+                    out transition,
+                    out failure))
+            {
+                facts.Cancel(reserved);
+                return false;
+            }
+            if (!Aggregate.TryBindTerminalObservation(sessionId, publicationKey, terminalHubName))
+                throw new InvalidOperationException("service-terminal-binding-rejected-after-completion");
+        }
+        catch
+        {
+            facts.Cancel(reserved);
+            throw;
+        }
+        if (!TryResumeTerminal(
+                transition.Completed.SessionId,
+                reserved,
+                out string pendingReason))
+        {
+            UnityEngine.Debug.LogError(
+                "service-session-terminal-pending:" + sessionId + ":"
+                + pendingReason);
+        }
+        Aggregate.TryGetSession(sessionId, out completed);
+        failure = DomainFailure.None;
         return true;
     }
 
     public bool CancelSession(string sessionId, string reason)
     {
-        return Aggregate.CancelSession(sessionId, reason, clock.Time);
+        if (!Aggregate.TryGetSession(
+                sessionId,
+                out ServiceSessionSnapshot active)
+            || !active.IsActive
+            || !TryGetCurrentAbsoluteDay(out int absoluteDay))
+        {
+            return false;
+        }
+        float cancelledAt = Aggregate.GetTimelineTime(clock.Time);
+        string terminalHubName = ResolveHubDisplayName(active.HubId);
+        if (!TryReserveTerminal(active, ServiceSessionStage.Cancelled, absoluteDay, terminalHubName,
+                out DomainFactLease reserved, out string publicationKey, out _))
+        {
+            return false;
+        }
+        try
+        {
+            if (!Aggregate.CancelSession(
+                    sessionId,
+                    reason,
+                    cancelledAt,
+                    absoluteDay))
+            {
+                facts.Cancel(reserved);
+                return false;
+            }
+            if (!Aggregate.TryBindTerminalObservation(sessionId, publicationKey, terminalHubName))
+                throw new InvalidOperationException("service-terminal-binding-rejected-after-cancellation");
+        }
+        catch
+        {
+            facts.Cancel(reserved);
+            throw;
+        }
+        if (!TryResumeTerminal(
+                sessionId,
+                reserved,
+                out string pendingReason))
+        {
+            UnityEngine.Debug.LogError(
+                "service-session-cancellation-pending:" + sessionId + ":"
+                + pendingReason);
+        }
+        return true;
     }
 
     public ServiceRoomsSaveData Capture()
     {
+        ResumePendingTerminals();
         ReconcileCaptureReferences();
-        return Aggregate.Capture();
+        var retainedCleanupSessions = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Shop shop in (buildings.Buildings ?? Array.Empty<BuildableObject>()).OfType<Shop>())
+        foreach (ShopUseExecutionState use in shop.InteractionState.activeUses)
+            if (Aggregate.TryGetSession(use.serviceSessionId, out var session)
+                && use.MatchesCancelledSession(session, shop.RequirePersistentInstanceId().Value))
+                retainedCleanupSessions.Add(session.SessionId);
+        return Aggregate.Capture(Aggregate.GetTimelineTime(clock.Time), retainedCleanupSessions);
     }
 
     private void ReconcileCaptureReferences()
@@ -569,10 +751,14 @@ public sealed class ServiceSessionRuntime :
                 continue;
             }
 
-            Aggregate.CancelSession(
-                session.SessionId,
-                "save-reference-invalidated",
-                clock.Time);
+            if (!CancelSession(
+                    session.SessionId,
+                    "save-reference-invalidated"))
+            {
+                throw new InvalidOperationException(
+                    "Service session could not publish its invalid-reference cancellation: "
+                    + session.SessionId);
+            }
         }
 
         Aggregate.RemoveHubModesExcept(
@@ -615,6 +801,19 @@ public sealed class ServiceSessionRuntime :
         }
         foreach (ServiceSessionSaveData session in saveData.sessions)
         {
+            bool pendingTerminal = session != null
+                && session.stage is ServiceSessionStage.Completed
+                    or ServiceSessionStage.Cancelled
+                && session.terminalPhase
+                    is >= ServiceSessionTerminalPhase.Prepared
+                    and <= ServiceSessionTerminalPhase.ObservationCommitted;
+            if (pendingTerminal)
+            {
+                // A destroyed hub or departed actor may be the cancellation
+                // cause. The frozen terminal owner is self-contained and must
+                // remain restorable until its ledger acknowledgement arrives.
+                continue;
+            }
             bool hubFound = hubsById.TryGetValue(
                 session.hubId,
                 out BuildableObject hub);
@@ -659,11 +858,127 @@ public sealed class ServiceSessionRuntime :
                 + string.Join(" | ", report.Errors));
         }
 
+        ValidateFacilityExecutionOwners(candidateBuildings, candidateCharacters, saveData);
+
         ServiceSessionAggregate restored =
             ServiceSessionAggregate.CreateRestored(
                 saveData,
                 unchecked(Version + 1));
         return new ServiceRoomsRestoreCandidate(restored);
+    }
+
+    private static void ValidateFacilityExecutionOwners(
+        IReadOnlyList<BuildableObject> candidateBuildings,
+        IReadOnlyList<CharacterActor> candidateCharacters, ServiceRoomsSaveData save)
+    {
+        var claimedActors = new HashSet<string>(StringComparer.Ordinal);
+        var claimedSessions = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Facility facility in candidateBuildings.OfType<Facility>())
+        {
+            if (!facility.FacilityState.IsValid(out string error))
+                throw new InvalidOperationException(error);
+            if (facility.FacilityState.activeUses.Count > facility.EffectiveCapacity)
+                throw new InvalidOperationException("Saved facility executions exceed capacity.");
+            foreach (FacilityUseExecutionState state in facility.FacilityState.activeUses)
+            {
+                CharacterActor actor = candidateCharacters.SingleOrDefault(value => value != null
+                    && value.Identity?.PersistentId == state.actorId);
+                if (!claimedActors.Add(state.actorId) || actor?.Brain == null
+                    || !actor.TryGetAbility(out AbilityShopping _)
+                    || !actor.Brain.CanRestoreFacilityUse(state)
+                    || state.operationId != "facility-visit:facility=" + facility.RequirePersistentInstanceId().Value
+                        + ":use=" + state.operationSequence)
+                    throw new InvalidOperationException("Invalid facility execution actor/action/operation: " + state.operationId);
+                if (string.IsNullOrEmpty(state.serviceSessionId))
+                {
+                    if (facility.GetServiceHubAbility() != null)
+                        throw new InvalidOperationException("Facility execution is missing its service session.");
+                    continue;
+                }
+                ServiceSessionSaveData session = save.sessions.SingleOrDefault(value =>
+                    value.sessionId == state.serviceSessionId);
+                if (!claimedSessions.Add(state.serviceSessionId) || session == null
+                    || session.actorId != state.actorId
+                    || session.hubId != facility.RequirePersistentInstanceId().Value
+                    || session.stage >= ServiceSessionStage.Completed)
+                    throw new InvalidOperationException("Facility execution service owner mismatch.");
+            }
+        }
+        foreach (Shop shop in candidateBuildings.OfType<Shop>())
+        {
+            string shopId = shop.RequirePersistentInstanceId().Value;
+            if (!shop.InteractionState.IsValid(shopId, out string error))
+                throw new InvalidOperationException(error);
+            if (shop.InteractionState.activeUses.Count(state => !state.MatchesCancelledSession(
+                    save.sessions.SingleOrDefault(value => value.sessionId == state.serviceSessionId)?.ToSnapshot(), shopId))
+                > shop.EffectiveCapacity)
+                throw new InvalidOperationException("Saved shop executions exceed capacity.");
+            foreach (ShopUseExecutionState state in shop.InteractionState.activeUses)
+            {
+                CharacterActor actor = candidateCharacters.SingleOrDefault(value => value != null
+                    && value.Identity?.PersistentId == state.actorId);
+                if (!claimedActors.Add(state.actorId) || actor?.Brain == null
+                    || !actor.TryGetAbility(out AbilityShopping _)
+                    || !actor.Brain.CanRestoreShopUse(state)
+                    || state.operationId != ShopUseExecutionState.OperationFor(shopId, state.sequence))
+                    throw new InvalidOperationException("Invalid shop execution actor/action/operation: " + state.operationId);
+                if (string.IsNullOrEmpty(state.serviceSessionId))
+                {
+                    if (shop.GetServiceHubAbility() != null)
+                        throw new InvalidOperationException("Shop execution is missing its service session.");
+                    continue;
+                }
+                ServiceSessionSaveData session = save.sessions.SingleOrDefault(value =>
+                    value.sessionId == state.serviceSessionId);
+                if (!claimedSessions.Add(state.serviceSessionId) || session == null
+                    || session.actorId != state.actorId
+                    || session.hubId != shopId
+                    || session.stage >= ServiceSessionStage.Completed
+                        && !state.MatchesCancelledSession(session.ToSnapshot(), shopId))
+                    throw new InvalidOperationException("Shop execution service owner mismatch.");
+            }
+        }
+        foreach (ServiceSessionSaveData session in save.sessions)
+            if (session.terminalPhase == ServiceSessionTerminalPhase.Acknowledged
+                && !claimedSessions.Contains(session.sessionId))
+                throw new InvalidOperationException("Acknowledged service session has no pending cleanup owner.");
+        var purchaseBindings = new HashSet<(string operationId, int cartIndex)>();
+        foreach (CharacterActor actor in candidateCharacters)
+        {
+            if (actor == null
+                || !actor.TryGetAbility(out AbilityShopping shopping))
+                continue;
+            foreach (RetailPurchaseRecoverySaveData receipt in
+                     shopping.CapturePendingRetailPurchases())
+            {
+                if (string.IsNullOrEmpty(receipt.shopUseOperationId)) continue;
+                if (!purchaseBindings.Add((
+                        receipt.shopUseOperationId,
+                        receipt.shopUseCartIndex)))
+                    throw new InvalidOperationException(
+                        "Duplicate shop purchase recovery binding: "
+                        + receipt.shopUseOperationId + ":"
+                        + receipt.shopUseCartIndex);
+
+                Shop[] owners = candidateBuildings.OfType<Shop>()
+                    .Where(value => value.RequirePersistentInstanceId().Value
+                        == receipt.facilityId)
+                    .ToArray();
+                if (owners.Length != 1)
+                    throw new InvalidOperationException(
+                        "Shop purchase recovery owner cardinality mismatch: "
+                        + receipt.facilityId);
+                owners[0].ValidatePurchaseBinding(receipt);
+            }
+        }
+        foreach (Shop shop in candidateBuildings.OfType<Shop>())
+            foreach (ShopUseExecutionState use in shop.InteractionState.activeUses)
+                for (int index = 0; index < use.cart.Count; index++)
+                    if (!string.IsNullOrEmpty(use.cart[index].pendingPurchaseOperationId)
+                        && !purchaseBindings.Contains((use.operationId, index)))
+                        throw new InvalidOperationException("Shop cart has no matching pending purchase receipt.");
+        // Reverse service coverage belongs to ServiceExecutionOwnerSaveValidation:
+        // medical execution owners live in later survival sections, not here.
     }
 
     public void PublishRestoreCandidate(ServiceRoomsRestoreCandidate candidate)
@@ -672,6 +987,7 @@ public sealed class ServiceSessionRuntime :
         {
             throw new ArgumentNullException(nameof(candidate));
         }
+        candidate.Aggregate.BindRuntimeClock(clock.Time);
         aggregateRootStore.Replace(candidate.Aggregate);
     }
 
@@ -680,6 +996,158 @@ public sealed class ServiceSessionRuntime :
         hubSubscriptions.Synchronize(
             GetOperationalHubs(null),
             OnHubDestroyed);
+    }
+
+    internal void RecoverPendingModeFacts()
+    {
+        foreach (var pending in Aggregate.PendingModeFacts.Take(8))
+        {
+            var replies = new DomainFactDelivery[1];
+            try
+            {
+                bool accepted = factRecovery.ReplayBatch(new[]
+                {
+                    DomainFactReplay.Create(pending.publicationKey, new ServiceModeChangedFact(pending.fact))
+                }, replies, out string failure);
+                if (accepted && replies[0].Completed && replies[0].OperationKey == pending.publicationKey)
+                    Aggregate.ClearModeFact(pending.fact.hubId, pending.publicationKey);
+                else ReportModeFactFailure(failure + ":" + replies[0].Detail);
+            }
+            catch (Exception exception) { ReportModeFactFailure("service-mode-recovery:" + exception.GetType().Name); }
+            Aggregate.RotateModeFact(pending.fact.hubId);
+        }
+    }
+
+    private void ReportModeFactFailure(string failure)
+    {
+        if (string.IsNullOrEmpty(failure)) failure = "service-mode-publication-unconfirmed";
+        if (lastModeFailure == failure) return;
+        lastModeFailure = failure;
+        UnityEngine.Debug.LogWarning(failure);
+    }
+
+    private void ResumePendingTerminals()
+    {
+        ServiceSessionSnapshot[] pending = Aggregate.PendingTerminalSessions
+            .ToArray();
+        foreach (ServiceSessionSnapshot session in pending)
+        {
+            if (!TryResumeTerminal(
+                    session.SessionId,
+                    default,
+                    out string failureReason))
+            {
+                UnityEngine.Debug.LogError(
+                    "service-session-terminal-retry-pending:"
+                    + session.SessionId + ":" + failureReason);
+            }
+        }
+    }
+
+    private bool TryReserveTerminal(ServiceSessionSnapshot source, ServiceSessionStage terminalStage,
+        int day, string hubName, out DomainFactLease lease, out string publicationKey, out string failure)
+    {
+        publicationKey = string.Empty;
+        if (!facts.TryReserve(ServiceSessionTerminalFact.Propose(source, terminalStage, day, hubName),
+                out lease, out failure)) return false;
+        publicationKey = lease.PublicationKey;
+        if (!string.IsNullOrWhiteSpace(publicationKey) && publicationKey.Trim() == publicationKey) return true;
+        facts.Cancel(lease);
+        failure = "service-terminal-publication-reference-missing";
+        return false;
+    }
+
+    private bool TryResumeTerminal(string sessionId, DomainFactLease reserved, out string failureReason)
+    {
+        failureReason = string.Empty;
+        try
+        {
+            if (!Aggregate.TryGetSession(sessionId, out ServiceSessionSnapshot session)
+                || session.IsActive || session.TerminalPhase == ServiceSessionTerminalPhase.None)
+            { failureReason = "service-session-terminal-owner-missing"; return false; }
+            if (session.TerminalPhase == ServiceSessionTerminalPhase.Acknowledged) return true;
+
+            // A core-only prepared transition has not yet been observed. Bind its
+            // frozen source before any payment. Already bound source is never rebuilt.
+            if (string.IsNullOrEmpty(session.TerminalPublicationKey))
+            {
+                string name = ResolveHubDisplayName(session.HubId);
+                if (!TryReserveTerminal(session, session.Stage, session.TerminalAbsoluteDay, name,
+                        out reserved, out string key, out failureReason)
+                    || !Aggregate.TryBindTerminalObservation(sessionId, key, name))
+                    return false;
+                Aggregate.TryGetSession(sessionId, out session);
+            }
+
+            bool requiresPayment = session.Stage == ServiceSessionStage.Completed
+                && session.Contract.paymentRequired && session.Contract.price > 0;
+            if (requiresPayment && session.TerminalPhase == ServiceSessionTerminalPhase.Prepared)
+            {
+                if (idempotentMoney == null || moneyTransactions == null)
+                { failureReason = "service-session-idempotent-money-authority-missing"; return false; }
+                string sourceId = ServiceSessionTerminalIdentity.PaymentSourceId(session.SessionId);
+                var context = new EconomyTransactionContext(EconomyTransactionKind.GuestServiceIncome,
+                    sourceId, session.ActorId, "서비스 세션 수입:" + session.HubId);
+                if (!idempotentMoney.TryCreditOnce(session.Contract.price, context, out failureReason)
+                    || !moneyTransactions.TryGetSuccessfulTransaction(EconomyTransactionKind.GuestServiceIncome,
+                        sourceId, out EconomyTransactionRecord transaction)
+                    || !Aggregate.TryRecordPayment(sessionId, transaction.transactionId, transaction.sourceId,
+                        transaction.amount, transaction.balanceBefore, transaction.balanceAfter))
+                {
+                    if (string.IsNullOrWhiteSpace(failureReason))
+                        failureReason = "service-session-payment-receipt-mismatch";
+                    return false;
+                }
+                Aggregate.TryGetSession(sessionId, out session);
+            }
+
+            var actual = ServiceSessionTerminalFact.Actual(session);
+            DomainFactDelivery delivered;
+            if (reserved.IsValid)
+                delivered = facts.Publish(reserved, actual);
+            else
+            {
+                var results = new DomainFactDelivery[1];
+                if (!factRecovery.ReplayBatch(new[] { DomainFactReplay.Create(session.TerminalPublicationKey, actual) },
+                        results, out failureReason)) return false;
+                delivered = results[0];
+            }
+            // Rejection or an unknown reply does not undo the terminal transition
+            // or one-time credit. Retain the exact source for the next attempt.
+            if (delivered.Phase is DomainFactDeliveryPhase.Rejected or DomainFactDeliveryPhase.InDoubt
+                || delivered.OperationKey != session.TerminalPublicationKey)
+            {
+                failureReason = string.IsNullOrWhiteSpace(delivered.Detail)
+                    ? "service-session-observation-pending-or-reference-mismatch" : delivered.Detail;
+                return false;
+            }
+            if (!Aggregate.TryRecordObservationCommit(sessionId, delivered.PublicationId, delivered.Fingerprint))
+            { failureReason = "service-session-observation-owner-mismatch"; return false; }
+            if (!delivered.Completed)
+            { failureReason = "service-session-observation-awaiting-delivery"; return false; }
+            if (!Aggregate.TryAcknowledgeTerminal(sessionId, delivered.PublicationId, delivered.Fingerprint))
+            { failureReason = "service-session-observation-acknowledgement-mismatch"; return false; }
+            return true;
+        }
+        catch (Exception exception)
+        {
+            failureReason = "service-session-terminal-reply-unknown:" + exception.GetType().Name + ":" + exception.Message;
+            return false;
+        }
+        finally
+        {
+            if (reserved.IsValid) facts.Cancel(reserved);
+        }
+    }
+
+    private string ResolveHubDisplayName(string hubId)
+    {
+        BuildableObject hub = GetOperationalHubs(null).FirstOrDefault(
+            candidate => string.Equals(
+                GetHubId(candidate),
+                hubId,
+                StringComparison.Ordinal));
+        return GetHubDisplayName(hub, hubId);
     }
 
     private ServiceSessionContractSnapshot CreateContract(
@@ -861,10 +1329,25 @@ public sealed class ServiceSessionRuntime :
     {
         string hubId = GetHubId(hub);
         hubSubscriptions.Unsubscribe(hub);
-        Aggregate.CancelHubSessions(
-            hubId,
-            $"{hub?.BuildingData?.objectName ?? "서비스 시설"} 파괴로 영업이 취소되었습니다.",
-            clock.Time);
+        if (IsReplacedFacility(hub)) return;
+        string reason =
+            $"{hub?.BuildingData?.objectName ?? "서비스 시설"} 파괴로 영업이 취소되었습니다.";
+        string[] sessionIds = Aggregate.ActiveSessions
+            .Where(session => string.Equals(
+                session.HubId,
+                hubId,
+                StringComparison.Ordinal))
+            .Select(session => session.SessionId)
+            .ToArray();
+        foreach (string sessionId in sessionIds)
+        {
+            if (!CancelSession(sessionId, reason))
+            {
+                UnityEngine.Debug.LogError(
+                    "service-session-hub-destroy-cancellation-rejected:"
+                    + sessionId);
+            }
+        }
     }
 
     private int CountActiveSessions(string hubId) =>
@@ -912,21 +1395,6 @@ public sealed class ServiceSessionRuntime :
             && gameData?.day != null
             && (absoluteDay = gameData.day.Value) >= 0;
     }
-
-    private static string CreateModeChangeOwnerIdentity(
-        string hubId,
-        ServiceOperationMode requestedMode) =>
-        "service-mode-change:hub=" + hubId
-        + ":command=set-mode:" + requestedMode;
-
-    private static string CreateModeChangeSummary(
-        BuildableObject hub,
-        string hubId,
-        ServiceOperationMode previous,
-        ServiceOperationMode requested) =>
-        GetHubDisplayName(hub, hubId)
-        + " 운영 모드를 " + previous
-        + "에서 " + requested + "으로 변경했습니다.";
 
     private static string GetHubDisplayName(
         BuildableObject hub,

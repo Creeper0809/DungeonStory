@@ -109,6 +109,12 @@ public sealed class CharacterMedicalOrder
     public float completedStabilizationWork;
     public float requiredTreatmentWork;
     public float completedTreatmentWork;
+    public int nextTerminalOutcomeSequence = 1;
+    public int stabilizationLaborSequence;
+    public int treatmentLaborSequence;
+    public float currentReservationStabilizationWork;
+    public float currentReservationTreatmentWork;
+    public int nextLaborCheckpointSequence = 1;
     public CharacterMedicalSupplyKind treatmentSupply;
     public bool treatmentSupplyConsumed;
     public bool treatmentSupplyDeliveryRequested;
@@ -203,10 +209,11 @@ public readonly struct CharacterMedicalBloodContactEvent
 [Serializable]
 public sealed class DungeonCharacterMedicalSaveData
 {
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 9;
 
     public int version = CurrentVersion;
     public List<CharacterMedicalOrder> orders = new List<CharacterMedicalOrder>();
+    public List<CharacterMedicalPendingFactData> pendingProcedureFacts = new();
     public int orderSequence;
 }
 

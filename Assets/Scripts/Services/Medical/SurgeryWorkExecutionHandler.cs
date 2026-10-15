@@ -94,6 +94,7 @@ public sealed class SurgeryWorkExecutionHandler :
         if (!commands.TryReserveWork(
                 context.Target,
                 context.Actor,
+                context.CommandOrigin,
                 out SurgeryOrder order,
                 out DomainFailure failure))
         {
@@ -163,6 +164,10 @@ public sealed class SurgeryWorkExecutionHandler :
 
         result.CompletedSuccessfully = applied && operationCompleted;
         result.CompletionEffectsAlreadyApplied = operationCompleted;
+        // Once rolled, the surgery aggregate owns the exact terminal delivery,
+        // including a pending ACK. A generic event is not a substitute for it.
+        result.CompletionIdentityAlreadyPublished =
+            order.resultRolled;
         result.Failure = executionFailure;
     }
 }

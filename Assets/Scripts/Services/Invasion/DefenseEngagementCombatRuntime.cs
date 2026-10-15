@@ -41,7 +41,7 @@ internal sealed class DefenseEngagementCombatRuntime
         this.store = store ?? throw new ArgumentNullException(nameof(store));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
-        guardControl = new DefenseGuardControlRuntime();
+        guardControl = new DefenseGuardControlRuntime(events);
     }
 
     public void Begin(DefenseEngagement engagement)
@@ -72,16 +72,14 @@ internal sealed class DefenseEngagementCombatRuntime
         SetCombatPresentation(engagement, true);
         SetStatus(engagement.ReserveGuard, "Waiting", false);
         engagement.Intruder.SetEngagementState(true, engagement.IntruderStopCell);
-        engagement.LeadGuard.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Combat,
-            CharacterActivityOutcomes.Started,
-            $"Defend against {engagement.IntruderActor.Identity?.DisplayName ?? "intruder"}",
-            actionId: "defense:engagement",
+        events.Publish(new DefenseEngagementChangedEvent(
+            DefenseEngagementTransition.Started,
+            CharacterPersistentIdentity.Require(engagement.LeadGuard),
             targetId: GetPersistentId(engagement.IntruderActor),
             targetName: engagement.IntruderActor.Identity?.DisplayName
                 ?? engagement.IntruderActor.name,
-            sentiment: -0.1f,
-            bubbleEligible: true));
+            intruderDisplayLabel:
+                engagement.IntruderActor.Identity?.DisplayName ?? "intruder"));
         TriggerPassives(
             engagement.LeadGuard,
             CharacterSkillTrigger.BattleStarted,
@@ -208,7 +206,9 @@ internal sealed class DefenseEngagementCombatRuntime
         }
 
         if (engagement.Intruder == null
-            || !engagement.Intruder.TryCommitFrontCollapsedOutcome(reason))
+            || !engagement.Intruder.TryCommitFrontCollapsedOutcome(
+                reason,
+                engagement.LeadGuard ?? engagement.ReserveGuard))
         {
             throw new InvalidOperationException(
                 "The defense-front collapse outcome could not be committed.");
@@ -283,15 +283,14 @@ internal sealed class DefenseEngagementCombatRuntime
                 engagement,
                 engagement.IntruderActor,
                 "complete");
-            victor.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Combat,
-                CharacterActivityOutcomes.Completed,
-                "Intruder defense completed",
-                actionId: "defense:engagement",
+            events.Publish(new DefenseEngagementChangedEvent(
+                DefenseEngagementTransition.Completed,
+                CharacterPersistentIdentity.Require(victor),
+                targetId: GetPersistentId(engagement.IntruderActor),
                 targetName: engagement.IntruderActor?.Identity?.DisplayName ?? "intruder",
-                value: engagement.ExchangeCount,
-                sentiment: 0.7f,
-                bubbleEligible: true));
+                intruderDisplayLabel:
+                    engagement.IntruderActor?.Identity?.DisplayName ?? "intruder",
+                exchangeCount: engagement.ExchangeCount));
         }
 
         Complete(engagement, false);

@@ -242,6 +242,7 @@ public sealed class ResourceStockPolicySaveSection :
             StringComparison.Ordinal)
         && receipt.Quantity == owner.quantity
         && receipt.InputMassGrams == owner.inputMassGrams
+        && receipt.OwnerRevision == owner.physicalOutcomeOwnerRevision
         && (receipt.SourceStackIds ?? Array.Empty<string>())
             .SequenceEqual(
                 owner.sourceStackIds ?? new List<string>(),

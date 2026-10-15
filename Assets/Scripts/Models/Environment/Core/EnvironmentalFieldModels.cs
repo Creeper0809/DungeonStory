@@ -59,9 +59,31 @@ public sealed class EnvironmentalThermostatSaveData
 }
 
 [Serializable]
+public sealed class EnvironmentalControlOutcomeSaveData
+{
+    public const int CurrentSchemaVersion = 1;
+
+    public int schemaVersion = CurrentSchemaVersion;
+    public string operationId = string.Empty;
+    public string buildingInstanceId = string.Empty;
+    public string buildingDisplayName = string.Empty;
+    public string commandSource = string.Empty;
+    public int x;
+    public int y;
+    public float requestedTargetTemperatureC;
+    public float appliedTargetTemperatureC;
+    public float minimumTargetTemperatureC;
+    public float maximumTargetTemperatureC;
+    public float targetBeforeTemperatureC;
+    public float targetAfterTemperatureC;
+    public int absoluteDay;
+    public long ownerRevision;
+}
+
+[Serializable]
 public sealed class DungeonEnvironmentalFieldSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public int version = CurrentVersion;
     public int width;
@@ -70,6 +92,9 @@ public sealed class DungeonEnvironmentalFieldSaveData
         new List<EnvironmentalCellSaveData>();
     public List<EnvironmentalThermostatSaveData> thermostats =
         new List<EnvironmentalThermostatSaveData>();
+    public int nextControlOutcomeSequence;
+    public List<EnvironmentalControlOutcomeSaveData> controlOutcomes =
+        new List<EnvironmentalControlOutcomeSaveData>();
 }
 
 public interface IEnvironmentalFieldQuery

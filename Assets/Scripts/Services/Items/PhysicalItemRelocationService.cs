@@ -1,8 +1,8 @@
 using System;
-using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
+using System.Collections.Generic;
 using UnityEngine;
+using DungeonStory.Foundation.Facts;
+using VContainer.Unity;
 
 public readonly struct PhysicalItemRelocationReceipt
 {
@@ -65,42 +65,71 @@ public interface IPhysicalItemRelocationService
 /// a Transform: input and output item identity, quantity, components, and gram
 /// mass must remain equal.
 /// </summary>
-public sealed class PhysicalItemRelocationService : IPhysicalItemRelocationService
+public sealed class PhysicalItemRelocationService : IPhysicalItemRelocationService, ITickable, IDungeonSaveRestoreCompletedHook
 {
     private readonly WorldItemRepository repository;
     private readonly IPreparedPhysicalItemRelocationService relocations;
-    private readonly IPhysicalItemRelocationOutcomeParticipant outcomes;
-    private readonly IGameplayOutcomeRecorder outcomeRecorder;
-    private readonly IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics;
+    private readonly IDomainFactStagingPublisher facts;
+    private readonly IDomainFactRecoveryPublisher recovery;
+    private readonly IGameCalendar calendar;
+    private readonly Queue<string> pendingPublications = new();
+    private readonly HashSet<string> queuedPublications = new(StringComparer.Ordinal);
+    private float nextRecoveryTime;
+    public string LastRecoveryFailure { get; private set; } = string.Empty;
 
-    public PhysicalItemRelocationService(
-        WorldItemRepository repository,
-        IPreparedPhysicalItemRelocationService relocations,
-        IPhysicalItemRelocationOutcomeParticipant outcomes,
-        IGameplayOutcomeRecorder outcomeRecorder,
-        IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics)
+    public PhysicalItemRelocationService(WorldItemRepository repository,
+        IPreparedPhysicalItemRelocationService relocations, IDomainFactStagingPublisher facts,
+        IDomainFactRecoveryPublisher recovery, IGameCalendar calendar)
     {
-        this.repository = repository
-            ?? throw new ArgumentNullException(nameof(repository));
-        this.relocations = relocations
-            ?? throw new ArgumentNullException(nameof(relocations));
-        this.outcomes = outcomes ?? throw new ArgumentNullException(nameof(outcomes));
-        this.outcomeRecorder = outcomeRecorder
-            ?? throw new ArgumentNullException(nameof(outcomeRecorder));
-        this.outcomeDiagnostics = outcomeDiagnostics
-            ?? throw new ArgumentNullException(nameof(outcomeDiagnostics));
+        this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        this.relocations = relocations ?? throw new ArgumentNullException(nameof(relocations));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
     }
 
-    public bool TryRelocateQuantity(
-        string sourceStackId,
-        int quantity,
-        Vector2Int destinationPosition,
-        WorldItemStackState destinationState,
-        string destinationId,
-        string operationId,
-        string reasonCode,
-        out PhysicalItemRelocationReceipt receipt,
-        out string failureReason)
+    public void OnRestoreCompleted()
+    {
+        pendingPublications.Clear();
+        queuedPublications.Clear();
+        LastRecoveryFailure = string.Empty;
+        nextRecoveryTime = 0f;
+        // Rebuild transient scheduling once from owner state, not from ledger rows.
+        foreach (string operation in repository.PendingPhysicalRelocationPublicationIds()) QueueRecovery(operation);
+    }
+
+    public void Tick()
+    {
+        if (pendingPublications.Count == 0 || Time.unscaledTime < nextRecoveryTime) return;
+        nextRecoveryTime = Time.unscaledTime + 1f;
+        int count = Math.Min(8, pendingPublications.Count);
+        string failure = string.Empty;
+        for (int index = 0; index < count; index++)
+        {
+            string operation = pendingPublications.Dequeue();
+            queuedPublications.Remove(operation);
+            if (!repository.TryGetPhysicalItemRelocation(operation, out var journal)
+                || journal.phase == (int)PhysicalItemRelocationJournalPhase.Delivered) continue;
+            TryReplay(journal.Clone(), journal.requestFingerprint, out _, out string detail);
+            if (repository.TryGetPhysicalItemRelocation(operation, out journal)
+                && journal.phase != (int)PhysicalItemRelocationJournalPhase.Delivered)
+            {
+                QueueRecovery(operation);
+                failure = detail;
+            }
+        }
+        if (!string.IsNullOrEmpty(failure) && failure != LastRecoveryFailure)
+            Debug.LogWarning("Physical relocation publication recovery pending: " + failure);
+        LastRecoveryFailure = failure;
+    }
+
+    private void QueueRecovery(string operation)
+    { if (queuedPublications.Add(operation)) pendingPublications.Enqueue(operation); }
+
+    public bool TryRelocateQuantity(string sourceStackId, int quantity,
+        Vector2Int destinationPosition, WorldItemStackState destinationState,
+        string destinationId, string operationId, string reasonCode,
+        out PhysicalItemRelocationReceipt receipt, out string failureReason)
     {
         receipt = default;
         failureReason = string.Empty;
@@ -108,364 +137,180 @@ public sealed class PhysicalItemRelocationService : IPhysicalItemRelocationServi
         string reason = reasonCode?.Trim() ?? string.Empty;
         string source = sourceStackId?.Trim() ?? string.Empty;
         string destination = destinationId?.Trim() ?? string.Empty;
-        string requestFingerprint = CreateRequestFingerprint(
-            source,
-            quantity,
-            destinationPosition,
-            destinationState,
-            destination,
-            operation,
-            reason);
-        if (repository.TryGetPhysicalItemRelocation(
-                operation,
-                out PhysicalItemRelocationSaveData existing))
-        {
-            return TryReplay(
-                existing,
-                requestFingerprint,
-                out receipt,
-                out failureReason);
-        }
-        if (!relocations.TryPrepare(
-                source,
-                quantity,
-                destinationPosition,
-                destinationState,
-                destination,
-                operation,
-                reason,
-                out IPreparedPhysicalItemRelocation preparedRelocation,
-                out failureReason))
+        string fingerprint = PhysicalItemRelocatedFact.CreateRequestFingerprint(source, quantity, destinationPosition,
+            destinationState, destination, operation, reason);
+        if (repository.TryGetPhysicalItemRelocation(operation, out var existing))
+            return TryReplay(existing.Clone(), fingerprint, out receipt, out failureReason);
+        if (!relocations.TryPrepare(source, quantity, destinationPosition, destinationState,
+                destination, operation, reason, out var prepared, out failureReason))
             return false;
-        PreparedPhysicalItemRelocationPreview preview =
-            preparedRelocation.Preview;
-        if (!outcomes.TryPrepare(
-                preview,
-                out IPreparedPhysicalItemGameplayOutcome preparedOutcome,
-                out failureReason))
+        var preview = prepared.Preview;
+        IDomainFactStage stage = null;
+        PhysicalItemRelocatedFact fact;
+        try
         {
-            preparedRelocation.Cancel();
+            fact = new PhysicalItemRelocatedFact(preview, Math.Max(1, calendar.Day), destinationState, destination);
+            if (!facts.TryStage(fact, out stage, out failureReason))
+            { prepared.Cancel(); return false; }
+            if (stage == null || !stage.IsActive || stage.OwnerRevision != preview.OwnerRevision
+                || string.IsNullOrEmpty(stage.OperationKey) || stage.IsReplay)
+            {
+                stage?.Cancel();
+                prepared.Cancel();
+                failureReason = "physical-relocation-publication-without-owner-journal";
+                return false;
+            }
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            stage?.Cancel();
+            prepared.Cancel();
+            failureReason = "physical-relocation-observation-prepare:" + exception.Message;
             return false;
         }
         if (!repository.CanAddPhysicalItemRelocation(operation))
         {
-            preparedOutcome.Cancel();
-            preparedRelocation.Cancel();
+            stage.Cancel();
+            prepared.Cancel();
             failureReason = "physical-relocation-journal-capacity-exhausted";
             return false;
         }
-        if (!preparedRelocation.TryApply(
-                out IReversiblePhysicalItemRelocation transaction,
-                out failureReason))
-        {
-            preparedOutcome.Cancel();
-            return false;
-        }
-
-        PhysicalItemRelocationSaveData journal = CreateJournal(
-            preview,
-            destinationState,
-            destination,
-            requestFingerprint,
-            preparedOutcome.ResultKey);
-        try
-        {
-            repository.AddPhysicalItemRelocation(journal);
-        }
+        var journal = CreateJournal(fact, destinationState, destination, fingerprint, stage.OperationKey);
+        if (!prepared.TryApply(out var transaction, out failureReason))
+        { stage.Cancel(); return false; }
+        try { repository.AddPhysicalItemRelocation(journal); }
         catch (Exception exception) when (IsRecoverable(exception))
         {
             if (!transaction.TryRollback(out string rollbackFailure))
-            {
-                throw new InvalidOperationException(
-                    "Physical relocation journal failed and the physical mutation could not be rolled back: "
-                    + rollbackFailure,
-                    exception);
-            }
-            preparedOutcome.Cancel();
-            failureReason = "physical-relocation-journal-write-failed:"
-                + exception.Message;
+                throw new InvalidOperationException("physical-relocation-journal-rollback:" + rollbackFailure, exception);
+            stage.Cancel();
+            failureReason = "physical-relocation-journal-write-failed:" + exception.Message;
             return false;
         }
 
-        bool canonicalCommitted;
-        PhysicalGameplayOutcomeAttachment attachment;
-        try
-        {
-            _ = preparedOutcome.TryCommit(
-                preview.OwnerRevision,
-                out attachment,
-                out canonicalCommitted,
-                out failureReason);
-        }
+        QueueRecovery(operation);
+        DomainFactDelivery delivery;
+        try { delivery = stage.Commit(); }
         catch (Exception exception) when (IsRecoverable(exception))
         {
-            canonicalCommitted = TryGetCanonicalAttachment(
-                preparedOutcome.ResultKey,
-                out attachment);
-            if (canonicalCommitted)
-            {
-                PersistCanonical(journal, attachment);
-                transaction.TryAcknowledge(out _);
-                failureReason =
-                    "physical-relocation-outcome-reconciliation-pending:"
-                    + exception.Message;
-                receipt = transaction.Receipt;
-                return true;
-            }
-            if (!transaction.TryRollback(out string rollbackFailure))
-                throw new InvalidOperationException(
-                    "Physical relocation outcome failed and the physical mutation could not be rolled back: "
-                    + rollbackFailure,
-                    exception);
-            preparedOutcome.Cancel();
-            repository.RemovePhysicalItemRelocation(operation);
-            failureReason = "physical-relocation-outcome-commit-exception:"
-                + exception.Message;
-            return false;
+            // A lost response is not proof of rejection. Preserve the applied
+            // movement and its exact saved fact for observer recovery.
+            delivery = DomainFactDelivery.Uncertain("physical-relocation-publication-in-doubt:" + exception.Message);
         }
-        if (!canonicalCommitted)
+        if (!delivery.MayBeCommitted)
         {
             if (!transaction.TryRollback(out string rollbackFailure))
-                throw new InvalidOperationException(
-                    "Physical relocation outcome was rejected and the physical mutation could not be rolled back: "
-                    + rollbackFailure);
-            preparedOutcome.Cancel();
+                throw new InvalidOperationException("physical-relocation-publication-rollback:" + rollbackFailure);
+            stage.Cancel();
             repository.RemovePhysicalItemRelocation(operation);
+            failureReason = delivery.Detail;
             return false;
-        }
-
-        // Once the ledger commit is canonical the relocation must never roll
-        // back. Delivery/acknowledgement reconciliation belongs to the ledger.
-        if (canonicalCommitted)
-        {
-            if (!attachment.IsValid)
-                TryGetCanonicalAttachment(preparedOutcome.ResultKey, out attachment);
-            PersistCanonical(journal, attachment);
         }
         receipt = transaction.Receipt;
-        if (!transaction.TryAcknowledge(out string acknowledgementFailure)
-            && failureReason.Length == 0)
+        RecordDelivery(journal, delivery, out failureReason);
+        if (!transaction.TryAcknowledge(out string acknowledgementFailure) && failureReason.Length == 0)
             failureReason = acknowledgementFailure;
         return true;
     }
 
-    private bool TryReplay(
-        PhysicalItemRelocationSaveData journal,
-        string requestFingerprint,
-        out PhysicalItemRelocationReceipt receipt,
-        out string failureReason)
+    private bool TryReplay(PhysicalItemRelocationSaveData journal, string requestFingerprint,
+        out PhysicalItemRelocationReceipt receipt, out string failureReason)
     {
-        receipt = RestoreReceipt(journal);
+        receipt = default;
         failureReason = string.Empty;
-        if (!receipt.IsCommitted
-            || !string.Equals(
-                journal.requestFingerprint,
-                requestFingerprint,
-                StringComparison.Ordinal))
+        if (journal.requestFingerprint != requestFingerprint)
+        { failureReason = "physical-relocation-operation-conflict:" + journal.operationId; return false; }
+        PhysicalItemRelocatedFact fact;
+        try { ValidateJournal(journal); fact = PhysicalItemRelocatedFact.FromSave(journal); }
+        catch (Exception exception) when (IsRecoverable(exception))
+        { failureReason = "physical-relocation-journal-invalid:" + exception.Message; return false; }
+        var deliveries = new DomainFactDelivery[1];
+        try
         {
-            receipt = default;
-            failureReason = "physical-relocation-operation-conflict:"
-                + journal.operationId;
-            return false;
-        }
-
-        GameplayResultKey expected = RestoreExpectedResultKey(journal);
-        if (!expected.IsValid)
-        {
-            receipt = default;
-            failureReason = "physical-relocation-journal-result-key-invalid";
-            return false;
-        }
-        outcomeRecorder.RetryPendingDeliveries(1);
-        if (!TryGetCanonicalAttachment(expected, out var attachment))
-        {
-            receipt = default;
-            failureReason =
-                "physical-relocation-canonical-outcome-unresolved";
-            return false;
-        }
-        if (journal.gameplayOutcome != null)
-        {
-            PhysicalGameplayOutcomeAttachment saved =
-                PhysicalGameplayOutcomeSaveCodec.FromSave(
-                    journal.gameplayOutcome);
-            if (!saved.IsValid
-                || !saved.ResultKey.Equals(attachment.ResultKey)
-                || !saved.OutcomeId.Equals(attachment.OutcomeId)
-                || !string.Equals(
-                    saved.CanonicalPayloadHash,
-                    attachment.CanonicalPayloadHash,
-                    StringComparison.Ordinal))
-            {
-                receipt = default;
-                failureReason =
-                    "physical-relocation-canonical-outcome-conflict";
+            if (!recovery.ReplayBatch(new[] { DomainFactReplay.Create(journal.publicationKey, fact) },
+                    deliveries, out failureReason) || !deliveries[0].MayBeCommitted)
                 return false;
-            }
         }
-        PersistCanonical(journal, attachment);
-        if (!attachment.HasAcknowledgementProof)
-        {
-            failureReason =
-                "physical-relocation-outcome-delivery-pending";
-        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        { failureReason = "physical-relocation-recovery-failed:" + exception.Message; return false; }
+        if (!RecordDelivery(journal, deliveries[0], out failureReason)) return false;
+        // No relocation prepare/apply call on this path, including cold restore.
+        receipt = fact.Preview.Receipt;
         return true;
     }
 
-    private void PersistCanonical(
-        PhysicalItemRelocationSaveData journal,
-        in PhysicalGameplayOutcomeAttachment attachment)
+    private bool RecordDelivery(PhysicalItemRelocationSaveData journal,
+        in DomainFactDelivery delivery, out string failure)
     {
-        journal.phase = (int)(attachment.HasAcknowledgementProof
-            ? PhysicalItemRelocationJournalPhase.PublishedAcknowledged
-            : PhysicalItemRelocationJournalPhase.CanonicalOutcomeCommitted);
-        if (attachment.IsValid)
+        failure = delivery.Detail;
+        if ((!string.IsNullOrEmpty(delivery.OperationKey) && delivery.OperationKey != journal.publicationKey)
+            || (!string.IsNullOrEmpty(journal.publicationId) && !string.IsNullOrEmpty(delivery.PublicationId)
+                && journal.publicationId != delivery.PublicationId)
+            || (!string.IsNullOrEmpty(journal.publicationFingerprint) && !string.IsNullOrEmpty(delivery.Fingerprint)
+                && journal.publicationFingerprint != delivery.Fingerprint))
+        { failure = "physical-relocation-publication-identity-conflict"; return false; }
+        if (delivery.Phase == DomainFactDeliveryPhase.InDoubt)
         {
-            journal.gameplayOutcome =
-                PhysicalGameplayOutcomeSaveCodec.ToSave(attachment);
+            if (string.IsNullOrEmpty(failure)) failure = "physical-relocation-publication-in-doubt";
+            return true;
         }
+        if (delivery.OperationKey != journal.publicationKey
+            || !DomainFactValueSyntax.IsText(delivery.PublicationId, 256, false)
+            || !DomainFactValueSyntax.IsText(delivery.Fingerprint, 256, false))
+        { failure = "physical-relocation-publication-proof-missing"; return false; }
+        journal.publicationId = delivery.PublicationId;
+        journal.publicationFingerprint = delivery.Fingerprint;
+        // A transient later delivery failure cannot erase a previously acknowledged proof.
+        journal.phase = Math.Max(journal.phase, (int)(delivery.Completed
+            ? PhysicalItemRelocationJournalPhase.Delivered : PhysicalItemRelocationJournalPhase.PublicationAccepted));
         if (!repository.TryUpdatePhysicalItemRelocation(journal))
-        {
-            throw new InvalidOperationException(
-                "physical-relocation-journal-canonical-update-missing:"
-                + journal.operationId);
-        }
+            throw new InvalidOperationException("physical-relocation-journal-update-missing:" + journal.operationId);
+        if (!delivery.Completed && string.IsNullOrEmpty(failure))
+            failure = "physical-relocation-publication-delivery-pending";
+        return true;
     }
 
-    private bool TryGetCanonicalAttachment(
-        GameplayResultKey expected,
-        out PhysicalGameplayOutcomeAttachment attachment)
+    internal static void ValidateJournal(PhysicalItemRelocationSaveData journal)
     {
-        attachment = default;
-        try
-        {
-            if (!outcomeDiagnostics.TryGetResultIdentity(
-                    expected,
-                    out GameplayOutcomeReplayIdentity identity)
-                || !identity.ResultKey.Equals(expected)
-                || identity.State is < GameplayOutcomeReplayState.Committed
-                    or > GameplayOutcomeReplayState.Forgotten
-                || !identity.HasCanonicalPayloadHash)
-            {
-                return false;
-            }
-            attachment = new PhysicalGameplayOutcomeAttachment(
-                identity.ResultKey,
-                identity.OutcomeId,
-                identity.State,
-                identity.CanonicalPayloadHash);
-            return attachment.IsValid;
-        }
-        catch (Exception exception) when (IsRecoverable(exception))
-        {
-            Debug.LogError(
-                "Physical relocation canonical reconciliation failed: "
-                + exception);
-            return false;
-        }
+        var fact = PhysicalItemRelocatedFact.FromSave(journal);
+        var moved = fact.Preview.Receipt;
+        if (!Enum.IsDefined(typeof(WorldItemStackState), journal.destinationState)
+            || (WorldItemStackState)journal.destinationState is WorldItemStackState.Carried or WorldItemStackState.InTransit
+            || !DomainFactValueSyntax.IsText(journal.destinationId, 256, true)
+            || journal.destinationId != journal.destinationId.Trim()
+            || !DomainFactValueSyntax.IsText(journal.publicationKey, 512, false)
+            || journal.phase < (int)PhysicalItemRelocationJournalPhase.DomainCommitted
+            || journal.phase > (int)PhysicalItemRelocationJournalPhase.Delivered
+            || journal.requestFingerprint != PhysicalItemRelocatedFact.CreateRequestFingerprint(moved.SourceStackId, moved.Quantity,
+                moved.DestinationPosition, (WorldItemStackState)journal.destinationState, journal.destinationId,
+                moved.OperationId, moved.ReasonCode))
+            throw new InvalidOperationException("physical-relocation-journal-shape-invalid");
+        bool hasProof = DomainFactValueSyntax.IsText(journal.publicationId, 256, false)
+            && DomainFactValueSyntax.IsText(journal.publicationFingerprint, 256, false);
+        if (journal.phase == (int)PhysicalItemRelocationJournalPhase.DomainCommitted
+            ? !string.IsNullOrEmpty(journal.publicationId) || !string.IsNullOrEmpty(journal.publicationFingerprint)
+            : !hasProof)
+            throw new InvalidOperationException("physical-relocation-journal-delivery-proof-invalid");
     }
 
-    private static PhysicalItemRelocationSaveData CreateJournal(
-        in PreparedPhysicalItemRelocationPreview preview,
-        WorldItemStackState destinationState,
-        string destinationId,
-        string requestFingerprint,
-        in GameplayResultKey resultKey)
+    private static PhysicalItemRelocationSaveData CreateJournal(PhysicalItemRelocatedFact fact,
+        WorldItemStackState destinationState, string destinationId, string requestFingerprint, string publicationKey)
     {
-        PhysicalItemRelocationReceipt exact = preview.Receipt;
+        var preview = fact.Preview;
+        var exact = preview.Receipt;
         return new PhysicalItemRelocationSaveData
         {
-            operationId = exact.OperationId,
-            reasonCode = exact.ReasonCode,
-            requestFingerprint = requestFingerprint,
+            operationId = exact.OperationId, reasonCode = exact.ReasonCode, requestFingerprint = requestFingerprint,
             phase = (int)PhysicalItemRelocationJournalPhase.DomainCommitted,
-            sourceStackId = exact.SourceStackId,
-            destinationStackId = exact.DestinationStackId,
-            itemDefinitionId = exact.ItemId,
-            itemInstanceId = preview.ItemInstanceId,
-            quantity = exact.Quantity,
-            massGrams = exact.MassGrams,
-            sourceX = exact.SourcePosition.x,
-            sourceY = exact.SourcePosition.y,
-            destinationX = exact.DestinationPosition.x,
-            destinationY = exact.DestinationPosition.y,
-            destinationState = (int)destinationState,
-            destinationId = destinationId,
-            outcomeOwnerRevision = preview.OwnerRevision,
-            displayText = preview.DisplayName.DisplayText,
-            displaySnapshotRevision =
-                preview.DisplayName.DisplaySnapshotRevision,
-            pronunciationMode =
-                (int)preview.DisplayName.PronunciationHint.Mode,
-            pronunciationValue =
-                preview.DisplayName.PronunciationHint.Value,
-            explicitFinalConsonant = (int)preview.DisplayName
-                .PronunciationHint.ExplicitFinalConsonant,
-            pronunciationRevision =
-                preview.DisplayName.PronunciationHint.Revision,
-            locale = preview.DisplayName.Locale,
-            expectedOutcomeProducerId = resultKey.ProducerId,
-            expectedOutcomeOperationId = resultKey.OperationId.Value,
-            expectedOutcomeCommitRevision = resultKey.CommitRevision,
-            expectedOutcomeLocalResultIndex = resultKey.LocalResultIndex
+            sourceStackId = exact.SourceStackId, destinationStackId = exact.DestinationStackId,
+            itemDefinitionId = exact.ItemId, itemInstanceId = preview.ItemInstanceId,
+            quantity = exact.Quantity, massGrams = exact.MassGrams,
+            sourceX = exact.SourcePosition.x, sourceY = exact.SourcePosition.y,
+            destinationX = exact.DestinationPosition.x, destinationY = exact.DestinationPosition.y,
+            destinationState = (int)destinationState, destinationId = destinationId,
+            ownerRevision = preview.OwnerRevision, absoluteDay = fact.AbsoluteDay,
+            displayText = preview.DisplayName, publicationKey = publicationKey
         };
-    }
-
-    private static PhysicalItemRelocationReceipt RestoreReceipt(
-        PhysicalItemRelocationSaveData journal) => new(
-        journal.operationId,
-        journal.reasonCode,
-        journal.sourceStackId,
-        journal.destinationStackId,
-        journal.itemDefinitionId,
-        journal.quantity,
-        journal.massGrams,
-        new Vector2Int(journal.sourceX, journal.sourceY),
-        new Vector2Int(journal.destinationX, journal.destinationY));
-
-    private static GameplayResultKey RestoreExpectedResultKey(
-        PhysicalItemRelocationSaveData journal) => new(
-        journal.expectedOutcomeProducerId,
-        new GameplayOperationId(journal.expectedOutcomeOperationId),
-        journal.expectedOutcomeCommitRevision,
-        journal.expectedOutcomeLocalResultIndex);
-
-    private static string CreateRequestFingerprint(
-        string sourceStackId,
-        int quantity,
-        Vector2Int destinationPosition,
-        WorldItemStackState destinationState,
-        string destinationId,
-        string operationId,
-        string reasonCode)
-    {
-        StringBuilder canonical = new();
-        Append(canonical, operationId);
-        Append(canonical, reasonCode);
-        Append(canonical, sourceStackId);
-        Append(canonical, quantity.ToString(CultureInfo.InvariantCulture));
-        Append(canonical, destinationPosition.x.ToString(
-            CultureInfo.InvariantCulture));
-        Append(canonical, destinationPosition.y.ToString(
-            CultureInfo.InvariantCulture));
-        Append(canonical, ((int)destinationState).ToString(
-            CultureInfo.InvariantCulture));
-        Append(canonical, destinationId);
-        using SHA256 sha = SHA256.Create();
-        return BitConverter.ToString(
-                sha.ComputeHash(Encoding.UTF8.GetBytes(
-                    canonical.ToString())))
-            .Replace("-", string.Empty)
-            .ToLowerInvariant();
-    }
-
-    private static void Append(StringBuilder builder, string value)
-    {
-        string safe = value ?? string.Empty;
-        builder.Append(safe.Length)
-            .Append(':')
-            .Append(safe)
-            .Append('|');
     }
 
     private static bool IsRecoverable(Exception exception) =>

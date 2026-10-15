@@ -19,6 +19,9 @@ namespace DungeonStory.Environment
         public float[] DuctExchange { get; set; } = Array.Empty<float>();
         public bool[] Exterior { get; set; } = Array.Empty<bool>();
         public Dictionary<BuildingInstanceId, float> TargetOverrides { get; } = new();
+        public Dictionary<BuildingInstanceId, EnvironmentalControlOutcomeSaveData>
+            ControlOutcomes { get; } = new();
+        public int NextControlOutcomeSequence { get; set; }
         public int CachedStructuralVersion { get; set; } = -1;
         public int CachedBuildingVersion { get; set; } = -1;
         public float Accumulator { get; set; }

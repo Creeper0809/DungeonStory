@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using DungeonStory.Foundation.Facts;
 
 [Serializable]
 public sealed class DefenseFacilityGrowthData
@@ -134,6 +135,41 @@ public class DefenseActivationReport
     {
         return new DefenseActivationSnapshot(this);
     }
+
+    internal DefenseActivationEffectState CaptureEffectState() => new(
+        TotalDamage,
+        MovementDelaySeconds,
+        EnvironmentalIgnitionIntensity,
+        effectTags.ToArray());
+
+    internal void RestoreEffectState(in DefenseActivationEffectState state)
+    {
+        TotalDamage = state.TotalDamage;
+        MovementDelaySeconds = state.MovementDelaySeconds;
+        EnvironmentalIgnitionIntensity = state.EnvironmentalIgnitionIntensity;
+        effectTags.Clear();
+        effectTags.AddRange(state.EffectTags ?? Array.Empty<string>());
+    }
+}
+
+internal readonly struct DefenseActivationEffectState
+{
+    public DefenseActivationEffectState(
+        float totalDamage,
+        float movementDelaySeconds,
+        float environmentalIgnitionIntensity,
+        string[] effectTags)
+    {
+        TotalDamage = totalDamage;
+        MovementDelaySeconds = movementDelaySeconds;
+        EnvironmentalIgnitionIntensity = environmentalIgnitionIntensity;
+        EffectTags = effectTags ?? Array.Empty<string>();
+    }
+
+    public float TotalDamage { get; }
+    public float MovementDelaySeconds { get; }
+    public float EnvironmentalIgnitionIntensity { get; }
+    public string[] EffectTags { get; }
 }
 
 public sealed class DefenseActivationSnapshot
@@ -208,7 +244,9 @@ public class DefenseFacility : Facility
     private DungeonStory.Foundation.IGameEventBus gameEventBus;
     private IWorldThreatModifierQuery worldThreatModifiers;
     private IDefenseFacilityRuntime defenseRuntime;
-    private IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private DefenseActivationPublicationRuntime activationPublications;
+    private IGameCalendar calendar;
+    private ICharacterBodyHealthMutationTransaction bodyHealthMutation;
 
     [VContainer.Inject]
     public void ConstructDefenseFacilityEventBus(
@@ -223,11 +261,16 @@ public class DefenseFacility : Facility
     }
 
     [VContainer.Inject]
-    public void ConstructDefenseFacilityOutcomeTransactions(
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+    public void ConstructDefenseActivation(
+        DefenseActivationPublicationRuntime activationPublications,
+        IGameCalendar calendar,
+        ICharacterBodyHealthMutationTransaction bodyHealthMutation)
     {
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.activationPublications = activationPublications
+            ?? throw new ArgumentNullException(nameof(activationPublications));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.bodyHealthMutation = bodyHealthMutation
+            ?? throw new ArgumentNullException(nameof(bodyHealthMutation));
     }
 
     public DefenseFacilityData Defense => BuildingData != null ? BuildingData.Defense : null;
@@ -299,158 +342,120 @@ public class DefenseFacility : Facility
             return null;
         }
 
-        if (defenseRuntime == null || outcomeTransactions == null)
+        if (!CharacterPersistentIdentity.TryGet(
+                intruder,
+                out CharacterId intruderId))
         {
             Debug.LogError(
-                "defense-facility-trigger-outcome-transaction-unavailable");
+                "defense-facility-effect-target-identity-unavailable");
+            return null;
+        }
+        string targetId = intruderId.Value;
+
+        if (defenseRuntime == null || activationPublications == null
+            || calendar == null || bodyHealthMutation == null)
+        {
+            Debug.LogError("defense-facility-activation-dependency-unavailable");
             return null;
         }
 
         BuildingInstanceId facilityId = RequirePersistentInstanceId();
-        int absoluteDay = Mathf.Max(
-            0,
-            Mathf.FloorToInt(GameTime / GameCalendarRules.SecondsPerDay));
-        var prepared = new PreparedMigratedProducerOutcome[2];
-        if (!outcomeTransactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.DefenseFacilityTriggeredEvent,
-                facilityId.Value,
-                absoluteDay,
-                GameplayOutcomeStatus.Succeeded,
-                out prepared[0],
-                out string triggerReserveFailure))
-        {
-            Debug.LogError(
-                "defense-facility-trigger-outcome-reservation-failed:"
-                + triggerReserveFailure);
-            return null;
-        }
-        if (!outcomeTransactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.DefenseFacilityStateChangedEvent,
-                facilityId.Value,
-                absoluteDay,
-                GameplayOutcomeStatus.Succeeded,
-                out prepared[1],
-                out string stateReserveFailure))
-        {
-            outcomeTransactions.Cancel(prepared[0]);
-            Debug.LogError(
-                "defense-facility-state-outcome-reservation-failed:"
-                + stateReserveFailure);
-            return null;
-        }
-
         DefenseFacilityState rollback = defenseRuntime.CaptureActivationState(this);
         float previousNextTriggerTime = nextTriggerTime;
-
-        DefenseActivationAuthorization operational =
-            DefenseActivationAuthorization.Granted;
-        if (defenseRuntime != null
-            && !defenseRuntime.TryBeginActivation(
-                this,
-                intruder,
-                timing,
-                out operational,
-                out _))
+        var activation = new DefenseActivationFactData
         {
-            outcomeTransactions.Cancel(prepared[0]);
-            outcomeTransactions.Cancel(prepared[1]);
+            facilityId = facilityId.Value,
+            facilityName = string.IsNullOrWhiteSpace(name) ? facilityId.Value : name,
+            targetId = targetId,
+            targetName = string.IsNullOrWhiteSpace(intruder.name) ? targetId : intruder.name,
+            absoluteDay = calendar.Day,
+            activationCount = checked(rollback.activationCount + 1),
+            timing = timing,
+            concept = Defense.concept,
+            supplyBefore = rollback.supply,
+            supplyAfter = rollback.supply,
+            conditionBefore = rollback.condition,
+            conditionAfter = rollback.condition,
+            afterState = rollback.operationalState,
+            blockedReason = rollback.blockedReason ?? string.Empty
+        };
+        if (!activationPublications.TryBegin(new DefenseActivationFact(activation, isProposal: true),
+                out var publication, out string reserveFailure))
+        {
+            Debug.LogError("defense-facility-activation-reservation-failed:" + reserveFailure);
             return null;
         }
 
-        int activationCount = defenseRuntime?.GetSnapshot(this).ActivationCount ?? 0;
-        DefenseActivationReport report = new DefenseActivationReport(
-            this,
-            intruder,
-            timing,
-            activationCount);
-        nextTriggerTime = GameTime + Mathf.Max(0f, Defense.cooldownSeconds);
-        if (operational.Jammed)
+        DefenseActivationReport report;
+        using (publication)
         {
-            report.AddEffectTag("걸림");
-        }
-        if (operational.Misfired)
-        {
-            report.AddEffectTag("오작동");
-        }
-        defenseRuntime.CompleteActivation(this, operational);
-        DefenseFacilitySnapshot committedState = defenseRuntime.GetSnapshot(this);
-        var subjects = new[]
-        {
-            new MigratedProducerOutcomeSubject(
-                MigratedProducerOutcomeIds.FacilityKind,
-                facilityId.Value,
-                name,
-                MigratedProducerOutcomeIds.FacilityRole),
-            new MigratedProducerOutcomeSubject(
-                MigratedProducerOutcomeIds.FacilityKind,
-                facilityId.Value,
-                name,
-                MigratedProducerOutcomeIds.FacilityRole)
-        };
-        string targetId = CharacterPersistentIdentity.TryGet(
-            intruder,
-            out CharacterId intruderId)
-                ? intruderId.Value
-                : string.Empty;
-        string[] summaries =
-        {
-            "facility=" + facilityId.Value
-            + ";target=" + targetId
-            + ";timing=" + timing
-            + ";concept=" + Defense.concept
-            + ";jammed=" + operational.Jammed
-            + ";misfired=" + operational.Misfired,
-            "state=" + committedState.OperationalState
-            + ";condition=" + committedState.Condition.ToString(
-                "0.###",
-                System.Globalization.CultureInfo.InvariantCulture)
-            + ";supply=" + committedState.Supply
-            + ";activationCount=" + committedState.ActivationCount
-            + ";blocked=" + committedState.BlockedReason
-        };
-        var commitResults = new MigratedProducerOutcomeCommitResult[2];
-        if (!outcomeTransactions.CommitSingleSubjectBatch(
-                prepared,
-                subjects,
-                summaries,
-                commitResults,
-                out string commitFailure)
-            || commitResults.Any(value => !value.DurablyCommitted))
-        {
-            outcomeTransactions.Cancel(prepared[0]);
-            outcomeTransactions.Cancel(prepared[1]);
-            defenseRuntime.RestoreActivationState(this, rollback);
-            nextTriggerTime = previousNextTriggerTime;
-            Debug.LogError(
-                "defense-facility-trigger-outcome-commit-failed:"
-                + commitFailure);
-            return null;
-        }
+            publication.SetActivationRollback(() =>
+            {
+                defenseRuntime.RestoreActivationState(this, rollback);
+                nextTriggerTime = previousNextTriggerTime;
+            });
+            if (!defenseRuntime.TryBeginActivation(this, intruder, timing,
+                    out DefenseActivationAuthorization operational, out _))
+                return null;
 
-        DefenseEffectResolver.ApplyEffects(
-            this,
-            intruder,
-            report,
-            statusRuntimeService,
-            (worldThreatModifiers?.GetMultiplier(
-                OffenseThreatModifierKind.AutomatedDefense) ?? 1f)
-                * Mathf.Max(0f, paidPerformanceMultiplier)
-                * operational.EffectMultiplier);
+            report = new DefenseActivationReport(this, intruder, timing, activation.activationCount);
+            nextTriggerTime = GameTime + Mathf.Max(0f, Defense.cooldownSeconds);
+            if (operational.Jammed) report.AddEffectTag("걸림");
+            if (operational.Misfired) report.AddEffectTag("오작동");
+            defenseRuntime.CompleteActivation(this, operational);
+            DefenseFacilitySnapshot committedState = defenseRuntime.GetSnapshot(this);
+            if (committedState.ActivationCount != activation.activationCount)
+                throw new InvalidOperationException("defense-activation-owner-count-conflict");
+            activation.supplyAfter = committedState.Supply;
+            activation.conditionAfter = committedState.Condition;
+            activation.afterState = committedState.OperationalState;
+            activation.blockedReason = committedState.BlockedReason.ToString();
+            activation.jammed = operational.Jammed;
+            activation.misfired = operational.Misfired;
+            DomainFactDelivery activationDelivery = publication.PublishActivation(new DefenseActivationFact(activation));
+            if (!activationDelivery.MayBeCommitted)
+            {
+                Debug.LogError("defense-facility-activation-rejected:" + activationDelivery.Detail);
+                return null;
+            }
+
+            try
+            {
+                DefenseEffectApplicationResult application = DefenseEffectResolver.ApplyEffectsTransactional(
+                    this, intruder, report, statusRuntimeService, bodyHealthMutation,
+                    (worldThreatModifiers?.GetMultiplier(OffenseThreatModifierKind.AutomatedDefense) ?? 1f)
+                        * Mathf.Max(0f, paidPerformanceMultiplier) * operational.EffectMultiplier,
+                    operational.Jammed, operational.Misfired);
+                publication.SetEffectActions(application.Rollback, application.Complete);
+                var effect = new DefenseEffectFact(new DefenseEffectFactData
+                {
+                    activation = activation,
+                    result = application.Status,
+                    damage = application.Damage,
+                    healthBefore = application.HealthBefore,
+                    healthAfter = application.HealthAfter,
+                    statusesBefore = SnapshotStatuses(application.StatusesBefore),
+                    statusesAfter = SnapshotStatuses(application.StatusesAfter),
+                    movementDelaySeconds = report.MovementDelaySeconds,
+                    ignitionIntensity = report.EnvironmentalIgnitionIntensity,
+                    effectTags = report.EffectTags.ToArray(),
+                    failure = application.FailureSummary
+                });
+                DomainFactDelivery effectDelivery = publication.PublishEffect(effect);
+                if (!effectDelivery.MayBeCommitted)
+                    Debug.LogError("defense-facility-effect-observation-rejected:" + effectDelivery.Detail);
+            }
+            catch (Exception exception) when (
+                exception is not OutOfMemoryException && exception is not StackOverflowException
+                && exception is not AccessViolationException)
+            {
+                publication.RecordEffectFailure("defense-effect-transaction:" + exception.GetType().Name + ":" + exception.Message);
+                Debug.LogError("defense-facility-effect-transaction-failed:" + exception.GetType().Name + ":" + exception.Message);
+            }
+        }
         PublishPostCommitObserver(
             () => defenseRuntime.PublishCommittedState(this),
             "defense-facility-state-observer");
-        PublishPostCommitObserver(
-            () => intruder.AddActivity(CharacterActivityEvent.Facility(
-                CharacterActivityKinds.Combat,
-                CharacterActivityOutcomes.Damaged,
-                report.FormatSummary(),
-                this,
-                actionId: $"defense:{Defense.concept}",
-                reasonCode: timing.ToString(),
-                value: report.TotalDamage,
-                quantity: report.EffectTags.Count,
-                bubbleEligible: true)),
-            "defense-facility-activity-observer");
         PublishPostCommitObserver(
             () => (gameEventBus
                 ?? throw new InvalidOperationException(
@@ -460,6 +465,10 @@ public class DefenseFacility : Facility
             "defense-facility-triggered-event-observer");
         return report;
     }
+
+    private static DefenseEffectStatusFactData[] SnapshotStatuses(IReadOnlyList<DefenseStatusSnapshot> statuses) =>
+        statuses.Select(value => new DefenseEffectStatusFactData
+        { kind = value.Kind, value = value.Value, remainingSeconds = value.RemainingSeconds, stacks = value.Stacks }).ToArray();
 
     private static void PublishPostCommitObserver(Action observer, string context)
     {
@@ -565,6 +574,134 @@ public static class DefenseFacilityResolver
 
 public static class DefenseEffectResolver
 {
+    public static DefenseEffectApplicationResult ApplyEffectsTransactional(
+        DefenseFacility facility,
+        CharacterActor target,
+        DefenseActivationReport report,
+        IDefenseStatusRuntimeService statusRuntimeService,
+        ICharacterBodyHealthMutationTransaction bodyHealthMutation,
+        float effectMultiplier,
+        bool jammed,
+        bool misfired)
+    {
+        if (facility == null
+            || target == null
+            || report == null
+            || facility.Defense == null)
+        {
+            throw new ArgumentException(
+                "Transactional defense effects require facility, target and report.");
+        }
+        if (statusRuntimeService == null)
+            throw new ArgumentNullException(nameof(statusRuntimeService));
+        if (bodyHealthMutation == null)
+            throw new ArgumentNullException(nameof(bodyHealthMutation));
+
+        DefenseStatusRuntime statusRuntime = statusRuntimeService.GetOrAdd(target)
+            ?? throw new InvalidOperationException(
+                $"{nameof(IDefenseStatusRuntimeService)} could not provide "
+                + $"{nameof(DefenseStatusRuntime)}.");
+        CharacterBodyHealthMutationSnapshot bodyBefore =
+            bodyHealthMutation.CaptureCombatMutation(target);
+        DefenseStatusSnapshot[] statusesBefore = statusRuntime.CaptureMutation();
+        DefenseActivationEffectState reportBefore = report.CaptureEffectState();
+        var damageReceipts =
+            new List<CharacterPreparedAggregateDamageReceipt>();
+        var failures = new List<string>();
+        int successfulEffects = 0;
+        int attemptedEffects = 0;
+        float multiplier = Mathf.Clamp(effectMultiplier, 0f, 2f);
+
+        if (jammed)
+        {
+            failures.Add("mechanical-jam");
+        }
+        else if (multiplier <= 0f)
+        {
+            failures.Add("effect-multiplier-zero");
+        }
+        else
+        {
+            DefenseFacilityData defense = facility.Defense;
+            var context = new DefenseEffectContext(
+                target,
+                statusRuntime,
+                report,
+                defense,
+                multiplier,
+                bodyHealthMutation,
+                damageReceipts);
+            foreach (DefenseEffectSO effectAsset in
+                     defense.effectAssets ?? Array.Empty<DefenseEffectSO>())
+            {
+                if (effectAsset == null)
+                    continue;
+                attemptedEffects++;
+                CharacterBodyHealthMutationSnapshot effectBodyBefore =
+                    bodyHealthMutation.CaptureCombatMutation(target);
+                DefenseStatusSnapshot[] effectStatusesBefore =
+                    statusRuntime.CaptureMutation();
+                DefenseActivationEffectState effectReportBefore =
+                    report.CaptureEffectState();
+                int receiptCountBefore = damageReceipts.Count;
+                try
+                {
+                    effectAsset.Apply(context);
+                    successfulEffects++;
+                }
+                catch (Exception exception) when (
+                    exception is not OutOfMemoryException
+                    && exception is not StackOverflowException
+                    && exception is not AccessViolationException)
+                {
+                    bodyHealthMutation.RestoreCombatMutation(
+                        target,
+                        effectBodyBefore,
+                        "defense-effect-asset-rollback");
+                    statusRuntime.RestoreMutation(effectStatusesBefore);
+                    report.RestoreEffectState(effectReportBefore);
+                    if (damageReceipts.Count > receiptCountBefore)
+                    {
+                        damageReceipts.RemoveRange(
+                            receiptCountBefore,
+                            damageReceipts.Count - receiptCountBefore);
+                    }
+                    failures.Add(
+                        "effect:" + effectAsset.EffectId + ":"
+                        + exception.GetType().Name);
+                }
+            }
+            if (attemptedEffects == 0)
+                failures.Add("no-effect-assets");
+        }
+
+        CharacterBodyHealthMutationSnapshot bodyAfter =
+            bodyHealthMutation.CaptureCombatMutation(target);
+        DefenseStatusSnapshot[] statusesAfter = statusRuntime.CaptureMutation();
+        DefenseEffectResultKind status = successfulEffects == 0
+            ? DefenseEffectResultKind.Failed
+            : failures.Count > 0 || misfired
+                ? DefenseEffectResultKind.Partial
+                : DefenseEffectResultKind.Succeeded;
+        string failureSummary = failures.Count == 0
+            ? misfired ? "partial-misfire" : "none"
+            : string.Join("|", failures);
+        return new DefenseEffectApplicationResult(
+            target,
+            bodyHealthMutation,
+            statusRuntime,
+            report,
+            bodyBefore,
+            bodyAfter,
+            statusesBefore,
+            statusesAfter,
+            reportBefore,
+            damageReceipts,
+            status,
+            failureSummary);
+    }
+
+
     public static void ApplyEffects(
         DefenseFacility facility,
         CharacterActor target,
@@ -630,6 +767,25 @@ public class DefenseStatusRuntime : MonoBehaviour
             status.remainingSeconds,
             status.stacks))
         .ToArray();
+
+    internal DefenseStatusSnapshot[] CaptureMutation() =>
+        ActiveStatuses.ToArray();
+
+    internal void RestoreMutation(
+        IReadOnlyList<DefenseStatusSnapshot> snapshot)
+    {
+        statuses.Clear();
+        foreach (DefenseStatusSnapshot value in
+                 snapshot ?? Array.Empty<DefenseStatusSnapshot>())
+        {
+            statuses.Add(new DefenseRuntimeStatus(value.Kind)
+            {
+                value = value.Value,
+                remainingSeconds = value.RemainingSeconds,
+                stacks = value.Stacks
+            });
+        }
+    }
 
     public int ApplyStatus(DefenseStatusKind kind, float value, float duration, int stacks)
     {
@@ -700,5 +856,83 @@ public class DefenseStatusRuntime : MonoBehaviour
         public float value;
         public float remainingSeconds;
         public int stacks;
+    }
+}
+
+public sealed class DefenseEffectApplicationResult
+{
+    private readonly CharacterActor target;
+    private readonly ICharacterBodyHealthMutationTransaction bodyHealthMutation;
+    private readonly DefenseStatusRuntime statusRuntime;
+    private readonly DefenseActivationReport report;
+    private readonly CharacterBodyHealthMutationSnapshot bodyBefore;
+    private readonly DefenseActivationEffectState reportBefore;
+    private readonly IReadOnlyList<CharacterPreparedAggregateDamageReceipt>
+        damageReceipts;
+    private bool closed;
+    private int completedReceiptCount;
+
+    internal DefenseEffectApplicationResult(
+        CharacterActor target,
+        ICharacterBodyHealthMutationTransaction bodyHealthMutation,
+        DefenseStatusRuntime statusRuntime,
+        DefenseActivationReport report,
+        in CharacterBodyHealthMutationSnapshot bodyBefore,
+        in CharacterBodyHealthMutationSnapshot bodyAfter,
+        DefenseStatusSnapshot[] statusesBefore,
+        DefenseStatusSnapshot[] statusesAfter,
+        in DefenseActivationEffectState reportBefore,
+        IReadOnlyList<CharacterPreparedAggregateDamageReceipt> damageReceipts,
+        DefenseEffectResultKind status,
+        string failureSummary)
+    {
+        this.target = target;
+        this.bodyHealthMutation = bodyHealthMutation;
+        this.statusRuntime = statusRuntime;
+        this.report = report;
+        this.bodyBefore = bodyBefore;
+        this.reportBefore = reportBefore;
+        this.damageReceipts = damageReceipts
+            ?? Array.Empty<CharacterPreparedAggregateDamageReceipt>();
+        Status = status;
+        FailureSummary = failureSummary ?? "none";
+        StatusesBefore = statusesBefore ?? Array.Empty<DefenseStatusSnapshot>();
+        StatusesAfter = statusesAfter ?? Array.Empty<DefenseStatusSnapshot>();
+        HealthBefore = bodyBefore.State.currentHealth;
+        HealthAfter = bodyAfter.State.currentHealth;
+        Damage = Mathf.Max(0f, HealthBefore - HealthAfter);
+    }
+
+    public DefenseEffectResultKind Status { get; }
+    public string FailureSummary { get; }
+    public IReadOnlyList<DefenseStatusSnapshot> StatusesBefore { get; }
+    public IReadOnlyList<DefenseStatusSnapshot> StatusesAfter { get; }
+    public float HealthBefore { get; }
+    public float HealthAfter { get; }
+    public float Damage { get; }
+
+    public void Rollback()
+    {
+        if (closed)
+            return;
+        bodyHealthMutation.RestoreCombatMutation(
+            target,
+            bodyBefore,
+            "defense-effect-outcome-rollback");
+        statusRuntime.RestoreMutation(StatusesBefore);
+        report.RestoreEffectState(reportBefore);
+        closed = true;
+    }
+
+    public void Complete()
+    {
+        if (closed)
+            return;
+        while (completedReceiptCount < damageReceipts.Count)
+        {
+            bodyHealthMutation.CompletePreparedAggregateDamage(target, damageReceipts[completedReceiptCount]);
+            completedReceiptCount++;
+        }
+        closed = true;
     }
 }

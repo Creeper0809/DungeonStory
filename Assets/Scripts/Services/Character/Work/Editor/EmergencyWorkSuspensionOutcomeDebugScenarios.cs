@@ -1,7 +1,10 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using DungeonStory.Infrastructure;
 using DungeonStory.Narrative.Korean;
 using UnityEditor;
 using UnityEngine;
@@ -30,6 +33,20 @@ public static class EmergencyWorkSuspensionOutcomeDebugScenarios
         if (logSuccess)
             Debug.Log("Emergency work suspension outcome scenarios passed.");
         return true;
+    }
+
+    public static void VerifyObserverFocused()
+    {
+        if (!RunAll(logSuccess: false))
+        {
+            throw new InvalidOperationException(
+                "Emergency work suspension observer core scenarios failed.");
+        }
+        if (!VerifyCommittedUnknownRecoveryAndFrozenFact())
+        {
+            throw new InvalidOperationException(
+                "Emergency work suspension pending observation recovery failed.");
+        }
     }
 
     private static void Run(
@@ -89,6 +106,16 @@ public static class EmergencyWorkSuspensionOutcomeDebugScenarios
             return false;
         }
         GameplayOutcomeSnapshot snapshot = global.Items[0].Exact;
+        GameplayOutcomeParticipantSnapshot workerParticipant =
+            snapshot.participants.Single(value => string.Equals(
+                value.entityId,
+                exact.CharacterId,
+                StringComparison.Ordinal));
+        GameplayOutcomeParticipantSnapshot facilityParticipant =
+            snapshot.participants.Single(value => string.Equals(
+                value.entityId,
+                exact.TargetBuildingId,
+                StringComparison.Ordinal));
         GameplayOutcomeId outcomeId = new(
             new GameplayOutcomeRunId(snapshot.runId),
             snapshot.sequence);
@@ -126,26 +153,25 @@ public static class EmergencyWorkSuspensionOutcomeDebugScenarios
             && restoredRow.OutcomeOwnerRevision == 1L;
 
         saved.suspendedWork[0].outcomeOwnerRevision = 0L;
-        SettlementAlertRuntime legacy = world.CreateRuntime();
-        legacy.RestoreAlertSaveData(saved);
-        bool legacyPreserved = legacy.TryGetSuspendedWork(
-                exact.CharacterId,
-                out SettlementSuspendedWorkSnapshot legacyRow)
-            && legacyRow.OutcomeOwnerRevision == 0L;
-        saved.suspendedWork[0].outcomeOwnerRevision = -1L;
         IReadOnlyList<string> validationErrors =
             DungeonStory.Operation.EventAlertPayloadValidation.Validate(
                 new DungeonStory.Infrastructure.DungeonEventAlertSaveData
                 {
                     threatAlert = saved
                 });
-        bool negativeRejected = validationErrors.Count > 0;
+        bool legacyRejected = validationErrors.Count > 0;
 
         bool valid = projected
             && snapshot.sequence == workerPage.Items[0].Exact.sequence
             && snapshot.sequence == facilityPage.Items[0].Exact.sequence
             && snapshot.ownerRevision == 1L
             && snapshot.commitRevision == 1L
+            && workerParticipant.displayText == exact.WorkerDisplayName
+            && workerParticipant.displayRevision
+                == "runtime-character-current-v1:" + exact.CharacterId
+            && facilityParticipant.displayText == exact.TargetDisplayName
+            && facilityParticipant.displayRevision
+                == "runtime-facility-current-v1:" + exact.TargetBuildingId
             && string.Equals(
                 snapshot.outcomeTypeId,
                 EmergencyWorkSuspensionOutcomeIds.SuspensionRecorded.Value,
@@ -157,8 +183,8 @@ public static class EmergencyWorkSuspensionOutcomeDebugScenarios
                 OutcomeCursor.FirstPage(10),
                 OutcomeFilter.All).Items.Count == 1
             && roundTrip
-            && legacyPreserved
-            && negativeRejected;
+            && legacyRejected
+            && EventAlertSaveSection.CurrentVersion == 6;
         if (!valid)
         {
             Debug.LogError(
@@ -169,7 +195,7 @@ public static class EmergencyWorkSuspensionOutcomeDebugScenarios
                 + $"commit={snapshot.commitRevision}; replay={replay.Success}/"
                 + $"{replay.Code}; conflict={conflict.Success}/{conflict.Code}; "
                 + $"current={current.InlineCompletedWork}; roundTrip={roundTrip}; "
-                + $"legacy={legacyPreserved}; negativeRejected={negativeRejected}");
+                + $"legacyRejected={legacyRejected}");
         }
         return valid;
     }
@@ -217,12 +243,149 @@ public static class EmergencyWorkSuspensionOutcomeDebugScenarios
         return valid;
     }
 
+    private static bool VerifyCommittedUnknownRecoveryAndFrozenFact()
+    {
+        using Fixture world = new(
+            loseReplyAfterCommit: true,
+            initialLevel: SettlementThreatAlertLevel.Amber);
+        SettlementSuspendedWorkSnapshot original = world.CreateSnapshot(
+            2f,
+            10f,
+            workerDisplayName: "동결 작업자",
+            targetDisplayName: "동결 작업장");
+        EmergencyAccountingResult uncertain =
+            world.Runtime.RecordSuspendedWork(original);
+        SettlementThreatAlertSaveData firstSave =
+            world.Runtime.CaptureAlertSaveData();
+        EmergencyWorkSuspensionObservationSaveData firstObservation =
+            firstSave.suspensionObservations.Single();
+        bool retained = uncertain.Success
+            && uncertain.Code.StartsWith(
+                "suspended-work-recorded-observation-pending",
+                StringComparison.Ordinal)
+            && firstObservation.pending
+            && firstObservation.fact.workerDisplayName == "동결 작업자"
+            && firstObservation.fact.targetDisplayName == "동결 작업장"
+            && world.Ledger.GetGlobal(
+                OutcomeCursor.FirstPage(10),
+                OutcomeFilter.All).Items.Count == 1;
+        if (!retained)
+            return false;
+
+        SettlementSuspendedWorkSnapshot renamed = world.CreateSnapshot(
+            2f,
+            10f,
+            workerDisplayName: "나중 작업자 이름",
+            targetDisplayName: "나중 작업장 이름");
+        EmergencyAccountingResult replayWhilePending =
+            world.Runtime.RecordSuspendedWork(renamed);
+        if (!replayWhilePending.Success
+            || !replayWhilePending.Code.StartsWith(
+                "suspended-work-recorded-observation-pending",
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        long frozenEpoch = original.AlertEpochId;
+        EmergencyAccountingResult escalation = world.Runtime.PublishIncidentSignal(
+            new SettlementIncidentSignal(
+                "incident:emergency-suspension-test:red-escalation",
+                SettlementThreatAlertLevel.Red,
+                1L,
+                "test",
+                "escalate while the suspension observation is pending"));
+        if (!escalation.Success
+            || world.Runtime.Capture().AlertEpochId <= frozenEpoch
+            || !world.Runtime.TryGetSuspendedWork(
+                original.CharacterId,
+                out SettlementSuspendedWorkSnapshot rebound)
+            || rebound.AlertEpochId == frozenEpoch)
+        {
+            return false;
+        }
+
+        string json = JsonUtility.ToJson(world.Runtime.CaptureAlertSaveData());
+        SettlementThreatAlertSaveData saved =
+            JsonUtility.FromJson<SettlementThreatAlertSaveData>(json);
+        EmergencyWorkSuspensionObservationSaveData frozen =
+            saved.suspensionObservations.Single();
+        if (!frozen.pending
+            || frozen.fact.alertEpochId != frozenEpoch
+            || frozen.fact.workerDisplayName != "동결 작업자"
+            || frozen.fact.targetDisplayName != "동결 작업장")
+        {
+            return false;
+        }
+
+        SettlementThreatAlertSaveData missing = Clone(saved);
+        missing.suspensionObservations.Clear();
+        SettlementThreatAlertSaveData tampered = Clone(saved);
+        tampered.suspensionObservations[0].fact.inlineCompletedWork = 3f;
+        if (!RejectRestore(world, missing) || !RejectRestore(world, tampered))
+            return false;
+
+        SettlementAlertRuntime restored = world.CreateRuntime();
+        restored.RestoreAlertSaveData(saved);
+        restored.OnRestoreCompleted();
+        SettlementThreatAlertSaveData recovered = restored.CaptureAlertSaveData();
+        EmergencyWorkSuspensionObservationSaveData observed =
+            recovered.suspensionObservations.Single();
+        if (observed.pending
+            || observed.fact.alertEpochId != frozenEpoch
+            || observed.fact.workerDisplayName != "동결 작업자"
+            || observed.fact.targetDisplayName != "동결 작업장"
+            || !restored.TryGetSuspendedWork(
+                original.CharacterId,
+                out SettlementSuspendedWorkSnapshot restoredActive)
+            || restoredActive.AlertEpochId != rebound.AlertEpochId)
+        {
+            return false;
+        }
+
+        EmergencyAccountingResult exactReplay =
+            restored.RecordSuspendedWork(restoredActive);
+        return exactReplay.Success
+            && exactReplay.Code == "suspended-work-already-recorded"
+            && world.Ledger.GetGlobal(
+                OutcomeCursor.FirstPage(10),
+                OutcomeFilter.All).Items.Count == 1;
+    }
+
+    private static SettlementThreatAlertSaveData Clone(
+        SettlementThreatAlertSaveData source) =>
+        JsonUtility.FromJson<SettlementThreatAlertSaveData>(
+            JsonUtility.ToJson(source));
+
+    private static bool RejectRestore(
+        Fixture world,
+        SettlementThreatAlertSaveData source)
+    {
+        try
+        {
+            world.CreateRuntime().RestoreAlertSaveData(source);
+            return false;
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException)
+        {
+            return true;
+        }
+    }
+
     private sealed class Fixture : IDisposable
     {
         private const string WorkerId = "character:emergency-suspension-test";
         private const string FacilityId = "building:emergency-suspension-test";
 
-        public Fixture(bool rejectCommit = false, bool rejectDelivery = false)
+        private readonly IDisposable binding;
+
+        public Fixture(
+            bool rejectCommit = false,
+            bool rejectDelivery = false,
+            bool loseReplyAfterCommit = false,
+            SettlementThreatAlertLevel initialLevel =
+                SettlementThreatAlertLevel.Red)
         {
             Calendar = new FakeCalendar();
             Events = new GameEventBus();
@@ -247,18 +410,25 @@ public static class EmergencyWorkSuspensionOutcomeDebugScenarios
                 new GameplayOutcomeRunId("run:emergency-suspension-test"),
                 1L);
             Recorder = new GameplayOutcomeRecorder(Ledger, Registry, Events);
-            EmergencyWorkSuspensionGameplayOutcomeBridge bridge = new(
-                Recorder,
-                Ledger,
-                new FixedDisplayNames(WorkerId, FacilityId));
-            Committer = rejectCommit
-                ? new RejectingCommitter(bridge)
-                : bridge;
-            Runtime = CreateRuntime();
+            Facts = new DomainFactDispatcher();
+            binding = EmergencyWorkSuspensionFactMapping.CreateBinding(
+                    Registry,
+                    Ledger,
+                    Recorder,
+                    new GameplayDomainFactCommitGroup(Recorder, Ledger))
+                .Connect(Facts);
+            IDomainFactStagingPublisher staging = rejectCommit
+                ? new FaultingStagingPublisher(Facts, FaultMode.Reject)
+                : loseReplyAfterCommit
+                    ? new FaultingStagingPublisher(
+                        Facts,
+                        FaultMode.UncertainAfterCommit)
+                    : Facts;
+            Runtime = CreateRuntime(staging, Facts);
             EmergencyAccountingResult incident = Runtime.PublishIncidentSignal(
                 new SettlementIncidentSignal(
                     "incident:emergency-suspension-test",
-                    SettlementThreatAlertLevel.Red,
+                    initialLevel,
                     1L,
                     "test",
                     "test emergency"));
@@ -272,19 +442,27 @@ public static class EmergencyWorkSuspensionOutcomeDebugScenarios
         public GameplayOutcomeRegistry Registry { get; }
         public GameplayOutcomeLedger Ledger { get; }
         public GameplayOutcomeRecorder Recorder { get; }
-        public IEmergencyWorkSuspensionOutcomeCommitter Committer { get; }
+        public DomainFactDispatcher Facts { get; }
         public SettlementAlertRuntime Runtime { get; }
 
-        public SettlementAlertRuntime CreateRuntime() => new(
+        public SettlementAlertRuntime CreateRuntime() =>
+            CreateRuntime(Facts, Facts);
+
+        private SettlementAlertRuntime CreateRuntime(
+            IDomainFactStagingPublisher staging,
+            IDomainFactRecoveryPublisher recovery) => new(
             Calendar,
             Events,
             Accounting,
             Accounting,
-            Committer);
+            staging,
+            recovery);
 
         public SettlementSuspendedWorkSnapshot CreateSnapshot(
             float completed,
-            float required) => new(
+            float required,
+            string workerDisplayName = "민준",
+            string targetDisplayName = "대장간") => new(
             WorkerId,
             BuiltInWorkTypeIds.Construct,
             FacilityId,
@@ -293,49 +471,22 @@ public static class EmergencyWorkSuspensionOutcomeDebugScenarios
             progressExternallyPersisted: false,
             inlineCompletedWork: completed,
             inlineRequiredWork: required,
-            outcomeOwnerRevision: 1L);
+            outcomeOwnerRevision: 1L,
+            workerDisplayName: workerDisplayName,
+            targetDisplayName: targetDisplayName);
 
-        public void Dispose() => Accounting.Dispose();
+        public void Dispose()
+        {
+            binding.Dispose();
+            Facts.Dispose();
+            Accounting.Dispose();
+        }
     }
 
-    private sealed class FixedDisplayNames : IGameplayOutcomeDisplayNameQuery
+    private enum FaultMode
     {
-        private readonly string workerId;
-        private readonly string facilityId;
-
-        public FixedDisplayNames(string workerId, string facilityId)
-        {
-            this.workerId = workerId;
-            this.facilityId = facilityId;
-        }
-
-        public bool TryGetCurrentName(
-            GameplayEntityId entityId,
-            out KoreanNameSnapshot name)
-        {
-            if (entityId.Kind.Equals(EmergencyWorkSuspensionOutcomeIds.CharacterKind)
-                && string.Equals(entityId.Value, workerId, StringComparison.Ordinal))
-            {
-                name = Snapshot("민준", "worker-v1");
-                return true;
-            }
-            if (entityId.Kind.Equals(EmergencyWorkSuspensionOutcomeIds.FacilityKind)
-                && string.Equals(entityId.Value, facilityId, StringComparison.Ordinal))
-            {
-                name = Snapshot("대장간", "facility-v1");
-                return true;
-            }
-            name = default;
-            return false;
-        }
-
-        private static KoreanNameSnapshot Snapshot(string text, string revision) =>
-            new(
-                text,
-                revision,
-                KoreanPronunciationHint.AutoHangulDisplay(
-                    "emergency-suspension-pronunciation-v1:" + revision),
-                "ko-KR");
+        Reject = 0,
+        UncertainAfterCommit = 1
     }
 
     private sealed class FakeCalendar : IGameCalendar
@@ -363,39 +514,73 @@ public static class EmergencyWorkSuspensionOutcomeDebugScenarios
         }
     }
 
-    private sealed class RejectingCommitter :
-        IEmergencyWorkSuspensionOutcomeCommitter
+    private sealed class FaultingStagingPublisher :
+        IDomainFactStagingPublisher
     {
-        private readonly IEmergencyWorkSuspensionOutcomeCommitter inner;
+        private readonly IDomainFactStagingPublisher inner;
+        private readonly FaultMode mode;
+        private bool injected;
 
-        public RejectingCommitter(
-            IEmergencyWorkSuspensionOutcomeCommitter inner) =>
-            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
-
-        public bool TryPrepare(
-            in SettlementSuspendedWorkSnapshot snapshot,
-            int absoluteDay,
-            out PreparedEmergencyWorkSuspensionOutcome prepared,
-            out string failureReason) => inner.TryPrepare(
-            snapshot,
-            absoluteDay,
-            out prepared,
-            out failureReason);
-
-        public OwnerOutcomeCommitResult Commit(
-            in PreparedEmergencyWorkSuspensionOutcome prepared)
+        internal FaultingStagingPublisher(
+            IDomainFactStagingPublisher inner,
+            FaultMode mode)
         {
-            inner.Cancel(prepared);
-            return new OwnerOutcomeCommitResult(
-                OwnerOutcomeCommitPhase.Rejected,
-                prepared.ResultKey,
-                default,
-                string.Empty,
-                "injected-emergency-suspension-commit-rejection");
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            this.mode = mode;
         }
 
-        public void Cancel(in PreparedEmergencyWorkSuspensionOutcome prepared) =>
-            inner.Cancel(prepared);
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
+            out string failure)
+        {
+            if (!inner.TryStage(fact, out stage, out failure))
+                return false;
+            if (!injected)
+            {
+                injected = true;
+                stage = new FaultingStage(stage, mode);
+            }
+            return true;
+        }
+
+        private sealed class FaultingStage : IDomainFactStage
+        {
+            private readonly IDomainFactStage inner;
+            private readonly FaultMode mode;
+
+            internal FaultingStage(IDomainFactStage inner, FaultMode mode)
+            {
+                this.inner = inner
+                    ?? throw new ArgumentNullException(nameof(inner));
+                this.mode = mode;
+            }
+
+            public string OperationKey => inner.OperationKey;
+            public long OwnerRevision => inner.OwnerRevision;
+            public bool IsReplay => inner.IsReplay;
+            public bool IsActive => inner.IsActive;
+
+            public DomainFactDelivery Commit()
+            {
+                if (mode == FaultMode.UncertainAfterCommit)
+                {
+                    DomainFactDelivery committed = inner.Commit();
+                    if (!committed.Completed)
+                    {
+                        throw new InvalidOperationException(
+                            "Emergency suspension uncertainty requires a real commit.");
+                    }
+                    return DomainFactDelivery.Uncertain(
+                        "injected-emergency-suspension-reply-lost");
+                }
+                inner.Cancel();
+                return DomainFactDelivery.Reject(
+                    "injected-emergency-suspension-commit-rejection");
+            }
+
+            public void Cancel() => inner.Cancel();
+        }
     }
 
     private sealed class RejectingDeliveryDescriptor : IGameplayOutcomeDescriptor

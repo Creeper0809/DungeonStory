@@ -30,6 +30,7 @@ public sealed class MemoryErasureSealCommandService :
         public CharacterCarryInventory Carry;
         public string OperationId = string.Empty;
         public string TraitInstanceId = string.Empty;
+        public CharacterAcquiredTraitInstanceState TraitSnapshot;
         public MemoryErasureSealOrderStage Stage;
         public WorldItemReservedStackQuantity Reservation;
         public Vector2Int PickupStand;
@@ -50,7 +51,8 @@ public sealed class MemoryErasureSealCommandService :
     private readonly ICharacterAiWorldRegistry characters;
     private readonly IGameEventBus events;
     private readonly IGameClock clock;
-    private readonly IMemoryErasureOutcomeCommitter outcomeCommitter;
+    private readonly IGameCalendar calendar;
+    private readonly MemoryErasurePublicationRuntime publications;
     private readonly Dictionary<string, ActiveOrder> activeByCharacter =
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, MemoryErasureSealUseResult>
@@ -66,7 +68,8 @@ public sealed class MemoryErasureSealCommandService :
         ICharacterAiWorldRegistry characters,
         IGameEventBus events,
         IGameClock clock,
-        IMemoryErasureOutcomeCommitter outcomeCommitter)
+        MemoryErasurePublicationRuntime publications,
+        IGameCalendar calendar)
     {
         IWorldItemStackRuntime requiredItems = items
             ?? throw new ArgumentNullException(nameof(items));
@@ -84,8 +87,9 @@ public sealed class MemoryErasureSealCommandService :
             ?? throw new ArgumentNullException(nameof(characters));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
-        this.outcomeCommitter = outcomeCommitter
-            ?? throw new ArgumentNullException(nameof(outcomeCommitter));
+        this.publications = publications
+            ?? throw new ArgumentNullException(nameof(publications));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
     }
 
     public event Action<MemoryErasureSealOrderSnapshot> OrderChanged;
@@ -155,6 +159,9 @@ public sealed class MemoryErasureSealCommandService :
         }
 
         string operationId = BuildOperationId(targetId, traitId);
+        if (publications.IsBusy || publications.IsRestoring)
+            return CommandResult(MemoryErasureSealCommandStatus.CharacterUnavailable, targetId, traitId,
+                detail: "memory-erasure transaction or physical recovery is still active");
         CharacterAcquiredTraitAggregateState traits =
             target.Progression.CaptureAcquiredTraitState();
         if (!traits.TryGetInstance(
@@ -255,6 +262,7 @@ public sealed class MemoryErasureSealCommandService :
             Carry = carry,
             OperationId = operationId,
             TraitInstanceId = traitId,
+            TraitSnapshot = selected.Clone(),
             Stage = MemoryErasureSealOrderStage.Reserved,
             Reservation = reservation,
             PickupStand = pickupStand,
@@ -317,6 +325,8 @@ public sealed class MemoryErasureSealCommandService :
     public void Tick()
     {
         if (disposed)
+            return;
+        if (publications.IsBusy || publications.IsRestoring)
             return;
         RecoverSavedOperations();
         foreach (ActiveOrder order in activeByCharacter.Values.ToArray())
@@ -582,9 +592,9 @@ public sealed class MemoryErasureSealCommandService :
             result = UseResult(
                 MemoryErasureSealUseStatus.InvalidRequest,
                 order,
-                "transaction failed before commit: " + exception.Message);
+                "transaction escaped; authority requires recovery: " + exception.Message);
         }
-        if (result.Status == MemoryErasureSealUseStatus.Succeeded)
+        if (result.Succeeded)
         {
             Complete(order, result, completedAction: true);
             yield break;
@@ -642,6 +652,7 @@ public sealed class MemoryErasureSealCommandService :
                     Carry = carry,
                     OperationId = operation,
                     TraitInstanceId = trait.instanceId,
+                    TraitSnapshot = trait.Clone(),
                     Stage = cargo.Length == 1 && cargo[0].quantity == 1
                         ? MemoryErasureSealOrderStage.SuspendedAfterPickup
                         : MemoryErasureSealOrderStage.RecoveryPending,
@@ -859,6 +870,12 @@ public sealed class MemoryErasureSealCommandService :
     {
         if (order.Terminal)
             return;
+        if (publications.IsBusy || publications.IsRestoring)
+        {
+            SetStage(order, MemoryErasureSealOrderStage.RecoveryPending,
+                "기억 소거의 물리 복원이 완료되기를 기다립니다.");
+            return;
+        }
         string failure;
         bool dropped;
         if (!typedInterruption.HasValue && IsDownedOrDead(order.Target))
@@ -941,10 +958,6 @@ public sealed class MemoryErasureSealCommandService :
         string targetId = order.Target?.BuildingCharacterId.Value ?? string.Empty;
         activeByCharacter.Remove(targetId);
         latestByCharacter[targetId] = result;
-        if (result.Status == MemoryErasureSealUseStatus.Succeeded)
-        {
-            order.Target?.AddLog("기억 소거 인장을 사용해 선택한 획득 특성을 지웠습니다.");
-        }
         PublishOrderSafely(new MemoryErasureSealOrderSnapshot(
             order.OperationId,
             targetId,
@@ -954,34 +967,16 @@ public sealed class MemoryErasureSealCommandService :
             result.Detail));
         try
         {
-            MemoryErasureOutcomeReceipt outcomeReceipt = new(
-                result,
-                Mathf.Max(
-                    0,
-                    Mathf.FloorToInt(
-                        clock.Time / GameCalendarRules.SecondsPerDay)));
-            if (!outcomeCommitter.TryPrepareTerminal(
-                    outcomeReceipt,
-                    out PreparedEvolutionOutcome preparedOutcome,
-                    out string outcomePrepareFailure))
-            {
-                Debug.LogError(
-                    "Memory-erasure terminal outcome recording failed: "
-                    + outcomePrepareFailure);
-            }
-            else if (!outcomeCommitter.TryCommit(
-                         preparedOutcome,
-                         out string outcomeCommitFailure))
-            {
-                Debug.LogError(
-                    "Memory-erasure terminal outcome commit failed: "
-                    + outcomeCommitFailure);
-            }
+            // Successful effects and their immutable fact are owned by the transaction.
+            // All other terminal results survive an unavailable observer in the same domain journal.
+            if (!result.Succeeded)
+                publications.RecordTerminal(result, order.TraitSnapshot,
+                    order.Target?.Identity?.DisplayName, calendar.Day);
         }
         catch (Exception exception)
         {
             Debug.LogError(
-                "Memory-erasure terminal outcome receipt was invalid: "
+                "Memory-erasure terminal fact could not be retained: "
                 + exception);
         }
         try
@@ -1094,7 +1089,7 @@ public sealed class MemoryErasureSealCommandService :
             traitId,
             detail);
 
-    private static MemoryErasureSealUseResult UseResult(
+    private MemoryErasureSealUseResult UseResult(
         MemoryErasureSealUseStatus status,
         ActiveOrder order,
         string detail) => new(
@@ -1109,7 +1104,7 @@ public sealed class MemoryErasureSealCommandService :
             string.Empty,
             order.Target?.Progression?.AcquiredTraitRevision ?? 0,
             order.Target?.Progression?.AcquiredTraitRevision ?? 0,
-            0L,
+            Math.Max(0L, calendar.AbsoluteHour),
             detail);
 
     private void OnDowned(CharacterBodyHealthDownedEvent downed)

@@ -51,7 +51,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
     private IFactionContractQuery factionContracts;
     private ICaptivityRuntime captivityRuntime;
     private ISocietyIncidentOwnedCharacterIdQuery societyIncidentOwners;
-    private ICombatEquipmentRuntime combatEquipmentRuntime;
+    private ICharacterVisitorExitOutcomeRuntime visitorExitOutcomes;
     private IOwnerRunManagerProvider ownerRunManagerProvider;
     private IBuildingWorldQuery buildingWorldQuery;
     private IRandomStream respawnRandomStream;
@@ -62,12 +62,14 @@ public class CharacterSpawner : BuildableObject,IInteractable
     private long exitInteractionAttemptCount;
     private string lastVisitorExitPersistentId = string.Empty;
     private string lastVisitorExitHandoffStage = string.Empty;
+    private string lastVisitorExitHandoffFailure = string.Empty;
 
     public long VisitorExitHandoffAttemptCount => visitorExitHandoffAttemptCount;
     public long VisitorExitHandoffCompletedCount => visitorExitHandoffCompletedCount;
     public long ExitInteractionAttemptCount => exitInteractionAttemptCount;
     public string LastVisitorExitPersistentId => lastVisitorExitPersistentId;
     public string LastVisitorExitHandoffStage => lastVisitorExitHandoffStage;
+    public string LastVisitorExitHandoffFailure => lastVisitorExitHandoffFailure;
 
     [Inject]
     public void Construct(
@@ -123,11 +125,11 @@ public class CharacterSpawner : BuildableObject,IInteractable
     }
 
     [Inject]
-    public void ConstructEquipmentRetirement(
-        ICombatEquipmentRuntime combatEquipmentRuntime)
+    public void ConstructVisitorExitOutcome(
+        ICharacterVisitorExitOutcomeRuntime visitorExitOutcomes)
     {
-        this.combatEquipmentRuntime = combatEquipmentRuntime
-            ?? throw new ArgumentNullException(nameof(combatEquipmentRuntime));
+        this.visitorExitOutcomes = visitorExitOutcomes
+            ?? throw new ArgumentNullException(nameof(visitorExitOutcomes));
     }
 
     private void Awake()
@@ -698,6 +700,10 @@ public class CharacterSpawner : BuildableObject,IInteractable
                     AIActionFailureKind.CannotStart,
                     CaptiveOwnedExitFailureReason),
                 requestImmediateReplan: false);
+            visitorExitOutcomes?.TryFailExit(
+                actor,
+                VisitorDepartureTerminalKind.CaptiveBlocked,
+                CaptiveOwnedExitFailureReason);
             return;
         }
 
@@ -725,6 +731,10 @@ public class CharacterSpawner : BuildableObject,IInteractable
                     AIActionFailureKind.CannotStart,
                     SocietyIncidentOwnedExitFailureReason),
                 requestImmediateReplan: false);
+            visitorExitOutcomes?.TryFailExit(
+                actor,
+                VisitorDepartureTerminalKind.IncidentBlocked,
+                SocietyIncidentOwnedExitFailureReason);
             return;
         }
 
@@ -755,19 +765,43 @@ public class CharacterSpawner : BuildableObject,IInteractable
         }
 
         string profileId = CharacterPersistentIdentity.Require(actor).Value;
-        ICombatEquipmentRuntime equipment = combatEquipmentRuntime
+        ICharacterVisitorExitOutcomeRuntime exitOutcomes = visitorExitOutcomes
             ?? throw new InvalidOperationException(
                 $"{nameof(CharacterSpawner)} requires "
-                + $"{nameof(ICombatEquipmentRuntime)} injection before exit handoff.");
-        // The existing retirement authority preserves equipment instances and
-        // history while removing this departing character's loadout ownership.
-        equipment.HandleCharacterDeath(profileId);
+                + $"{nameof(ICharacterVisitorExitOutcomeRuntime)} injection "
+                + "before exit handoff.");
         visitorExitHandoffAttemptCount++;
         lastVisitorExitPersistentId = profileId ?? string.Empty;
         lastVisitorExitHandoffStage = "visitor-exit:handoff-started";
+        lastVisitorExitHandoffFailure = string.Empty;
+        string handoffKind = characterPool != null
+            ? "population-release+pool"
+            : "population-release+deactivate";
+        if (!exitOutcomes.TryCompleteDeparture(
+                actor,
+                handoffKind,
+                out string handoffFailure))
+        {
+            if (actor.CurrentLifecycleState
+                is CharacterLifecycleState.ExitingDungeon
+                    or CharacterLifecycleState.Despawned)
+            {
+                actor.SetLifecycleState(CharacterLifecycleState.Active);
+            }
+            exitOutcomes.TryFailExit(
+                actor,
+                VisitorDepartureTerminalKind.HandoffFailed,
+                handoffFailure);
+            actor.Brain?.ReportRuntimeActionFailure(
+                AIActionFailure.Create(
+                    AIActionFailureKind.Unsupported,
+                    handoffFailure),
+                requestImmediateReplan: false);
+            lastVisitorExitHandoffStage = "visitor-exit:handoff-failed";
+            lastVisitorExitHandoffFailure = handoffFailure ?? string.Empty;
+            return;
+        }
         respawnSchedule.MarkDisabled(profileId);
-
-        characterPopulationService?.ReleaseVisitor(actor);
         lastVisitorExitHandoffStage = "visitor-exit:population-released";
 
         if (characterPool != null)
@@ -783,6 +817,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
         }
 
         visitorExitHandoffCompletedCount++;
+        lastVisitorExitHandoffFailure = string.Empty;
     }
 
     private static IEnumerator YieldAfterInteraction()

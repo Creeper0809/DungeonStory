@@ -281,6 +281,10 @@ public sealed class OffenseExpeditionRun
         string normalized = characterId?.Trim() ?? string.Empty;
         float healed = Mathf.Max(0f, healedAmount);
         if (normalized.Length == 0 || healed <= 0f) return;
+        if (!members.Concat(protectedRescueMembers).Any(actor => actor != null
+                && string.Equals(actor.Identity?.PersistentId, normalized, StringComparison.Ordinal)))
+            throw new InvalidOperationException(
+                "Expedition healing receipts require a registered member or protected rescue participant.");
         treatmentReceipts.Add(new OffenseExpeditionTreatmentReceipt(
             OffenseExpeditionTreatmentKind.Healing,
             normalized,

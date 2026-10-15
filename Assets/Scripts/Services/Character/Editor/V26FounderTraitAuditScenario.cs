@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using DungeonStory.Foundation;
@@ -470,6 +471,51 @@ public static class V26FounderTraitAuditScenario
             + $"normalMythic={normalMythic}");
     }
 
+    public static void RunWorkCompletionDeliveryRegression()
+    {
+        GameObject host = new("V26 Work Completion Delivery Regression");
+        try
+        {
+            CharacterActor actor = host.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(host);
+            actor.EnsureRuntimeState();
+            actor.Initialize(AssetDatabase.FindAssets("t:CharacterSO")
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<CharacterSO>)
+                .First(value => value != null
+                    && value.id > 0
+                    && value.species != null));
+            actor.Identity.SetPersistentId(
+                "character:v26:work-completion:regression");
+            CharacterIdentityStateStore store = new();
+            actor.Progression.ApplyPreparedIdentity(
+                "V26 Work Completion Delivery Regression",
+                "audit",
+                Array.Empty<int>(),
+                CharacterPotentialGrade.Ordinary,
+                2701,
+                autoChooseDrafts: false);
+            IGameCalendar calendar = new EditorFixedGameCalendar(137, 9);
+            CharacterPersistentNeedRuntime needs = new(store, calendar);
+            CharacterIdentityRuleRouter router = new();
+            CharacterMoodPolicyService moodPolicy = new(router, needs);
+            CharacterDirectOrderCostPreviewService directOrders = new(
+                router,
+                moodPolicy);
+            VerifyWorkCompletionDeliveryTransaction(
+                actor,
+                store,
+                moodPolicy,
+                directOrders,
+                needs);
+            Debug.Log("V26_WORK_COMPLETION_DELIVERY_REGRESSION=PASS");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(host);
+        }
+    }
+
     private static void Require(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
@@ -508,6 +554,8 @@ public static class V26FounderTraitAuditScenario
             CharacterIdentityStateStore store = new();
             ExtremeTraitRuntime runtime = new(store);
             AuditGameClock clock = new();
+            // This isolated audit has no authored date contract.
+            IGameCalendar calendar = new EditorFixedGameCalendar(137, 9);
 
             actor.Progression.ApplyPreparedIdentity(
                 "V26 Effect Audit",
@@ -736,7 +784,7 @@ public static class V26FounderTraitAuditScenario
                 "Arcane overcharge threshold or cooldown guard failed.");
 
             ApplyTrait(actor, 101);
-            CharacterPersistentNeedRuntime needs = new(store, clock);
+            CharacterPersistentNeedRuntime needs = new(store, calendar);
             Require(Mathf.Approximately(
                     needs.ResolveMoodDelta(actor, "food:meal-missed"),
                     -5f)
@@ -855,35 +903,40 @@ public static class V26FounderTraitAuditScenario
             new IGameplayOutcomeDescriptor[]
             {
                 new WorkCompletionIdentityOutcomeDescriptor(
+                    new KoreanJosaFormatter()),
+                new CropPlanOutcomeDescriptor(new KoreanJosaFormatter()),
+                new CropIrrigationSupplyOutcomeDescriptor(
+                    new KoreanJosaFormatter()),
+                new CropSelectionCommandOutcomeDescriptor(
                     new KoreanJosaFormatter())
             },
             new IGameplayOutcomeAdapterRegistration[]
             {
-                new WorkCompletionIdentityOutcomeAdapter()
+                new WorkCompletionIdentityOutcomeAdapter(),
+                new CropPlanGameplayOutcomeAdapter(),
+                new CropIrrigationSupplyOutcomeAdapter(),
+                new CropSelectionCommandOutcomeAdapter()
             });
         GameplayOutcomeLedger outcomeLedger = new(
             outcomeRegistry,
             new GameplayOutcomeBufferLimits(
                 smallPageCount: 8,
-                largePageCount: 0,
-                knownResultKeyCapacity: 128),
+                largePageCount: 1,
+                knownResultKeyCapacity: 9,
+                retainedSmallPageCount: 8,
+                retainedLargePageCount: 1),
             new GameplayOutcomeRunId(
                 "run:founder-trait-work-identity-audit"),
             1L);
-        WorkCompletionIdentityGameplayOutcomeBridge outcomeBridge = new(
-            new GameplayOutcomeRecorder(
-                outcomeLedger,
-                outcomeRegistry,
-                new GameEventBus()),
+        GameplayOutcomeRecorder outcomeRecorder = new(
             outcomeLedger,
-            new GameplayOutcomeDisplayNameQuery(
-                new IGameplayOutcomeEntityNameResolver[]
-                {
-                    new CharacterGameplayOutcomeEntityNameResolver(
-                        world,
-                        world)
-                }));
-        WorkIdentityEventAdapter adapter = new(
+            outcomeRegistry,
+            new GameEventBus());
+        using WorkIdentityAppliedFactEditorFixture observations = new(
+            outcomeRegistry,
+            outcomeLedger,
+            outcomeRecorder);
+        using WorkIdentityEventAdapter adapter = new(
             new GameEventBus(),
             world,
             moodPolicy,
@@ -893,17 +946,27 @@ public static class V26FounderTraitAuditScenario
             needs,
             ledger,
             world,
-            outcomeBridge);
-        WorkCompletionIdentityDeliveryRequest request = new(
-            "identity-event:crop-harvest:audit:000000",
-            "crop-harvest:building:crop-plot:audit",
-            0,
-            actor.Identity.TypedPersistentId,
-            BuiltInWorkTypeIds.Harvest.Value,
-            "building:crop-plot:audit:normal",
-            CharacterCommandOrigin.Autonomous,
-            3);
+            observations.Facts,
+            observations.Facts,
+            observations.DeliveryQuery);
         string before = CaptureCompletionState(actor, store);
+        WorkCompletionIdentityDeliveryRequest request =
+            CreateCommittedHarvestDelivery(
+                outcomeRegistry,
+                outcomeLedger,
+                actor,
+                "identity-event:crop-harvest:audit:000000",
+                "crop-harvest:building:crop-plot:audit",
+                0,
+                "action:founder-trait-work-identity-audit",
+                "building:crop-plot:audit",
+                3);
+        Require(
+            string.Equals(
+                before,
+                CaptureCompletionState(actor, store),
+                StringComparison.Ordinal),
+            "Committed crop child setup changed the founder audit identity state.");
         bool faulted = false;
         try
         {
@@ -942,7 +1005,7 @@ public static class V26FounderTraitAuditScenario
 
         WorkCompletionIdentityDeliveryLedger transientLedger = new();
         world.Active = Array.Empty<CharacterActor>();
-        WorkIdentityEventAdapter transientAdapter = new(
+        using WorkIdentityEventAdapter transientAdapter = new(
             new GameEventBus(),
             world,
             moodPolicy,
@@ -952,16 +1015,27 @@ public static class V26FounderTraitAuditScenario
             needs,
             transientLedger,
             world,
-            outcomeBridge);
-        WorkCompletionIdentityDeliveryRequest transientRequest = new(
-            "identity-event:crop-harvest:transient:000000",
-            "crop-harvest:building:crop-plot:transient",
-            0,
-            actor.Identity.TypedPersistentId,
-            BuiltInWorkTypeIds.Harvest.Value,
-            "building:crop-plot:transient:normal",
-            CharacterCommandOrigin.Autonomous,
-            3);
+            observations.Facts,
+            observations.Facts,
+            observations.DeliveryQuery);
+        string beforeTransientChild = CaptureCompletionState(actor, store);
+        WorkCompletionIdentityDeliveryRequest transientRequest =
+            CreateCommittedHarvestDelivery(
+                outcomeRegistry,
+                outcomeLedger,
+                actor,
+                "identity-event:crop-harvest:transient:000000",
+                "crop-harvest:building:crop-plot:transient",
+                0,
+                "action:founder-trait-work-identity-transient",
+                "building:crop-plot:transient",
+                3);
+        Require(
+            string.Equals(
+                beforeTransientChild,
+                CaptureCompletionState(actor, store),
+                StringComparison.Ordinal),
+            "Transient crop child setup changed the founder audit identity state.");
         Require(transientAdapter.EnsureApplied(transientRequest).Status ==
                 WorkCompletionIdentityDeliveryStatus.Deferred
             && transientLedger.Capture().Count == 0,
@@ -973,7 +1047,7 @@ public static class V26FounderTraitAuditScenario
         WorkCompletionIdentityDeliveryLedger terminalLedger = new();
         world.Active = Array.Empty<CharacterActor>();
         world.Lifetime = Array.Empty<CharacterActor>();
-        WorkIdentityEventAdapter terminalAdapter = new(
+        using WorkIdentityEventAdapter terminalAdapter = new(
             new GameEventBus(),
             world,
             moodPolicy,
@@ -983,16 +1057,27 @@ public static class V26FounderTraitAuditScenario
             needs,
             terminalLedger,
             world,
-            outcomeBridge);
-        WorkCompletionIdentityDeliveryRequest terminalRequest = new(
-            "identity-event:crop-harvest:terminal:000000",
-            "crop-harvest:building:crop-plot:terminal",
-            0,
-            actor.Identity.TypedPersistentId,
-            BuiltInWorkTypeIds.Harvest.Value,
-            "building:crop-plot:terminal:normal",
-            CharacterCommandOrigin.Autonomous,
-            3);
+            observations.Facts,
+            observations.Facts,
+            observations.DeliveryQuery);
+        string beforeTerminalChild = CaptureCompletionState(actor, store);
+        WorkCompletionIdentityDeliveryRequest terminalRequest =
+            CreateCommittedHarvestDelivery(
+                outcomeRegistry,
+                outcomeLedger,
+                actor,
+                "identity-event:crop-harvest:terminal:000000",
+                "crop-harvest:building:crop-plot:terminal",
+                0,
+                "action:founder-trait-work-identity-terminal",
+                "building:crop-plot:terminal",
+                3);
+        Require(
+            string.Equals(
+                beforeTerminalChild,
+                CaptureCompletionState(actor, store),
+                StringComparison.Ordinal),
+            "Terminal crop child setup changed the founder audit identity state.");
         Require(terminalAdapter.EnsureApplied(terminalRequest).IsApplied
                 && terminalLedger.Capture().Single().disposition ==
                     WorkCompletionIdentityDeliveryDisposition
@@ -1011,6 +1096,86 @@ public static class V26FounderTraitAuditScenario
         Require(terminalAdapter.EnsureApplied(unsupported).Status ==
                 WorkCompletionIdentityDeliveryStatus.Conflict,
             "Unsupported durable work-completion scope was accepted.");
+    }
+
+    private static WorkCompletionIdentityDeliveryRequest
+        CreateCommittedHarvestDelivery(
+            GameplayOutcomeRegistry registry,
+            GameplayOutcomeLedger ledger,
+            CharacterActor actor,
+            string deliveryId,
+            string producerStreamId,
+            int operationSequence,
+            string cropOperationId,
+            string plotId,
+            int absoluteDay)
+    {
+        EnvironmentCropProductionEntryDebugScenarios.RunHarvestForWorkIdentity(
+            registry,
+            ledger,
+            cropOperationId,
+            plotId,
+            actor,
+            absoluteDay);
+        GameplayResultKey childKey = new(
+            EnvironmentOutcomeIds.CropPlanProducer,
+            new GameplayOperationId(cropOperationId),
+            1L,
+            0);
+        Require(
+            ledger.TryGetResultIdentity(
+                childKey,
+                out GameplayOutcomeReplayIdentity identity)
+            && identity.State == GameplayOutcomeReplayState.PublishedAcknowledged
+            && identity.HasCanonicalPayloadHash,
+            "Founder trait audit crop child was not durably committed.");
+        Require(
+            ledger.TryGetExact(
+                identity.OutcomeId,
+                out GameplayOutcomeSnapshot child)
+            && child.outcomeTypeId == EnvironmentOutcomeIds.CropPlanTerminal.Value
+            && child.status == GameplayOutcomeStatus.Succeeded
+            && child.absoluteDay == absoluteDay
+            && child.participants.Any(value =>
+                value.entityKindId == EnvironmentOutcomeIds.FacilityKind.Value
+                && value.entityId == plotId)
+            && child.facts.Any(value =>
+                value.factId == EnvironmentOutcomeIds.HarvesterFact.Value
+                && value.value == actor.Identity.TypedPersistentId.Value),
+            "Founder trait audit could not commit its typed crop child.");
+        string contribution = child.facts.Single(value =>
+            value.factId == EnvironmentOutcomeIds.HarvestContributorsFact.Value)
+            .value;
+        string prefix = actor.Identity.TypedPersistentId.Value + "=";
+        Require(
+            contribution.StartsWith(prefix, StringComparison.Ordinal),
+            "Founder trait audit crop child lost its harvester contribution.");
+        bool parsed = float.TryParse(
+            contribution.Substring(prefix.Length),
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture,
+            out float workUnits);
+        Require(
+            parsed
+            && float.IsFinite(workUnits)
+            && workUnits > 0f,
+            "Founder trait audit crop child lost its harvester contribution.");
+        return new WorkCompletionIdentityDeliveryRequest(
+            deliveryId,
+            producerStreamId,
+            operationSequence,
+            actor.Identity.TypedPersistentId,
+            BuiltInWorkTypeIds.Harvest.Value,
+            child.participants.Single(value =>
+                value.entityKindId == EnvironmentOutcomeIds.CropDefinitionKind.Value)
+                .entityId,
+            CharacterCommandOrigin.Autonomous,
+            absoluteDay,
+            childKey.OperationId.Value,
+            EnvironmentOutcomeIds.CropPlanProducer,
+            childKey.ToString(),
+            plotId,
+            workUnits);
     }
 
     private static void VerifyCharacterNarrativeExternalRestoreTransaction()

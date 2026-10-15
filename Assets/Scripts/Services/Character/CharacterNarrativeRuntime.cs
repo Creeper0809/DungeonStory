@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -21,7 +21,7 @@ public sealed class CharacterNarrativeRuntime :
     private readonly WorkCompletionIdentityDeliveryLedger completionDeliveries;
     private readonly IGameContentDefinitionSource content;
     private readonly IGameEventBus gameEvents;
-    private readonly IMigratedProducerOutcomeTransaction migratedOutcomes;
+    private readonly IDomainFactPublisher domainFacts;
     private CharacterIdentityRuntimeStateSaveData[] stagedIdentityStates;
     private WorkCompletionIdentityDeliveryCursorSaveData[]
         stagedCompletionDeliveries;
@@ -39,7 +39,7 @@ public sealed class CharacterNarrativeRuntime :
         CharacterIdentityStateStore identityStates = null,
         IGameContentDefinitionSource content = null,
         WorkCompletionIdentityDeliveryLedger completionDeliveries = null,
-        IMigratedProducerOutcomeTransaction migratedOutcomes = null)
+        IDomainFactPublisher domainFacts = null)
     {
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -47,7 +47,7 @@ public sealed class CharacterNarrativeRuntime :
         this.content = content;
         this.completionDeliveries = completionDeliveries
             ?? new WorkCompletionIdentityDeliveryLedger();
-        this.migratedOutcomes = migratedOutcomes;
+        this.domainFacts = domainFacts;
     }
 
     [Inject]
@@ -58,14 +58,14 @@ public sealed class CharacterNarrativeRuntime :
         IGameContentDefinitionSource content,
         WorkCompletionIdentityDeliveryLedger completionDeliveries,
         IGameEventBus gameEvents,
-        IMigratedProducerOutcomeTransaction migratedOutcomes)
+        IDomainFactPublisher domainFacts)
         : this(
             rootStore,
             catalog,
             identityStates,
             content,
             completionDeliveries,
-            migratedOutcomes)
+            domainFacts)
     {
         this.gameEvents = gameEvents
             ?? throw new ArgumentNullException(nameof(gameEvents));
@@ -127,7 +127,27 @@ public sealed class CharacterNarrativeRuntime :
         ProficiencyWorkOutcome outcome,
         float learningMultiplier,
         float repetitionMultiplier,
-        long absoluteHour)
+        long absoluteHour) => AddApprovedWork(
+        characterId,
+        profile,
+        approvedWork,
+        difficultyMultiplier,
+        outcome,
+        learningMultiplier,
+        repetitionMultiplier,
+        absoluteHour,
+        sourceOperationId: null);
+
+    public long AddApprovedWork(
+        CharacterId characterId,
+        ProficiencyWorkProfile profile,
+        float approvedWork,
+        float difficultyMultiplier,
+        ProficiencyWorkOutcome outcome,
+        float learningMultiplier,
+        float repetitionMultiplier,
+        long absoluteHour,
+        string sourceOperationId)
     {
         catalog.Require(profile.Primary);
         if (profile.Secondary.IsValid) catalog.Require(profile.Secondary);
@@ -144,6 +164,7 @@ public sealed class CharacterNarrativeRuntime :
             learningMultiplier,
             repetitionMultiplier,
             absoluteHour,
+            sourceOperationId,
             projectedReceipts);
         return CommitProficiencyAwardMutation(
             beforeState,
@@ -160,6 +181,7 @@ public sealed class CharacterNarrativeRuntime :
                 learningMultiplier,
                 repetitionMultiplier,
                 absoluteHour,
+                sourceOperationId,
                 receipts));
     }
 
@@ -205,7 +227,7 @@ public sealed class CharacterNarrativeRuntime :
         Func<CharacterNarrativeAggregateState,
             List<CharacterProficiencyAwardCommitReceipt>, long> applyMutation)
     {
-        if (migratedOutcomes == null || projectedReceipts.Count == 0)
+        if (domainFacts == null || projectedReceipts.Count == 0)
         {
             rootStore.Replace(projection);
             if (projectedAward > 0L) version = unchecked(version + 1);
@@ -213,7 +235,7 @@ public sealed class CharacterNarrativeRuntime :
             return projectedAward;
         }
 
-        PreparedMigratedProducerOutcome[] reserved =
+        DomainFactLease[] reserved =
             ReserveProficiencyOutcomes(projectedReceipts).ToArray();
         int previousRuntimeVersion = version;
         bool candidatePublished = false;
@@ -237,20 +259,16 @@ public sealed class CharacterNarrativeRuntime :
             candidatePublished = true;
             if (committedAward > 0L) version = unchecked(version + 1);
 
-            var subjects = new MigratedProducerOutcomeSubject[reserved.Length];
-            var summaries = new string[reserved.Length];
-            var committed = new MigratedProducerOutcomeCommitResult[reserved.Length];
+            var emissions = new DomainFactEmission[reserved.Length];
+            var committed = new DomainFactDelivery[reserved.Length];
             for (int index = 0; index < reserved.Length; index++)
             {
                 CharacterProficiencyAwardCommitReceipt receipt =
                     committedReceipts[index];
-                subjects[index] = CreatePromotionSubject(receipt);
-                summaries[index] = BuildPromotionSummary(receipt);
+                emissions[index] = DomainFactEmission.Create(reserved[index], receipt);
             }
-            if (!migratedOutcomes.CommitSingleSubjectBatch(
-                    reserved,
-                    subjects,
-                    summaries,
+            if (!domainFacts.PublishBatch(
+                    emissions,
                     committed,
                     out string failureReason))
             {
@@ -262,7 +280,7 @@ public sealed class CharacterNarrativeRuntime :
         catch
         {
             for (int index = 0; index < reserved.Length; index++)
-                migratedOutcomes.Cancel(reserved[index]);
+                domainFacts.Cancel(reserved[index]);
             if (candidatePublished)
             {
                 rootStore.Replace(beforeState);
@@ -277,22 +295,17 @@ public sealed class CharacterNarrativeRuntime :
         return committedAward;
     }
 
-    private List<PreparedMigratedProducerOutcome> ReserveProficiencyOutcomes(
+    private List<DomainFactLease> ReserveProficiencyOutcomes(
         IReadOnlyList<CharacterProficiencyAwardCommitReceipt> receipts)
     {
-        List<PreparedMigratedProducerOutcome> reserved = new(receipts.Count);
+        List<DomainFactLease> reserved = new(receipts.Count);
         try
         {
             for (int index = 0; index < receipts.Count; index++)
             {
                 CharacterProficiencyAwardCommitReceipt receipt = receipts[index];
-                if (!migratedOutcomes.TryReserveSingleSubject(
-                        MigratedProducerOutcomeKind
-                            .CharacterProficiencyAwardCommitReceipt,
-                        receipt.SourceOperationId,
-                        ResolveAbsoluteDay(receipt.AbsoluteHour),
-                        GameplayOutcomeStatus.Succeeded,
-                        out PreparedMigratedProducerOutcome prepared,
+                if (!domainFacts.TryReserve(receipt,
+                        out DomainFactLease prepared,
                         out string failureReason))
                 {
                     throw new InvalidOperationException(
@@ -306,7 +319,7 @@ public sealed class CharacterNarrativeRuntime :
         catch
         {
             for (int index = 0; index < reserved.Count; index++)
-                migratedOutcomes.Cancel(reserved[index]);
+                domainFacts.Cancel(reserved[index]);
             throw;
         }
     }
@@ -321,6 +334,7 @@ public sealed class CharacterNarrativeRuntime :
         float learningMultiplier,
         float repetitionMultiplier,
         long absoluteHour,
+        string sourceOperationId,
         List<CharacterProficiencyAwardCommitReceipt> receipts)
     {
         CharacterNarrativeRecord record = RequireRecord(state, characterId);
@@ -353,7 +367,8 @@ public sealed class CharacterNarrativeRuntime :
             characterId,
             beforePrimary,
             RequireProficiencySnapshot(record, profile.Primary, absoluteHour),
-            absoluteHour);
+            absoluteHour,
+            sourceOperationId);
         if (observesSecondary)
         {
             AddPromotionReceiptIfCommitted(
@@ -365,7 +380,8 @@ public sealed class CharacterNarrativeRuntime :
                     record,
                     profile.Secondary,
                     absoluteHour),
-                absoluteHour);
+                absoluteHour,
+                sourceOperationId);
         }
         return awarded;
     }
@@ -423,7 +439,8 @@ public sealed class CharacterNarrativeRuntime :
         CharacterId characterId,
         CharacterProficiencySnapshot before,
         CharacterProficiencySnapshot after,
-        long absoluteHour)
+        long absoluteHour,
+        string causalSourceOperationId = null)
     {
         if (after.CurrentMilliExperience <= before.CurrentMilliExperience
             || (int)CareerRules.ResolveRank(after.CurrentExperience)
@@ -440,7 +457,8 @@ public sealed class CharacterNarrativeRuntime :
             after.CurrentMilliExperience,
             before.LifetimeMilliExperience,
             after.LifetimeMilliExperience,
-            absoluteHour));
+            absoluteHour,
+            causalSourceOperationId));
     }
 
     private void PublishPromotionReceipts(
@@ -502,34 +520,6 @@ public sealed class CharacterNarrativeRuntime :
         }
     }
 
-    private static int ResolveAbsoluteDay(long absoluteHour) =>
-        checked((int)Math.Min(
-            int.MaxValue,
-            Math.Max(0L, absoluteHour) / GameCalendarRules.HoursPerDay + 1L));
-
-    private static string BuildPromotionSummary(
-        CharacterProficiencyAwardCommitReceipt receipt) => string.Join("|", new[]
-    {
-        "proficiency-award@1",
-        ((int)receipt.AwardKind).ToString(CultureInfo.InvariantCulture),
-        receipt.CharacterId.Value,
-        receipt.ProficiencyId.Value,
-        receipt.BeforeCurrentMilliExperience.ToString(CultureInfo.InvariantCulture),
-        receipt.AfterCurrentMilliExperience.ToString(CultureInfo.InvariantCulture),
-        receipt.BeforeLifetimeMilliExperience.ToString(CultureInfo.InvariantCulture),
-        receipt.AfterLifetimeMilliExperience.ToString(CultureInfo.InvariantCulture),
-        ((int)receipt.BeforeRank).ToString(CultureInfo.InvariantCulture),
-        ((int)receipt.AfterRank).ToString(CultureInfo.InvariantCulture),
-        receipt.AbsoluteHour.ToString(CultureInfo.InvariantCulture)
-    });
-
-    private static MigratedProducerOutcomeSubject CreatePromotionSubject(
-        CharacterProficiencyAwardCommitReceipt receipt) => new(
-        MigratedProducerOutcomeIds.CharacterKind,
-        receipt.CharacterId.Value,
-        receipt.CharacterId.Value,
-        MigratedProducerOutcomeIds.ActorRole);
-
     public long AddCombatExperience(
         CharacterId characterId,
         CharacterProficiencyId proficiencyId,
@@ -539,13 +529,63 @@ public sealed class CharacterNarrativeRuntime :
         long absoluteHour)
     {
         catalog.Require(proficiencyId);
-        long awarded = RequireWritable(characterId).AddCombatExperience(
+        CharacterNarrativeAggregateState beforeState = CloneState(Current);
+        CharacterNarrativeAggregateState projection = CloneState(beforeState);
+        List<CharacterProficiencyAwardCommitReceipt> projectedReceipts = new();
+        long projectedAward = ApplyCombatExperience(
+            projection,
+            characterId,
+            proficiencyId,
+            experience,
+            training,
+            stableAwardKey,
+            absoluteHour,
+            projectedReceipts);
+        return CommitProficiencyAwardMutation(
+            beforeState,
+            projection,
+            projectedAward,
+            projectedReceipts,
+            (candidate, receipts) => ApplyCombatExperience(
+                candidate,
+                characterId,
+                proficiencyId,
+                experience,
+                training,
+                stableAwardKey,
+                absoluteHour,
+                receipts));
+    }
+
+    private long ApplyCombatExperience(
+        CharacterNarrativeAggregateState state,
+        CharacterId characterId,
+        CharacterProficiencyId proficiencyId,
+        float experience,
+        bool training,
+        string stableAwardKey,
+        long absoluteHour,
+        List<CharacterProficiencyAwardCommitReceipt> receipts)
+    {
+        CharacterNarrativeRecord record = RequireRecord(state, characterId);
+        CharacterProficiencySnapshot before = RequireProficiencySnapshot(
+            record,
+            proficiencyId,
+            absoluteHour);
+        long awarded = record.AddCombatExperience(
             proficiencyId,
             experience,
             training,
             stableAwardKey,
             absoluteHour);
-        if (awarded > 0L) version = unchecked(version + 1);
+        AddPromotionReceiptIfCommitted(
+            receipts,
+            CharacterProficiencyAwardKind.CombatExperience,
+            characterId,
+            before,
+            RequireProficiencySnapshot(record, proficiencyId, absoluteHour),
+            absoluteHour,
+            stableAwardKey);
         return awarded;
     }
 
@@ -590,6 +630,7 @@ public sealed class CharacterNarrativeRuntime :
     {
         preview = default;
         if (amount <= 0
+            || Current.AmbitionTransitionObservations.Any(value => value.fact.characterId == characterId.Value)
             || !TryGet(characterId, out CharacterNarrativeSnapshot narrative)
             || narrative.AmbitionStatus != CharacterAmbitionStatus.Active
             || !narrative.ActiveAmbitionId.IsValid)
@@ -693,21 +734,31 @@ public sealed class CharacterNarrativeRuntime :
 
     public void StartAmbition(CharacterId characterId, CharacterAmbitionId ambitionId, int absoluteDay)
     {
-        catalog.Require(ambitionId);
-        RequireWritable(characterId).StartAmbition(ambitionId, absoluteDay);
+        RequireAmbitionObservationSettled(characterId);
+        CharacterAmbitionDefinitionSO definition = catalog.Require(ambitionId);
+        RequireWritable(characterId).StartAmbition(
+            ambitionId,
+            absoluteDay,
+            checked(absoluteDay + definition.deadlineDays));
         version = unchecked(version + 1);
     }
 
     public void AddAmbitionProgress(CharacterId characterId, int amount, int absoluteDay)
     {
+        RequireAmbitionObservationSettled(characterId);
         CharacterNarrativeRecord record = RequireWritable(characterId);
         CharacterAmbitionDefinitionSO definition = catalog.Require(record.Snapshot().ActiveAmbitionId);
         record.AddAmbitionProgress(amount, definition.targetProgress, absoluteDay);
         version = unchecked(version + 1);
     }
 
-    public void FailAmbition(CharacterId characterId, int absoluteDay) { RequireWritable(characterId).CloseAmbition(CharacterAmbitionStatus.Failed, absoluteDay); version = unchecked(version + 1); }
-    public void AbandonAmbition(CharacterId characterId, int absoluteDay) { RequireWritable(characterId).CloseAmbition(CharacterAmbitionStatus.Abandoned, absoluteDay); version = unchecked(version + 1); }
+    public void FailAmbition(CharacterId characterId, int absoluteDay) { RequireAmbitionObservationSettled(characterId); RequireWritable(characterId).CloseAmbition(CharacterAmbitionStatus.Failed, absoluteDay); version = unchecked(version + 1); }
+    public void AbandonAmbition(CharacterId characterId, int absoluteDay) { RequireAmbitionObservationSettled(characterId); RequireWritable(characterId).CloseAmbition(CharacterAmbitionStatus.Abandoned, absoluteDay); version = unchecked(version + 1); }
+    private void RequireAmbitionObservationSettled(CharacterId characterId)
+    {
+        if (Current.AmbitionTransitionObservations.Any(value => value.fact.characterId == characterId.Value))
+            throw new InvalidOperationException("Ambition transition observation is pending; recover it before another ambition mutation.");
+    }
     public void BeginAssimilation(CharacterId characterId, SpeciesCultureId targetCultureId) { catalog.Require(targetCultureId); RequireWritable(characterId).BeginAssimilation(targetCultureId); version = unchecked(version + 1); }
     public void AdvanceAssimilationDay(CharacterId characterId) { RequireWritable(characterId).AdvanceAssimilationDay(); version = unchecked(version + 1); }
     public void RecordPracticeParticipation(
@@ -1004,25 +1055,40 @@ public sealed class CharacterNarrativeRuntime :
 /// traits. Internal inheritance rules retain the latent traits before analysis;
 /// only their visible projection changes.
 /// </summary>
-public sealed class TraitAnalysisCommandRuntime : ITraitAnalysisCommand
+public interface ITraitAnalysisRecovery
+{
+    bool TryRecoverPending(out DomainFailure failure);
+}
+
+public sealed class TraitAnalysisCommandRuntime :
+    ITraitAnalysisCommand,
+    ITraitAnalysisRecovery
 {
     private const string TraitAnalyzerBuildingId = "building:8879";
     private const string TraitAnalysisKitId = "medical:trait-analysis-kit";
+    public const string DispositionReasonCode =
+        "heritable-trait-analysis-kit-consumed";
 
     private readonly ICharacterNarrativeQuery query;
     private readonly ICharacterNarrativePersistence persistence;
     private readonly IFacilityCapabilityQuery facilities;
     private readonly IStockQuery stock;
-    private readonly IItemReservationService reservations;
-    private readonly IAtomicItemConsumptionService atomicItems;
+    private readonly IPhysicalItemBatchDispositionService physicalItems;
+    private readonly IDomainFactPublisher facts;
+    private readonly IDomainFactRecoveryPublisher factRecovery;
+    private readonly IGameCalendar calendar;
+    private readonly ICharacterWorldQuery characters;
 
     public TraitAnalysisCommandRuntime(
         ICharacterNarrativeQuery query,
         ICharacterNarrativePersistence persistence,
         IFacilityCapabilityQuery facilities,
         IStockQuery stock,
-        IItemReservationService reservations,
-        IAtomicItemConsumptionService atomicItems)
+        IPhysicalItemBatchDispositionService physicalItems,
+        IDomainFactPublisher facts,
+        IDomainFactRecoveryPublisher factRecovery,
+        IGameCalendar calendar,
+        ICharacterWorldQuery characters)
     {
         this.query = query ?? throw new ArgumentNullException(nameof(query));
         this.persistence = persistence
@@ -1030,10 +1096,13 @@ public sealed class TraitAnalysisCommandRuntime : ITraitAnalysisCommand
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
-        this.reservations = reservations
-            ?? throw new ArgumentNullException(nameof(reservations));
-        this.atomicItems = atomicItems
-            ?? throw new ArgumentNullException(nameof(atomicItems));
+        this.physicalItems = physicalItems
+            ?? throw new ArgumentNullException(nameof(physicalItems));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.factRecovery = factRecovery ?? throw new ArgumentNullException(nameof(factRecovery));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.characters = characters
+            ?? throw new ArgumentNullException(nameof(characters));
     }
 
     public bool TryAnalyze(
@@ -1043,6 +1112,27 @@ public sealed class TraitAnalysisCommandRuntime : ITraitAnalysisCommand
     {
         revealedLatentTraitIds = Array.Empty<string>();
         failure = DomainFailure.None;
+        CharacterNarrativeWorldSaveData beforeRecovery = persistence.Capture();
+        TraitAnalysisCommitSaveData prior = beforeRecovery.pendingTraitAnalysis
+            ?? new TraitAnalysisCommitSaveData();
+        bool samePendingRequest =
+            (TraitAnalysisCommitPhase)prior.phase
+                != TraitAnalysisCommitPhase.None
+            && string.Equals(
+                prior.characterId,
+                characterId.Value,
+                StringComparison.Ordinal);
+        if (!TryRecoverPendingCore(out bool recoveredOperation, out failure))
+            return false;
+        if (samePendingRequest && recoveredOperation)
+        {
+            if (query.TryGet(characterId, out CharacterNarrativeSnapshot recovered))
+            {
+                revealedLatentTraitIds =
+                    recovered.VisibleLatentHeritableTraitIds;
+            }
+            return true;
+        }
         if (!characterId.IsValid
             || !query.TryGet(characterId, out CharacterNarrativeSnapshot current)
             || current.HeritableTraitsAnalyzed
@@ -1051,11 +1141,30 @@ public sealed class TraitAnalysisCommandRuntime : ITraitAnalysisCommand
             failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
             return false;
         }
-        if (!facilities.FindOperational(
+        BuildableObject facility = facilities.FindOperational(
                 FacilityCapabilityKind.Medical,
-                TraitAnalyzerBuildingId).Any())
+                TraitAnalyzerBuildingId)
+            .OrderBy(value => value?.PersistentInstanceId.Value,
+                StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (facility == null || !facility.PersistentInstanceId.IsValid)
         {
             failure = new DomainFailure(FailureCode.ServiceFeatureMissing);
+            return false;
+        }
+
+        CharacterActor actor = characters.Characters.FirstOrDefault(value =>
+            value != null
+            && CharacterPersistentIdentity.TryGet(value, out CharacterId id)
+            && id.Equals(characterId));
+        string characterDisplayName = actor?.Identity?.DisplayName?.Trim()
+            ?? string.Empty;
+        if (characterDisplayName.Length == 0)
+        {
+            failure = new DomainFailure(
+                FailureCode.ExternalInfluenceUnavailable,
+                characterId.Value,
+                "trait-analysis-character-display-missing");
             return false;
         }
 
@@ -1076,51 +1185,367 @@ public sealed class TraitAnalysisCommandRuntime : ITraitAnalysisCommand
             return false;
         }
 
-        string owner = $"trait-analysis:{characterId.Value}";
-        if (!reservations.TryReserveQuantities(
-                new[] { new ReservedItemConsumption(kit.StackId, 1) },
-                owner,
-                ItemReservationPurpose.Medical,
-                $"medical:{TraitAnalyzerBuildingId}:trait-analysis-kit"))
+        CharacterNarrativeWorldSaveData intent = persistence.Capture();
+        int operationSequence = intent.nextTraitAnalysisOperationSequence;
+        string operationId = FormatOperationId(
+            characterId,
+            operationSequence);
+        string facilityDisplayName = facility.BuildingData?.objectName?.Trim();
+        if (string.IsNullOrWhiteSpace(facilityDisplayName))
+            facilityDisplayName = facility.name?.Trim();
+        if (string.IsNullOrWhiteSpace(facilityDisplayName))
+            facilityDisplayName = TraitAnalyzerBuildingId;
+        intent.pendingTraitAnalysis = new TraitAnalysisCommitSaveData
         {
-            failure = new DomainFailure(FailureCode.ItemTransferStackUnavailable);
-            return false;
-        }
-
-        CharacterNarrativeAggregateState candidate;
-        CharacterNarrativeRecord candidateRecord;
+            phase = (int)TraitAnalysisCommitPhase.IntentRecorded,
+            operationSequence = operationSequence,
+            operationId = operationId,
+            characterId = characterId.Value,
+            characterDisplayName = characterDisplayName,
+            facilityInstanceId = facility.PersistentInstanceId.Value,
+            facilityDefinitionId = TraitAnalyzerBuildingId,
+            facilityDisplayName = facilityDisplayName,
+            itemId = TraitAnalysisKitId,
+            sourceStackId = kit.StackId,
+            absoluteDay = Mathf.Max(1, calendar.Day),
+            latentTraitIds = current.LatentHeritableTraitIds
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList()
+        };
         try
         {
-            candidate = persistence.PrepareRestore(persistence.Capture());
-            if (!candidate.Characters.TryGetValue(characterId, out candidateRecord))
-                throw new InvalidOperationException();
-            candidateRecord.MarkHeritableTraitsAnalyzed();
+            persistence.PublishRestore(persistence.PrepareRestore(intent));
         }
-        catch (InvalidOperationException)
+        catch (Exception exception) when (IsRecoverable(exception))
         {
-            reservations.Release(kit.StackId, owner);
-            failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
+            failure = new DomainFailure(
+                FailureCode.ExternalInfluenceUnavailable,
+                characterId.Value,
+                "trait-analysis-intent-rejected",
+                exception.GetType().Name);
             return false;
         }
 
-        ReservedItemConsumption[] cost =
+        if (!physicalItems.TryCommitPending(
+                new[] { new PhysicalItemTransformInput(kit.StackId, 1) },
+                PhysicalItemDispositionKind.Sink,
+                operationId,
+                DispositionReasonCode,
+                out _,
+                out string consumeFailure))
         {
-            new(kit.StackId, 1)
-        };
-        if (!atomicItems.TryConsumeReserved(cost, owner, out failure))
-        {
-            reservations.Release(kit.StackId, owner);
+            TryClearUncommittedIntent(operationId);
+            failure = new DomainFailure(
+                FailureCode.ItemTransferConsumptionFailed,
+                kit.StackId,
+                consumeFailure ?? string.Empty);
             return false;
         }
 
-        persistence.PublishRestore(candidate);
-        revealedLatentTraitIds = candidateRecord.Snapshot()
-            .VisibleLatentHeritableTraitIds;
+        if (!TryRecoverPendingCore(out bool completed, out failure)
+            || !completed)
+            return false;
+        if (query.TryGet(characterId, out CharacterNarrativeSnapshot result))
+        {
+            revealedLatentTraitIds = result.VisibleLatentHeritableTraitIds;
+        }
+        failure = DomainFailure.None;
         return true;
+    }
+
+    public bool TryRecoverPending(out DomainFailure failure) =>
+        TryRecoverPendingCore(out _, out failure);
+
+    public static string FormatOperationId(
+        CharacterId characterId,
+        int sequence) =>
+        $"trait-analysis:{characterId.Value}:{sequence:D8}";
+
+    private bool TryRecoverPendingCore(
+        out bool completedOperation,
+        out DomainFailure failure)
+    {
+        completedOperation = false;
+        CharacterNarrativeWorldSaveData captured = persistence.Capture();
+        TraitAnalysisCommitSaveData pending = captured.pendingTraitAnalysis
+            ?? new TraitAnalysisCommitSaveData();
+        TraitAnalysisCommitPhase phase =
+            (TraitAnalysisCommitPhase)pending.phase;
+        if (phase == TraitAnalysisCommitPhase.None)
+        {
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        bool hasPhysicalReceipt = physicalItems.TryGetPending(
+            pending.operationId,
+            out PhysicalItemBatchDispositionReceipt physicalReceipt);
+        if (hasPhysicalReceipt && !ReceiptMatches(pending, physicalReceipt))
+        {
+            failure = new DomainFailure(
+                FailureCode.ItemTransferConsumptionFailed,
+                pending.operationId,
+                "trait-analysis-physical-receipt-mismatch");
+            return false;
+        }
+
+        if (phase == TraitAnalysisCommitPhase.IntentRecorded)
+        {
+            if (!hasPhysicalReceipt)
+            {
+                ClearPending(captured, advanceSequence: false);
+                try
+                {
+                    persistence.PublishRestore(
+                        persistence.PrepareRestore(captured));
+                }
+                catch (Exception exception) when (IsRecoverable(exception))
+                {
+                    failure = new DomainFailure(
+                        FailureCode.ExternalInfluenceUnavailable,
+                        pending.operationId,
+                        "trait-analysis-intent-clear-failed",
+                        exception.GetType().Name);
+                    return false;
+                }
+                failure = DomainFailure.None;
+                return true;
+            }
+
+            captured.pendingTraitAnalysis.physicalCommitId =
+                physicalReceipt.CommitId;
+            captured.pendingTraitAnalysis.physicalSourceStackIds =
+                physicalReceipt.SourceStackIds
+                    .OrderBy(value => value, StringComparer.Ordinal)
+                    .ToList();
+            captured.pendingTraitAnalysis.physicalInputMassGrams =
+                physicalReceipt.InputMassGrams;
+            try
+            {
+                CharacterNarrativeAggregateState candidate =
+                    persistence.PrepareRestore(captured);
+                if (!candidate.Characters.TryGetValue(
+                        new CharacterId(pending.characterId),
+                        out CharacterNarrativeRecord candidateRecord))
+                    throw new InvalidOperationException(
+                        "Trait-analysis character disappeared.");
+                candidateRecord.MarkHeritableTraitsAnalyzed();
+                candidate.PendingTraitAnalysis.phase =
+                    (int)TraitAnalysisCommitPhase.RevealPublished;
+                persistence.PublishRestore(candidate);
+                phase = TraitAnalysisCommitPhase.RevealPublished;
+            }
+            catch (Exception exception) when (IsRecoverable(exception))
+            {
+                failure = new DomainFailure(
+                    FailureCode.ExternalInfluenceUnavailable,
+                    pending.characterId,
+                    "trait-analysis-reveal-publication-failed",
+                    exception.GetType().Name);
+                return false;
+            }
+        }
+
+        if (phase == TraitAnalysisCommitPhase.RevealPublished)
+        {
+            CharacterNarrativeWorldSaveData revealed = persistence.Capture();
+            TraitAnalysisCommitSaveData evidence =
+                revealed.pendingTraitAnalysis;
+            if (!physicalItems.TryGetPending(
+                    evidence.operationId,
+                    out physicalReceipt)
+                || !ReceiptMatches(evidence, physicalReceipt))
+            {
+                failure = new DomainFailure(
+                    FailureCode.ItemTransferConsumptionFailed,
+                    evidence.operationId,
+                    "trait-analysis-physical-receipt-missing");
+                return false;
+            }
+            DomainFactLease lease = default;
+            try
+            {
+                HeritableTraitsAnalyzedFact fact = evidence.CreateCompletedFact();
+                if (evidence.publicationKey.Length == 0)
+                {
+                    if (!facts.TryReserve(fact, out lease, out string reserveFailure))
+                    {
+                        failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable,
+                            evidence.operationId, "trait-analysis-observation-reserve-failed", reserveFailure);
+                        return false;
+                    }
+                    evidence.publicationKey = lease.PublicationKey;
+                    // Persist the opaque identity before an observer can commit.
+                    persistence.PublishRestore(persistence.PrepareRestore(revealed));
+                }
+
+                DomainFactDelivery delivery;
+                if (lease.IsValid) delivery = facts.Publish(lease, fact);
+                else
+                {
+                    var deliveries = new DomainFactDelivery[1];
+                    factRecovery.ReplayBatch(new[] { DomainFactReplay.Create(evidence.publicationKey, fact) },
+                        deliveries, out _);
+                    delivery = deliveries[0];
+                }
+                if (delivery.Phase is DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery)
+                {
+                    if (delivery.OperationKey != evidence.publicationKey
+                        || string.IsNullOrEmpty(delivery.PublicationId)
+                        || string.IsNullOrEmpty(delivery.Fingerprint)
+                        || evidence.publicationId.Length > 0 && (evidence.publicationId != delivery.PublicationId
+                            || evidence.publicationFingerprint != delivery.Fingerprint))
+                        throw new InvalidOperationException("Trait-analysis observation proof conflicts with its pending owner.");
+                    revealed = persistence.Capture();
+                    var accepted = revealed.pendingTraitAnalysis;
+                    if (accepted.operationId != evidence.operationId || accepted.publicationKey != evidence.publicationKey)
+                        throw new InvalidOperationException("Trait-analysis pending owner changed during observation.");
+                    accepted.publicationId = delivery.PublicationId;
+                    accepted.publicationFingerprint = delivery.Fingerprint;
+                    if (delivery.Completed)
+                        accepted.phase = (int)TraitAnalysisCommitPhase.OutcomePublished;
+                    persistence.PublishRestore(persistence.PrepareRestore(revealed));
+                }
+                if (!delivery.Completed)
+                {
+                    failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable, evidence.operationId,
+                        "trait-analysis-observation-incomplete", delivery.Phase + ":" + delivery.Detail);
+                    return false;
+                }
+                phase = TraitAnalysisCommitPhase.OutcomePublished;
+            }
+            catch (Exception exception) when (IsRecoverable(exception))
+            {
+                failure = new DomainFailure(
+                    FailureCode.ExternalInfluenceUnavailable,
+                    evidence.operationId,
+                    "trait-analysis-observation-failed",
+                    exception.GetType().Name + ":" + exception.Message);
+                return false;
+            }
+            finally
+            {
+                if (lease.IsValid) facts.Cancel(lease);
+            }
+        }
+
+        CharacterNarrativeWorldSaveData terminal = persistence.Capture();
+        TraitAnalysisCommitSaveData terminalPending =
+            terminal.pendingTraitAnalysis;
+        if (physicalItems.TryGetPending(
+                terminalPending.operationId,
+                out physicalReceipt)
+            && !physicalItems.Acknowledge(
+                physicalReceipt.CommitId,
+                out string acknowledgeFailure))
+        {
+            failure = new DomainFailure(
+                FailureCode.ItemTransferConsumptionFailed,
+                terminalPending.operationId,
+                "trait-analysis-physical-acknowledge-failed",
+                acknowledgeFailure ?? string.Empty);
+            return false;
+        }
+        ClearPending(terminal, advanceSequence: true);
+        try
+        {
+            persistence.PublishRestore(persistence.PrepareRestore(terminal));
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            failure = new DomainFailure(
+                FailureCode.ExternalInfluenceUnavailable,
+                terminalPending.operationId,
+                "trait-analysis-terminal-clear-failed",
+                exception.GetType().Name);
+            return false;
+        }
+        completedOperation = true;
+        failure = DomainFailure.None;
+        return true;
+    }
+
+    private void TryClearUncommittedIntent(string operationId)
+    {
+        if (physicalItems.TryGetPending(operationId, out _))
+            return;
+        CharacterNarrativeWorldSaveData captured = persistence.Capture();
+        if ((TraitAnalysisCommitPhase)captured.pendingTraitAnalysis.phase
+                == TraitAnalysisCommitPhase.IntentRecorded
+            && string.Equals(
+                captured.pendingTraitAnalysis.operationId,
+                operationId,
+                StringComparison.Ordinal))
+        {
+            ClearPending(captured, advanceSequence: false);
+            persistence.PublishRestore(persistence.PrepareRestore(captured));
+        }
+    }
+
+    private static bool ReceiptMatches(
+        TraitAnalysisCommitSaveData pending,
+        PhysicalItemBatchDispositionReceipt receipt) =>
+        receipt.IsCommitted
+        && receipt.Kind == PhysicalItemDispositionKind.Sink
+        && string.Equals(
+            receipt.OperationId,
+            pending.operationId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            receipt.ReasonCode,
+            DispositionReasonCode,
+            StringComparison.Ordinal)
+        && receipt.Quantity == 1
+        && receipt.SourceStackIds.Count == 1
+        && string.Equals(
+            receipt.SourceStackIds[0],
+            pending.sourceStackId,
+            StringComparison.Ordinal)
+        && ((TraitAnalysisCommitPhase)pending.phase == TraitAnalysisCommitPhase.IntentRecorded
+            || pending.physicalCommitId == receipt.CommitId
+                && pending.physicalInputMassGrams == receipt.InputMassGrams
+                && pending.physicalSourceStackIds != null
+                && pending.physicalSourceStackIds.SequenceEqual(receipt.SourceStackIds, StringComparer.Ordinal));
+
+    private static void ClearPending(
+        CharacterNarrativeWorldSaveData data,
+        bool advanceSequence)
+    {
+        if (advanceSequence)
+        {
+            data.nextTraitAnalysisOperationSequence = checked(
+                data.nextTraitAnalysisOperationSequence + 1);
+        }
+        data.pendingTraitAnalysis = new TraitAnalysisCommitSaveData();
+    }
+
+    private static bool IsRecoverable(Exception exception) =>
+        exception is not OutOfMemoryException
+            and not StackOverflowException
+            and not AccessViolationException;
+}
+
+public sealed class TraitAnalysisRecoveryAdapter : IStartable
+{
+    private readonly ITraitAnalysisRecovery recovery;
+
+    public TraitAnalysisRecoveryAdapter(ITraitAnalysisRecovery recovery)
+    {
+        this.recovery = recovery
+            ?? throw new ArgumentNullException(nameof(recovery));
+    }
+
+    public void Start()
+    {
+        if (!recovery.TryRecoverPending(out DomainFailure failure))
+        {
+            throw new InvalidOperationException(
+                "Trait-analysis recovery failed: " + failure);
+        }
     }
 }
 
-public sealed class CharacterNarrativeApplicationAdapter : IStartable, IDisposable
+public sealed class CharacterNarrativeApplicationAdapter : IStartable, IDisposable, IDungeonSaveRestoreCompletedHook
 {
     private readonly ICharacterNarrativeQuery query;
     private readonly ICharacterNarrativeCommand commands;
@@ -1128,8 +1553,11 @@ public sealed class CharacterNarrativeApplicationAdapter : IStartable, IDisposab
     private readonly ICharacterLifeQuery life;
     private readonly IGameEventBus events;
     private readonly IContentRequirementEvaluator requirements;
-    private readonly V20MilestoneWorldSnapshotProjector world;
+    private readonly IV20MilestoneWorldSnapshotQuery world;
     private readonly ICharacterWorldQuery characters;
+    private readonly ICharacterNarrativePersistence persistence;
+    private readonly IDomainFactPublisher facts;
+    private readonly IDomainFactRecoveryPublisher factRecovery;
     private IDisposable dayEndedSubscription;
 
     public CharacterNarrativeApplicationAdapter(
@@ -1139,8 +1567,11 @@ public sealed class CharacterNarrativeApplicationAdapter : IStartable, IDisposab
         ICharacterLifeQuery life,
         IGameEventBus events,
         IContentRequirementEvaluator requirements,
-        V20MilestoneWorldSnapshotProjector world,
-        ICharacterWorldQuery characters)
+        IV20MilestoneWorldSnapshotQuery world,
+        ICharacterWorldQuery characters,
+        ICharacterNarrativePersistence persistence,
+        IDomainFactPublisher facts,
+        IDomainFactRecoveryPublisher factRecovery)
     {
         this.query = query ?? throw new ArgumentNullException(nameof(query));
         this.commands = commands ?? throw new ArgumentNullException(nameof(commands));
@@ -1152,13 +1583,23 @@ public sealed class CharacterNarrativeApplicationAdapter : IStartable, IDisposab
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.characters = characters
             ?? throw new ArgumentNullException(nameof(characters));
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.factRecovery = factRecovery ?? throw new ArgumentNullException(nameof(factRecovery));
     }
 
-    public void Start() => dayEndedSubscription ??= events.Subscribe<OperatingDayEndedEvent>(OnDayEnded);
+    public void Start()
+    {
+        dayEndedSubscription ??= events.Subscribe<OperatingDayEndedEvent>(OnDayEnded);
+        RecoverPendingAmbitionTransition();
+    }
+    public void OnRestoreCompleted() => RecoverPendingAmbitionTransition();
     public void Dispose() { dayEndedSubscription?.Dispose(); dayEndedSubscription = null; }
 
     private void OnDayEnded(OperatingDayEndedEvent ended)
     {
+        RecoverPendingAmbitionTransition();
         int nextDay = ended.day + 1;
         RunMilestoneEvaluationSnapshot snapshot = world.Build(nextDay);
         foreach (CharacterLifeRecord record in life.Records.OrderBy(value => value.CharacterId.Value, StringComparer.Ordinal))
@@ -1181,14 +1622,29 @@ public sealed class CharacterNarrativeApplicationAdapter : IStartable, IDisposab
             {
                 CharacterAmbitionDefinitionSO active = catalog.Require(
                     narrative.ActiveAmbitionId);
-                if (HasRequirements(active.failureConditions)
+                bool deadlineReached =
+                    narrative.AmbitionDueAbsoluteDay > 0
+                    && nextDay >= narrative.AmbitionDueAbsoluteDay;
+                bool failureConditionsMet =
+                    HasRequirements(active.failureConditions)
                     && requirements.TryEvaluate(
                         active.failureConditions,
                         snapshot,
                         new[] { record.CharacterId.Value },
-                        out _))
+                        out _);
+                if (deadlineReached || failureConditionsMet)
                 {
-                    commands.FailAmbition(record.CharacterId, nextDay);
+                    TransitionAmbition(
+                        record.CharacterId,
+                        narrative,
+                        active,
+                        nextDay,
+                        fail: true,
+                        failureReason: deadlineReached
+                            ? CharacterAmbitionTransitionFactData
+                                .DeadlineReason
+                            : CharacterAmbitionTransitionFactData
+                                .FailureReason);
                 }
                 continue;
             }
@@ -1210,12 +1666,165 @@ public sealed class CharacterNarrativeApplicationAdapter : IStartable, IDisposab
                 }
                 CharacterAmbitionDefinitionSO selected = eligible[
                     (int)(seed % (uint)eligible.Length)];
-                commands.StartAmbition(
+                TransitionAmbition(
                     record.CharacterId,
-                    new CharacterAmbitionId(selected.StableId),
-                    nextDay);
+                    narrative,
+                    selected,
+                    nextDay,
+                    fail: false,
+                    failureReason: string.Empty);
             }
         }
+    }
+
+    private void TransitionAmbition(
+        CharacterId characterId,
+        CharacterNarrativeSnapshot before,
+        CharacterAmbitionDefinitionSO definition,
+        int transitionDay,
+        bool fail,
+        string failureReason)
+    {
+        if (before == null)
+            throw new ArgumentNullException(nameof(before));
+        if (definition == null)
+            throw new ArgumentNullException(nameof(definition));
+
+        CharacterAmbitionStatus afterStatus = fail
+            ? CharacterAmbitionStatus.Failed
+            : CharacterAmbitionStatus.Active;
+        string ambitionId = fail
+            ? before.ActiveAmbitionId.Value
+            : definition.StableId;
+        var data = new CharacterAmbitionTransitionFactData
+        {
+            characterId = characterId.Value, characterDisplayName = RequireCharacterDisplayName(characterId),
+            ambitionId = ambitionId, ambitionDisplayName = definition.DisplayName?.Trim(),
+            definitionRevision = definition.AuthoringRevision, beforeStatus = before.AmbitionStatus,
+            afterStatus = afterStatus, transitionDay = transitionDay,
+            startDayBefore = before.AmbitionStartedAbsoluteDay, startDayAfter = fail ? 0 : transitionDay,
+            dueDayBefore = before.AmbitionDueAbsoluteDay,
+            dueDayAfter = fail ? 0 : checked(transitionDay + definition.deadlineDays),
+            progressBefore = before.AmbitionProgress, progressAfter = 0,
+            nextAllowedDayBefore = before.NextAmbitionAllowedAbsoluteDay,
+            nextAllowedDayAfter = fail ? checked(transitionDay + 10) : before.NextAmbitionAllowedAbsoluteDay,
+            reasonCode = fail ? failureReason : CharacterAmbitionTransitionFactData.ActivationReason
+        };
+        var fact = new CharacterAmbitionTransitionFact(data);
+        CharacterNarrativeWorldSaveData rollback = persistence.Capture();
+        if (rollback.ambitionTransitionObservations.Count != 0)
+            throw new InvalidOperationException("Ambition transition observation is already pending.");
+        if (!facts.TryReserve(fact, out var lease, out string prepareFailure))
+            throw new InvalidOperationException("Ambition transition observation reserve failed: " + prepareFailure);
+
+        bool mutationAttempted = false;
+        bool mayBeCommitted = false;
+        try
+        {
+            mutationAttempted = true;
+            if (fail)
+            {
+                commands.FailAmbition(characterId, transitionDay);
+            }
+            else
+            {
+                commands.StartAmbition(
+                    characterId,
+                    new CharacterAmbitionId(ambitionId),
+                    transitionDay);
+            }
+            query.TryGet(characterId, out var actual);
+            data.RequireAfterState(actual);
+            var applied = persistence.Capture();
+            var pending = new CharacterAmbitionTransitionObservationSaveData
+            { fact = data.Clone(), publicationKey = lease.PublicationKey };
+            applied.ambitionTransitionObservations.Add(pending);
+            // The applied state and exact replay intent are durable before crossing the observation boundary.
+            persistence.PublishRestore(persistence.PrepareRestore(applied));
+            var delivery = facts.Publish(lease, fact);
+            mayBeCommitted = delivery.MayBeCommitted;
+            AcceptAmbitionDelivery(pending, delivery);
+        }
+        catch (Exception transitionFailure)
+        {
+            if (!mutationAttempted || mayBeCommitted)
+                throw;
+            try
+            {
+                CharacterNarrativeAggregateState candidate =
+                    persistence.PrepareRestore(rollback);
+                persistence.PublishRestore(candidate);
+            }
+            catch (Exception rollbackFailure)
+            {
+                throw new AggregateException(
+                    "Ambition transition and rollback both failed.",
+                    transitionFailure,
+                    rollbackFailure);
+            }
+            throw;
+        }
+        finally { if (lease.IsValid) facts.Cancel(lease); }
+    }
+
+    public void RecoverPendingAmbitionTransition()
+    {
+        var captured = persistence.Capture();
+        if (captured.ambitionTransitionObservations.Count == 0) return;
+        var pending = captured.ambitionTransitionObservations.Single();
+        pending.Validate();
+        query.TryGet(new CharacterId(pending.fact.characterId), out var actual);
+        pending.fact.RequireAfterState(actual);
+        var fact = new CharacterAmbitionTransitionFact(pending.fact);
+        var deliveries = new DomainFactDelivery[1];
+        if (!factRecovery.ReplayBatch(new[] { DomainFactReplay.Create(pending.publicationKey, fact) },
+                deliveries, out string failure))
+            throw new InvalidOperationException("Ambition transition observation incomplete: " + failure);
+        // A failed replay cannot prove that an earlier attempt never committed. Never undo saved effects here.
+        AcceptAmbitionDelivery(pending, deliveries[0]);
+    }
+
+    private void AcceptAmbitionDelivery(CharacterAmbitionTransitionObservationSaveData pending,
+        DomainFactDelivery delivery)
+    {
+        if (delivery.Phase is DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery)
+        {
+            if (delivery.OperationKey != pending.publicationKey || string.IsNullOrEmpty(delivery.PublicationId)
+                || string.IsNullOrEmpty(delivery.Fingerprint)
+                || pending.publicationId.Length > 0 && (delivery.PublicationId != pending.publicationId
+                    || delivery.Fingerprint != pending.publicationFingerprint))
+                throw new InvalidOperationException("Ambition transition observation proof conflict.");
+            var accepted = persistence.Capture();
+            var current = accepted.ambitionTransitionObservations.Single();
+            if (current.publicationKey != pending.publicationKey)
+                throw new InvalidOperationException("Ambition transition observation owner changed during delivery.");
+            current.publicationId = delivery.PublicationId;
+            current.publicationFingerprint = delivery.Fingerprint;
+            if (delivery.Completed) accepted.ambitionTransitionObservations.Clear();
+            persistence.PublishRestore(persistence.PrepareRestore(accepted));
+        }
+        if (!delivery.Completed)
+            throw new InvalidOperationException("Ambition transition observation incomplete: " + delivery.Phase + ":" + delivery.Detail);
+    }
+
+    private string RequireCharacterDisplayName(CharacterId characterId)
+    {
+        CharacterActor actor = characters.Characters.FirstOrDefault(value =>
+            value != null
+            && value.Identity != null
+            && string.Equals(
+                value.Identity.PersistentId,
+                characterId.Value,
+                StringComparison.Ordinal));
+        string displayName = actor?.Identity?.DisplayName?.Trim()
+            ?? string.Empty;
+        if (displayName.Length == 0)
+        {
+            throw new InvalidOperationException(
+                $"Ambition transition character '{characterId.Value}' "
+                + "has no authoritative display name.");
+        }
+        return displayName;
     }
 
     private static bool HasRequirements(V20ContentRequirementSet value) =>

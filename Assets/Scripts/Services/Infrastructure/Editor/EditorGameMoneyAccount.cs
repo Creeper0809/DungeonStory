@@ -5,10 +5,14 @@ using UnityEngine;
 internal sealed class EditorGameMoneyAccount : IGameMoneyAccount
 {
     private readonly GameSessionState state;
+    private readonly IEconomyTransactionLedger transactionLedger;
 
-    public EditorGameMoneyAccount(GameSessionState state)
+    public EditorGameMoneyAccount(
+        GameSessionState state,
+        IEconomyTransactionLedger transactionLedger = null)
     {
         this.state = state ?? throw new ArgumentNullException(nameof(state));
+        this.transactionLedger = transactionLedger;
     }
 
     public int Balance => Mathf.Max(0, state.holdingMoney.Value);
@@ -28,10 +32,17 @@ internal sealed class EditorGameMoneyAccount : IGameMoneyAccount
         if (!CanSpend(cost))
         {
             reason = "insufficient funds";
+            transactionLedger?.RecordFailure(context, cost, reason, Balance);
             return false;
         }
 
-        state.holdingMoney.Value -= cost;
+        int before = Balance;
+        state.holdingMoney.Value = before - cost;
+        if (cost > 0)
+        {
+            transactionLedger?.RecordSuccess(
+                context, -cost, before, state.holdingMoney.Value);
+        }
         reason = string.Empty;
         return true;
     }
@@ -43,7 +54,12 @@ internal sealed class EditorGameMoneyAccount : IGameMoneyAccount
 
     public void Add(int amount, EconomyTransactionContext context)
     {
-        state.holdingMoney.Value += Mathf.Max(0, amount);
+        int gain = Mathf.Max(0, amount);
+        int before = Balance;
+        state.holdingMoney.Value = before + gain;
+        if (gain > 0)
+            transactionLedger?.RecordSuccess(
+                context, gain, before, state.holdingMoney.Value);
     }
 
     public void SetBalance(int amount, EconomyTransactionContext context)

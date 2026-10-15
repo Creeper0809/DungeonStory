@@ -10,7 +10,13 @@ public sealed class DungeonLegacyPersistenceMigration : IStartable
 
     public void Start()
     {
-        string destinationRoot = Application.persistentDataPath;
+        // An isolated test must not import a real player's legacy profile.
+        if (DungeonPersistencePaths.IsIsolatedVerification)
+        {
+            Debug.Log("Legacy persistence import excluded for isolated batch verification.");
+            return;
+        }
+        string destinationRoot = DungeonPersistencePaths.Root;
         string legacyRoot = GetLegacyRoot(destinationRoot);
         if (string.IsNullOrWhiteSpace(legacyRoot)
             || string.Equals(destinationRoot, legacyRoot, StringComparison.OrdinalIgnoreCase))

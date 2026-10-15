@@ -1,16 +1,21 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using VContainer.Unity;
 
 public enum CharacterProficiencyAwardKind
 {
     ApprovedWork = 1,
-    DirectExperience = 2
+    DirectExperience = 2,
+    CombatExperience = 3
 }
 
+#if UNITY_EDITOR
+// Detached legacy QA coordinator; current gameplay publishes domain facts.
 internal sealed class ObservedLifeEventOutcomeCoordinator
 {
     private readonly IMigratedProducerOutcomeTransaction transactions;
@@ -27,13 +32,12 @@ internal sealed class ObservedLifeEventOutcomeCoordinator
         out string failureReason)
     {
         ObservedFuneralLifeEventReceipt frozen = receipt;
-        return TryRecord(
+        return TryRecordDetailed(
             campaign,
             MigratedProducerOutcomeKind.ObservedFuneralLifeEventReceipt,
             frozen.SourceOperationId,
             frozen.AbsoluteDay,
-            FuneralSubject(frozen),
-            FuneralSummary(frozen),
+            FuneralDetails(frozen),
             () => campaign.RecordObservedFuneralLifeEvent(frozen),
             out stateChanged,
             out failureReason);
@@ -46,14 +50,31 @@ internal sealed class ObservedLifeEventOutcomeCoordinator
         out string failureReason)
     {
         ObservedLastLessonLifeEventReceipt frozen = receipt;
-        return TryRecord(
+        return TryRecordDetailed(
             campaign,
             MigratedProducerOutcomeKind.ObservedLastLessonLifeEventReceipt,
             frozen.SourceOperationId,
             frozen.AbsoluteDay,
-            LastLessonSubject(frozen),
-            LastLessonSummary(frozen),
+            LastLessonDetails(frozen),
             () => campaign.RecordObservedLastLessonLifeEvent(frozen),
+            out stateChanged,
+            out failureReason);
+    }
+
+    internal bool TryRecordProductionLoss(
+        V20CampaignRuntime campaign,
+        in ObservedProductionLossLifeEventReceipt receipt,
+        out bool stateChanged,
+        out string failureReason)
+    {
+        ObservedProductionLossLifeEventReceipt frozen = receipt;
+        return TryRecordDetailed(
+            campaign,
+            MigratedProducerOutcomeKind.ObservedProductionLossLifeEventReceipt,
+            frozen.SourceOperationId,
+            frozen.AbsoluteDay,
+            ProductionLossDetails(frozen),
+            () => campaign.RecordObservedProductionLossLifeEvent(frozen),
             out stateChanged,
             out failureReason);
     }
@@ -65,13 +86,12 @@ internal sealed class ObservedLifeEventOutcomeCoordinator
         out string failureReason)
     {
         ObservedQuietPromotionLifeEventReceipt frozen = receipt;
-        return TryRecord(
+        return TryRecordDetailed(
             campaign,
             MigratedProducerOutcomeKind.ObservedQuietPromotionLifeEventReceipt,
             frozen.SourceOperationId,
             frozen.AbsoluteDay,
-            QuietPromotionSubject(frozen),
-            QuietPromotionSummary(frozen),
+            QuietPromotionDetails(frozen),
             () => campaign.RecordObservedQuietPromotionLifeEvent(frozen),
             out stateChanged,
             out failureReason);
@@ -80,59 +100,90 @@ internal sealed class ObservedLifeEventOutcomeCoordinator
     internal bool TryReserveFuneral(
         in ObservedFuneralLifeEventReceipt receipt,
         out PreparedMigratedProducerOutcome prepared,
-        out string failureReason) => transactions.TryReserveSingleSubject(
+        out string failureReason)
+    {
+        MigratedProducerOutcomeDetails details = FuneralDetails(receipt);
+        return transactions.TryReserveDetailed(
         MigratedProducerOutcomeKind.ObservedFuneralLifeEventReceipt,
         receipt.SourceOperationId,
         receipt.AbsoluteDay,
         GameplayOutcomeStatus.Succeeded,
+        details,
         out prepared,
         out failureReason);
+    }
 
     internal MigratedProducerOutcomeCommitResult CommitFuneral(
         in PreparedMigratedProducerOutcome prepared,
         in ObservedFuneralLifeEventReceipt receipt) =>
-        transactions.CommitSingleSubject(
+        transactions.CommitDetailed(
             prepared,
-            FuneralSubject(receipt),
-            FuneralSummary(receipt));
+            FuneralDetails(receipt));
 
     internal bool TryReserveLastLesson(
         in ObservedLastLessonLifeEventReceipt receipt,
         out PreparedMigratedProducerOutcome prepared,
-        out string failureReason) => transactions.TryReserveSingleSubject(
+        out string failureReason)
+    {
+        MigratedProducerOutcomeDetails details = LastLessonDetails(receipt);
+        return transactions.TryReserveDetailed(
         MigratedProducerOutcomeKind.ObservedLastLessonLifeEventReceipt,
         receipt.SourceOperationId,
         receipt.AbsoluteDay,
         GameplayOutcomeStatus.Succeeded,
+        details,
         out prepared,
         out failureReason);
+    }
 
     internal MigratedProducerOutcomeCommitResult CommitLastLesson(
         in PreparedMigratedProducerOutcome prepared,
         in ObservedLastLessonLifeEventReceipt receipt) =>
-        transactions.CommitSingleSubject(
+        transactions.CommitDetailed(
             prepared,
-            LastLessonSubject(receipt),
-            LastLessonSummary(receipt));
+            LastLessonDetails(receipt));
+
+    internal bool TryReserveProductionLoss(
+        in ObservedProductionLossLifeEventReceipt receipt,
+        out PreparedMigratedProducerOutcome prepared,
+        out string failureReason)
+    {
+        MigratedProducerOutcomeDetails details = ProductionLossDetails(receipt);
+        return transactions.TryReserveDetailed(
+            MigratedProducerOutcomeKind.ObservedProductionLossLifeEventReceipt,
+            receipt.SourceOperationId,
+            receipt.AbsoluteDay,
+            GameplayOutcomeStatus.Succeeded,
+            details,
+            out prepared,
+            out failureReason);
+    }
+
+    internal MigratedProducerOutcomeCommitResult CommitProductionLoss(
+        in PreparedMigratedProducerOutcome prepared,
+        in ObservedProductionLossLifeEventReceipt receipt) =>
+        transactions.CommitDetailed(
+            prepared,
+            ProductionLossDetails(receipt));
 
     internal bool TryReserveQuietPromotion(
         in ObservedQuietPromotionLifeEventReceipt receipt,
         out PreparedMigratedProducerOutcome prepared,
-        out string failureReason) => transactions.TryReserveSingleSubject(
+        out string failureReason) => transactions.TryReserveDetailed(
         MigratedProducerOutcomeKind.ObservedQuietPromotionLifeEventReceipt,
         receipt.SourceOperationId,
         receipt.AbsoluteDay,
         GameplayOutcomeStatus.Succeeded,
+        QuietPromotionDetails(receipt),
         out prepared,
         out failureReason);
 
     internal MigratedProducerOutcomeCommitResult CommitQuietPromotion(
         in PreparedMigratedProducerOutcome prepared,
         in ObservedQuietPromotionLifeEventReceipt receipt) =>
-        transactions.CommitSingleSubject(
+        transactions.CommitDetailed(
             prepared,
-            QuietPromotionSubject(receipt),
-            QuietPromotionSummary(receipt));
+            QuietPromotionDetails(receipt));
 
     private bool TryRecord(
         V20CampaignRuntime campaign,
@@ -189,12 +240,105 @@ internal sealed class ObservedLifeEventOutcomeCoordinator
         }
     }
 
-    private static MigratedProducerOutcomeSubject FuneralSubject(
-        in ObservedFuneralLifeEventReceipt receipt) => new(
-        MigratedProducerOutcomeIds.CharacterKind,
-        receipt.DeceasedCharacterId.Value,
-        receipt.DeceasedCharacterId.Value,
-        MigratedProducerOutcomeIds.ActorRole);
+    private bool TryRecordDetailed(
+        V20CampaignRuntime campaign,
+        MigratedProducerOutcomeKind kind,
+        string operationId,
+        int absoluteDay,
+        in MigratedProducerOutcomeDetails details,
+        Func<ObservedLifeEventCommitResult> record,
+        out bool stateChanged,
+        out string failureReason)
+    {
+        if (campaign == null)
+            throw new ArgumentNullException(nameof(campaign));
+        stateChanged = false;
+        failureReason = string.Empty;
+        if (!transactions.TryReserveDetailed(
+                kind,
+                operationId,
+                absoluteDay,
+                GameplayOutcomeStatus.Succeeded,
+                details,
+                out PreparedMigratedProducerOutcome prepared,
+                out failureReason))
+        {
+            return false;
+        }
+
+        SocietyEventWorldSaveData before = campaign.CaptureSociety();
+        try
+        {
+            ObservedLifeEventCommitResult recorded = record();
+            stateChanged = recorded.StateChanged;
+            if (!stateChanged)
+            {
+                transactions.Cancel(prepared);
+                return true;
+            }
+            MigratedProducerOutcomeCommitResult committed =
+                transactions.CommitDetailed(prepared, details);
+            if (committed.DurablyCommitted)
+                return true;
+            campaign.PublishSociety(campaign.PrepareSociety(before));
+            stateChanged = false;
+            failureReason = "observed-life-event-outcome-commit-rejected:"
+                + committed.DetailCode;
+            return false;
+        }
+        catch
+        {
+            transactions.Cancel(prepared);
+            campaign.PublishSociety(campaign.PrepareSociety(before));
+            stateChanged = false;
+            throw;
+        }
+    }
+
+    private static MigratedProducerOutcomeDetails FuneralDetails(
+        in ObservedFuneralLifeEventReceipt receipt)
+    {
+        MigratedProducerOutcomeSubject[] subjects = new[]
+            {
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    receipt.DeceasedCharacterId.Value,
+                    receipt.DeceasedCharacterId.Value,
+                    MigratedProducerOutcomeIds.TargetRole),
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.FacilityKind,
+                    receipt.FacilityInstanceId,
+                    receipt.FacilityInstanceId,
+                    MigratedProducerOutcomeIds.FacilityRole)
+            }
+            .Concat(receipt.ParticipantCharacterIds.Select(value =>
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    value.Value,
+                    value.Value,
+                    MigratedProducerOutcomeIds.WitnessRole)))
+            .ToArray();
+        return new MigratedProducerOutcomeDetails(
+            subjects,
+            new[]
+            {
+                new GameplayOutcomeMetric(
+                    MigratedProducerOutcomeIds.CountMetric,
+                    receipt.ParticipantCharacterIds.Count,
+                    MigratedProducerOutcomeIds.CountUnit,
+                    subjects[0].EntityId)
+            },
+            new[]
+            {
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.FacilityFact,
+                    receipt.FacilityInstanceId),
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.DetailFact,
+                    "generation:" + receipt.Generation)
+            },
+            FuneralSummary(receipt));
+    }
 
     private static string FuneralSummary(
         in ObservedFuneralLifeEventReceipt receipt) =>
@@ -206,12 +350,159 @@ internal sealed class ObservedLifeEventOutcomeCoordinator
         + "; participants=" + string.Join(",",
             receipt.ParticipantCharacterIds.Select(value => value.Value));
 
-    private static MigratedProducerOutcomeSubject LastLessonSubject(
-        in ObservedLastLessonLifeEventReceipt receipt) => new(
-        MigratedProducerOutcomeIds.CharacterKind,
-        receipt.MentorCharacterId.Value,
-        receipt.MentorCharacterId.Value,
-        MigratedProducerOutcomeIds.ActorRole);
+    private static MigratedProducerOutcomeDetails LastLessonDetails(
+        in ObservedLastLessonLifeEventReceipt receipt)
+    {
+        var awardEntity = new GameplayEntityId(
+            MigratedProducerOutcomeIds.ItemKind,
+            receipt.AwardLedgerStackId);
+        return new MigratedProducerOutcomeDetails(
+            new[]
+            {
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    receipt.MentorCharacterId.Value,
+                    receipt.MentorCharacterId.Value,
+                    MigratedProducerOutcomeIds.ActorRole),
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    receipt.StudentCharacterId.Value,
+                    receipt.StudentCharacterId.Value,
+                    MigratedProducerOutcomeIds.TargetRole),
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.FacilityKind,
+                    receipt.AcademyBuildingId.Value,
+                    receipt.AcademyBuildingId.Value,
+                    MigratedProducerOutcomeIds.FacilityRole),
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.ItemKind,
+                    receipt.ProtectiveEquipmentInstanceId,
+                    receipt.ProtectiveEquipmentInstanceId,
+                    MigratedProducerOutcomeIds.ItemRole),
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.ItemKind,
+                    receipt.AwardLedgerStackId,
+                    receipt.AwardLedgerStackId,
+                    MigratedProducerOutcomeIds.DestinationRole)
+            },
+            new[]
+            {
+                new GameplayOutcomeMetric(
+                    MigratedProducerOutcomeIds.PreviousMetric,
+                    receipt.AwardBeforeContentRevision,
+                    MigratedProducerOutcomeIds.RevisionUnit,
+                    awardEntity),
+                new GameplayOutcomeMetric(
+                    MigratedProducerOutcomeIds.CurrentMetric,
+                    receipt.AwardAfterContentRevision,
+                    MigratedProducerOutcomeIds.RevisionUnit,
+                    awardEntity),
+                new GameplayOutcomeMetric(
+                    MigratedProducerOutcomeIds.DayMetric,
+                    receipt.RetirementDecisionAbsoluteDay,
+                    MigratedProducerOutcomeIds.DayUnit,
+                    awardEntity),
+                new GameplayOutcomeMetric(
+                    MigratedProducerOutcomeIds.DurationMetric,
+                    receipt.RetirementDueAbsoluteDay
+                        - receipt.RetirementDecisionAbsoluteDay,
+                    MigratedProducerOutcomeIds.DayUnit,
+                    awardEntity)
+            },
+            new[]
+            {
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.ProficiencyFact,
+                    receipt.ProficiencyId.Value),
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.RetirementEventFact,
+                    receipt.RetirementEventId),
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.RetirementChoiceFact,
+                    receipt.RetirementChoiceId),
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.EquipmentDefinitionFact,
+                    receipt.ProtectiveEquipmentDefinitionId)
+            },
+            LastLessonSummary(receipt));
+    }
+
+    private static MigratedProducerOutcomeDetails ProductionLossDetails(
+        in ObservedProductionLossLifeEventReceipt receipt)
+    {
+        var subjects = new List<MigratedProducerOutcomeSubject>
+        {
+            new(
+                MigratedProducerOutcomeIds.CharacterKind,
+                receipt.StudentCharacterId.Value,
+                receipt.StudentCharacterId.Value,
+                MigratedProducerOutcomeIds.ActorRole),
+            new(
+                MigratedProducerOutcomeIds.CharacterKind,
+                receipt.MentorCharacterId.Value,
+                receipt.MentorCharacterId.Value,
+                MigratedProducerOutcomeIds.WitnessRole),
+            new(
+                MigratedProducerOutcomeIds.FacilityKind,
+                receipt.FacilityId.Value,
+                receipt.FacilityId.Value,
+                MigratedProducerOutcomeIds.FacilityRole)
+        };
+        if (!receipt.AcademyBuildingId.Equals(receipt.FacilityId))
+        {
+            subjects.Add(new MigratedProducerOutcomeSubject(
+                MigratedProducerOutcomeIds.FacilityKind,
+                receipt.AcademyBuildingId.Value,
+                receipt.AcademyBuildingId.Value,
+                MigratedProducerOutcomeIds.SourceRole));
+        }
+
+        var facilityEntity = new GameplayEntityId(
+            MigratedProducerOutcomeIds.FacilityKind,
+            receipt.FacilityId.Value);
+        return new MigratedProducerOutcomeDetails(
+            subjects.ToArray(),
+            new[]
+            {
+                new GameplayOutcomeMetric(
+                    MigratedProducerOutcomeIds.MassMetric,
+                    receipt.DeclaredLossMassGrams,
+                    MigratedProducerOutcomeIds.GramUnit,
+                    facilityEntity)
+            },
+            new[]
+            {
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.RecipeFact,
+                    receipt.RecipeId),
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.BillFact,
+                    receipt.BillId.Value),
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.BatchFact,
+                    receipt.BatchCommitId),
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.FingerprintFact,
+                    receipt.OutcomeFingerprint),
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.ProficiencyFact,
+                    receipt.ProficiencyId.Value),
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.FacilityFact,
+                    receipt.AcademyBuildingId.Value)
+            },
+            "생산 손실 목격: student=" + receipt.StudentCharacterId.Value
+                + "; mentor=" + receipt.MentorCharacterId.Value
+                + "; facility=" + receipt.FacilityId.Value
+                + "; academy=" + receipt.AcademyBuildingId.Value
+                + "; bill=" + receipt.BillId.Value
+                + "; batch=" + receipt.BatchCommitId
+                + "; loss-grams=" + receipt.DeclaredLossMassGrams,
+            ProductionCompletionParentCausation.Capture(
+                receipt.ParentPublication,
+                receipt.BillId,
+                receipt.CycleSequence));
+    }
 
     private static string LastLessonSummary(
         in ObservedLastLessonLifeEventReceipt receipt) =>
@@ -226,12 +517,74 @@ internal sealed class ObservedLifeEventOutcomeCoordinator
         + "; day=" + receipt.AbsoluteDay
         + "; generation=" + receipt.Generation;
 
-    private static MigratedProducerOutcomeSubject QuietPromotionSubject(
-        in ObservedQuietPromotionLifeEventReceipt receipt) => new(
-        MigratedProducerOutcomeIds.CharacterKind,
-        receipt.CharacterId.Value,
-        receipt.CharacterId.Value,
-        MigratedProducerOutcomeIds.ActorRole);
+    private static MigratedProducerOutcomeDetails QuietPromotionDetails(
+        in ObservedQuietPromotionLifeEventReceipt receipt)
+    {
+        var characterEntity = new GameplayEntityId(
+            MigratedProducerOutcomeIds.CharacterKind,
+            receipt.CharacterId.Value);
+        return new MigratedProducerOutcomeDetails(
+            new[]
+            {
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    receipt.CharacterId.Value,
+                    receipt.CharacterId.Value,
+                    MigratedProducerOutcomeIds.ActorRole)
+            },
+            new[]
+            {
+                new GameplayOutcomeMetric(
+                    MigratedProducerOutcomeIds.CurrentExperienceBeforeMetric,
+                    receipt.BeforeCurrentMilliExperience,
+                    MigratedProducerOutcomeIds.MilliExperienceUnit,
+                    characterEntity),
+                new GameplayOutcomeMetric(
+                    MigratedProducerOutcomeIds.CurrentExperienceAfterMetric,
+                    receipt.AfterCurrentMilliExperience,
+                    MigratedProducerOutcomeIds.MilliExperienceUnit,
+                    characterEntity),
+                new GameplayOutcomeMetric(
+                    MigratedProducerOutcomeIds.LifetimeExperienceBeforeMetric,
+                    receipt.BeforeLifetimeMilliExperience,
+                    MigratedProducerOutcomeIds.MilliExperienceUnit,
+                    characterEntity),
+                new GameplayOutcomeMetric(
+                    MigratedProducerOutcomeIds.LifetimeExperienceAfterMetric,
+                    receipt.AfterLifetimeMilliExperience,
+                    MigratedProducerOutcomeIds.MilliExperienceUnit,
+                    characterEntity),
+                new GameplayOutcomeMetric(
+                    MigratedProducerOutcomeIds.RankBeforeMetric,
+                    (int)receipt.BeforeRank,
+                    MigratedProducerOutcomeIds.EnumUnit,
+                    characterEntity),
+                new GameplayOutcomeMetric(
+                    MigratedProducerOutcomeIds.RankAfterMetric,
+                    (int)receipt.AfterRank,
+                    MigratedProducerOutcomeIds.EnumUnit,
+                    characterEntity),
+                new GameplayOutcomeMetric(
+                    MigratedProducerOutcomeIds.AbsoluteHourMetric,
+                    receipt.AbsoluteHour,
+                    MigratedProducerOutcomeIds.HourUnit,
+                    characterEntity)
+            },
+            new[]
+            {
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.ProficiencyFact,
+                    receipt.ProficiencyId.Value),
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.AwardKindFact,
+                    ((int)receipt.AwardKind).ToString(
+                        CultureInfo.InvariantCulture)),
+                new GameplayOutcomeFact(
+                    MigratedProducerOutcomeIds.DetailFact,
+                    "generation:" + receipt.Generation)
+            },
+            QuietPromotionSummary(receipt));
+    }
 
     private static string QuietPromotionSummary(
         in ObservedQuietPromotionLifeEventReceipt receipt) =>
@@ -247,6 +600,8 @@ internal sealed class ObservedLifeEventOutcomeCoordinator
         + "; generation=" + receipt.Generation;
 }
 
+#endif
+
 public readonly struct CharacterProficiencyAwardCommitReceipt
 {
     public CharacterProficiencyAwardCommitReceipt(
@@ -257,7 +612,8 @@ public readonly struct CharacterProficiencyAwardCommitReceipt
         long afterCurrentMilliExperience,
         long beforeLifetimeMilliExperience,
         long afterLifetimeMilliExperience,
-        long absoluteHour)
+        long absoluteHour,
+        string causalSourceOperationId = null)
     {
         AwardKind = awardKind;
         CharacterId = characterId;
@@ -288,14 +644,22 @@ public readonly struct CharacterProficiencyAwardCommitReceipt
         {
             "proficiency-promotion",
             ((int)AwardKind).ToString(CultureInfo.InvariantCulture),
-            Encode(CharacterId.Value),
-            Encode(ProficiencyId.Value),
+            EncodeStableIdSegment(CharacterId.Value),
+            EncodeStableIdSegment(ProficiencyId.Value),
             BeforeCurrentMilliExperience.ToString(CultureInfo.InvariantCulture),
             AfterCurrentMilliExperience.ToString(CultureInfo.InvariantCulture),
             BeforeLifetimeMilliExperience.ToString(CultureInfo.InvariantCulture),
             AfterLifetimeMilliExperience.ToString(CultureInfo.InvariantCulture),
             AbsoluteHour.ToString(CultureInfo.InvariantCulture)
         });
+        string causalOperation = string.IsNullOrWhiteSpace(
+                causalSourceOperationId)
+            ? "proficiency-award-source:"
+                + NarrativeInferenceHash.ComputeSha256Utf8(SourceOperationId)
+                    .Substring(0, 32)
+            : causalSourceOperationId.Trim();
+        CausalSourceOperationId = new GameplayOperationId(
+            causalOperation).Value;
     }
 
     public CharacterProficiencyAwardKind AwardKind { get; }
@@ -309,6 +673,7 @@ public readonly struct CharacterProficiencyAwardCommitReceipt
     public CareerRank AfterRank { get; }
     public long AbsoluteHour { get; }
     public string SourceOperationId { get; }
+    public string CausalSourceOperationId { get; }
 
     private static CareerRank ResolveCareerRank(long milliExperience) =>
         CareerRules.ResolveRank(checked((int)Math.Min(
@@ -318,6 +683,12 @@ public readonly struct CharacterProficiencyAwardCommitReceipt
 
     private static string Encode(string value) => Convert.ToBase64String(
         Encoding.UTF8.GetBytes(value ?? string.Empty));
+
+    private static string EncodeStableIdSegment(string value) =>
+        Convert.ToBase64String(Encoding.UTF8.GetBytes(value ?? string.Empty))
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
 }
 
 public interface IObservedCareerLifeEventCommand
@@ -550,7 +921,7 @@ public sealed class ObservedProficiencyPromotionApplicationAdapter :
 
 internal readonly struct ObservedProductionLossLifeEventReceipt
 {
-    private const string PayloadVersion = "production-loss@1";
+    private const string PayloadVersion = "production-loss@3";
 
     internal ObservedProductionLossLifeEventReceipt(
         ProductionDeclaredLossCycleReceipt source,
@@ -591,6 +962,8 @@ internal readonly struct ObservedProductionLossLifeEventReceipt
             source.BatchCommitId,
             "production-loss batch commit");
         OutcomeFingerprint = RequireDigest(source.OutcomeFingerprint);
+        ParentPublication = RequireParentPublication(
+            source.ParentPublication);
         DeclaredLossMassGrams = source.DeclaredLossMassGrams;
         AbsoluteDay = absoluteDay;
         Generation = generation;
@@ -608,6 +981,7 @@ internal readonly struct ObservedProductionLossLifeEventReceipt
         CharacterProficiencyId proficiencyId,
         string batchCommitId,
         string outcomeFingerprint,
+        DomainFactDelivery parentPublication,
         long declaredLossMassGrams,
         int absoluteDay,
         int generation)
@@ -627,6 +1001,7 @@ internal readonly struct ObservedProductionLossLifeEventReceipt
             batchCommitId,
             "production-loss batch commit");
         OutcomeFingerprint = RequireDigest(outcomeFingerprint);
+        ParentPublication = RequireParentPublication(parentPublication);
         DeclaredLossMassGrams = declaredLossMassGrams;
         AbsoluteDay = absoluteDay;
         Generation = generation;
@@ -668,6 +1043,7 @@ internal readonly struct ObservedProductionLossLifeEventReceipt
     internal CharacterProficiencyId ProficiencyId { get; }
     internal string BatchCommitId { get; }
     internal string OutcomeFingerprint { get; }
+    internal DomainFactDelivery ParentPublication { get; }
     internal long DeclaredLossMassGrams { get; }
     internal int AbsoluteDay { get; }
     internal int Generation { get; }
@@ -685,6 +1061,9 @@ internal readonly struct ObservedProductionLossLifeEventReceipt
         Encode(ProficiencyId.Value),
         Encode(BatchCommitId),
         OutcomeFingerprint,
+        Encode(ParentPublication.OperationKey),
+        Encode(ParentPublication.PublicationId),
+        ParentPublication.Fingerprint,
         DeclaredLossMassGrams.ToString(CultureInfo.InvariantCulture),
         AbsoluteDay.ToString(CultureInfo.InvariantCulture),
         Generation.ToString(CultureInfo.InvariantCulture)
@@ -696,7 +1075,7 @@ internal readonly struct ObservedProductionLossLifeEventReceipt
     {
         receipt = default;
         string[] fields = (payload ?? string.Empty).Split('|');
-        if (fields.Length != 15
+        if (fields.Length != 18
             || !string.Equals(fields[0], PayloadVersion, StringComparison.Ordinal)
             || !TryDecode(fields[1], out string operationId)
             || !TryDecode(fields[2], out string billId)
@@ -709,11 +1088,13 @@ internal readonly struct ObservedProductionLossLifeEventReceipt
             || !TryDecode(fields[8], out string academyId)
             || !TryDecode(fields[9], out string proficiencyId)
             || !TryDecode(fields[10], out string batchCommitId)
-            || !long.TryParse(fields[12], NumberStyles.None,
+            || !TryDecode(fields[12], out string parentOperationKey)
+            || !TryDecode(fields[13], out string parentPublicationId)
+            || !long.TryParse(fields[15], NumberStyles.None,
                 CultureInfo.InvariantCulture, out long declaredLoss)
-            || !int.TryParse(fields[13], NumberStyles.None,
+            || !int.TryParse(fields[16], NumberStyles.None,
                 CultureInfo.InvariantCulture, out int day)
-            || !int.TryParse(fields[14], NumberStyles.None,
+            || !int.TryParse(fields[17], NumberStyles.None,
                 CultureInfo.InvariantCulture, out int generation))
         {
             return false;
@@ -733,6 +1114,12 @@ internal readonly struct ObservedProductionLossLifeEventReceipt
                 new CharacterProficiencyId(proficiencyId),
                 batchCommitId,
                 fields[11],
+                new DomainFactDelivery(
+                    DomainFactDeliveryPhase.AcceptedPendingDelivery,
+                    parentOperationKey,
+                    parentPublicationId,
+                    fields[14],
+                    string.Empty),
                 declaredLoss,
                 day,
                 generation);
@@ -763,6 +1150,41 @@ internal readonly struct ObservedProductionLossLifeEventReceipt
             || value.Any(character => !((character >= '0' && character <= '9')
                 || (character >= 'a' && character <= 'f'))))
             throw new ArgumentException("Production-loss outcome digest is invalid.");
+        return value;
+    }
+
+    private static DomainFactDelivery RequireParentPublication(
+        DomainFactDelivery value)
+    {
+        if (value.Phase is not DomainFactDeliveryPhase.Delivered
+            and not DomainFactDeliveryPhase.AcceptedPendingDelivery)
+        {
+            throw new ArgumentException(
+                "Production-loss parent publication phase is invalid.");
+        }
+        RequireOpaque(
+            value.OperationKey,
+            "production-loss parent operation key");
+        RequireOpaque(
+            value.PublicationId,
+            "production-loss parent publication ID");
+        RequireDigest(value.Fingerprint);
+        return new DomainFactDelivery(
+            value.Phase,
+            value.OperationKey,
+            value.PublicationId,
+            value.Fingerprint,
+            string.Empty);
+    }
+
+    private static string RequireOpaque(string value, string label)
+    {
+        if (!DomainFactValueSyntax.IsText(value, 4096, allowEmpty: false)
+            || !string.Equals(value, value.Trim(), StringComparison.Ordinal)
+            || value.Any(char.IsWhiteSpace))
+        {
+            throw new ArgumentException($"{label} must be canonical.");
+        }
         return value;
     }
 

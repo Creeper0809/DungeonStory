@@ -330,7 +330,8 @@ internal static class WimCommittedInvasionWarningScenario
                 scope.Container.Resolve<
                     InvasionSignalHornDurableEquipmentRuntime>(),
                 scope.Container.Resolve<ICharacterPerformanceQuery>(),
-                scope.Container.Resolve<IMigratedProducerOutcomeTransaction>());
+                scope.Container.Resolve<InvasionFactPublicationRuntime>(),
+                scope.Container.Resolve<IGameCalendar>());
             bool spawned = isolated.TrySpawnIntruder(snapshot, out CharacterActor actor);
             bool committedDetail = isolated.ActiveIntruders.Any(value =>
                 value != null && value.TryGetCommittedWarningProjection(out _));

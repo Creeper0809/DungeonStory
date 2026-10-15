@@ -373,6 +373,16 @@ public class AIBrain : CharacterAbility
     public long RuntimeCommittedPathSearchDeferralCount =>
         committedPathSearchDeferralCount;
     public bool IsActionScoringPending => candidateSelector?.IsPending == true;
+#if UNITY_EDITOR
+    public long CandidateResetCountForDiagnostics => candidateSelector?.ResetCountForDiagnostics ?? 0;
+    public long CandidatePendingResetCountForDiagnostics => candidateSelector?.PendingResetCountForDiagnostics ?? 0;
+    public string CandidateLastResetCallerForDiagnostics => candidateSelector?.LastResetCallerForDiagnostics ?? string.Empty;
+    public string CandidateLastPendingResetDetailForDiagnostics => candidateSelector?.LastPendingResetDetailForDiagnostics ?? string.Empty;
+    public string CandidatePendingDetailForDiagnostics => candidateSelector?.GetPendingDetailForDiagnostics(availableActions) ?? string.Empty;
+    public string LastImmediateReplanCallerForDiagnostics { get; private set; } = string.Empty;
+    public string PreferredActionTypeForDiagnostics => preferredNextActionSet?.GetType().Name ?? string.Empty;
+    public float PreferredActionUntilForDiagnostics => preferredNextActionUntil;
+#endif
     public bool IsPreferredActionDeferred =>
         preferredActionDeferredPending
         && preferredNextActionSet != null
@@ -813,6 +823,7 @@ public class AIBrain : CharacterAbility
 
     public bool DecideAction()
     {
+        if (externallyDrivenActionActive) return false;
         ReleaseFinishedActionReservation();
 
         if (actor != null && actor.CanRunAi)
@@ -871,10 +882,57 @@ public class AIBrain : CharacterAbility
 
     }
 
+    internal bool CanRestoreFacilityUse(FacilityUseExecutionState state) =>
+        state != null && CanRestoreBuildingUse(state.actionType, state.actionBranch);
+
+    internal bool CanRestoreShopUse(ShopUseExecutionState state) =>
+        state != null && CanRestoreBuildingUse(state.actionType, state.actionBranch);
+
+    private bool CanRestoreBuildingUse(string actionType, int actionBranch) =>
+        availableActions != null
+        && availableActions.Where(value => value?.actionset != null
+                && value.actionset.GetType().FullName == actionType
+                && (int)value.actionset.Branch == actionBranch)
+            .Select(value => value.actionset).Distinct().Count() == 1;
+
+    internal AIAction RestoreFacilityUseAction(Facility target, FacilityUseExecutionState state) =>
+        state == null ? throw new ArgumentNullException(nameof(state))
+            : RestoreBuildingUseAction(target, state.actionType, state.actionBranch);
+
+    internal AIAction RestoreShopUseAction(Shop target, ShopUseExecutionState state) =>
+        state == null ? throw new ArgumentNullException(nameof(state))
+            : RestoreBuildingUseAction(target, state.actionType, state.actionBranch);
+
+    private AIAction RestoreBuildingUseAction(BuildableObject target, string actionType, int actionBranch)
+    {
+        if (target == null || !CanRestoreBuildingUse(actionType, actionBranch)
+            || bestAction != null || manualCommandActive || externallyDrivenActionActive)
+            throw new InvalidOperationException("Cannot bind the saved facility execution to this actor.");
+        AIActionSet definition = availableActions.Where(value => value?.actionset != null
+                && value.actionset.GetType().FullName == actionType
+                && (int)value.actionset.Branch == actionBranch)
+            .Select(value => value.actionset).Distinct().Single();
+        var action = new AIAction(definition, AIActionPlan.AtDestination(target));
+        action.BindClock(gameClock);
+        SetSelectedAction(action, "시설 이용 재개");
+        isBestActionEnd = false;
+        lastActionFailure = AIActionFailure.None;
+        lastFailedActionSet = null;
+        actor.Blackboard?.Commit(action, currentActionDebugLabel);
+        NotifyActionStarted();
+        return action;
+    }
+
     public bool TryCommitActionCandidate(
         CharacterAiActionCandidate candidate,
         out AIActionFailure failure)
     {
+        if (externallyDrivenActionActive)
+        {
+            failure = AIActionFailure.Create(AIActionFailureKind.CannotStart,
+                $"Selected action cannot replace active external owner {externalIntentOwnerId} ({externalIntentEpoch}).");
+            return false;
+        }
         ReleaseFinishedActionReservation();
         if (!AIBrainCandidateCommitter.TryPrepareCommit(
             actor,
@@ -1127,11 +1185,11 @@ public class AIBrain : CharacterAbility
                 || (protectedRunningActionReplanCount
                     & (protectedRunningActionReplanCount - 1)) == 0)
             {
-                actor?.AddActivity(CharacterActivityEvent.InternalAi(
-                    CharacterActivityOutcomes.Changed,
+                PublishDiagnostic(
+                    CharacterAiDiagnosticTransition.RunningActionReplanDeferred,
                     "running-action-replan-deferred",
-                    "Destructive AI replan deferred while an action owns its lifecycle: "
-                    + lastProtectedRunningActionReplanDetail));
+                    lastProtectedRunningActionReplanDetail,
+                    protectedRunningActionReplanCount);
             }
 
             MarkDebugDirty();
@@ -1141,6 +1199,9 @@ public class AIBrain : CharacterAbility
         }
 
         immediateReplanCount++;
+#if UNITY_EDITOR
+        LastImmediateReplanCallerForDiagnostics = callerMember ?? string.Empty;
+#endif
 
         // Immediate replans are scheduler wake-ups, not an ownership override.
         // A protected system command (visitor/captive/wildlife hand-off, or an
@@ -1981,11 +2042,11 @@ public class AIBrain : CharacterAbility
             || (duplicateExecutionSuppressionCount
                 & (duplicateExecutionSuppressionCount - 1)) == 0)
         {
-            actor?.AddActivity(CharacterActivityEvent.InternalAi(
-                CharacterActivityOutcomes.Changed,
+            PublishDiagnostic(
+                CharacterAiDiagnosticTransition.DuplicateExecutionSuppressed,
                 "duplicate-execution-suppressed",
-                $"AI duplicate execution suppressed: action={actionLabel}; "
-                + $"count={duplicateExecutionSuppressionCount}"));
+                actionLabel,
+                duplicateExecutionSuppressionCount);
         }
 
         MarkDebugDirty();
@@ -2009,10 +2070,11 @@ public class AIBrain : CharacterAbility
         isBestActionEnd = true;
         isExecuted = false;
         RecordRuntimeTrace(CharacterAiRuntimeTraceKind.OrphanRecovery);
-        actor?.AddActivity(CharacterActivityEvent.InternalAi(
-            CharacterActivityOutcomes.Failed,
+        PublishDiagnostic(
+            CharacterAiDiagnosticTransition.OrphanWorkActionRecovered,
             "orphan-work-action-recovered",
-            $"AI work lifecycle recovered: {lastOrphanWorkActionRecoveryDetail}"));
+            lastOrphanWorkActionRecoveryDetail,
+            orphanWorkActionRecoveryCount);
         MarkDebugDirty();
         RequestImmediateDecision(
             "Orphaned Work action ended after coroutine ownership was released.");
@@ -2175,11 +2237,11 @@ public class AIBrain : CharacterAbility
             || (interactionActionReplacementCount
                 & (interactionActionReplacementCount - 1)) == 0)
         {
-            actor?.AddActivity(CharacterActivityEvent.InternalAi(
-                CharacterActivityOutcomes.Failed,
+            PublishDiagnostic(
+                CharacterAiDiagnosticTransition.InteractionActionReplaced,
                 "interaction-action-replaced",
-                "AI interaction ownership was replaced: "
-                + lastInteractionActionReplacementDetail));
+                lastInteractionActionReplacementDetail,
+                interactionActionReplacementCount);
         }
 
         MarkDebugDirty();
@@ -2365,10 +2427,10 @@ public class AIBrain : CharacterAbility
 
         if (!string.IsNullOrWhiteSpace(reason))
         {
-            actor?.AddActivity(CharacterActivityEvent.InternalAi(
-                CharacterActivityOutcomes.Changed,
+            PublishDiagnostic(
+                CharacterAiDiagnosticTransition.Replan,
                 "replan",
-                $"AI replan: {reason}"));
+                reason);
         }
 
         return true;
@@ -2625,10 +2687,10 @@ public class AIBrain : CharacterAbility
             lastActionFailure.ToString(),
             -0.25f);
         actor?.Blackboard?.ReportActionFailure(actionSet, lastActionFailure);
-        actor?.AddActivity(CharacterActivityEvent.InternalAi(
-            CharacterActivityOutcomes.Failed,
+        PublishDiagnostic(
+            CharacterAiDiagnosticTransition.ActionFailed,
             lastActionFailure.Kind.ToString(),
-            $"AI \uC2E4\uD328: {GetActionLabel(actionSet)} - {lastActionFailure}"));
+            $"{GetActionLabel(actionSet)} - {lastActionFailure}");
         MarkDebugDirty();
     }
     private void RecordNoActionFailure()
@@ -2641,10 +2703,10 @@ public class AIBrain : CharacterAbility
         TrackExecutionFailure(null, AIActionFailureKind.NoAction, isNoAction: true);
         currentActionDebugLabel = "\uB300\uAE30";
         actor?.Blackboard?.ReportActionFailure(null, lastActionFailure);
-        actor?.AddActivity(CharacterActivityEvent.InternalAi(
-            CharacterActivityOutcomes.Blocked,
+        PublishDiagnostic(
+            CharacterAiDiagnosticTransition.NoAction,
             "no-action",
-            "AI \uB300\uAE30: \uC2E4\uD589 \uAC00\uB2A5\uD55C \uD589\uB3D9 \uC5C6\uC74C"));
+            "\uC2E4\uD589 \uAC00\uB2A5\uD55C \uD589\uB3D9 \uC5C6\uC74C");
         MarkDebugDirty();
     }
     private static string GetActionLabel(AIActionSet actionSet)
@@ -2876,10 +2938,10 @@ public class AIBrain : CharacterAbility
                 lastActionFailure.Kind,
                 isNoAction: lastActionFailure.Kind == AIActionFailureKind.NoAction);
             actor?.Blackboard?.ReportActionFailure(null, lastActionFailure);
-            actor?.AddActivity(CharacterActivityEvent.InternalAi(
-                CharacterActivityOutcomes.Failed,
+            PublishDiagnostic(
+                CharacterAiDiagnosticTransition.ExecutionFailed,
                 lastActionFailure.Kind.ToString(),
-                $"AI execution failed: {lastActionFailure}"));
+                lastActionFailure.ToString());
             MarkDebugDirty();
         }
 
@@ -2887,6 +2949,26 @@ public class AIBrain : CharacterAbility
         {
             RequestImmediateReplan(clearFailures: false);
         }
+    }
+
+    internal void PublishDiagnostic(
+        CharacterAiDiagnosticTransition transition,
+        string reasonCode,
+        string detail,
+        long count = 0L)
+    {
+        CacheLocalReferences();
+        if (actor == null)
+        {
+            return;
+        }
+
+        actor.PublishAiDiagnostic(new CharacterAiDiagnosticEvent(
+            actor,
+            transition,
+            reasonCode,
+            detail,
+            count));
     }
 
     public CharacterOperationBlockSnapshot CaptureCurrentOperationBlock()

@@ -18,6 +18,7 @@ public sealed class CharacterSummaryPopulationPresenter
     private readonly IDiseaseDefinitionCatalog diseases;
     private readonly ICareerService careers;
     private readonly IReproductionService reproduction;
+    private readonly IFamilyPlanningPolicyCommand familyPlanning;
     private readonly IChildSafetyPolicy childSafety;
     private readonly IWorldHazardZoneQuery hazards;
     private readonly IEnvironmentalFireQuery fires;
@@ -27,6 +28,7 @@ public sealed class CharacterSummaryPopulationPresenter
     private TMP_Text summaryText;
     private Button globalPolicyButton;
     private Button characterPermissionButton;
+    private Button familyPlanningButton;
 
     public CharacterSummaryPopulationPresenter(
         ICharacterLifeQuery life,
@@ -35,6 +37,7 @@ public sealed class CharacterSummaryPopulationPresenter
         IDiseaseDefinitionCatalog diseases,
         ICareerService careers,
         IReproductionService reproduction,
+        IFamilyPlanningPolicyCommand familyPlanning,
         IChildSafetyPolicy childSafety,
         IWorldHazardZoneQuery hazards,
         IEnvironmentalFireQuery fires,
@@ -51,6 +54,8 @@ public sealed class CharacterSummaryPopulationPresenter
             ?? throw new ArgumentNullException(nameof(careers));
         this.reproduction = reproduction
             ?? throw new ArgumentNullException(nameof(reproduction));
+        this.familyPlanning = familyPlanning
+            ?? throw new ArgumentNullException(nameof(familyPlanning));
         this.childSafety = childSafety
             ?? throw new ArgumentNullException(nameof(childSafety));
         this.hazards = hazards ?? throw new ArgumentNullException(nameof(hazards));
@@ -66,11 +71,13 @@ public sealed class CharacterSummaryPopulationPresenter
     public void Bind(
         TMP_Text summary,
         Button globalPolicy,
-        Button characterPermission)
+        Button characterPermission,
+        Button familyPlanningPolicy)
     {
         summaryText = summary;
         globalPolicyButton = globalPolicy;
         characterPermissionButton = characterPermission;
+        familyPlanningButton = familyPlanningPolicy;
     }
 
     public void Refresh(CharacterActor actor)
@@ -86,6 +93,10 @@ public sealed class CharacterSummaryPopulationPresenter
                 characterPermissionButton,
                 false,
                 "개별 허용: 확인 불가");
+            SetButtonState(
+                familyPlanningButton,
+                false,
+                "가족계획: 확인 불가");
             return;
         }
 
@@ -120,6 +131,27 @@ public sealed class CharacterSummaryPopulationPresenter
         childSafety.SetCharacterApprenticeshipPermission(
             id,
             !childSafety.IsCharacterApprenticeshipPermitted(id));
+        Refresh(actor);
+    }
+
+    public void CycleFamilyPlanningPolicy(CharacterActor actor)
+    {
+        FamilyPlanningPolicy next = reproduction.FamilyPlanningPolicy switch
+        {
+            FamilyPlanningPolicy.Off => FamilyPlanningPolicy.Planned,
+            FamilyPlanningPolicy.Planned => FamilyPlanningPolicy.Allowed,
+            FamilyPlanningPolicy.Allowed => FamilyPlanningPolicy.Off,
+            _ => FamilyPlanningPolicy.Planned
+        };
+        if (!familyPlanning.TrySet(
+                next,
+                "character-summary-ui",
+                out DomainFailure failure))
+        {
+            Debug.LogWarning(
+                "Family-planning policy command rejected: "
+                + failure.Code);
+        }
         Refresh(actor);
     }
 
@@ -426,6 +458,11 @@ public sealed class CharacterSummaryPopulationPresenter
                     ? "이 캐릭터: 허용"
                     : "이 캐릭터: 금지"
                 : "청소년만 개별 허용");
+        SetButtonState(
+            familyPlanningButton,
+            true,
+            "가족계획: "
+                + FamilyPlanningLabel(reproduction.FamilyPlanningPolicy));
     }
 
     private static bool TryGetId(CharacterActor actor, out CharacterId id) =>

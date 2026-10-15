@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Characters;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 public enum CharacterPotentialGrade
@@ -51,7 +52,9 @@ public enum CharacterSkillPresentationState
     None = 0,
     PresentationPending = 1,
     Ready = 2,
-    AwaitingNarrativeRetry = 3
+    AwaitingNarrativeRetry = 3,
+    InvalidatedOwner = 4,
+    InvalidatedEvidence = 5
 }
 
 public enum CharacterSkillTrigger
@@ -252,6 +255,8 @@ public sealed class CharacterSkillInstance
     public NarrativeGenerationTrace narrativeTrace;
     [Tooltip("0 preserves legacy authored variant values. Positive versions require generated formula envelopes.")]
     public int formulaVersion;
+    public int prominencePolicyVersion;
+    public string primaryCapabilityId = string.Empty;
     public string formulaCatalogSha256 = string.Empty;
     [Min(0)] public int calculatedCost;
     [Min(0)] public int positiveCost;
@@ -314,6 +319,8 @@ public sealed class CharacterSkillInstance
             requestKey = requestKey,
             narrativeTrace = narrativeTrace,
             formulaVersion = formulaVersion,
+            prominencePolicyVersion = prominencePolicyVersion,
+            primaryCapabilityId = primaryCapabilityId,
             formulaCatalogSha256 = formulaCatalogSha256,
             calculatedCost = calculatedCost,
             positiveCost = positiveCost,
@@ -458,10 +465,15 @@ public static class CharacterSkillFormationRules
 [Serializable]
 public sealed class CharacterSkillDraft
 {
+    public bool IsInvalidated() => presentationState is
+        CharacterSkillPresentationState.InvalidatedOwner or CharacterSkillPresentationState.InvalidatedEvidence;
+
     public int unlockLevel;
     public CharacterSkillKind kind;
     public CharacterUltimateDomain requestedUltimateDomain;
     public string requestKey = string.Empty;
+    public CharacterNarrativeRequestOwnerBinding ownerBinding;
+    public string ownerInvalidationReason = string.Empty;
     public bool requestSubmitted;
     public bool isReady;
     public bool permanentlyChosen;
@@ -480,6 +492,10 @@ public sealed class CharacterSkillDraft
     public List<CharacterSkillModuleOfferState> moduleSelectionOffers =
         new List<CharacterSkillModuleOfferState>();
     public List<GameplayOutcomeEvidenceBindingSnapshot> outcomeEvidenceBindings = new();
+    public int requestContextVersion;
+    public string requestContextHash = string.Empty;
+    public CharacterSkillRequestContextSnapshot requestContext;
+    public string presentationCorrection = string.Empty;
 
     public CharacterSkillInstance ChosenSkill => permanentlyChosen
         && chosenIndex >= 0
@@ -487,6 +503,15 @@ public sealed class CharacterSkillDraft
         && chosenIndex < candidates.Count
             ? candidates[chosenIndex]
             : null;
+
+    public NarrativePublicContextMaterial RestoreRequestPublicContext()
+    {
+        if (requestContextVersion == 0 && string.IsNullOrEmpty(requestContextHash)
+            && requestContext?.Restore(this) == null) return null;
+        if (requestContextVersion != 1 || requestContext == null || requestContext.version != 1)
+            throw new InvalidOperationException("CharacterSkill request context is missing or has an invalid version.");
+        return requestContext.Restore(this);
+    }
 
     public CharacterSkillDraft Clone()
     {
@@ -496,6 +521,12 @@ public sealed class CharacterSkillDraft
             kind = kind,
             requestedUltimateDomain = requestedUltimateDomain,
             requestKey = requestKey,
+            requestContextVersion = requestContextVersion,
+            requestContextHash = requestContextHash,
+            requestContext = requestContext?.Clone(),
+            presentationCorrection = presentationCorrection,
+            ownerBinding = ownerBinding?.Clone(),
+            ownerInvalidationReason = ownerInvalidationReason,
             requestSubmitted = requestSubmitted,
             isReady = isReady,
             permanentlyChosen = permanentlyChosen,
@@ -523,6 +554,85 @@ public sealed class CharacterSkillDraft
                 ?? new List<GameplayOutcomeEvidenceBindingSnapshot>()
         };
     }
+}
+
+[Serializable]
+public sealed class CharacterSkillRequestContextSnapshot
+{
+    public int version;
+    public NarrativePublicContextMaterialSnapshot publicContext;
+    public string characterName = string.Empty;
+    public string origin = string.Empty;
+    public string species = string.Empty;
+    public string potential = string.Empty;
+
+    public CharacterSkillRequestContextSnapshot Clone()
+    {
+        var copy = (CharacterSkillRequestContextSnapshot)MemberwiseClone();
+        copy.publicContext = publicContext?.Clone();
+        return copy;
+    }
+
+    public static CharacterSkillRequestContextSnapshot Capture(
+        CharacterProgression progression, CharacterSkillDraft draft, NarrativePublicContextMaterial material)
+    {
+        var snapshot = new CharacterSkillRequestContextSnapshot
+        {
+            version = 1,
+            publicContext = material.CaptureSnapshot(),
+            characterName = progression.Actor?.Identity?.DisplayName,
+            origin = progression.GrowthState.origin ?? string.Empty,
+            species = progression.Actor?.SpeciesTag ?? string.Empty,
+            potential = CharacterSkillDisplay.Potential(progression.GrowthState.potentialGrade)
+        };
+        if (string.IsNullOrWhiteSpace(snapshot.characterName))
+            snapshot.characterName = progression.GrowthState.displayName ?? "인물";
+        if (string.IsNullOrWhiteSpace(snapshot.characterName))
+            throw new InvalidOperationException("CharacterSkill request context requires a nonblank character name.");
+        snapshot.ValidateOwner(material, draft);
+        return snapshot;
+    }
+
+    public NarrativePublicContextMaterial Restore(CharacterSkillDraft draft)
+    {
+        // Inline Unity JSON can instantiate a null nested DTO as an empty v0 object.
+        // Only a completely empty envelope is an old, uncaptured request.
+        if (version == 0 && string.IsNullOrEmpty(draft?.requestContextHash)
+            && string.IsNullOrEmpty(characterName) && string.IsNullOrEmpty(origin)
+            && string.IsNullOrEmpty(species) && string.IsNullOrEmpty(potential)
+            && (publicContext == null || string.IsNullOrEmpty(publicContext.semanticHash)
+                && string.IsNullOrEmpty(publicContext.profileId) && string.IsNullOrEmpty(publicContext.subjectId)
+                && string.IsNullOrEmpty(publicContext.cultureStyleId) && string.IsNullOrEmpty(publicContext.selectionPolicyId)
+                && !publicContext.requireCharacterFact && !publicContext.requireMotif
+                && publicContext.availableFactCount == 0 && publicContext.omittedFactCount == 0
+                && (publicContext.entities?.Count ?? 0) == 0 && (publicContext.publicFacts?.Count ?? 0) == 0
+                && (publicContext.events?.Count ?? 0) == 0 && (publicContext.motifs?.Count ?? 0) == 0
+                && (publicContext.backgroundFactIds?.Count ?? 0) == 0 && (publicContext.relationshipFactIds?.Count ?? 0) == 0
+                && (publicContext.memoryFactIds?.Count ?? 0) == 0 && (publicContext.priorHistoryFactIds?.Count ?? 0) == 0))
+            return null;
+        if (version != 1 || publicContext == null || draft?.ownerBinding == null
+            || string.IsNullOrWhiteSpace(characterName) || origin == null || species == null || potential == null
+            || !string.Equals(draft.requestContextHash, ComputeHash(draft.requestKey), StringComparison.Ordinal))
+            throw new InvalidOperationException("CharacterSkill frozen request context version, header or request binding is invalid.");
+        NarrativePublicContextMaterial material = NarrativePublicContextFactory.Restore(publicContext);
+        ValidateOwner(material, draft);
+        return material;
+    }
+
+    private void ValidateOwner(NarrativePublicContextMaterial material, CharacterSkillDraft draft)
+    {
+        if (material.ProfileId != LocalLlmRequestProfiles.CharacterSkill.Id
+            || material.SubjectKind != NarrativePublicSubjectKind.Character
+            || material.SubjectId != draft.ownerBinding.persistentId)
+            throw new InvalidOperationException("CharacterSkill frozen public context does not match its profile and owner.");
+    }
+
+    internal string ComputeHash(string requestKey) => NarrativeInferenceHash.ComputeSha256Utf8(
+        "skill-request-context-v1:" + string.Concat(new[]
+        {
+            requestKey, publicContext?.semanticHash, characterName, origin, species, potential
+        }.Select(value => (value ?? string.Empty).Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + ":" + (value ?? string.Empty))));
 }
 
 [Serializable]
@@ -584,6 +694,104 @@ public sealed class CharacterManualSkillBuffState
 }
 
 [Serializable]
+public enum CharacterSkillActivationKind
+{
+    None = 0,
+    ManualDungeon = 1,
+    ManualExpedition = 2,
+    AutomaticPassive = 3,
+    AutomaticUltimate = 4,
+    ManualCombatUltimate = 5
+}
+
+public static class CharacterSkillActivationIdentity
+{
+    public const string OperationPrefix = "skill-use:";
+
+    public static string OperationId(string sourceCharacterId, long revision)
+    {
+        if (!DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsIdentity(sourceCharacterId))
+            throw new ArgumentException("skill-activation-source-identity-invalid", nameof(sourceCharacterId));
+        string source = sourceCharacterId;
+        if (revision <= 0L)
+            throw new ArgumentOutOfRangeException(nameof(revision));
+        return OperationPrefix + source + ":" + revision;
+    }
+
+}
+
+[Serializable]
+public sealed class CharacterSkillActivationCommitState
+{
+    public long ownerRevision;
+    public string operationId = string.Empty;
+    public string resultKey = string.Empty;
+    public string canonicalPayloadHash = string.Empty;
+    public bool observationPending;
+    public CharacterSkillActivationKind activationKind;
+    public string skillId = string.Empty;
+    public string mechanicsSha256 = string.Empty;
+    public long absoluteHour;
+    public long expiresAbsoluteHour;
+    public int useCountBefore;
+    public int useCountAfter;
+    public long readyAbsoluteHourBefore;
+    public long readyAbsoluteHourAfter;
+    public List<string> recipientCharacterIds = new List<string>();
+    public string recipientStateSha256 = string.Empty;
+    public string triggerEventId = string.Empty;
+    public string triggerEventKeySha256 = string.Empty;
+    public CharacterUltimateDomain ultimateDomain;
+    public int triggerSerial = -1;
+
+    public CharacterSkillActivationCommitState Clone() => new()
+    {
+        ownerRevision = ownerRevision,
+        operationId = operationId,
+        resultKey = resultKey,
+        canonicalPayloadHash = canonicalPayloadHash,
+        observationPending = observationPending,
+        activationKind = activationKind,
+        skillId = skillId,
+        mechanicsSha256 = mechanicsSha256,
+        absoluteHour = absoluteHour,
+        expiresAbsoluteHour = expiresAbsoluteHour,
+        useCountBefore = useCountBefore,
+        useCountAfter = useCountAfter,
+        readyAbsoluteHourBefore = readyAbsoluteHourBefore,
+        readyAbsoluteHourAfter = readyAbsoluteHourAfter,
+        recipientCharacterIds = recipientCharacterIds?.ToList()
+            ?? new List<string>(),
+        recipientStateSha256 = recipientStateSha256,
+        triggerEventId = triggerEventId,
+        triggerEventKeySha256 = triggerEventKeySha256,
+        ultimateDomain = ultimateDomain,
+        triggerSerial = triggerSerial
+    };
+}
+
+[Serializable]
+public sealed class CharacterAutomaticSkillActivationState
+{
+    public string eventKeySha256 = string.Empty;
+    public string eventId = string.Empty;
+    public string skillId = string.Empty;
+    public CharacterSkillActivationKind activationKind;
+    public long ownerRevision;
+    public int useCount;
+
+    public CharacterAutomaticSkillActivationState Clone() => new()
+    {
+        eventKeySha256 = eventKeySha256,
+        eventId = eventId,
+        skillId = skillId,
+        activationKind = activationKind,
+        ownerRevision = ownerRevision,
+        useCount = useCount
+    };
+}
+
+[Serializable]
 public sealed class CharacterSkillUseLimitState
 {
     public int offenseBattleSerial = -1;
@@ -591,6 +799,10 @@ public sealed class CharacterSkillUseLimitState
     public int managementOperatingDay = -1;
     public List<CharacterManualSkillCooldownState> manualSkillCooldowns = new List<CharacterManualSkillCooldownState>();
     public List<CharacterManualSkillBuffState> manualSkillBuffs = new List<CharacterManualSkillBuffState>();
+    public List<CharacterAutomaticSkillActivationState> automaticSkillActivations =
+        new List<CharacterAutomaticSkillActivationState>();
+    public long activationSequence;
+    public CharacterSkillActivationCommitState lastSkillActivation;
 
     public bool CanUse(CharacterUltimateDomain domain, int serial)
     {
@@ -631,9 +843,189 @@ public sealed class CharacterSkillUseLimitState
                 .Where(value => value != null).Select(value => value.Clone()).ToList(),
             manualSkillBuffs = (manualSkillBuffs
                 ?? new List<CharacterManualSkillBuffState>())
-                .Where(value => value != null).Select(value => value.Clone()).ToList()
+                .Where(value => value != null).Select(value => value.Clone()).ToList(),
+            automaticSkillActivations = (automaticSkillActivations
+                ?? new List<CharacterAutomaticSkillActivationState>())
+                .Where(value => value != null)
+                .Select(value => value.Clone())
+                .ToList(),
+            activationSequence = activationSequence,
+            lastSkillActivation = lastSkillActivation?.Clone()
         };
     }
+
+    public void ValidatePersistentState(
+        string sourceCharacterId,
+        IEnumerable<CharacterSkillInstance> availableSkills)
+    {
+        if (activationSequence < 0L
+            || manualSkillCooldowns == null
+            || manualSkillBuffs == null
+            || automaticSkillActivations == null
+            || manualSkillCooldowns.Any(value => value == null
+                || string.IsNullOrWhiteSpace(value.skillId)
+                || value.readyAbsoluteHour < 0L
+                || value.useCount < 0)
+            || manualSkillCooldowns
+                .Where(value => value != null)
+                .Select(value => value.skillId)
+                .Distinct(StringComparer.Ordinal).Count()
+                != manualSkillCooldowns.Count
+            || manualSkillBuffs.Any(value => value == null
+                || string.IsNullOrWhiteSpace(value.sourceCharacterId)
+                || string.IsNullOrWhiteSpace(value.skillId)
+                || value.expiresAbsoluteHour < 0L
+                || value.frozenSkill == null)
+            || automaticSkillActivations.Any(value => value == null
+                || !IsSha256(value.eventKeySha256)
+                || !DomainFactValueSyntax.IsText(
+                    value.eventId,
+                    CharacterSkillActivationFact.MaximumStateCharacters,
+                    allowEmpty: false)
+                || !DomainFactValueSyntax.IsIdentity(value.skillId)
+                || value.activationKind is not
+                    (CharacterSkillActivationKind.AutomaticPassive
+                     or CharacterSkillActivationKind.AutomaticUltimate
+                     or CharacterSkillActivationKind.ManualCombatUltimate)
+                || value.ownerRevision <= 0L
+                || value.ownerRevision > activationSequence
+                || value.useCount <= 0)
+            || automaticSkillActivations.Select(value => value.eventKeySha256)
+                .Distinct(StringComparer.Ordinal).Count()
+                != automaticSkillActivations.Count
+            || automaticSkillActivations.Select(value => value.ownerRevision)
+                .Distinct().Count() != automaticSkillActivations.Count)
+        {
+            throw new InvalidOperationException(
+                "Character skill use-limit state is invalid.");
+        }
+
+        if (activationSequence == 0L)
+        {
+            if (lastSkillActivation != null
+                && (!string.IsNullOrEmpty(lastSkillActivation.operationId)
+                    || lastSkillActivation.ownerRevision != 0L))
+            {
+                throw new InvalidOperationException(
+                    "Character skill activation owner exists without a sequence.");
+            }
+            return;
+        }
+
+        CharacterSkillActivationCommitState committed = lastSkillActivation
+            ?? throw new InvalidOperationException(
+                "Character skill activation owner is missing.");
+        CharacterSkillInstance[] matchingSkills = (availableSkills
+                ?? throw new ArgumentNullException(nameof(availableSkills)))
+            .Where(value => value != null
+                && string.Equals(
+                    value.id,
+                    committed.skillId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        bool mechanicsCanonical = matchingSkills.Length == 1
+            && string.Equals(
+                CharacterSkillActivationTransaction
+                    .ComputeMechanicsSha256(matchingSkills[0]),
+                committed.mechanicsSha256,
+                StringComparison.Ordinal);
+        string expectedOperation = CharacterSkillActivationIdentity
+            .OperationId(sourceCharacterId, activationSequence);
+        string[] recipients = (committed.recipientCharacterIds
+                ?? new List<string>())
+            .ToArray();
+        bool recipientsCanonical = recipients.Length > 0
+            && recipients.All(DomainFactValueSyntax.IsIdentity)
+            && recipients.SequenceEqual(
+                recipients.OrderBy(value => value, StringComparer.Ordinal),
+                StringComparer.Ordinal)
+            && recipients.Distinct(StringComparer.Ordinal).Count()
+                == recipients.Length;
+        bool eventBound = committed.activationKind is
+            CharacterSkillActivationKind.AutomaticPassive
+            or CharacterSkillActivationKind.AutomaticUltimate
+            or CharacterSkillActivationKind.ManualCombatUltimate;
+        CharacterAutomaticSkillActivationState automaticState = eventBound
+            ? automaticSkillActivations.SingleOrDefault(value => value != null
+                && string.Equals(
+                    value.eventKeySha256,
+                    committed.triggerEventKeySha256,
+                    StringComparison.Ordinal))
+            : null;
+        bool eventBoundContract = !eventBound
+            ? string.IsNullOrEmpty(committed.triggerEventId)
+                && string.IsNullOrEmpty(committed.triggerEventKeySha256)
+            : automaticState != null
+                && automaticState.ownerRevision == activationSequence
+                && automaticState.useCount == committed.useCountAfter
+                && string.Equals(
+                    automaticState.eventId,
+                    committed.triggerEventId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    automaticState.skillId,
+                    committed.skillId,
+                    StringComparison.Ordinal)
+                && automaticState.activationKind == committed.activationKind
+                && IsSha256(committed.triggerEventKeySha256)
+                && DomainFactValueSyntax.IsText(
+                    committed.triggerEventId,
+                    CharacterSkillActivationFact.MaximumStateCharacters,
+                    allowEmpty: false)
+                && (committed.activationKind
+                        == CharacterSkillActivationKind.AutomaticPassive
+                    ? committed.ultimateDomain
+                        == CharacterUltimateDomain.None
+                        && committed.triggerSerial == -1
+                    : committed.ultimateDomain
+                        != CharacterUltimateDomain.None
+                        && Enum.IsDefined(
+                            typeof(CharacterUltimateDomain),
+                            committed.ultimateDomain)
+                        && committed.triggerSerial >= 0);
+        if (committed.ownerRevision != activationSequence
+            || committed.observationPending && committed.canonicalPayloadHash != string.Empty
+            || !string.Equals(
+                committed.operationId,
+                expectedOperation,
+                StringComparison.Ordinal)
+            || !DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(committed.resultKey, 1024, false)
+            || !Enum.IsDefined(
+                typeof(CharacterSkillActivationKind),
+                committed.activationKind)
+            || committed.activationKind == CharacterSkillActivationKind.None
+            || !DomainFactValueSyntax.IsIdentity(committed.skillId)
+            || !IsSha256(committed.mechanicsSha256)
+            || !mechanicsCanonical
+            || committed.absoluteHour < 0L
+            || committed.expiresAbsoluteHour < committed.absoluteHour
+            || committed.useCountBefore < 0
+            || committed.useCountAfter != committed.useCountBefore + 1
+            || (!eventBound
+                && (committed.readyAbsoluteHourBefore < 0L
+                    || committed.readyAbsoluteHourAfter
+                        < committed.absoluteHour))
+            || (eventBound
+                && (committed.readyAbsoluteHourBefore != 0L
+                    || committed.readyAbsoluteHourAfter != 0L))
+            || !recipientsCanonical
+            || !IsSha256(committed.recipientStateSha256)
+            || committed.canonicalPayloadHash.Length > 0
+                && !IsSha256(committed.canonicalPayloadHash)
+            || !eventBoundContract)
+        {
+            throw new InvalidOperationException(
+                "Character skill activation owner is incoherent.");
+        }
+    }
+
+    private static bool IsSha256(string value) =>
+        value != null
+        && value.Length == 64
+        && value.All(character =>
+            character is >= '0' and <= '9'
+                or >= 'a' and <= 'f'
+                or >= 'A' and <= 'F');
 }
 
 public enum CharacterTraitSelectionAuthorityOrigin
@@ -670,6 +1062,7 @@ public sealed class CharacterGrowthState
     public CharacterSkillUseLimitState useLimits = new CharacterSkillUseLimitState();
     public bool nextActiveDraftHasPity;
     public int skillGenerationRevision;
+    public long skillAcquisitionRevision;
 
     public void EnsureCollections()
     {
@@ -722,7 +1115,8 @@ public sealed class CharacterGrowthState
             pendingRequestKeys = pendingRequestKeys.ToList(),
             useLimits = useLimits.Clone(),
             nextActiveDraftHasPity = nextActiveDraftHasPity,
-            skillGenerationRevision = skillGenerationRevision
+            skillGenerationRevision = skillGenerationRevision,
+            skillAcquisitionRevision = skillAcquisitionRevision
         };
     }
 }
@@ -797,11 +1191,20 @@ public sealed class CharacterNarrativeFact
     public string relationshipKey = string.Empty;
     [Min(0f)] public float importancePoints = 1f;
     public GameplayNarrativeEventContext lastEventContext = new GameplayNarrativeEventContext();
+    // One entry per occurrence. Empty means the producer supplied no event ID;
+    // it is not reconstructed from the last known event or a causal chain.
+    public List<string> sourceEventIds = new List<string>();
+
+    public bool HasCompleteSourceEventIds => sourceEventIds != null
+        && sourceEventIds.Count == count
+        && sourceEventIds.All(value => value != null
+            && string.Equals(value, value.Trim(), StringComparison.Ordinal));
 
     public CharacterNarrativeFact Clone()
     {
         CharacterNarrativeFact clone = (CharacterNarrativeFact)MemberwiseClone();
         clone.lastEventContext = lastEventContext?.Clone() ?? new GameplayNarrativeEventContext();
+        clone.sourceEventIds = sourceEventIds == null ? null : new List<string>(sourceEventIds);
         return clone;
     }
 }
@@ -893,7 +1296,12 @@ public sealed class CharacterNarrativeLedger
                 $"Narrative fact '{normalizedFactId}' cannot change its formula evidence metadata.");
         }
 
-        fact.count++;
+        if (fact.sourceEventIds == null || fact.sourceEventIds.Count != fact.count)
+            throw new InvalidOperationException(
+                $"Narrative fact '{normalizedFactId}' has incomplete source occurrence identities.");
+        int nextCount = checked(fact.count + 1);
+        fact.sourceEventIds.Add(eventContext?.eventInstanceId?.Trim() ?? string.Empty);
+        fact.count = nextCount;
         fact.totalValue += value;
         fact.lastDay = Mathf.Max(fact.lastDay, day);
         fact.outcome = outcome?.Trim() ?? string.Empty;
@@ -938,6 +1346,56 @@ public sealed class CharacterNarrativeLedger
 }
 
 [Serializable]
+public enum CharacterVisitorExitPhase
+{
+    None = 0,
+    ExitPending = 1,
+    TheftCommitted = 2,
+    Departed = 3,
+    ExitFailed = 4
+}
+
+[Serializable]
+public sealed class CharacterVisitorExitOperationSaveData
+{
+    public string operationId = string.Empty;
+    public long ownerRevision;
+    public CharacterVisitorExitPhase phase;
+    public string sourceMacro = string.Empty;
+    public int absoluteDay;
+    public CharacterLifecycleState lifecycleBefore;
+    public bool visitingBefore;
+    public int visitCountBefore;
+    public int equipmentCountBefore;
+    public string theftPublicationKey = string.Empty;
+    public string departurePublicationKey = string.Empty;
+    public string terminalKind = string.Empty;
+    public string failureReason = string.Empty;
+
+    public bool IsActive => !string.IsNullOrWhiteSpace(operationId)
+        && ownerRevision > 0L
+        && phase is CharacterVisitorExitPhase.ExitPending
+            or CharacterVisitorExitPhase.TheftCommitted;
+
+    public CharacterVisitorExitOperationSaveData Clone() => new()
+    {
+        operationId = operationId,
+        ownerRevision = ownerRevision,
+        phase = phase,
+        sourceMacro = sourceMacro,
+        absoluteDay = absoluteDay,
+        lifecycleBefore = lifecycleBefore,
+        visitingBefore = visitingBefore,
+        visitCountBefore = visitCountBefore,
+        equipmentCountBefore = equipmentCountBefore,
+        theftPublicationKey = theftPublicationKey,
+        departurePublicationKey = departurePublicationKey,
+        terminalKind = terminalKind,
+        failureReason = failureReason
+    };
+}
+
+[Serializable]
 public sealed class WorldCharacterProfile : ICharacterPopulationProfileState
 {
     public string persistentId = string.Empty;
@@ -957,6 +1415,9 @@ public sealed class WorldCharacterProfile : ICharacterPopulationProfileState
     public CharacterNarrativeLedger narrative = new CharacterNarrativeLedger();
     public CharacterAcquiredTraitAggregateState acquiredTraits =
         new CharacterAcquiredTraitAggregateState();
+    public long nextVisitorExitSequence = 1L;
+    public CharacterVisitorExitOperationSaveData visitorExitOperation =
+        new CharacterVisitorExitOperationSaveData();
 
     public bool IsReady => growth != null
         && growth.activeSkills != null
@@ -1040,6 +1501,9 @@ public sealed class WorldCharacterProfile : ICharacterPopulationProfileState
             currentExperience = currentExperience,
             growth = growth?.Clone() ?? new CharacterGrowthState(),
             narrative = narrative?.Clone() ?? new CharacterNarrativeLedger(),
+            nextVisitorExitSequence = Math.Max(1L, nextVisitorExitSequence),
+            visitorExitOperation = visitorExitOperation?.Clone()
+                ?? new CharacterVisitorExitOperationSaveData(),
             acquiredTraits = (acquiredTraits
                 ?? throw new InvalidOperationException(
                     $"World profile '{persistentId}' has no current acquired-trait state."))

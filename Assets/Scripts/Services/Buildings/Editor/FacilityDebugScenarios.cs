@@ -528,8 +528,8 @@ public static class FacilityDebugScenarios
                 new BuildingVisitEventPublisher(
                     CharacterAiEditorTestDependencies.GameEvents,
                     new FixedGameSessionStateProvider(),
-                    new MigratedProducerOutcomeEditorFixture(
-                        "run:facility-debug-visits").Transaction),
+                    CharacterAiEditorTestDependencies.FacilityUseFacts,
+                    CharacterAiEditorTestDependencies.FacilityUseFacts),
                 new BuildingInfoPresentationAdapter(
                     CharacterAiEditorTestDependencies.GameEvents));
             if (building is Facility facility)

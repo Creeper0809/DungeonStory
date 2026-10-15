@@ -719,6 +719,24 @@ public interface ICharacterProficiencyCommand
         float learningMultiplier,
         float repetitionMultiplier,
         long absoluteHour);
+    long AddApprovedWork(
+        CharacterId characterId,
+        ProficiencyWorkProfile profile,
+        float approvedWork,
+        float difficultyMultiplier,
+        ProficiencyWorkOutcome outcome,
+        float learningMultiplier,
+        float repetitionMultiplier,
+        long absoluteHour,
+        string sourceOperationId) => AddApprovedWork(
+            characterId,
+            profile,
+            approvedWork,
+            difficultyMultiplier,
+            outcome,
+            learningMultiplier,
+            repetitionMultiplier,
+            absoluteHour);
     long AddDirectExperience(
         CharacterId characterId,
         CharacterProficiencyId proficiencyId,

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -137,12 +138,29 @@ public interface IPopulationHealthMutationTransaction
     void RestoreMutation(in PopulationHealthMutationSnapshot snapshot);
 }
 
+public interface IDiseaseAnatomyBurdenProjectionStore
+{
+    IReadOnlyList<DiseaseAnatomyBurdenProjectionSaveData>
+        PendingAnatomyBurdenProjections { get; }
+    void RecordAnatomyBurdenApplied(
+        string operationId,
+        string nodeId,
+        float infectionBefore,
+        float infectionAfter,
+        string characterDisplayName);
+    void RecordAnatomyBurdenPublication(string operationId, string publicationKey);
+    void ResetAnatomyBurdenProjection(string operationId);
+    void RecordAnatomyBurdenFailure(string operationId, string failureCode);
+    void CompleteAnatomyBurdenProjection(string operationId);
+}
+
 public sealed class PopulationHealthRuntime :
     IPopulationHealthService,
     IPopulationHealthQuery,
     IDiseaseSymptomEffectQuery,
     IPopulationHealthPersistence,
-    IPopulationHealthMutationTransaction
+    IPopulationHealthMutationTransaction,
+    IDiseaseAnatomyBurdenProjectionStore
 {
     private const string InfectionRandomStreamId = "population:infection";
     private readonly DungeonRuntimeAggregateRootStore rootStore;
@@ -168,6 +186,12 @@ public sealed class PopulationHealthRuntime :
     }
 
     public int Version => version;
+    public long ExposureRevision => Current.ExposureRevision;
+    public IReadOnlyList<PopulationDiseaseExposurePendingFactSaveData>
+        PendingExposureFacts => Current.PendingExposureFacts;
+    public IReadOnlyList<DiseaseAnatomyBurdenProjectionSaveData>
+        PendingAnatomyBurdenProjections =>
+        Current.PendingAnatomyBurdenProjections;
 
     public void RecordExposure(
         string diseaseId,
@@ -175,14 +199,9 @@ public sealed class PopulationHealthRuntime :
         float exposureHours,
         float environmentCoefficient)
     {
-        DiseaseDefinition disease = definitions.Require(diseaseId);
-        PopulationExposureTarget[] resolvedTargets = (targets
-                ?? Array.Empty<PopulationExposureTarget>())
-            .Select(target => new PopulationExposureTarget(
-                target.CharacterId,
-                target.Susceptibility
-                * modifiers.Resolve(target.CharacterId, disease).Susceptibility))
-            .ToArray();
+        PopulationExposureTarget[] resolvedTargets = ResolveExposureTargets(
+            diseaseId,
+            targets);
         Writable.RecordExposure(
             diseaseId,
             resolvedTargets,
@@ -192,15 +211,99 @@ public sealed class PopulationHealthRuntime :
         version = unchecked(version + 1);
     }
 
+    public void RecordExposureWithPendingFact(
+        string diseaseId,
+        IReadOnlyList<PopulationExposureTarget> targets,
+        float exposureHours,
+        float environmentCoefficient,
+        PopulationDiseaseExposurePendingFactSaveData pendingFact)
+    {
+        PopulationExposureTarget[] resolvedTargets = ResolveExposureTargets(
+            diseaseId,
+            targets);
+        PopulationHealthAggregateState state = Writable;
+        state.RecordExposure(
+            diseaseId,
+            resolvedTargets,
+            exposureHours,
+            environmentCoefficient,
+            definitions);
+        state.StagePendingExposureFact(pendingFact, definitions);
+        version = unchecked(version + 1);
+    }
+
+    public void CompletePendingExposureFact(long ownerRevision) =>
+        Writable.CompletePendingExposureFact(ownerRevision);
+
+    private PopulationExposureTarget[] ResolveExposureTargets(
+        string diseaseId,
+        IReadOnlyList<PopulationExposureTarget> targets)
+    {
+        DiseaseDefinition disease = definitions.Require(diseaseId);
+        return (targets ?? Array.Empty<PopulationExposureTarget>())
+            .Select(target => new PopulationExposureTarget(
+                target.CharacterId,
+                target.Susceptibility
+                * modifiers.Resolve(target.CharacterId, disease).Susceptibility))
+            .ToArray();
+    }
+
     public IReadOnlyList<PopulationHealthChange> AdvanceToDay(int absoluteDay)
     {
-        IReadOnlyList<PopulationHealthChange> changes = Writable.AdvanceToDay(
+        PopulationHealthAggregateState state = Writable;
+        IReadOnlyList<PopulationHealthChange> changes = state.AdvanceToDay(
             absoluteDay,
             definitions,
             () => random.NextFloat(),
             modifiers.Resolve);
+        foreach (PopulationHealthChange change in changes.Where(value =>
+                     value.Kind == PopulationHealthChangeKind.DailyBodyBurden))
+        {
+            DiseaseDefinition disease = definitions.Require(change.DiseaseId);
+            float dailyBurden = change.Severity
+                / Math.Max(1, disease.Chronic ? 30 : disease.ContagiousDays);
+            state.EnqueueAnatomyBurdenProjection(change, dailyBurden);
+        }
         version = unchecked(version + 1);
         return changes;
+    }
+
+    public void RecordAnatomyBurdenApplied(
+        string operationId,
+        string nodeId,
+        float infectionBefore,
+        float infectionAfter,
+        string characterDisplayName)
+    {
+        Writable.RecordAnatomyBurdenApplied(
+            operationId, nodeId, infectionBefore, infectionAfter, characterDisplayName);
+        version = unchecked(version + 1);
+    }
+
+    public void ResetAnatomyBurdenProjection(string operationId)
+    {
+        Writable.ResetAnatomyBurdenProjection(operationId);
+        version = unchecked(version + 1);
+    }
+
+    public void RecordAnatomyBurdenPublication(string operationId, string publicationKey)
+    {
+        Writable.RecordAnatomyBurdenPublication(operationId, publicationKey);
+        version = unchecked(version + 1);
+    }
+
+    public void RecordAnatomyBurdenFailure(
+        string operationId,
+        string failureCode)
+    {
+        Writable.RecordAnatomyBurdenFailure(operationId, failureCode);
+        version = unchecked(version + 1);
+    }
+
+    public void CompleteAnatomyBurdenProjection(string operationId)
+    {
+        Writable.CompleteAnatomyBurdenProjection(operationId);
+        version = unchecked(version + 1);
     }
 
     public void Vaccinate(CharacterId characterId, string diseaseId)
@@ -346,8 +449,9 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
     private readonly IGameEventBus events;
     private readonly IDiseaseSymptomEffectQuery symptoms;
     private readonly IPopulationHealthMutationTransaction healthTransaction;
-    private readonly IEnvironmentGameplayOutcomeCommitter outcomeCommitter;
+    private readonly IDomainFactPublisher factPublisher;
     private readonly IGameCalendar calendar;
+    private readonly IDiseaseAnatomyBurdenProjectionCommand anatomyBurdenProjection;
     private IDisposable dayEndedSubscription;
     private IDisposable mealConsumedSubscription;
     private IDisposable waterConsumedSubscription;
@@ -367,8 +471,9 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
         IGameEventBus events,
         IDiseaseSymptomEffectQuery symptoms,
         IPopulationHealthMutationTransaction healthTransaction,
-        IEnvironmentGameplayOutcomeCommitter outcomeCommitter,
-        IGameCalendar calendar)
+        IDomainFactPublisher factPublisher,
+        IGameCalendar calendar,
+        IDiseaseAnatomyBurdenProjectionCommand anatomyBurdenProjection = null)
     {
         this.health = health ?? throw new ArgumentNullException(nameof(health));
         this.definitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
@@ -382,13 +487,15 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
         this.symptoms = symptoms ?? throw new ArgumentNullException(nameof(symptoms));
         this.healthTransaction = healthTransaction
             ?? throw new ArgumentNullException(nameof(healthTransaction));
-        this.outcomeCommitter = outcomeCommitter
-            ?? throw new ArgumentNullException(nameof(outcomeCommitter));
+        this.factPublisher = factPublisher
+            ?? throw new ArgumentNullException(nameof(factPublisher));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.anatomyBurdenProjection = anatomyBurdenProjection;
     }
 
     public void Start()
     {
+        ResumePendingExposureFact();
         dayEndedSubscription ??= events.Subscribe<OperatingDayEndedEvent>(OnDayEnded);
         mealConsumedSubscription ??= events.Subscribe<PhysicalMealConsumedEvent>(OnMealConsumed);
         waterConsumedSubscription ??= events.Subscribe<CharacterWaterConsumedEvent>(OnWaterConsumed);
@@ -523,6 +630,7 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
         string sourceKind = "population-physical-exposure",
         string sourceId = "direct-contact")
     {
+        ResumePendingExposureFact();
         if (!characterId.IsValid || exposureHours <= 0f || environmentCoefficient <= 0f)
             return;
         DiseaseDefinition disease = definitions.Require(diseaseId);
@@ -547,68 +655,116 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
             throw new InvalidOperationException(
                 "Population exposure requires an immutable character display snapshot.");
 
-        long ownerRevision = checked((long)health.Version + 1L);
-        PopulationDiseaseExposureOutcomeReceipt receipt =
-            EnvironmentOutcomeReceiptFactory.CreateDiseaseExposure(
-                characterId,
-                displayName,
-                disease,
-                route,
-                exposureHours,
-                environmentCoefficient,
-                calendar.Day,
-                ownerRevision,
-                sourceKind,
-                sourceId);
-        if (!outcomeCommitter.TryPrepare(
-                receipt,
-                out PreparedEnvironmentOutcome prepared,
-                out string prepareFailure))
+        long ownerRevision = checked(health.ExposureRevision + 1L);
+        var fact = new PopulationDiseaseExposureFact(
+            characterId,
+            displayName,
+            disease,
+            route,
+            exposureHours,
+            environmentCoefficient,
+            calendar.Day,
+            ownerRevision,
+            sourceKind,
+            sourceId);
+        if (!factPublisher.TryReserve(
+                fact,
+                out DomainFactLease lease,
+                out string reserveFailure))
         {
             throw new InvalidOperationException(
-                "Population exposure narrative prepare failed: " + prepareFailure);
+                "Population disease-exposure fact reserve failed: "
+                + reserveFailure);
         }
 
         PopulationHealthMutationSnapshot before = healthTransaction.CaptureMutation();
         try
         {
-            health.RecordExposure(
+            health.RecordExposureWithPendingFact(
                 disease.Id,
                 new[] { new PopulationExposureTarget(characterId, 1f) },
                 exposureHours,
-                environmentCoefficient);
-            EnvironmentOutcomeCommitResult committed = outcomeCommitter.Commit(
-                prepared,
-                health.Version);
-            if (!committed.DurablyCommitted)
-            {
-                healthTransaction.RestoreMutation(before);
+                environmentCoefficient,
+                fact.CapturePending());
+            if (health.ExposureRevision != ownerRevision
+                || health.PendingExposureFacts.Count != 1
+                || health.PendingExposureFacts[0].ownerRevision != ownerRevision)
                 throw new InvalidOperationException(
-                    "Population exposure narrative commit failed: " + committed.DetailCode);
-            }
+                    "Population disease-exposure owner revision did not match its pending fact.");
         }
         catch
         {
-            EnvironmentOutcomeCommitResult reconciled = outcomeCommitter.Reconcile(
-                receipt.Payload.ResultKey);
-            if (!reconciled.DurablyCommitted)
-            {
-                if (health.Version != before.Version)
-                    healthTransaction.RestoreMutation(before);
-                outcomeCommitter.Cancel(prepared);
-                throw;
-            }
+            healthTransaction.RestoreMutation(before);
+            factPublisher.Cancel(lease);
+            throw;
         }
+
+        DomainFactDelivery delivery;
+        try
+        {
+            delivery = factPublisher.Publish(lease, fact);
+        }
+        catch
+        {
+            healthTransaction.RestoreMutation(before);
+            factPublisher.Cancel(lease);
+            throw;
+        }
+        if (delivery.Phase == DomainFactDeliveryPhase.Rejected)
+        {
+            healthTransaction.RestoreMutation(before);
+            throw new InvalidOperationException(
+                "Population disease-exposure fact publication was rejected: "
+                + delivery.Detail);
+        }
+        if (delivery.Phase == DomainFactDeliveryPhase.InDoubt)
+        {
+            throw new InvalidOperationException(
+                "Population disease-exposure fact publication is in doubt; "
+                + "the effect and pending fact were retained: "
+                + delivery.Detail);
+        }
+        health.CompletePendingExposureFact(ownerRevision);
+    }
+
+    private void ResumePendingExposureFact()
+    {
+        IReadOnlyList<PopulationDiseaseExposurePendingFactSaveData> pending =
+            health.PendingExposureFacts;
+        if (pending.Count == 0)
+            return;
+        if (pending.Count != 1 || pending[0] == null)
+            throw new InvalidOperationException(
+                "Population disease-exposure pending outbox is invalid.");
+        PopulationDiseaseExposureFact fact =
+            PopulationDiseaseExposureFact.Restore(pending[0]);
+        DomainFactDelivery delivery = factPublisher.Replay(fact);
+        if (delivery.Phase is DomainFactDeliveryPhase.InDoubt
+                or DomainFactDeliveryPhase.Rejected)
+        {
+            throw new InvalidOperationException(
+                "Population disease-exposure replay remains unresolved; "
+                + "new exposures are blocked: " + delivery.Detail);
+        }
+        health.CompletePendingExposureFact(fact.OwnerRevision);
     }
 
     private void OnDayEnded(OperatingDayEndedEvent ended)
     {
+        ResumePendingExposureFact();
         AggregateAmbientExposure();
         IReadOnlyList<PopulationHealthChange> changes = health.AdvanceToDay(ended.day + 1);
-        foreach (PopulationHealthChange change in changes)
+        if (anatomyBurdenProjection != null)
         {
-            if (change.Kind == PopulationHealthChangeKind.DailyBodyBurden)
-                ProjectBodyBurden(change);
+            anatomyBurdenProjection.ResumePendingRequired();
+        }
+        else
+        {
+            foreach (PopulationHealthChange change in changes)
+            {
+                if (change.Kind == PopulationHealthChangeKind.DailyBodyBurden)
+                    ProjectBodyBurden(change);
+            }
         }
         ProjectSymptomMood();
     }
@@ -696,7 +852,9 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
         CharacterActor actor = world.Characters.FirstOrDefault(candidate =>
             CharacterPersistentIdentity.TryGet(candidate, out CharacterId id)
             && id.Equals(change.CharacterId));
-        if (actor == null || actor.IsDead) return;
+        if (actor == null || actor.IsDead)
+            throw new InvalidOperationException(
+                "Disease anatomy burden actor is unavailable.");
         AnatomyProfileDefinition profile = anatomyProfiles.GetForSpecies(actor.SpeciesTag);
         AnatomyFunction target = change.TargetSystem switch
         {
@@ -712,17 +870,23 @@ public sealed class PopulationHealthApplicationAdapter : IStartable, IDisposable
             .ThenByDescending(value => value.CapacityWeight)
             .ThenBy(value => value.NodeId, StringComparer.Ordinal)
             .FirstOrDefault();
-        if (node == null) return;
+        if (node == null)
+            throw new InvalidOperationException(
+                "Disease anatomy burden target node is unavailable.");
         DiseaseDefinition disease = definitions.Require(change.DiseaseId);
         float dailyBurden = change.Severity /
             Mathf.Max(1, disease.Chronic ? 30 : disease.ContagiousDays);
-        anatomyHealth.TryAddNodeBurden(
+        if (!anatomyHealth.TryAddNodeBurden(
             actor,
             node.NodeId,
             rejection: 0f,
             mutation: 0f,
             infection: dailyBurden,
-            out _);
+            out DomainFailure failure))
+        {
+            throw new InvalidOperationException(
+                "Disease anatomy burden application failed: " + failure);
+        }
     }
 
 }

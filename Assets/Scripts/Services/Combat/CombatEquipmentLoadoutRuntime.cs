@@ -323,9 +323,16 @@ public sealed class CombatEquipmentLoadoutRuntime
 
     public CharacterCombatLoadoutProfile GetActiveProfileSnapshot(string characterId)
     {
-        return string.IsNullOrWhiteSpace(characterId)
-            ? null
-            : GetActiveProfile(GetOrCreate(characterId)).Clone();
+        string normalizedId = characterId?.Trim() ?? string.Empty;
+        if (normalizedId.Length == 0)
+            return null;
+
+        // Default profiles are a read projection, not ownership admission.
+        // Battle-only combatants must not acquire persistent world loadouts
+        // merely because weapon selection reads their unarmed profile.
+        CharacterCombatLoadoutState state = States.TryGetValue(normalizedId, out var existing)
+            ? existing : CreateDefaultLoadout(normalizedId);
+        return GetActiveProfile(state).Clone();
     }
 
     public bool TryGetActiveProfileSnapshot(
@@ -517,7 +524,13 @@ public sealed class CombatEquipmentLoadoutRuntime
         return confiscated.Select(instance => instance.Clone()).ToArray();
     }
 
-    public void HandleCharacterDeath(string characterId)
+    public void HandleCharacterDeath(string characterId) =>
+        RetireCharacterEquipment(characterId);
+
+    // A character leaving the saved world takes its equipment out of local
+    // custody just as death does. This command emits no death/story event and
+    // must not be used for downed capture candidates or restore retirement.
+    public void RetireCharacterEquipment(string characterId)
     {
         string normalized = characterId?.Trim() ?? string.Empty;
         if (normalized.Length == 0)

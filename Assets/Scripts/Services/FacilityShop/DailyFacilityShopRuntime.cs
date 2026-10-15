@@ -2,13 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
 public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
 {
-    [SerializeField] private bool raiseAlertOnRefresh = true;
-
     private readonly List<FacilityShopOffer> currentDailyOffers = new List<FacilityShopOffer>();
     private IReadOnlyList<FacilityShopOffer> currentDailyOffersView;
     private FacilityShopUnlockState unlockState = new FacilityShopUnlockState();
@@ -23,7 +22,7 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
     private IGameMoneyAccount money;
     private IBuildingCategoryDefinitionCatalog buildingCategoryCatalog;
     private IDungeonDebugRuleQuery debugRules;
-    private IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private FacilityShopPurchaseJournal purchaseFacts;
     private IGameSessionStateStore gameSessionState;
     private TreasuryEconomyAggregateStateStore treasuryState;
     private IDisposable runStartVariablesSubscription;
@@ -79,13 +78,13 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
     }
 
     [Inject]
-    public void ConstructPurchaseOutcomeTransactions(
-        IMigratedProducerOutcomeTransaction outcomeTransactions,
+    public void ConstructPurchaseFacts(
+        FacilityShopPurchaseJournal purchaseFacts,
         IGameSessionStateStore gameSessionState,
         TreasuryEconomyAggregateStateStore treasuryState)
     {
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.purchaseFacts = purchaseFacts
+            ?? throw new ArgumentNullException(nameof(purchaseFacts));
         this.gameSessionState = gameSessionState
             ?? throw new ArgumentNullException(nameof(gameSessionState));
         this.treasuryState = treasuryState
@@ -96,31 +95,37 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
     {
         if (currentDailyOffers.Count == 0)
         {
-            Refresh(1, false);
+            Refresh(1, FacilityShopRefreshCause.Initialization);
         }
     }
 
     public void OnTriggerEvent(OperatingDayEndedEvent eventType)
     {
-        Refresh(Mathf.Max(1, eventType.day + 1), raiseAlertOnRefresh);
+        Refresh(
+            Mathf.Max(1, eventType.day + 1),
+            FacilityShopRefreshCause.OperatingDay);
     }
 
     public void OnTriggerEvent(RunStartVariablesSelectedEvent eventType)
     {
         if (CurrentOfferDay <= 1)
         {
-            Refresh(1, false);
+            Refresh(1, FacilityShopRefreshCause.RunSetup);
         }
     }
 
-    public void Refresh(int day, bool raiseAlert)
+    public void Refresh(
+        int day,
+        FacilityShopRefreshCause cause = FacilityShopRefreshCause.Manual)
     {
+        if (!Enum.IsDefined(typeof(FacilityShopRefreshCause), cause))
+            throw new ArgumentOutOfRangeException(nameof(cause));
         StateApplication.RefreshForDay(day);
-        RebuildOfferProjection(raiseAlert, processAutoProcurement: true);
+        RebuildOfferProjection(cause, processAutoProcurement: true);
     }
 
     private void RebuildOfferProjection(
-        bool raiseAlert,
+        FacilityShopRefreshCause cause,
         bool processAutoProcurement)
     {
         int offerDay = CurrentOfferDay;
@@ -144,13 +149,26 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
                 this);
         }
 
-        if (raiseAlert)
+        IGameEventBus events = gameEventBus
+            ?? throw new InvalidOperationException(
+                $"{nameof(DailyFacilityShopRuntime)} requires {nameof(IGameEventBus)} injection.");
+        var observation = new FacilityShopOffersRebuiltEvent(
+                offerDay,
+                cause,
+                CaptureOfferSnapshots(currentDailyOffers),
+                CaptureOfferSnapshots(basicPurchaseOffers));
+        try
         {
-            gameEventBus.RaiseAlert(
-                "시설 상점 갱신",
-                FormatOfferList(currentDailyOffers, basicPurchaseOffers),
-                EventAlertImportance.Medium,
-                "상점");
+            events.Publish(observation);
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogWarning(
+                "facility-shop-refresh-observer:"
+                + exception.GetType().Name + ":" + exception.Message);
         }
     }
 
@@ -194,7 +212,17 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
     {
         if (index < 0 || index >= currentDailyOffers.Count)
         {
-            result = new FacilityShopPurchaseResult(false, null, 0, "선택한 상품이 없습니다");
+            int balance = money?.Balance ?? -1;
+            result = new FacilityShopPurchaseResult(
+                false,
+                null,
+                0,
+                "선택한 상품이 없습니다",
+                failureStage: FacilityShopPurchaseFailureStage.OfferSelection,
+                outcomePolicy: FacilityShopPurchaseOutcomePolicy
+                    .RejectedWithoutPublication,
+                balanceBefore: balance,
+                balanceAfter: balance);
             PublishPurchase(result);
             return false;
         }
@@ -229,7 +257,17 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
         IReadOnlyList<FacilityShopOffer> offers = CurrentBasicPurchaseOffers;
         if (index < 0 || index >= offers.Count)
         {
-            result = new FacilityShopPurchaseResult(false, null, 0, "선택한 기본 구매 상품이 없습니다");
+            int balance = money?.Balance ?? -1;
+            result = new FacilityShopPurchaseResult(
+                false,
+                null,
+                0,
+                "선택한 기본 구매 상품이 없습니다",
+                failureStage: FacilityShopPurchaseFailureStage.OfferSelection,
+                outcomePolicy: FacilityShopPurchaseOutcomePolicy
+                    .RejectedWithoutPublication,
+                balanceBefore: balance,
+                balanceAfter: balance);
             PublishPurchase(result);
             return false;
         }
@@ -247,108 +285,104 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
         EconomyTransactionContext transactionContext,
         out FacilityShopPurchaseResult result)
     {
+        int initialBalance = money?.Balance ?? -1;
         if (offer == null || !offer.IsValid)
         {
-            result = new FacilityShopPurchaseResult(
-                false,
-                offer,
-                0,
-                "상품 정보가 올바르지 않습니다");
+            result = RejectPurchase(offer, initialBalance,
+                FacilityShopPurchaseFailureStage.OfferValidation, "상품 정보가 올바르지 않습니다");
             PublishPurchase(result);
             return false;
         }
-        if (gameData?.day == null
-            || outcomeTransactions == null
-            || gameSessionState == null
-            || treasuryState == null)
+        if (gameData?.day == null || purchaseFacts == null
+            || gameSessionState == null || treasuryState == null)
         {
-            result = new FacilityShopPurchaseResult(
-                false,
-                offer,
-                offer.Cost,
-                "시설 상점 결과 원장 트랜잭션이 준비되지 않았습니다.");
+            result = RejectPurchase(offer, initialBalance,
+                FacilityShopPurchaseFailureStage.RuntimeUnavailable, "시설 상점 구매 사실 전달이 준비되지 않았습니다.");
             PublishPurchase(result);
             return false;
         }
-
         int absoluteDay = Math.Max(0, gameData.day.Value);
-        string identity = CreatePurchaseOutcomeIdentity(
-            absoluteDay,
-            transactionContext,
-            offer);
-        if (!outcomeTransactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.FacilityShopPurchaseResult,
-                identity,
-                absoluteDay,
-                GameplayOutcomeStatus.Succeeded,
-                out PreparedMigratedProducerOutcome prepared,
-                out string reserveFailure))
+        int previousSequence = unlockState.PurchaseSequence;
+        if (previousSequence == int.MaxValue)
         {
-            result = new FacilityShopPurchaseResult(
-                false,
-                offer,
-                offer.Cost,
-                "시설 상점 결과를 예약하지 못했습니다: " + reserveFailure);
-            PublishPurchase(result);
+            result = RejectPurchase(offer, initialBalance,
+                FacilityShopPurchaseFailureStage.PurchaseSequenceExhausted, "시설 상점 구매 번호가 소진되었습니다.");
             return false;
         }
-
+        string identity = CreatePurchaseIdentity(absoluteDay, transactionContext, offer, previousSequence + 1);
+        EconomyTransactionContext paymentContext = new(
+            transactionContext.kind, identity, transactionContext.targetId, transactionContext.description);
+        var proposed = new FacilityShopPurchaseFactData
+        {
+            operationId = identity, sequence = previousSequence + 1, absoluteDay = absoluteDay,
+            shopSource = transactionContext.sourceId ?? string.Empty,
+            offerTypeId = offer.OfferTypeId, offerDataId = offer.DataId, offerName = offer.DisplayName,
+            itemDefinitionId = offer switch
+            {
+                FacilityBuildingOffer building => FacilityInstallationKitItemIds.ForBuilding(building.Building),
+                FacilityBlueprintOffer blueprint => blueprint.Blueprint.PhysicalItemId,
+                _ => string.Empty
+            },
+            quotedCost = offer.Cost, balanceBefore = initialBalance, balanceAfter = initialBalance,
+            paymentSourceId = identity
+        };
         FacilityShopStateSnapshot shopBefore = unlockState.Capture();
         GameSessionSnapshot sessionBefore = gameData.Capture();
-        TreasuryEconomyAggregateState treasuryBefore =
-            treasuryState.Current.Copy();
+        TreasuryEconomyAggregateState treasuryBefore = treasuryState.Current.Copy();
+        if (!purchaseFacts.TryBegin(new FacilityShopPurchaseFact(proposed, true),
+                out FacilityShopPurchaseJournal.Preparation prepared, out string reserveFailure))
+        {
+            result = RejectPurchase(offer, initialBalance, FacilityShopPurchaseFailureStage.OutcomeReservation,
+                "시설 상점 구매 사실을 예약하지 못했습니다: " + reserveFailure);
+            PublishPurchase(result);
+            return false;
+        }
         try
         {
-            bool purchased = FacilityShopService.TryPurchaseOffer(
-                money,
-                offer,
-                unlockState,
-                transactionContext,
-                debugRules,
-                out result);
-            if (!purchased)
+            if (!FacilityShopService.TryPurchaseOffer(money, offer, unlockState, paymentContext, debugRules, out result))
+                return false;
+            unlockState.CommitPurchaseSequence(previousSequence);
+            int balanceAfter = money.Balance;
+            int paid = checked(initialBalance - balanceAfter);
+            EconomyTransactionRecord payment = FindPurchasePayment(
+                paymentContext, paid, initialBalance, balanceAfter, offer.Cost);
+            var actual = proposed.Clone();
+            actual.balanceAfter = balanceAfter;
+            actual.paidCost = paid;
+            actual.paymentTransactionId = payment?.transactionId ?? string.Empty;
+            DomainFactDelivery delivered = prepared.PublishApplied(new FacilityShopPurchaseFact(actual));
+            if (!delivered.MayBeCommitted)
             {
-                outcomeTransactions.Cancel(prepared);
+                RestorePurchaseState(shopBefore, sessionBefore, treasuryBefore);
+                result = RejectPurchase(offer, initialBalance, FacilityShopPurchaseFailureStage.OutcomeCommit,
+                    "시설 상점 구매 사실 전달 실패: " + delivered.Detail);
                 return false;
             }
-
-            MigratedProducerOutcomeCommitResult committed =
-                outcomeTransactions.CommitSingleSubject(
-                    prepared,
-                    new MigratedProducerOutcomeSubject(
-                        MigratedProducerOutcomeIds.OperationKind,
-                        identity,
-                        offer.DisplayName,
-                        MigratedProducerOutcomeIds.OperationRole),
-                    "시설 상점 구매: type=" + offer.OfferTypeId
-                    + "; data-id=" + offer.DataId
-                    + "; name=" + offer.DisplayName
-                    + "; cost=" + offer.Cost
-                    + "; day=" + absoluteDay);
-            if (!committed.DurablyCommitted)
-            {
-                RestorePurchaseState(
-                    shopBefore,
-                    sessionBefore,
-                    treasuryBefore);
-                result = new FacilityShopPurchaseResult(
-                    false,
-                    offer,
-                    offer.Cost,
-                    "시설 상점 결과 원장 확정 실패: " + committed.DetailCode);
-                return false;
-            }
+            // Unknown acknowledgement retains the applied purchase and its frozen pending fact.
+            // Recovery republishes the fact; it never repeats payment or unlock.
+            result = new FacilityShopPurchaseResult(true, offer, paid, result.message,
+                prepared.PublicationKey, actual.paymentTransactionId,
+                outcomePolicy: FacilityShopPurchaseOutcomePolicy.DomainApplied,
+                balanceBefore: initialBalance, balanceAfter: balanceAfter);
         }
         catch
         {
-            outcomeTransactions.Cancel(prepared);
-            RestorePurchaseState(shopBefore, sessionBefore, treasuryBefore);
+            if (!prepared.MayBeApplied)
+                RestorePurchaseState(shopBefore, sessionBefore, treasuryBefore);
             throw;
         }
-
+        finally { prepared.Dispose(); }
+        if (!purchaseFacts.RecoverPending(out string pendingFailure))
+            Debug.LogWarning(pendingFailure);
         PublishPurchasePostCommit(result);
         return true;
     }
+
+    private static FacilityShopPurchaseResult RejectPurchase(FacilityShopOffer offer, int balance,
+        FacilityShopPurchaseFailureStage stage, string message) =>
+        new(false, offer, offer?.Cost ?? 0, message,
+            failureStage: stage, outcomePolicy: FacilityShopPurchaseOutcomePolicy.RejectedWithoutPublication,
+            balanceBefore: balance, balanceAfter: balance);
 
     private void RestorePurchaseState(
         FacilityShopStateSnapshot shopBefore,
@@ -363,14 +397,53 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
             ?? throw new ArgumentNullException(nameof(treasuryBefore)));
     }
 
-    private static string CreatePurchaseOutcomeIdentity(
+    private static string CreatePurchaseIdentity(
         int absoluteDay,
         EconomyTransactionContext transactionContext,
-        FacilityShopOffer offer) =>
+        FacilityShopOffer offer,
+        int purchaseSequence) =>
         "facility-shop-purchase:day:" + absoluteDay
+        + ":sequence:" + purchaseSequence
         + ":source:" + (transactionContext.sourceId?.Trim() ?? string.Empty)
         + ":target:" + (transactionContext.targetId?.Trim() ?? string.Empty)
         + ":offer:" + offer.OfferTypeId + ":" + offer.DataId;
+
+    private EconomyTransactionRecord FindPurchasePayment(
+        EconomyTransactionContext context,
+        int paid,
+        int balanceBefore,
+        int balanceAfter,
+        int quotedCost)
+    {
+        if (paid < 0 || paid != balanceBefore - balanceAfter)
+            throw new InvalidOperationException(
+                "Facility-shop payment balance moved in the wrong direction.");
+        if (paid == 0)
+        {
+            if (balanceBefore != balanceAfter
+                || quotedCost > 0 && !debugRules.ShouldSkipCosts())
+                throw new InvalidOperationException(
+                    "Facility-shop purchase has no authoritative payment.");
+            return null;
+        }
+        EconomyTransactionRecord[] matches = treasuryState.Current.Ledger.Records
+            .Where(row => row != null
+                && row.succeeded
+                && row.kind == context.kind
+                && string.Equals(row.sourceId, context.sourceId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1
+            || matches[0].amount != -paid
+            || matches[0].balanceBefore != balanceBefore
+            || matches[0].balanceAfter != balanceAfter
+            || !string.Equals(matches[0].targetId, context.targetId,
+                StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(matches[0].transactionId))
+            throw new InvalidOperationException(
+                "Facility-shop payment transaction does not match its purchase.");
+        return matches[0].Clone();
+    }
 
     private void PublishPurchasePostCommit(FacilityShopPurchaseResult result)
     {
@@ -412,15 +485,6 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
     private void PublishPurchase(FacilityShopPurchaseResult result)
     {
         gameEventBus.Publish(new FacilityShopPurchasedEvent(result));
-        if (result.success
-            && string.Equals(
-                result.offerTypeId,
-                FacilityShopOfferTypeIds.Blueprint,
-                StringComparison.Ordinal))
-        {
-            gameEventBus.RaiseBlueprintAcquired(
-                $"{result.offer?.displayName ?? "설계도"} 획득");
-        }
     }
 
     private void Update()
@@ -433,7 +497,7 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
 
         projectedRestoreRevision = publishedRevision;
         RebuildOfferProjection(
-            raiseAlert: false,
+            FacilityShopRefreshCause.Restore,
             processAutoProcurement: false);
     }
 
@@ -463,41 +527,26 @@ public class DailyFacilityShopRuntime : MonoBehaviour, IFacilityShopPersistence
             gameEventBus.Subscribe<OperatingDayEndedEvent>(OnTriggerEvent);
     }
 
-    private static string FormatOfferList(
-        IEnumerable<FacilityShopOffer> dailyOffers,
-        IEnumerable<FacilityShopOffer> basicPurchaseOffers)
+    private static IReadOnlyList<FacilityShopOfferSnapshot> CaptureOfferSnapshots(
+        IReadOnlyList<FacilityShopOffer> offers)
     {
-        List<string> lines = new List<string> { "일일 상품:" };
-        List<string> dailyRows = dailyOffers?
-            .Where((offer) => offer != null && offer.IsValid)
-            .Select((offer) => $"- {offer.ToSnapshot().ToSummaryText()}")
-            .ToList()
-            ?? new List<string>();
-        if (dailyRows.Count > 0)
+        if (offers == null || offers.Count == 0)
         {
-            lines.AddRange(dailyRows);
-        }
-        else
-        {
-            lines.Add("- 없음");
+            return Array.Empty<FacilityShopOfferSnapshot>();
         }
 
-        List<string> basicRows = basicPurchaseOffers?
-            .Where((offer) => offer != null && offer.IsValid)
-            .Select((offer) => $"- {offer.ToSnapshot().ToSummaryText()}")
-            .ToList()
-            ?? new List<string>();
-        lines.Add(string.Empty);
-        lines.Add("기본 구매:");
-        if (basicRows.Count > 0)
+        List<FacilityShopOfferSnapshot> snapshots = new(offers.Count);
+        for (int index = 0; index < offers.Count; index++)
         {
-            lines.AddRange(basicRows);
+            FacilityShopOffer offer = offers[index];
+            if (offer != null && offer.IsValid)
+            {
+                snapshots.Add(offer.ToSnapshot());
+            }
         }
-        else
-        {
-            lines.Add("- 없음");
-        }
-        return string.Join("\n", lines);
+        return snapshots.Count == 0
+            ? Array.Empty<FacilityShopOfferSnapshot>()
+            : Array.AsReadOnly(snapshots.ToArray());
     }
 
     private IFacilityShopCatalog ResolveFacilityShopCatalog()

@@ -18,17 +18,17 @@ public sealed class ProductionAggregateStateStore
     public IReadOnlyList<ProductionBillRecord> Bills => session.Bills;
     internal IReadOnlyList<ProductionWipTerminalReceiptSaveData> WipTerminalReceipts =>
         session.WipTerminalReceipts;
-    internal IReadOnlyCollection<ProductionCommandOutcomeOutboxSaveData>
-        PendingCommandOutcomes => session.PendingCommandOutcomes;
+    internal IReadOnlyCollection<ProductionCommandObservationSaveData>
+        PendingCommandObservations => session.PendingCommandObservations;
     internal int NextBillSequence
     {
         get => session.NextBillSequence;
         set => session.NextBillSequence = value;
     }
-    internal long NextCommandOutcomeSequence
+    internal long NextCommandSequence
     {
-        get => session.NextCommandOutcomeSequence;
-        set => session.NextCommandOutcomeSequence = value;
+        get => session.NextCommandSequence;
+        set => session.NextCommandSequence = value;
     }
     internal int BillVersion => session.BillVersion;
     internal int StockSensorVersion => session.StockSensorVersion;
@@ -44,15 +44,15 @@ public sealed class ProductionAggregateStateStore
         PendingStockSensorRemovals => session.PendingStockSensorRemovals;
     internal void AddBill(ProductionBillRecord bill) => session.AddBill(bill);
     internal bool RemoveBill(ProductionBillRecord bill) => session.RemoveBill(bill);
-    internal void SetPendingCommandOutcome(
-        ProductionCommandOutcomeOutboxSaveData pending) =>
-        session.SetPendingCommandOutcome(pending);
-    internal bool TryGetPendingCommandOutcome(
+    internal void SetPendingCommandObservation(
+        ProductionCommandObservationSaveData pending) =>
+        session.SetPendingCommandObservation(pending);
+    internal bool TryGetPendingCommandObservation(
         long ownerRevision,
-        out ProductionCommandOutcomeOutboxSaveData pending) =>
-        session.TryGetPendingCommandOutcome(ownerRevision, out pending);
-    internal bool RemovePendingCommandOutcome(long ownerRevision) =>
-        session.RemovePendingCommandOutcome(ownerRevision);
+        out ProductionCommandObservationSaveData pending) =>
+        session.TryGetPendingCommandObservation(ownerRevision, out pending);
+    internal bool RemovePendingCommandObservation(long ownerRevision) =>
+        session.RemovePendingCommandObservation(ownerRevision);
     internal bool AddWipTerminalReceipt(
         ProductionWipTerminalReceiptSaveData receipt) =>
         session.AddWipTerminalReceipt(receipt);
@@ -119,9 +119,9 @@ internal static class ProductionBillStateCodec
 
     internal static DungeonProductionBillSaveData Capture(
         int nextBillSequence,
-        long nextCommandOutcomeSequence,
-        IEnumerable<ProductionCommandOutcomeOutboxSaveData>
-            pendingCommandOutcomes,
+        long nextCommandSequence,
+        IEnumerable<ProductionCommandObservationSaveData>
+            pendingCommandObservations,
         IEnumerable<ProductionBillRecord> bills,
         IEnumerable<string> installedStockSensorFacilityIds,
         IEnumerable<string> acknowledgedStockSensorFacilityIds,
@@ -136,10 +136,10 @@ internal static class ProductionBillStateCodec
         return new DungeonProductionBillSaveData
         {
             nextBillSequence = nextBillSequence,
-            nextCommandOutcomeSequence = nextCommandOutcomeSequence,
-            pendingCommandOutcomes = (pendingCommandOutcomes
-                    ?? Array.Empty<ProductionCommandOutcomeOutboxSaveData>())
-                .OrderBy(value => value.ownerRevision)
+            nextCommandSequence = nextCommandSequence,
+            pendingCommandObservations = (pendingCommandObservations
+                    ?? Array.Empty<ProductionCommandObservationSaveData>())
+                .OrderBy(value => value.fact.ownerRevision)
                 .Select(value => value.Clone())
                 .ToList(),
             bills = (bills ?? Array.Empty<ProductionBillRecord>())
@@ -204,8 +204,8 @@ internal static class ProductionBillStateCodec
                 $"Production-bill payload version {snapshot.version} is unsupported.");
         }
         if (snapshot.nextBillSequence <= 0
-            || snapshot.nextCommandOutcomeSequence < 0L
-            || snapshot.pendingCommandOutcomes == null
+            || snapshot.nextCommandSequence <= 0L
+            || snapshot.pendingCommandObservations == null
             || snapshot.bills == null
             || snapshot.installedStockSensorFacilityIds == null
             || snapshot.acknowledgedStockSensorFacilityIds == null
@@ -218,9 +218,9 @@ internal static class ProductionBillStateCodec
                 "Production-bill payload has missing collections or an invalid next sequence.");
         }
 
-        ValidatePendingCommandOutcomes(
-            snapshot.pendingCommandOutcomes,
-            snapshot.nextCommandOutcomeSequence);
+        ValidatePendingCommandObservations(
+            snapshot.pendingCommandObservations,
+            snapshot.nextCommandSequence);
 
         ValidateCanonicalBuildingIds(
             snapshot.installedStockSensorFacilityIds,
@@ -270,26 +270,25 @@ internal static class ProductionBillStateCodec
         ValidateWipTerminalReceipts(snapshot.wipTerminalReceipts, catalog);
     }
 
-    private static void ValidatePendingCommandOutcomes(
-        IReadOnlyList<ProductionCommandOutcomeOutboxSaveData> pending,
+    private static void ValidatePendingCommandObservations(
+        IReadOnlyList<ProductionCommandObservationSaveData> pending,
         long nextOwnerRevision)
     {
         long previous = 0L;
-        foreach (ProductionCommandOutcomeOutboxSaveData value in pending)
+        foreach (ProductionCommandObservationSaveData value in pending)
         {
-            if (value == null
-                || value.ownerRevision <= previous
-                || value.ownerRevision <= 0L
+            if (value?.fact == null
+                || value.fact.ownerRevision <= previous
+                || value.fact.ownerRevision <= 0L
                 || nextOwnerRevision > 0L
-                    && value.ownerRevision >= nextOwnerRevision)
+                    && value.fact.ownerRevision >= nextOwnerRevision)
             {
                 throw new InvalidOperationException(
                     "Pending production command outcomes are invalid, unordered, or collide with the next owner revision.");
             }
             try
             {
-                _ = value.ToSource();
-                _ = value.ToFrozenContext();
+                value.Validate(nextOwnerRevision);
             }
             catch (Exception exception) when (exception is ArgumentException
                                                or InvalidOperationException
@@ -299,7 +298,7 @@ internal static class ProductionBillStateCodec
                     "Pending production command outcome has an invalid frozen receipt.",
                     exception);
             }
-            previous = value.ownerRevision;
+            previous = value.fact.ownerRevision;
         }
     }
 
@@ -706,6 +705,8 @@ internal static class ProductionBillStateCodec
             wipInputQuantity = record.wipInputQuantity,
             wipInputMassGrams = record.wipInputMassGrams,
             outputOutcomeResolved = record.outputOutcomeResolved,
+            completionObservations = record.CompletionObservation is { } completion
+                ? new List<ProductionCompletionObservationSaveData> { completion } : new(),
             resolvedOutputs = record.resolvedOutputs
                 .OrderBy(output => output.outputLineId, StringComparer.Ordinal)
                 .Select(output => output.Clone())
@@ -787,6 +788,13 @@ internal static class ProductionBillStateCodec
         ISet<ProductionBillId> billIds,
         ref int largestSequence)
     {
+        if (saved == null || saved.completionObservations == null || saved.completionObservations.Count > 1)
+            throw new InvalidOperationException("production-completion-observation-count-invalid");
+        foreach (var observation in saved.completionObservations)
+        {
+            if (observation == null) throw new InvalidOperationException("production-completion-observation-missing");
+            observation.Validate(saved.billId, saved.cycleSequence, saved.recipeId, saved.buildingInstanceId);
+        }
         if (saved == null)
         {
             throw new InvalidOperationException(

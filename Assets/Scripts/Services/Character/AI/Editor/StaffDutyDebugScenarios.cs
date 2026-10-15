@@ -7,8 +7,66 @@ using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-public static class StaffDutyDebugScenarios
+public static partial class StaffDutyDebugScenarios
 {
+    public static void VerifyActionObserverFocused()
+    {
+        CharacterActor staff = CreateStaff("B98 Expedition Observer", withShopping: false, withWorkAction: false);
+        var entries = new List<CharacterLogEntry>();
+        var transitions = new List<CharacterExpeditionPresenceChangedEvent>();
+        staff.OnLogAdded += entries.Add;
+        using IDisposable subscription = CharacterAiEditorTestDependencies.GameEvents
+            .Subscribe<CharacterExpeditionPresenceChangedEvent>(value =>
+            {
+                if (ReferenceEquals(value.Actor, staff))
+                {
+                    if (staff.IsOnExpedition != value.OnExpedition)
+                        throw new InvalidOperationException("Expedition fact preceded its owner state.");
+                    transitions.Add(value);
+                }
+            });
+        try
+        {
+            if (!staff.BeginExpedition() || !staff.IsOnExpedition
+                || staff.BeginExpedition() || transitions.Count != 1)
+                throw new InvalidOperationException("Actual departure failed or duplicated its transition.");
+            staff.EndExpedition(alive: true);
+            var expedition = entries.Where(value => value.Activity?.ActionId == "expedition").ToArray();
+            if (staff.IsOnExpedition || transitions.Count != 2
+                || expedition.Length != 2
+                || expedition[0].Activity.FactText != "원정 출발"
+                || expedition[1].Activity.FactText != "원정 복귀")
+                throw new InvalidOperationException("Actual return did not preserve expedition activity payloads.");
+
+            var macro = new CharacterAiMacroDecisionRunner((_, _, _) =>
+                throw new InvalidOperationException("Unexpected macro action selection."));
+            int before = entries.Count(value => value.Activity?.ActionId == "macro:complain");
+            macro.RunComplain(staff, staff.Blackboard, new CharacterMacroGoal
+            { type = CharacterMacroGoalType.Complain, reason = "qa-complaint" });
+            var complaints = entries.Where(value => value.Activity?.ActionId == "macro:complain").ToArray();
+            if (complaints.Length != before + 1
+                || complaints[^1].Activity.FactText != "불만을 표현함: qa-complaint")
+                throw new InvalidOperationException("Actual macro complaint missed its activity observer.");
+
+            var events = new DungeonStory.Foundation.GameEventBus();
+            using var observer = new CharacterActionActivityObserver(events);
+            var fact = new CharacterExpeditionPresenceChangedEvent(staff, true);
+            int count = entries.Count;
+            observer.Initialize(); observer.Initialize(); events.Publish(fact);
+            if (entries.Count != count + 1) throw new InvalidOperationException("Action observer subscribed twice.");
+            observer.Dispose(); events.Publish(fact);
+            if (entries.Count != count + 1) throw new InvalidOperationException("Disposed action observer still emitted.");
+            observer.Initialize(); events.Publish(fact);
+            if (entries.Count != count + 2) throw new InvalidOperationException("Action observer did not reconnect.");
+            Debug.Log("B98_ACTION_OBSERVER_ACTUAL_EXPEDITION_COMPLAINT_AND_LIFETIME=PASS");
+        }
+        finally
+        {
+            staff.OnLogAdded -= entries.Add;
+            Object.DestroyImmediate(staff.gameObject);
+        }
+    }
+
     [MenuItem("DungeonStory/Debug/Character/Run P1 Staff Duty Scenarios")]
     public static void RunFromMenu()
     {
@@ -26,6 +84,82 @@ public static class StaffDutyDebugScenarios
         {
             EditorApplication.Exit(success ? 0 : 1);
         }
+    }
+
+    public static void RunWorkControlObserversForBatchMode()
+    {
+        if (!Application.isBatchMode)
+            throw new InvalidOperationException("Work-control verification requires isolated batch mode.");
+        List<string> errors = new();
+        RunScenario("Actual duty commands reach the activity observer once", VerifyWorkControlObserverDelivery, errors);
+        RunScenario("Fatigue still changes the actual duty state", VerifyWorkFatigueTriggersOffDuty, errors);
+        RunScenario("Hunger interrupts without forcing off-duty", VerifyHungerInterruptsWithoutForcingOffDuty, errors);
+        foreach (string error in errors) Debug.LogError(error);
+        Debug.Log("WORK_CONTROL_OBSERVERS=" + (errors.Count == 0 ? "PASS" : "FAIL")
+            + "; scenarios=3; scope=controlled-owner-not-natural-AI-or-whole-save");
+        EditorApplication.Exit(errors.Count == 0 ? 0 : 1);
+    }
+
+    private static bool VerifyWorkControlObserverDelivery()
+    {
+        CharacterActor staff = CreateStaff("Work Control Observer", withShopping: false, withWorkAction: false);
+        AbilityWork work = staff.GetAbility<AbilityWork>();
+        CharacterId characterId = CharacterPersistentIdentity.Require(staff);
+        List<WorkControlChangedEvent> events = new();
+        List<CharacterLogEntry> entries = new();
+        staff.OnLogAdded += entries.Add;
+        using IDisposable subscription = CharacterAiEditorTestDependencies.GameEvents
+            .Subscribe<WorkControlChangedEvent>(value =>
+            {
+                if (value.Character.Equals(characterId)) events.Add(value);
+            });
+        try
+        {
+            work.BeginOffDuty("qa-duty-reason");
+            bool first = work.IsOffDuty && events.Count == 1 && entries.Count == 1
+                && events[0].Transition == WorkControlTransition.DutyOffDutyStarted
+                && entries[0].Activity.ActorId == characterId.Value
+                && entries[0].Activity.KindId == CharacterActivityKinds.Duty
+                && entries[0].Activity.OutcomeId == CharacterActivityOutcomes.Departed
+                && entries[0].Activity.ReasonCode == "qa-duty-reason"
+                && entries[0].Activity.FactText == "비번 시작: qa-duty-reason";
+            work.BeginOffDuty("qa-duty-reason");
+            WorkControlChangedEvent.PublishAssigned(staff, WorkControlTransition.AssignedWorkStarted);
+            WorkControlChangedEvent.PublishAssigned(staff, WorkControlTransition.AssignedWorkStopped);
+            bool noDuplicateOrUnassigned = events.Count == 1 && entries.Count == 1;
+            work.PrepareForExpedition();
+            bool returned = !work.IsOffDuty && events.Count == 2 && entries.Count == 2
+                && events[1].Transition == WorkControlTransition.DutyExpeditionPrepared
+                && entries[1].Activity.ActorId == characterId.Value
+                && entries[1].Activity.KindId == CharacterActivityKinds.Duty
+                && entries[1].Activity.OutcomeId == CharacterActivityOutcomes.Changed
+                && entries[1].Activity.ReasonCode == "expedition-preparation"
+                && entries[1].Activity.FactText == "원정 준비: 작업 해제";
+            Debug.Log($"WORK_CONTROL_DELIVERY first={first}; duplicateAndUnassigned={noDuplicateOrUnassigned}; "
+                + $"returned={returned}; facts={events.Count}; activities={entries.Count}");
+            return first && noDuplicateOrUnassigned && returned;
+        }
+        finally
+        {
+            staff.OnLogAdded -= entries.Add;
+            Object.DestroyImmediate(staff.gameObject);
+        }
+    }
+
+    public static void RunOffDutyActionConfigurationForBatchMode()
+    {
+        if (!Application.isBatchMode)
+        {
+            throw new InvalidOperationException("Staff action configuration verification requires isolated batch mode.");
+        }
+        List<string> errors = new List<string>();
+        RunScenario("Fresh staff gets one off-duty visit action", VerifyStaffBrainAddsOffDutyActions, errors);
+        RunScenario("On-duty staff excludes visitor look-around", VerifyOnDutyStaffDoesNotUseLookAround, errors);
+        RunScenario("Owner excludes discretionary shopping", VerifyOwnerSelfCareActionPolicy, errors);
+        RunScenario("Staff visits do not create retail revenue", VerifyOffDutyStaffDoesNotCreateRevenue, errors);
+        foreach (string error in errors) Debug.LogError(error);
+        Debug.Log("STAFF_OFF_DUTY_ACTION_CONFIGURATION=" + (errors.Count == 0 ? "PASS" : "FAIL"));
+        EditorApplication.Exit(errors.Count == 0 ? 0 : 1);
     }
 
     public static bool RunAll(bool logSuccess)
@@ -171,20 +305,42 @@ public static class StaffDutyDebugScenarios
     private static bool VerifyStaffBrainAddsOffDutyActions()
     {
         CharacterActor staff = CreateStaff("Staff Brain Actions", withShopping: true, withWorkAction: true);
-        Type[] actionTypes = staff.ai.availableActions
-            .Where((action) => action != null && action.actionset != null)
-            .Select((action) => action.actionset.GetType())
-            .ToArray();
-
-        bool valid = actionTypes.Contains(typeof(AIWork))
-            && actionTypes.Contains(typeof(AIWait))
-            && actionTypes.Contains(typeof(AIEat))
-            && actionTypes.Contains(typeof(AIRest))
-            && actionTypes.Contains(typeof(AIShopping))
-            && !actionTypes.Contains(typeof(AIExitDungeon));
-
-        Object.DestroyImmediate(staff.gameObject);
-        return valid;
+        try
+        {
+            // The old fixture supplied Shopping before normalization and could
+            // not detect a missing action in a fresh authored staff catalog.
+            staff.ai.availableActions = staff.ai.availableActions
+                .Where(action => action?.actionset is AIWork).ToArray();
+            staff.ai.UseStaffWorkActions();
+            staff.ai.UseStaffWorkActions();
+            Type[] actionTypes = staff.ai.availableActions
+                .Where(action => action?.actionset != null)
+                .Select(action => action.actionset.GetType()).ToArray();
+            AIShopping shoppingAction = staff.ai.availableActions
+                .Select(action => action?.actionset).OfType<AIShopping>().SingleOrDefault();
+            AbilityWork work = staff.GetAbility<AbilityWork>();
+            work.SetDutyState(AbilityWork.DutyState.OnDuty);
+            bool rejectsOnDuty = shoppingAction != null && !shoppingAction.CanStart(staff);
+            work.BeginOffDuty("test:registered-staff-visit");
+            bool admitsOffDuty = shoppingAction != null && shoppingAction.CanStart(staff);
+            FacilityRole interests = CharacterVisitPolicy.GetInterestRoles(staff);
+            bool valid = actionTypes.Contains(typeof(AIWork))
+                && actionTypes.Contains(typeof(AIWait))
+                && actionTypes.Contains(typeof(AIEat))
+                && actionTypes.Contains(typeof(AIRest))
+                && actionTypes.Count(type => type == typeof(AIShopping)) == 1
+                && !actionTypes.Contains(typeof(AIExitDungeon))
+                && rejectsOnDuty && admitsOffDuty
+                && (interests & FacilityRole.Training) != 0
+                && (interests & FacilityRole.Purchase) == 0;
+            Debug.Log($"STAFF_VISIT_ACTION_BOUNDARY: oneAction={actionTypes.Count(type => type == typeof(AIShopping))}; "
+                + $"onDutyRejected={rejectsOnDuty}; offDutyAdmitted={admitsOffDuty}; interests={interests}");
+            return valid;
+        }
+        finally
+        {
+            Object.DestroyImmediate(staff.gameObject);
+        }
     }
 
     private static bool VerifyRecruitedStaffCancelsCustomerExit()

@@ -51,6 +51,14 @@ public static class FactionPayloadValidation
                 "Faction payload has an invalid sequence or alliance-benefit budget state.");
         }
 
+        try
+        {
+            FactionRelationshipObservationValidation.Validate(data.relationshipObservationSequence,
+                data.relationshipObservations, data.currentDay,
+                (data.factions ?? new List<DungeonFactionState>()).Where(value => value != null)
+                    .Select(value => value.factionId).ToArray());
+        }
+        catch (InvalidOperationException exception) { report.AddError(exception.Message); }
         ValidateFactions(data, definitions, report);
         ValidateRoutes(data, definitions, itemExists, report);
         return report.Errors;
@@ -166,7 +174,14 @@ public static class FactionPayloadValidation
                 || faction.goodwillTransferQuantity != 0
                 || faction.goodwillTransferMassGrams != 0L
                 || faction.goodwillTransferredPhysicalValue != 0
+                || faction.goodwillCampaignRapportBefore != 0
                 || faction.goodwillCampaignRapportTarget != 0
+                || faction.goodwillTransferRevision != 0L
+                || faction.goodwillObserved
+                || !string.IsNullOrEmpty(faction.goodwillPublicationKey)
+                || !string.IsNullOrEmpty(faction.goodwillPublicationId)
+                || !string.IsNullOrEmpty(faction.goodwillPublicationFingerprint)
+                || faction.goodwillObservationDay != 0 || !string.IsNullOrEmpty(faction.goodwillFactionDisplayName)
                 || faction.goodwillTransferCompleted)
             {
                 report.AddError(
@@ -205,7 +220,16 @@ public static class FactionPayloadValidation
             || faction.goodwillTransferQuantity <= 0
             || faction.goodwillTransferMassGrams <= 0L
             || faction.goodwillTransferredPhysicalValue < 50
+            || faction.goodwillCampaignRapportBefore is < -100 or > 100
             || faction.goodwillCampaignRapportTarget is < -100 or > 100
+            || faction.goodwillCampaignRapportTarget
+                < faction.goodwillCampaignRapportBefore
+            || faction.goodwillTransferRevision <= 0L
+            || faction.goodwillObservationDay < 1 || !IsCanonical(faction.goodwillFactionDisplayName)
+            || faction.goodwillPublicationKey == null || faction.goodwillPublicationId == null || faction.goodwillPublicationFingerprint == null
+            || (faction.goodwillObserved
+                ? !IsCanonical(faction.goodwillPublicationKey) || !IsCanonical(faction.goodwillPublicationId) || !IsSha256(faction.goodwillPublicationFingerprint)
+                : faction.goodwillPublicationId.Length > 0 || faction.goodwillPublicationFingerprint.Length > 0)
             || faction.goodwillTransferCompleted && !faction.discovered)
         {
             report.AddError(
@@ -390,6 +414,38 @@ public static class FactionPayloadValidation
         {
             report.AddError(
                 $"Faction route '{route.routeId}' has invalid day bounds.");
+        }
+        ValidateObservation(route, route.settlementPublicationKey, route.settlementPublicationId,
+            route.settlementPublicationFingerprint, route.settlementObservation, currentDay, false, report);
+        ValidateObservation(route, route.arrivalPublicationKey, route.arrivalPublicationId,
+            route.arrivalPublicationFingerprint, route.arrivalObservation, currentDay, true, report);
+        bool cargoProofPresent = !string.IsNullOrEmpty(route.cargoPublicationKey);
+        if (cargoProofPresent
+            ? !IsCanonical(route.cargoPublicationKey) || !IsCanonical(route.cargoPublicationId)
+                || !IsSha256(route.cargoPublicationFingerprint) || !IsCanonical(route.cargoFactionDisplayName)
+                || route.cargoObservationDay < route.createdDay || route.cargoObservationDay > currentDay
+            : route.cargoPublicationKey == null || route.cargoPublicationId != string.Empty
+                || route.cargoPublicationFingerprint != string.Empty || route.cargoObservationDay != 0
+                || route.cargoFactionDisplayName != string.Empty)
+            report.AddError($"Faction route '{route.routeId}' has invalid cargo publication proof.");
+        bool hasSettlementOutcome =
+            !string.IsNullOrEmpty(route.settlementPublicationKey);
+        bool hasArrivalOutcome =
+            !string.IsNullOrEmpty(route.arrivalPublicationKey);
+        bool hasCargoOutcome =
+            cargoProofPresent;
+        if (hasArrivalOutcome
+            && (route.kind is FactionRouteKind.TradeCaravan
+                or FactionRouteKind.SupplyCaravan)
+            && !hasSettlementOutcome)
+        {
+            report.AddError(
+                $"Faction route '{route.routeId}' has an arrival outcome without its settlement parent.");
+        }
+        if (hasCargoOutcome && !hasArrivalOutcome)
+        {
+            report.AddError(
+                $"Faction route '{route.routeId}' has a cargo outcome without its arrival parent.");
         }
 
         ValidateReinforcementActors(route, sequence, report);
@@ -650,6 +706,31 @@ public static class FactionPayloadValidation
                 return false;
         }
         return true;
+    }
+
+    private static void ValidateObservation(FactionRouteState route, string key, string id, string fingerprint,
+        FactionRouteObservationData observation, int currentDay, bool arrival, ValidationErrors report)
+    {
+        bool valid = key != null && id != null && fingerprint != null;
+        if (valid && key.Length == 0)
+            valid = id.Length == 0 && fingerprint.Length == 0 && observation?.IsEmpty == true;
+        else if (valid)
+        {
+            valid = IsCanonical(key) && (id.Length == 0 ? fingerprint.Length == 0 : IsCanonical(id) && IsSha256(fingerprint))
+                && observation?.after != null && observation.absoluteDay >= route.createdDay && observation.absoluteDay <= currentDay
+                && IsCanonical(observation.operationId) && observation.after.routeId == route.routeId && observation.after.factionId == route.factionId
+                && IsCanonical(observation.after.factionDisplayName) && observation.after.cargoItemIds != null
+                && observation.after.cargoItemIds.All(IsCanonical);
+            if (valid && arrival)
+                valid = observation.before != null && observation.before.routeId == route.routeId && observation.before.factionId == route.factionId
+                    && observation.after.status == FactionRouteStatus.Arrived && route.status == FactionRouteStatus.Arrived
+                    && observation.after.settlementPublicationKey == route.settlementPublicationKey
+                    && observation.HasEmptySettlement;
+            else if (valid)
+                valid = observation.before?.IsEmpty == true && observation.settlement != null
+                    && observation.after.status == FactionRouteStatus.Traveling;
+        }
+        if (!valid) report.AddError($"Faction route '{route.routeId}' has invalid {(arrival ? "arrival" : "settlement")} observation.");
     }
 
     private static string Sha256(string value)

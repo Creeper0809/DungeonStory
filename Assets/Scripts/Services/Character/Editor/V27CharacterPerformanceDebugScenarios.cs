@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using DungeonStory.Environment;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.Operation;
 using UnityEditor;
 using UnityEngine;
@@ -366,8 +367,8 @@ public static class V27CharacterPerformanceDebugScenarios
         Require(Mathf.Approximately(orc.needs.hungerRateMultiplier, 1.20f)
                 && Mathf.Approximately(orc.needs.thirstRateMultiplier, 1.05f),
             "Orc upkeep must use hunger 1.20 and thirst 1.05.");
-        Require(CharacterSpeciesRuntimeSaveData.CurrentVersion == 3,
-            "Species runtime save schema must include Golem wear/recharge V3.");
+        Require(CharacterSpeciesRuntimeSaveData.CurrentVersion == 4,
+            "Species runtime save schema must include durable Golem episodes V4.");
         BuildingSO manaStorage = AssetDatabase.LoadAssetAtPath<BuildingSO>(
             "Assets/Resources/SO/Building/Modular/M02.asset");
         if (manaStorage == null)
@@ -573,6 +574,51 @@ public static class V27CharacterPerformanceDebugScenarios
                 UnityEngine.Object.Destroy(createdObject);
             if (createdData != null)
                 UnityEngine.Object.Destroy(createdData);
+        }
+    }
+
+    public static void RunG12Focused()
+    {
+        if (!EditorApplication.isPlaying)
+            throw new InvalidOperationException("G12 verification requires Play Mode.");
+        DungeonRuntimeLifetimeScope scope = UnityEngine.Object
+            .FindObjectsByType<DungeonRuntimeLifetimeScope>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None)
+            .FirstOrDefault(value => value?.Container != null)
+            ?? throw new InvalidOperationException(
+                "Dungeon runtime lifetime scope is not ready.");
+        List<GameObject> createdObjects = new();
+        List<CharacterSO> createdData = new();
+        try
+        {
+            ICharacterNarrativeCommand narrative = scope.Container
+                .Resolve<ICharacterNarrativeCommand>();
+            CharacterActor golem = CreateSpeciesAuditActor(
+                scope,
+                narrative,
+                "Golem",
+                createdObjects,
+                createdData);
+            GameDomainContentCatalogSO catalog = AssetDatabase
+                .LoadAssetAtPath<GameDomainContentCatalogSO>(CatalogPath)
+                ?? throw new InvalidOperationException("Domain catalog is missing.");
+            CharacterPerformanceFormulaDefinitionSO[] formulas = catalog
+                .GetAll<CharacterPerformanceFormulaDefinitionSO>()
+                .ToArray();
+            VerifyGolemWearAndRecharge(
+                scope,
+                golem,
+                createdObjects,
+                scope.Container.Resolve<ICharacterPerformanceQuery>(),
+                formulas);
+        }
+        finally
+        {
+            foreach (GameObject value in createdObjects)
+                if (value != null) UnityEngine.Object.Destroy(value);
+            foreach (CharacterSO value in createdData)
+                if (value != null) UnityEngine.Object.Destroy(value);
         }
     }
 
@@ -880,8 +926,8 @@ public static class V27CharacterPerformanceDebugScenarios
         IReadOnlyList<CharacterPerformanceFormulaDefinitionSO> formulas)
     {
         CharacterId golemId = CharacterPersistentIdentity.Require(golem);
-        ICharacterSpeciesCommand command = scope.Container
-            .Resolve<ICharacterSpeciesCommand>();
+        ICharacterSpeciesContributionCommand contributions = scope.Container
+            .Resolve<ICharacterSpeciesContributionCommand>();
         ICharacterSpeciesQuery query = scope.Container
             .Resolve<ICharacterSpeciesQuery>();
         IAnatomyHealthRuntime anatomy = scope.Container
@@ -891,23 +937,25 @@ public static class V27CharacterPerformanceDebugScenarios
                 value => value.nodeId,
                 value => value.rejectionBurden,
                 StringComparer.Ordinal);
-        Require(command.RecordCompletedWork(
+        Require(contributions.RecordCompletedWork(
                 golemId,
+                "g12-work-initial-99",
                 BuiltInWorkTypeIds.Haul.Value,
                 99f,
                 out DomainFailure firstFailure),
-            "Golem 99 WU wear record failed: " + firstFailure.Code);
+            "Golem 99 WU wear record failed: " + DescribeFailure(firstFailure));
         Require(query.TryGet(golemId, out CharacterSpeciesRuntimeState at99)
                 && at99.CompletedWorkIndex == 0
                 && Mathf.Abs(at99.WearWorkRemainder - 99f) <= .001f
                 && Mathf.Abs(at99.Integrity - 100f) <= .001f,
             "Golem wear was applied before a completed 100 WU block.");
-        Require(command.RecordCompletedWork(
+        Require(contributions.RecordCompletedWork(
                 golemId,
+                "g12-work-threshold-100",
                 BuiltInWorkTypeIds.Haul.Value,
                 1f,
                 out DomainFailure secondFailure),
-            "Golem 100th WU wear record failed: " + secondFailure.Code);
+            "Golem 100th WU wear record failed: " + DescribeFailure(secondFailure));
         Require(query.TryGet(golemId, out CharacterSpeciesRuntimeState at100)
                 && at100.CompletedWorkIndex == 1
                 && at100.WearWorkRemainder <= .001f
@@ -917,6 +965,19 @@ public static class V27CharacterPerformanceDebugScenarios
                 burdenBefore.TryGetValue(value.nodeId, out float before)
                 && value.rejectionBurden > before),
             "Golem wear did not burden a formula-producing anatomy node.");
+        int outcomesAfterWear = CountGolemUpkeepOutcomes(scope);
+        Require(contributions.RecordCompletedWork(
+                golemId,
+                "g12-work-threshold-100",
+                BuiltInWorkTypeIds.Haul.Value,
+                1f,
+                out DomainFailure replayFailure),
+            "Golem work contribution replay failed: " + DescribeFailure(replayFailure));
+        Require(query.TryGet(golemId, out CharacterSpeciesRuntimeState replayedWear)
+                && replayedWear.CompletedWorkIndex == 1
+                && Mathf.Abs(replayedWear.Integrity - 97.5f) <= .001f
+                && CountGolemUpkeepOutcomes(scope) == outcomesAfterWear,
+            "Golem work contribution replay duplicated wear or its outcome.");
 
         ICharacterSpeciesPersistence persistence = scope.Container
             .Resolve<ICharacterSpeciesPersistence>();
@@ -948,6 +1009,9 @@ public static class V27CharacterPerformanceDebugScenarios
             WorldItemStackState.Loose);
         ICharacterSpeciesRechargeService recharge = scope.Container
             .Resolve<ICharacterSpeciesRechargeService>();
+        CharacterSpeciesRuntime runtime = recharge as CharacterSpeciesRuntime
+            ?? throw new InvalidOperationException(
+                "G12 requires the production character-species runtime.");
         try
         {
             Require(recharge.IsRechargeAvailable(golem, facility, out string reason),
@@ -960,7 +1024,7 @@ public static class V27CharacterPerformanceDebugScenarios
                     out float startedWork,
                     out DomainFailure beginFailure)
                 && startedWork <= .001f,
-                "Golem recharge reservation failed: " + beginFailure.Code);
+                "Golem recharge reservation failed: " + DescribeFailure(beginFailure));
             Require(stock.GetAllStacks().Single(value =>
                     string.Equals(value.StackId, crystalStackId, StringComparison.Ordinal))
                     .HasReservations,
@@ -976,7 +1040,7 @@ public static class V27CharacterPerformanceDebugScenarios
                     facility,
                     out _,
                     out beginFailure),
-                "Golem recharge restart failed: " + beginFailure.Code);
+                "Golem recharge restart failed: " + DescribeFailure(beginFailure));
             Require(recharge.TryApplyRechargeWork(
                     golem,
                     facility,
@@ -984,7 +1048,7 @@ public static class V27CharacterPerformanceDebugScenarios
                     out bool halfCompleted,
                     out DomainFailure halfFailure)
                 && !halfCompleted,
-                "Golem recharge completed before 100 WU: " + halfFailure.Code);
+                "Golem recharge completed before 100 WU: " + DescribeFailure(halfFailure));
             CharacterSpeciesRuntimeSaveData midOrder = persistence.Capture();
             CharacterSpeciesRuntimeRecordSaveData midRecord = midOrder.characters
                 .Single(value => string.Equals(
@@ -995,24 +1059,50 @@ public static class V27CharacterPerformanceDebugScenarios
                     && midRecord.rechargeProgressWork < 51f,
                 "Golem recharge progress was not saved at 50 WU.");
             persistence.Restore(persistence.BuildRestore(midOrder));
-            Require(recharge.TryApplyRechargeWork(
+            runtime.DebugRejectNextRechargeProjection = true;
+            Require(!recharge.TryApplyRechargeWork(
                     golem,
                     facility,
                     50f,
+                    out bool rejectedCompleted,
+                    out DomainFailure rejectedFailure)
+                    && !rejectedCompleted
+                    && rejectedFailure.IsFailure,
+                "Golem recharge projection fault was not exposed after consumption.");
+            Require(query.TryGet(golemId, out CharacterSpeciesRuntimeState pending)
+                    && Mathf.Abs(pending.Charge - 20f) <= .001f
+                    && pending.RechargeMaterialCommitted
+                    && !pending.RechargeChargeApplied
+                    && pending.RechargePhysicalEvidence.Contains(
+                        "item=resource:mana-crystal",
+                        StringComparison.Ordinal),
+                "Consumed recharge material was not retained as recoverable evidence.");
+            Require(!stock.GetAllStacks().Any(value => string.Equals(
+                    value.StackId,
+                    crystalStackId,
+                    StringComparison.Ordinal)),
+                "Recharge projection fault did not consume the crystal exactly once.");
+
+            CharacterSpeciesRuntimeSaveData committedMaterial = persistence.Capture();
+            string committedPayload = JsonUtility.ToJson(committedMaterial);
+            persistence.Restore(persistence.BuildRestore(
+                JsonUtility.FromJson<CharacterSpeciesRuntimeSaveData>(committedPayload)));
+            Require(recharge.TryApplyRechargeWork(
+                    golem,
+                    facility,
+                    0.0001f,
                     out bool completed,
                     out DomainFailure completeFailure)
                 && completed,
-                "Golem recharge did not resume and complete: " + completeFailure.Code);
+                "Golem recharge did not resume without a second crystal: "
+                + DescribeFailure(completeFailure));
             Require(query.TryGet(golemId, out CharacterSpeciesRuntimeState charged)
                     && Mathf.Abs(charged.Charge - 70f) <= .001f
                     && charged.RechargeProgressWork <= .001f
                     && string.IsNullOrEmpty(charged.RechargeMaterialStackId),
                 "Golem recharge did not restore exactly 50 charge and clear order state.");
-            Require(!stock.GetAllStacks().Any(value => string.Equals(
-                    value.StackId,
-                    crystalStackId,
-                    StringComparison.Ordinal)),
-                "Golem recharge did not atomically consume its reserved crystal.");
+            Require(CountGolemUpkeepOutcomes(scope, "recharge") == 1,
+                "Golem recharge did not emit exactly one durable episode.");
         }
         finally
         {
@@ -1034,19 +1124,44 @@ public static class V27CharacterPerformanceDebugScenarios
                 && Mathf.Abs(roundTrip.Integrity - 97.5f) <= .001f
                 && Mathf.Abs(roundTrip.Charge - 70f) <= .001f
                 && roundTrip.RechargeProgressWork <= .001f,
-            "Golem V3 species state changed across JSON save round trip.");
+            "Golem V4 species state changed across JSON save round trip.");
         Require(string.Equals(
                 beforeRestore,
                 BuildDerivedSignature(performance, golem, formulas),
                 StringComparison.Ordinal),
             "Golem capacities, formulas, or contribution traces changed after restore.");
-        Require(command.RecordCompletedWork(
+
+        CharacterSpeciesRuntimeSaveData nearDischarge = persistence.Capture();
+        CharacterSpeciesRuntimeRecordSaveData dischargeRecord = nearDischarge.characters
+            .Single(value => string.Equals(
+                value.characterInstanceId,
+                golemId.Value,
+                StringComparison.Ordinal));
+        dischargeRecord.charge = 0.01f;
+        dischargeRecord.dischargeEpisodeActive = false;
+        persistence.Restore(persistence.BuildRestore(nearDischarge));
+        float healthBeforeDischarge = golem.Stats.CurrentHealth;
+        runtime.DebugRunPhysiologyTick(golem, 1f);
+        Require(query.TryGet(golemId, out CharacterSpeciesRuntimeState discharged)
+                && discharged.Charge <= .001f
+                && discharged.DischargeEpisodeActive
+                && golem.Stats.CurrentHealth < healthBeforeDischarge
+                && CountGolemUpkeepOutcomes(scope, "discharge") == 1,
+            "Golem discharge did not emit one exact body-damage episode.");
+        float healthAfterDischarge = golem.Stats.CurrentHealth;
+        runtime.DebugRunPhysiologyTick(golem, 1f);
+        Require(Mathf.Approximately(golem.Stats.CurrentHealth, healthAfterDischarge)
+                && CountGolemUpkeepOutcomes(scope, "discharge") == 1,
+            "A continuous zero-charge state duplicated discharge damage or its outcome.");
+
+        Require(contributions.RecordCompletedWork(
                 golemId,
+                "g12-work-maintenance-threshold",
                 BuiltInWorkTypeIds.Haul.Value,
                 1900f,
                 out DomainFailure maintenanceWearFailure),
             "Golem maintenance-threshold wear failed: "
-            + maintenanceWearFailure.Code);
+            + DescribeFailure(maintenanceWearFailure));
         Require(query.TryGet(golemId, out CharacterSpeciesRuntimeState maintenanceState)
                 && Mathf.Abs(maintenanceState.Integrity - 50f) <= .001f,
             "Golem did not reach the exact maintenance suggestion threshold.");
@@ -1078,13 +1193,90 @@ public static class V27CharacterPerformanceDebugScenarios
                     .OfType<MaintainSurgicalPartEffect>()
                     .Any(value => Mathf.Approximately(value.durability, 30f)),
             "Power-core maintenance must consume 26 WU and one lumber to repair 30.");
+        MaintainSurgicalPartEffect maintenanceEffect = maintenanceProcedure.Effects
+            .OfType<MaintainSurgicalPartEffect>()
+            .Single();
+        AnatomyNodeHealthState maintenanceNodeBefore = anatomy
+            .GetAnatomySnapshot(golem)
+            .Nodes.Single(value => string.Equals(
+                value.nodeId,
+                maintenanceNodeId,
+                StringComparison.Ordinal));
+        float integrityBeforeMaintenance = maintenanceState.Integrity;
+        ISurgicalProcedureEffectHandler maintenanceHandler = scope.Container
+            .Resolve<IReadOnlyList<ISurgicalProcedureEffectHandler>>()
+            .Single(value => value.EffectType == typeof(MaintainSurgicalPartEffect));
+        var maintenanceOrder = new SurgeryOrder
+        {
+            orderId = "g12-maintenance-order",
+            procedureId = maintenanceProcedureId,
+            subject = new SurgicalSubjectRef
+            {
+                kind = SurgicalSubjectKind.Character,
+                subjectId = golemId.Value,
+                displayName = golem.Identity.DisplayName,
+                speciesId = "Golem",
+                anatomyProfileId = anatomy.GetAnatomySnapshot(golem).ProfileId
+            },
+            targetNodeId = maintenanceNodeId,
+            requiredWork = maintenanceProcedure.RequiredWork,
+            completedWork = maintenanceProcedure.RequiredWork,
+            completionOrigin = CharacterCommandOrigin.Autonomous,
+            completionDoctorId = golemId.Value
+        };
+        Require(maintenanceHandler.Apply(
+                maintenanceOrder,
+                maintenanceEffect,
+                facility,
+                out DomainFailure maintenanceFailure),
+            "Golem power-core maintenance handler failed: "
+            + DescribeFailure(maintenanceFailure));
+        AnatomyNodeHealthState maintenanceNodeAfter = anatomy
+            .GetAnatomySnapshot(golem)
+            .Nodes.Single(value => string.Equals(
+                value.nodeId,
+                maintenanceNodeId,
+                StringComparison.Ordinal));
+        Require(query.TryGet(golemId, out CharacterSpeciesRuntimeState maintained)
+                && Mathf.Abs(maintained.Integrity
+                    - Mathf.Min(100f, integrityBeforeMaintenance + 30f)) <= .001f
+                && maintenanceNodeAfter.rejectionBurden
+                    <= Mathf.Max(0f, maintenanceNodeBefore.rejectionBurden - 30f)
+                        + .001f,
+            "Golem maintenance did not repair integrity and anatomy burden together.");
         Debug.Log(
             "PHASE153_GOLEM_UPKEEP_LIVE=PASS; wear=2.5/100WU; "
             + "recharge=1crystal+100WU+50charge; maintenance=26WU+1lumber+30; "
             + "cancel=rollback; save=resume");
         Debug.Log(
-            "PHASE153_SPECIES_SAVE_FOCUSED=PASS; schema=V3; capacities=14; "
+            "PHASE153_SPECIES_SAVE_FOCUSED=PASS; schema=V4; capacities=14; "
             + $"formulas={formulas.Count}; wear=1; charge=70");
+    }
+
+    private static int CountGolemUpkeepOutcomes(
+        DungeonRuntimeLifetimeScope scope,
+        string episodeKind = null)
+    {
+        GameplayOutcomeLedgerSaveData saved = scope.Container
+            .Resolve<GameplayOutcomeLedger>()
+            .CaptureGameplayOutcomes();
+        return saved.exactOutcomes
+            .Concat(saved.outbox)
+            .Count(value => value != null
+                && string.Equals(
+                    value.outcomeTypeId,
+                    EnvironmentOutcomeIds.GolemUpkeepEpisode.Value,
+                    StringComparison.Ordinal)
+                && (string.IsNullOrWhiteSpace(episodeKind)
+                    || value.facts.Any(fact => fact != null
+                        && string.Equals(
+                            fact.factId,
+                            EnvironmentOutcomeIds.EpisodeKindFact.Value,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            fact.value,
+                            episodeKind,
+                            StringComparison.Ordinal))));
     }
 
     private static CharacterActor CreateSpeciesAuditActor(
@@ -1122,6 +1314,11 @@ public static class V27CharacterPerformanceDebugScenarios
                     experience = 100,
                     learningMultiplier = 1f
                 }).ToArray());
+        actor.Progression.NarrativeLedger.Record(
+            CharacterNarrativeDomain.Work,
+            "qa:species-audit-fixture",
+            speciesTag,
+            "prepared");
         actor.RefreshAbilityCache();
         actor.Initialize(data);
         actor.Progression.GrowthState.traitIds = new List<int>();
@@ -1444,25 +1641,29 @@ public static class V27CharacterPerformanceDebugScenarios
                 ?? throw new MissingFieldException(
                     nameof(AbilityWork),
                     "taskExecutor");
-            FieldInfo fireProducerField = typeof(AbilityWork).GetField(
-                "processAccidentFireProducer",
-                BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new MissingFieldException(
-                    nameof(AbilityWork),
-                    "processAccidentFireProducer");
             FacilityWorkType originalWorkType =
                 (FacilityWorkType)assignedWorkType.GetValue(abilityWork);
             BuildableObject originalAssignedShop = abilityWork.assignedShop;
             bool originalWorking = abilityWork.isWorking;
-            IEnvironmentalFireProcessAccidentProducer originalFireProducer =
-                fireProducerField.GetValue(abilityWork)
-                    as IEnvironmentalFireProcessAccidentProducer
-                ?? throw new InvalidOperationException(
-                    "Work accident audit requires the production fire follow-up producer.");
             IAnatomyHealthRuntime anatomy = scope.Container
                 .Resolve<IAnatomyHealthRuntime>();
-            IV20ObservedMealIncidentDiagnostic incidentDiagnostics = scope
-                .Container.Resolve<IV20ObservedMealIncidentDiagnostic>();
+            ICharacterBodyHealthMutationTransaction bodyHealthMutation = scope
+                .Container.Resolve<ICharacterBodyHealthMutationTransaction>();
+            IDomainFactPublisher accidentFacts = scope.Container
+                .Resolve<IDomainFactPublisher>();
+            IDomainFactRecoveryPublisher accidentRecovery = scope.Container
+                .Resolve<IDomainFactRecoveryPublisher>();
+            WorkOrderAggregateStateStore workOrderState = scope.Container
+                .Resolve<WorkOrderAggregateStateStore>();
+            CharacterIdentityEventPublisher identityEvents = scope.Container
+                .Resolve<CharacterIdentityEventPublisher>();
+            IEnvironmentalFireCommand environmentalFire = scope.Container
+                .Resolve<IEnvironmentalFireCommand>();
+            IGameClock liveClock = scope.Container.Resolve<IGameClock>();
+            WorkAccidentObservationRuntime originalObservations = scope.Container
+                .Resolve<WorkAccidentObservationRuntime>();
+            IWorkAccidentPresentationDiagnostic incidentDiagnostics = scope
+                .Container.Resolve<IWorkAccidentPresentationDiagnostic>();
             EventAlertRuntime alertRuntime =
                 UnityEngine.Object.FindFirstObjectByType<EventAlertRuntime>()
                 ?? throw new InvalidOperationException(
@@ -1475,14 +1676,28 @@ public static class V27CharacterPerformanceDebugScenarios
                     .Buildings
                     .Where(value => value != null
                         && !value.isDestroy
-                        && value.PersistentInstanceId.IsValid)
+                        && value.PersistentInstanceId.IsValid
+                        && value.BuildingData
+                            ?.GetAbility<BuildingProcessAccidentFireSourceAbility>()
+                            is { } source
+                        && source.Supports(BuiltInWorkTypeIds.Operate.Value)
+                        && value.BuildingData
+                            .GetAbility<BuildingEnvironmentalFireAbility>()
+                            ?.Accepts(
+                                EnvironmentalFireIgnitionKind.ProcessAccident)
+                            == true)
                     .OrderBy(
                         value => value.PersistentInstanceId.Value,
                         StringComparer.Ordinal)
                     .FirstOrDefault()
                     ?? throw new InvalidOperationException(
-                        "Work accident audit requires one actual persistent facility.");
-                assignedWorkType.SetValue(abilityWork, FacilityWorkType.Haul);
+                        "Work accident audit requires one actual persistent facility with a process-accident fire plan.");
+                WorkTypeId accidentWorkTypeId = BuiltInWorkTypeIds.Operate;
+                FacilityWorkType accidentLegacyWorkType =
+                    FacilityWorkTypeMap.GetRequired(accidentWorkTypeId);
+                assignedWorkType.SetValue(
+                    abilityWork,
+                    accidentLegacyWorkType);
                 abilityWork.assignedShop = accidentFacility;
                 ensureWorkModules.Invoke(abilityWork, null);
                 WorkTaskExecutor executor = taskExecutorField.GetValue(abilityWork)
@@ -1517,7 +1732,7 @@ public static class V27CharacterPerformanceDebugScenarios
                     {
                         accidentActor,
                         100_000f,
-                        BuiltInWorkTypeIds.Haul
+                        accidentWorkTypeId
                     });
                 Require(triggered,
                     "Forced work accident did not trigger.");
@@ -1561,11 +1776,11 @@ public static class V27CharacterPerformanceDebugScenarios
                     && accidentAlert.Count == 1
                     && accidentAlert.Title == "작업 사고"
                     && accidentAlert.Detail.Contains(
-                        accidentActor.name,
+                        accidentActor.Identity.DisplayName.Trim(),
                         StringComparison.Ordinal)
                     && accidentAlert.Detail.Contains(
                         WorkTaskCatalog.GetDisplayName(
-                            BuiltInWorkTypeIds.Haul),
+                            accidentWorkTypeId),
                         StringComparison.Ordinal)
                     && accidentAlert.Detail.Contains(
                         damaged.nodeId,
@@ -1574,7 +1789,7 @@ public static class V27CharacterPerformanceDebugScenarios
                         accidentFacility.PersistentInstanceId.Value,
                         StringComparison.Ordinal)
                     && accidentAlert.Detail.Contains(
-                        accidentFacility.name,
+                        accidentFacility.BuildingData.objectName.Trim(),
                         StringComparison.Ordinal)
                     && accidentAlert.Detail.Contains(
                         $"{accidentFacility.centerPos.x},{accidentFacility.centerPos.y}",
@@ -1660,8 +1875,16 @@ public static class V27CharacterPerformanceDebugScenarios
                         == afterFirstAccident.nextOrderSequence,
                     "Current work-order save round trip changed the next persisted operation sequence.");
 
-                abilityWork.ConstructProcessAccidentFireProducer(
-                    new ThrowingWorkAccidentFireProducer());
+                WorkAccidentObservationRuntime faultingObservations = new(
+                    workOrderState,
+                    accidentRecovery,
+                    identityEvents,
+                    new ThrowingWorkAccidentFireCommand(environmentalFire),
+                    liveClock);
+                abilityWork.ConstructWorkAccidentObservation(
+                    bodyHealthMutation,
+                    accidentFacts,
+                    faultingObservations);
                 ensureWorkModules.Invoke(abilityWork, null);
                 WorkTaskExecutor throwingExecutor = taskExecutorField
                     .GetValue(abilityWork) as WorkTaskExecutor
@@ -1738,7 +1961,7 @@ public static class V27CharacterPerformanceDebugScenarios
                             {
                                 accidentActor,
                                 100_000f,
-                                BuiltInWorkTypeIds.Haul
+                                accidentWorkTypeId
                             });
                 }
                 finally
@@ -1771,6 +1994,14 @@ public static class V27CharacterPerformanceDebugScenarios
                         "LastWorkAccidentFireFailureDetailForDiagnostics");
                 string fireFailureDetail = fireFailureDiagnostic.GetValue(
                     throwingExecutor) as string ?? string.Empty;
+                WorkAccidentObservationSaveData pendingFire = workOrders
+                    .Capture()
+                    .pendingAccidents
+                    .SingleOrDefault(value => value?.fact != null
+                        && string.Equals(
+                            value.fact.operationId,
+                            secondOperationId,
+                            StringComparison.Ordinal));
                 int activitiesAfterFireFailure = accidentActor.LogComponent
                     .ActivityEntries.Count(value => value != null
                         && string.Equals(
@@ -1813,10 +2044,28 @@ public static class V27CharacterPerformanceDebugScenarios
                         "operation=" + secondOperationId,
                         StringComparison.Ordinal)
                     && fireFailureDetail.Contains(
-                        "injuryCommitted=true;identityEventPublished=true;activityRecorded=true",
-                        StringComparison.Ordinal),
+                        "injuryCommitted=true;error=",
+                        StringComparison.Ordinal)
+                    && pendingFire != null
+                    && pendingFire.observationCompleted
+                    && pendingFire.identityNotificationAttempted
+                    && pendingFire.fact.fireEligible,
                     FormattableString.Invariant(
                         $"A fire follow-up failure lost or duplicated the canonical injury/alert/activity commit; damage={secondAppliedDamage:R}; firstOperation={accidentOperationId}; secondOperation={secondOperationId}; sequenceBefore={afterFirstAccident.nextOrderSequence}; sequenceAfter={workOrders.Capture().nextOrderSequence}; alertsBefore={alertsBeforeFireFailure}; alertsAfter={alertsAfterFireFailure}; secondOperationAlerts={secondOperationAlerts}; activitiesBefore={activitiesBeforeFireFailure}; activitiesAfter={activitiesAfterFireFailure}; callbacks={fireFailureActivityCallbacks}; healthCallbacks={fireFailureHealthCallbacks}; workCallbacks={fireFailureWorkCallbacks}; callbackAggregateCount={fireFailureActivityEntry.Count}; alertPublished={incidentDiagnostics.LastObservedWorkAccidentAlertPublished}; callbackFailure={incidentDiagnostics.LastObservedWorkAccidentCallbackFailure}; fireDetail={fireFailureDetail}"));
+                abilityWork.ConstructWorkAccidentObservation(
+                    bodyHealthMutation,
+                    accidentFacts,
+                    originalObservations);
+                ensureWorkModules.Invoke(abilityWork, null);
+                originalObservations.CompleteFollowups(secondOperationId);
+                Require(
+                    workOrders.Capture().pendingAccidents.All(value =>
+                        value?.fact == null
+                        || !string.Equals(
+                            value.fact.operationId,
+                            secondOperationId,
+                            StringComparison.Ordinal)),
+                    "The restored work-accident journal did not finish the retained fire follow-up exactly once.");
                 Require(anatomy.TryHealNode(
                         accidentActor,
                         secondDamaged.nodeId,
@@ -1826,8 +2075,10 @@ public static class V27CharacterPerformanceDebugScenarios
             }
             finally
             {
-                abilityWork.ConstructProcessAccidentFireProducer(
-                    originalFireProducer);
+                abilityWork.ConstructWorkAccidentObservation(
+                    bodyHealthMutation,
+                    accidentFacts,
+                    originalObservations);
                 ensureWorkModules.Invoke(abilityWork, null);
                 assignedWorkType.SetValue(abilityWork, originalWorkType);
                 abilityWork.assignedShop = originalAssignedShop;
@@ -2338,6 +2589,7 @@ public static class V27CharacterPerformanceDebugScenarios
             "Negative mood capacity audit requires an isolated stats fixture.");
         actor.Stats.ConstructCharacterStats(
             scope.Container.Resolve<IGameClock>(),
+            scope.Container.Resolve<IGameCalendar>(),
             scope.Container.Resolve<ICharacterNeedDefinitionCatalog>(),
             scope.Container.Resolve<IDungeonDebugRuleQuery>(),
             scope.Container.Resolve<CharacterStatsProjectionService>(),
@@ -2345,7 +2597,8 @@ public static class V27CharacterPerformanceDebugScenarios
             scope.Container.Resolve<CharacterMoodStateService>(),
             scope.Container.Resolve<CharacterStatsMaintenanceSchedule>(),
             scope.Container.Resolve<IGameEventBus>(),
-            scope.Container.Resolve<IMigratedProducerOutcomeTransaction>(),
+            scope.Container.Resolve<IDomainFactPublisher>(),
+            scope.Container.Resolve<IDomainFactRecoveryPublisher>(),
             performance,
             scope.Container.Resolve<CharacterWorkPerformanceContextResolver>(),
             scope.Container.Resolve<ICombatEquipmentRuntime>());
@@ -2478,13 +2731,36 @@ public static class V27CharacterPerformanceDebugScenarios
         if (!condition) throw new InvalidOperationException(message);
     }
 
-    private sealed class ThrowingWorkAccidentFireProducer :
-        IEnvironmentalFireProcessAccidentProducer
+    private static string DescribeFailure(DomainFailure failure) =>
+        failure.Parameters.Length == 0
+            ? failure.Code.ToString()
+            : failure.Code + ":" + string.Join("|", failure.Parameters.ToArray());
+
+    private sealed class ThrowingWorkAccidentFireCommand :
+        IEnvironmentalFireCommand
     {
-        public EnvironmentalFireIgnitionResult TryPublish(
-            in ProcessAccidentFireReceipt receipt) =>
+        private readonly IEnvironmentalFireCommand inner;
+
+        internal ThrowingWorkAccidentFireCommand(
+            IEnvironmentalFireCommand inner) =>
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+
+        public EnvironmentalFireIgnitionResult TryIgnite(
+            EnvironmentalFireIgnitionRequest request) =>
             throw new InvalidOperationException(
                 "editor-fixture-work-accident-fire-failure");
+
+        public EnvironmentalFireSuppressionResult TryApplySuppression(
+            EnvironmentalFireSuppressionCommand command) =>
+            inner.TryApplySuppression(command);
+
+        public EnvironmentalFireSuppressionResult TryCancelSuppression(
+            string operationId) =>
+            inner.TryCancelSuppression(operationId);
+
+        public IReadOnlyList<EnvironmentalFireSuppressionResult>
+            ResumePendingSuppressions() =>
+            inner.ResumePendingSuppressions();
     }
 
     private sealed class EditorAssetContentSource :

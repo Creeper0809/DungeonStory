@@ -34,6 +34,8 @@ public static class EvolutionOutcomeIds
 
     public static readonly GameplayEntityKindId CharacterKind = new("character");
     public static readonly GameplayEntityKindId ApparelKind = new("apparel");
+    public static readonly GameplayEntityKindId ItemInstanceKind =
+        new("item-instance");
     public static readonly GameplayEntityKindId EquipmentKind = new("equipment");
     public static readonly GameplayEntityKindId TraitReactionKind = new("trait-reaction");
     public static readonly GameplayEntityKindId FacilityKind = new("facility");
@@ -94,6 +96,21 @@ public static class EvolutionOutcomeIds
         new("trait.resulting-revision");
     public static readonly GameplayMetricId AwardedItemCountMetric =
         new("item.awarded-count");
+
+    public static readonly GameplayOutcomeFactId TraitInstanceFact =
+        new("trait.instance-id");
+    public static readonly GameplayOutcomeFactId TraitCombinationFact =
+        new("trait.combination-id");
+    public static readonly GameplayOutcomeFactId TraitDisplayNameFact =
+        new("trait.display-name");
+    public static readonly GameplayOutcomeFactId TraitModuleIdsFact =
+        new("trait.module-ids");
+    public static readonly GameplayOutcomeFactId TraitEvidenceFactIdsFact =
+        new("trait.evidence-fact-ids");
+    public static readonly GameplayOutcomeFactId FacilityRecipeFact =
+        new("facility.evolution-recipe-id");
+    public static readonly GameplayOutcomeFactId FacilityResultDefinitionFact =
+        new("facility.result-definition-id");
 
     public static readonly GameplayMetricUnitId BooleanUnit = new("boolean");
     public static readonly GameplayMetricUnitId EnumUnit = new("enum");
@@ -290,6 +307,7 @@ public readonly struct AcquiredTraitInferenceOutcomeReceipt
     public AcquiredTraitInferenceOutcomeReceipt(
         string operationId,
         CharacterAcquiredTraitInferenceCommandResult result,
+        CharacterAcquiredTraitInstanceState selectedInstance,
         string characterDisplayName,
         int absoluteDay)
     {
@@ -309,7 +327,43 @@ public readonly struct AcquiredTraitInferenceOutcomeReceipt
         }
         if (absoluteDay < 0)
             throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        CharacterAcquiredTraitInstanceState selected = selectedInstance?.Clone()
+            ?? throw new ArgumentNullException(nameof(selectedInstance));
+        string[] moduleIds = (selected.moduleIds ?? new List<string>())
+            .Select(value => value?.Trim() ?? string.Empty)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] evidenceFactIds = (selected.evidenceFactIds ?? new List<string>())
+            .Select(value => value?.Trim() ?? string.Empty)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string combinationId = string.IsNullOrWhiteSpace(selected.combinationId)
+            ? CharacterAcquiredTraitCombinationIdentity.Build(moduleIds)
+            : selected.combinationId.Trim();
+        if (!GameplayOutcomeStableIdSyntax.IsValid(selected.instanceId)
+            || !GameplayOutcomeStableIdSyntax.IsValid(combinationId)
+            || !string.IsNullOrWhiteSpace(audit.SelectedCombinationId)
+                && !string.Equals(
+                    combinationId,
+                    audit.SelectedCombinationId,
+                    StringComparison.Ordinal)
+            || selected.acceptedRevision != audit.ResultingRevision
+            || string.IsNullOrWhiteSpace(selected.displayName)
+            || moduleIds.Length == 0
+            || moduleIds.Any(value => !GameplayOutcomeStableIdSyntax.IsValid(value))
+            || evidenceFactIds.Length == 0
+            || evidenceFactIds.Any(value => !GameplayOutcomeStableIdSyntax.IsValid(value)))
+        {
+            throw new ArgumentException(
+                "The committed acquired-trait instance identity is incomplete.",
+                nameof(selectedInstance));
+        }
         Result = result;
+        TraitInstanceId = selected.instanceId.Trim();
+        CombinationId = combinationId;
+        TraitDisplayName = selected.displayName.Trim();
+        ModuleIds = moduleIds;
+        EvidenceFactIds = evidenceFactIds;
         CharacterDisplayName = EvolutionOutcomeNames.Snapshot(
             audit.TargetPersistentId,
             characterDisplayName);
@@ -318,6 +372,11 @@ public readonly struct AcquiredTraitInferenceOutcomeReceipt
 
     public GameplayOperationId OperationId { get; }
     public CharacterAcquiredTraitInferenceCommandResult Result { get; }
+    public string TraitInstanceId { get; }
+    public string CombinationId { get; }
+    public string TraitDisplayName { get; }
+    public IReadOnlyList<string> ModuleIds { get; }
+    public IReadOnlyList<string> EvidenceFactIds { get; }
     public KoreanNameSnapshot CharacterDisplayName { get; }
     public int AbsoluteDay { get; }
     public GameplayResultKey ResultKey => new(
@@ -370,6 +429,7 @@ public readonly struct ApparelChangeOutcomeReceipt
         long ownerRevision,
         int localResultIndex,
         CharacterId characterId,
+        string characterDisplayName,
         string apparelId,
         bool equipped,
         CharacterCommandOrigin origin,
@@ -388,6 +448,9 @@ public readonly struct ApparelChangeOutcomeReceipt
         OwnerRevision = ownerRevision;
         LocalResultIndex = localResultIndex;
         CharacterId = characterId;
+        CharacterDisplayName = EvolutionOutcomeNames.Snapshot(
+            characterId.Value,
+            characterDisplayName);
         Equipped = equipped;
         Origin = origin;
         AbsoluteDay = absoluteDay;
@@ -397,6 +460,7 @@ public readonly struct ApparelChangeOutcomeReceipt
     public long OwnerRevision { get; }
     public int LocalResultIndex { get; }
     public CharacterId CharacterId { get; }
+    public KoreanNameSnapshot CharacterDisplayName { get; }
     public string ApparelId { get; }
     public bool Equipped { get; }
     public CharacterCommandOrigin Origin { get; }
@@ -414,6 +478,7 @@ public readonly struct AcquiredTraitReactionOutcomeReceipt
         string operationId,
         long ownerRevision,
         CharacterId characterId,
+        string characterDisplayName,
         string traitInstanceId,
         string reactionId,
         CharacterAcquiredTraitReactionAction action,
@@ -434,6 +499,9 @@ public readonly struct AcquiredTraitReactionOutcomeReceipt
             throw new ArgumentOutOfRangeException(nameof(absoluteDay));
         OwnerRevision = ownerRevision;
         CharacterId = characterId;
+        CharacterDisplayName = EvolutionOutcomeNames.Snapshot(
+            characterId.Value,
+            characterDisplayName);
         TraitInstanceId = traitInstanceId.Trim();
         Action = action;
         AppliedValue = appliedValue;
@@ -443,6 +511,7 @@ public readonly struct AcquiredTraitReactionOutcomeReceipt
     public GameplayOperationId OperationId { get; }
     public long OwnerRevision { get; }
     public CharacterId CharacterId { get; }
+    public KoreanNameSnapshot CharacterDisplayName { get; }
     public string TraitInstanceId { get; }
     public string ReactionId { get; }
     public CharacterAcquiredTraitReactionAction Action { get; }
@@ -461,6 +530,7 @@ public readonly struct FacilityEvolutionOutcomeReceipt
         string operationId,
         long ownerRevision,
         string facilityPersistentId,
+        string facilityDisplayName,
         string recipeId,
         string resultFacilityDefinitionId,
         int resultStarGrade,
@@ -476,6 +546,9 @@ public readonly struct FacilityEvolutionOutcomeReceipt
         FacilityPersistentId = GameplayOutcomeStableIdSyntax.Require(
             facilityPersistentId,
             nameof(facilityPersistentId));
+        FacilityDisplayName = EvolutionOutcomeNames.Snapshot(
+            FacilityPersistentId,
+            facilityDisplayName);
         RecipeId = GameplayOutcomeStableIdSyntax.Require(recipeId, nameof(recipeId));
         ResultFacilityDefinitionId = GameplayOutcomeStableIdSyntax.Require(
             resultFacilityDefinitionId,
@@ -516,6 +589,7 @@ public readonly struct FacilityEvolutionOutcomeReceipt
     public GameplayOperationId OperationId { get; }
     public long OwnerRevision { get; }
     public string FacilityPersistentId { get; }
+    public KoreanNameSnapshot FacilityDisplayName { get; }
     public string RecipeId { get; }
     public string ResultFacilityDefinitionId { get; }
     public int ResultStarGrade { get; }
@@ -536,7 +610,10 @@ public readonly struct MemoryErasureOutcomeReceipt
 {
     public MemoryErasureOutcomeReceipt(
         MemoryErasureSealUseResult result,
-        int absoluteDay)
+        CharacterAcquiredTraitInstanceState selectedTrait,
+        string targetCharacterDisplayName,
+        int absoluteDay,
+        long terminalRevision = 0L)
     {
         OperationId = new GameplayOperationId(result.OperationId);
         if (!GameplayOutcomeStableIdSyntax.IsValid(result.TargetCharacterId))
@@ -550,17 +627,54 @@ public readonly struct MemoryErasureOutcomeReceipt
             throw new ArgumentOutOfRangeException(nameof(result));
         if (absoluteDay < 0)
             throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        if (terminalRevision < 0L)
+            throw new ArgumentOutOfRangeException(nameof(terminalRevision));
+        CharacterAcquiredTraitInstanceState selected = selectedTrait?.Clone()
+            ?? throw new ArgumentNullException(nameof(selectedTrait));
+        string[] moduleIds = (selected.moduleIds ?? new List<string>())
+            .Select(value => value?.Trim() ?? string.Empty)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string combinationId = string.IsNullOrWhiteSpace(selected.combinationId)
+            ? CharacterAcquiredTraitCombinationIdentity.Build(moduleIds)
+            : selected.combinationId.Trim();
+        if (!string.Equals(
+                selected.instanceId,
+                result.TraitInstanceId,
+                StringComparison.Ordinal)
+            || !GameplayOutcomeStableIdSyntax.IsValid(selected.instanceId)
+            || !GameplayOutcomeStableIdSyntax.IsValid(combinationId)
+            || string.IsNullOrWhiteSpace(selected.displayName)
+            || moduleIds.Length == 0
+            || moduleIds.Any(value => !GameplayOutcomeStableIdSyntax.IsValid(value)))
+        {
+            throw new ArgumentException(
+                "The erased acquired-trait identity is incomplete.",
+                nameof(selectedTrait));
+        }
         Result = result;
+        CombinationId = combinationId;
+        TraitDisplayName = selected.displayName.Trim();
+        ModuleIds = moduleIds;
+        TargetCharacterDisplayName = EvolutionOutcomeNames.Snapshot(
+            result.TargetCharacterId,
+            targetCharacterDisplayName);
         AbsoluteDay = absoluteDay;
+        TerminalRevision = terminalRevision;
     }
 
     public GameplayOperationId OperationId { get; }
     public MemoryErasureSealUseResult Result { get; }
+    public string CombinationId { get; }
+    public string TraitDisplayName { get; }
+    public IReadOnlyList<string> ModuleIds { get; }
+    public KoreanNameSnapshot TargetCharacterDisplayName { get; }
     public int AbsoluteDay { get; }
+    public long TerminalRevision { get; }
     public GameplayResultKey ResultKey => new(
         EvolutionOutcomeIds.MemoryErasureProducerId,
         OperationId,
-        0L,
+        TerminalRevision,
         0);
 }
 
@@ -582,20 +696,6 @@ public readonly struct PreparedEvolutionOutcome
     public bool IsValid => AlreadyCommitted && ResultKey.IsValid || Prepared.IsValid;
 }
 
-public readonly struct ReservedMemoryErasureOutcome
-{
-    internal ReservedMemoryErasureOutcome(
-        PreparedOutcomeReservation reservation,
-        GameplayOperationId operationId)
-    {
-        Reservation = reservation;
-        OperationId = operationId;
-    }
-
-    internal PreparedOutcomeReservation Reservation { get; }
-    public GameplayOperationId OperationId { get; }
-    public bool IsValid => Reservation.IsValid && OperationId.IsValid;
-}
 
 public readonly struct ReservedEvolutionOutcome
 {

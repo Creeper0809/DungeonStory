@@ -104,6 +104,7 @@ public interface IRegionalSupplyContractCommandPort
     bool TryAddContractIncome(
         int amount,
         string operationId,
+        out RegionalSupplyRewardReceipt receipt,
         out string failureReason);
 }
 
@@ -139,6 +140,7 @@ public sealed class RegionalSupplyContractRuntime :
     private readonly IGrandProjectBenefitQuery projectBenefits;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly IEconomyProjectInputOwnerPort inputOwners;
+    private readonly IRegionalSupplyContractOutcomePort outcomePort;
     private IDisposable daySubscription;
 
     private RegionalSupplyContractAggregateState state
@@ -171,7 +173,8 @@ public sealed class RegionalSupplyContractRuntime :
         IRegionalSupplyContractSessionPort session,
         IGrandProjectBenefitQuery projectBenefits,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
-        IEconomyProjectInputOwnerPort inputOwners)
+        IEconomyProjectInputOwnerPort inputOwners,
+        IRegionalSupplyContractOutcomePort outcomePort)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.commands = commands
@@ -184,6 +187,8 @@ public sealed class RegionalSupplyContractRuntime :
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.inputOwners = inputOwners
             ?? throw new ArgumentNullException(nameof(inputOwners));
+        this.outcomePort = outcomePort
+            ?? throw new ArgumentNullException(nameof(outcomePort));
     }
 
     public int Version => state.Version;
@@ -237,8 +242,7 @@ public sealed class RegionalSupplyContractRuntime :
 
             if (currentDay > contract.deadlineDay)
             {
-                Fail(contract, "납품 기한이 지났습니다.");
-                changed = true;
+                changed |= Fail(contract, "납품 기한이 지났습니다.");
                 continue;
             }
 
@@ -273,6 +277,21 @@ public sealed class RegionalSupplyContractRuntime :
             return false;
         }
 
+        if (!TryReserveStatusOutcome(
+                contract,
+                RegionalSupplyContractStatus.Offered,
+                RegionalSupplyContractStatus.Accepted,
+                "accepted",
+                succeeded: true,
+                out RegionalSupplyContractOutcomeReservation prepared,
+                out string reservationFailure))
+        {
+            message = "계약 수락 결과를 예약하지 못했습니다: "
+                + reservationFailure;
+            return false;
+        }
+
+        RegionalSupplyContractState before = contract.Clone();
         contract.status = RegionalSupplyContractStatus.Accepted;
         contract.deadlineDay = Mathf.Max(
             currentDay + ContractDurationDays,
@@ -284,13 +303,37 @@ public sealed class RegionalSupplyContractRuntime :
         contract.inputDestinationY = dropoff.y;
         if (!TryEnsureInputOwner(contract, out string ownerFailure))
         {
-            contract.status = RegionalSupplyContractStatus.Offered;
-            contract.destinationId = string.Empty;
-            ClearInputOwnerProjection(contract);
+            outcomePort.Cancel(prepared);
+            RestoreContract(contract, before);
             message = "계약 집결 목적지를 열지 못했습니다: " + ownerFailure;
             return false;
         }
         contract.lastStatus = "계약 물품 운반을 시작했습니다.";
+        bool accepted = CommitStatusOutcome(
+            contract,
+            string.Empty,
+            prepared,
+            out string acceptedResultKey,
+            out string acceptedFailure);
+        if (!accepted)
+        {
+            if (!inputOwners.TryRetireDestination(
+                    EconomyProjectInputOwnerAuthority.RegionalContractDomain,
+                    contract.destinationId,
+                    EconomyProjectInputOwnerAuthority
+                        .RegionalContractTerminalReason,
+                    out string rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Regional-contract acceptance rollback failed: "
+                    + rollbackFailure);
+            }
+            RestoreContract(contract, before);
+            message = "계약 수락 결과 원장 확정 실패: "
+                + acceptedFailure;
+            return false;
+        }
+        contract.acceptanceOutcomeResultKey = acceptedResultKey;
         ProcessDelivery(contract);
         Touch();
         message = $"{contract.title} 계약을 수락했습니다.";
@@ -307,8 +350,37 @@ public sealed class RegionalSupplyContractRuntime :
             return false;
         }
 
+        if (!TryReserveStatusOutcome(
+                contract,
+                RegionalSupplyContractStatus.Offered,
+                RegionalSupplyContractStatus.Declined,
+                "declined",
+                succeeded: true,
+                out RegionalSupplyContractOutcomeReservation prepared,
+                out string reservationFailure))
+        {
+            message = "계약 거절 결과를 예약하지 못했습니다: "
+                + reservationFailure;
+            return false;
+        }
+
+        RegionalSupplyContractState before = contract.Clone();
         contract.status = RegionalSupplyContractStatus.Declined;
         contract.lastStatus = "계약을 거절했습니다.";
+        bool declined = CommitStatusOutcome(
+            contract,
+            string.Empty,
+            prepared,
+            out string declinedResultKey,
+            out string declinedFailure);
+        if (!declined)
+        {
+            RestoreContract(contract, before);
+            message = "계약 거절 결과 원장 확정 실패: "
+                + declinedFailure;
+            return false;
+        }
+        contract.terminalOutcomeResultKey = declinedResultKey;
         Touch();
         message = $"{contract.title} 계약을 거절했습니다.";
         return true;
@@ -514,9 +586,11 @@ public sealed class RegionalSupplyContractRuntime :
         if (RegionalSupplyContractDeliveryOutbox.HasPending(contract))
         {
             if (!RegionalSupplyContractDeliveryOutbox.TryFinalizePending(
-                    contract,
-                    commands,
-                    out string pendingFailure))
+                contract,
+                commands,
+                outcomePort,
+                currentDay,
+                out string pendingFailure))
             {
                 contract.lastStatus = pendingFailure;
             }
@@ -617,6 +691,8 @@ public sealed class RegionalSupplyContractRuntime :
         if (!RegionalSupplyContractDeliveryOutbox.TryFinalizePending(
                 contract,
                 commands,
+                outcomePort,
+                currentDay,
                 out string finalizeFailure))
         {
             contract.lastStatus = finalizeFailure;
@@ -628,15 +704,30 @@ public sealed class RegionalSupplyContractRuntime :
         return true;
     }
 
-    private void Fail(
+    private bool Fail(
         RegionalSupplyContractState contract,
         string reason)
     {
         if (contract == null)
         {
-            return;
+            return false;
+        }
+        if (!TryReserveStatusOutcome(
+                contract,
+                contract.status,
+                RegionalSupplyContractStatus.Failed,
+                "deadline-failed",
+                succeeded: false,
+                out RegionalSupplyContractOutcomeReservation prepared,
+                out string reservationFailure))
+        {
+            contract.lastStatus =
+                "계약 실패 결과를 예약하지 못했습니다: "
+                + reservationFailure;
+            return false;
         }
 
+        RegionalSupplyContractState before = contract.Clone();
         if (contract.inputOwnerActive
             && !inputOwners.TryRetireDestination(
                 EconomyProjectInputOwnerAuthority.RegionalContractDomain,
@@ -644,13 +735,104 @@ public sealed class RegionalSupplyContractRuntime :
                 EconomyProjectInputOwnerAuthority.RegionalContractTerminalReason,
                 out string releaseFailure))
         {
+            outcomePort.Cancel(prepared);
             contract.lastStatus = releaseFailure;
-            return;
+            return false;
         }
 
         ClearInputOwnerProjection(contract);
         contract.status = RegionalSupplyContractStatus.Failed;
         contract.lastStatus = reason ?? "계약 실패";
+        bool failed = CommitStatusOutcome(
+            contract,
+            contract.lastStatus,
+            prepared,
+            out string failedResultKey,
+            out string failedCommitReason);
+        if (!failed)
+        {
+            RestoreContract(contract, before);
+            if (before.inputOwnerActive
+                && !TryEnsureInputOwner(contract, out string rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Regional-contract deadline rollback failed: "
+                    + rollbackFailure);
+            }
+            contract.lastStatus =
+                "계약 실패 결과 원장 확정 실패: " + failedCommitReason;
+            return false;
+        }
+        contract.terminalOutcomeResultKey = failedResultKey;
+        return true;
+    }
+
+    private bool TryReserveStatusOutcome(
+        RegionalSupplyContractState contract,
+        RegionalSupplyContractStatus before,
+        RegionalSupplyContractStatus after,
+        string action,
+        bool succeeded,
+        out RegionalSupplyContractOutcomeReservation prepared,
+        out string failureReason) =>
+        outcomePort.TryReserveStatus(
+            contract,
+            before,
+            after,
+            action,
+            succeeded,
+            Math.Max(0, currentDay),
+            out prepared,
+            out failureReason);
+
+    private bool CommitStatusOutcome(
+        RegionalSupplyContractState contract,
+        string reason,
+        in RegionalSupplyContractOutcomeReservation prepared,
+        out string resultKey,
+        out string failureReason) =>
+        outcomePort.TryCommitStatus(
+            prepared,
+            contract,
+            reason,
+            out resultKey,
+            out failureReason);
+
+    private static void RestoreContract(
+        RegionalSupplyContractState target,
+        RegionalSupplyContractState source)
+    {
+        target.contractId = source.contractId;
+        target.title = source.title;
+        target.regionName = source.regionName;
+        target.offeredDay = source.offeredDay;
+        target.deadlineDay = source.deadlineDay;
+        target.rewardGold = source.rewardGold;
+        target.status = source.status;
+        target.destinationId = source.destinationId;
+        target.lastStatus = source.lastStatus;
+        target.deliveryCommitPhase = source.deliveryCommitPhase;
+        target.deliveryOperationId = source.deliveryOperationId;
+        target.deliveryCommitId = source.deliveryCommitId;
+        target.deliverySourceStackIds = new List<string>(
+            source.deliverySourceStackIds ?? new List<string>());
+        target.deliveryQuantity = source.deliveryQuantity;
+        target.deliveryMassGrams = source.deliveryMassGrams;
+        target.rewardTransactionId = source.rewardTransactionId;
+        target.rewardBalanceBefore = source.rewardBalanceBefore;
+        target.rewardBalanceAfter = source.rewardBalanceAfter;
+        target.acceptanceOutcomeResultKey = source.acceptanceOutcomeResultKey;
+        target.terminalOutcomeResultKey = source.terminalOutcomeResultKey;
+        target.deliveryOutcomeResultKey = source.deliveryOutcomeResultKey;
+        target.inputOwnerActive = source.inputOwnerActive;
+        target.inputDestinationX = source.inputDestinationX;
+        target.inputDestinationY = source.inputDestinationY;
+        target.inputCapacityGrams = source.inputCapacityGrams;
+        target.inputMassAuthorityRevision = source.inputMassAuthorityRevision;
+        target.inputCapacityFingerprint = source.inputCapacityFingerprint;
+        target.requirements = (source.requirements
+                ?? new List<RegionalSupplyContractRequirement>())
+            .ConvertAll(value => value?.Clone());
     }
 
     private bool IsContractCandidate(RegionalSupplyContractItemSnapshot item)

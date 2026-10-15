@@ -74,7 +74,8 @@ CI 통합은 실제 job·명령·실패 동작을 확인한 뒤에만 완료로 
 `docs_final/` 생성 파일을 직접 수정하지 않는다.
 
 코드/콘텐츠 변경으로 두 인덱스를 함께 갱신해야 할 때만
-[rebuild_knowledge_base.ps1](../../tools/Documentation/rebuild_knowledge_base.ps1)을 배치 마감에 한 번 실행한다.
+[rebuild_knowledge_base.ps1](../../Tools/Documentation/rebuild_knowledge_base.ps1)을 배치 마감에 한 번 실행한다.
+PowerShell 7(`pwsh`)에서 실행한다. Windows PowerShell 5.1은 BOM 없는 UTF-8 스크립트의 한글 검사 문자열을 잘못 해석하므로 사용하지 않는다.
 재생성과 검증은 구별하고, 문서-only 변경에 무관한 전체 재생성·Unity 실행을 추가하지 않는다.
 
 실행 전 인자 파서를 확인한다. 일부 기존 스크립트는 `--help`를 지원하지 않고 본체를 실행한다.

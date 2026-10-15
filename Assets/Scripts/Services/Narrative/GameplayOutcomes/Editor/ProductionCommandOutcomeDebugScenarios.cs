@@ -2,12 +2,17 @@
 using System;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.Narrative.Korean;
 using UnityEngine;
 
 public static class ProductionCommandOutcomeDebugScenarios
 {
     private const string FacilityId = "building:qa-production-command";
+    private const string BeforeValue =
+        "suspended=false;reserved-worker=none";
+    private const string AfterValue =
+        "suspended=true;reserved-worker=none";
 
     public static bool RunAll(bool logSuccess = false)
     {
@@ -33,33 +38,35 @@ public static class ProductionCommandOutcomeDebugScenarios
             ledger,
             registry,
             new GameEventBus());
-        ProductionCommandGameplayOutcomeBridge bridge = new(
-            recorder,
-            ledger,
-            new FixedDisplayNames(),
-            new FakeCalendar());
-        ProductionCommandOutcomeSource source = new(
-            ProductionCommandOutcomeKind.SuspensionChanged,
-            "production-bill:qa",
-            "recipe:qa-ingot",
-            "시험 주괴",
-            FacilityId,
-            7,
-            4,
-            "running",
-            "suspended");
+        GameplayDomainFactCommitGroup commits = new(recorder, ledger);
+        using DomainFactDispatcher facts = new();
+        using IDisposable subscription = facts.Subscribe(
+            "production.command-observer",
+            new GameplayDomainFactObserver<
+                ProductionCommandAppliedFact,
+                ProductionCommandOutcomeReceipt>(
+                ProductionCommandFactObservation.Capture,
+                registry,
+                ledger,
+                recorder,
+                commits));
 
+        ProductionCommandAppliedFact fact = CreateFact(suspendedAfter: true);
         Require(
-            bridge.TryPrepare(
-                source,
-                1L,
-                out IPreparedProductionCommandOutcome prepared,
+            facts.TryStage(
+                fact,
+                out IDomainFactStage stage,
                 out string prepareFailure),
-            "production command prepare failed: " + prepareFailure);
-        ProductionCommandOutcomeCommitResult committed = bridge.Commit(prepared);
+            "production command fact staging failed: " + prepareFailure);
+        DomainFactDelivery committed = stage.Commit();
         Require(
-            committed.DurablyCommitted,
-            "production command commit failed: " + committed.DetailCode);
+            committed.Completed
+            && committed.OperationKey
+                == ProductionCommandOutcomeIds.ResultKey(1L).ToString()
+            && committed.PublicationId.Length > 0
+            && committed.Fingerprint.Length == 64,
+            "production command fact commit did not return its durable opaque proof: "
+            + committed.Detail);
 
         GameplayEntityId facility = new(
             ProductionCommandOutcomeIds.FacilityKind,
@@ -91,11 +98,11 @@ public static class ProductionCommandOutcomeDebugScenarios
                 && value.value == "suspension-changed")
             && exact.facts.Any(value =>
                 value.factId == ProductionCommandOutcomeIds.BeforeValueFact.Value
-                && value.value == "running")
+                && value.value == BeforeValue)
             && exact.facts.Any(value =>
                 value.factId == ProductionCommandOutcomeIds.AfterValueFact.Value
-                && value.value == "suspended"),
-            "production command outcome lost its frozen receipt data");
+                && value.value == AfterValue),
+            "production command outcome lost its frozen typed fact data");
 
         GameplayOutcomeId outcomeId = new(
             new GameplayOutcomeRunId(exact.runId),
@@ -113,38 +120,35 @@ public static class ProductionCommandOutcomeDebugScenarios
             && view.Text.Contains("가동 상태 변경", StringComparison.Ordinal),
             "production command Korean projection was not stable");
 
+        var replayResults = new DomainFactDelivery[1];
         Require(
-            bridge.TryPrepare(
-                source,
-                1L,
-                out IPreparedProductionCommandOutcome replay,
-                out string replayFailure),
-            "production command replay prepare failed: " + replayFailure);
-        ProductionCommandOutcomeCommitResult replayed = bridge.Commit(replay);
-        Require(
-            replayed.DurablyCommitted
+            facts.ReplayBatch(
+                new[]
+                {
+                    DomainFactReplay.Create(committed.OperationKey, fact)
+                },
+                replayResults,
+                out string replayFailure)
+            && replayResults[0].Completed
             && ledger.GetGlobal(
                 OutcomeCursor.FirstPage(10),
                 OutcomeFilter.All).Items.Count == 1,
-            "production command replay duplicated or rejected the canonical result");
+            "production command replay duplicated or rejected the canonical result: "
+            + replayFailure);
 
-        ProductionCommandOutcomeSource drifted = new(
-            ProductionCommandOutcomeKind.SuspensionChanged,
-            "production-bill:qa",
-            "recipe:qa-ingot",
-            "시험 주괴",
-            FacilityId,
-            7,
-            4,
-            "running",
-            "running");
+        ProductionCommandAppliedFact drifted = CreateFact(
+            suspendedAfter: false);
+        var driftResults = new DomainFactDelivery[1];
         Require(
-            !bridge.TryPrepare(
-                drifted,
-                1L,
-                out _,
-                out _),
-            "same production command result key accepted a drifted receipt");
+            !facts.ReplayBatch(
+                new[]
+                {
+                    DomainFactReplay.Create(committed.OperationKey, drifted)
+                },
+                driftResults,
+                out _)
+            && !driftResults[0].MayBeCommitted,
+            "same production command result key accepted a drifted typed fact");
 
         GameplayOutcomeLedgerSaveData saved = ledger.CaptureGameplayOutcomes();
         GameplayOutcomeLedger restored = new(
@@ -174,56 +178,45 @@ public static class ProductionCommandOutcomeDebugScenarios
         return true;
     }
 
+    private static ProductionCommandAppliedFact CreateFact(
+        bool suspendedAfter)
+    {
+        ProductionCommandStateData before = CreateState(suspended: false);
+        ProductionCommandStateData after = CreateState(suspendedAfter);
+        return new ProductionCommandAppliedFact(new ProductionCommandFactData
+        {
+            ownerRevision = 1L,
+            kind = ProductionCommandKind.SuspensionChanged,
+            billId = "production-bill:qa",
+            recipeId = "recipe:qa-ingot",
+            recipeDisplayName = "시험 주괴",
+            facilityId = FacilityId,
+            facilityDisplayName = "대장간",
+            facilityX = 7,
+            facilityY = 4,
+            absoluteDay = 12,
+            before = before,
+            after = after
+        });
+    }
+
+    private static ProductionCommandStateData CreateState(bool suspended) =>
+        new()
+        {
+            exists = true,
+            mode = ProductionOrderMode.RepeatCount,
+            pendingMode = ProductionOrderMode.RepeatCount,
+            remainingCycles = 1,
+            minimumQuality = -1,
+            suspended = suspended,
+            distributionMode = ProductionDistributionMode.DemandWeighted,
+            workerPolicy = WorkerSelectionPolicySaveData.Anyone()
+        };
+
     private static void Require(bool condition, string message)
     {
         if (!condition)
             throw new InvalidOperationException(message);
-    }
-
-    private sealed class FixedDisplayNames : IGameplayOutcomeDisplayNameQuery
-    {
-        public bool TryGetCurrentName(
-            GameplayEntityId entityId,
-            out KoreanNameSnapshot name)
-        {
-            if (entityId.Kind.Equals(ProductionCommandOutcomeIds.FacilityKind)
-                && string.Equals(
-                    entityId.Value,
-                    FacilityId,
-                    StringComparison.Ordinal))
-            {
-                name = new KoreanNameSnapshot(
-                    "대장간",
-                    "production-command-facility-v1",
-                    KoreanPronunciationHint.AutoHangulDisplay(
-                        "production-command-pronunciation-v1"),
-                    "ko-KR");
-                return true;
-            }
-            name = default;
-            return false;
-        }
-    }
-
-    private sealed class FakeCalendar : IGameCalendar
-    {
-        public int Day => 12;
-        public int Hour => 9;
-        public int Year => Current.Year;
-        public int DayOfYear => Current.DayOfYear;
-        public Season Season => Current.Season;
-        public int DayOfSeason => Current.DayOfSeason;
-        public long AbsoluteHour => Current.AbsoluteHour;
-        public float ElapsedSeconds => 0f;
-        public TimeOfDay TimeOfDay => TimeOfDay.Morning;
-        public bool IsRunning { get; private set; }
-        public CalendarDateTime Current => GameCalendarRules.Project(Day, Hour);
-        public CalendarDateTime GetRegionalTime(int utcOffsetHours) =>
-            GameCalendarRules.ProjectRegional(Day, Hour, utcOffsetHours);
-        public void Start() => IsRunning = true;
-        public void SetDateTime(int day, int hour)
-        {
-        }
     }
 }
 #endif

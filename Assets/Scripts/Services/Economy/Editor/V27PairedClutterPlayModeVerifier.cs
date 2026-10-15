@@ -1425,15 +1425,15 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         {
             ResearchProjectSO expansionProject =
                 expansionProjects[expansionResearchId];
-            BlueprintResearchUnlockResult expansionUnlock =
-                BlueprintResearchService.ApplyCompletion(
-                    expansionProject,
-                    progression.BlueprintResearch.State,
-                    progression.BlueprintResearch.ShopUnlockState,
-                    facilityCatalog);
-            gameEvents.Publish(new BlueprintResearchCompletedEvent(
-                expansionProject,
-                expansionUnlock));
+            bool completed = progression.BlueprintResearch
+                .TryCompleteProjectImmediatelyForVerification(
+                    expansionProject.ProjectId,
+                    out string completionFailure);
+            Check(completed,
+                "PAIRED_MINING_EXPANSION_RESEARCH_COMMITTED",
+                expansionResearchId + ":" + completionFailure);
+            if (!completed)
+                yield break;
             for (int frame = 0; frame < 4; frame++)
                 yield return null;
         }

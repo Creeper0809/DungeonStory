@@ -34,14 +34,20 @@ public sealed class AnimalHusbandryWorkRuntimePortAdapter :
         out bool completed)
     {
         completed = false;
-        return TryUnwrap(handle, out BuildableObject target, out CharacterActor actor)
-            && commands.ApplyWork(
+        if (!TryUnwrap(handle, out BuildableObject target, out CharacterActor actor))
+            return false;
+        if (handle.ExecutionContext is not WorkExecutionContext execution)
+            throw new InvalidOperationException("Husbandry work requires its actual execution context.");
+        bool applied = commands.ApplyWork(
                 target,
                 actor,
                 animalId,
                 kind,
                 amount,
+                execution,
                 out completed);
+        handle.CompletionIdentityOwnedByDomain |= applied && completed;
+        return applied;
     }
 
     private static bool TryUnwrap(
@@ -105,7 +111,8 @@ public sealed class AnimalHusbandryWorkExecutionAdapter :
     {
         AnimalHusbandryWorkHandle handle = Capture(
             context.Target,
-            context.Actor);
+            context.Actor,
+            context);
         if (!handler.TryGetWork(
                 handle,
                 out AnimalHusbandryWorkSnapshot work))
@@ -133,12 +140,15 @@ public sealed class AnimalHusbandryWorkExecutionAdapter :
             });
         result.CompletedSuccessfully = progressApplied && completed;
         result.CompletionEffectsAlreadyApplied = completed;
+        result.CompletionIdentityOwnedByDomain = completed
+            && handle.CompletionIdentityOwnedByDomain;
     }
 
     private static AnimalHusbandryWorkHandle Capture(
         BuildableObject target,
-        CharacterActor actor)
+        CharacterActor actor,
+        object executionContext = null)
     {
-        return new AnimalHusbandryWorkHandle(target, actor);
+        return new AnimalHusbandryWorkHandle(target, actor, executionContext);
     }
 }

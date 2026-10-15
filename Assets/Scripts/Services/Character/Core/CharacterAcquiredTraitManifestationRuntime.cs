@@ -101,6 +101,92 @@ public interface ICharacterAcquiredTraitManifestationDiagnostics
         out CharacterAcquiredTraitManifestationDiagnostic diagnostic);
 }
 
+/// <summary>
+/// Selects the bounded legacy-ledger portion of one acquired-trait request.
+/// The manifestation score still uses the complete authoritative ledger; this
+/// class only limits the immutable public evidence window sent to narration.
+/// </summary>
+public static class CharacterAcquiredTraitEvidenceWindow
+{
+    public const int MaximumExactEvidenceFacts =
+        NarrativeRequestContext.MaximumFacts - 1;
+
+    public static IReadOnlyList<string> SelectLegacyFactIds(
+        CharacterNarrativeLedger ledger,
+        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> exactBindings)
+    {
+        if (ledger == null) throw new ArgumentNullException(nameof(ledger));
+        CharacterAcquiredTraitMeaningfulLedgerValidator
+            .RequireMeaningfulFactIds(ledger);
+
+        GameplayOutcomeEvidenceBindingSnapshot[] exact = (exactBindings
+                ?? Array.Empty<GameplayOutcomeEvidenceBindingSnapshot>())
+            .Where(value => value != null)
+            .ToArray();
+        if (exact.Length > MaximumExactEvidenceFacts)
+        {
+            throw new InvalidOperationException(
+                "Acquired-trait exact evidence exceeds its reserved public window: "
+                + $"{exact.Length} > {MaximumExactEvidenceFacts}.");
+        }
+
+        int capacity = NarrativeRequestContext.MaximumFacts - exact.Length;
+        if (capacity <= 0)
+            return Array.Empty<string>();
+
+        CharacterNarrativeFact[] candidates = GameplayOutcomeEvidenceFormulaProjection
+            .GetRemainingLegacyMilestoneCounts(ledger.Facts, exact).Keys
+            .Where(value => value != null
+                && value.milestoneCount > 0)
+            .GroupBy(
+                value => value.factId?.Trim() ?? string.Empty,
+                StringComparer.Ordinal)
+            .Where(group => group.Key.Length > 0)
+            .Select(group => OrderCandidates(group).First())
+            .ToArray();
+
+        List<CharacterNarrativeFact> selected = new(capacity);
+        HashSet<string> selectedIds = new(StringComparer.Ordinal);
+
+        // Preserve at least one high-value representative from every domain
+        // before filling the remaining window by global relevance.
+        foreach (CharacterNarrativeFact representative in candidates
+                     .GroupBy(value => value.domain)
+                     .Select(group => OrderCandidates(group).First())
+                     .OrderBy(value => value.domain))
+        {
+            if (selected.Count >= capacity)
+                break;
+            if (selectedIds.Add(representative.factId))
+                selected.Add(representative);
+        }
+
+        foreach (CharacterNarrativeFact candidate in OrderCandidates(candidates))
+        {
+            if (selected.Count >= capacity)
+                break;
+            if (selectedIds.Add(candidate.factId))
+                selected.Add(candidate);
+        }
+
+        return Array.AsReadOnly(selected
+            .Select(value => value.factId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray());
+    }
+
+    private static IOrderedEnumerable<CharacterNarrativeFact> OrderCandidates(
+        IEnumerable<CharacterNarrativeFact> source) =>
+        source.OrderByDescending(value => value.importancePoints)
+            .ThenByDescending(value => value.milestoneCount)
+            .ThenByDescending(value => value.lastDay)
+            .ThenByDescending(value => value.lastEventContext?.sequence ?? 0L)
+            .ThenByDescending(value => value.count)
+            .ThenBy(value => value.domain)
+            .ThenBy(value => value.factId, StringComparer.Ordinal)
+            .ThenBy(value => value.subjectId, StringComparer.Ordinal);
+}
+
 public static class CharacterAcquiredTraitPromptBuilder
 {
     private sealed class PromptModuleOffer
@@ -108,16 +194,19 @@ public static class CharacterAcquiredTraitPromptBuilder
         public PromptModuleOffer(
             string moduleId,
             NarrativeFormulaModulePolarity polarity,
-            string semanticDescription)
+            string semanticDescription,
+            IReadOnlyList<string> domainEvidenceFactIds = null)
         {
             ModuleId = moduleId;
             Polarity = polarity;
             SemanticDescription = semanticDescription;
+            DomainEvidenceFactIds = domainEvidenceFactIds;
         }
 
         public string ModuleId { get; }
         public NarrativeFormulaModulePolarity Polarity { get; }
         public string SemanticDescription { get; }
+        public IReadOnlyList<string> DomainEvidenceFactIds { get; }
     }
 
     public static NarrativePublicContextMaterial BuildPublicMaterial(
@@ -471,8 +560,7 @@ public static class CharacterAcquiredTraitPromptBuilder
                 throw new InvalidOperationException(
                     "Acquired-trait module offers require qualitative revalidation.");
             StringBuilder selectionBuilder = new(4096);
-            selectionBuilder.AppendLine("당신은 던전 경영 RPG의 후천 특성 모듈 선택기이자 표현 작가다.");
-            selectionBuilder.AppendLine("C#이 아래의 개별 합법 모듈과 실제 원장 근거만 제공한다. 어울리는 이로운 모듈 하나와 선택적으로 해로운 모듈 하나를 고른다. 수치와 비용은 C#이 선택 뒤 계산한다.");
+            selectionBuilder.AppendLine("Select an acquired trait from the C# offers.");
             selectionBuilder.Append("profile=").AppendLine(LocalLlmRequestProfiles.AcquiredTraitModuleSelection.Id);
             selectionBuilder.Append("selectionId=").AppendLine(frozen.moduleSelectionId);
             selectionBuilder.AppendLine("moduleOffers:");
@@ -482,17 +570,28 @@ public static class CharacterAcquiredTraitPromptBuilder
             {
                 selectionBuilder.Append("- moduleId=").Append(offer.ModuleId)
                     .Append("; polarity=").Append(offer.Polarity)
-                    .Append("; meaning=").AppendLine(CanonicalText(offer.SemanticDescription));
+                    .Append("; meaning=").Append(CanonicalText(offer.SemanticDescription));
+                if (offer.DomainEvidenceFactIds != null)
+                    selectionBuilder.Append("; domainEvidenceFactIds=").Append(Join(offer.DomainEvidenceFactIds));
+                selectionBuilder.AppendLine();
             }
             selectionBuilder.Append("evidenceFactIds=").AppendLine(Join(frozen.evidenceFactIds));
-            selectionBuilder.AppendLine("반드시 JSON 객체 하나만 반환한다.");
-            selectionBuilder.AppendLine("형식: {\"selectionId\":\"제공된 값 그대로\",\"positiveModuleIds\":[\"이로운 모듈 ID 하나\"],\"drawbackModuleIds\":[\"선택적 해로운 모듈 ID\"],\"evidenceFactIds\":[\"제공된 사실 ID\"],\"displayName\":\"32자 이하 한국어 이름\",\"narrativeFlavor\":\"180자 이하 획득 서사\"}");
-            selectionBuilder.AppendLine("절대 규칙:");
-            selectionBuilder.AppendLine("1. 최상위 키는 selectionId, positiveModuleIds, drawbackModuleIds, evidenceFactIds, displayName, narrativeFlavor만 정확히 한 번씩 쓴다.");
-            selectionBuilder.AppendLine("2. positiveModuleIds는 Positive 제안 중 정확히 하나다. drawbackModuleIds는 Drawback 제안 중 0개 또는 1개다.");
-            selectionBuilder.AppendLine("3. evidenceFactIds는 제공된 실제 사실 ID의 비어 있지 않은 부분집합이다.");
-            selectionBuilder.AppendLine("4. 효과 ID나 수치, 비용, 배율을 만들거나 출력하지 않는다.");
-            selectionBuilder.AppendLine("5. 이름과 서사는 선택한 모듈과 인용한 실제 기록이 왜 이어지는지 자연스럽게 드러내야 한다.");
+            string[] gameplayEvidenceIds = (frozen.evidenceBindings ?? new List<GameplayOutcomeEvidenceBindingSnapshot>())
+                .Where(binding => binding != null && frozen.evidenceFactIds.Contains(binding.publicFactId, StringComparer.Ordinal))
+                .Select(binding => binding.publicFactId).Distinct(StringComparer.Ordinal)
+                .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+            if (gameplayEvidenceIds.Length > 0)
+                selectionBuilder.Append("gameplayEvidenceFactIds=").AppendLine(Join(gameplayEvidenceIds));
+            selectionBuilder.AppendLine("Return one JSON object: selectionId, positiveModuleIds, drawbackModuleIds, evidenceFactIds, displayName, narrativeFlavor. Copy selectionId; choose one Positive.");
+            selectionBuilder.AppendLine(revalidatedSelection.Any(offer => offer.Polarity == NarrativeFormulaModulePolarity.Drawback)
+                ? "drawbackModuleIds: zero or one Drawback; never a Positive."
+                : "drawbackModuleIds: [].");
+            selectionBuilder.AppendLine("Cite a nonempty, sorted, unique subset of offered evidenceFactIds.");
+            if (revalidatedSelection.Any(offer => offer.DomainEvidenceFactIds != null))
+                selectionBuilder.AppendLine("Cite at least one domainEvidenceFactId per chosen module; similar wording alone is not evidence.");
+            if (gameplayEvidenceIds.Length > 0)
+                selectionBuilder.AppendLine("Also cite at least one gameplayEvidenceFactId: these bind actual game actions, not just background memories.");
+            selectionBuilder.AppendLine("Korean displayName <=32 characters; narrativeFlavor <=180, linking the choice to cited facts. Invent no facts or numerical mechanics.");
             return NarrativePublicPromptEnvelope.Create(selectionBuilder.ToString(), publicMaterial);
         }
         StringBuilder builder = new(2048);
@@ -527,16 +626,11 @@ public static class CharacterAcquiredTraitPromptBuilder
             throw new InvalidOperationException(
                 "Acquired-trait module selection no longer matches the authored formula catalog.");
         }
+        CharacterAcquiredTraitModuleSO[] authoredModules = modules
+            .Where(value => value != null).ToArray();
         NarrativeFormulaModuleSelectionRequest current =
-            CharacterAcquiredTraitFormulaGeneration.PrepareModuleSelection(
-                progression,
-                frozen.requestId,
-                frozen.requestKey,
-                frozen.manifestationMilestone,
-                settings,
-                modules,
-                frozen.evidenceFactIds,
-                frozen.evidenceBindings);
+            CharacterAcquiredTraitFormulaGeneration.RebuildFrozenModuleSelection(
+                progression, frozen, settings, authoredModules);
         string[] currentBenefits = current.Offers
             .Where(value => value.Polarity == NarrativeFormulaModulePolarity.Positive)
             .Select(value => value.ModuleId)
@@ -585,8 +679,41 @@ public static class CharacterAcquiredTraitPromptBuilder
             .Select(value => new PromptModuleOffer(
                 value.ModuleId,
                 value.Polarity,
-                value.SemanticDescription))
+                value.SemanticDescription,
+                BuildDomainEvidenceSupport(
+                    frozen,
+                    value.Polarity == NarrativeFormulaModulePolarity.Positive
+                        ? authoredModules.Single(module => module.ModuleId == value.ModuleId).DomainAffinities
+                        : settings.DrawbackCapabilities.Single(drawback => drawback != null
+                            && drawback.DrawbackId == value.ModuleId).DomainAffinities)))
             .ToArray());
+    }
+
+    // Describes the frozen evidence, not a new eligibility or state-writing authority.
+    // Exact records without domain tags stay unqualified even if their prose mentions combat.
+    private static IReadOnlyList<string> BuildDomainEvidenceSupport(
+        CharacterAcquiredTraitPendingRequestState frozen,
+        IEnumerable<CharacterNarrativeDomain> moduleDomains)
+    {
+        HashSet<CharacterNarrativeDomain> affinities = moduleDomains.ToHashSet();
+        return Array.AsReadOnly(frozen.evidenceFactIds.Where(evidenceId =>
+            (frozen.moduleSelectionLocalFacts ?? new List<CharacterNarrativeFact>()).Any(fact =>
+                fact != null && fact.count > 0 && affinities.Contains(fact.domain)
+                && CharacterAcquiredTraitEvidenceProjection.Project(fact) == evidenceId)
+            || (frozen.evidenceBindings ?? new List<GameplayOutcomeEvidenceBindingSnapshot>()).Any(binding =>
+                binding != null && binding.publicFactId == evidenceId
+                && (binding.semanticTags ?? new List<string>()).Any(tag =>
+                {
+                    string token = tag?.Trim() ?? string.Empty;
+                    const string prefix = "domain:";
+                    if (token.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                        token = token.Substring(prefix.Length);
+                    return Enum.TryParse(token, ignoreCase: true, out CharacterNarrativeDomain domain)
+                        && Enum.IsDefined(typeof(CharacterNarrativeDomain), domain)
+                        && affinities.Contains(domain);
+                })))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal).ToArray());
     }
 
     private static IReadOnlyList<PromptModuleOffer> RequireQualitativePersistedSelection(
@@ -690,7 +817,8 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
     private readonly IUiClock uiClock;
     private readonly IGameEventBus events;
     private readonly IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery;
-    private readonly IAcquiredTraitInferenceOutcomeCommitter outcomeCommitter;
+    private readonly DungeonStory.Foundation.Facts.IDomainFactPublisher facts;
+    private readonly CharacterTraitInferencePublicationRuntime publications;
     private readonly CharacterAcquiredTraitSettingsSO settings;
     private readonly CharacterAcquiredTraitModuleSO[] modules;
     private readonly CharacterAcquiredTraitInferenceService inference;
@@ -710,7 +838,8 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         IUiClock uiClock,
         IGameEventBus events,
         IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery,
-        IAcquiredTraitInferenceOutcomeCommitter outcomeCommitter)
+        DungeonStory.Foundation.Facts.IDomainFactPublisher facts,
+        CharacterTraitInferencePublicationRuntime publications)
     {
         if (content == null)
             throw new ArgumentNullException(nameof(content));
@@ -722,8 +851,8 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.outcomeEvidenceQuery = outcomeEvidenceQuery
             ?? throw new ArgumentNullException(nameof(outcomeEvidenceQuery));
-        this.outcomeCommitter = outcomeCommitter
-            ?? throw new ArgumentNullException(nameof(outcomeCommitter));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.publications = publications ?? throw new ArgumentNullException(nameof(publications));
 
         settings = content.RequireSingle<CharacterAcquiredTraitSettingsSO>()
             ?? throw new InvalidOperationException(
@@ -765,6 +894,39 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         return latestDiagnostics.TryGetValue(canonical, out diagnostic);
     }
 
+#if UNITY_EDITOR
+    // Observation only. The persisted aggregate remains the authority; a
+    // transport key cannot be rebound to a recreated or no-longer-owned request.
+    public bool TryCapturePendingModuleDispatch(string correlationId,
+        out CharacterProgression progression,
+        out CharacterAcquiredTraitPendingRequestState pending, out string prompt,
+        out NarrativePublicContextMaterialSnapshot publicContext)
+    {
+        progression = null;
+        pending = null;
+        prompt = string.Empty;
+        publicContext = null;
+        if (disposed || string.IsNullOrWhiteSpace(correlationId)) return false;
+        Observation[] matches = observations.Values.Where(value =>
+            value?.Pending?.InFlight == true && value.Pending.Packet != null
+            && string.Equals(value.Pending.Packet.requestKey, correlationId, StringComparison.Ordinal)).ToArray();
+        if (matches.Length != 1) return false;
+        Observation observation = matches[0];
+        if (!IsPublishedLiving(observation.Actor)
+            || !StillOwnsPersistedPending(observation, observation.Pending)
+            || string.IsNullOrWhiteSpace(observation.Pending.Prompt)
+            || observation.Pending.PublicMaterial == null) return false;
+        CharacterAcquiredTraitAggregateState state = observation.Progression.CaptureAcquiredTraitState();
+        if (!state.TryGetPendingRequest(observation.Pending.Packet.requestId, out var persisted)
+            || persisted.presentationState != CharacterAcquiredTraitPresentationState.ModuleSelectionPending) return false;
+        progression = observation.Progression;
+        pending = persisted.Clone();
+        prompt = observation.Pending.Prompt;
+        publicContext = observation.Pending.PublicMaterial.CaptureSnapshot();
+        return true;
+    }
+#endif
+
     [GameplayInternalOnly(
         "Composition starts authoritative character observation.",
         "IStartable|DungeonCharacterRegistration")]
@@ -789,6 +951,7 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         foreach (KeyValuePair<string, Observation> pair in ordered)
         {
             Observation observation = pair.Value;
+            InvalidateStaleOwner(observation);
             if (!IsPublishedLiving(observation.Actor))
             {
                 RemoveObservation(
@@ -976,25 +1139,35 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         if (milestone <= 0)
             return;
 
-        string[] evidence = CharacterAcquiredTraitMeaningfulLedgerValidator
-            .RequireMeaningfulFactIds(observation.Progression.NarrativeLedger)
-            .OrderBy(value => value, StringComparer.Ordinal)
+        List<GameplayOutcomeEvidenceBindingSnapshot> exactBindings =
+            GameplayOutcomeEvidenceFormulaProjection.Capture(
+                outcomeEvidenceQuery.GetForCharacter(
+                    observation.Actor.Identity.PersistentId,
+                    maximumCount:
+                        CharacterAcquiredTraitEvidenceWindow
+                            .MaximumExactEvidenceFacts,
+                    minimumSalience: 0f,
+                    includeCompacted: true));
+        string[] evidence = CharacterAcquiredTraitEvidenceWindow
+            .SelectLegacyFactIds(
+                observation.Progression.NarrativeLedger,
+                exactBindings)
             .ToArray();
         NarrativePublicContextMaterial publicMaterial =
             CharacterAcquiredTraitPromptBuilder.BuildPublicMaterialForLedgerEvidence(
                 observation.Progression,
                 evidence);
-        List<GameplayOutcomeEvidenceBindingSnapshot> exactBindings =
-            GameplayOutcomeEvidenceFormulaProjection.CaptureExact(
-                outcomeEvidenceQuery.GetForCharacter(
-                    observation.Actor.Identity.PersistentId,
-                    maximumCount: 32,
-                    minimumSalience: 0f,
-                    includeCompacted: false));
         publicMaterial = GameplayOutcomeEvidencePublicMaterialComposer.AddExactEvidence(
             publicMaterial, exactBindings);
-        IReadOnlyList<string> localProjectedEvidence =
-            CharacterAcquiredTraitPromptBuilder.BuildProjectedEvidenceFactIds(
+        HashSet<string> visibleExactIds = publicMaterial.Events
+            .Select(value => value.EvidenceId)
+            .ToHashSet(StringComparer.Ordinal);
+        exactBindings = exactBindings
+            .Where(value => visibleExactIds.Contains(value.publicFactId))
+            .ToList();
+        IReadOnlyList<string> localProjectedEvidence = evidence.Length == 0
+            ? Array.Empty<string>()
+            : CharacterAcquiredTraitPromptBuilder.BuildProjectedEvidenceFactIds(
                 publicMaterial,
                 evidence);
         string[] projectedEvidence = localProjectedEvidence
@@ -1003,6 +1176,8 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
         BuildRequestIdentity(
+            observation.Progression,
+            state.revision,
             observation.Actor.Identity.PersistentId,
             milestone,
             projectedEvidence,
@@ -1020,7 +1195,8 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
                     projectedEvidence,
                     exactBindings,
                     state.revision,
-                    CurrentTimestamp()));
+                    CurrentTimestamp(),
+                    publicMaterial));
         Publish(
             result.Succeeded
                 ? CharacterAcquiredTraitManifestationStatus.SubmissionSucceeded
@@ -1088,13 +1264,20 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         string[] localEvidence = (persisted.evidenceFactIds ?? new List<string>())
             .Where(value => !exactIds.Contains(value))
             .ToArray();
-        NarrativePublicContextMaterial publicMaterial =
-            CharacterAcquiredTraitPromptBuilder.BuildPublicMaterial(
+        NarrativePublicContextMaterial publicMaterial = persisted.RestorePublicContext();
+        if (publicMaterial == null)
+        {
+            // Explicit legacy-v0 path. Identity is still checked below; neither
+            // a changed context nor a missing v1 snapshot may be silently replaced.
+            publicMaterial = CharacterAcquiredTraitPromptBuilder.BuildPublicMaterial(
                 observation.Progression,
                 localEvidence);
-        publicMaterial = GameplayOutcomeEvidencePublicMaterialComposer.AddExactEvidence(
-            publicMaterial, persisted.evidenceBindings);
+            publicMaterial = GameplayOutcomeEvidencePublicMaterialComposer.AddExactEvidence(
+                publicMaterial, persisted.evidenceBindings);
+        }
         BuildRequestIdentity(
+            observation.Progression,
+            persisted.registeredRevision - 1,
             persisted.targetPersistentId,
             persisted.manifestationMilestone,
             persisted.evidenceFactIds,
@@ -1354,6 +1537,8 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
 
         pending.InFlight = false;
         pending.SubmittedAt = 0f;
+        if (InvalidateStaleOwner(observation))
+            return;
         if (!result.IsSuccess)
         {
             ScheduleRetry(observation, pending, uiClock.Time);
@@ -1406,7 +1591,7 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
                     result.Content,
                     CurrentTimestamp()),
                 pending.Packet,
-                outcomeCommitter);
+                facts, publications);
         if (completion.Succeeded)
         {
             observation.Pending = null;
@@ -1463,6 +1648,7 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         string targetId = targetPersistentId?.Trim() ?? string.Empty;
         if (!observations.TryGetValue(targetId, out Observation observation))
             return;
+        InvalidateStaleOwner(observation);
         observation.Progression.Changed -= observation.ChangedHandler;
         PendingDispatch pending = observation.Pending;
         if (pending != null)
@@ -1493,6 +1679,28 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         pending.InFlight = false;
         pending.DispatchGeneration++;
         CancelCorrelated(pending.Packet?.requestKey);
+    }
+
+    private bool InvalidateStaleOwner(Observation observation)
+    {
+        CharacterAcquiredTraitAggregateState state = observation.Progression.CaptureAcquiredTraitState();
+        if (state.pendingRequests == null || state.pendingRequests.Count != 1)
+            return false;
+        CharacterAcquiredTraitPendingRequestState persisted = state.pendingRequests[0];
+        if (persisted == null || persisted.ownerBinding != null
+            && persisted.ownerBinding.Matches(observation.Progression, out _))
+            return false;
+        PendingDispatch dispatch = observation.Pending;
+        CancelTransport(dispatch);
+        observation.Pending = null;
+        bool invalidated = inference.TryInvalidateStalePending(observation.Progression,
+            persisted.requestId, state.revision, out string reason);
+        observation.Dirty = true;
+        Publish(invalidated ? CharacterAcquiredTraitManifestationStatus.StaleCallbackRejected
+                : CharacterAcquiredTraitManifestationStatus.PendingInvalid,
+            persisted.targetPersistentId, dispatch?.Packet, 0, 0f,
+            CharacterAcquiredTraitInferenceIssueCode.StaleCallback, null, reason);
+        return true;
     }
 
     private void CancelCorrelated(string requestKey)
@@ -1538,7 +1746,9 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         return state.TryGetPendingRequest(
                 pending.Packet.requestId,
                 out CharacterAcquiredTraitPendingRequestState persisted)
-            && pending.Matches(persisted);
+            && pending.Matches(persisted)
+            && persisted.ownerBinding != null
+            && persisted.ownerBinding.Matches(observation.Progression, out _);
     }
 
     private void ScheduleRetry(
@@ -1633,6 +1843,8 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
     }
 
     private void BuildRequestIdentity(
+        CharacterProgression progression,
+        int requestRevision,
         string targetPersistentId,
         int milestone,
         IEnumerable<string> evidenceFactIds,
@@ -1640,8 +1852,37 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         out string requestId,
         out string requestKey)
     {
+        BuildProductionRequestIdentity(
+            settings,
+            targetPersistentId,
+            milestone,
+            evidenceFactIds,
+            publicContextSemanticHash,
+            CharacterNarrativeRequestOwnerBinding.Capture(progression),
+            requestRevision,
+            out requestId,
+            out requestKey);
+    }
+
+    internal static void BuildProductionRequestIdentity(
+        CharacterAcquiredTraitSettingsSO settings,
+        string targetPersistentId,
+        int milestone,
+        IEnumerable<string> evidenceFactIds,
+        string publicContextSemanticHash,
+        CharacterNarrativeRequestOwnerBinding ownerBinding,
+        int requestRevision,
+        out string requestId,
+        out string requestKey)
+    {
+        if (settings == null)
+            throw new ArgumentNullException(nameof(settings));
+        if (ownerBinding == null || !ownerBinding.IsWellFormed || requestRevision < 0
+            || !string.Equals(ownerBinding.persistentId, targetPersistentId, StringComparison.Ordinal))
+            throw new InvalidOperationException("Acquired-trait request identity requires a complete owner binding and revision.");
         string seed = settings.SettingsId + "|"
             + targetPersistentId + "|"
+            + ownerBinding.IdentitySuffix + "|" + requestRevision.ToString(CultureInfo.InvariantCulture) + "|"
             + milestone.ToString(CultureInfo.InvariantCulture) + "|"
             + string.Join("|", evidenceFactIds ?? Array.Empty<string>());
         string hash = NarrativeInferenceHash.ComputeSha256Utf8(

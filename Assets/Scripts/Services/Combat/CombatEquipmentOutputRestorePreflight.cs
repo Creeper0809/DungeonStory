@@ -40,12 +40,15 @@ internal static class CombatEquipmentOutputRestorePreflight
             {
                 case CombatEquipmentCraftOutputPhase
                         .PublishedAwaitingInputAcknowledgement:
-                    acknowledgements.Add(outputRestoreJoin.AdoptPending(
-                        order.outputPublication));
-                    order.outputPublication.outputAcknowledged = true;
-                    order.outputPublication.restoredInCurrentTransaction = true;
-                    order.outputPhase = CombatEquipmentCraftOutputPhase
-                        .RestoredOutputAwaitingInputAcknowledgement;
+                    var acknowledgement = outputRestoreJoin.AdoptPending(order.outputPublication);
+                    // Retain the physical marker while its frozen fact is undelivered.
+                    if (order.outputPublication.observationDelivered)
+                    {
+                        acknowledgements.Add(acknowledgement);
+                        order.outputPublication.outputAcknowledged = true;
+                        order.outputPublication.restoredInCurrentTransaction = true;
+                        order.outputPhase = CombatEquipmentCraftOutputPhase.RestoredOutputAwaitingInputAcknowledgement;
+                    }
                     break;
 
                 default:

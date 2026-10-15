@@ -114,7 +114,7 @@ public static class EquipmentItemStateCodec
         try
         {
             EquipmentPhysicalStatePayload restored =
-                JsonUtility.FromJson<EquipmentPhysicalStatePayload>(json);
+                DungeonSaveJson.Deserialize<EquipmentPhysicalStatePayload>(json);
             if (restored?.equipment == null
                 || string.IsNullOrWhiteSpace(restored.equipment.instanceId)
                 || string.IsNullOrWhiteSpace(restored.equipment.definitionId))
@@ -135,6 +135,12 @@ public static class EquipmentItemStateCodec
                          out error))
             {
                 return false;
+            }
+            foreach (EquipmentEvolutionPresentationRequest request in restored.equipment.evolution.presentationRequests)
+            {
+                if (!string.Equals(request.targetPersistentId, restored.equipment.instanceId, StringComparison.Ordinal))
+                    throw new InvalidOperationException("Equipment presentation request belongs to another physical item.");
+                request.ValidatePublicContext();
             }
             if (!Enum.IsDefined(
                     typeof(CombatEquipmentWorldState),
@@ -262,6 +268,7 @@ public static class EquipmentItemStateCodec
         state.presentationRequests ??= new List<EquipmentEvolutionPresentationRequest>();
         state.evolutionNodes ??= new List<EvolutionNode>();
         if (state.generation < 0
+            || state.moduleSelectionRevision < 0L
             || float.IsNaN(state.mastery)
             || float.IsInfinity(state.mastery)
             || state.mastery < 0f)
@@ -356,6 +363,14 @@ public static class EquipmentItemStateCodec
         foreach (EvolutionNode node in state.evolutionNodes.Where(value => value != null))
         {
             if (node.formulaVersion == 0) continue;
+            GameplayOutcomeEvidenceBindingSnapshot[] exactBindings =
+                (node.gameplayOutcomeEvidence
+                    ?? new List<GameplayOutcomeEvidenceBindingSnapshot>())
+                .Where(value => value != null)
+                .ToArray();
+            HashSet<string> exactEvidenceIds = exactBindings
+                .Select(value => value.publicFactId)
+                .ToHashSet(StringComparer.Ordinal);
             bool unresolvedSelection = node.formulaVersion
                     >= ModuleSelectionFormulaVersion
                 && node.moduleSelectionOffers != null
@@ -415,8 +430,21 @@ public static class EquipmentItemStateCodec
                             || float.IsInfinity(node.burdenPotencyMultiplier)))
                 || (node.legalCandidateEffectIds?.Count ?? 0) != 0
                 || node.selectedCandidateIndex != -1
-                || node.evidenceIds.Any(id => state.formulaEvidence.All(value =>
-                    !string.Equals(value.evidenceId, id, StringComparison.Ordinal))))
+                || exactBindings.Length
+                    != (node.gameplayOutcomeEvidence?.Count ?? 0)
+                || exactEvidenceIds.Count != exactBindings.Length
+                || exactBindings.Any(value =>
+                    !IsCanonical(value.publicFactId)
+                    || !node.evidenceIds.Contains(
+                        value.publicFactId,
+                        StringComparer.Ordinal))
+                || node.evidenceIds.Any(id =>
+                    !exactEvidenceIds.Contains(id)
+                    && state.formulaEvidence.All(value =>
+                        !string.Equals(
+                            value.evidenceId,
+                            id,
+                            StringComparison.Ordinal))))
             {
                 error = "Equipment formula node payload is invalid.";
                 return false;
@@ -456,6 +484,7 @@ public static class EquipmentItemStateCodec
                 error = "Equipment formula presentation state is inconsistent.";
                 return false;
             }
+            request?.ValidateFrozenNodeBinding(node);
         }
         if (state.presentationRequests.Any(request => state.evolutionNodes.All(node => node == null
                 || node.formulaVersion <= 0

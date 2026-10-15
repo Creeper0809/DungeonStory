@@ -112,6 +112,16 @@ public static class MetaProgressionRestoreBuilder
             Ended = source.ended,
             LatestResult = latest
         };
+        if (source.hasPendingCompletion)
+        {
+            var saved = source.pendingCompletion
+                ?? throw new InvalidOperationException("meta-completion-save-missing");
+            if (source.ended || saved.runSequence != checked(source.completedRunCount + 1))
+                throw new InvalidOperationException("meta-completion-save-sequence-conflict");
+            lifecycle.PendingCompletion = new MetaRunCompletionSnapshot(saved.fact, saved.runSequence,
+                BuildRunResult(saved.result ?? throw new InvalidOperationException("meta-completion-result-missing"), int.MaxValue),
+                saved.recipeCandidates, saved.preservedRecipeSlots);
+        }
         return new MetaProgressionRestoreCandidate(
             progression,
             runProgress,

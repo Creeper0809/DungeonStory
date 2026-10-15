@@ -44,6 +44,21 @@ public sealed class GameplayNarrativeEventContext
         sequence = Math.Max(0L, sequence)
     };
 
+    // Transitional caller adapter; state owners accept only domain provenance.
+    public CharacterEventContext ToDomainContext()
+    {
+        var source = Clone();
+        return new CharacterEventContext
+        {
+            eventInstanceId = source.eventInstanceId, chainId = source.chainId,
+            locationId = source.locationId, locationDisplayName = source.locationDisplayName,
+            actorId = source.actorId, actorDisplayName = source.actorDisplayName,
+            counterpartyId = source.counterpartyId, counterpartyDisplayName = source.counterpartyDisplayName,
+            usedObjectId = source.usedObjectId, usedObjectDisplayName = source.usedObjectDisplayName,
+            resultDetail = source.resultDetail, occurredDay = source.occurredDay, sequence = source.sequence
+        };
+    }
+
     private static string Canonical(string value) => value?.Trim() ?? string.Empty;
 }
 

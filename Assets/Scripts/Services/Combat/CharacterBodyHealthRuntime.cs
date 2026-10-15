@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using Unity.Profiling;
 using UnityEngine;
 using VContainer;
@@ -13,6 +14,8 @@ public sealed class CharacterBodyHealthRuntime :
     ICharacterManaQuery,
     ICharacterManaCommand,
     ICharacterBodyHealthMutationTransaction,
+    IAgeConditionAnatomyMutationTransaction,
+    IDiseaseAnatomyBurdenMutationTransaction,
     ICharacterBodyHealthPersistence,
     IAnatomyHealthRuntime,
     ITickable
@@ -24,11 +27,16 @@ public sealed class CharacterBodyHealthRuntime :
 
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IGameClock gameClock;
+    private readonly IGameCalendar gameCalendar;
     private readonly IGameEventBus gameEventBus;
     private readonly IDynamicFrameWorkBudget frameWorkBudget;
     private readonly CharacterBodyHealthStateRules stateRules;
     private readonly CharacterVitalsAuthority vitalsAuthority;
-    private IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private IDomainFactPublisher facts;
+    private IDomainFactRecoveryPublisher factRecovery;
+    private float nextHealingRecoveryTime;
+    private string lastHealingFactFailure = string.Empty;
+    private string lastFatalityFactFailure = string.Empty;
     private readonly Dictionary<CharacterId, CharacterActor> trackedActors =
         new Dictionary<CharacterId, CharacterActor>();
     private readonly Dictionary<CharacterId, float> lastTickAt =
@@ -48,10 +56,12 @@ public sealed class CharacterBodyHealthRuntime :
         IGameEventBus gameEventBus,
         IDynamicFrameWorkBudget frameWorkBudget,
         IAnatomyProfileCatalog anatomyProfiles,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IGameCalendar gameCalendar)
     {
         this.worldRegistry = worldRegistry ?? throw new ArgumentNullException(nameof(worldRegistry));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.gameCalendar = gameCalendar ?? throw new ArgumentNullException(nameof(gameCalendar));
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.frameWorkBudget = frameWorkBudget
             ?? throw new ArgumentNullException(nameof(frameWorkBudget));
@@ -62,13 +72,14 @@ public sealed class CharacterBodyHealthRuntime :
         observedAggregateRevision = vitalsAuthority.PublishedRestoreRevision;
     }
 
-    [Inject]
-    public void ConfigureOutcomeTransactions(
-        IMigratedProducerOutcomeTransaction outcomeTransactions) =>
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
-
     private CharacterVitalsAggregateState ReadState => vitalsAuthority.ReadState;
+
+    [Inject]
+    public void ConfigureFactPublication(IDomainFactPublisher publisher, IDomainFactRecoveryPublisher recovery)
+    {
+        facts = publisher ?? throw new ArgumentNullException(nameof(publisher));
+        factRecovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
+    }
 
     private CharacterVitalsAggregateState WriteState => vitalsAuthority.WriteState;
 
@@ -83,6 +94,12 @@ public sealed class CharacterBodyHealthRuntime :
     private void TickRuntime()
     {
         EnsureAggregateRevision();
+        if (Time.realtimeSinceStartup >= nextHealingRecoveryTime)
+        {
+            nextHealingRecoveryTime = Time.realtimeSinceStartup + 0.5f;
+            RecoverPendingHealingFacts();
+            RecoverPendingFatalityFacts();
+        }
         if (gameClock.DeltaTime <= 0f)
         {
             return;
@@ -519,178 +536,143 @@ public sealed class CharacterBodyHealthRuntime :
         CharacterDeathCauseCode cause,
         string reasonCode)
     {
-        if (actor == null)
-        {
-            return;
-        }
-
+        if (actor == null) return;
         CharacterBodyHealthState state = GetOrCreate(actor);
-        if (state.currentHealth <= 0f)
-            return;
-        if (outcomeTransactions == null)
-        {
-            vitalsAuthority.Kill(actor, state, cause, reasonCode);
-            return;
-        }
+        if (state.currentHealth <= 0f) return;
+        RequireNoPendingBodyObservation(state.characterId);
+        if (facts == null || factRecovery == null)
+            throw new InvalidOperationException("character-fatality-fact-publisher-missing");
+        if (ReadState.PendingFatalityFacts.Count >= CharacterFatalityFact.MaximumPending)
+            throw new InvalidOperationException("character-fatality-pending-capacity");
 
         CharacterBodyHealthMutationSnapshot before = CaptureCombatMutation(actor);
-        int absoluteDay = Mathf.Max(
-            0,
-            Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
-        MigratedProducerOutcomeKind[] kinds =
+        var data = new CharacterFatalityFactData
         {
-            MigratedProducerOutcomeKind.CharacterDeathEvent,
-            MigratedProducerOutcomeKind.HealthThresholdCrossedEvent,
-            MigratedProducerOutcomeKind.CharacterBodyHealthDownedEvent
+            characterId = before.CharacterId.Value,
+            characterName = actor.Identity?.DisplayName ?? actor.name,
+            absoluteDay = gameCalendar.Day,
+            cause = cause, reasonCode = reasonCode ?? string.Empty,
+            healthBefore = state.currentHealth, maximumHealth = state.maxHealth,
+            healthAfter = state.currentHealth, downedBefore = state.downed, downedAfter = state.downed
         };
-        var prepared = new PreparedMigratedProducerOutcome[kinds.Length];
-        for (int index = 0; index < kinds.Length; index++)
+        var proposal = new CharacterFatalityFact(data, proposalOnly: true);
+        DomainFactLease deathLease = default, criticalLease = default, downedLease = default;
+        try
         {
-            if (outcomeTransactions.TryReserve(
-                    kinds[index],
-                    before.CharacterId.Value,
-                    absoluteDay,
-                    GameplayOutcomeStatus.Succeeded,
-                    participantCount: 1,
-                    metricCount: 0,
-                    subjectCount: 1,
-                    additionalFactCount: 1,
-                    out prepared[index],
-                    out string reserveFailure))
-            {
-                continue;
-            }
-            for (int cancelIndex = 0; cancelIndex < index; cancelIndex++)
-                outcomeTransactions.Cancel(prepared[cancelIndex]);
-            throw new InvalidOperationException(
-                "character-death-outcome-reserve-failed:" + reserveFailure);
+            if (!facts.TryReserve(proposal, out deathLease, out string failure)
+                || !facts.TryReserve(new CharacterFatalCriticalTransitionFact(proposal), out criticalLease, out failure)
+                || !facts.TryReserve(new CharacterFatalDownedFact(proposal), out downedLease, out failure))
+                throw new InvalidOperationException("character-fatality-fact-reserve:" + failure);
+            if (string.IsNullOrEmpty(deathLease.PublicationKey) || string.IsNullOrEmpty(criticalLease.PublicationKey)
+                || string.IsNullOrEmpty(downedLease.PublicationKey))
+                throw new InvalidOperationException("character-fatality-fact-reservation-identity-missing");
         }
+        catch { facts.Cancel(deathLease); facts.Cancel(criticalLease); facts.Cancel(downedLease); throw; }
 
-        float previousRatio = HealthRatio(state);
-        bool wasDowned = state.downed;
+        CharacterFatalityFact actual;
         try
         {
             state.currentHealth = 0f;
             state.injurySeverity = 1f;
             stateRules.UpdateDowned(state);
             vitalsAuthority.Project(actor, state);
+            data.healthAfter = state.currentHealth; data.downedAfter = state.downed;
+            actual = new CharacterFatalityFact(data);
         }
         catch
         {
-            RestoreCombatMutation(
-                actor,
-                before,
-                "character-death-mutation-exception-rollback");
-            for (int index = 0; index < prepared.Length; index++)
-                outcomeTransactions.Cancel(prepared[index]);
+            RestoreCombatMutation(actor, before, "character-fatality-mutation-exception-rollback");
+            facts.Cancel(deathLease); facts.Cancel(criticalLease); facts.Cancel(downedLease);
             throw;
         }
 
-        bool[] include =
+        var pending = new CharacterFatalityPendingFactData
+        { deathPublicationKey = deathLease.PublicationKey, fact = actual.Snapshot() };
+        var emissions = new List<DomainFactEmission>(3) { DomainFactEmission.Create(deathLease, actual) };
+        if (actual.CrossedCritical)
         {
-            true,
-            previousRatio > 0.20f,
-            !wasDowned && state.downed
-        };
-        var selected = new List<PreparedMigratedProducerOutcome>(3);
-        var receipts = new List<MigratedProducerOutcomeReceipt>(3);
-        try
-        {
-            for (int index = 0; index < prepared.Length; index++)
-            {
-                if (!include[index])
-                {
-                    outcomeTransactions.Cancel(prepared[index]);
-                    continue;
-                }
-                selected.Add(prepared[index]);
-                MigratedProducerOutcomePayloadBuilder builder =
-                    outcomeTransactions.CreatePayloadBuilder(prepared[index]);
-                var subject = new MigratedProducerOutcomeSubject(
-                    MigratedProducerOutcomeIds.CharacterKind,
-                    before.CharacterId.Value,
-                    actor.Identity?.DisplayName ?? actor.name,
-                    MigratedProducerOutcomeIds.TargetRole);
-                string summary = index switch
-                {
-                    0 => $"{actor.Identity?.DisplayName ?? actor.name}이(가) 사망했다.",
-                    1 => $"{actor.Identity?.DisplayName ?? actor.name}의 건강이 치명 임계치를 넘었다.",
-                    _ => $"{actor.Identity?.DisplayName ?? actor.name}이(가) 전투 불능이 됐다."
-                };
-                string detail = index switch
-                {
-                    0 => $"cause={cause};reason={reasonCode ?? string.Empty}",
-                    1 => $"beforeRatio={previousRatio:0.###};afterRatio=0",
-                    _ => $"beforeDowned={wasDowned};afterDowned={state.downed}"
-                };
-                if (!builder.AddParticipant(new GameplayOutcomeParticipant(
-                        subject.EntityId,
-                        subject.Role,
-                        GameplayParticipationKind.Direct,
-                        true,
-                        subject.DisplayName))
-                    || !builder.AddSubject(new GameplayOutcomeSubjectLink(
-                        subject.EntityId,
-                        prepared[index].Salience,
-                        prepared[index].Tier,
-                        prepared[index].Tier == NarrativeMemoryTier.Core,
-                        false,
-                        0))
-                    || !builder.AddFact(new GameplayOutcomeFact(
-                        MigratedProducerOutcomeIds.SummaryFact,
-                        summary))
-                    || !builder.AddFact(new GameplayOutcomeFact(
-                        MigratedProducerOutcomeIds.DetailFact,
-                        detail)))
-                {
-                    throw new InvalidOperationException(
-                        "The character death payload exceeded its reserved capacity.");
-                }
-                receipts.Add(builder.Build());
-            }
+            pending.criticalPublicationKey = criticalLease.PublicationKey;
+            emissions.Add(DomainFactEmission.Create(criticalLease, new CharacterFatalCriticalTransitionFact(actual)));
         }
-        catch
+        else facts.Cancel(criticalLease);
+        if (actual.BecameDowned)
         {
-            RestoreCombatMutation(
-                actor,
-                before,
-                "character-death-receipt-rollback");
-            for (int index = 0; index < selected.Count; index++)
-                outcomeTransactions.Cancel(selected[index]);
-            throw;
+            pending.downedPublicationKey = downedLease.PublicationKey;
+            emissions.Add(DomainFactEmission.Create(downedLease, new CharacterFatalDownedFact(actual)));
         }
+        else facts.Cancel(downedLease);
 
-        var results = new MigratedProducerOutcomeCommitResult[selected.Count];
-        if (!outcomeTransactions.CommitBatch(
-                selected.ToArray(),
-                receipts.ToArray(),
-                results,
-                out string commitFailure))
-        {
-            RestoreCombatMutation(
-                actor,
-                before,
-                "character-death-outcome-rollback");
-            throw new InvalidOperationException(
-                "character-death-outcome-commit-failed:" + commitFailure);
-        }
-
-        try
-        {
-            actor.Stats?.NotifyAggregateDeath(cause, reasonCode);
-            PublishHealthTransition(
-                actor,
-                previousRatio,
-                0f,
-                cause,
-                reasonCode);
-            SyncLifecycle(actor, state, wasDowned);
-        }
+        var pendingFacts = WriteState.PendingFatalityFacts;
+        pendingFacts.Add(pending);
+        var replies = new DomainFactDelivery[emissions.Count];
+        bool accepted;
+        string publicationFailure;
+        try { accepted = facts.PublishBatch(emissions, replies, out publicationFailure); }
         catch (Exception exception)
         {
-            Debug.LogWarning(
-                "Committed character death observer failed: " + exception);
+            accepted = true;
+            publicationFailure = "character-fatality-publication-in-doubt:" + exception.GetType().Name;
+            for (int i = 0; i < replies.Length; i++) replies[i] = DomainFactDelivery.Uncertain(publicationFailure);
         }
+        finally { facts.Cancel(deathLease); facts.Cancel(criticalLease); facts.Cancel(downedLease); }
+        if (!accepted)
+        {
+            RestoreCombatMutation(actor, before, "character-fatality-fact-rejected");
+            pendingFacts.Remove(pending);
+            throw new InvalidOperationException("character-fatality-fact-commit:" + publicationFailure);
+        }
+        if (FatalityDeliveryCompleted(pending, replies)) pendingFacts.Remove(pending);
+        else ReportFatalityFactFailure(publicationFailure + ":" + string.Join(";", replies.Select(value => value.Detail)));
+
+        // Apply gameplay/lifecycle notifications once. Replay below publishes frozen facts only.
+        // A child observer may wait for this exact parent reference while its delivery is uncertain.
+        try
+        {
+            actor.Stats?.NotifyAggregateDeath(cause, reasonCode, pending.deathPublicationKey);
+            PublishHealthTransition(actor, actual.RatioBefore, 0f, cause, reasonCode);
+            SyncLifecycle(actor, state, before.State.downed);
+        }
+        catch (Exception exception) { Debug.LogWarning("Committed character death observer failed: " + exception); }
+    }
+
+    internal void RecoverPendingFatalityFacts()
+    {
+        if (ReadState.PendingFatalityFacts.Count == 0) return;
+        if (factRecovery == null) throw new InvalidOperationException("character-fatality-recovery-publisher-missing");
+        var pendingFacts = WriteState.PendingFatalityFacts;
+        foreach (var pending in pendingFacts.Take(8).ToArray())
+        {
+            var value = new CharacterFatalityFact(pending.fact);
+            var requests = new List<DomainFactReplay>(3)
+            { DomainFactReplay.Create(pending.deathPublicationKey, value) };
+            if (pending.criticalPublicationKey.Length > 0)
+                requests.Add(DomainFactReplay.Create(pending.criticalPublicationKey, new CharacterFatalCriticalTransitionFact(value)));
+            if (pending.downedPublicationKey.Length > 0)
+                requests.Add(DomainFactReplay.Create(pending.downedPublicationKey, new CharacterFatalDownedFact(value)));
+            var replies = new DomainFactDelivery[requests.Count];
+            try
+            {
+                if (factRecovery.ReplayBatch(requests, replies, out string failure) && FatalityDeliveryCompleted(pending, replies))
+                    pendingFacts.Remove(pending);
+                else ReportFatalityFactFailure("character-fatality-recovery:" + failure + ":" + string.Join(";", replies.Select(item => item.Detail)));
+            }
+            catch (Exception exception) { ReportFatalityFactFailure("character-fatality-recovery:" + exception.GetType().Name); }
+            if (pendingFacts.Remove(pending)) pendingFacts.Add(pending);
+        }
+    }
+
+    private static bool FatalityDeliveryCompleted(CharacterFatalityPendingFactData pending, DomainFactDelivery[] replies)
+    {
+        var keys = new[] { pending.deathPublicationKey, pending.criticalPublicationKey, pending.downedPublicationKey }
+            .Where(key => key.Length > 0).ToArray();
+        return replies.Length == keys.Length && replies.Select((reply, index) => reply.Completed && reply.OperationKey == keys[index]).All(value => value);
+    }
+
+    private void ReportFatalityFactFailure(string failure)
+    {
+        if (lastFatalityFactFailure == failure) return;
+        lastFatalityFactFailure = failure;
+        Debug.LogWarning("Character fatality observation: " + failure);
     }
 
     public CharacterBodyHealthSnapshot GetSnapshot(string characterId)
@@ -701,6 +683,189 @@ public sealed class CharacterBodyHealthRuntime :
                 ? stateRules.BuildSnapshot(state)
                 : stateRules.EmptySnapshot();
     }
+
+    [GameplayInternalOnly(
+        "Stages age-condition anatomy damage without irreversible lifecycle observers before the child outcome commits.",
+        "AgeConditionAnatomyProjectionRuntime")]
+    public CharacterPreparedAgeConditionAnatomyReceipt
+        ApplyPreparedAgeConditionAnatomy(
+            CharacterActor actor,
+            IReadOnlyList<string> nodeIds,
+            float damageFraction,
+            bool destroyNode,
+            string reasonCode)
+    {
+        if (actor == null || actor.IsDead)
+            throw new InvalidOperationException(
+                "Age-condition anatomy mutation requires a living actor.");
+        string[] requested = (nodeIds ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (requested.Length == 0
+            || !destroyNode && damageFraction <= 0f
+            || string.IsNullOrWhiteSpace(reasonCode))
+        {
+            throw new InvalidOperationException(
+                "Age-condition anatomy mutation input is invalid.");
+        }
+
+        CharacterBodyHealthMutationSnapshot before = CaptureCombatMutation(actor);
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        AnatomyNodeHealthState[] nodes = requested
+            .Select(value => stateRules.FindAnatomyNode(state, value))
+            .ToArray();
+        if (nodes.Any(value => value == null || value.missing))
+        {
+            throw new InvalidOperationException(
+                "Age-condition anatomy mutation has an unavailable node.");
+        }
+
+        var deltas = new List<CharacterAnatomyDamageDelta>(nodes.Length);
+        float aggregateBefore = state.currentHealth;
+        float requestedTotal = 0f;
+        for (int index = 0; index < nodes.Length; index++)
+        {
+            AnatomyNodeHealthState node = nodes[index];
+            float damage = destroyNode
+                ? node.currentHealth
+                : node.maxHealth * damageFraction;
+            if (damage <= 0f)
+                continue;
+            float healthBefore = node.currentHealth;
+            float bleedingBefore = node.bleedingPerSecond;
+            node.currentHealth = Mathf.Max(0f, node.currentHealth - damage);
+            stateRules.SyncLegacySurfaceNode(state, node.nodeId);
+            requestedTotal += damage;
+            deltas.Add(new CharacterAnatomyDamageDelta(
+                node.nodeId,
+                node.maxHealth,
+                healthBefore,
+                damage,
+                node.currentHealth,
+                bleedingBefore,
+                node.bleedingPerSecond));
+        }
+        if (deltas.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "Age-condition anatomy mutation produced no delta.");
+        }
+
+        state.currentHealth = Mathf.Max(1f, state.currentHealth - requestedTotal);
+        state.injurySeverity = Mathf.Clamp01(
+            1f - state.currentHealth / Mathf.Max(1f, state.maxHealth));
+        state.lastDamageReason = reasonCode.Trim();
+        stateRules.UpdateDowned(state);
+        vitalsAuthority.Project(actor, state);
+        return new CharacterPreparedAgeConditionAnatomyReceipt(
+            before,
+            deltas.ToArray(),
+            aggregateBefore,
+            state.currentHealth,
+            reasonCode.Trim());
+    }
+
+    [GameplayInternalOnly(
+        "Publishes age-condition anatomy lifecycle effects after the child outcome is durable.",
+        "AgeConditionAnatomyProjectionRuntime")]
+    public void CompletePreparedAgeConditionAnatomy(
+        CharacterActor actor,
+        in CharacterPreparedAgeConditionAnatomyReceipt receipt)
+    {
+        if (actor == null || !receipt.IsValid)
+            throw new InvalidOperationException(
+                "Prepared age-condition anatomy completion is invalid.");
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        float applied = Mathf.Max(
+            0f,
+            receipt.AggregateHealthBefore - receipt.AggregateHealthAfter);
+        if (applied > 0f)
+        {
+            actor.Stats?.NotifyAggregateDamage(
+                applied,
+                receipt.ReasonCode,
+                false,
+                CharacterDeathCauseCode.AgeConditionOrganFailure);
+        }
+        for (int index = 0; index < receipt.NodeDeltas.Count; index++)
+        {
+            stateRules.KillForDestroyedVitalNode(
+                actor,
+                state,
+                receipt.NodeDeltas[index].NodeId,
+                CharacterDeathCauseCode.AgeConditionOrganFailure,
+                receipt.ReasonCode);
+            if (actor.IsDead)
+                break;
+        }
+        bool wasDowned = receipt.AggregateWasDowned;
+        stateRules.UpdateDowned(state);
+        PublishHealthTransition(
+            actor,
+            Mathf.Clamp01(
+                receipt.AggregateHealthBefore
+                / Mathf.Max(1f, receipt.AggregateMaximumHealth)),
+            HealthRatio(state),
+            CharacterDeathCauseCode.AgeConditionOrganFailure,
+            receipt.ReasonCode);
+        SyncLifecycle(actor, state, wasDowned);
+    }
+
+    public void RestorePreparedAgeConditionAnatomy(
+        CharacterActor actor,
+        in CharacterBodyHealthMutationSnapshot snapshot,
+        string reason) => RestoreCombatMutation(actor, snapshot, reason);
+
+    [GameplayInternalOnly(
+        "Stages disease infection burden so the mutation can be rolled back if its outcome is rejected.",
+        "DiseaseAnatomyBurdenProjectionRuntime")]
+    public CharacterPreparedDiseaseAnatomyBurdenReceipt
+        ApplyPreparedDiseaseAnatomyBurden(
+            CharacterActor actor,
+            string nodeId,
+            float infectionBurden,
+            string reasonCode)
+    {
+        if (actor == null || actor.IsDead
+            || string.IsNullOrWhiteSpace(nodeId)
+            || infectionBurden <= 0f
+            || string.IsNullOrWhiteSpace(reasonCode))
+        {
+            throw new InvalidOperationException(
+                "Disease anatomy burden mutation input is invalid.");
+        }
+
+        CharacterBodyHealthMutationSnapshot before = CaptureCombatMutation(actor);
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        AnatomyNodeHealthState node = stateRules.FindAnatomyNode(
+            state,
+            nodeId.Trim());
+        if (node == null || node.missing)
+        {
+            throw new InvalidOperationException(
+                "Disease anatomy burden target node is unavailable.");
+        }
+
+        float infectionBefore = node.infection;
+        node.infection = Mathf.Clamp(
+            node.infection + infectionBurden,
+            0f,
+            100f);
+        return new CharacterPreparedDiseaseAnatomyBurdenReceipt(
+            before,
+            node.nodeId,
+            infectionBurden,
+            infectionBefore,
+            node.infection,
+            reasonCode);
+    }
+
+    public void RestorePreparedDiseaseAnatomyBurden(
+        CharacterActor actor,
+        in CharacterBodyHealthMutationSnapshot snapshot,
+        string reason) => RestoreCombatMutation(actor, snapshot, reason);
 
     [GameplayInternalOnly(
         "Captures an exact detached health aggregate image before combat outcome commit.",
@@ -1146,187 +1311,156 @@ public sealed class CharacterBodyHealthRuntime :
 
     public void Heal(CharacterActor target, float amount, bool stopBleeding)
     {
-        if (target == null || amount <= 0f)
-        {
-            return;
-        }
+        if (target == null || amount <= 0f) return;
+        if (facts == null || factRecovery == null)
+            throw new InvalidOperationException("character-healing-fact-publisher-missing");
+        if (ReadState.PendingHealingFacts.Count >= CharacterHealingFact.MaximumPending)
+            throw new InvalidOperationException("character-healing-pending-capacity");
 
         CharacterBodyHealthState state = GetOrCreate(target);
-        if (outcomeTransactions == null)
-        {
-            stateRules.HealSurfaceParts(state, amount, stopBleeding);
-            state.bloodLoss = Mathf.Max(0f, state.bloodLoss - amount * 0.5f);
-            bool legacyWasDowned = state.downed;
-            ApplyAggregateHealing(target, state, amount);
-            stateRules.UpdateDowned(state);
-            SyncLifecycle(target, state, legacyWasDowned);
-            return;
-        }
-
         CharacterBodyHealthMutationSnapshot before = CaptureCombatMutation(target);
-        int absoluteDay = Mathf.Max(
-            0,
-            Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
-        var prepared = new PreparedMigratedProducerOutcome[2];
-        MigratedProducerOutcomeKind[] kinds =
+        RequireNoPendingBodyObservation(before.CharacterId.Value);
+        int absoluteDay = gameCalendar.Current.AbsoluteDay;
+        var data = new CharacterHealingFactData
         {
-            MigratedProducerOutcomeKind.HealthThresholdCrossedEvent,
-            MigratedProducerOutcomeKind.CharacterBodyHealthRecoveredEvent
+            characterId = before.CharacterId.Value,
+            characterName = target.Identity?.DisplayName ?? target.name,
+            absoluteDay = absoluteDay,
+            healthBefore = state.currentHealth, maximumHealthBefore = state.maxHealth,
+            healthAfter = state.currentHealth, maximumHealthAfter = state.maxHealth,
+            downedBefore = state.downed, downedAfter = state.downed
         };
-        for (int index = 0; index < kinds.Length; index++)
+        var proposal = new CharacterHealingFact(data, proposalOnly: true);
+        DomainFactLease criticalLease = default, recoveryLease = default;
+        try
         {
-            if (outcomeTransactions.TryReserve(
-                    kinds[index],
-                    before.CharacterId.Value,
-                    absoluteDay,
-                    GameplayOutcomeStatus.Succeeded,
-                    participantCount: 1,
-                    metricCount: 0,
-                    subjectCount: 1,
-                    additionalFactCount: 1,
-                    out prepared[index],
-                    out string reserveFailure))
-            {
-                continue;
-            }
-            for (int cancelIndex = 0; cancelIndex < index; cancelIndex++)
-                outcomeTransactions.Cancel(prepared[cancelIndex]);
-            throw new InvalidOperationException(
-                "character-healing-outcome-reserve-failed:" + reserveFailure);
+            if (!facts.TryReserve(new CharacterCriticalHealthTransitionFact(proposal), out criticalLease, out string failure))
+                throw new InvalidOperationException("character-healing-fact-reserve:" + failure);
+            if (!facts.TryReserve(new CharacterMobilityRecoveredFact(proposal), out recoveryLease, out failure))
+                throw new InvalidOperationException("character-healing-fact-reserve:" + failure);
+            if (string.IsNullOrEmpty(criticalLease.PublicationKey) || string.IsNullOrEmpty(recoveryLease.PublicationKey))
+                throw new InvalidOperationException("character-healing-fact-reservation-identity-missing");
         }
+        catch { facts.Cancel(criticalLease); facts.Cancel(recoveryLease); throw; }
 
-        float previousRatio = HealthRatio(state);
-        bool wasDowned = state.downed;
-        float healthBefore = state.currentHealth;
+        CharacterHealingFact actual;
         try
         {
             stateRules.HealSurfaceParts(state, amount, stopBleeding);
             state.bloodLoss = Mathf.Max(0f, state.bloodLoss - amount * 0.5f);
             if (state.currentHealth > 0f)
             {
-                state.currentHealth = Mathf.Min(
-                    state.maxHealth,
-                    state.currentHealth + amount);
-                state.injurySeverity = Mathf.Clamp01(
-                    1f - state.currentHealth / Mathf.Max(1f, state.maxHealth));
+                state.currentHealth = Mathf.Min(state.maxHealth, state.currentHealth + amount);
+                state.injurySeverity = Mathf.Clamp01(1f - state.currentHealth / Mathf.Max(1f, state.maxHealth));
             }
             stateRules.UpdateDowned(state);
             vitalsAuthority.Project(target, state);
+            data.healthAfter = state.currentHealth; data.maximumHealthAfter = state.maxHealth;
+            data.downedAfter = state.downed;
+            actual = new CharacterHealingFact(data);
         }
         catch
         {
-            RestoreCombatMutation(
-                target,
-                before,
-                "character-healing-mutation-exception-rollback");
-            for (int index = 0; index < prepared.Length; index++)
-                outcomeTransactions.Cancel(prepared[index]);
+            RestoreCombatMutation(target, before, "character-healing-mutation-exception-rollback");
+            facts.Cancel(criticalLease); facts.Cancel(recoveryLease);
             throw;
         }
 
-        float currentRatio = HealthRatio(state);
-        bool thresholdCrossed = (previousRatio > 0.20f && currentRatio <= 0.20f)
-            || (previousRatio <= 0.20f && currentRatio > 0.20f);
-        bool recovered = wasDowned && !state.downed;
-        bool[] include = { thresholdCrossed, recovered };
-        var selected = new List<PreparedMigratedProducerOutcome>(2);
-        var receipts = new List<MigratedProducerOutcomeReceipt>(2);
-        try
+        var emissions = new List<DomainFactEmission>(2);
+        var pending = new CharacterHealingPendingFactData { fact = actual.Snapshot() };
+        if (actual.CrossedCritical)
         {
-            for (int index = 0; index < prepared.Length; index++)
-            {
-                if (!include[index])
-                {
-                    outcomeTransactions.Cancel(prepared[index]);
-                    continue;
-                }
-                selected.Add(prepared[index]);
-                MigratedProducerOutcomePayloadBuilder builder =
-                    outcomeTransactions.CreatePayloadBuilder(prepared[index]);
-                var subject = new MigratedProducerOutcomeSubject(
-                    MigratedProducerOutcomeIds.CharacterKind,
-                    before.CharacterId.Value,
-                    target.Identity?.DisplayName ?? target.name,
-                    MigratedProducerOutcomeIds.TargetRole);
-                string summary = index == 0
-                    ? $"{target.Identity?.DisplayName ?? target.name}의 건강이 임계치를 회복했다."
-                    : $"{target.Identity?.DisplayName ?? target.name}이(가) 전투 불능에서 회복했다.";
-                string detail = index == 0
-                    ? $"beforeRatio={previousRatio:0.###};afterRatio={currentRatio:0.###}"
-                    : $"beforeDowned={wasDowned};afterDowned={state.downed}";
-                if (!builder.AddParticipant(new GameplayOutcomeParticipant(
-                        subject.EntityId,
-                        subject.Role,
-                        GameplayParticipationKind.Direct,
-                        true,
-                        subject.DisplayName))
-                    || !builder.AddSubject(new GameplayOutcomeSubjectLink(
-                        subject.EntityId,
-                        prepared[index].Salience,
-                        prepared[index].Tier,
-                        prepared[index].Tier == NarrativeMemoryTier.Core,
-                        false,
-                        0))
-                    || !builder.AddFact(new GameplayOutcomeFact(
-                        MigratedProducerOutcomeIds.SummaryFact,
-                        summary))
-                    || !builder.AddFact(new GameplayOutcomeFact(
-                        MigratedProducerOutcomeIds.DetailFact,
-                        detail)))
-                {
-                    throw new InvalidOperationException(
-                        "The healing transition payload exceeded its reserved capacity.");
-                }
-                receipts.Add(builder.Build());
-            }
+            pending.criticalPublicationKey = criticalLease.PublicationKey;
+            emissions.Add(DomainFactEmission.Create(criticalLease, new CharacterCriticalHealthTransitionFact(actual)));
         }
-        catch
+        else facts.Cancel(criticalLease);
+        if (actual.Recovered)
         {
-            RestoreCombatMutation(
-                target,
-                before,
-                "character-healing-receipt-rollback");
-            for (int index = 0; index < selected.Count; index++)
-                outcomeTransactions.Cancel(selected[index]);
-            throw;
+            pending.recoveryPublicationKey = recoveryLease.PublicationKey;
+            emissions.Add(DomainFactEmission.Create(recoveryLease, new CharacterMobilityRecoveredFact(actual)));
+        }
+        else facts.Cancel(recoveryLease);
+
+        if (emissions.Count > 0)
+        {
+            var pendingFacts = WriteState.PendingHealingFacts;
+            pendingFacts.Add(pending);
+            var replies = new DomainFactDelivery[emissions.Count];
+            bool accepted;
+            string failure;
+            try { accepted = facts.PublishBatch(emissions, replies, out failure); }
+            catch (Exception exception)
+            {
+                accepted = true;
+                failure = "character-healing-publication-in-doubt:" + exception.GetType().Name;
+                for (int i = 0; i < replies.Length; i++) replies[i] = DomainFactDelivery.Uncertain(failure);
+            }
+            if (!accepted)
+            {
+                RestoreCombatMutation(target, before, "character-healing-fact-rejected");
+                pendingFacts.Remove(pending);
+                throw new InvalidOperationException("character-healing-fact-commit:" + failure);
+            }
+            if (HealingDeliveryCompleted(pending, replies)) pendingFacts.Remove(pending);
+            else ReportHealingFactFailure(failure + ":" + string.Join(";", replies.Select(value => value.Detail)));
         }
 
-        if (selected.Count > 0)
-        {
-            var results = new MigratedProducerOutcomeCommitResult[selected.Count];
-            if (!outcomeTransactions.CommitBatch(
-                    selected.ToArray(),
-                    receipts.ToArray(),
-                    results,
-                    out string commitFailure))
-            {
-                RestoreCombatMutation(
-                    target,
-                    before,
-                    "character-healing-outcome-rollback");
-                throw new InvalidOperationException(
-                    "character-healing-outcome-commit-failed:" + commitFailure);
-            }
-        }
-
+        // Observation recovery never invokes these gameplay/UI/lifecycle effects.
         try
         {
-            float applied = Mathf.Max(0f, state.currentHealth - healthBefore);
-            if (applied > 0f)
-                target.Stats?.NotifyAggregateHealing(applied);
-            PublishHealthTransition(
-                target,
-                previousRatio,
-                currentRatio,
-                CharacterDeathCauseCode.Unknown,
-                "healing");
-            SyncLifecycle(target, state, wasDowned);
+            float applied = Mathf.Max(0f, state.currentHealth - before.State.currentHealth);
+            if (applied > 0f) target.Stats?.NotifyAggregateHealing(applied);
+            PublishHealthTransition(target, actual.RatioBefore, actual.RatioAfter, CharacterDeathCauseCode.Unknown, "healing");
+            SyncLifecycle(target, state, before.State.downed);
         }
-        catch (Exception exception)
+        catch (Exception exception) { Debug.LogWarning("Committed character healing observer failed: " + exception); }
+    }
+
+    internal void RecoverPendingHealingFacts()
+    {
+        if (ReadState.PendingHealingFacts.Count == 0) return;
+        if (factRecovery == null) throw new InvalidOperationException("character-healing-recovery-publisher-missing");
+        var pendingFacts = WriteState.PendingHealingFacts;
+        foreach (var pending in pendingFacts.Take(8).ToArray())
         {
-            Debug.LogWarning(
-                "Committed character healing observer failed: " + exception);
+            var value = new CharacterHealingFact(pending.fact);
+            var requests = new List<DomainFactReplay>(2);
+            if (pending.criticalPublicationKey.Length > 0)
+                requests.Add(DomainFactReplay.Create(pending.criticalPublicationKey, new CharacterCriticalHealthTransitionFact(value)));
+            if (pending.recoveryPublicationKey.Length > 0)
+                requests.Add(DomainFactReplay.Create(pending.recoveryPublicationKey, new CharacterMobilityRecoveredFact(value)));
+            var replies = new DomainFactDelivery[requests.Count];
+            try
+            {
+                if (factRecovery.ReplayBatch(requests, replies, out string failure) && HealingDeliveryCompleted(pending, replies))
+                    pendingFacts.Remove(pending);
+                else ReportHealingFactFailure("character-healing-recovery:" + failure + ":" + string.Join(";", replies.Select(item => item.Detail)));
+            }
+            catch (Exception exception) { ReportHealingFactFailure("character-healing-recovery:" + exception.GetType().Name); }
+            // A failed character must not indefinitely starve the rest of this bounded queue.
+            if (pendingFacts.Remove(pending)) pendingFacts.Add(pending);
         }
+    }
+
+    private static bool HealingDeliveryCompleted(CharacterHealingPendingFactData pending, DomainFactDelivery[] replies)
+    {
+        var keys = new[] { pending.criticalPublicationKey, pending.recoveryPublicationKey }.Where(key => key.Length > 0).ToArray();
+        return replies.Length == keys.Length && replies.Select((reply, index) => reply.Completed && reply.OperationKey == keys[index]).All(value => value);
+    }
+
+    private void RequireNoPendingBodyObservation(string characterId)
+    {
+        if (ReadState.PendingHealingFacts.Any(value => value.fact.characterId == characterId))
+            throw new InvalidOperationException("character-healing-observation-pending:" + characterId);
+        if (ReadState.PendingFatalityFacts.Any(value => value.fact.characterId == characterId))
+            throw new InvalidOperationException("character-fatality-observation-pending:" + characterId);
+    }
+
+    private void ReportHealingFactFailure(string failure)
+    {
+        if (lastHealingFactFailure == failure) return;
+        lastHealingFactFailure = failure;
+        Debug.LogWarning("Character healing observation: " + failure);
     }
 
     public float GetTotalBleeding(CharacterActor target)
@@ -1401,6 +1535,73 @@ public sealed class CharacterBodyHealthRuntime :
         stateRules.UpdateDowned(state);
         SyncLifecycle(target, state, wasDowned);
         return changed;
+    }
+
+    [GameplayInternalOnly(
+        "Stages medical stabilization without lifecycle observers before its outcome commits.",
+        "CharacterMedicalRuntime")]
+    public void ApplyPreparedMedicalStabilization(CharacterActor actor)
+    {
+        if (actor == null || actor.IsDead)
+            return;
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        foreach (CharacterBodyPartHealthState part in state.parts)
+            part.bleedingPerSecond = 0f;
+        foreach (AnatomyNodeHealthState node in state.anatomyNodes)
+            node.bleedingPerSecond = 0f;
+        stateRules.UpdateDowned(state);
+        vitalsAuthority.Project(actor, state);
+    }
+
+    [GameplayInternalOnly(
+        "Stages medical treatment without healing or lifecycle observers before its outcome commits.",
+        "CharacterMedicalRuntime")]
+    public void ApplyPreparedMedicalTreatment(
+        CharacterActor actor,
+        float partHealthAmount,
+        float bloodLossReduction)
+    {
+        if (actor == null || actor.IsDead)
+            return;
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        float restored = stateRules.HealSurfaceParts(
+            state, partHealthAmount, stopBleeding: false);
+        state.bloodLoss = Mathf.Max(
+            0f, state.bloodLoss - Mathf.Max(0f, bloodLossReduction));
+        if (restored > 0f && state.currentHealth > 0f)
+        {
+            state.currentHealth = Mathf.Min(
+                state.maxHealth, state.currentHealth + restored);
+            state.injurySeverity = Mathf.Clamp01(
+                1f - state.currentHealth / Mathf.Max(1f, state.maxHealth));
+        }
+        stateRules.UpdateDowned(state);
+        vitalsAuthority.Project(actor, state);
+    }
+
+    [GameplayInternalOnly(
+        "Publishes medical health and lifecycle observers after the outcome is durable.",
+        "CharacterMedicalRuntime")]
+    public void CompletePreparedMedicalMutation(
+        CharacterActor actor,
+        in CharacterBodyHealthMutationSnapshot before)
+    {
+        if (actor == null || !before.IsValid)
+            return;
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        float healing = Mathf.Max(
+            0f, state.currentHealth - before.State.currentHealth);
+        if (healing > 0f)
+        {
+            actor.Stats?.NotifyAggregateHealing(healing);
+            PublishHealthTransition(
+                actor,
+                HealthRatio(before.State),
+                HealthRatio(state),
+                CharacterDeathCauseCode.Unknown,
+                "healing");
+        }
+        SyncLifecycle(actor, state, before.State.downed);
     }
 
     public bool ApplyTreatment(
@@ -2204,6 +2405,17 @@ public sealed class CharacterBodyHealthRuntime :
         actor.Stats.RefreshDerivedMaximumHealthPreservingCurrent();
     }
 
+    private int RequireCalendarDay()
+    {
+        // Elapsed engine seconds restart independently of a restored campaign.
+        // Health transition dates share the same calendar as combat/death facts;
+        // gameClock remains the authority for delta times and health ticking.
+        int day = gameCalendar.Day;
+        if (day < 0)
+            throw new InvalidOperationException("Body-health calendar day is invalid.");
+        return day;
+    }
+
     private void PublishHealthTransition(
         CharacterActor actor,
         float previousRatio,
@@ -2213,8 +2425,7 @@ public sealed class CharacterBodyHealthRuntime :
     {
         if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId id))
             return;
-        int day = Mathf.FloorToInt(
-            gameClock.Time / GameCalendarRules.SecondsPerDay);
+        int day = RequireCalendarDay();
         bool crossedCritical = previousRatio > 0.20f && currentRatio <= 0.20f;
         bool recoveredFromCritical = previousRatio <= 0.20f
             && currentRatio > 0.20f;
@@ -2250,6 +2461,7 @@ public sealed class CharacterBodyHealthRuntime :
 
     private void ResetDerivedCaches()
     {
+        nextHealingRecoveryTime = 0f;
         trackedActors.Clear();
         lastTickAt.Clear();
         tickStateIds.Clear();

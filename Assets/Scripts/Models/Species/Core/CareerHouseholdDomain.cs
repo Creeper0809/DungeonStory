@@ -20,45 +20,127 @@ public sealed class CharacterRoomAssignmentSaveData
     public string householdId = string.Empty;
     public string roomBuildingId = string.Empty;
     public string bedBuildingId = string.Empty;
+    public int bedSlotIndex;
+}
+
+[Serializable]
+public sealed class HouseholdPendingAssignmentSaveData
+{
+    public string characterId = string.Empty;
+    public string preferredHouseholdId = string.Empty;
+    public string firstParentId = string.Empty;
+    public string secondParentId = string.Empty;
+    public string carrierId = string.Empty;
+    public int requestedAbsoluteDay;
+    public string reasonCode = string.Empty;
+    public long attemptRevision;
 }
 
 [Serializable]
 public sealed class HouseholdWorldSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     public int version = CurrentVersion;
     public List<CharacterRoomAssignmentSaveData> assignments = new();
+    public List<HouseholdPendingAssignmentSaveData> pendingAssignments = new();
 }
 
 public sealed class CharacterHouseholdAggregate
 {
     private readonly Dictionary<CharacterId, CharacterRoomAssignmentSaveData> assignments = new();
+    private readonly Dictionary<CharacterId, HouseholdPendingAssignmentSaveData>
+        pendingAssignments = new();
+
+    public IReadOnlyList<CharacterRoomAssignmentSaveData> Assignments => assignments.Values
+        .OrderBy(value => value.characterId, StringComparer.Ordinal)
+        .Select(Clone)
+        .ToArray();
+    public IReadOnlyList<HouseholdPendingAssignmentSaveData> PendingAssignments =>
+        pendingAssignments.Values
+            .OrderBy(value => value.characterId, StringComparer.Ordinal)
+            .Select(Clone)
+            .ToArray();
 
     public void Assign(
         CharacterId characterId,
         HouseholdId householdId,
         BuildingInstanceId roomId,
-        BuildingInstanceId bedId)
+        BuildingInstanceId bedId,
+        int bedSlotIndex = 0)
     {
         if (!characterId.IsValid || !householdId.IsValid
-            || !roomId.IsValid || !bedId.IsValid)
+            || !roomId.IsValid || !bedId.IsValid || bedSlotIndex < 0)
             throw new InvalidOperationException("Room assignment requires canonical character, household, room, and bed ids.");
         if (assignments.Values.Any(value => string.Equals(
                 value.bedBuildingId, bedId.Value, StringComparison.Ordinal)
+            && value.bedSlotIndex == bedSlotIndex
             && !string.Equals(value.characterId, characterId.Value, StringComparison.Ordinal)))
-            throw new InvalidOperationException("A bed can be assigned to only one character.");
+            throw new InvalidOperationException("A bed slot can be assigned to only one character.");
         assignments[characterId] = new CharacterRoomAssignmentSaveData
         {
             characterId = characterId.Value,
             householdId = householdId.Value,
             roomBuildingId = roomId.Value,
-            bedBuildingId = bedId.Value
+            bedBuildingId = bedId.Value,
+            bedSlotIndex = bedSlotIndex
+        };
+        pendingAssignments.Remove(characterId);
+    }
+
+    public void MarkPending(
+        CharacterId characterId,
+        HouseholdId preferredHouseholdId,
+        CharacterId firstParentId,
+        CharacterId secondParentId,
+        CharacterId carrierId,
+        int requestedAbsoluteDay,
+        string reasonCode)
+    {
+        string normalizedReason = reasonCode?.Trim() ?? string.Empty;
+        if (!characterId.IsValid
+            || !firstParentId.IsValid
+            || requestedAbsoluteDay < 1
+            || normalizedReason.Length == 0
+            || normalizedReason.Length > 96
+            || secondParentId.Value.Length > 0 && !secondParentId.IsValid
+            || carrierId.Value.Length > 0 && !carrierId.IsValid)
+            throw new InvalidOperationException(
+                "A pending household assignment requires canonical birth facts and a reason.");
+
+        long revision = pendingAssignments.TryGetValue(
+                characterId,
+                out HouseholdPendingAssignmentSaveData existing)
+            ? checked(existing.attemptRevision + 1L)
+            : 1L;
+        assignments.Remove(characterId);
+        pendingAssignments[characterId] = new HouseholdPendingAssignmentSaveData
+        {
+            characterId = characterId.Value,
+            preferredHouseholdId = preferredHouseholdId.IsValid
+                ? preferredHouseholdId.Value
+                : string.Empty,
+            firstParentId = firstParentId.Value,
+            secondParentId = secondParentId.Value,
+            carrierId = carrierId.Value,
+            requestedAbsoluteDay = requestedAbsoluteDay,
+            reasonCode = normalizedReason,
+            attemptRevision = revision
         };
     }
 
-    public void Clear(CharacterId characterId) => assignments.Remove(characterId);
+    public void Clear(CharacterId characterId)
+    {
+        assignments.Remove(characterId);
+        pendingAssignments.Remove(characterId);
+    }
+    public void ClearPending(CharacterId characterId) =>
+        pendingAssignments.Remove(characterId);
     public bool TryGet(CharacterId id, out CharacterRoomAssignmentSaveData assignment) =>
         assignments.TryGetValue(id, out assignment);
+    public bool TryGetPending(
+        CharacterId id,
+        out HouseholdPendingAssignmentSaveData pending) =>
+        pendingAssignments.TryGetValue(id, out pending);
     public IReadOnlyList<CharacterId> GetMembers(HouseholdId householdId) =>
         assignments.Values
             .Where(value => string.Equals(
@@ -70,15 +152,16 @@ public sealed class CharacterHouseholdAggregate
             .ToArray();
     public HouseholdWorldSaveData Capture() => new()
     {
-        assignments = assignments.Values
-            .OrderBy(value => value.characterId, StringComparer.Ordinal)
-            .ToList()
+        assignments = Assignments.ToList(),
+        pendingAssignments = PendingAssignments.ToList()
     };
 
     public static CharacterHouseholdAggregate Restore(HouseholdWorldSaveData data)
     {
-        if (data == null || data.version != HouseholdWorldSaveData.CurrentVersion
-            || data.assignments == null)
+        if (data == null
+            || data.version is not 1 and not HouseholdWorldSaveData.CurrentVersion
+            || data.assignments == null
+            || data.version >= 2 && data.pendingAssignments == null)
             throw new InvalidOperationException("Household payload is incomplete or unsupported.");
         CharacterHouseholdAggregate result = new();
         foreach (CharacterRoomAssignmentSaveData assignment in data.assignments)
@@ -89,10 +172,57 @@ public sealed class CharacterHouseholdAggregate
                 new CharacterId(assignment.characterId),
                 new HouseholdId(assignment.householdId),
                 new BuildingInstanceId(assignment.roomBuildingId),
-                new BuildingInstanceId(assignment.bedBuildingId));
+                new BuildingInstanceId(assignment.bedBuildingId),
+                data.version >= 2 ? assignment.bedSlotIndex : 0);
+        }
+        foreach (HouseholdPendingAssignmentSaveData pending in
+                 data.pendingAssignments
+                 ?? new List<HouseholdPendingAssignmentSaveData>())
+        {
+            if (pending == null
+                || pending.attemptRevision < 1L)
+                throw new InvalidOperationException(
+                    "Household payload contains an invalid pending assignment.");
+            result.MarkPending(
+                new CharacterId(pending.characterId),
+                new HouseholdId(pending.preferredHouseholdId),
+                new CharacterId(pending.firstParentId),
+                new CharacterId(pending.secondParentId),
+                new CharacterId(pending.carrierId),
+                pending.requestedAbsoluteDay,
+                pending.reasonCode);
+            result.pendingAssignments[new CharacterId(pending.characterId)]
+                .attemptRevision = pending.attemptRevision;
         }
         return result;
     }
+
+    private static CharacterRoomAssignmentSaveData Clone(
+        CharacterRoomAssignmentSaveData value) => value == null
+        ? null
+        : new CharacterRoomAssignmentSaveData
+        {
+            characterId = value.characterId,
+            householdId = value.householdId,
+            roomBuildingId = value.roomBuildingId,
+            bedBuildingId = value.bedBuildingId,
+            bedSlotIndex = value.bedSlotIndex
+        };
+
+    private static HouseholdPendingAssignmentSaveData Clone(
+        HouseholdPendingAssignmentSaveData value) => value == null
+        ? null
+        : new HouseholdPendingAssignmentSaveData
+        {
+            characterId = value.characterId,
+            preferredHouseholdId = value.preferredHouseholdId,
+            firstParentId = value.firstParentId,
+            secondParentId = value.secondParentId,
+            carrierId = value.carrierId,
+            requestedAbsoluteDay = value.requestedAbsoluteDay,
+            reasonCode = value.reasonCode,
+            attemptRevision = value.attemptRevision
+        };
 }
 
 public enum CareerRank

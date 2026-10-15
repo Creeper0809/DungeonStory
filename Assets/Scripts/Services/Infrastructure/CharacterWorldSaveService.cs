@@ -57,6 +57,7 @@ public static class CharacterWorldPersistenceRules
         }
 
         bool hasPersistentRole = actor.IsOwner
+            || identity.CharacterType == CharacterType.Customer
             || identity.CharacterType == CharacterType.NPC
                 && actor.TryGetAbility(out AbilityWork _);
         return hasPersistentRole && !actor.IsDead;
@@ -378,6 +379,14 @@ public sealed class CharacterWorldSaveService :
 
     private IReadOnlyList<CharacterActor> FindPersistentActors()
     {
+        // A finished defeat still owns its exact deceased owner. Persist the
+        // inert actor so the terminal world can be restored without reviving
+        // the owner or accepting an ownerless world. Aggregate preflight also
+        // requires the matching run result, run.flow and death tombstone.
+        CharacterActor terminalOwner = ownerRunManagerProvider.TryGetManager(
+                out OwnerRunManager ownerManager)
+            && ownerManager != null && ownerManager.IsRunEnded
+                ? ownerManager.CurrentOwnerActor : null;
         HashSet<CharacterId> captivityOwnedIds =
             GetCaptivityOwnedCharacterIds();
         HashSet<CharacterId> activeInvasionIds = new(
@@ -432,6 +441,11 @@ public sealed class CharacterWorldSaveService :
                     .DistinctByGameObject(characterLifetimeQuery.AllCharacters)
                     .Where(actor => CharacterWorldPersistenceRules
                         .IsPersistentActor(actor)
+                        || (terminalOwner != null && actor == terminalOwner
+                            && actor.IsOwner && actor.IsDead
+                            && actor.gameObject.activeInHierarchy
+                            && actor.CurrentLifecycleState
+                                == CharacterLifecycleState.Despawned)
                         || IsActiveIncidentActor(
                             actor,
                             activeIncidentActorIds))
@@ -902,6 +916,9 @@ public sealed class CharacterWorldSaveService :
             CharacterActor actor = character?.Actor;
             if (actor != null && actor.gameObject.activeInHierarchy)
             {
+                // Rebind only the restored population index. BindActor would
+                // reapply profile growth over the authoritative actor snapshot.
+                characterPopulationService.TryGetProfile(actor, out _);
                 actor.ReconcilePublishedRuntimeRegistration();
                 actor.Brain?.RequestImmediateReplan(clearFailures: true);
             }
@@ -1011,6 +1028,7 @@ public sealed class CharacterWorldSaveService :
                     actor.GetAbility<AbilityMove>()?.CancelActiveMovement();
                 }
             }
+            actor.PrepareForWorldRestoreRetirement();
             actor.Brain?.RequestImmediateReplan(clearFailures: true);
         }
     }
@@ -1258,7 +1276,10 @@ public sealed class CharacterWorldSaveService :
                     .Select(value => HaulDeliveryIntentRuntime.CloneForProjection(
                         value.SaveData.haulDeliveryIntent))
                     .OrderBy(value => value.operationId, StringComparer.Ordinal)
-                    .ToArray());
+                    .ToArray(),
+                canonicalProfiles.Where(value => value.isVisiting)
+                    .Select(value => new CharacterId(value.persistentId))
+                    .OrderBy(value => value.Value, StringComparer.Ordinal).ToArray());
             preparedCandidate = worldCandidate;
             return new CharacterWorldRestoreCandidate(
                 this,
@@ -1477,7 +1498,7 @@ public sealed class CharacterWorldSaveService :
 
             foreach (CharacterActor visitor in candidate.ExistingVisitors)
             {
-                PrepareTransientVisitorForWorldRetirement(visitor);
+                PrepareForWorldRetirement(new[] { visitor }, candidate.ActorsById);
                 if (!spawner.RetireVisitorForWorldRestore(
                         visitor,
                         out string retirementFailure))
@@ -1513,29 +1534,6 @@ public sealed class CharacterWorldSaveService :
                 publication.OwnerPublication);
         }
 
-    }
-
-    private static void PrepareTransientVisitorForWorldRetirement(
-        CharacterActor visitor)
-    {
-        if (visitor == null)
-        {
-            return;
-        }
-
-        AbilityHaul haul = visitor.GetComponent<AbilityHaul>();
-        if (haul != null)
-        {
-            // The restored physical-item aggregate is already authoritative.
-            // Forget the replaced world's carried slice and leases before the
-            // lifecycle callback can run ordinary interruption/drop behavior.
-            haul.PrepareForRestoreRetirementWithoutReplacement();
-            return;
-        }
-
-        visitor.CarryInventory?
-            .DiscardAllItemsForRestoredWorldReplacement();
-        visitor.GetComponent<AbilityMove>()?.CancelActiveMovement();
     }
 
     private static void PrepareRestoredStaffComposition(
@@ -1626,9 +1624,13 @@ public sealed class CharacterWorldSaveService :
             societyResponseMovementReceiptId =
                 move?.SocietyResponseMovementReceiptId ?? string.Empty,
             lifecycleState = actor.CurrentLifecycleState,
+            lifecycleRevision = actor.Lifecycle != null
+                ? actor.Lifecycle.LifecycleRevision
+                : throw new InvalidOperationException("Character save requires lifecycle authority."),
             currentHealth = actor.CurrentHealth,
             injurySeverity = actor.InjurySeverity,
             baseMood = mood.BaseValue,
+            restObservation = actor.Stats.CaptureRestObservation(),
             conditions = actor.Stats.StatSnapshot
                 .OrderBy(pair => pair.Key)
                 .Select(pair => new DungeonCharacterConditionSaveData
@@ -1664,6 +1666,8 @@ public sealed class CharacterWorldSaveService :
             visitCount = shopping?.visitCount ?? 0,
             lookAroundCount = shopping?.lookAroundCount ?? 0,
             holdingMoney = shopping?.HoldingMoney ?? 0,
+            pendingRetailPurchases = shopping?.CapturePendingRetailPurchases()
+                .ToList() ?? new List<RetailPurchaseRecoverySaveData>(),
             recentLogEntries = actor.LogComponent?.Entries
                 .TakeLast(MaxSavedLogEntries)
                 .ToList() ?? new List<string>(),
@@ -1751,7 +1755,9 @@ public sealed class CharacterWorldSaveService :
                 factor.remainingSeconds))
             .ToList();
         actor.Lifecycle?.RestoreExpeditionRecovery(source.expeditionRecovery);
-        actor.SetLifecycleState(source.lifecycleState);
+        if (actor.Lifecycle == null)
+            throw new InvalidOperationException("Character restore requires lifecycle authority.");
+        actor.Lifecycle.RestorePersistentState(source.lifecycleState, source.lifecycleRevision);
 
         actor.RefreshAbilityCache();
         AbilityMove move = actor.GetAbility<AbilityMove>();
@@ -1806,7 +1812,7 @@ public sealed class CharacterWorldSaveService :
                         $"Character {source.persistentId} references unknown work type '{priority.workTypeId}'.");
                 }
 
-                work.SetWorkPriority(definition.WorkTypeId, priority.priority);
+                work.RestoreWorkPriority(definition.WorkTypeId, priority.priority);
             }
 
             work.SetDutyState(source.dutyState);
@@ -1830,7 +1836,8 @@ public sealed class CharacterWorldSaveService :
         actor.GetAbility<AbilityShopping>()?.RestorePersistentState(
             source.visitCount,
             source.lookAroundCount,
-            source.holdingMoney);
+            source.holdingMoney,
+            source.pendingRetailPurchases);
         actor.Progression?.RestorePersistentState(new CharacterProgressionSnapshot(
             source.level,
             source.currentExperience,
@@ -1850,7 +1857,8 @@ public sealed class CharacterWorldSaveService :
             source.currentHealth,
             source.injurySeverity,
             source.baseMood,
-            moodFactors);
+            moodFactors,
+            source.restObservation);
         actor.state = CharacterDecisionState.DECIDE;
         // The action catalog is runtime composition, not save authority. A full
         // world restore can reuse an actor whose transient catalogue belonged

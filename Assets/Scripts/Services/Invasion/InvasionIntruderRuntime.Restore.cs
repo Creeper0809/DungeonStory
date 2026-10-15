@@ -23,6 +23,9 @@ internal interface IInvasionIntruderRestorePort
     float NextDamageTime { set; }
     bool Resolved { set; }
     string RuntimeId { set; }
+    void RestorePublicationLineage(
+        string startPublicationKey,
+        string lastPublicationKey);
     InvasionIntruderState State { get; set; }
     IGameClock Clock { get; }
     IInvasionIntruderContext Context { get; }
@@ -97,6 +100,9 @@ internal sealed class InvasionIntruderRestoreCoordinator
         port.NextDamageTime = port.Clock.Time + source.DamageDelayRemaining;
         port.Resolved = false;
         port.RuntimeId = source.RuntimeId;
+        port.RestorePublicationLineage(
+            source.InvasionStartPublicationKey,
+            source.LastInvasionStagePublicationKey);
         port.RefreshPathRandomStream();
 
         DefenseRaidAwarenessRestoreCandidate preparedAwareness;

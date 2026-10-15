@@ -17,6 +17,7 @@ public sealed class SurgeryRestoreCoordinator :
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly IGridSystemProvider gridProvider;
     private readonly IPhysicalItemRestoreCandidateQuery physicalCandidates;
+    private readonly IPhysicalItemRestoreCandidateStackQuery physicalStackCandidates;
     private readonly IFacilityBufferDestinationCustodyDrainRestoreCandidateQuery
         materialTerminalCandidates;
     private readonly SurgeryRestoreProjection projection;
@@ -34,6 +35,7 @@ public sealed class SurgeryRestoreCoordinator :
         DungeonRuntimeAggregateRootStore rootStore,
         IGridSystemProvider gridProvider,
         IPhysicalItemRestoreCandidateQuery physicalCandidates,
+        IPhysicalItemRestoreCandidateStackQuery physicalStackCandidates,
         IFacilityBufferDestinationCustodyDrainRestoreCandidateQuery
             materialTerminalCandidates,
         ISurgicalFacilityQuery surgicalFacilities,
@@ -53,6 +55,8 @@ public sealed class SurgeryRestoreCoordinator :
             ?? throw new ArgumentNullException(nameof(gridProvider));
         this.physicalCandidates = physicalCandidates
             ?? throw new ArgumentNullException(nameof(physicalCandidates));
+        this.physicalStackCandidates = physicalStackCandidates
+            ?? throw new ArgumentNullException(nameof(physicalStackCandidates));
         this.materialTerminalCandidates = materialTerminalCandidates
             ?? throw new ArgumentNullException(nameof(materialTerminalCandidates));
         storageInputOwners = new SurgicalPartStorageInputOwnerAuthority(
@@ -79,6 +83,7 @@ public sealed class SurgeryRestoreCoordinator :
             state,
             materialTerminalCandidates);
         DungeonGameRestoreReport report = new();
+        ValidatePhysicalStackReferences(state, physicalStackCandidates, report);
         ValidateWorldReferences(state, report);
         if (!report.Success)
         {
@@ -539,26 +544,16 @@ public sealed class SurgeryRestoreCoordinator :
                 group => group.Key,
                 group => group.First().Building,
                 StringComparer.Ordinal);
-        Dictionary<string, WorldItemStackSnapshot> stacks = resources.Items
-            .GetAllStacks()
-            .Where(stack => stack != null
-                && !string.IsNullOrWhiteSpace(stack.StackId))
-            .GroupBy(stack => stack.StackId, StringComparer.Ordinal)
-            .ToDictionary(
-                group => group.Key,
-                group => group.First(),
-                StringComparer.Ordinal);
-
         ValidateOrders(
             candidate,
             grid,
             characters,
             wildlife,
             buildings,
-            stacks,
+            physicalStackCandidates,
             report);
-        ValidateParts(candidate, characters, wildlife, buildings, stacks, report);
-        ValidateStorageAndCorpses(candidate, buildings, stacks, report);
+        ValidateParts(candidate, characters, wildlife, buildings, report);
+        ValidateStorage(candidate, buildings, report);
         ValidatePolicies(candidate, characters, wildlife, report);
         ValidateWildlifeAnatomy(candidate, wildlife, report);
     }
@@ -569,7 +564,7 @@ public sealed class SurgeryRestoreCoordinator :
         IReadOnlyDictionary<string, CharacterActor> characters,
         IReadOnlyDictionary<string, WildlifeActor> wildlife,
         IReadOnlyDictionary<string, BuildableObject> buildings,
-        IReadOnlyDictionary<string, WorldItemStackSnapshot> stacks,
+        IPhysicalItemRestoreCandidateStackQuery stacks,
         DungeonGameRestoreReport report)
     {
         HashSet<string> activeSubjects = new(StringComparer.Ordinal);
@@ -656,6 +651,15 @@ public sealed class SurgeryRestoreCoordinator :
         IReadOnlyDictionary<string, CharacterActor> characters,
         DungeonGameRestoreReport report)
     {
+        // A committed clinical terminal no longer needs a live surgeon. Its
+        // frozen doctor/date are historical references validated against the
+        // clinical child and identity delivery by the completion restore join.
+        if (order.resultRolled && order.resolutionFactAccepted
+            && order.IsClinicalTerminal)
+        {
+            return;
+        }
+
         foreach (string doctorId in new[]
                  {
                      order.preferredDoctorId,
@@ -677,7 +681,7 @@ public sealed class SurgeryRestoreCoordinator :
         SurgicalProcedureSO procedure,
         IReadOnlyDictionary<string, CharacterActor> characters,
         IReadOnlyDictionary<string, WildlifeActor> wildlife,
-        IReadOnlyDictionary<string, WorldItemStackSnapshot> stacks,
+        IPhysicalItemRestoreCandidateStackQuery stacks,
         DungeonGameRestoreReport report)
     {
         bool available = order.subject.kind switch
@@ -691,7 +695,7 @@ public sealed class SurgeryRestoreCoordinator :
                 && animal != null
                 && animal.IsAlive,
             SurgicalSubjectKind.HumanoidCorpse or SurgicalSubjectKind.WildlifeCorpse =>
-                stacks.ContainsKey(order.subject.subjectId),
+                stacks.TryGetStackById(order.subject.subjectId, out _),
             _ => false
         };
         if (!available)
@@ -725,19 +729,10 @@ public sealed class SurgeryRestoreCoordinator :
         IReadOnlyDictionary<string, CharacterActor> characters,
         IReadOnlyDictionary<string, WildlifeActor> wildlife,
         IReadOnlyDictionary<string, BuildableObject> buildings,
-        IReadOnlyDictionary<string, WorldItemStackSnapshot> stacks,
         DungeonGameRestoreReport report)
     {
         foreach (SurgicalPartInstance part in candidate.Parts)
         {
-            if (!string.IsNullOrEmpty(part.worldStackId)
-                && !stacks.ContainsKey(part.worldStackId)
-                && string.IsNullOrEmpty(part.installationCommitId)
-                && string.IsNullOrEmpty(part.discardOperationId))
-            {
-                report.AddError(
-                    $"Surgical part '{part.partInstanceId}' references missing stack '{part.worldStackId}'.");
-            }
             if (!string.IsNullOrEmpty(part.storedFacilityId)
                 && (!buildings.TryGetValue(
                         part.storedFacilityId,
@@ -757,10 +752,9 @@ public sealed class SurgeryRestoreCoordinator :
         }
     }
 
-    private static void ValidateStorageAndCorpses(
+    private static void ValidateStorage(
         SurgeryAggregateState candidate,
         IReadOnlyDictionary<string, BuildableObject> buildings,
-        IReadOnlyDictionary<string, WorldItemStackSnapshot> stacks,
         DungeonGameRestoreReport report)
     {
         foreach (SurgicalOrganStorageState storage in candidate.OrganStorage.Values)
@@ -772,12 +766,38 @@ public sealed class SurgeryRestoreCoordinator :
                     $"Organ storage state references invalid facility '{storage.facilityId}'.");
             }
         }
+    }
+
+    public static void ValidatePhysicalStackReferences(
+        SurgeryAggregateState candidate,
+        IPhysicalItemRestoreCandidateStackQuery stacks,
+        DungeonGameRestoreReport report)
+    {
+        if (candidate == null) throw new ArgumentNullException(nameof(candidate));
+        if (stacks == null) throw new ArgumentNullException(nameof(stacks));
+        if (report == null) throw new ArgumentNullException(nameof(report));
+        if (!stacks.IsCandidateAvailable)
+        {
+            report.AddError("Surgery restore requires the incoming physical stack candidate.");
+            return;
+        }
+        // Never let objects from the previous live world satisfy a cold
+        // restore join. Installation/discard commits own the existing
+        // terminal exceptions and were checked before this stack join.
+        foreach (SurgicalPartInstance part in candidate.Parts)
+        {
+            if (!string.IsNullOrEmpty(part.worldStackId)
+                && string.IsNullOrEmpty(part.installationCommitId)
+                && string.IsNullOrEmpty(part.discardOperationId)
+                && !stacks.TryGetStackById(part.worldStackId, out _))
+                report.AddError($"Surgical part '{part.partInstanceId}' references missing incoming stack '{part.worldStackId}'.");
+        }
         foreach (string stackId in candidate.CorpseFreshness.Keys)
         {
-            if (!stacks.ContainsKey(stackId))
+            if (!stacks.TryGetStackById(stackId, out _))
             {
                 report.AddError(
-                    $"Corpse freshness references missing stack '{stackId}'.");
+                    $"Corpse freshness references missing incoming stack '{stackId}'.");
             }
         }
     }

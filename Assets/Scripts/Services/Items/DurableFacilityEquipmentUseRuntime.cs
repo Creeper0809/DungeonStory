@@ -275,18 +275,26 @@ public sealed class DurableFacilityEquipmentUseRuntime :
             {
                 DurableFacilityEquipmentSlotResult close = slotCommands.TryClose(key, "equipment-exhausted");
                 if (!close.Succeeded)
-                    return AppliedWithFault(appliedStatus, close.Snapshot ?? slot, selected.StackId,
+                    return AppliedWithFault(
+                        appliedStatus,
+                        close.Snapshot ?? slot,
+                        selected.StackId,
+                        context,
                         "durable-equipment-post-commit-close:" + close.FailureReason);
-                return Applied(appliedStatus, close.Snapshot, selected.StackId);
+                return Applied(
+                    appliedStatus,
+                    close.Snapshot,
+                    selected.StackId,
+                    context);
             }
             if (slots.TryCapture(key, out DurableFacilityEquipmentSlotSnapshot latest) && latest != null)
-                return Applied(appliedStatus, latest, selected.StackId);
-            return AppliedWithFault(appliedStatus, slot, selected.StackId,
+                return Applied(appliedStatus, latest, selected.StackId, context);
+            return AppliedWithFault(appliedStatus, slot, selected.StackId, context,
                 "durable-equipment-post-commit-slot-missing");
         }
         catch (Exception exception) when (IsRecoverable(exception))
         {
-            return AppliedWithFault(appliedStatus, slot, selected.StackId,
+            return AppliedWithFault(appliedStatus, slot, selected.StackId, context,
                 "durable-equipment-post-commit-finalization:" + exception.GetType().Name);
         }
     }
@@ -330,14 +338,29 @@ public sealed class DurableFacilityEquipmentUseRuntime :
     private static DurableFacilityEquipmentUseResult Applied(
         DurableFacilityEquipmentUseStatus status,
         DurableFacilityEquipmentSlotSnapshot slot,
-        string stackId) => new(status, slot, stackId, string.Empty);
+        string stackId,
+        DurableFacilityEquipmentUseContext context) => new(
+        status,
+        slot,
+        stackId,
+        string.Empty,
+        committedContext: context);
 
     private static DurableFacilityEquipmentUseResult AppliedWithFault(
         DurableFacilityEquipmentUseStatus status,
-        DurableFacilityEquipmentSlotSnapshot lastObservedSlot, string stackId, string code)
+        DurableFacilityEquipmentSlotSnapshot lastObservedSlot,
+        string stackId,
+        DurableFacilityEquipmentUseContext context,
+        string code)
     {
         // Snapshot is the last confirmed observation, not a fabricated current slot.
-        DurableFacilityEquipmentUseResult result = new(status, lastObservedSlot, stackId, string.Empty, code);
+        DurableFacilityEquipmentUseResult result = new(
+            status,
+            lastObservedSlot,
+            stackId,
+            string.Empty,
+            code,
+            context);
         try { UnityEngine.Debug.LogWarning(code + " · " + stackId); }
         catch (Exception exception) when (IsRecoverable(exception))
         {

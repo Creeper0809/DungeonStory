@@ -27,9 +27,13 @@ public sealed class RegularCustomerPersistenceAdapter :
         .OrderBy(id => id)
         .ToArray();
 
-    public DungeonRegularCustomerSaveData CaptureState() => new()
+    public DungeonRegularCustomerSaveData CaptureState()
     {
+        runtime.AssertIdle();
+        return new DungeonRegularCustomerSaveData
+        {
         immigrationPolicy = runtime.ImmigrationPolicy,
+        pendingFacts = runtime.State.PendingFacts.Select(row => row.Clone()).ToList(),
         records = runtime.State.Records
             .OrderBy(record => record.CustomerId, StringComparer.Ordinal)
             .Select(record => new DungeonRegularCustomerRecordSaveData
@@ -47,15 +51,22 @@ public sealed class RegularCustomerPersistenceAdapter :
                 recruitCapabilities = record.RecruitCapabilities,
                 recruitDeliveryPending = record.RecruitDeliveryPending,
                 recruitDeliveryKind = record.RecruitDeliveryKind,
-                pendingMercenaryRolePremium = record.PendingMercenaryRolePremium
+                pendingMercenaryRolePremium = record.PendingMercenaryRolePremium,
+                recruitDeliveryApplied = record.RecruitDeliveryApplied,
+                recruitDeliveryActorId = record.RecruitDeliveryActorId,
+                recruitDeliveryOutcomeResultKey =
+                    record.RecruitDeliveryOutcomeResultKey
             })
             .ToList()
-    };
+        };
+    }
 
     public RegularCustomerRestoreCandidate PrepareRestore(
         DungeonRegularCustomerSaveData snapshot)
     {
-        if (snapshot?.records == null)
+        runtime.AssertIdle();
+        if (snapshot?.records == null || snapshot.pendingFacts == null
+            || snapshot.version != DungeonRegularCustomerSaveData.CurrentVersion)
         {
             throw new ArgumentNullException(nameof(snapshot));
         }
@@ -88,8 +99,11 @@ public sealed class RegularCustomerPersistenceAdapter :
                 saved.recruitCapabilities,
                 saved.recruitDeliveryPending,
                 saved.recruitDeliveryKind,
-                saved.pendingMercenaryRolePremium);
-        }));
+                saved.pendingMercenaryRolePremium,
+                saved.recruitDeliveryApplied,
+                saved.recruitDeliveryActorId,
+                saved.recruitDeliveryOutcomeResultKey);
+        }), snapshot.pendingFacts);
         return new PreparedRestoreCandidate(
             records,
             snapshot.immigrationPolicy);

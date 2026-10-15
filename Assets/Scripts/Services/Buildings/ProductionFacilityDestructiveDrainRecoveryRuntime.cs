@@ -677,3 +677,42 @@ public sealed class ProductionFacilityDestructiveDrainRecoveryRuntime :
         ProductionFacilityDestructiveRemovalStatus.Conflict,
         reason);
 }
+
+public sealed class ProductionFacilityDestructiveDrainPostWorldRemovalFinalizer :
+    IProductionFacilityDestructiveDrainPostWorldRemovalFinalizer
+{
+    private readonly IProductionFacilityDestructiveDrainPostWorldRemovalFinalizer[]
+        finalizers;
+
+    public ProductionFacilityDestructiveDrainPostWorldRemovalFinalizer(
+        EnvironmentalFireDamageDestructiveDrainParticipant fireDamage,
+        BuildingDemolitionDestructiveDrainParticipant demolition)
+    {
+        finalizers = new IProductionFacilityDestructiveDrainPostWorldRemovalFinalizer[]
+        {
+            fireDamage ?? throw new ArgumentNullException(nameof(fireDamage)),
+            demolition ?? throw new ArgumentNullException(nameof(demolition))
+        };
+    }
+
+    public string ParticipantId =>
+        "production-destructive-post-world-removal-finalizer";
+
+    public bool TryFinalizeAfterWorldRemoval(
+        ProductionFacilityDestructiveDrainEntrySaveData entry,
+        out string failureReason)
+    {
+        foreach (IProductionFacilityDestructiveDrainPostWorldRemovalFinalizer
+                 finalizer in finalizers)
+        {
+            if (!finalizer.TryFinalizeAfterWorldRemoval(
+                    entry,
+                    out failureReason))
+            {
+                return false;
+            }
+        }
+        failureReason = string.Empty;
+        return true;
+    }
+}

@@ -9,6 +9,7 @@ public static class BuildingStateModuleIds
     public const string FacilityEvolution = "facility.evolution";
     public const string WarehouseInventory = "inventory.warehouse";
     public const string ShopStock = "inventory.shop";
+    public const string ShopInteraction = "shop.interaction";
     public const string Craftsmanship = "facility.craftsmanship";
 
     public static string ForAbility(string capability, string abilityId)
@@ -321,16 +322,20 @@ public sealed class FacilityRuntimeStateModule : IBuildingStateModule
     }
 
     public string ModuleId => BuildingStateModuleIds.FacilityOperation;
-    public int CurrentVersion => 3;
+    public const int Version = 8;
+    public int CurrentVersion => Version;
 
     public string CaptureState()
     {
+        building.RequireFacilityUseObservationIdle();
         FacilityRuntimeState state = building.FacilityState.Clone();
         if (!state.IsValid(out string error))
         {
             throw new InvalidOperationException(
                 $"Cannot capture invalid facility runtime state: {error}");
         }
+        if (!state.lastVandalism.IsEmpty && state.lastVandalism.facilityId != building.RequirePersistentInstanceId().Value)
+            throw new InvalidOperationException("Facility vandalism capture belongs to another building.");
         return JsonUtility.ToJson(state);
     }
 
@@ -344,6 +349,8 @@ public sealed class FacilityRuntimeStateModule : IBuildingStateModule
                 return false;
             }
 
+            FacilityVandalismPendingSaveSection.ValidateFacilityJson(payload);
+            FacilityUseSaveValidation.ValidateJson(payload);
             FacilityRuntimeState state = JsonUtility.FromJson<FacilityRuntimeState>(payload);
             if (state == null)
             {
@@ -352,6 +359,12 @@ public sealed class FacilityRuntimeStateModule : IBuildingStateModule
             }
             if (!state.IsValid(out error))
             {
+                return false;
+            }
+
+            if (!state.lastVandalism.IsEmpty && state.lastVandalism.facilityId != building.RequirePersistentInstanceId().Value)
+            {
+                error = "facility vandalism state belongs to another building";
                 return false;
             }
 

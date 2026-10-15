@@ -288,6 +288,7 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
                 Index = 2,
                 Title = "비상 예비 노동",
                 Detail = $"가용 {FormatWu(reserve.AvailableMilliWu)}"
+                    + $" / 유휴 {reserve.IdleResidentCount}명 {FormatWu(reserve.IdleReserveMilliWu)}"
                     + $" / 목표 {FormatWu(reserve.TargetMilliWu)}"
                     + $" / 커버리지 {reserve.Coverage:0.00}"
                     + $" / 즉시 {FormatWu(work.InterruptImmediatelyMilliWu)}"

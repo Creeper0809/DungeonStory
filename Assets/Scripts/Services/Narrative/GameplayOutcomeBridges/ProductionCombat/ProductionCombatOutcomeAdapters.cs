@@ -31,6 +31,7 @@ public sealed class ProductionCompletedOutcomeAdapter :
 
         int actorCount = receipt.HasWorker ? 2 : 1;
         int metricCount = checked(8 + receipt.OutputLines.Count * 2);
+        GameplayOutcomeStatus status = ProjectStatus(receipt);
         int provenanceCount = checked(
             6
             + (receipt.HasWipInput ? 1 : 0)
@@ -46,7 +47,7 @@ public sealed class ProductionCompletedOutcomeAdapter :
             receipt.ResultKey,
             OutcomeTypeId,
             receipt.AbsoluteDay,
-            GameplayOutcomeStatus.Succeeded,
+            status,
             currentWorldEpoch,
             receipt.CycleSequence,
             actorCount,
@@ -56,6 +57,28 @@ public sealed class ProductionCompletedOutcomeAdapter :
             0,
             provenanceCount: provenanceCount);
         return OutcomePrepareResult.Prepared();
+    }
+
+    private static GameplayOutcomeStatus ProjectStatus(
+        in ProductionCompletedOutcomeReceipt receipt)
+    {
+        if (receipt.OutputLines.Any(value => string.Equals(
+                value.OutputLineId,
+                ProductionRuinedOutputProtocol.RecoverableWasteOutputLineId,
+                StringComparison.Ordinal)))
+        {
+            return GameplayOutcomeStatus.Failed;
+        }
+
+        if (receipt.ProducedMassGrams > 0L
+            && receipt.DeclaredLossMassGrams > 0L)
+        {
+            return GameplayOutcomeStatus.PartiallySucceeded;
+        }
+
+        return receipt.ProducedMassGrams > 0L
+            ? GameplayOutcomeStatus.Succeeded
+            : GameplayOutcomeStatus.Failed;
     }
 
     public override OutcomePrepareResult TryWrite(
@@ -261,7 +284,9 @@ public sealed class CombatDamageOutcomeAdapter :
         requirements = default;
         if (!GameplayOutcomeStableIdSyntax.IsValid(receipt.AttackOperationId)
             || receipt.AttackRevision < 0L
-            || !receipt.AttackerId.IsValid
+            || !receipt.AttackerEntityKind.IsValid
+            || !GameplayOutcomeStableIdSyntax.IsValid(
+                receipt.AttackerEntityId)
             || !receipt.VictimId.IsValid
             || !float.IsFinite(receipt.ActualDamage)
             || receipt.ActualDamage <= 0f
@@ -285,11 +310,20 @@ public sealed class CombatDamageOutcomeAdapter :
         ref OutcomeWriteBuilder builder)
     {
         GameplayEntityId attacker = new GameplayEntityId(
-            ProductionCombatOutcomeIds.CharacterKind,
-            receipt.AttackerId.Value);
+            receipt.AttackerEntityKind,
+            receipt.AttackerEntityId);
         GameplayEntityId victim = new GameplayEntityId(
             ProductionCombatOutcomeIds.CharacterKind,
             receipt.VictimId.Value);
+        if ((receipt.Causation.HasParent
+                || receipt.Causation.RootOperationId.IsValid
+                || !string.IsNullOrEmpty(receipt.Causation.RelationId))
+            && !builder.SetCausation(receipt.Causation))
+        {
+            return new OutcomePrepareResult(
+                OutcomePrepareCode.AdapterWriteFailed,
+                "combat-damage-causation-write-failed");
+        }
         if (!builder.AddParticipant(new GameplayOutcomeParticipant(
                 attacker,
                 ProductionCombatOutcomeIds.AttackerRole,

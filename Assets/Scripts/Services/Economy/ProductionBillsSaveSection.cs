@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using VContainer;
 
@@ -157,6 +158,7 @@ public sealed class ProductionBillsSaveSection :
         }
         try
         {
+            ValidateCommandObservationsJson(payloadJson);
             DungeonProductionBillSaveData payload =
                 JsonUtility.FromJson<DungeonProductionBillSaveData>(payloadJson)
                 ?? throw new InvalidOperationException(
@@ -179,6 +181,83 @@ public sealed class ProductionBillsSaveSection :
                 exception);
         }
     }
+
+    public static void ValidateCommandObservationsJson(string json)
+    {
+        var root = JObject.Parse(json, new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
+        RequireCommandField(root, "nextCommandSequence", JTokenType.Integer);
+        RequireCommandField(root, "pendingCommandObservations", JTokenType.Array);
+        RequireCommandField(root, "bills", JTokenType.Array);
+        foreach (var billToken in (JArray)root["bills"])
+        {
+            if (billToken is not JObject bill) throw new InvalidOperationException("production-bill-save-row-invalid");
+            RequireCommandField(bill, "completionObservations", JTokenType.Array);
+            foreach (var completionToken in (JArray)bill["completionObservations"])
+            {
+                if (completionToken is not JObject completion) throw new InvalidOperationException("production-completion-save-row-invalid");
+                foreach (string name in new[] { "publicationKey", "publicationId", "publicationFingerprint" }) RequireCommandField(completion, name, JTokenType.String);
+                RequireCommandField(completion, "fact", JTokenType.Object);
+                var fact = (JObject)completion["fact"];
+                foreach (string name in new[] { "billId", "recipeId", "facilityId", "facilityDisplayName", "workerId", "workerDisplayName", "batchCommitId", "outcomeFingerprint", "plannedOutputFingerprint", "destinationId", "wipInputCommitId" }) RequireCommandField(fact, name, JTokenType.String);
+                foreach (string name in new[] { "cycleSequence", "absoluteDay", "wipInputQuantity", "wipInputMassGrams", "processCleanWaterMassGrams", "processWastewaterMassGrams", "declaredLossMassGrams", "declaredExternalInputMassGrams" }) RequireCommandField(fact, name, JTokenType.Integer);
+                foreach (string name in new[] { "lines", "stacks" }) RequireCommandField(fact, name, JTokenType.Array);
+                foreach (var lineToken in (JArray)fact["lines"])
+                {
+                    if (lineToken is not JObject line) throw new InvalidOperationException("production-completion-line-row-invalid");
+                    foreach (string name in new[] { "outputLineId", "itemId", "capabilityFingerprint" }) RequireCommandField(line, name, JTokenType.String);
+                    RequireCommandField(line, "commitIds", JTokenType.Array);
+                    if (((JArray)line["commitIds"]).Any(value => value.Type != JTokenType.String)) throw new InvalidOperationException("production-completion-commit-id-invalid");
+                    foreach (string name in new[] { "quantity", "massGrams" }) RequireCommandField(line, name, JTokenType.Integer);
+                }
+                foreach (var stackToken in (JArray)fact["stacks"])
+                {
+                    if (stackToken is not JObject stack) throw new InvalidOperationException("production-completion-stack-row-invalid");
+                    foreach (string name in new[] { "stackId", "outputLineId", "itemId", "itemInstanceId", "sourceCommitId", "componentSignature" }) RequireCommandField(stack, name, JTokenType.String);
+                    foreach (string name in new[] { "quantity", "massGrams" }) RequireCommandField(stack, name, JTokenType.Integer);
+                }
+            }
+        }
+        foreach (var token in (JArray)root["pendingCommandObservations"])
+        {
+            if (token is not JObject row) throw new InvalidOperationException("production-command-observation-row-invalid");
+            foreach (string name in new[] { "publicationKey", "publicationId", "publicationFingerprint" }) RequireCommandField(row, name, JTokenType.String);
+            RequireCommandField(row, "fact", JTokenType.Object);
+            var fact = (JObject)row["fact"];
+            foreach (string name in new[] { "ownerRevision", "kind", "facilityX", "facilityY", "absoluteDay" }) RequireCommandField(fact, name, JTokenType.Integer);
+            foreach (string name in new[] { "billId", "recipeId", "recipeDisplayName", "facilityId", "facilityDisplayName" }) RequireCommandField(fact, name, JTokenType.String);
+            foreach (string side in new[] { "before", "after" })
+            {
+                RequireCommandField(fact, side, JTokenType.Object);
+                var state = (JObject)fact[side];
+                foreach (string name in new[] { "mode", "pendingMode", "remainingCycles", "minimumReserve", "targetStock", "minimumQuality", "blockedCode", "localIndex", "distributionMode" }) RequireCommandField(state, name, JTokenType.Integer);
+                foreach (string name in new[] { "exists", "hasPendingMode", "suspended", "sensorInstalled", "sensorAcknowledged" }) RequireCommandField(state, name, JTokenType.Boolean);
+                foreach (string name in new[] { "reservedWorkerId", "emergencyWorkerId" }) RequireCommandField(state, name, JTokenType.String);
+                RequireCommandField(state, "routes", JTokenType.Array);
+                RequireCommandField(state, "workerPolicy", JTokenType.Object);
+                foreach (var routeToken in (JArray)state["routes"])
+                {
+                    if (routeToken is not JObject route) throw new InvalidOperationException("production-command-route-invalid");
+                    RequireCommandField(route, "consumerId", JTokenType.String);
+                    RequireCommandField(route, "enabled", JTokenType.Boolean);
+                    foreach (string name in new[] { "minimumReserve", "targetStock", "priority", "weight" }) RequireCommandField(route, name, JTokenType.Integer);
+                    if (route["waitingSeconds"]?.Type is not JTokenType.Float and not JTokenType.Integer)
+                        throw new InvalidOperationException("production-command-route-time-invalid");
+                }
+                var worker = (JObject)state["workerPolicy"];
+                foreach (string name in new[] { "mode", "matchMode", "sortMode", "minimumSkillExperience", "minimumCareerRank" }) RequireCommandField(worker, name, JTokenType.Integer);
+                RequireCommandField(worker, "minimumSkillId", JTokenType.String);
+                foreach (string name in new[] { "specificCharacterIds", "excludedCharacterIds", "requiredTraitIds", "excludedTraitIds" })
+                {
+                    RequireCommandField(worker, name, JTokenType.Array);
+                    if (((JArray)worker[name]).Any(value => value.Type != JTokenType.String))
+                        throw new InvalidOperationException("production-command-worker-list-invalid:" + name);
+                }
+            }
+        }
+    }
+
+    private static void RequireCommandField(JObject row, string field, JTokenType type)
+    { if (row[field]?.Type != type) throw new InvalidOperationException("production-command-save-field-invalid:" + field); }
 
     private PreparedOutputRestoreStageCandidate BuildCandidate(
         string payloadJson,

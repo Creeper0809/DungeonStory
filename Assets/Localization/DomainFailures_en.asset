@@ -1635,6 +1635,15 @@ MonoBehaviour:
       {1}, remaining grams: {2}'
     m_Metadata:
       m_Items: []
+  - m_Id: 20534165975158784
+    m_Localized: Draining remaining medical supplies.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 20534166017101824
+    m_Localized: 'The environmental result could not be recorded. Owner: {0}, reason:
+      {1}'
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

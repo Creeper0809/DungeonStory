@@ -1,0 +1,698 @@
+--- before/Assets/Scripts/Views/UI/CharacterSummaryCombatPresenter.cs
++++ after/Assets/Scripts/Views/UI/CharacterSummaryCombatPresenter.cs
+@@ -6,18 +6,6 @@
+ using TMPro;
+ using UnityEngine;
+ using UnityEngine.UI;
+-
+-internal sealed class CombatEquipmentUiStatBlock
+-{
+-    public static CombatEquipmentUiStatBlock Empty => new CombatEquipmentUiStatBlock();
+-
+-    public int maxHealth;
+-    public int attack;
+-    public int strength;
+-    public int toughness;
+-    public int dexterity;
+-    public int moveSpeed;
+-}
+ 
+ /// <summary>
+ /// Owns the combat-tab projection and commands for the character summary view.
+@@ -517,19 +505,6 @@
+         RefreshCommandLabels(profile, weapon);
+     }
+ 
+-    internal CombatEquipmentUiStatBlock GetCurrentEquipmentBonuses(CharacterActor actor)
+-    {
+-        string characterId = actor?.Identity?.PersistentId;
+-        if (string.IsNullOrWhiteSpace(characterId))
+-        {
+-            return CombatEquipmentUiStatBlock.Empty;
+-        }
+-
+-        // Detailed equipment contributions are projected by the item-backed
+-        // equipment runtime once character-stat component effects are exposed.
+-        return CombatEquipmentUiStatBlock.Empty;
+-    }
+-
+     private bool TryGetRuntime(CharacterActor actor, out string characterId)
+     {
+         characterId = actor?.Identity?.PersistentId ?? string.Empty;
+--- before/Assets/Scripts/Views/UI/CharacterSummaryTextFormatter.cs
++++ after/Assets/Scripts/Views/UI/CharacterSummaryTextFormatter.cs
+@@ -178,11 +178,6 @@
+         return CharacterSummaryUiTextQuery.Get(
+             "CharacterSummary.Weight.Kilograms",
+             Mathf.Max(0f, weight));
+-    }
+-
+-    public static string FormatSigned(int value)
+-    {
+-        return value > 0 ? "+" + value : value.ToString();
+     }
+ 
+     public static string Fallback(string text, string fallback)
+--- before/Assets/Scripts/Views/Character/UI/StartPartyPreparationPresentation.cs
++++ after/Assets/Scripts/Views/Character/UI/StartPartyPreparationPresentation.cs
+@@ -135,14 +135,6 @@
+             _ => rarity.ToString()
+         };
+ 
+-    public static void AppendFlags(StringBuilder builder, string label, string value)
+-    {
+-        if (!string.IsNullOrWhiteSpace(value))
+-        {
+-            builder.AppendLine($"{label}  {value}");
+-        }
+-    }
+-
+     public static string FormatFacilityRoles(FacilityRole roles)
+     {
+         if (roles == FacilityRole.None)
+@@ -198,12 +190,6 @@
+         return member.CharacterData != null ? member.CharacterData.characterName : "-";
+     }
+ 
+-    public static string FormatTraitIds(IEnumerable<int> traitIds)
+-    {
+-        int[] ids = traitIds?.Distinct().ToArray() ?? Array.Empty<int>();
+-        return ids.Length == 0 ? "-" : string.Join(", ", ids.Select(id => $"Trait {id}"));
+-    }
+-
+     public static string PotentialLabel(CharacterPotentialGrade grade)
+     {
+         return grade switch
+--- before/Assets/Scripts/Services/Codex/CodexRuntimeApplicationAdapter.cs
++++ after/Assets/Scripts/Services/Codex/CodexRuntimeApplicationAdapter.cs
+@@ -678,13 +678,6 @@
+                 : workTypeId.ToString()));
+     }
+ 
+-    internal static string FormatLegacyWorkTypes(FacilityWorkType workTypes)
+-    {
+-        return string.Join(", ", FacilityWorkTypeMap
+-            .Enumerate(workTypes)
+-            .Select(definition => definition.DisplayName));
+-    }
+-
+     public static string FormatDefenseConcept(DefenseAttackConcept concept)
+     {
+         return concept switch
+--- before/Assets/Scripts/Services/Combat/CharacterBodyHealthStateRules.cs
++++ after/Assets/Scripts/Services/Combat/CharacterBodyHealthStateRules.cs
+@@ -555,39 +555,6 @@
+         };
+     }
+ 
+-    public CombatBodyPart? GetLegacyBodyPart(
+-        string profileId,
+-        string nodeId)
+-    {
+-        if (string.Equals(profileId, "anatomy:slime", StringComparison.Ordinal))
+-        {
+-            return nodeId == "membrane" ? CombatBodyPart.Torso : null;
+-        }
+-
+-        if (string.Equals(profileId, "anatomy:quadruped", StringComparison.Ordinal))
+-        {
+-            return nodeId switch
+-            {
+-                "head" => CombatBodyPart.Head,
+-                "torso" => CombatBodyPart.Torso,
+-                "forelegs" => CombatBodyPart.LeftLeg,
+-                "hindlegs" => CombatBodyPart.RightLeg,
+-                _ => null
+-            };
+-        }
+-
+-        return nodeId switch
+-        {
+-            "head" => CombatBodyPart.Head,
+-            "torso" => CombatBodyPart.Torso,
+-            "arm:left" => CombatBodyPart.LeftArm,
+-            "arm:right" => CombatBodyPart.RightArm,
+-            "leg:left" => CombatBodyPart.LeftLeg,
+-            "leg:right" => CombatBodyPart.RightLeg,
+-            _ => null
+-        };
+-    }
+-
+     public AnatomyNodeHealthState CloneAnatomyNode(
+         AnatomyNodeHealthState source)
+     {
+--- before/Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionIdentity.cs
++++ after/Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionIdentity.cs
+@@ -2,11 +2,6 @@
+ using System.Collections.Generic;
+ using System.Linq;
+ using UnityEngine;
+-
+-public interface IFacilityIdentityPressureProvider
+-{
+-    void Apply(RoomProfile profile);
+-}
+ 
+ public readonly struct FacilityEvolutionIdentityScore
+ {
+@@ -129,14 +124,6 @@
+     }
+ }
+ 
+-public sealed class DefaultFacilityIdentityPressureProvider : IFacilityIdentityPressureProvider
+-{
+-    public void Apply(RoomProfile profile)
+-    {
+-        FacilityIdentityPressureUtility.ApplyDefaultPressures(profile);
+-    }
+-}
+-
+ public static class FacilityIdentityPressureUtility
+ {
+     public static void ApplyDefaultPressures(RoomProfile profile)
+--- before/Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecord.cs
++++ after/Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecord.cs
+@@ -234,21 +234,6 @@
+     }
+ }
+ 
+-public sealed class ComponentFacilityEvolutionRecordProvider : IFacilityEvolutionRecordProvider
+-{
+-    public FacilityEvolutionRecord GetRecord(BuildableObject facility)
+-    {
+-        if (facility == null)
+-        {
+-            return new FacilityEvolutionRecord();
+-        }
+-
+-        FacilityEvolutionStateComponent state =
+-            facility.GetComponent<FacilityEvolutionStateComponent>();
+-        return state != null ? state.GetRecord() : new FacilityEvolutionRecord();
+-    }
+-}
+-
+ public sealed class FacilityEvolutionRecordComponentService : IFacilityEvolutionRecordComponentService
+ {
+     private readonly IFacilityEvolutionRecordComponentFactory recordComponentFactory;
+--- before/Assets/Scripts/Services/Items/PhysicalItemGameplayOutcomeTransaction.cs
++++ after/Assets/Scripts/Services/Items/PhysicalItemGameplayOutcomeTransaction.cs
+@@ -125,63 +125,3 @@
+     bool Acknowledge(string commitId, IPhysicalItemDispositionAcknowledgementParticipant participant,
+         out string failureReason);
+ }
+-
+-internal static class PhysicalGameplayOutcomeSaveCodec
+-{
+-    internal static PhysicalItemDispositionSourceFactSaveData ToSave(
+-        in PhysicalItemDispositionSourceFact fact) => PhysicalItemSourceFactSaveCodec.ToSave(fact);
+-
+-    internal static PhysicalItemDispositionSourceFact FromSave(
+-        PhysicalItemDispositionSourceFactSaveData fact) => PhysicalItemSourceFactSaveCodec.FromSave(fact);
+-
+-    internal static PhysicalGameplayOutcomeAttachmentSaveData ToSave(
+-        in PhysicalGameplayOutcomeAttachment attachment) => new()
+-    {
+-        producerId = attachment.ResultKey.ProducerId,
+-        operationId = attachment.ResultKey.OperationId.Value,
+-        commitRevision = attachment.ResultKey.CommitRevision,
+-        localResultIndex = attachment.ResultKey.LocalResultIndex,
+-        outcomeRunId = attachment.OutcomeId.RunId.Value,
+-        outcomeSequence = attachment.OutcomeId.Sequence,
+-        replayState = (int)attachment.State,
+-        canonicalPayloadHash = attachment.CanonicalPayloadHash
+-    };
+-
+-    internal static PhysicalGameplayOutcomeAttachment FromSave(
+-        PhysicalGameplayOutcomeAttachmentSaveData attachment)
+-    {
+-        if (attachment == null)
+-            return default;
+-        return new PhysicalGameplayOutcomeAttachment(
+-            new GameplayResultKey(
+-                attachment.producerId,
+-                new GameplayOperationId(attachment.operationId),
+-                attachment.commitRevision,
+-                attachment.localResultIndex),
+-            new GameplayOutcomeId(
+-                new GameplayOutcomeRunId(attachment.outcomeRunId),
+-                attachment.outcomeSequence),
+-            (GameplayOutcomeReplayState)attachment.replayState,
+-            attachment.canonicalPayloadHash);
+-    }
+-
+-    internal static bool Equals(
+-        PhysicalGameplayOutcomeAttachmentSaveData left,
+-        PhysicalGameplayOutcomeAttachmentSaveData right) =>
+-        left != null
+-        && right != null
+-        && string.Equals(left.producerId, right.producerId, StringComparison.Ordinal)
+-        && string.Equals(left.operationId, right.operationId, StringComparison.Ordinal)
+-        && left.commitRevision == right.commitRevision
+-        && left.localResultIndex == right.localResultIndex
+-        && string.Equals(
+-            left.outcomeRunId,
+-            right.outcomeRunId,
+-            StringComparison.Ordinal)
+-        && left.outcomeSequence == right.outcomeSequence
+-        && left.replayState == right.replayState
+-        && string.Equals(
+-            left.canonicalPayloadHash,
+-            right.canonicalPayloadHash,
+-            StringComparison.Ordinal);
+-}
+--- before/Assets/Scripts/Services/Offense/OffenseExpeditionPanel.cs
++++ after/Assets/Scripts/Services/Offense/OffenseExpeditionPanel.cs
+@@ -836,31 +836,6 @@
+             : "없음";
+     }
+ 
+-    private static string FormatEquipmentStats(CombatEquipmentUiStatBlock stats)
+-    {
+-        if (stats == null)
+-        {
+-            return "보정 없음";
+-        }
+-
+-        List<string> parts = new List<string>();
+-        AddStat(parts, "체력", stats.maxHealth);
+-        AddStat(parts, "공격", stats.attack);
+-        AddStat(parts, "근력", stats.strength);
+-        AddStat(parts, "맷집", stats.toughness);
+-        AddStat(parts, "민첩", stats.dexterity);
+-        AddStat(parts, "이동", stats.moveSpeed);
+-        return parts.Count > 0 ? string.Join(" ", parts) : "보정 없음";
+-    }
+-
+-    private static void AddStat(ICollection<string> parts, string label, int value)
+-    {
+-        if (value != 0)
+-        {
+-            parts.Add($"{label} {value:+#;-#;0}");
+-        }
+-    }
+-
+     private static string GetActorName(CharacterActor actor)
+     {
+         actor?.EnsureRuntimeState();
+--- before/Assets/Scripts/Services/Offense/Editor/OffenseRewardDebugScenarios.cs
++++ after/Assets/Scripts/Services/Offense/Editor/OffenseRewardDebugScenarios.cs
+@@ -2527,11 +2527,6 @@
+         }
+     }
+ 
+-    private sealed class EmptyRunResultPanelService : IRunResultPanelService
+-    {
+-        public RunResultPanel Show(RunResultSnapshot result) => null;
+-    }
+-
+     private sealed class EmptyMetaRuntimeApplicationPort : IMetaRuntimeApplicationPort
+     {
+         public void Bind(IMetaRuntimeEventSink runtime) { }
+--- before/Assets/Scripts/Services/Infrastructure/Exterior/Editor/ExteriorActivityDebugScenarios.cs
++++ after/Assets/Scripts/Services/Infrastructure/Exterior/Editor/ExteriorActivityDebugScenarios.cs
+@@ -1891,57 +1891,6 @@
+         }
+     }
+ 
+-    private sealed class FailOnceAfterExteriorSaveSection :
+-        IDungeonSaveSection,
+-        IDungeonStagedSaveSection,
+-        IDungeonRollbackFreeSaveSection
+-    {
+-        public const string Id = "exterior.debug.fail-after-candidate";
+-
+-        public int CommitCount { get; private set; }
+-        public string SectionId => Id;
+-        public int SectionVersion => 1;
+-        public DungeonSaveRestorePhase RestorePhase =>
+-            DungeonSaveRestorePhase.LateRuntimeState;
+-        public IReadOnlyList<string> DependsOn =>
+-            new[] { ExteriorActivitySaveSection.Id };
+-
+-        public string Capture() => "{}";
+-
+-        public void Restore(
+-            string payloadJson,
+-            int sectionVersion,
+-            DungeonGameRestoreReport report)
+-        {
+-            StageRestore(payloadJson, sectionVersion, report)
+-                .Commit(report);
+-        }
+-
+-        public IDungeonSaveRestoreStage StageRestore(
+-            string payloadJson,
+-            int sectionVersion,
+-            DungeonGameRestoreReport report)
+-        {
+-            if (sectionVersion != SectionVersion)
+-            {
+-                throw new InvalidOperationException(
+-                    $"Unexpected debug section version {sectionVersion}.");
+-            }
+-
+-            return new DungeonDelegateSaveRestoreStage(
+-                SectionId,
+-                _ =>
+-                {
+-                    CommitCount++;
+-                    if (CommitCount == 1)
+-                    {
+-                        throw new InvalidOperationException(
+-                            "Intentional failure after exterior candidate staging.");
+-                    }
+-                });
+-        }
+-    }
+-
+     private sealed class LateExteriorParticipantFaultProbe :
+         IDungeonRestoreTransactionParticipant
+     {
+--- before/Assets/Scripts/Services/Economy/Diagnostics/ProductionOutputDestinationLifecycleDebugScenarios.cs
++++ after/Assets/Scripts/Services/Economy/Diagnostics/ProductionOutputDestinationLifecycleDebugScenarios.cs
+@@ -1616,91 +1616,6 @@
+             DeleteCount++;
+     }
+ 
+-    private sealed class RecordingMutationFence : IProductionFacilityMutationFence
+-    {
+-        internal List<string> Calls { get; } = new();
+-        internal bool AllowPrepare { get; set; } = true;
+-
+-        public bool TryPrepareEmpty(
+-            BuildableObject facility,
+-            ProductionFacilityMutationKind kind,
+-            string operationId,
+-            out ProductionFacilityEmptyMutationCandidate candidate,
+-            out string failureReason)
+-        {
+-            Calls.Add("prepare");
+-            if (!AllowPrepare)
+-            {
+-                candidate = null;
+-                failureReason = "recording-fence-blocked";
+-                return false;
+-            }
+-            failureReason = string.Empty;
+-            ProductionFacilityHandle handle = new(
+-                facility,
+-                facility.PersistentInstanceId,
+-                facility.centerPos,
+-                false,
+-                string.Empty,
+-                false,
+-                default,
+-                "building-definition:qa",
+-                string.Empty,
+-                4);
+-            candidate = new ProductionFacilityEmptyMutationCandidate(
+-                kind,
+-                operationId,
+-                1L,
+-                handle,
+-                Fingerprint("placement-fence"),
+-                hadOutputAuthority: true,
+-                priorCapacityMassGrams: 1_000L,
+-                hadStockSensorAuthority: false,
+-                priorStockSensorCapacityMassGrams: 0L);
+-            return true;
+-        }
+-
+-        public bool TryCommitAuthorityRevoke(
+-            ProductionFacilityEmptyMutationCandidate candidate,
+-            out string failureReason)
+-        {
+-            Calls.Add("commit");
+-            candidate.AuthorityRevoked = true;
+-            failureReason = string.Empty;
+-            return true;
+-        }
+-
+-        public bool TryAbort(
+-            ProductionFacilityEmptyMutationCandidate candidate,
+-            out string failureReason)
+-        {
+-            Calls.Add("abort");
+-            candidate.AuthorityRevoked = false;
+-            candidate.IsClosed = true;
+-            failureReason = string.Empty;
+-            return true;
+-        }
+-
+-        public bool TryComplete(
+-            ProductionFacilityEmptyMutationCandidate candidate,
+-            out string failureReason)
+-        {
+-            Calls.Add("complete");
+-            candidate.IsClosed = true;
+-            failureReason = string.Empty;
+-            return true;
+-        }
+-
+-        public bool TryRequireNoAuthority(
+-            BuildableObject facility,
+-            ProductionFacilityMutationKind kind,
+-            out string failureReason)
+-        {
+-            failureReason = string.Empty;
+-            return true;
+-        }
+-    }
+-
+     private sealed class RecordingDestructiveLossRuntime :
+         IBuildingDestructiveLossRuntime
+     {
+--- before/Assets/Scripts/Services/Character/AI/NarrativeRequestContext.cs
++++ after/Assets/Scripts/Services/Character/AI/NarrativeRequestContext.cs
+@@ -243,21 +243,6 @@
+         return context;
+     }
+ 
+-    public static NarrativeRequestContext ForProgression(
+-        string profileId,
+-        CharacterProgression progression,
+-        bool requireCharacterFact,
+-        bool requireMotif)
+-    {
+-        CharacterActor actor = progression != null
+-            ? progression.GetComponent<CharacterActor>()
+-            : null;
+-        NarrativeRequestContext context = ForActor(
+-            profileId, actor, requireCharacterFact, requireMotif);
+-        if (actor == null && progression != null) AddProgressionFacts(context, progression);
+-        return context;
+-    }
+-
+     public static NarrativePublicContextMaterial BuildPublicMaterialForActor(
+         string profileId,
+         CharacterActor actor,
+@@ -541,13 +526,6 @@
+         }
+     }
+ 
+-    public static NarrativeRequestContext DefaultForProfile(string profileId)
+-    {
+-        LlmStaticSchemaDefinition schema = LlmStaticSchemaCatalog.Require(profileId);
+-        return NarrativeCultureStyleCatalog.Create(
+-            profileId, string.Empty, false, schema.PersistentNarrative);
+-    }
+-
+     private static void AddProgressionFacts(NarrativeRequestContext context, CharacterProgression progression)
+     {
+         string origin = progression.GrowthState.origin;
+--- before/Assets/Scripts/Services/Character/AI/Editor/V25NarrativeInferenceDebugScenarios.cs
++++ after/Assets/Scripts/Services/Character/AI/Editor/V25NarrativeInferenceDebugScenarios.cs
+@@ -5286,193 +5286,6 @@
+         public NarrativeSchedulingMetadata Scheduling { get; }
+     }
+ 
+-    private sealed class StableCatalogSnapshotProvider :
+-        INarrativeMechanicCatalogSnapshotProvider
+-    {
+-        public NarrativeMechanicCatalogSnapshot CaptureSnapshot()
+-        {
+-            NarrativeMechanicCatalogCanonicalJsonArray empty =
+-                NarrativeMechanicCatalogCanonicalJson.Array();
+-            return new NarrativeMechanicCatalogSnapshot(
+-                "v25-test-catalog",
+-                NarrativeMechanicCatalogCanonicalJson.Object(
+-                    NarrativeMechanicCatalogCanonicalJson.Property("modules", empty),
+-                    NarrativeMechanicCatalogCanonicalJson.Property(
+-                        "rarityBudgets",
+-                        NarrativeMechanicCatalogCanonicalJson.Array())),
+-                NarrativeMechanicCatalogCanonicalJson.Object(
+-                    NarrativeMechanicCatalogCanonicalJson.Property(
+-                        "recipes",
+-                        NarrativeMechanicCatalogCanonicalJson.Array())),
+-                NarrativeMechanicCatalogCanonicalJson.Object(
+-                    NarrativeMechanicCatalogCanonicalJson.Property(
+-                        "effects",
+-                        NarrativeMechanicCatalogCanonicalJson.Array())),
+-                NarrativeMechanicCatalogCanonicalJson.Object(
+-                    NarrativeMechanicCatalogCanonicalJson.Property(
+-                        "eraseDisplayName",
+-                        NarrativeMechanicCatalogCanonicalJson.String("망각의 인장")),
+-                    NarrativeMechanicCatalogCanonicalJson.Property(
+-                        "eraseItemId",
+-                        NarrativeMechanicCatalogCanonicalJson.String("item:memory-erasure-seal")),
+-                    NarrativeMechanicCatalogCanonicalJson.Property(
+-                        "gates",
+-                        NarrativeMechanicCatalogCanonicalJson.Array(
+-                            NarrativeMechanicCatalogCanonicalJson.Integer(3),
+-                            NarrativeMechanicCatalogCanonicalJson.Integer(8),
+-                            NarrativeMechanicCatalogCanonicalJson.Integer(20))),
+-                    NarrativeMechanicCatalogCanonicalJson.Property(
+-                        "implementationStatus",
+-                        NarrativeMechanicCatalogCanonicalJson.String("fixture")),
+-                    NarrativeMechanicCatalogCanonicalJson.Property(
+-                        "maxActive",
+-                        NarrativeMechanicCatalogCanonicalJson.Integer(3)),
+-                    NarrativeMechanicCatalogCanonicalJson.Property(
+-                        "modules",
+-                        NarrativeMechanicCatalogCanonicalJson.Array())),
+-                new[]
+-                {
+-                    "Assets/Scripts/Services/Character/AI/Editor/"
+-                    + "V25NarrativeInferenceDebugScenarios.cs"
+-                },
+-                new NarrativeMechanicCatalogTrainingPolicy(Array.Empty<string>()),
+-                BuildFixturePacketParity(),
+-                BuildFixtureScenarioBundle());
+-        }
+-
+-        private static NarrativeMechanicScenarioBundle BuildFixtureScenarioBundle()
+-        {
+-            return NarrativeMechanicScenarioCatalog.Capture(
+-                NarrativeMechanicScenarioProfiles.ExpectedPositiveCounts
+-                    .Select(pair => (INarrativeMechanicScenarioSource)
+-                        new StableScenarioSource(pair.Key, pair.Value)));
+-        }
+-
+-        private static NarrativeMechanicCatalogPacketParity BuildFixturePacketParity()
+-        {
+-            string[] profileIds =
+-            {
+-                "CharacterSkill",
+-                "FacilityEvolution",
+-                "EquipmentChoiceLegacyV2",
+-                "EvolutionHistory",
+-                "AcquiredTrait",
+-                "Persona"
+-            };
+-            List<NarrativeMechanicCatalogCanonicalJsonObject> cases =
+-                new List<NarrativeMechanicCatalogCanonicalJsonObject>();
+-            foreach (string profileId in profileIds)
+-            {
+-                cases.Add(BuildFixtureParityCase(profileId, accepted: false));
+-                cases.Add(BuildFixtureParityCase(profileId, accepted: true));
+-            }
+-            return new NarrativeMechanicCatalogPacketParity(
+-                cases,
+-                Array.Empty<NarrativeMechanicCatalogParityBlocker>());
+-        }
+-
+-        private static NarrativeMechanicCatalogCanonicalJsonObject BuildFixtureParityCase(
+-            string profileId,
+-            bool accepted)
+-        {
+-            return NarrativeMechanicCatalogCanonicalJson.Object(
+-                NarrativeMechanicCatalogCanonicalJson.Property(
+-                    "caseId",
+-                    NarrativeMechanicCatalogCanonicalJson.String(
+-                        $"fixture:{profileId}:{(accepted ? "accepted" : "rejected")}")),
+-                NarrativeMechanicCatalogCanonicalJson.Property(
+-                    "expected",
+-                    NarrativeMechanicCatalogCanonicalJson.Object(
+-                        NarrativeMechanicCatalogCanonicalJson.Property(
+-                            "accepted",
+-                            NarrativeMechanicCatalogCanonicalJson.Boolean(accepted)))),
+-                NarrativeMechanicCatalogCanonicalJson.Property(
+-                    "profileId",
+-                    NarrativeMechanicCatalogCanonicalJson.String(profileId)));
+-        }
+-
+-        private sealed class StableScenarioSource : INarrativeMechanicScenarioSource
+-        {
+-            private readonly int positiveCount;
+-
+-            public StableScenarioSource(string profileId, int positiveCount)
+-            {
+-                ProfileId = profileId;
+-                this.positiveCount = positiveCount;
+-            }
+-
+-            public string ProfileId { get; }
+-
+-            public NarrativeMechanicScenarioSourceCapture CaptureScenarios()
+-            {
+-                List<NarrativeMechanicScenario> positives =
+-                    new List<NarrativeMechanicScenario>(positiveCount);
+-                for (int ordinal = 0; ordinal < positiveCount; ordinal++)
+-                {
+-                    positives.Add(BuildScenario(ordinal, accepted: true));
+-                }
+-
+-                return new NarrativeMechanicScenarioSourceCapture(
+-                    ProfileId,
+-                    positives,
+-                    new[] { BuildScenario(-1, accepted: false) },
+-                    new[]
+-                    {
+-                        "Assets/Scripts/Services/Character/AI/Editor/"
+-                        + "V25NarrativeInferenceDebugScenarios.cs"
+-                    });
+-            }
+-
+-            private NarrativeMechanicScenario BuildScenario(int ordinal, bool accepted)
+-            {
+-                string suffix = ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+-                KeyValuePair<string, string> axis = ProfileId switch
+-                {
+-                    NarrativeMechanicScenarioProfiles.CharacterSkill =>
+-                        new KeyValuePair<string, string>(
+-                            "kind",
+-                            new[] { "Active", "Passive", "Ultimate" }[
+-                                Math.Max(0, ordinal) % 3]),
+-                    NarrativeMechanicScenarioProfiles.AcquiredTrait =>
+-                        new KeyValuePair<string, string>(
+-                            "manifestationMilestone",
+-                            new[] { "3", "8", "20" }[Math.Max(0, ordinal) % 3]),
+-                    _ => new KeyValuePair<string, string>("ordinal", suffix)
+-                };
+-                NarrativeMechanicCatalogCanonicalJsonObject identity =
+-                    NarrativeMechanicCatalogCanonicalJson.Object(
+-                        NarrativeMechanicCatalogCanonicalJson.Property(
+-                            "ordinal", NarrativeMechanicCatalogCanonicalJson.Integer(ordinal)),
+-                        NarrativeMechanicCatalogCanonicalJson.Property(
+-                            "profileId", NarrativeMechanicCatalogCanonicalJson.String(ProfileId)));
+-                return new NarrativeMechanicScenario(
+-                    $"fixture:{ProfileId}:{(accepted ? "positive" : "negative")}:{suffix}",
+-                    ProfileId,
+-                    identity,
+-                    NarrativeMechanicCatalogCanonicalJson.Array(
+-                        NarrativeMechanicCatalogCanonicalJson.Object(
+-                            NarrativeMechanicCatalogCanonicalJson.Property(
+-                                "candidateId",
+-                                NarrativeMechanicCatalogCanonicalJson.String(
+-                                    $"fixture-candidate:{ProfileId}:{suffix}")))),
+-                    NarrativeMechanicCatalogCanonicalJson.Array(
+-                        NarrativeMechanicCatalogCanonicalJson.Object(
+-                            NarrativeMechanicCatalogCanonicalJson.Property(
+-                                "factId",
+-                                NarrativeMechanicCatalogCanonicalJson.String(
+-                                    $"fixture-fact:{ProfileId}:{suffix}")))),
+-                    new[] { $"fixture-effect:{ProfileId}:{suffix}" },
+-                    identity,
+-                    identity,
+-                    "StableScenarioSource.BuildScenario",
+-                    "StableScenarioSource.BuildScenario",
+-                    accepted,
+-                    accepted ? string.Empty : "fixture validator rejection",
+-                    new[] { axis });
+-            }
+-        }
+-    }
+-
+     private enum EquipmentChoiceStubMode
+     {
+         RuntimeUnavailable,

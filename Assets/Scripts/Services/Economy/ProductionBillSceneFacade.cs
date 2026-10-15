@@ -18,6 +18,7 @@ public sealed class ProductionBillSceneFacade :
     private readonly IAutomationExecutionModeQuery automationModes;
     private readonly ExtremeTraitRuntime extremeTraits;
     private readonly IGameClock clock;
+    private readonly IGameCalendar calendar;
     private readonly CharacterIdentityEventPublisher identityEvents;
 
     public ProductionBillSceneFacade(
@@ -28,6 +29,7 @@ public sealed class ProductionBillSceneFacade :
         IAutomationExecutionModeQuery automationModes,
         ExtremeTraitRuntime extremeTraits,
         IGameClock clock,
+        IGameCalendar calendar,
         CharacterIdentityEventPublisher identityEvents)
     {
         this.query = query ?? throw new ArgumentNullException(nameof(query));
@@ -39,6 +41,7 @@ public sealed class ProductionBillSceneFacade :
         this.extremeTraits = extremeTraits
             ?? throw new ArgumentNullException(nameof(extremeTraits));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.identityEvents = identityEvents
             ?? throw new ArgumentNullException(nameof(identityEvents));
     }
@@ -329,6 +332,6 @@ public sealed class ProductionBillSceneFacade :
             $"production:{billId.Value}",
             outcomeId,
             CharacterCommandOrigin.Autonomous,
-            Math.Max(0, (int)(clock.Time / GameCalendarRules.SecondsPerDay))));
+            calendar.Day));
     }
 }

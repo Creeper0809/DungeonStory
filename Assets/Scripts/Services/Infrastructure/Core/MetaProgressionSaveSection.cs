@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using Newtonsoft.Json.Linq;
 using UnityEngine.Scripting.APIUpdating;
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -21,17 +23,53 @@ public sealed class MetaProgressionSaveSection :
     }
 
     public override string SectionId => Id;
-    public override int SectionVersion => 2;
+    public override int SectionVersion => DungeonMetaProgressionSaveData.CurrentVersion;
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.Foundation;
 
-    protected override void ValidateRawPayload(string payloadJson) =>
+    protected override void ValidateRawPayload(string payloadJson)
+    {
         RequireObjectArrayFieldsWhenTopLevelBooleanTrue(
             payloadJson,
             "hasLatestResult",
             "latestResult",
             "completedMilestoneIds",
             "committedChoices");
+        ValidatePendingCompletionJson(payloadJson);
+    }
+
+    public static void ValidatePendingCompletionJson(string json)
+    {
+        var root = JObject.Parse(json, new JsonLoadSettings
+        { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
+        if (root["hasPendingCompletion"]?.Type != JTokenType.Boolean)
+            throw new InvalidOperationException("meta-completion-flag-missing");
+        if (root["hasPendingCompletion"].Value<bool>())
+            ValidatePendingShape(root["pendingCompletion"], typeof(MetaRunCompletionSnapshotSaveData));
+    }
+
+    private static void ValidatePendingShape(JToken token, Type type)
+    {
+        if (token == null) throw new InvalidOperationException("meta-completion-field-missing:" + type.Name);
+        bool valid;
+        if (type == typeof(string)) valid = token.Type == JTokenType.String;
+        else if (type == typeof(float)) valid = token.Type is JTokenType.Float or JTokenType.Integer;
+        else if (type.IsPrimitive || type.IsEnum) valid = token.Type == JTokenType.Integer;
+        else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
+        {
+            if (token is not JArray array) throw new InvalidOperationException("meta-completion-array-missing");
+            foreach (var value in array) ValidatePendingShape(value, type.GetGenericArguments()[0]);
+            return;
+        }
+        else
+        {
+            if (token is not JObject row) throw new InvalidOperationException("meta-completion-object-missing");
+            foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+                ValidatePendingShape(row[field.Name], field.FieldType);
+            return;
+        }
+        if (!valid) throw new InvalidOperationException("meta-completion-field-invalid:" + type.Name);
+    }
 
     protected override DungeonMetaProgressionSaveData CapturePayload()
     {
@@ -72,6 +110,17 @@ public sealed class MetaProgressionSaveSection :
         {
             destination.latestResult = ToSaveData(runtime.LatestResult);
         }
+        var pending = runtime.PendingCompletion;
+        destination.hasPendingCompletion = pending != null;
+        if (pending != null)
+            destination.pendingCompletion = new MetaRunCompletionSnapshotSaveData
+            {
+                fact = pending.Fact,
+                runSequence = pending.RunSequence,
+                preservedRecipeSlots = pending.PreservedRecipeSlots,
+                result = ToSaveData(pending.Result),
+                recipeCandidates = pending.RecipeCandidates.ToList()
+            };
 
         return destination;
     }

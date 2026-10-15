@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Narrative.Korean;
 using VContainer;
 
@@ -420,11 +421,7 @@ public static class BuildingDemolitionOutcomeRegistration
         builder.Register<BuildingDemolitionGameplayOutcomeBridge>(
                 Lifetime.Singleton)
             .As<IBuildingDemolitionOutcomeCommitter>();
-        builder.Register<BuildingDemolitionOutcomeAdapter>(Lifetime.Singleton)
-            .As<IGameplayOutcomeAdapterRegistration>();
-        builder.Register<BuildingDemolitionOutcomeDescriptor>(
-                Lifetime.Singleton)
-            .As<IGameplayOutcomeDescriptor>();
+        builder.RegisterGameplayActionLogs(nameof(BuildingDemolitionOutcomeAdapter));
     }
 }
 
@@ -470,7 +467,9 @@ public sealed class BuildingDemolitionOutcomeLifecycleContributor :
 
 public sealed class BuildingDemolitionDestructiveDrainParticipant :
     IProductionFacilityDestructiveDrainParticipant,
-    IProductionFacilityDestructiveDrainDurablePrepareParticipant
+    IProductionFacilityDestructiveDrainDurablePrepareParticipant,
+    IProductionFacilityDestructiveDrainPostWorldRemovalFinalizer,
+    IProductionFacilityDestructiveDrainCheckpointGcParticipant
 {
     public const int CurrentContractVersion = 1;
 
@@ -484,6 +483,7 @@ public sealed class BuildingDemolitionDestructiveDrainParticipant :
     private readonly IBuildingDemolitionOutcomeCommitter outcomes;
     private readonly Dictionary<string, PreparedBuildingDemolitionOutcome>
         preparedByOperation = new(StringComparer.Ordinal);
+    private CheckpointCandidate activeCheckpointCandidate;
 
     public BuildingDemolitionDestructiveDrainParticipant(
         IBuildingDemolitionOutcomeCommitter outcomes)
@@ -496,6 +496,7 @@ public sealed class BuildingDemolitionDestructiveDrainParticipant :
         ProductionFacilityDestructiveDrainParticipantIds
             .BuildingDemolitionOutcome;
     public int ContractVersion => CurrentContractVersion;
+    public string CheckpointGcParticipantId => ParticipantId;
     public IReadOnlyList<string> DependsOnParticipantIds => Dependencies;
 
     public ProductionFacilityDestructiveDrainParticipantPlan Prepare(
@@ -563,33 +564,119 @@ public sealed class BuildingDemolitionDestructiveDrainParticipant :
         return true;
     }
 
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PrepareCheckpointGarbageCollection(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<ProductionFacilityDestructiveDrainEntrySaveData>
+                entries,
+            out IProductionFacilityDestructiveDrainCheckpointGcCandidate
+                candidate)
+    {
+        if (activeCheckpointCandidate != null)
+        {
+            candidate = null;
+            return CheckpointResult(
+                context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .LiveAuthorityChanged,
+                "A building-demolition checkpoint candidate is already active.");
+        }
+        if (entries == null
+            || entries.Any(value => value == null
+                || value.phase !=
+                    ProductionFacilityDestructiveDrainPhase
+                        .WorldRemovedAwaitingCheckpointGc
+                || string.IsNullOrEmpty(value.operationId))
+            || entries.Select(value => value.operationId)
+                .Distinct(StringComparer.Ordinal).Count() != entries.Count)
+        {
+            candidate = null;
+            return CheckpointResult(
+                context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .ParticipantPrepareFailed,
+                "Building-demolition checkpoint input is invalid or duplicated.");
+        }
+
+        string[] operations = entries
+            .Select(value => value.operationId)
+            .ToArray();
+        if (operations.Any(preparedByOperation.ContainsKey))
+        {
+            candidate = null;
+            return CheckpointResult(
+                context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .LiveAuthorityChanged,
+                "A building-demolition receipt is still prepared for checkpoint collection.");
+        }
+
+        activeCheckpointCandidate = new CheckpointCandidate(
+            context,
+            operations);
+        candidate = activeCheckpointCandidate;
+        return CheckpointResult(
+            context,
+            ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            operations.Length == 0
+                ? ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .NoEligibleOperation
+                : ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+            "Building-demolition outcome history has no lower tombstone GC.",
+            operations.Length);
+    }
+
+    public ProductionFacilityDestructiveDrainCheckpointGcResult
+        PublishCheckpointGarbageCollection(
+            IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointCandidate exact = RequireCheckpointCandidate(candidate);
+        if (exact.OperationIds.Any(preparedByOperation.ContainsKey))
+        {
+            return CheckpointResult(
+                exact.Context,
+                ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+                ProductionFacilityDestructiveDrainCheckpointGcReason
+                    .LiveAuthorityChanged,
+                "A building-demolition receipt was prepared after checkpoint collection began.");
+        }
+        exact.Published = true;
+        return CheckpointResult(
+            exact.Context,
+            ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied,
+            ProductionFacilityDestructiveDrainCheckpointGcReason.None,
+            "Building-demolition outcome history was retained for canonical replay.",
+            exact.OperationIds.Count);
+    }
+
+    public void RollbackCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        CheckpointCandidate exact = RequireCheckpointCandidate(candidate);
+        exact.Published = false;
+    }
+
+    public void CompleteCheckpointGarbageCollection(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        RequireCheckpointCandidate(candidate);
+        activeCheckpointCandidate = null;
+    }
+
     public ProductionFacilityDestructiveDrainStepResult TryCommit(
         ProductionFacilityDestructiveDrainStepContext context)
     {
         string contribution = BuildingDemolitionOutcomeLifecycle
             .ProjectContribution(context.FacilityId);
-        if (!TryCreateReceipt(context, out BuildingDemolitionOutcomeReceipt receipt,
-                out _)
+        if (!TryCreateReceipt(context, out _, out _)
             || context.Owner.phase !=
                 ProductionFacilityDestructiveDrainStepPhase.Planned)
         {
             return Conflict(contribution);
         }
-        if (!preparedByOperation.TryGetValue(
-                context.OperationId.Value,
-                out PreparedBuildingDemolitionOutcome prepared)
-            && !outcomes.TryPrepare(receipt, out prepared, out _))
-        {
-            return Deferred(contribution);
-        }
-        OwnerOutcomeCommitResult committed = outcomes.Commit(prepared);
-        if (!committed.DurablyCommitted)
-        {
-            outcomes.Cancel(prepared);
-            preparedByOperation.Remove(context.OperationId.Value);
-            return Conflict(contribution);
-        }
-        preparedByOperation.Remove(context.OperationId.Value);
         return Applied(context, contribution,
             ProductionFacilityDestructiveDrainStepStatus.Applied);
     }
@@ -599,8 +686,7 @@ public sealed class BuildingDemolitionDestructiveDrainParticipant :
     {
         string contribution = BuildingDemolitionOutcomeLifecycle
             .ProjectContribution(context.FacilityId);
-        if (!TryCreateReceipt(context, out BuildingDemolitionOutcomeReceipt receipt,
-                out _)
+        if (!TryCreateReceipt(context, out _, out _)
             || context.Owner.phase !=
                 ProductionFacilityDestructiveDrainStepPhase
                     .EffectCommittedAwaitingOwnerAck
@@ -608,14 +694,8 @@ public sealed class BuildingDemolitionDestructiveDrainParticipant :
         {
             return Conflict(contribution);
         }
-        OwnerOutcomeCommitResult reconciled = outcomes.Reconcile(
-            receipt.ResultKey);
-        if (!reconciled.DurablyCommitted)
-            return Conflict(contribution);
-        return reconciled.Acknowledged
-            ? Applied(context, contribution,
-                ProductionFacilityDestructiveDrainStepStatus.Applied)
-            : Deferred(contribution);
+        return Applied(context, contribution,
+            ProductionFacilityDestructiveDrainStepStatus.Applied);
     }
 
     public ProductionFacilityDestructiveDrainRecoveryResult Recover(
@@ -623,38 +703,135 @@ public sealed class BuildingDemolitionDestructiveDrainParticipant :
     {
         string contribution = BuildingDemolitionOutcomeLifecycle
             .ProjectContribution(context.FacilityId);
-        if (!TryCreateReceipt(context, out BuildingDemolitionOutcomeReceipt receipt,
-                out _))
+        if (!TryCreateReceipt(context, out _, out _)
+            || context.Owner.phase !=
+                    ProductionFacilityDestructiveDrainStepPhase.Planned
+                && !MatchesJournalReceipt(context))
         {
             return new ProductionFacilityDestructiveDrainRecoveryResult(
                 ProductionFacilityDestructiveDrainRecoveryAction.Conflict,
                 Conflict(contribution));
         }
-        if (context.Owner.phase ==
-            ProductionFacilityDestructiveDrainStepPhase.OwnerAcknowledged)
-        {
-            return new ProductionFacilityDestructiveDrainRecoveryResult(
-                ProductionFacilityDestructiveDrainRecoveryAction
-                    .AlreadyAcknowledged,
-                Applied(context, contribution,
-                    ProductionFacilityDestructiveDrainStepStatus.Replay));
-        }
-        if (context.Owner.phase ==
-            ProductionFacilityDestructiveDrainStepPhase
-                .EffectCommittedAwaitingOwnerAck)
-        {
-            return new ProductionFacilityDestructiveDrainRecoveryResult(
-                ProductionFacilityDestructiveDrainRecoveryAction
-                    .ResumeAcknowledge,
-                Deferred(contribution));
-        }
-        OwnerOutcomeCommitResult replay = outcomes.Reconcile(receipt.ResultKey);
+        ProductionFacilityDestructiveDrainRecoveryAction action =
+            context.Owner.phase switch
+            {
+                ProductionFacilityDestructiveDrainStepPhase.Planned =>
+                    ProductionFacilityDestructiveDrainRecoveryAction
+                        .ResumeCommit,
+                ProductionFacilityDestructiveDrainStepPhase
+                    .EffectCommittedAwaitingOwnerAck =>
+                    ProductionFacilityDestructiveDrainRecoveryAction
+                        .ResumeAcknowledge,
+                ProductionFacilityDestructiveDrainStepPhase.OwnerAcknowledged =>
+                    ProductionFacilityDestructiveDrainRecoveryAction
+                        .AlreadyAcknowledged,
+                _ => ProductionFacilityDestructiveDrainRecoveryAction.Conflict
+            };
         return new ProductionFacilityDestructiveDrainRecoveryResult(
-            ProductionFacilityDestructiveDrainRecoveryAction.ResumeCommit,
-            replay.DurablyCommitted
+            action,
+            action == ProductionFacilityDestructiveDrainRecoveryAction
+                    .AlreadyAcknowledged
                 ? Applied(context, contribution,
                     ProductionFacilityDestructiveDrainStepStatus.Replay)
                 : Deferred(contribution));
+    }
+
+    public bool TryFinalizeAfterWorldRemoval(
+        ProductionFacilityDestructiveDrainEntrySaveData entry,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        ProductionFacilityDestructiveDrainParticipantSaveData row = entry?
+            .participants?
+            .SingleOrDefault(value => value != null
+                && string.Equals(
+                    value.participantId,
+                    ParticipantId,
+                    StringComparison.Ordinal));
+        if (row == null)
+        {
+            failureReason = "building-demolition-destructive-row-missing";
+            return false;
+        }
+        ProductionFacilityDestructiveDrainOwnerSaveData[] owners =
+            (row.owners
+                    ?? new List<
+                        ProductionFacilityDestructiveDrainOwnerSaveData>())
+                .Where(value => value != null)
+                .ToArray();
+        if (owners.Length == 0)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+        if (entry.cause !=
+                ProductionFacilityDestructiveDrainCause.ExplicitDemolition
+            || entry.phase !=
+                ProductionFacilityDestructiveDrainPhase.AwaitingWorldRemoval
+            || owners.Length != 1
+            || owners[0].phase !=
+                ProductionFacilityDestructiveDrainStepPhase.OwnerAcknowledged)
+        {
+            failureReason =
+                "building-demolition-post-removal-owner-state-invalid";
+            return false;
+        }
+
+        if (!ProductionFacilityDestructiveDrainOperationId.TryParse(
+                entry.operationId,
+                out ProductionFacilityDestructiveDrainOperationId operationId))
+        {
+            failureReason =
+                "building-demolition-post-removal-operation-invalid";
+            return false;
+        }
+        var context = new ProductionFacilityDestructiveDrainStepContext(
+            operationId,
+            (BuildingInstanceId)entry.facilityId,
+            ParticipantId,
+            owners[0],
+            row.expectedCurrentContributionFingerprint,
+            entry.OutcomeSnapshot);
+        if (!MatchesJournalReceipt(context)
+            || !TryCreateReceipt(
+                context,
+                out BuildingDemolitionOutcomeReceipt receipt,
+                out failureReason))
+        {
+            if (string.IsNullOrEmpty(failureReason))
+            {
+                failureReason =
+                    "building-demolition-post-removal-receipt-invalid";
+            }
+            return false;
+        }
+
+        if (!preparedByOperation.TryGetValue(
+                context.OperationId.Value,
+                out PreparedBuildingDemolitionOutcome prepared)
+            && !outcomes.TryPrepare(receipt, out prepared, out failureReason))
+        {
+            return false;
+        }
+        OwnerOutcomeCommitResult committed = outcomes.Commit(prepared);
+        preparedByOperation.Remove(context.OperationId.Value);
+        if (!committed.DurablyCommitted)
+        {
+            outcomes.Cancel(prepared);
+            failureReason = string.IsNullOrEmpty(committed.DetailCode)
+                ? "building-demolition-post-removal-commit-deferred"
+                : committed.DetailCode;
+            return false;
+        }
+        if (!committed.Acknowledged)
+        {
+            failureReason = string.IsNullOrEmpty(committed.DetailCode)
+                ? "building-demolition-post-removal-delivery-deferred"
+                : committed.DetailCode;
+            return false;
+        }
+        failureReason = string.Empty;
+        return true;
     }
 
     private bool TryCreateReceipt(
@@ -768,4 +945,53 @@ public sealed class BuildingDemolitionDestructiveDrainParticipant :
         string.Empty,
         string.Empty,
         contribution);
+
+    private CheckpointCandidate RequireCheckpointCandidate(
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate candidate)
+    {
+        if (candidate is not CheckpointCandidate exact
+            || !ReferenceEquals(exact, activeCheckpointCandidate))
+        {
+            throw new InvalidOperationException(
+                "Building-demolition checkpoint candidate is stale or foreign.");
+        }
+        return exact;
+    }
+
+    private static ProductionFacilityDestructiveDrainCheckpointGcResult
+        CheckpointResult(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            ProductionFacilityDestructiveDrainCheckpointGcStatus status,
+            ProductionFacilityDestructiveDrainCheckpointGcReason reason,
+            string message,
+            int count = 0) => new(
+            status,
+            reason,
+            context.CheckpointSequence,
+            message,
+            count);
+
+    private sealed class CheckpointCandidate :
+        IProductionFacilityDestructiveDrainCheckpointGcCandidate
+    {
+        internal CheckpointCandidate(
+            ProductionFacilityDestructiveDrainCheckpointGcContext context,
+            IReadOnlyList<string> operationIds)
+        {
+            Context = context;
+            OperationIds = Array.AsReadOnly((operationIds
+                    ?? Array.Empty<string>())
+                .ToArray());
+        }
+
+        public string ParticipantId =>
+            ProductionFacilityDestructiveDrainParticipantIds
+                .BuildingDemolitionOutcome;
+        public long CheckpointSequence => Context.CheckpointSequence;
+        public string SerializedByteDigest => Context.SerializedByteDigest;
+        public IReadOnlyList<string> OperationIds { get; }
+        internal ProductionFacilityDestructiveDrainCheckpointGcContext Context
+            { get; }
+        internal bool Published { get; set; }
+    }
 }

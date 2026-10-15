@@ -4,6 +4,13 @@ using UnityEngine;
 
 public static class DungeonSaveSectionPayload
 {
+    // JsonUtility's native double reader can change an R-format receipt value
+    // by one ULP, including copies inside skill/evolution evidence. Use the same
+    // exact reader for section staging and cross-owner preflight. Save shapes,
+    // JsonUtility writers and integrity checks are deliberately unchanged.
+    public static TPayload Deserialize<TPayload>(string json) where TPayload : class =>
+        DungeonSaveJson.Deserialize<TPayload>(json);
+
     public static bool TryRead<TPayload>(
         DungeonGameSaveData saveData,
         string sectionId,
@@ -23,7 +30,7 @@ public static class DungeonSaveSectionPayload
             return false;
         }
 
-        payload = JsonUtility.FromJson<TPayload>(envelope.payloadJson);
+        payload = Deserialize<TPayload>(envelope.payloadJson);
         return payload != null;
     }
 

@@ -122,7 +122,8 @@ public readonly struct CaptivityInteractionOutcomeReceipt
         int outputAmount,
         int attemptId,
         long ownerRevision,
-        int absoluteDay)
+        int absoluteDay,
+        string semanticDigest)
     {
         CharacterId captive = new(captiveId);
         CharacterId warden = new(wardenId);
@@ -170,7 +171,8 @@ public readonly struct CaptivityInteractionOutcomeReceipt
             || (bodyDamage > 0f && bodyHealthBefore <= 0f)
             || attemptId <= 0
             || ownerRevision <= 0L
-            || absoluteDay < 0)
+            || absoluteDay < 0
+            || !IsSemanticDigest(semanticDigest))
         {
             throw new ArgumentException(
                 "Captivity interaction outcome receipt is invalid.");
@@ -202,6 +204,7 @@ public readonly struct CaptivityInteractionOutcomeReceipt
         AttemptId = attemptId;
         OwnerRevision = ownerRevision;
         AbsoluteDay = absoluteDay;
+        SemanticDigest = semanticDigest;
     }
 
     public CharacterId CaptiveId { get; }
@@ -230,6 +233,15 @@ public readonly struct CaptivityInteractionOutcomeReceipt
     public int AttemptId { get; }
     public long OwnerRevision { get; }
     public int AbsoluteDay { get; }
+    public string SemanticDigest { get; }
+
+    internal static bool IsSemanticDigest(string value)
+    {
+        if (value == null || value.Length != 64) return false;
+        foreach (char c in value)
+            if (!(c >= '0' && c <= '9' || c >= 'a' && c <= 'f')) return false;
+        return true;
+    }
     public GameplayResultKey ResultKey => CaptivityInteractionOutcomeIds.ResultKey(
         CaptiveId.Value,
         AttemptId,
@@ -260,7 +272,8 @@ public sealed class CaptivityInteractionOutcomeAdapter :
             || !receipt.FacilityId.IsValid
             || receipt.AttemptId <= 0
             || receipt.OwnerRevision <= 0L
-            || receipt.AbsoluteDay < 0)
+            || receipt.AbsoluteDay < 0
+            || !CaptivityInteractionOutcomeReceipt.IsSemanticDigest(receipt.SemanticDigest))
         {
             return Invalid("captivity-interaction-receipt-invalid");
         }
@@ -278,7 +291,7 @@ public sealed class CaptivityInteractionOutcomeAdapter :
             metricCount: 11,
             tagCount: 2,
             anchorCount: 0,
-            provenanceCount: 1,
+            provenanceCount: 2,
             factCount: receipt.OutputAmount > 0 ? 6 : 5);
         return OutcomePrepareResult.Prepared();
     }
@@ -336,6 +349,7 @@ public sealed class CaptivityInteractionOutcomeAdapter :
             && builder.AddTag(CaptivityInteractionOutcomeIds.CaptivityTag)
             && builder.AddTag(CaptivityInteractionOutcomeIds.InteractionTag)
             && builder.AddProvenance(CaptivityInteractionOutcomeIds.Source)
+            && builder.AddProvenance(new GameplayOutcomeProvenanceReference("domain-fact-sha256", receipt.SemanticDigest))
             && builder.AddFact(new GameplayOutcomeFact(
                 CaptivityInteractionOutcomeIds.InteractionIdFact,
                 receipt.InteractionId))
@@ -407,84 +421,6 @@ public sealed class CaptivityInteractionOutcomeAdapter :
         string detail,
         OutcomePrepareCode code = OutcomePrepareCode.InvalidReceipt) =>
         new(code, detail);
-}
-
-public readonly struct PreparedCaptivityInteractionOutcome
-{
-    public PreparedCaptivityInteractionOutcome(
-        PreparedOwnerOutcome prepared,
-        GameplayResultKey resultKey,
-        long ownerRevision,
-        bool isReplay)
-    {
-        Prepared = prepared;
-        ResultKey = resultKey;
-        OwnerRevision = ownerRevision;
-        IsReplay = isReplay;
-    }
-
-    internal PreparedOwnerOutcome Prepared { get; }
-    public GameplayResultKey ResultKey { get; }
-    public long OwnerRevision { get; }
-    public bool IsReplay { get; }
-}
-
-public interface ICaptivityInteractionOutcomeCommitter
-{
-    bool TryPrepare(
-        in CaptivityInteractionOutcomeReceipt receipt,
-        out PreparedCaptivityInteractionOutcome prepared,
-        out string failureReason);
-    OwnerOutcomeCommitResult Commit(
-        in PreparedCaptivityInteractionOutcome prepared);
-    void Cancel(in PreparedCaptivityInteractionOutcome prepared);
-}
-
-public sealed class CaptivityInteractionGameplayOutcomeBridge :
-    ICaptivityInteractionOutcomeCommitter
-{
-    private readonly PreparedOutcomeOwnerTransaction transactions;
-
-    public CaptivityInteractionGameplayOutcomeBridge(
-        IGameplayOutcomeRecorder recorder,
-        IGameplayOutcomeDiagnosticsQuery diagnostics) =>
-        transactions = new PreparedOutcomeOwnerTransaction(
-            recorder ?? throw new ArgumentNullException(nameof(recorder)),
-            diagnostics ?? throw new ArgumentNullException(nameof(diagnostics)));
-
-    public bool TryPrepare(
-        in CaptivityInteractionOutcomeReceipt receipt,
-        out PreparedCaptivityInteractionOutcome prepared,
-        out string failureReason)
-    {
-        prepared = default;
-        if (!transactions.TryPrepare(
-                receipt,
-                out PreparedOwnerOutcome token,
-                out OwnerOutcomeCommitResult replay,
-                out _,
-                out failureReason))
-        {
-            return false;
-        }
-        prepared = new PreparedCaptivityInteractionOutcome(
-            token,
-            receipt.ResultKey,
-            receipt.OwnerRevision,
-            replay.DurablyCommitted);
-        return true;
-    }
-
-    public OwnerOutcomeCommitResult Commit(
-        in PreparedCaptivityInteractionOutcome prepared) => prepared.IsReplay
-        ? transactions.Reconcile(prepared.ResultKey)
-        : transactions.Commit(prepared.Prepared, prepared.OwnerRevision);
-
-    public void Cancel(in PreparedCaptivityInteractionOutcome prepared)
-    {
-        if (!prepared.IsReplay)
-            transactions.Cancel(prepared.Prepared);
-    }
 }
 
 internal sealed class CaptivityInteractionMemoryPolicy : IOutcomeMemoryPolicy
@@ -812,7 +748,10 @@ public sealed class CaptivityInteractionOutcomeDescriptor :
             && outcome.SubjectCount == 3
             && outcome.MetricCount == 11
             && outcome.TagCount == 2
-            && outcome.ProvenanceCount == 1
+            && outcome.ProvenanceCount == 2
+            && outcome.GetProvenance(0).Equals(CaptivityInteractionOutcomeIds.Source)
+            && outcome.GetProvenance(1).KindId == "domain-fact-sha256"
+            && CaptivityInteractionOutcomeReceipt.IsSemanticDigest(outcome.GetProvenance(1).Value)
             && outcome.AnchorCount == 0
             && outcome.FactCount == (outputAmount > 0d ? 6 : 5)
             && captive.EntityId.Kind.Equals(

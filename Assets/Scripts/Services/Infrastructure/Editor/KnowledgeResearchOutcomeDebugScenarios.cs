@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 
@@ -11,7 +12,7 @@ using UnityEngine;
 /// the external boundary; repository, physical batch, outcome ledger, and
 /// reconnaissance authority remain the production implementations.
 /// </summary>
-public static class KnowledgeResearchOutcomeDebugScenarios
+public static partial class KnowledgeResearchOutcomeDebugScenarios
 {
     private const string CompletionOutcomeType = "research.knowledge-completed";
     private const string ProgressOutcomeType = "research.work-applied";
@@ -30,19 +31,37 @@ public static class KnowledgeResearchOutcomeDebugScenarios
         return "PASS knowledge research runtime (9 groups): actual physical completion, reward rollback, acknowledgement recovery, whole-save continuation, and evidence";
     }
 
+    public static void RunAnchoredEvidenceRestore()
+    {
+        VerifyActualPhysicalCompletionEvidence();
+    }
+
+    public static string RunCompletionSaveRecovery()
+    {
+        VerifyWholeSaveRoundTrip();
+        return "PASS knowledge completion save recovery";
+    }
+
     /// <summary>
     /// Fault reproductions deliberately span a real physical transaction. They
-    /// aggregate both failures so a regression never hides the second gap.
+    /// aggregate all failures so a regression never hides a later gap.
     /// </summary>
     public static string RunCommitGapFaults()
     {
         List<string> failures = new();
-        foreach (string fault in new[] { "reward-after", "ack-after" })
+        foreach (string fault in new[]
+                 {
+                     "progress-before-canonical",
+                     "completion-before-canonical",
+                     "ack-after"
+                 })
         {
             try
             {
-                if (fault == "reward-after")
-                    VerifyRewardPublishedBeforeCanonicalCommitRollsBack();
+                if (fault == "progress-before-canonical")
+                    VerifyProgressCanonicalReplyUnknownRecovery();
+                else if (fault == "completion-before-canonical")
+                    VerifyCompletionCanonicalReplyUnknownRecovery();
                 else
                     VerifyJointAcknowledgementThenThrowKeepsCleanup();
             }
@@ -59,7 +78,7 @@ public static class KnowledgeResearchOutcomeDebugScenarios
                 + string.Join("\n", failures));
         }
 
-        return "PASS knowledge research commit-gap faults (2 groups)";
+        return "PASS knowledge research commit-gap faults (3 groups)";
     }
 
     private static void VerifySinkBoundaries()
@@ -190,17 +209,17 @@ public static class KnowledgeResearchOutcomeDebugScenarios
                 && fixture.Task != null,
                 "Cleanup must reject an awaiting task without removing it.");
 
-            fixture.Task.dispositionPhase = KnowledgeResidueDispositionPhase.OutcomePublished;
+            fixture.Task.dispositionPhase = KnowledgeResidueDispositionPhase.RewardsApplied;
             fixture.Task.completionOwnerRevision = 1L;
             IPhysicalItemDispositionAcknowledgementParticipant cleanup =
                 KnowledgeResidueCompletionTransaction.PrepareCleanup(
                     fixture.Root, fixture.Task);
             Require(cleanup.TryCommit(out string commitReason) && commitReason.Length == 0
                 && fixture.Task == null,
-                "Joint cleanup participant did not remove its exact outcome-published task.");
+                "Joint cleanup participant did not remove its exact rewards-applied task.");
             cleanup.Rollback();
             Require(fixture.Task != null
-                && fixture.Task.dispositionPhase == KnowledgeResidueDispositionPhase.OutcomePublished
+                && fixture.Task.dispositionPhase == KnowledgeResidueDispositionPhase.RewardsApplied
                 && fixture.Task.completionOwnerRevision == 1L,
                 "Joint cleanup rollback did not restore its exact owner snapshot.");
         }
@@ -235,6 +254,15 @@ public static class KnowledgeResearchOutcomeDebugScenarios
             && !completion.facts.Any(value =>
                 value.factId == "physical.source-instance-id"),
             "Completion outcome lost actual source identity, mass, or facility position evidence.");
+        GameplayOutcomeSubjectSnapshot subject = completion.subjects.Single(value =>
+            value.entityId == fixture.Facility.RequirePersistentInstanceId().Value);
+        GameplayOutcomeLedgerDebugScenarios.VerifyTypedEvidenceAnchorRoundTrip(
+            fixture.Ledger, fixture.Registry,
+            new GameplayEntityId(new GameplayEntityKindId(subject.entityKindId),
+                subject.entityId),
+            new GameplayOutcomeId(new GameplayOutcomeRunId(completion.runId),
+                completion.sequence), completion.immutablePayloadHash,
+            "facility-evolution");
     }
 
     private static void VerifyPostCommitReplanObserver()
@@ -262,32 +290,131 @@ public static class KnowledgeResearchOutcomeDebugScenarios
             "An invalid actual reward target must not invent a physical or completion outcome.");
     }
 
-    private static void VerifyRewardPublishedBeforeCanonicalCommitRollsBack()
+    private static void VerifyProgressCanonicalReplyUnknownRecovery()
     {
         using Fixture fixture = new();
         fixture.Faults.BeforeCommitFaultObservation = () =>
-            fixture.Region.intelligenceDamage == 10f
-            && !fixture.HasSource
+            fixture.Region.intelligenceDamage == 0f
+            && fixture.HasSource
             && fixture.Task != null
-            && fixture.Task.dispositionPhase == KnowledgeResidueDispositionPhase.OutcomePublished
-            && fixture.Task.completionOwnerRevision > 0L;
+            && fixture.Task.completedWork == 24f
+            && fixture.Task.dispositionPhase
+                == KnowledgeResidueDispositionPhase.AwaitingInput
+            && fixture.Sequence == 1;
         fixture.Faults.ThrowBeforeCommit = true;
         BlueprintResearchWorkResult first = fixture.Runtime.ApplyApprovedWork(
             null, fixture.Facility, 24);
         Require(
-            first.Success && !first.Completed && fixture.Task != null
+            first.Success && !first.Completed && first.PublicationPending
+            && fixture.Task != null
             && fixture.Task.completedWork == 24f && fixture.Sequence == 1
             && fixture.Region.intelligenceDamage == 0f && fixture.HasSource
             && fixture.Repository.GetEditorPendingBatchDispositionCount() == 0
-            && fixture.CanonicalOutcomeCount == 1
+            && fixture.CanonicalOutcomeCount == 0
             && fixture.Faults.BeforeCommitFaultObservations == 1
             && fixture.Faults.BeforeCommitFaultObservationPassed,
-            "Reward publication before canonical commit must roll back actual reward and physical input.");
+            "Uncertain progress publication must retain the frozen owner fact without starting reward or physical completion.");
 
         fixture.Faults.ThrowBeforeCommit = false;
+        BlueprintResearchState sequence = new(fixture.Root);
+        Require(fixture.ResearchTransaction.TryRecoverPending(
+                sequence,
+                out ResearchWorkAppliedFact recovered,
+                out string recoveredKey,
+                out string recoveryFailure)
+            && recovered != null
+            && recovered.Cause == ResearchWorkCause.KnowledgeProgress
+            && recovered.After == 24f
+            && recovered.ApprovedWork == 24f
+            && recoveredKey == first.CommittedResultKey
+            && recoveryFailure.Length == 0
+            && !sequence.HasPendingPublication
+            && fixture.CanonicalOutcomeCount == 1,
+            "Uncertain knowledge progress did not recover the identical frozen fact.");
         fixture.ClockTime = 1f;
         fixture.Runtime.Tick();
-        AssertFinalizedOnce(fixture, "reward publish-before-canonical retry");
+        AssertFinalizedOnce(fixture, "progress canonical-reply retry");
+    }
+
+    private static void VerifyCompletionCanonicalReplyUnknownRecovery()
+    {
+        using Fixture fixture = new();
+        fixture.Gateway.Fault = "sink-reject";
+        BlueprintResearchWorkResult first = fixture.Runtime.ApplyApprovedWork(
+            null,
+            fixture.Facility,
+            24);
+        Require(
+            first.Success && !first.Completed
+            && fixture.Task != null
+            && fixture.Task.completedWork == 24f
+            && fixture.Task.dispositionPhase ==
+                KnowledgeResidueDispositionPhase.AwaitingInput
+            && fixture.Sequence == 1
+            && fixture.CanonicalOutcomeCount == 1
+            && fixture.Region.intelligenceDamage == 0f
+            && fixture.HasSource
+            && fixture.Repository.GetEditorPendingBatchDispositionCount() == 0,
+            "Completion reply-loss setup did not retain paid work before the physical join.");
+
+        fixture.Gateway.Fault = string.Empty;
+        fixture.Faults.ThrowBeforeCommit = true;
+        fixture.ClockTime = 1f;
+        fixture.Runtime.Tick();
+        Require(
+            fixture.Task != null
+            && fixture.Task.dispositionPhase ==
+                KnowledgeResidueDispositionPhase.RewardsApplied
+            && fixture.Task.completionOwnerRevision > 0L
+            && !string.IsNullOrEmpty(fixture.Task.completionPublicationKey)
+            && fixture.Task.completionFact?.IsEmpty == false
+            && fixture.Region.intelligenceDamage == 10f
+            && !fixture.HasSource
+            && fixture.Repository.GetEditorPendingBatchDispositionCount() == 1
+            && fixture.Gateway.SuccessfulCommits == 1
+            && fixture.Gateway.SuccessfulAcknowledgements == 0
+            && fixture.CanonicalOutcomeCount == 1,
+            "Unknown completion commit reply did not retain one consumed input, reward, and frozen fact.");
+
+        DungeonPhysicalItemSaveData physical = fixture.Items.Capture();
+        PhysicalItemBatchDispositionSaveData frozenDebit =
+            physical.pendingBatchDispositions.Single(value => value != null
+                && value.operationId == fixture.Task.sinkOperationId);
+        Require(
+            frozenDebit.ownerRevision == fixture.Task.completionOwnerRevision
+            && frozenDebit.publicationExpected
+            && frozenDebit.publicationKey ==
+                fixture.Task.completionPublicationKey
+            && string.IsNullOrEmpty(frozenDebit.publicationId)
+            && string.IsNullOrEmpty(frozenDebit.publicationFingerprint)
+            && !frozenDebit.publicationDelivered,
+            "Unknown completion commit reply claimed canonical publication proof.");
+
+        DungeonResearchSaveData research = new()
+        {
+            outcomeSequence = fixture.Sequence,
+            nextKnowledgeTaskSequence = fixture.Runtime.NextTaskSequence,
+            knowledgeTaskIdentityGeneration =
+                fixture.Runtime.TaskIdentityGeneration,
+            knowledgeTasks = fixture.Runtime.Capture().ToList()
+        };
+        DungeonGameRestoreReport detached = new();
+        ResearchOutcomeSavePreflight.ValidateKnowledgeCompletionJoin(
+            research,
+            physical,
+            fixture.Ledger.CaptureGameplayOutcomes(),
+            detached);
+        Require(detached.Success,
+            "Unknown completion commit reply did not form a valid detached frozen join: "
+            + string.Join(" | ", detached.Errors));
+
+        fixture.Faults.ThrowBeforeCommit = false;
+        fixture.ClockTime = 2f;
+        fixture.Runtime.Tick();
+        AssertFinalizedOnce(fixture, "completion canonical-reply recovery");
+        fixture.ClockTime = 3f;
+        fixture.Runtime.Tick();
+        AssertFinalizedOnce(fixture, "completion canonical-reply inert retry");
     }
 
     private static void VerifyJointAcknowledgementThenThrowKeepsCleanup()
@@ -314,12 +441,27 @@ public static class KnowledgeResearchOutcomeDebugScenarios
     private static void VerifyWholeSaveRoundTrip()
     {
         using Fixture fixture = new(KnowledgeResidueUse.CodexAnalysis);
-        fixture.Faults.FailDelivery = true;
-        fixture.Gateway.Fault = "ack-reject";
+        fixture.Gateway.Fault = "sink-reject";
         BlueprintResearchWorkResult first = fixture.Runtime.ApplyApprovedWork(
             null,
             fixture.Facility,
             24);
+        Require(
+            first.Success && !first.Completed
+            && fixture.Task != null
+            && fixture.Task.dispositionPhase ==
+                KnowledgeResidueDispositionPhase.AwaitingInput
+            && fixture.Task.completedWork == 24f
+            && fixture.Sequence == 1
+            && fixture.CanonicalOutcomeCount == 1
+            && fixture.HasSource
+            && fixture.Repository.GetEditorPendingBatchDispositionCount() == 0,
+            "Whole-save setup did not first commit paid knowledge work.");
+
+        fixture.Gateway.Fault = "ack-reject";
+        fixture.Faults.FailDelivery = true;
+        fixture.ClockTime = 1f;
+        fixture.Runtime.Tick();
         int setupPending = fixture.Repository
             .GetEditorPendingBatchDispositionCount();
         GameplayOutcomeLedgerSaveData setupLedger =
@@ -327,7 +469,7 @@ public static class KnowledgeResearchOutcomeDebugScenarios
         Require(
             first.Success && !first.Completed && fixture.Task != null
             && fixture.Task.dispositionPhase ==
-                KnowledgeResidueDispositionPhase.OutcomePublished
+                KnowledgeResidueDispositionPhase.RewardsApplied
             && fixture.Task.completionOwnerRevision > 0
             && setupPending == 1
             && setupLedger.outbox.Count == 1
@@ -464,15 +606,20 @@ public static class KnowledgeResearchOutcomeDebugScenarios
         internal readonly BuildableObject Facility;
         internal readonly KnowledgeResidueProcessingRuntime Runtime;
         internal readonly GameplayOutcomeLedger Ledger;
+        internal readonly GameplayOutcomeRegistry Registry;
         internal readonly WorldItemStackRuntime Items;
         internal readonly WorldItemRepository Repository;
         internal readonly FaultRecorder Faults;
         internal readonly FaultingGateway Gateway;
+        internal readonly DomainFactDispatcher ResearchFacts;
+        internal readonly BlueprintResearchOutcomeTransaction ResearchTransaction;
+        internal readonly IGameEventBus Events;
+        internal readonly CodexRuntimeApplicationAdapter CodexApplication;
         internal readonly OffenseRegionRuntime Regions = new();
         internal readonly OffenseRegionState Region;
         internal readonly CodexRuntime Codex;
         internal readonly string CodexReward;
-        internal readonly string SourceStackId;
+        internal string SourceStackId;
         internal string Fault = string.Empty;
         internal bool ThrowReplan;
         internal float ClockTime;
@@ -509,7 +656,11 @@ public static class KnowledgeResearchOutcomeDebugScenarios
         internal bool CodexHasReward => CodexRewardLineCount == 1;
 
         internal Fixture(
-            KnowledgeResidueUse use = KnowledgeResidueUse.RegionReconnaissance)
+            KnowledgeResidueUse use = KnowledgeResidueUse.RegionReconnaissance,
+            string ledgerRunId = null,
+            string facilityId = null,
+            IPersistentIdGenerator persistentIds = null,
+            bool queueThroughRuntime = false)
         {
             Facility = facilityHost.AddComponent<BuildableObject>();
             CharacterAiEditorTestDependencies.Inject(Facility);
@@ -520,6 +671,11 @@ public static class KnowledgeResearchOutcomeDebugScenarios
                 .OrderBy(value => value.ContentDefinitionId, StringComparer.Ordinal)
                 .First(value => value.Facility?.SupportsWork(BuiltInWorkTypeIds.Research) == true);
             Facility.Initialization(definition, new Vector2Int(8, 6));
+            if (!string.IsNullOrWhiteSpace(facilityId))
+            {
+                Facility.RestorePersistentIdentity(
+                    new BuildingInstanceId(facilityId));
+            }
             codexHost.SetActive(false);
             Codex = codexHost.AddComponent<CodexRuntime>();
             CodexReward = use == KnowledgeResidueUse.CodexAnalysis
@@ -527,7 +683,7 @@ public static class KnowledgeResearchOutcomeDebugScenarios
                     ? clue
                     : string.Empty;
 
-            GameplayOutcomeRegistry registry = new(
+            GameplayOutcomeRegistry registry = Registry = new(
                 new IGameplayOutcomeDescriptor[]
                 {
                     new ResearchWorkOutcomeDescriptor(),
@@ -538,54 +694,84 @@ public static class KnowledgeResearchOutcomeDebugScenarios
                     new ResearchWorkOutcomeAdapter(),
                     new KnowledgeCompletionOutcomeAdapter()
                 });
-            Ledger = new GameplayOutcomeLedger(registry, GameplayOutcomeBufferLimits.Default);
-            IGameEventBus events = new GameEventBus();
-            GameplayOutcomeRecorder recorder = new(Ledger, registry, events);
+            Ledger = string.IsNullOrWhiteSpace(ledgerRunId)
+                ? new GameplayOutcomeLedger(
+                    registry,
+                    GameplayOutcomeBufferLimits.Default)
+                : new GameplayOutcomeLedger(
+                    registry,
+                    GameplayOutcomeBufferLimits.Default,
+                    new GameplayOutcomeRunId(ledgerRunId),
+                    1L);
+            Events = new GameEventBus();
+            GameplayOutcomeRecorder recorder = new(Ledger, registry, Events);
             Faults = new FaultRecorder(recorder);
+
+            IBlueprintResearchStateService researchStateService =
+                StrictPort.Create<IBlueprintResearchStateService>((method, _) =>
+                    method.Name == "GetState"
+                        ? new BlueprintResearchState(Root)
+                        : throw Unexpected(method));
+            ICodexReferenceCatalog referenceCatalog =
+                StrictPort.Create<ICodexReferenceCatalog>((method, _) => method.Name switch
+                {
+                    "get_Species" => Array.Empty<CharacterSpeciesSO>(),
+                    "get_Facilities" => Array.Empty<BuildingSO>(),
+                    _ => throw Unexpected(method)
+                });
+            IFacilitySynthesisRecipeQuery recipeQuery =
+                StrictPort.Create<IFacilitySynthesisRecipeQuery>((method, _) => method.Name switch
+                {
+                    "GetAllRecipes" => Array.Empty<FacilitySynthesisRecipeSO>(),
+                    "GetVisibleRecipes" => Array.Empty<FacilitySynthesisRecipeSO>(),
+                    _ => throw Unexpected(method)
+                });
+            CodexApplication = new CodexRuntimeApplicationAdapter(
+                researchStateService,
+                referenceCatalog,
+                recipeQuery,
+                Events);
+            Codex.ConstructCodexRuntime(
+                CodexApplication,
+                new CodexReferenceImporter(CodexApplication),
+                Root);
+            CodexApplication.Bind(Codex);
 
             FixtureCatalog catalog = new();
             Items = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
                 catalog, Root, out WorldItemRepository repository, out _,
-                out ItemQuantityReservationService reservations, out _, out _, out _);
+                out ItemQuantityReservationService reservations, out _, out _, out _,
+                out _,
+                persistentIdGenerator: persistentIds);
             Repository = repository;
             Region = Regions.Regions.Single(value => value.regionId
                 == OffenseRegionRuntime.BorderTradeRegionId);
             Region.intelligenceDamage = 0f;
 
             KnowledgeResidueAggregateState state = new();
-            state.AddRestoredTask(new KnowledgeResidueTaskSaveData
+            if (!queueThroughRuntime)
             {
-                taskId = TaskId,
-                use = use,
-                regionId = use == KnowledgeResidueUse.RegionReconnaissance
-                    ? Region.regionId
-                    : string.Empty,
-                requiredWork = 24f,
-                facilityId = Facility.id,
-                facilityX = Facility.centerPos.x,
-                facilityY = Facility.centerPos.y,
-                assignmentSequence = 1,
-                facilityInstanceId = Facility.RequirePersistentInstanceId().Value,
-                destinationId = KnowledgeResidueDestinationAuthority.FormatDestinationId(TaskId, 1),
-                inputCapacityGrams = 1_000L,
-                massAuthorityRevision = Items.MassQuery.AuthorityRevision,
-                inputCapacityFingerprint = "qa-knowledge-residue-mass-v1",
-                sinkOperationId = KnowledgeResidueDestinationAuthority.FormatSinkOperationId(TaskId),
-                sinkReasonCode = KnowledgeResidueDestinationAuthority.SinkReasonCode,
-                codexCluePayload = CodexReward
-            });
-            state.RestoreAllocationIdentity(
-                2,
-                KnowledgeResidueTaskIdentity.OriginalGeneration);
+                KnowledgeResidueTaskSaveData seeded = new()
+                {
+                    taskId = TaskId,
+                    use = use,
+                    regionId = use == KnowledgeResidueUse.RegionReconnaissance
+                        ? Region.regionId
+                        : string.Empty,
+                    requiredWork = 24f,
+                    assignmentSequence = 1,
+                    destinationId = KnowledgeResidueDestinationAuthority.FormatDestinationId(TaskId, 1),
+                    sinkOperationId = KnowledgeResidueDestinationAuthority.FormatSinkOperationId(TaskId),
+                    sinkReasonCode = KnowledgeResidueDestinationAuthority.SinkReasonCode,
+                    codexCluePayload = CodexReward
+                };
+                ConfigureDeliveredTask(seeded);
+                state.AddRestoredTask(seeded);
+                state.RestoreAllocationIdentity(
+                    2,
+                    KnowledgeResidueTaskIdentity.OriginalGeneration);
+            }
             Root.Replace(state);
-            SourceStackId = WorldItemRepositoryEditorAccess.AddStack(
-                Repository,
-                KnowledgeResidueDestinationAuthority.MemoryResidueItemId,
-                1,
-                WorldItemStackState.FacilityBuffer,
-                Task.destinationId,
-                position: Facility.centerPos,
-                itemInstanceId: string.Empty);
 
             IPhysicalItemBatchDispositionService dispositions =
                 new PhysicalItemBatchDispositionService(
@@ -595,9 +781,10 @@ public static class KnowledgeResearchOutcomeDebugScenarios
                     reservations,
                     catalog,
                     null,
-                    Ledger,
-                    Faults);
-            IOutcomeAwarePhysicalFacilityItemSinkGateway actualGateway =
+                    null,
+                    new GameplayDomainFactDeliveryQuery(Faults, Ledger),
+                    null);
+            IJointPhysicalFacilityItemSinkGateway actualGateway =
                 new PhysicalFacilityItemSinkGateway(
                     new PhysicalStockQuery(Repository, catalog, Items.MassQuery),
                     dispositions);
@@ -633,6 +820,8 @@ public static class KnowledgeResearchOutcomeDebugScenarios
                 "get_Time" => ClockTime,
                 _ => throw Unexpected(method)
             });
+            // This fault fixture has no authored date contract.
+            IGameCalendar calendar = new EditorFixedGameCalendar(137, 9);
             IDungeonDebugRuleQuery debug = StrictPort.Create<IDungeonDebugRuleQuery>((method, _) =>
                 method.Name == "IsEnabled" ? false : throw Unexpected(method));
 
@@ -644,12 +833,83 @@ public static class KnowledgeResearchOutcomeDebugScenarios
                 buildings,
                 new FacilityFeatureSceneRuntimeReferences(null, null, Codex),
                 Regions,
-                new KnowledgeResidueExecutionServices(workforce, events, clock, debug),
+                new KnowledgeResidueExecutionServices(
+                    workforce,
+                    Events,
+                    clock,
+                    calendar,
+                    debug),
                 Root);
-            Runtime.ConstructGameplayOutcomes(
-                new BlueprintResearchOutcomeTransaction(recorder, Ledger));
+            ResearchFacts = new DomainFactDispatcher();
+            var factCommits = new GameplayDomainFactCommitGroup(
+                Faults,
+                Ledger);
+            ResearchFacts.Subscribe(
+                "research-work-gameplay-outcome",
+                new GameplayDomainFactObserver<
+                    ResearchWorkAppliedFact,
+                    ResearchWorkOutcomeReceipt>(
+                    ResearchWorkFactObservation.Capture,
+                    Registry,
+                    Ledger,
+                    Faults,
+                    factCommits));
+            ResearchFacts.Subscribe(
+                "knowledge-completion-gameplay-outcome",
+                new GameplayDomainFactObserver<
+                    KnowledgeResidueCompletedFact,
+                    KnowledgeCompletionOutcomeReceipt>(
+                    KnowledgeCompletionFactObservation.Capture,
+                    Registry,
+                    Ledger,
+                    Faults,
+                    factCommits));
+            ResearchTransaction = new BlueprintResearchOutcomeTransaction(
+                ResearchFacts,
+                ResearchFacts);
+            Runtime.ConstructGameplayOutcomes(ResearchTransaction);
             Runtime.ConstructCompletionOutcomes(
-                new KnowledgeResidueCompletionTransaction(Faults, Ledger));
+                new KnowledgeResidueCompletionTransaction(
+                    ResearchFacts,
+                    ResearchFacts));
+
+            if (queueThroughRuntime)
+            {
+                if (use != KnowledgeResidueUse.CodexAnalysis)
+                {
+                    throw new InvalidOperationException(
+                        "The actual queue fixture only supports Codex analysis.");
+                }
+                if (!Runtime.TryQueueCodexAnalysis(out string queueMessage))
+                {
+                    throw new InvalidOperationException(
+                        "G07 actual Codex queue failed: " + queueMessage);
+                }
+                ConfigureDeliveredTask(Task);
+            }
+
+            SourceStackId = WorldItemRepositoryEditorAccess.AddStack(
+                Repository,
+                KnowledgeResidueDestinationAuthority.MemoryResidueItemId,
+                1,
+                WorldItemStackState.FacilityBuffer,
+                Task.destinationId,
+                position: Facility.centerPos,
+                itemInstanceId: persistentIds?.NewItemInstanceId().Value
+                    ?? string.Empty);
+        }
+
+        private void ConfigureDeliveredTask(KnowledgeResidueTaskSaveData task)
+        {
+            if (task == null)
+                throw new InvalidOperationException("Knowledge fixture task is missing.");
+            task.facilityId = Facility.id;
+            task.facilityX = Facility.centerPos.x;
+            task.facilityY = Facility.centerPos.y;
+            task.facilityInstanceId = Facility.RequirePersistentInstanceId().Value;
+            task.inputCapacityGrams = 1_000L;
+            task.massAuthorityRevision = Items.MassQuery.AuthorityRevision;
+            task.inputCapacityFingerprint = "qa-knowledge-residue-mass-v1";
         }
 
         internal CodexSaveApplicationAdapter CreateCodexSaveAdapter() =>
@@ -657,6 +917,8 @@ public static class KnowledgeResearchOutcomeDebugScenarios
 
         public void Dispose()
         {
+            ResearchFacts.Dispose();
+            CodexApplication.Unbind(Codex);
             Items.Dispose();
             UnityEngine.Object.DestroyImmediate(codexHost);
             UnityEngine.Object.DestroyImmediate(facilityHost);
@@ -665,18 +927,18 @@ public static class KnowledgeResearchOutcomeDebugScenarios
 
     private sealed class FaultingGateway :
         IPhysicalFacilityItemSinkGateway,
-        IOutcomeAwarePhysicalFacilityItemSinkGateway
+        IJointPhysicalFacilityItemSinkGateway
     {
         private readonly Fixture fixture;
         private readonly IPhysicalFacilityItemSinkGateway sink;
-        private readonly IOutcomeAwarePhysicalFacilityItemSinkGateway outcomes;
+        private readonly IJointPhysicalFacilityItemSinkGateway joint;
 
         internal FaultingGateway(
             Fixture fixture,
-            IOutcomeAwarePhysicalFacilityItemSinkGateway actual)
+            IJointPhysicalFacilityItemSinkGateway actual)
         {
             this.fixture = fixture;
-            outcomes = actual ?? throw new ArgumentNullException(nameof(actual));
+            joint = actual ?? throw new ArgumentNullException(nameof(actual));
             sink = (IPhysicalFacilityItemSinkGateway)actual;
         }
 
@@ -703,7 +965,7 @@ public static class KnowledgeResearchOutcomeDebugScenarios
             int quantity,
             string operationId,
             string reasonCode,
-            IPhysicalItemBatchDispositionOutcomeParticipant participant,
+            IPhysicalItemDispositionEffect effect,
             out PhysicalItemBatchDispositionReceipt receipt,
             out string failureReason)
         {
@@ -725,8 +987,8 @@ public static class KnowledgeResearchOutcomeDebugScenarios
                 fixture.Region.intelligenceDamage = 100f;
 
             TypedCommitCalls++;
-            bool committed = outcomes.TryCommitSinkPending(
-                destinationId, itemId, quantity, operationId, reasonCode, participant,
+            bool committed = joint.TryCommitSinkPending(
+                destinationId, itemId, quantity, operationId, reasonCode, effect,
                 out receipt, out failureReason);
             if (committed) SuccessfulCommits++;
             if (Fault == "sink-after-commit" && committed)
@@ -753,7 +1015,7 @@ public static class KnowledgeResearchOutcomeDebugScenarios
                 return false;
             }
             AcknowledgementCalls++;
-            bool acknowledged = outcomes.Acknowledge(
+            bool acknowledged = joint.Acknowledge(
                 commitId, participant, out failureReason);
             if (acknowledged) SuccessfulAcknowledgements++;
             if (Fault == "ack-after" && acknowledged)

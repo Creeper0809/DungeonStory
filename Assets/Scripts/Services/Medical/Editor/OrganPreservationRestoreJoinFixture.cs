@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 
@@ -193,7 +194,8 @@ public static class OrganPreservationRestoreJoinFixture
             Require(stored.Repository.GetEditorTestQuantity(stackId) == 0
                 && stored.Runtime.Parts.Count == 0
                 && stored.Transform.WholeStackCalls == 1,
-                "stored owned organ did not release its exact whole stack before expiry Transform");
+                "stored owned organ did not release its exact whole stack before expiry Transform; "
+                + stored.DescribeExpiry(stackId));
         }
 
         using (FreshnessFixture bufferedRetry = new(
@@ -509,9 +511,7 @@ public static class OrganPreservationRestoreJoinFixture
             DungeonSurgerySaveData surgery = JsonUtility.FromJson<
                 DungeonSurgerySaveData>(JsonUtility.ToJson(
                 resume.CaptureSurgerySave()));
-            DungeonPhysicalItemSaveData physical = JsonUtility.FromJson<
-                DungeonPhysicalItemSaveData>(JsonUtility.ToJson(
-                resume.CapturePhysicalSave()));
+            DungeonPhysicalItemSaveData physical = resume.ReadPhysicalSaveThroughSection();
             Require(surgery.version == DungeonSurgerySaveData.CurrentVersion
                 && physical.version == DungeonPhysicalItemSaveData.CurrentVersion
                 && surgery.parts.Single().discardOperationId
@@ -572,7 +572,7 @@ public static class OrganPreservationRestoreJoinFixture
         }
     }
 
-    sealed class FreshnessFixture : IDisposable
+    internal sealed class FreshnessFixture : IDisposable
     {
         internal const string FacilityId = "building:qa-organ-storage";
         internal readonly Vector2Int Position = new(14, 9);
@@ -583,6 +583,8 @@ public static class OrganPreservationRestoreJoinFixture
         readonly SurgeryAggregateStateStore stateStore;
         readonly WorldItemQueryService itemQueries;
         readonly WorldItemPersistenceService physicalPersistence;
+        readonly IWorldItemStackRuntime itemQueryPort;
+        readonly DomainFactDispatcher physicalFacts;
         int itemInstanceSequence;
 
         internal FreshnessFixture(
@@ -592,7 +594,8 @@ public static class OrganPreservationRestoreJoinFixture
             bool failFirstTransform = false,
             bool outboundAvailable = true,
             DungeonPhysicalItemSaveData physicalRestore = null,
-            DungeonSurgerySaveData surgeryRestore = null)
+            DungeonSurgerySaveData surgeryRestore = null,
+            DungeonCharacterBodyHealthSaveData bodyRestore = null)
         {
             ItemDefinitionSO[] definitions = Resources.LoadAll<ItemDefinitionSO>(
                 ItemDefinitionSO.UnifiedResourcePath);
@@ -626,6 +629,9 @@ public static class OrganPreservationRestoreJoinFixture
                 mass,
                 Repository,
                 EditorNullItemMarkerPresenter.Instance);
+            var physicalOutcomeFixture = new MigratedProducerOutcomeEditorFixture(
+                "run:organ-preservation-transform");
+            physicalFacts = physicalOutcomeFixture.CreatePhysicalTransformationFacts();
             Transform = new RecordingTransform(new PhysicalItemTransformService(
                 Repository,
                 spawner,
@@ -633,8 +639,7 @@ public static class OrganPreservationRestoreJoinFixture
                 dungeonCatalog,
                 EditorNullItemMarkerPresenter.Instance,
                 new FixedGameSessionStateProvider(),
-                new MigratedProducerOutcomeEditorFixture(
-                    "run:organ-preservation-transform").Transaction));
+                physicalFacts));
             IPhysicalItemTransformService physicalTransforms = transforms
                 ?? (failFirstTransform
                     ? new RejectOnceTransform(Transform)
@@ -682,6 +687,7 @@ public static class OrganPreservationRestoreJoinFixture
                     : method.Name == "get_CatalogProvider"
                         ? dungeonCatalog
                     : DefaultValue(method.ReturnType));
+            itemQueryPort = items;
             IBuildingWorldQuery buildings = CreateProxy<IBuildingWorldQuery>(
                 (method, _) => method.Name == "get_Buildings"
                     ? new[] { storage }
@@ -736,7 +742,7 @@ public static class OrganPreservationRestoreJoinFixture
                 Reservations,
                 facilityBufferMassAdmission: admission,
                 facilityBufferDestinationClaims: claims);
-            IItemTransferService itemTransfers = new ItemTransferService(
+            IItemTransferService actualItemTransfers = new ItemTransferService(
                 new WorldItemReadServices(
                     dungeonCatalog,
                     mass,
@@ -770,6 +776,10 @@ public static class OrganPreservationRestoreJoinFixture
                         dungeonCatalog,
                         EditorNullItemMarkerPresenter.Instance),
                 facilityBufferMassAdmission: admission);
+            IItemTransferService itemTransfers =
+                DispatchProxy.Create<IItemTransferService, ObservedItemTransferProxy>();
+            transferObservation = (ObservedItemTransferProxy)(object)itemTransfers;
+            transferObservation.Inner = actualItemTransfers;
             stateStore = new SurgeryAggregateStateStore(
                 new DungeonRuntimeAggregateRootStore());
             if (surgeryRestore != null)
@@ -793,7 +803,7 @@ public static class OrganPreservationRestoreJoinFixture
                     .ValidatePartOwnership(
                         physicalRestore,
                         surgeryRestore,
-                        new DungeonCharacterBodyHealthSaveData());
+                        bodyRestore ?? new DungeonCharacterBodyHealthSaveData());
                 stateStore.Replace(restoredState);
             }
             IPhysicalItemBatchDispositionService runtimeDispositions =
@@ -823,9 +833,24 @@ public static class OrganPreservationRestoreJoinFixture
         internal PhysicalItemBatchDispositionService Batch { get; }
         internal ItemQuantityReservationService Reservations { get; }
         internal SurgicalPartRuntime Runtime { get; }
+        internal SurgeryAggregateState State => stateStore.State;
         internal RecordingTransform Transform { get; }
         internal Facility Warehouse { get; }
         internal string WarehouseDestinationId { get; }
+
+        readonly ObservedItemTransferProxy transferObservation;
+
+        internal string DescribeExpiry(string stackId)
+        {
+            WorldItemStackSnapshot stack = GetStack(stackId);
+            return $"quantity={Repository.GetEditorTestQuantity(stackId)}; "
+                + $"parts={Runtime.Parts.Count}; state={stack?.State}; "
+                + $"warehouseInventory={Warehouse.HasWarehouseInventory}; "
+                + $"releaseCalls={transferObservation.ReleaseCalls}; "
+                + $"releaseFailure={transferObservation.LastReleaseFailure}; "
+                + $"transformCalls={Transform.WholeStackCalls}; "
+                + $"transformFailure={Transform.LastFailure}";
+        }
 
         internal string AddStack(
             string itemId,
@@ -895,6 +920,37 @@ public static class OrganPreservationRestoreJoinFixture
         internal DungeonPhysicalItemSaveData CapturePhysicalSave() =>
             physicalPersistence.Capture();
 
+        internal DungeonPhysicalItemSaveData ReadPhysicalSaveThroughSection()
+        {
+            // Exercise the real section's exact JSON reader, empty-attachment
+            // normalization and validation. Capture its staged DTO; the fresh
+            // fixture below commits that DTO through the real physical owner.
+            DungeonPhysicalItemSaveData candidate = null;
+            IPhysicalItemRestoreStaging staging = CreateProxy<IPhysicalItemRestoreStaging>(
+                (method, args) =>
+                {
+                    Require(method.Name == nameof(IPhysicalItemRestoreStaging.StageTransactionalRestore),
+                        "physical section called an unexpected staging entry");
+                    candidate = (DungeonPhysicalItemSaveData)args[0];
+                    return new DungeonDelegateSaveRestoreStage(PhysicalItemsSaveSection.Id, _ => { });
+                });
+            PhysicalItemsSaveSection section = new(
+                itemQueryPort,
+                staging,
+                CreateProxy<IRestoreWorldCandidateQuery>((method, _) => DefaultValue(method.ReturnType)),
+                CreateProxy<IProductionOutputLifecycleRestoreCandidatePublisher>(
+                    (method, _) => DefaultValue(method.ReturnType)));
+            DungeonGameRestoreReport report = new();
+            section.StageRestore(
+                JsonUtility.ToJson(CapturePhysicalSave()),
+                DungeonPhysicalItemSaveData.CurrentVersion,
+                report);
+            Require(report.Success && candidate != null,
+                "physical section rejected the captured current save: "
+                + string.Join("; ", report.Errors));
+            return candidate;
+        }
+
         internal void SetFuelAvailable() => stateStore.State.OrganStorage[FacilityId] =
             new SurgicalOrganStorageState
             {
@@ -904,6 +960,7 @@ public static class OrganPreservationRestoreJoinFixture
 
         public void Dispose()
         {
+            physicalFacts?.Dispose();
             if (facilityObject != null)
                 UnityEngine.Object.DestroyImmediate(facilityObject);
             if (warehouseObject != null)
@@ -1206,6 +1263,7 @@ public static class OrganPreservationRestoreJoinFixture
             this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
 
         internal int WholeStackCalls { get; private set; }
+        internal string LastFailure { get; private set; } = string.Empty;
         internal PhysicalItemTransformReceipt LastReceipt { get; private set; }
         internal IReadOnlyList<PhysicalItemTransformOutput> LastOutputs { get; private set; }
             = Array.Empty<PhysicalItemTransformOutput>();
@@ -1230,6 +1288,7 @@ public static class OrganPreservationRestoreJoinFixture
                 out receipt,
                 out failureCode,
                 out failureReason);
+            LastFailure = failureReason;
             if (transformed)
                 LastReceipt = receipt;
             return transformed;
@@ -1268,6 +1327,33 @@ public static class OrganPreservationRestoreJoinFixture
                 out receipt,
                 out failureCode,
                 out failureReason);
+    }
+
+    // Observe the real service once; never retry, substitute a result, or reset
+    // ref/in parameters as the configurable stub proxy below does.
+    public class ObservedItemTransferProxy : DispatchProxy
+    {
+        public IItemTransferService Inner { get; set; }
+        public int ReleaseCalls { get; private set; }
+        public string LastReleaseFailure { get; private set; } = string.Empty;
+
+        protected override object Invoke(MethodInfo targetMethod, object[] args)
+        {
+            object result;
+            try { result = targetMethod.Invoke(Inner, args); }
+            catch (TargetInvocationException error) when (error.InnerException != null)
+            {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo
+                    .Capture(error.InnerException).Throw();
+                throw;
+            }
+            if (targetMethod.Name == nameof(IItemTransferService.TryReleaseExactOwnedWholeStack))
+            {
+                ReleaseCalls++;
+                LastReleaseFailure = (string)args[2];
+            }
+            return result;
+        }
     }
 
     static T CreateProxy<T>(Func<MethodInfo, object[], object> handler)

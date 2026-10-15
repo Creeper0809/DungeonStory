@@ -1,0 +1,38 @@
+--- before/NarrativeRequestContext.cs
++++ after/NarrativeRequestContext.cs
+@@ -243,21 +243,6 @@
+         return context;
+     }
+ 
+-    public static NarrativeRequestContext ForProgression(
+-        string profileId,
+-        CharacterProgression progression,
+-        bool requireCharacterFact,
+-        bool requireMotif)
+-    {
+-        CharacterActor actor = progression != null
+-            ? progression.GetComponent<CharacterActor>()
+-            : null;
+-        NarrativeRequestContext context = ForActor(
+-            profileId, actor, requireCharacterFact, requireMotif);
+-        if (actor == null && progression != null) AddProgressionFacts(context, progression);
+-        return context;
+-    }
+-
+     public static NarrativePublicContextMaterial BuildPublicMaterialForActor(
+         string profileId,
+         CharacterActor actor,
+@@ -541,13 +526,6 @@
+         }
+     }
+ 
+-    public static NarrativeRequestContext DefaultForProfile(string profileId)
+-    {
+-        LlmStaticSchemaDefinition schema = LlmStaticSchemaCatalog.Require(profileId);
+-        return NarrativeCultureStyleCatalog.Create(
+-            profileId, string.Empty, false, schema.PersistentNarrative);
+-    }
+-
+     private static void AddProgressionFacts(NarrativeRequestContext context, CharacterProgression progression)
+     {
+         string origin = progression.GrowthState.origin;

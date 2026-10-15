@@ -97,6 +97,7 @@ public static class PhysicalFacilityItemSinkGatewayOutcomeDebugScenarios
                     Items.CatalogProvider,
                     null,
                     null,
+                    null,
                     null);
             Gateway = new PhysicalFacilityItemSinkGateway(
                 new PhysicalStockQuery(repository, Items.CatalogProvider, Items.MassQuery),

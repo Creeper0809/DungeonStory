@@ -328,6 +328,11 @@ public sealed class PreparedOutcomeOwnerTransaction
         GameplayOutcomeReplayIdentity identity,
         string detail)
     {
+        // Prepared pages already have an allocated outcome ID/hash, but neither
+        // is proof of a committed command. A commit exception with this state
+        // must remain InDoubt at the caller, never clear its frozen pending fact.
+        if (identity.State < GameplayOutcomeReplayState.Committed)
+            return Rejected(identity.ResultKey, "owner-outcome-result-not-committed:" + identity.State);
         OwnerOutcomeCommitPhase phase = identity.State switch
         {
             GameplayOutcomeReplayState.PublishedAcknowledged

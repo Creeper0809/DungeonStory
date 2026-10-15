@@ -35,6 +35,108 @@ public static class CharacterAiNaturalnessDebugScenarios
         }
     }
 
+    public static void RunRoutineNeedRecoveryFromCommandLine()
+    {
+        if (!VerifyVisitorWithoutWorkAbility())
+            throw new InvalidOperationException("Optional visitor work snapshot failed.");
+        if (!VerifyRoutineNeedWorkResume())
+            throw new InvalidOperationException("Routine need work recovery failed.");
+        CharacterConsumablesEffectPublicationDebugScenarios
+            .VerifyInterruptedHungerRecoveryAdmission();
+        Debug.Log("ROUTINE_NEED_WORK_RECOVERY_PASS: owner hysteresis; field and registered physical meal admission.");
+    }
+
+    private static bool VerifyVisitorWithoutWorkAbility()
+    {
+        return WithActor("Visitor Without Work Ability", actor =>
+        {
+            int missingWorkMessages = 0;
+            Application.LogCallback capture = (message, trace, type) =>
+            {
+                if (message != null
+                    && message.EndsWith("AbilityWork 능력이 없습니다", StringComparison.Ordinal))
+                    missingWorkMessages++;
+            };
+            Application.logMessageReceived += capture;
+            try
+            {
+                bool passed = !actor.TryGetAbility(out AbilityWork _);
+                for (int index = 0; index < 4; index++)
+                {
+                    var snapshot = actor.BuildingVisitor.VisitorSnapshot;
+                    passed &= !snapshot.IsInternalStaff
+                        && snapshot.ActiveConditionIds.Count == 0;
+                }
+                return passed && missingWorkMessages == 0;
+            }
+            finally
+            {
+                Application.logMessageReceived -= capture;
+            }
+        });
+    }
+
+    public static void RunExternalIntentOwnershipFromCommandLine()
+    {
+        GameObject gridObject = CharacterAiPlanDebugFixtures.EnsureGridForScenario(out bool createdGrid);
+        IDisposable gridOverride = CharacterAiEditorTestDependencies.OverrideGridSystemForScenario(
+            gridObject.GetComponent<GridSystemManager>());
+        try
+        {
+            if (!VerifyExternalIntentArbitration())
+                throw new InvalidOperationException("Existing external higher-kind/manual arbitration failed.");
+            if (!VerifyExternalIntentSelectedActionExclusion())
+                throw new InvalidOperationException("External/selected action ownership exclusion failed; see subcheck diagnostics.");
+            DungeonLiveNarrativeCampaignRunner.RunMealCancellationWitnessFromCommandLine();
+            Debug.Log("EXTERNAL_SELECTED_ACTION_EXCLUSION_PASS: urgent root, commit, execution and legacy decision preserve lease; release restores selected execution.");
+        }
+        finally
+        {
+            gridOverride.Dispose();
+            if (createdGrid) UnityEngine.Object.DestroyImmediate(gridObject);
+        }
+    }
+
+    private static bool VerifyExternalIntentSelectedActionExclusion()
+    {
+        return WithActor("External Selected Action Exclusion", actor =>
+        {
+            ProbeWaitActionSet definition = ScriptableObject.CreateInstance<ProbeWaitActionSet>();
+            try
+            {
+                AIBrain brain = actor.Brain;
+                var action = new AIAction { actionset = definition };
+                brain.availableActions = new[] { action };
+                if (!brain.TryBeginExternallyDrivenAction("test:physical-meal",
+                        CharacterActionIntentKind.EmergencyPhysicalImminent,
+                        "식사", "소비", "actual owner", out CharacterActionIntentLease lease)) return false;
+                var candidate = new CharacterAiActionCandidate(action, 1f, AIActionFailure.None, "probe");
+                var deprivation = new ProbeSafeReliefRuntime();
+                var pipeline = new CharacterAiDecisionPipeline(deprivation, deprivation);
+                CharacterAiDecisionTickResult urgent = pipeline.RunRootDecision(actor);
+                bool rootPreserved = urgent.Handled && urgent.Branch == CharacterAiBranch.LockedAction
+                    && brain.bestAction == null && brain.IsExternalIntentCurrent(lease);
+                bool commitBlocked = !brain.TryCommitActionCandidate(candidate, out AIActionFailure failure)
+                    && failure.Kind == AIActionFailureKind.CannotStart && brain.bestAction == null;
+                bool legacyBlocked = !brain.DecideAction() && brain.IsExternalIntentCurrent(lease);
+                // Execution boundary also rejects a stale externally supplied
+                // selection without starting it or revoking the valid lease.
+                brain.bestAction = action;
+                bool executionBlocked = !actor.TryExecuteSelectedAiAction(out failure)
+                    && failure.Kind == AIActionFailureKind.CannotStart && !action.HasStarted
+                    && brain.IsExternalIntentCurrent(lease);
+                brain.bestAction = null;
+                bool released = brain.EndExternallyDrivenAction(lease, clearFailures: true);
+                bool selectedAfterRelease = released && brain.TryCommitActionCandidate(candidate, out failure)
+                    && actor.TryExecuteSelectedAiAction(out failure) && action.HasStarted;
+                if (!(rootPreserved && commitBlocked && legacyBlocked && executionBlocked && selectedAfterRelease))
+                    Debug.LogError($"External owner subchecks: root={rootPreserved};commit={commitBlocked};legacy={legacyBlocked};execution={executionBlocked};released={released};afterRelease={selectedAfterRelease};failure={failure.Kind}:{failure.Reason};grid={brain.TryGetRuntimeGrid(out _)}.");
+                return rootPreserved && commitBlocked && legacyBlocked && executionBlocked && selectedAfterRelease;
+            }
+            finally { UnityEngine.Object.DestroyImmediate(definition); }
+        });
+    }
+
     public static bool RunAll(bool logSuccess)
     {
         List<string> errors = new List<string>();
@@ -439,6 +541,16 @@ public static class CharacterAiNaturalnessDebugScenarios
             bool assigned = work.assignedShop == target
                 && work.AssignedWorkTypeId == BuiltInWorkTypeIds.Repair;
 
+            CharacterNeedResponseProfile hungerResponse =
+                actor.Stats.GetNeedResponse(CharacterCondition.HUNGER);
+            float partialRecovery = (hungerResponse.routineStart
+                + hungerResponse.resumeTarget) * 0.5f;
+            actor.stats[CharacterCondition.HUNGER] = partialRecovery;
+            bool healthyWorkerDoesNotEat =
+                CharacterNeedAiThresholds.GetRoutineUtility(
+                    actor, CharacterCondition.HUNGER) == 0f
+                && !work.RequiresRoutineNeedRecovery(CharacterCondition.HUNGER);
+
             SetNeeds(
                 actor,
                 hunger: 20f,
@@ -450,9 +562,24 @@ public static class CharacterAiNaturalnessDebugScenarios
                 && reason == "식사 필요"
                 && assigned;
 
-            actor.stats[CharacterCondition.HUNGER] = 100f;
+            actor.stats[CharacterCondition.HUNGER] = partialRecovery;
+            bool recoveringWorkerCanEat =
+                CharacterNeedAiThresholds.GetRoutineUtility(
+                    actor, CharacterCondition.HUNGER) > 0f
+                && work.RequiresRoutineNeedRecovery(CharacterCondition.HUNGER)
+                && !work.RequiresRoutineNeedRecovery(CharacterCondition.THIRST)
+                && !work.CanStartWorkAction()
+                && !work.NotifyRoutineNeedServiceCompleted();
+            actor.stats[CharacterCondition.HUNGER] = hungerResponse.resumeTarget;
+            bool satisfiedWorkerStopsEating =
+                CharacterNeedAiThresholds.GetRoutineUtility(
+                    actor, CharacterCondition.HUNGER) == 0f
+                && !work.RequiresRoutineNeedRecovery(CharacterCondition.HUNGER);
             bool resumed = work.NotifyRoutineNeedServiceCompleted();
             bool passed = interrupted
+                && healthyWorkerDoesNotEat
+                && recoveringWorkerCanEat
+                && satisfiedWorkerStopsEating
                 && resumed
                 && work.assignedShop == target
                 && work.AssignedWorkTypeId == BuiltInWorkTypeIds.Repair;
@@ -461,6 +588,7 @@ public static class CharacterAiNaturalnessDebugScenarios
                 Debug.LogError(
                     "Routine need resume probe failed: "
                     + $"assigned={assigned}; interrupted={interrupted}:{reason}; resumed={resumed}; "
+                    + $"healthyNoMeal={healthyWorkerDoesNotEat}; recoveringMeal={recoveringWorkerCanEat}; satisfiedNoMeal={satisfiedWorkerStopsEating}; "
                     + $"target={(work.assignedShop == target)}; workType={work.AssignedWorkTypeId}");
             }
 

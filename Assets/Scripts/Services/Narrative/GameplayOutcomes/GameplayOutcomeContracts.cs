@@ -608,3 +608,11 @@ public interface IGameplayOutcomeDiagnosticsQuery
         GameplayResultKey resultKey,
         out GameplayOutcomeReplayIdentity identity);
 }
+
+/// <summary>Detached save-transaction authority; never exposes the old live ledger as a candidate.</summary>
+public interface IGameplayOutcomeRestoreCandidateQuery
+{
+    bool IsGameplayOutcomeRestoreTransactionActive { get; }
+    bool HasStagedGameplayOutcomeRestore { get; }
+    bool TryGetStagedResultIdentity(GameplayResultKey resultKey, out GameplayOutcomeReplayIdentity identity);
+}

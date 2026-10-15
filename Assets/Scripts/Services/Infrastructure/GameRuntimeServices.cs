@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using DamageNumbersPro;
 using DungeonStory.Foundation;
 using UnityEngine;
@@ -52,6 +53,23 @@ public interface IIdempotentGameMoneyAccount : IGameMoneyAccount
         out string reason);
 }
 
+public interface IGameMoneyTransactionQuery
+{
+    bool TryGetSuccessfulTransaction(
+        EconomyTransactionKind kind,
+        string sourceId,
+        out EconomyTransactionRecord record);
+}
+
+public interface IGameMoneyTransactionAttemptQuery
+{
+    bool TryGetLatestTransaction(
+        EconomyTransactionKind kind,
+        string sourceId,
+        string targetId,
+        out EconomyTransactionRecord record);
+}
+
 public interface IFloatingNumberFeedbackService
 {
     bool TryShow(NumberCondition condition, Vector3 worldPosition, float value);
@@ -68,6 +86,7 @@ public sealed class ScopedGameSessionStateStore :
     private readonly IGameTimeScaleController timeScaleController;
     private GameSessionSnapshot? restoreCandidate;
     private GameSessionSnapshot? previousSnapshot;
+    private float previousTimeScale;
     private bool published;
 
     public ScopedGameSessionStateStore(
@@ -128,6 +147,9 @@ public sealed class ScopedGameSessionStateStore :
         if (previousSnapshot.HasValue || restoreCandidate.HasValue)
             throw new InvalidOperationException("Foundation session restore transaction is already active.");
         previousSnapshot = state.Capture();
+        // Defense/result overlays can temporarily change the effective scale
+        // without changing the persisted player speed/pause preference.
+        previousTimeScale = timeScaleController.Scale;
         published = false;
     }
 
@@ -135,13 +157,17 @@ public sealed class ScopedGameSessionStateStore :
     {
         if (!restoreCandidate.HasValue)
             throw new InvalidOperationException("Foundation session restore candidate is missing.");
-        Restore(restoreCandidate.Value);
         published = true;
+        Restore(restoreCandidate.Value);
     }
 
     public void RollbackPublishedRestoreCandidate()
     {
-        if (published && previousSnapshot.HasValue) Restore(previousSnapshot.Value);
+        if (published && previousSnapshot.HasValue)
+        {
+            mutation.Restore(previousSnapshot.Value);
+            timeScaleController.Scale = previousTimeScale;
+        }
         DiscardRestoreCandidate();
     }
 
@@ -151,11 +177,15 @@ public sealed class ScopedGameSessionStateStore :
     {
         restoreCandidate = null;
         previousSnapshot = null;
+        previousTimeScale = 0f;
         published = false;
     }
 }
 
-public sealed class GameMoneyAccount : IIdempotentGameMoneyAccount
+public sealed class GameMoneyAccount :
+    IIdempotentGameMoneyAccount,
+    IGameMoneyTransactionQuery,
+    IGameMoneyTransactionAttemptQuery
 {
     private readonly IGameSessionStateProvider gameDataProvider;
     private readonly IEconomyTransactionLedger transactionLedger;
@@ -387,9 +417,11 @@ public sealed class GameMoneyAccount : IIdempotentGameMoneyAccount
             return false;
         }
 
-        money.Value = balanceAfter;
         try
         {
+            // A balance observer (including an in-command save request) may throw after Data.Value changed.
+            // Keep that assignment inside the same rollback boundary as the idempotent credit record.
+            money.Value = balanceAfter;
             transactionLedger.RecordSuccess(
                 context,
                 gain,
@@ -422,6 +454,38 @@ public sealed class GameMoneyAccount : IIdempotentGameMoneyAccount
         reason = string.Empty;
         return true;
     }
+
+    public bool TryGetLatestTransaction(
+        EconomyTransactionKind kind,
+        string sourceId,
+        string targetId,
+        out EconomyTransactionRecord record)
+    {
+        string normalizedSource = sourceId?.Trim() ?? string.Empty;
+        string normalizedTarget = targetId?.Trim() ?? string.Empty;
+        EconomyTransactionRecord found = transactionLedger.Records
+            .LastOrDefault(value => value != null
+                && value.kind == kind
+                && string.Equals(
+                    value.sourceId,
+                    normalizedSource,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    value.targetId,
+                    normalizedTarget,
+                    StringComparison.Ordinal));
+        record = found?.Clone();
+        return record != null;
+    }
+
+    public bool TryGetSuccessfulTransaction(
+        EconomyTransactionKind kind,
+        string sourceId,
+        out EconomyTransactionRecord record) =>
+        transactionLedger.TryGetSuccessfulBySource(
+            kind,
+            sourceId,
+            out record);
 
     public void SetBalance(int amount, EconomyTransactionContext context)
     {

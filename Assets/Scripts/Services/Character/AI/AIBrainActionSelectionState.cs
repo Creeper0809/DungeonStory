@@ -24,6 +24,12 @@ internal sealed class AIBrainActionScoringContinuation
     public int NextActionIndex;
     public AIAction BestCandidate;
     public float BestScore = float.MinValue;
+#if UNITY_EDITOR
+    public AIActionFailure LastEvaluationFailureForDiagnostics;
+    public long IdentityForDiagnostics;
+    public long SliceCountForDiagnostics;
+    public int LastEvaluatedIndexForDiagnostics = -1;
+#endif
     public AIActionFailure BestFailure = AIActionFailure.Create(
         AIActionFailureKind.NoAction,
         "일치하는 AI 행동이 없습니다.");

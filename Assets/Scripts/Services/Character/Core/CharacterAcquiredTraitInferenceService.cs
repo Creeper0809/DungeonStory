@@ -95,7 +95,8 @@ public static class CharacterAcquiredTraitFormulaGeneration
         CharacterAcquiredTraitSettingsSO settings,
         IEnumerable<CharacterAcquiredTraitModuleSO> source,
         IEnumerable<string> selectedEvidenceIds,
-        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> outcomeBindings = null)
+        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> outcomeBindings = null,
+        IReadOnlyList<CharacterNarrativeFact> frozenLocalFacts = null)
     {
         if (progression == null) throw new ArgumentNullException(nameof(progression));
         string targetId = progression.Actor?.Identity?.PersistentId?.Trim() ?? string.Empty;
@@ -108,13 +109,14 @@ public static class CharacterAcquiredTraitFormulaGeneration
                 ?? Array.Empty<GameplayOutcomeEvidenceBindingSnapshot>())
             .Where(value => value != null).Select(value => value.Clone()).ToArray();
         NarrativeFormulaEvidence[] evidence = BuildEvidence(
-            progression.NarrativeLedger, selectedEvidenceIds, exactBindings, formulaPolicy);
+            frozenLocalFacts ?? progression.NarrativeLedger.Facts,
+            selectedEvidenceIds, exactBindings, formulaPolicy);
         NarrativeFormulaStrength strength = NarrativeFormulaCore.CalculateStrength(
             formulaPolicy, evidence);
         NarrativeFormulaGenerationCostContext generationContext =
             settings.FormulaPolicy.RequireGenerationContext();
         HashSet<string> selectedEvidence = evidence.Select(value => value.EvidenceId).ToHashSet(StringComparer.Ordinal);
-        CharacterNarrativeFact[] facts = progression.NarrativeLedger.Facts.Where(value => value != null
+        CharacterNarrativeFact[] facts = (frozenLocalFacts ?? progression.NarrativeLedger.Facts).Where(value => value != null
             && selectedEvidence.Contains(CharacterAcquiredTraitEvidenceProjection.Project(value))).ToArray();
         HashSet<CharacterNarrativeDomain> exactDomains = ResolveExactDomains(exactBindings);
         CharacterAcquiredTraitInstanceState[] active = progression.CaptureAcquiredTraitState()
@@ -181,7 +183,8 @@ public static class CharacterAcquiredTraitFormulaGeneration
         CharacterAcquiredTraitSettingsSO settings,
         IEnumerable<CharacterAcquiredTraitModuleSO> source,
         IEnumerable<string> selectedEvidenceIds,
-        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> outcomeBindings = null)
+        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> outcomeBindings = null,
+        IReadOnlyList<CharacterNarrativeFact> frozenLocalFacts = null)
     {
         if (settings == null) throw new ArgumentNullException(nameof(settings));
         NarrativeFormulaStrengthPolicy policy = settings.RequireFormulaPolicy();
@@ -189,22 +192,26 @@ public static class CharacterAcquiredTraitFormulaGeneration
             throw new InvalidOperationException("Acquired-trait module selection requires formulaVersion 3 or later.");
         NarrativeFormulaModuleSelectionRequest selection = PrepareModuleSelection(
             progression, requestId, requestKey, manifestationMilestone,
-            settings, source, selectedEvidenceIds, outcomeBindings);
+            settings, source, selectedEvidenceIds, outcomeBindings, frozenLocalFacts);
+        CharacterNarrativeFact[] localFacts = (frozenLocalFacts ?? progression.NarrativeLedger.Facts)
+            .Where(value => value != null && selection.EvidenceFactIds.Contains(
+                CharacterAcquiredTraitEvidenceProjection.Project(value), StringComparer.Ordinal))
+            .OrderBy(CharacterAcquiredTraitEvidenceProjection.Project, StringComparer.Ordinal)
+            .Select(value => value.Clone()).ToArray();
+        string localFactsHash = ComputeModuleSelectionLocalFactsHash(localFacts);
+        List<GameplayOutcomeEvidenceBindingSnapshot> selectedBindings =
+            GameplayOutcomeEvidenceFormulaProjection.Select(outcomeBindings, selection.EvidenceFactIds);
         NarrativeFormulaStrength strength = NarrativeFormulaCore.CalculateStrength(
-            policy, BuildEvidence(progression.NarrativeLedger, selection.EvidenceFactIds,
+            policy, BuildEvidence(localFacts, selection.EvidenceFactIds,
                 outcomeBindings, policy));
         string targetId = progression.Actor.Identity.PersistentId;
-        string packetHash = NarrativeInferenceHash.ComputeSha256Utf8(string.Join("\n",
-            RequireCanonical(requestId, nameof(requestId)),
-            RequireCanonical(requestKey, nameof(requestKey)), targetId,
-            manifestationMilestone.ToString(CultureInfo.InvariantCulture),
-            policy.FormulaVersion.ToString(CultureInfo.InvariantCulture),
-            settings.FormulaPolicy.RequireCatalogSha256(), selection.SelectionId,
-            string.Join(",", selection.Offers.Select(value => value.ModuleId)),
-            string.Join(",", selection.EvidenceFactIds)));
+        string packetHash = ComputeModuleSelectionPacketHash(requestId, requestKey, targetId,
+            manifestationMilestone, policy.FormulaVersion, settings.FormulaPolicy.RequireCatalogSha256(),
+            selection, selectedBindings, localFactsHash);
         return new CharacterAcquiredTraitPendingRequestState
         {
             targetPersistentId = targetId,
+            ownerBinding = CharacterNarrativeRequestOwnerBinding.Capture(progression),
             requestId = requestId,
             requestKey = requestKey,
             candidatePacketHash = packetHash,
@@ -212,12 +219,13 @@ public static class CharacterAcquiredTraitFormulaGeneration
                 + packetHash.Substring("sha256:".Length),
             manifestationMilestone = manifestationMilestone,
             evidenceFactIds = selection.EvidenceFactIds.ToList(),
-            evidenceBindings = GameplayOutcomeEvidenceFormulaProjection.Select(
-                outcomeBindings, selection.EvidenceFactIds),
+            evidenceBindings = selectedBindings,
             formulaVersion = policy.FormulaVersion,
             formulaCatalogSha256 = settings.FormulaPolicy.RequireCatalogSha256(),
             narrativeBudget = strength.Budget,
             moduleSelectionId = selection.SelectionId,
+            moduleSelectionLocalFacts = localFacts.ToList(),
+            moduleSelectionLocalFactsHash = localFactsHash,
             offeredBenefitModuleIds = selection.Offers
                 .Where(value => value.Polarity == NarrativeFormulaModulePolarity.Positive)
                 .Select(value => value.ModuleId).OrderBy(value => value, StringComparer.Ordinal).ToList(),
@@ -235,6 +243,97 @@ public static class CharacterAcquiredTraitFormulaGeneration
         };
     }
 
+    private static string ComputeModuleSelectionPacketHash(
+        string requestId, string requestKey, string targetId, int manifestationMilestone,
+        int formulaVersion, string catalogHash, NarrativeFormulaModuleSelectionRequest selection,
+        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> bindings, string localFactsHash) =>
+        NarrativeInferenceHash.ComputeSha256Utf8(string.Join("\n",
+            RequireCanonical(requestId, nameof(requestId)),
+            RequireCanonical(requestKey, nameof(requestKey)), targetId,
+            manifestationMilestone.ToString(CultureInfo.InvariantCulture),
+            formulaVersion.ToString(CultureInfo.InvariantCulture),
+            catalogHash, selection.SelectionId, localFactsHash,
+            string.Join(",", selection.Offers.Select(value => value.ModuleId)),
+            string.Join(",", selection.EvidenceFactIds),
+            string.Join(",", (bindings
+                    ?? Array.Empty<GameplayOutcomeEvidenceBindingSnapshot>())
+                .Where(value => value != null)
+                .Select(GameplayOutcomeEvidenceBindingAuthority.ComputeCanonicalHash)
+                .OrderBy(value => value, StringComparer.Ordinal))));
+
+    public static bool HasValidModuleSelectionLocalFacts(CharacterAcquiredTraitPendingRequestState pending)
+    {
+        if (pending?.moduleSelectionLocalFacts == null || pending.evidenceFactIds == null)
+            return false;
+        try
+        {
+            string[] ids = pending.moduleSelectionLocalFacts.Select(value => value != null
+                ? CharacterAcquiredTraitEvidenceProjection.Project(value) : string.Empty).ToArray();
+            return pending.moduleSelectionLocalFacts.All(value => value != null
+                    && Enum.IsDefined(typeof(CharacterNarrativeDomain), value.domain)
+                    && value.milestoneCount > 0 && value.influenceUseCount >= 0
+                    && value.HasCompleteSourceEventIds
+                    && value.milestoneCount == CharacterAcquiredTraitMeaningfulLedgerValidator
+                        .RecomputeMilestoneCount(value.count)
+                    && !float.IsNaN(value.importancePoints) && !float.IsInfinity(value.importancePoints)
+                    && value.importancePoints >= 0f
+                    && !string.IsNullOrWhiteSpace(value.eventGroupKey) && !string.IsNullOrWhiteSpace(value.actionKey))
+                && ids.All(id => pending.evidenceFactIds.Contains(id, StringComparer.Ordinal))
+                && ids.Distinct(StringComparer.Ordinal).Count() == ids.Length
+                && ids.SequenceEqual(ids.OrderBy(value => value, StringComparer.Ordinal))
+                && pending.moduleSelectionLocalFactsHash == ComputeModuleSelectionLocalFactsHash(pending.moduleSelectionLocalFacts);
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
+    private static string ComputeModuleSelectionLocalFactsHash(IEnumerable<CharacterNarrativeFact> facts)
+    {
+        StringBuilder canonical = new("trait-module-local-evidence-v2;");
+        foreach (CharacterNarrativeFact value in facts)
+        {
+            foreach (string component in new[] { value.domain.ToString(), value.factId, value.subjectId,
+                         value.outcome, value.eventGroupKey, value.actionKey, value.relationshipKey,
+                         value.milestoneCount.ToString(CultureInfo.InvariantCulture),
+                         value.importancePoints.ToString("R", CultureInfo.InvariantCulture),
+                         value.influenceUseCount.ToString(CultureInfo.InvariantCulture),
+                         value.count.ToString(CultureInfo.InvariantCulture),
+                         value.lastEventContext?.eventInstanceId, value.lastEventContext?.chainId })
+            {
+                string text = component ?? string.Empty;
+                canonical.Append(Encoding.UTF8.GetByteCount(text).ToString(CultureInfo.InvariantCulture))
+                    .Append(':').Append(text).Append(';');
+            }
+            if (!value.HasCompleteSourceEventIds)
+                throw new InvalidOperationException("Frozen trait evidence has incomplete source occurrence identities.");
+            foreach (string sourceId in value.sourceEventIds)
+                canonical.Append(Encoding.UTF8.GetByteCount(sourceId).ToString(CultureInfo.InvariantCulture))
+                    .Append(':').Append(sourceId).Append(';');
+            canonical.Append('|');
+        }
+        return NarrativeInferenceHash.ComputeSha256Utf8(canonical.ToString());
+    }
+
+    public static NarrativeFormulaModuleSelectionRequest RebuildFrozenModuleSelection(
+        CharacterProgression progression, CharacterAcquiredTraitPendingRequestState pending,
+        CharacterAcquiredTraitSettingsSO settings, IEnumerable<CharacterAcquiredTraitModuleSO> modules)
+    {
+        if (!HasValidModuleSelectionLocalFacts(pending))
+            throw new InvalidOperationException("Frozen acquired-trait local module evidence is missing or invalid.");
+        NarrativeFormulaModuleSelectionRequest request = PrepareModuleSelection(progression,
+            pending.requestId, pending.requestKey, pending.manifestationMilestone, settings, modules,
+            pending.evidenceFactIds, pending.evidenceBindings, pending.moduleSelectionLocalFacts);
+        string packetHash = ComputeModuleSelectionPacketHash(pending.requestId, pending.requestKey,
+            progression.Actor.Identity.PersistentId, pending.manifestationMilestone,
+            settings.RequireFormulaPolicy().FormulaVersion, settings.FormulaPolicy.RequireCatalogSha256(),
+            request, pending.evidenceBindings, pending.moduleSelectionLocalFactsHash);
+        if (packetHash != pending.candidatePacketHash)
+            throw new InvalidOperationException("Frozen acquired-trait module evidence does not match its packet identity.");
+        return request;
+    }
+
     public static CharacterAcquiredTraitPendingRequestState FreezeSelected(
         CharacterProgression progression,
         string requestId,
@@ -244,11 +343,12 @@ public static class CharacterAcquiredTraitFormulaGeneration
         IEnumerable<CharacterAcquiredTraitModuleSO> source,
         IEnumerable<string> selectedEvidenceIds,
         NarrativeFormulaModuleSelectionChoice choice,
-        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> outcomeBindings = null)
+        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> outcomeBindings = null,
+        IReadOnlyList<CharacterNarrativeFact> frozenLocalFacts = null)
     {
         NarrativeFormulaModuleSelectionRequest request = PrepareModuleSelection(
             progression, requestId, requestKey, manifestationMilestone,
-            settings, source, selectedEvidenceIds, outcomeBindings);
+            settings, source, selectedEvidenceIds, outcomeBindings, frozenLocalFacts);
         if (!NarrativeFormulaModuleSelectionValidator.TryValidate(
                 request, choice, out NarrativeFormulaValidatedModuleSelection selected, out string error))
             throw new InvalidOperationException(error);
@@ -262,7 +362,7 @@ public static class CharacterAcquiredTraitFormulaGeneration
                 value.DrawbackId, selected.DrawbackModules[0].ModuleId, StringComparison.Ordinal));
         if (drawback != null && ConflictsOrCancels(benefit, drawback))
             throw new InvalidOperationException("The selected acquired-trait benefit and drawback conflict or cancel the same effect binding.");
-        return FreezeCore(
+        CharacterAcquiredTraitPendingRequestState frozen = FreezeCore(
             progression.Actor.Identity.PersistentId,
             progression.NarrativeLedger,
             progression.CaptureAcquiredTraitState(),
@@ -270,7 +370,10 @@ public static class CharacterAcquiredTraitFormulaGeneration
             selected.EvidenceFactIds,
             benefit.ModuleId,
             drawback?.DrawbackId,
-            outcomeBindings);
+            outcomeBindings,
+            frozenLocalFacts);
+        frozen.ownerBinding = CharacterNarrativeRequestOwnerBinding.Capture(progression);
+        return frozen;
     }
 
     public static CharacterAcquiredTraitPendingRequestState Freeze(
@@ -286,7 +389,7 @@ public static class CharacterAcquiredTraitFormulaGeneration
         if (progression == null) throw new ArgumentNullException(nameof(progression));
         string targetId = progression.Actor?.Identity?.PersistentId?.Trim() ?? string.Empty;
         if (targetId.Length == 0) throw new InvalidOperationException("Formula acquired-trait generation requires a persistent target.");
-        return FreezeCore(
+        CharacterAcquiredTraitPendingRequestState frozen = FreezeCore(
             targetId,
             progression.NarrativeLedger,
             progression.CaptureAcquiredTraitState(),
@@ -297,6 +400,8 @@ public static class CharacterAcquiredTraitFormulaGeneration
             source,
             selectedEvidenceIds,
             outcomeBindings: outcomeBindings);
+        frozen.ownerBinding = CharacterNarrativeRequestOwnerBinding.Capture(progression);
+        return frozen;
     }
 
     [GameplayInternalOnly(
@@ -362,7 +467,8 @@ public static class CharacterAcquiredTraitFormulaGeneration
         IEnumerable<string> selectedEvidenceIds,
         string selectedBenefitModuleId = null,
         string selectedDrawbackCapabilityId = null,
-        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> outcomeBindings = null)
+        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> outcomeBindings = null,
+        IReadOnlyList<CharacterNarrativeFact> frozenLocalFacts = null)
     {
         if (settings == null) throw new ArgumentNullException(nameof(settings));
         if (!settings.TryGetGate(manifestationMilestone, out _))
@@ -372,14 +478,14 @@ public static class CharacterAcquiredTraitFormulaGeneration
         NarrativeFormulaStrengthPolicy policy = settings.RequireFormulaPolicy();
         string catalogSha256 = settings.FormulaPolicy.RequireCatalogSha256();
         NarrativeFormulaEvidence[] evidence = BuildEvidence(
-            ledger,
+            frozenLocalFacts ?? ledger?.Facts ?? Array.Empty<CharacterNarrativeFact>(),
             selectedEvidenceIds,
             outcomeBindings,
             policy);
         NarrativeFormulaStrength strength = NarrativeFormulaCore.CalculateStrength(policy, evidence);
         HashSet<string> selectedEvidence = evidence.Select(value => value.EvidenceId)
             .ToHashSet(StringComparer.Ordinal);
-        CharacterNarrativeFact[] selectedFacts = (ledger?.Facts
+        CharacterNarrativeFact[] selectedFacts = (frozenLocalFacts ?? ledger?.Facts
                 ?? Array.Empty<CharacterNarrativeFact>())
             .Where(value => value != null && selectedEvidence.Contains(
                 CharacterAcquiredTraitEvidenceProjection.Project(value)))
@@ -576,33 +682,63 @@ public static class CharacterAcquiredTraitFormulaGeneration
         CharacterNarrativeLedger ledger,
         IEnumerable<string> selectedEvidenceIds,
         IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> outcomeBindings = null,
-        NarrativeFormulaStrengthPolicy policy = null)
+        NarrativeFormulaStrengthPolicy policy = null) => BuildEvidence(
+        ledger?.Facts ?? Array.Empty<CharacterNarrativeFact>(), selectedEvidenceIds, outcomeBindings, policy);
+
+    private static NarrativeFormulaEvidence[] BuildEvidence(
+        IReadOnlyList<CharacterNarrativeFact> facts,
+        IEnumerable<string> selectedEvidenceIds,
+        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> outcomeBindings,
+        NarrativeFormulaStrengthPolicy policy)
     {
         HashSet<string> selected = (selectedEvidenceIds ?? Array.Empty<string>())
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .ToHashSet(StringComparer.Ordinal);
         if (selected.Count == 0)
             throw new InvalidOperationException("Formula acquired-trait generation requires selected public evidence.");
-        IEnumerable<NarrativeFormulaEvidence> local = (ledger?.Facts ?? Array.Empty<CharacterNarrativeFact>())
-        .Where(value => value != null && value.milestoneCount > 0)
-        .Where(value => selected.Contains(CharacterAcquiredTraitEvidenceProjection.Project(value)))
-        .Select(value => new NarrativeFormulaEvidence(
-            CharacterAcquiredTraitEvidenceProjection.Project(value),
-            RequireFactFormulaKey(value.eventGroupKey, value, "eventGroupKey"),
-            RequireFactFormulaKey(value.actionKey, value, "actionKey"),
-            value.relationshipKey?.Trim() ?? string.Empty, value.domain.ToString(),
-            value.milestoneCount, value.importancePoints, value.influenceUseCount))
-        .OrderBy(value => value.EvidenceId, StringComparer.Ordinal);
-        IEnumerable<NarrativeFormulaEvidence> exact = (outcomeBindings
+        GameplayOutcomeEvidenceBindingSnapshot[] exactBindings = (outcomeBindings
                 ?? Array.Empty<GameplayOutcomeEvidenceBindingSnapshot>())
-            .Where(value => value != null && selected.Contains(value.publicFactId))
+            .Where(value => value != null)
+            .ToArray();
+        CharacterNarrativeFact[] selectedLocal = (facts ?? Array.Empty<CharacterNarrativeFact>())
+            .Where(value => value != null && value.milestoneCount > 0)
+            .Where(value => selected.Contains(CharacterAcquiredTraitEvidenceProjection.Project(value)))
+            .Where(value => !exactBindings.Any(binding =>
+                string.Equals(binding.publicFactId,
+                    CharacterAcquiredTraitEvidenceProjection.Project(value), StringComparison.Ordinal)))
+            .ToArray();
+        IEnumerable<NarrativeFormulaEvidence> local = GameplayOutcomeEvidenceFormulaProjection
+            .GetRemainingLegacyMilestoneCounts(selectedLocal,
+                exactBindings.Where(value => selected.Contains(value.publicFactId)))
+            .Select(pair =>
+            {
+                CharacterNarrativeFact value = pair.Key;
+                return new NarrativeFormulaEvidence(
+                    CharacterAcquiredTraitEvidenceProjection.Project(value),
+                    RequireFactFormulaKey(value.eventGroupKey, value, "eventGroupKey"),
+                    RequireFactFormulaKey(value.actionKey, value, "actionKey"),
+                    value.relationshipKey?.Trim() ?? string.Empty, value.domain.ToString(),
+                    pair.Value, value.importancePoints, value.influenceUseCount);
+            })
+            .OrderBy(value => value.EvidenceId, StringComparer.Ordinal);
+        IEnumerable<NarrativeFormulaEvidence> exact = exactBindings
+            .Where(value => selected.Contains(value.publicFactId))
             .Select(value => GameplayOutcomeEvidenceFormulaProjection.ToFormulaEvidence(
                 value, policy ?? throw new InvalidOperationException(
                     "Exact acquired-trait evidence requires a formula policy.")));
-        NarrativeFormulaEvidence[] result = local.Concat(exact)
+        NarrativeFormulaEvidence[] localValues = local.ToArray();
+        NarrativeFormulaEvidence[] exactValues = exact.ToArray();
+        NarrativeFormulaEvidence[] result = localValues.Concat(exactValues)
             .OrderBy(value => value.EvidenceId, StringComparer.Ordinal).ToArray();
         if (result.Length != selected.Count)
-            throw new InvalidOperationException("Formula acquired-trait evidence does not resolve to an exact selected public set.");
+            throw new InvalidOperationException(
+                "Formula acquired-trait evidence does not resolve to an exact selected public set. "
+                + $"selected={selected.Count}; local={localValues.Length}; "
+                + $"exact={exactValues.Length}; resolved={result.Length}; "
+                + "selectedIds=" + string.Join(",", selected.OrderBy(
+                    value => value, StringComparer.Ordinal)) + "; "
+                + "resolvedIds=" + string.Join(",", result.Select(
+                    value => value.EvidenceId)));
         return result;
     }
 
@@ -615,7 +751,12 @@ public static class CharacterAcquiredTraitFormulaGeneration
         {
             foreach (string tag in binding?.semanticTags ?? new List<string>())
             {
-                if (Enum.TryParse(tag, ignoreCase: true, out CharacterNarrativeDomain domain)
+                string domainToken = tag?.Trim() ?? string.Empty;
+                const string prefix = "domain:";
+                if (domainToken.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    domainToken = domainToken.Substring(prefix.Length);
+                if (Enum.TryParse(domainToken, ignoreCase: true,
+                        out CharacterNarrativeDomain domain)
                     && Enum.IsDefined(typeof(CharacterNarrativeDomain), domain))
                     result.Add(domain);
             }
@@ -2353,6 +2494,8 @@ public sealed class CharacterAcquiredTraitInferenceService
         }
         int formulaNextRevision = checked(command.ExpectedRevision + 1);
         frozen.registeredRevision = formulaNextRevision;
+        frozen.publicContextVersion = command.PublicContext == null ? 0 : 1;
+        frozen.publicContext = command.PublicContext?.CaptureSnapshot();
         frozen.submissionAuditId = BuildAuditId(
             SubmissionAuditPrefix,
             command.RequestId,
@@ -2483,6 +2626,7 @@ public sealed class CharacterAcquiredTraitInferenceService
         candidate.pendingRequests.Add(new CharacterAcquiredTraitPendingRequestState
         {
             targetPersistentId = command.TargetPersistentId,
+            ownerBinding = CharacterNarrativeRequestOwnerBinding.Capture(progression),
             requestId = command.RequestId,
             requestKey = command.RequestKey,
             candidatePacketHash = packet.candidatePacketHash,
@@ -2534,23 +2678,22 @@ public sealed class CharacterAcquiredTraitInferenceService
     [GameplayInternalOnly(
         "The live acquired-trait producer completes an exact persisted pending request.",
         "V25 acquired-trait inference producer callback")]
-#if UNITY_EDITOR
-    public CharacterAcquiredTraitInferenceCommandResult CompleteMilestone(
-        CharacterProgression progression,
-        CharacterAcquiredTraitCompletionCommand command,
-        CharacterAcquiredTraitRequestPacketDto originalPacket) =>
-        throw new InvalidOperationException(
-            "Acquired-trait completion requires its mandatory gameplay outcome committer.");
-#endif
-
     public CharacterAcquiredTraitInferenceCommandResult CompleteMilestone(
         CharacterProgression progression,
         CharacterAcquiredTraitCompletionCommand command,
         CharacterAcquiredTraitRequestPacketDto originalPacket,
-        IAcquiredTraitInferenceOutcomeCommitter outcomeCommitter)
+        DungeonStory.Foundation.Facts.IDomainFactPublisher facts,
+        CharacterTraitInferencePublicationRuntime publications)
     {
-        if (outcomeCommitter == null)
-            throw new ArgumentNullException(nameof(outcomeCommitter));
+        if (facts == null) throw new ArgumentNullException(nameof(facts));
+        if (publications == null) throw new ArgumentNullException(nameof(publications));
+        if (!publications.RecoverPending(out string recoveryFailure))
+            return Failure(CharacterAcquiredTraitInferenceCommandKind.Completion,
+                CharacterAcquiredTraitInferenceIssueCode.CommitRejected,
+                command?.RequestKey ?? string.Empty, command?.CandidatePacketHash ?? string.Empty,
+                command?.TargetPersistentId ?? string.Empty, command?.ExpectedRevision ?? -1,
+                command?.RegisteredRevision ?? 0, command?.ExpectedRevision ?? -1,
+                command?.Timestamp ?? default, recoveryFailure, originalPacket);
         CharacterAcquiredTraitAggregateState current = progression?
             .CaptureAcquiredTraitState();
         if (command == null || progression == null || originalPacket == null)
@@ -2673,6 +2816,14 @@ public sealed class CharacterAcquiredTraitInferenceService
                 "Acquired-trait revision is exhausted.",
                 originalPacket);
         }
+        if (pending.ownerBinding == null || !pending.ownerBinding.Matches(progression, out _))
+        {
+            return Failure(CharacterAcquiredTraitInferenceCommandKind.Completion,
+                CharacterAcquiredTraitInferenceIssueCode.StaleCallback,
+                command.RequestKey, command.CandidatePacketHash, command.TargetPersistentId,
+                command.ExpectedRevision, command.RegisteredRevision, current.revision,
+                command.Timestamp, "STALE_OWNER: persisted acquired-trait owner binding no longer matches.", originalPacket);
+        }
         if (!PendingMatches(pending, command, originalPacket))
         {
             return Failure(
@@ -2697,10 +2848,8 @@ public sealed class CharacterAcquiredTraitInferenceService
                 NarrativeFormulaModuleSelectionRequest selectionRequest;
                 try
                 {
-                    selectionRequest = CharacterAcquiredTraitFormulaGeneration.PrepareModuleSelection(
-                        progression, pending.requestId, pending.requestKey,
-                        pending.manifestationMilestone, settings, modules,
-                        pending.evidenceFactIds);
+                    selectionRequest = CharacterAcquiredTraitFormulaGeneration.RebuildFrozenModuleSelection(
+                        progression, pending, settings, modules);
                 }
                 catch (Exception exception) when (exception is ArgumentException
                     or InvalidOperationException or KeyNotFoundException or OverflowException)
@@ -2753,7 +2902,8 @@ public sealed class CharacterAcquiredTraitInferenceService
                         new NarrativeFormulaModuleSelectionChoice(
                             moduleResponse.selectionId, moduleResponse.positiveModuleIds,
                             moduleResponse.drawbackModuleIds, moduleResponse.evidenceFactIds),
-                        pending.evidenceBindings);
+                        pending.evidenceBindings,
+                        pending.moduleSelectionLocalFacts);
                 }
                 catch (Exception exception) when (exception is ArgumentException
                     or InvalidOperationException or KeyNotFoundException or OverflowException)
@@ -2905,52 +3055,10 @@ public sealed class CharacterAcquiredTraitInferenceService
                 formulaCompletionRevision,
                 command.Timestamp,
                 originalPacket);
-            if (!TryPrepareOutcome(
-                    formulaSuccess,
-                    progression,
-                    outcomeCommitter,
-                    out PreparedEvolutionOutcome preparedFormulaOutcome,
-                    out string formulaOutcomeFailure))
-            {
-                return Failure(
-                    CharacterAcquiredTraitInferenceCommandKind.Completion,
-                    CharacterAcquiredTraitInferenceIssueCode.CommitRejected,
-                    command.RequestKey,
-                    command.CandidatePacketHash,
-                    command.TargetPersistentId,
-                    command.ExpectedRevision,
-                    command.RegisteredRevision,
-                    current.revision,
-                    command.Timestamp,
-                    "Acquired-trait outcome preparation failed: "
-                        + formulaOutcomeFailure,
-                    originalPacket);
-            }
-            IReadOnlyList<CharacterAcquiredTraitValidationIssue> formulaIssues;
-            try
-            {
-                if (progression.TryCommitAcquiredTraitStateWithFormulaEvidenceAndOutcome(
-                        formulaCandidate,
-                        command.ExpectedRevision,
-                        settings,
-                        modules,
-                        pending.evidenceFactIds,
-                        pending.evidenceBindings,
-                        () => CommitOutcomeOrThrow(
-                            outcomeCommitter,
-                            preparedFormulaOutcome,
-                            formulaCompletionRevision),
-                        out formulaIssues))
-                {
-                    return formulaSuccess;
-                }
-            }
-            catch
-            {
-                outcomeCommitter.Cancel(preparedFormulaOutcome);
-                throw;
-            }
-            outcomeCommitter.Cancel(preparedFormulaOutcome);
+            if (progression.TryCommitInferredTrait(formulaCandidate, command.ExpectedRevision,
+                    settings, modules, pending.evidenceFactIds, pending.evidenceBindings,
+                    formulaSuccess.Audit, facts, publications, out var formulaIssues))
+                return formulaSuccess;
             return Failure(
                 CharacterAcquiredTraitInferenceCommandKind.Completion,
                 CharacterAcquiredTraitInferenceIssueCode.CommitRejected,
@@ -3065,49 +3173,9 @@ public sealed class CharacterAcquiredTraitInferenceService
             nextRevision,
             command.Timestamp,
             originalPacket);
-        if (!TryPrepareOutcome(
-                success,
-                progression,
-                outcomeCommitter,
-                out PreparedEvolutionOutcome preparedOutcome,
-                out string outcomeFailure))
-        {
-            return Failure(
-                CharacterAcquiredTraitInferenceCommandKind.Completion,
-                CharacterAcquiredTraitInferenceIssueCode.CommitRejected,
-                command.RequestKey,
-                command.CandidatePacketHash,
-                command.TargetPersistentId,
-                command.ExpectedRevision,
-                command.RegisteredRevision,
-                current.revision,
-                command.Timestamp,
-                "Acquired-trait outcome preparation failed: " + outcomeFailure,
-                originalPacket);
-        }
-        IReadOnlyList<CharacterAcquiredTraitValidationIssue> validationIssues;
-        try
-        {
-            if (progression.TryCommitAcquiredTraitStateAndOutcome(
-                    candidate,
-                    command.ExpectedRevision,
-                    settings,
-                    modules,
-                    () => CommitOutcomeOrThrow(
-                        outcomeCommitter,
-                        preparedOutcome,
-                        nextRevision),
-                    out validationIssues))
-            {
-                return success;
-            }
-        }
-        catch
-        {
-            outcomeCommitter.Cancel(preparedOutcome);
-            throw;
-        }
-        outcomeCommitter.Cancel(preparedOutcome);
+        if (progression.TryCommitInferredTrait(candidate, command.ExpectedRevision,
+                settings, modules, null, null, success.Audit, facts, publications, out var validationIssues))
+            return success;
         return Failure(
             CharacterAcquiredTraitInferenceCommandKind.Completion,
             CharacterAcquiredTraitInferenceIssueCode.CommitRejected,
@@ -3123,70 +3191,35 @@ public sealed class CharacterAcquiredTraitInferenceService
             originalPacket);
     }
 
-    private static bool TryPrepareOutcome(
-        in CharacterAcquiredTraitInferenceCommandResult result,
-        CharacterProgression progression,
-        IAcquiredTraitInferenceOutcomeCommitter outcomeCommitter,
-        out PreparedEvolutionOutcome prepared,
-        out string failureReason)
+    public bool TryInvalidateStalePending(
+        CharacterProgression progression, string requestId, int expectedRevision, out string reason)
     {
-        CharacterAcquiredTraitInferenceAuditRecord audit = result.Audit;
-        string operationId = "trait-inference:"
-            + audit.TargetPersistentId
-            + ":revision:"
-            + audit.ResultingRevision.ToString("D8", CultureInfo.InvariantCulture);
-        int absoluteDay = ResolveAbsoluteDay(audit.Timestamp);
-        AcquiredTraitInferenceOutcomeReceipt receipt = new(
-            operationId,
-            result,
-            ResolveCharacterDisplayName(progression),
-            absoluteDay);
-        return outcomeCommitter.TryPrepare(
-            receipt,
-            out prepared,
-            out failureReason);
-    }
-
-    private static string ResolveCharacterDisplayName(
-        CharacterProgression progression)
-    {
-        string displayName = progression?.Actor?.Identity?.DisplayName;
-        if (string.IsNullOrWhiteSpace(displayName))
-            displayName = progression?.GrowthState?.displayName;
-        if (string.IsNullOrWhiteSpace(displayName))
+        CharacterAcquiredTraitAggregateState current = progression?.CaptureAcquiredTraitState();
+        if (current == null || current.revision != expectedRevision || current.revision == int.MaxValue
+            || !current.TryGetPendingRequest(requestId, out CharacterAcquiredTraitPendingRequestState pending))
         {
-            throw new InvalidOperationException(
-                "Acquired-trait outcome requires the character's immutable display identity.");
+            reason = "STALE_OWNER_INVALIDATION_REJECTED: pending request or revision changed.";
+            return false;
         }
-        return displayName.Trim();
-    }
-
-    private static void CommitOutcomeOrThrow(
-        IAcquiredTraitInferenceOutcomeCommitter outcomeCommitter,
-        in PreparedEvolutionOutcome prepared,
-        int expectedRevision)
-    {
-        if (!outcomeCommitter.TryCommit(
-                prepared,
-                expectedRevision,
-                out string failureReason))
+        if (pending.ownerBinding != null && pending.ownerBinding.Matches(progression, out _))
         {
-            throw new InvalidOperationException(
-                "Acquired-trait mandatory outcome commit failed; the staged state was rolled back: "
-                + failureReason);
+            reason = "STALE_OWNER_INVALIDATION_REJECTED: request still belongs to the current owner.";
+            return false;
         }
-    }
-
-    private static int ResolveAbsoluteDay(NarrativeInferenceTimestamp timestamp)
-    {
-        if (timestamp.Authority != NarrativeInferenceTimeAuthority.GameTick
-            || timestamp.GameTick < 0L)
+        reason = "STALE_OWNER: discarded request without consuming milestone, evidence or effects.";
+        CharacterAcquiredTraitAggregateState candidate = current.Clone();
+        candidate.revision = checked(current.revision + 1);
+        candidate.pendingRequests.RemoveAll(value => value != null
+            && string.Equals(value.requestId, requestId, StringComparison.Ordinal));
+        candidate.lastRequestInvalidation = new CharacterAcquiredTraitRequestInvalidationState
         {
-            throw new InvalidOperationException(
-                "Acquired-trait gameplay outcome requires a game-tick timestamp.");
-        }
-        long day = timestamp.GameTick / GameCalendarRules.HoursPerDay + 1L;
-        return checked((int)day);
+            requestId = pending.requestId, requestKey = pending.requestKey, reason = reason,
+            registeredRevision = pending.registeredRevision, invalidatedRevision = candidate.revision
+        };
+        if (progression.TryCommitAcquiredTraitState(candidate, expectedRevision, settings, modules, out var issues))
+            return true;
+        reason = "STALE_OWNER_INVALIDATION_REJECTED: " + string.Join(" | ", issues);
+        return false;
     }
 
     private static bool PendingMatches(
@@ -3226,6 +3259,11 @@ public sealed class CharacterAcquiredTraitInferenceService
         string targetPersistentId,
         out string error)
     {
+        if (progression.Actor != null && progression.Actor.IsDead)
+        {
+            error = "INELIGIBLE_DEAD_OWNER: acquired-trait requests cannot be submitted or completed for a dead character.";
+            return false;
+        }
         if (string.IsNullOrWhiteSpace(targetPersistentId)
             || !string.Equals(
                 targetPersistentId,

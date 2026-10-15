@@ -21,6 +21,9 @@ public sealed class SeasonalDriftCargoSaveData
     public int expiredQuantity;
     public long expiredMassGrams;
     public string lastFailureReason = string.Empty;
+    public string outcomeResultKey = string.Empty;
+    public SeasonalDriftCargoFactData observation = new();
+    public SeasonalTerminalPublicationSaveData publication = new();
 
     public static SeasonalDriftCargoSaveData FromProfile(
         SeasonalDriftCargoProfile profile) => profile?.IsConfigured == true
@@ -127,7 +130,8 @@ public static class SeasonalDriftCargoRules
             || state.dispositionSourceStackIds.Any(value => !Canonical(value))
             || state.dispositionSourceStackIds.Distinct(StringComparer.Ordinal).Count()
                 != state.dispositionSourceStackIds.Count
-            || !CanonicalOptionalFailure(state.lastFailureReason))
+            || !CanonicalOptionalFailure(state.lastFailureReason)
+            || !DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(state.outcomeResultKey, 4096, true))
         {
             throw new InvalidOperationException(
                 $"Seasonal event '{occurrenceInstanceId}' drift-cargo state is invalid.");
@@ -150,6 +154,12 @@ public static class SeasonalDriftCargoRules
             throw new InvalidOperationException(
                 $"Seasonal event '{occurrenceInstanceId}' drift-cargo disposition receipt is invalid.");
         }
+        if (!string.IsNullOrEmpty(state.outcomeResultKey)
+            && (!state.spawned || !state.expirationCompleted))
+        {
+            throw new InvalidOperationException(
+                $"Seasonal event '{occurrenceInstanceId}' cannot own a terminal drift-cargo outcome before spawned cargo expires.");
+        }
     }
 
     public static string ExpirationOperationId(string occurrenceInstanceId) =>
@@ -171,7 +181,9 @@ public static class SeasonalDriftCargoRules
         || (state.dispositionSourceStackIds?.Count ?? 0) > 0
         || state.expiredQuantity != 0
         || state.expiredMassGrams != 0L
-        || !string.IsNullOrEmpty(state.lastFailureReason);
+        || !string.IsNullOrEmpty(state.lastFailureReason)
+        || !string.IsNullOrEmpty(state.outcomeResultKey)
+        || state.observation?.IsEmpty != true || state.publication?.IsEmpty != true;
 
     private static bool Canonical(string value) =>
         !string.IsNullOrWhiteSpace(value)

@@ -2145,7 +2145,7 @@ public static partial class FormulaPresentationPilotExporter
             request["skillContext"] = skillContext.DeepClone();
         JObject row = new()
         {
-        ["schemaVersion"] = 6,
+        ["schemaVersion"] = 7,
         ["formulaVersion"] = formulaVersion,
         ["catalogSha256"] = catalogSha256,
         ["gameCommit"] = gameCommit,
@@ -2550,8 +2550,8 @@ public static partial class FormulaPresentationPilotExporter
             throw new InvalidOperationException("Formula presentation rows contain duplicate narrative families.");
         foreach (JObject row in rows)
         {
-            if ((int?)row["schemaVersion"] != 6)
-                throw new InvalidOperationException("Formula module-selection rows require schema v6.");
+            if ((int?)row["schemaVersion"] != 7)
+                throw new InvalidOperationException("Formula module-selection rows require schema v7 (primary-first allocation).");
             JObject strengthBand = row["strengthBand"] as JObject;
             PilotStrengthBand expectedBand = PilotStrengthBands.SingleOrDefault(value =>
                 string.Equals(value.Id, (string)strengthBand?["id"], StringComparison.Ordinal));
@@ -2762,6 +2762,7 @@ public static partial class FormulaPresentationPilotExporter
     {
         HashSet<string> paths = new HashSet<string>(StringComparer.Ordinal)
         {
+            "Assets/Scripts/Models/AI/Core/LlmStaticSchemaCatalog.cs",
             "Assets/Scripts/Models/NarrativeMechanics/NarrativeFormulaContracts.cs",
             "Assets/Scripts/Models/NarrativeMechanics/NarrativeFormulaCore.cs",
             "Assets/Scripts/Models/NarrativeMechanics/NarrativeFormulaDrawbackPolicyDefinition.cs",

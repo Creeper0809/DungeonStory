@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 using VContainer;
@@ -12,6 +13,88 @@ using VContainer;
 public static class SurgeryDebugScenarios
 {
     private const string ReportPath = "Temp/surgery-system-contracts.tsv";
+
+    public static void RunIncomingStackCandidateBatch()
+    {
+        // Edit-mode domain fixtures do not start gameplay persistence. The
+        // isolated launcher supplies the explicit create-only evidence path.
+        string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        string qaRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Artifacts", "QA"))
+            + Path.DirectorySeparatorChar;
+        if (!Application.isBatchMode || string.IsNullOrWhiteSpace(output)
+            || !Path.IsPathRooted(output) || !Path.GetFullPath(output).StartsWith(qaRoot, StringComparison.OrdinalIgnoreCase)
+            || Directory.Exists(output))
+            throw new InvalidOperationException("Incoming surgery stack checks require a new project-local batch evidence directory.");
+        string failure = string.Empty;
+        try { VerifyIncomingStackCandidates(); }
+        catch (Exception error) { failure = error.ToString(); }
+        string path = Path.Combine(output, "surgery-incoming-stacks-report.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        using (var writer = new StreamWriter(new FileStream(path, FileMode.CreateNew)))
+            writer.Write(Newtonsoft.Json.JsonConvert.SerializeObject(new
+            {
+                passed = failure.Length == 0, failure,
+                checks = new[] { "incoming-corpse", "live-only-rejected", "part-join",
+                    "committed-part-exceptions", "missing-candidate-rejected", "live-state-unchanged", "discard-clears-index" },
+                trainingEligible = false, humanApprovalClaimed = false
+            }));
+        if (failure.Length > 0) throw new InvalidOperationException(failure);
+        Debug.Log("Surgery incoming physical stack joins PASS.");
+    }
+
+    private static void VerifyIncomingStackCandidates()
+    {
+        using WorldItemStackRuntime live = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+            out WorldItemRepository liveRepository, out _);
+        using WorldItemStackRuntime incoming = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+            out WorldItemRepository incomingRepository, out _);
+        string liveId = WorldItemRepositoryEditorAccess.AddStack(liveRepository, "dark:humanoid_corpse", 1,
+            WorldItemStackState.Loose, itemInstanceId: "item-instance:surgery-live-only");
+        string incomingId = WorldItemRepositoryEditorAccess.AddStack(incomingRepository, "dark:humanoid_corpse", 1,
+            WorldItemStackState.Loose, itemInstanceId: "item-instance:surgery-incoming");
+        string liveBefore = JsonUtility.ToJson(live.Capture());
+        var world = new RestoreWorldCandidateIndex();
+        world.SetFacilityCandidate(new Grid(1, 1), Array.Empty<BuildableObject>());
+        IDungeonSaveRestoreStage stage = null;
+        IPhysicalItemRestoreCandidateStackQuery stacks = live;
+        try
+        {
+            stage = live.StageTransactionalRestore(incoming.Capture(), world);
+            var state = new SurgeryAggregateState();
+            bool Valid()
+            {
+                var report = new DungeonGameRestoreReport();
+                SurgeryRestoreCoordinator.ValidatePhysicalStackReferences(state, stacks, report);
+                return report.Success;
+            }
+            state.CorpseFreshness.Add(incomingId, new SurgicalCorpseFreshnessState
+                { stackId = incomingId, remainingFreshnessSeconds = 100f });
+            Require(Valid(), "Incoming corpse was rejected against the previous live item world.");
+            state.CorpseFreshness.Clear();
+            state.CorpseFreshness.Add(liveId, new SurgicalCorpseFreshnessState
+                { stackId = liveId, remainingFreshnessSeconds = 100f });
+            Require(!Valid(), "A live-only corpse satisfied the incoming surgery restore.");
+            state.CorpseFreshness.Clear();
+            var part = new SurgicalPartInstance { partInstanceId = "part:incoming-join", worldStackId = incomingId };
+            state.Parts.Add(part);
+            Require(Valid(), "An incoming surgical part stack was rejected.");
+            part.worldStackId = liveId;
+            Require(!Valid(), "A live-only surgical part stack was accepted.");
+            part.installationCommitId = "commit:installed";
+            Require(Valid(), "Existing installed part stack exception was lost.");
+            part.installationCommitId = string.Empty;
+            part.discardOperationId = "operation:discarded";
+            Require(Valid(), "Existing discarded part stack exception was lost.");
+            Require(JsonUtility.ToJson(live.Capture()) == liveBefore, "Incoming join checks mutated live items.");
+            ((IDungeonDiscardableSaveRestoreStage)stage).Discard();
+            stage = null;
+            Require(!stacks.IsCandidateAvailable && !stacks.TryGetStackById(incomingId, out _),
+                "Discard retained incoming physical stack authority.");
+            Require(!Valid(), "Missing incoming physical candidate was accepted.");
+            Require(JsonUtility.ToJson(live.Capture()) == liveBefore, "Discard mutated live items.");
+        }
+        finally { (stage as IDungeonDiscardableSaveRestoreStage)?.Discard(); }
+    }
 
     private static readonly string[] RequiredResearchIds =
     {
@@ -32,7 +115,35 @@ public static class SurgeryDebugScenarios
         }
     }
 
-    public static bool RunAll(bool logSuccess)
+    public static void RunContractsFromBatch()
+    {
+        string output = Environment.GetEnvironmentVariable(
+            "DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        string qaRoot = Path.GetFullPath(Path.Combine(
+            Application.dataPath, "..", "Artifacts", "QA"))
+            + Path.DirectorySeparatorChar;
+        if (!Application.isBatchMode || string.IsNullOrWhiteSpace(output)
+            || !Path.IsPathRooted(output)
+            || !Path.GetFullPath(output).StartsWith(qaRoot, StringComparison.OrdinalIgnoreCase)
+            || Directory.Exists(output))
+            throw new InvalidOperationException(
+                "Surgery contracts require a new project-local batch evidence directory.");
+        DirectoryInfo run = Directory.GetParent(Path.GetFullPath(output));
+        string probePath = Path.Combine(run.FullName, "isolation-probe.txt");
+        string probe = File.ReadAllText(probePath);
+        if (!probe.Contains("PASS_NONINTERACTIVE_PROBE") || !probe.Contains("visible=false")
+            || !probe.Contains("windowCreatedAndDestroyed=true") || !probe.Contains("inJob=true"))
+            throw new InvalidOperationException("Surgery contracts require the isolated desktop probe.");
+
+        Directory.CreateDirectory(output);
+        string report = Path.Combine(output, "surgery-system-contracts.tsv");
+        if (!RunAll(logSuccess: true, reportPath: report))
+            throw new InvalidOperationException("Surgery system contracts failed; see " + report);
+    }
+
+    public static bool RunAll(bool logSuccess) => RunAll(logSuccess, null);
+
+    private static bool RunAll(bool logSuccess, string reportPath)
     {
         SurgeryContentAssetBuilder.ValidateBuiltContent();
         Directory.CreateDirectory("Temp");
@@ -84,9 +195,25 @@ public static class SurgeryDebugScenarios
             VerifyRestoreLateParticipantRollback,
             lines,
             errors);
+        Run(
+            "doctor_reference_availability",
+            () =>
+            {
+                RunDoctorReferenceAvailabilityContracts();
+                return "nine direct doctor-lookup cases; not whole-save validation";
+            },
+            lines,
+            errors);
         Run("work_and_stat_contract", VerifyWorkAndStatContract, lines, errors);
 
-        File.WriteAllLines(ReportPath, lines);
+        string destination = reportPath ?? ReportPath;
+        if (reportPath == null)
+            File.WriteAllLines(destination, lines);
+        else
+        {
+            using StreamWriter writer = new(new FileStream(destination, FileMode.CreateNew));
+            foreach (string line in lines) writer.WriteLine(line);
+        }
         foreach (string error in errors)
         {
             Debug.LogError(error);
@@ -94,7 +221,7 @@ public static class SurgeryDebugScenarios
 
         if (errors.Count == 0 && logSuccess)
         {
-            Debug.Log($"Surgery system contracts PASS. Report: {ReportPath}");
+            Debug.Log($"Surgery system contracts PASS. Report: {destination}");
         }
 
         return errors.Count == 0;
@@ -205,6 +332,161 @@ public static class SurgeryDebugScenarios
         {
             Debug.LogException(exception);
             return false;
+        }
+    }
+
+    public static void RunDoctorReferenceAvailabilityContracts()
+    {
+        MethodInfo validateDoctorReference = typeof(SurgeryRestoreCoordinator)
+            .GetMethod(
+                "ValidateDoctorReference",
+                BindingFlags.Static | BindingFlags.NonPublic);
+        Require(
+            validateDoctorReference != null,
+            "Surgery restore doctor-reference validation is missing.");
+
+        IReadOnlyDictionary<string, CharacterActor> noCurrentCharacters =
+            new Dictionary<string, CharacterActor>(StringComparer.Ordinal);
+
+        AssertAvailability(
+            "recovering-rolled-committed-preferred",
+            CreateOrder(
+                SurgeryOrderState.Recovering,
+                resultRolled: true,
+                resolutionFactAccepted: true,
+                preferredDoctorId: "character:doctor-reference:recovering-preferred"),
+            expectedUnavailableDoctorId: null);
+        AssertAvailability(
+            "recovering-rolled-committed-doctor",
+            CreateOrder(
+                SurgeryOrderState.Recovering,
+                resultRolled: true,
+                resolutionFactAccepted: true,
+                doctorId: "character:doctor-reference:recovering-doctor"),
+            expectedUnavailableDoctorId: null);
+
+        AssertAvailability(
+            "procedure-preferred",
+            CreateOrder(
+                SurgeryOrderState.Procedure,
+                resultRolled: true,
+                resolutionFactAccepted: true,
+                preferredDoctorId: "character:doctor-reference:procedure-preferred"),
+            "character:doctor-reference:procedure-preferred");
+        AssertAvailability(
+            "procedure-doctor",
+            CreateOrder(
+                SurgeryOrderState.Procedure,
+                resultRolled: true,
+                resolutionFactAccepted: true,
+                doctorId: "character:doctor-reference:procedure-doctor"),
+            "character:doctor-reference:procedure-doctor");
+
+        AssertAvailability(
+            "recovering-unrolled-doctor",
+            CreateOrder(
+                SurgeryOrderState.Recovering,
+                resultRolled: false,
+                resolutionFactAccepted: true,
+                doctorId: "character:doctor-reference:recovering-unrolled"),
+            "character:doctor-reference:recovering-unrolled");
+        AssertAvailability(
+            "recovering-uncommitted-doctor",
+            CreateOrder(
+                SurgeryOrderState.Recovering,
+                resultRolled: true,
+                resolutionFactAccepted: false,
+                doctorId: "character:doctor-reference:recovering-uncommitted"),
+            "character:doctor-reference:recovering-uncommitted");
+
+        AssertAvailability(
+            "terminal-draining-completed-doctor",
+            CreateOrder(
+                SurgeryOrderState.TerminalDraining,
+                resultRolled: true,
+                resolutionFactAccepted: true,
+                materialTerminalTargetState: SurgeryOrderState.Completed,
+                doctorId: "character:doctor-reference:terminal-completed"),
+            expectedUnavailableDoctorId: null);
+        AssertAvailability(
+            "terminal-draining-failed-doctor",
+            CreateOrder(
+                SurgeryOrderState.TerminalDraining,
+                resultRolled: true,
+                resolutionFactAccepted: true,
+                materialTerminalTargetState: SurgeryOrderState.Failed,
+                doctorId: "character:doctor-reference:terminal-failed"),
+            expectedUnavailableDoctorId: null);
+        AssertAvailability(
+            "terminal-draining-cancelled-doctor",
+            CreateOrder(
+                SurgeryOrderState.TerminalDraining,
+                resultRolled: true,
+                resolutionFactAccepted: true,
+                materialTerminalTargetState: SurgeryOrderState.Cancelled,
+                doctorId: "character:doctor-reference:terminal-cancelled"),
+            "character:doctor-reference:terminal-cancelled");
+
+        SurgeryOrder CreateOrder(
+            SurgeryOrderState state,
+            bool resultRolled,
+            bool resolutionFactAccepted,
+            string preferredDoctorId = "",
+            string doctorId = "",
+            SurgeryOrderState materialTerminalTargetState =
+                SurgeryOrderState.PatientWaiting) => new()
+            {
+                orderId = "surgery:doctor-reference:fixture",
+                state = state,
+                resultRolled = resultRolled,
+                resolutionFactAccepted = resolutionFactAccepted,
+                preferredDoctorId = preferredDoctorId,
+                doctorId = doctorId,
+                materialTerminalTargetState = materialTerminalTargetState
+            };
+
+        void AssertAvailability(
+            string caseName,
+            SurgeryOrder order,
+            string expectedUnavailableDoctorId)
+        {
+            order.orderId = "surgery:doctor-reference:" + caseName;
+            DungeonGameRestoreReport report = new();
+            try
+            {
+                validateDoctorReference.Invoke(
+                    null,
+                    new object[] { order, noCurrentCharacters, report });
+            }
+            catch (TargetInvocationException exception)
+            {
+                throw new InvalidOperationException(
+                    "Doctor-reference availability invocation failed: " + caseName,
+                    exception.InnerException ?? exception);
+            }
+
+            if (string.IsNullOrEmpty(expectedUnavailableDoctorId))
+            {
+                Require(
+                    report.Success && report.Errors.Count == 0,
+                    "Absent terminal doctor was rejected: " + caseName + "; errors="
+                    + string.Join(" | ", report.Errors));
+                return;
+            }
+
+            string expected = "Surgery order '" + order.orderId
+                + "' references unavailable doctor '"
+                + expectedUnavailableDoctorId + "'.";
+            Require(
+                !report.Success
+                && report.Errors.Count == 1
+                && string.Equals(
+                    report.Errors[0],
+                    expected,
+                    StringComparison.Ordinal),
+                "Absent doctor diagnostic changed: " + caseName + "; expected="
+                + expected + "; actual="
+                + string.Join(" | ", report.Errors));
         }
     }
 
@@ -845,6 +1127,8 @@ public static class SurgeryDebugScenarios
             resultRolled = true,
             resultSucceeded = true,
             resultOutcomeId = "success",
+            completionDoctorId = "character:replacement-terminal-doctor",
+            completionAbsoluteDay = 9,
             resolvedEffectCount = 1,
             replacementPhase = SurgicalPartReplacementPhase.Completed,
             replacementOperationId = operationId,
@@ -869,6 +1153,18 @@ public static class SurgeryDebugScenarios
                 .CreateReplacementOutcomeFingerprintForEditor(previous, order);
         order.materialCapacityFingerprint =
             SurgeryMaterialCapacityFingerprint.Create(order);
+        ConfigureAcceptedPhysicalFixtureObservation(
+            order,
+            CreatePhysicalFixtureAnatomy(
+                nodeId,
+                currentHealth: 32f,
+                maxHealth: 80f,
+                installedPartId: oldPartId),
+            CreatePhysicalFixtureAnatomy(
+                nodeId,
+                currentHealth: 28f,
+                maxHealth: 80f,
+                installedPartId: incomingPartId));
         IReadOnlyList<ItemInstanceComponentSaveData> components =
             SurgicalPartProductionOutputCrossAggregateSaveValidation
                 .CreateReplacementPhysicalComponentsForEditor(
@@ -2300,6 +2596,92 @@ public static class SurgeryDebugScenarios
             JsonUtility.ToJson(source));
     }
 
+    // These physical-ownership fixtures validate only the surgery aggregate.
+    // Freeze a fully typed observer snapshot and explicit local proof so the
+    // current save shape is honest without inventing a production fallback.
+    private static void ConfigureAcceptedPhysicalFixtureObservation(
+        SurgeryOrder order,
+        SurgeryAnatomyFactData before,
+        SurgeryAnatomyFactData after)
+    {
+        if (order == null)
+            throw new ArgumentNullException(nameof(order));
+        if (before == null)
+            throw new ArgumentNullException(nameof(before));
+        if (after == null)
+            throw new ArgumentNullException(nameof(after));
+
+        order.requiredWork = Math.Max(order.requiredWork, 1f);
+        order.completedWork = order.requiredWork;
+        order.outcomeAnatomyBeforeCaptured = true;
+        order.outcomeAnatomyBefore = before.Clone();
+        order.resolvedFact = new SurgeryResolvedFactData
+        {
+            orderId = order.orderId,
+            subjectId = order.subject.subjectId,
+            subjectName = string.IsNullOrWhiteSpace(order.subject.displayName)
+                ? order.subject.subjectId
+                : order.subject.displayName,
+            subjectKind = order.subject.kind,
+            procedureId = order.procedureId,
+            procedureKind = SurgicalProcedureKind.InstallProsthetic,
+            doctorId = order.completionDoctorId,
+            facilityId = order.facilityId,
+            targetNodeId = order.targetNodeId,
+            origin = order.completionOrigin,
+            absoluteDay = order.completionAbsoluteDay,
+            completedWork = order.completedWork,
+            resultId = order.resultOutcomeId,
+            severity = order.failureSeverity,
+            succeeded = order.resultSucceeded,
+            materialsConsumed = order.materialsConsumed,
+            processFluidConsumed = order.processFluidConsumed,
+            anesthesiaConsumed = order.anesthesiaConsumed,
+            materialSinkInputMassGrams = order.materialSinkInputMassGrams,
+            materials = SurgeryResolvedFactData.CopyMaterials(order.materials),
+            materialSinkOperationId = order.materialSinkOperationId,
+            materialSinkCommitId = order.materialSinkCommitId,
+            materialTerminalParentOperationId =
+                order.materialTerminalParentOperationId,
+            materialTerminalCommitId = order.materialTerminalCommitId,
+            replacementOperationId = order.replacementOperationId,
+            replacementBatchCommitId = order.replacementBatchCommitId,
+            replacementOutputStackId = order.replacementOutputStackId,
+            replacementOutputItemInstanceId =
+                order.replacementOutputItemInstanceId,
+            before = before.Clone(),
+            after = after.Clone()
+        };
+        order.resolutionPublicationKey =
+            SurgeryOutcomeIds.ResultKey(order.orderId).ToString();
+        order.resolutionPublicationId = new GameplayOutcomeId(
+            new GameplayOutcomeRunId("run:editor:surgery-physical-fixture"),
+            1L).ToString();
+        order.resolutionFingerprint =
+            SurgeryResolvedFactMapping.ComputeContextSha256(
+                order.resolvedFact);
+        order.resolutionFactAccepted = true;
+        order.resolutionFactDelivered = true;
+    }
+
+    private static SurgeryAnatomyFactData CreatePhysicalFixtureAnatomy(
+        string nodeId,
+        float currentHealth,
+        float maxHealth,
+        string installedPartId) => new()
+        {
+            availability = SurgeryAnatomyAvailability.Available,
+            profileId = "anatomy:humanoid",
+            nodeId = nodeId,
+            alive = true,
+            currentHealth = currentHealth,
+            maxHealth = maxHealth,
+            installedPartId = installedPartId ?? string.Empty,
+            installedPartKind = string.IsNullOrEmpty(installedPartId)
+                ? default
+                : SurgicalPartKind.Prosthetic
+        };
+
     private static void RequireRejected(
         DungeonSurgerySaveData payload,
         ISurgicalProcedureCatalog procedures,
@@ -2419,6 +2801,7 @@ public static class SurgeryDebugScenarios
         private readonly IDungeonItemCatalogProvider catalog;
         private readonly IPhysicalItemMassQuery mass;
         private readonly WorldItemQueryService query;
+        private readonly DomainFactDispatcher physicalFacts;
 
         internal ReplacementRuntimeFixture(
             SurgicalPartKind incomingKind = SurgicalPartKind.Prosthetic,
@@ -2489,6 +2872,9 @@ public static class SurgeryDebugScenarios
                 DefaultReplacementValue(method.ReturnType));
             IGameClock clock = CreateReplacementProxy<IGameClock>((method, _) =>
                 DefaultReplacementValue(method.ReturnType));
+            var physicalOutcomeFixture = new MigratedProducerOutcomeEditorFixture(
+                "run:surgery-physical-transform");
+            physicalFacts = physicalOutcomeFixture.CreatePhysicalTransformationFacts();
             Runtime = new SurgicalPartRuntime(
                 items,
                 CreateReplacementProxy<IItemTransferService>((method, _) =>
@@ -2510,8 +2896,7 @@ public static class SurgeryDebugScenarios
                     catalog,
                     EditorNullItemMarkerPresenter.Instance,
                     new FixedGameSessionStateProvider(),
-                    new MigratedProducerOutcomeEditorFixture(
-                        "run:surgery-physical-transform").Transaction),
+                    physicalFacts),
                 itemDefinitions,
                 mass,
                 claims,
@@ -2574,7 +2959,7 @@ public static class SurgeryDebugScenarios
                 worldStackId = IncomingStackId,
                 reservedOrderId = OrderId
             });
-            stateStore.State.Orders.Add(new SurgeryOrder
+            SurgeryOrder historicalInstallation = new()
             {
                 orderId = PreviousInstallationOrderId,
                 procedureId = "procedure:prosthetic-installation",
@@ -2585,12 +2970,17 @@ public static class SurgeryDebugScenarios
                 },
                 targetNodeId = NodeId,
                 selectedPartInstanceId = PreviousPartId,
+                facilityId = FacilityId,
                 state = SurgeryOrderState.Completed,
                 resultRolled = true,
                 resultSucceeded = true,
                 resultOutcomeId = "success",
+                completionDoctorId =
+                    "character:replacement-history-terminal-doctor",
+                completionAbsoluteDay = 11,
                 resolvedEffectCount = 1
-            });
+            };
+            stateStore.State.Orders.Add(historicalInstallation);
             Require(
                 Runtime.TryConsumeForInstallation(
                     PreviousPartId,
@@ -2607,6 +2997,18 @@ public static class SurgeryDebugScenarios
                 && Repository.GetEditorTestQuantity(previousStackId) == 0,
                 "replacement fixture could not create its historical installation receipt: "
                 + previousInstallationFailure);
+            ConfigureAcceptedPhysicalFixtureObservation(
+                historicalInstallation,
+                CreatePhysicalFixtureAnatomy(
+                    NodeId,
+                    currentHealth: 0f,
+                    maxHealth: 80f,
+                    installedPartId: string.Empty),
+                CreatePhysicalFixtureAnatomy(
+                    NodeId,
+                    currentHealth: 32f,
+                    maxHealth: 80f,
+                    installedPartId: PreviousPartId));
             if (incomingTransferFault != null)
             {
                 incomingTransferFault.FailTransferPendingOnce = true;
@@ -2631,7 +3033,12 @@ public static class SurgeryDebugScenarios
                 resultRolled = true,
                 resultSucceeded = true,
                 resultOutcomeId = "success",
-                resolvedEffectCount = 0
+                completionDoctorId =
+                    "character:replacement-pending-terminal-doctor",
+                completionAbsoluteDay = 12,
+                resolvedEffectCount = 0,
+                resolutionPublicationKey = SurgeryOutcomeIds.ResultKey(
+                    OrderId).ToString()
             };
             order.materialCapacityFingerprint =
                 SurgeryMaterialCapacityFingerprint.Create(order);
@@ -2754,6 +3161,7 @@ public static class SurgeryDebugScenarios
 
         public void Dispose()
         {
+            physicalFacts?.Dispose();
             if (actorObject != null)
             {
                 UnityEngine.Object.DestroyImmediate(actorObject);

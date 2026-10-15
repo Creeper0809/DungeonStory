@@ -2,11 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Environment;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 
-public static class ProductionPreparedOutputFullPersistenceDebugScenarios
+public static partial class ProductionPreparedOutputFullPersistenceDebugScenarios
 {
     private const string RecipeId = "recipe:sawmill-lumber";
     private const string ItemId = "material:lumber";
@@ -59,8 +61,8 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
 
     public static void VerifyProductionCommandOutcomeTransactions()
     {
-        RecordingProductionCommandOutcomeCommitter added = new(
-            durablyCommitted: true);
+        RecordingProductionCommandObservationPublisher added = new(
+            DomainFactDeliveryPhase.Delivered);
         using (RuntimeGraph graph = new(
                    "Production Command Add",
                    7190,
@@ -76,23 +78,27 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             Require(
                 result.Succeeded
                 && captured.bills.Count == 1
-                && captured.pendingCommandOutcomes.Count == 0
-                && captured.nextCommandOutcomeSequence == 2L
+                && captured.pendingCommandObservations.Count == 0
+                && captured.nextCommandSequence == 2L
                 && added.PrepareCount == 1
-                && added.CommitCount == 1,
+                && added.CommitCount == 1
+                && added.LastFact?.Kind == ProductionCommandKind.BillAdded
+                && added.LastFact.FacilityDisplayName
+                    == graph.FacilityHandle.DisplayName
+                && added.LastFact.AbsoluteDay == graph.CommandCalendar.Day,
                 "Production bill addition did not commit one exact outcome: "
                 + $"succeeded={result.Succeeded};"
                 + $"bills={captured.bills.Count};"
-                + $"pending={captured.pendingCommandOutcomes.Count};"
-                + $"next={captured.nextCommandOutcomeSequence};"
+                + $"pending={captured.pendingCommandObservations.Count};"
+                + $"next={captured.nextCommandSequence};"
                 + $"prepared={added.PrepareCount};"
                 + $"committed={added.CommitCount};"
                 + $"failure={result.Failure.Code}:"
                 + string.Join(",", result.Failure.Parameters.ToArray()));
         }
 
-        RecordingProductionCommandOutcomeCommitter durable = new(
-            durablyCommitted: true);
+        RecordingProductionCommandObservationPublisher durable = new(
+            DomainFactDeliveryPhase.Delivered);
         using (RuntimeGraph graph = new(
                    "Production Command Durable",
                    7191,
@@ -110,12 +116,12 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 && bill.suspended
                 && durable.PrepareCount == 1
                 && durable.CommitCount == 1
-                && graph.Production.Capture().nextCommandOutcomeSequence
-                    == before.nextCommandOutcomeSequence + 1L,
+                && graph.Production.Capture().nextCommandSequence
+                    == before.nextCommandSequence + 1L,
                 "Durable production command did not jointly advance state and outcome sequence.");
 
             long noOpSequence = graph.Production.Capture()
-                .nextCommandOutcomeSequence;
+                .nextCommandSequence;
             ProductionBillCommandResult noOp = graph.Production.SetSuspended(
                 bill.billId,
                 true);
@@ -123,7 +129,7 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 noOp.Succeeded
                 && durable.PrepareCount == 1
                 && durable.CommitCount == 1
-                && graph.Production.Capture().nextCommandOutcomeSequence
+                && graph.Production.Capture().nextCommandSequence
                     == noOpSequence,
                 "No-op production command consumed a new outcome.");
 
@@ -133,13 +139,13 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 JsonUtility.FromJson<DungeonProductionBillSaveData>(json);
             graph.Production.Restore(graph.Production.BuildRestore(roundTrip));
             Require(
-                graph.Production.Capture().nextCommandOutcomeSequence
-                    == captured.nextCommandOutcomeSequence,
+                graph.Production.Capture().nextCommandSequence
+                    == captured.nextCommandSequence,
                 "Production command sequence did not survive JSON restore.");
         }
 
-        RecordingProductionCommandOutcomeCommitter rejected = new(
-            durablyCommitted: false);
+        RecordingProductionCommandObservationPublisher rejected = new(
+            DomainFactDeliveryPhase.Rejected);
         using (RuntimeGraph graph = new(
                    "Production Command Rejected",
                    7192,
@@ -149,7 +155,7 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             graph.SeedOwnedCurrentFormatBill();
             ProductionBillRecord bill = graph.SingleBill;
             long beforeSequence = graph.Production.Capture()
-                .nextCommandOutcomeSequence;
+                .nextCommandSequence;
             ProductionBillCommandResult result = graph.Production.SetSuspended(
                 bill.billId,
                 true);
@@ -158,23 +164,57 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 && !bill.suspended
                 && rejected.PrepareCount == 1
                 && rejected.CommitCount == 1
-                && graph.Production.Capture().nextCommandOutcomeSequence
-                    == beforeSequence,
+                && graph.Production.Capture().nextCommandSequence
+                    == beforeSequence
+                && graph.Production.Capture().pendingCommandObservations.Count == 0,
                 "Rejected production outcome did not restore domain state and sequence.");
         }
 
-        RecordingProductionCommandOutcomeCommitter pending = new(
-            durablyCommitted: false);
+        RecordingProductionCommandObservationPublisher uncertain = new(
+            DomainFactDeliveryPhase.InDoubt);
+        using (RuntimeGraph graph = new(
+                   "Production Command Uncertain",
+                   7193,
+                   SawmillScenario,
+                   uncertain))
+        {
+            graph.SeedOwnedCurrentFormatBill();
+            ProductionBillRecord bill = graph.SingleBill;
+            long beforeSequence = graph.Production.Capture().nextCommandSequence;
+            ProductionBillCommandResult result = graph.Production.SetSuspended(
+                bill.billId,
+                true);
+            DungeonProductionBillSaveData captured = graph.Production.Capture();
+            Require(
+                !result.Succeeded
+                && bill.suspended
+                && captured.nextCommandSequence == beforeSequence + 1L
+                && captured.pendingCommandObservations.Count == 1
+                && captured.pendingCommandObservations[0].fact.ownerRevision
+                    == beforeSequence,
+                "An uncertain production observation did not retain its committed domain state and exact fact.");
+
+            uncertain.DeliveryPhase = DomainFactDeliveryPhase.Delivered;
+            graph.Production.Tick();
+            Require(
+                graph.Production.Capture().pendingCommandObservations.Count == 0
+                && uncertain.PrepareCount == 2
+                && uncertain.CommitCount == 2,
+                "An uncertain production observation did not converge through exact replay.");
+        }
+
+        RecordingProductionCommandObservationPublisher pending = new(
+            DomainFactDeliveryPhase.Rejected);
         using (RuntimeGraph graph = new(
                    "Production Command Pending Outbox",
-                   7193,
+                   7194,
                    SawmillScenario,
                    pending))
         {
             graph.SeedOwnedCurrentFormatBill();
             ProductionBillId billId = graph.SingleBill.billId;
             long beforeSequence = graph.Production.Capture()
-                .nextCommandOutcomeSequence;
+                .nextCommandSequence;
             ProductionBillCommandResult removed = graph.Production.RemoveBill(
                 billId,
                 returnMaterials: true);
@@ -182,20 +222,20 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             Require(
                 removed.Succeeded
                 && captured.bills.Count == 0
-                && captured.pendingCommandOutcomes.Count == 1
-                && captured.pendingCommandOutcomes[0].ownerRevision
+                && captured.pendingCommandObservations.Count == 1
+                && captured.pendingCommandObservations[0].fact.ownerRevision
                     == beforeSequence
-                && captured.pendingCommandOutcomes[0].kind
-                    == ProductionCommandOutcomeKind.BillRemoved
-                && captured.pendingCommandOutcomes[0].facilityDisplayText
-                    == "시험 시설"
-                && captured.nextCommandOutcomeSequence == beforeSequence + 1L,
+                && captured.pendingCommandObservations[0].fact.kind
+                    == ProductionCommandKind.BillRemoved
+                && captured.pendingCommandObservations[0].fact.facilityDisplayName
+                    == graph.FacilityHandle.DisplayName
+                && captured.nextCommandSequence == beforeSequence + 1L,
                 "Irreversible production removal did not retain its rejected outcome in the durable outbox.");
 
             string json = JsonUtility.ToJson(captured);
             DungeonProductionBillSaveData invalid =
                 JsonUtility.FromJson<DungeonProductionBillSaveData>(json);
-            invalid.pendingCommandOutcomes[0].absoluteDay = 0;
+            invalid.pendingCommandObservations[0].fact.absoluteDay = 0;
             bool invalidRejected = false;
             try
             {
@@ -212,43 +252,117 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             DungeonProductionBillSaveData roundTrip =
                 JsonUtility.FromJson<DungeonProductionBillSaveData>(json);
             graph.Production.Restore(graph.Production.BuildRestore(roundTrip));
-            pending.DurablyCommitted = true;
+            pending.DeliveryPhase = DomainFactDeliveryPhase.Delivered;
             graph.Production.Tick();
             DungeonProductionBillSaveData delivered = graph.Production.Capture();
             Require(
                 delivered.bills.Count == 0
-                && delivered.pendingCommandOutcomes.Count == 0
-                && delivered.nextCommandOutcomeSequence
-                    == captured.nextCommandOutcomeSequence
+                && delivered.pendingCommandObservations.Count == 0
+                && delivered.nextCommandSequence
+                    == captured.nextCommandSequence
                 && pending.PrepareCount == 2
                 && pending.CommitCount == 2,
                 "Restored production command outbox did not retry and converge exactly once.");
         }
 
-        RecordingProductionCommandOutcomeCommitter sensors = new(
-            durablyCommitted: true);
+        RecordingProductionCommandObservationPublisher sensors = new(
+            DomainFactDeliveryPhase.Delivered);
         using (RuntimeGraph graph = new(
                    "Production Command Sensors",
-                   7194,
+                   7195,
                    SawmillScenario,
                    sensors))
         {
             graph.SeedOwnedCurrentFormatBill();
             VerifyStockSensorExactAdmissionAndRetry(graph);
             long beforeRemoval = graph.Production.Capture()
-                .nextCommandOutcomeSequence;
+                .nextCommandSequence;
             ProductionBillCommandResult removed =
                 graph.Production.RemoveStockSensor(graph.FacilityHandle);
             DungeonProductionBillSaveData captured = graph.Production.Capture();
             Require(
                 removed.Succeeded
                 && !graph.StockSensors.Has(graph.FacilityHandle)
-                && captured.pendingCommandOutcomes.Count == 0
-                && captured.nextCommandOutcomeSequence == beforeRemoval + 1L
+                && captured.pendingCommandObservations.Count == 0
+                && captured.nextCommandSequence == beforeRemoval + 1L
                 && sensors.PrepareCount == 3
                 && sensors.CommitCount == 3,
                 "Stock-sensor install, acknowledgement, and removal did not each commit one outcome.");
         }
+    }
+
+    public static void VerifyProductionCompletedOutcomeFromRuntime()
+    {
+        using RuntimeGraph graph = new(
+            "Production Completed Outcome",
+            7195,
+            SawmillScenario,
+            connectCompletedOutcome: true);
+        graph.SeedOwnedCurrentFormatBill();
+        ProductionBillRecord record = graph.SingleBill;
+        ProductionBillId billId = record.billId;
+        int cycleSequence = record.cycleSequence;
+        graph.PrepareWip(record);
+
+        int stackCountBefore = graph.WorldItems.GetAllStacks().Count;
+        ProductionWorkExecutionResult result = graph.Production.ExecuteWork(
+            graph.WorkerHandle,
+            graph.FacilityHandle,
+            billId,
+            float.MaxValue);
+        GameplayResultKey expected = new(
+            ProductionCombatOutcomeIds.ProductionProducerId,
+            new GameplayOperationId(
+                $"production-cycle:{billId.Value}:{cycleSequence}"),
+            cycleSequence,
+            0);
+        bool identityResolved = graph.CompletedOutcome.Ledger
+            .TryGetResultIdentity(
+                expected,
+                out GameplayOutcomeReplayIdentity identity);
+
+        Require(
+            result.Succeeded
+            && result.CycleCompleted
+            && result.Outcome == ProductionBillOutcomeCode.CycleCompleted
+            && graph.WorldItems.GetAllStacks().Count > stackCountBefore
+            && identityResolved
+            && identity.State == GameplayOutcomeReplayState.PublishedAcknowledged,
+            "The real production bill completion path did not commit its physical output and canonical outcome: "
+            + result.Failure.Code
+            + ":"
+            + string.Join(",", result.Failure.Parameters.ToArray()));
+
+        Require(
+            identity.ResultKey.Equals(expected)
+            && identity.OutcomeId.IsValid,
+            "The durable production result did not retain its exact observation identity.");
+        Require(
+            graph.CompletedOutcome.Ledger.TryGetExact(
+                identity.OutcomeId,
+                out GameplayOutcomeSnapshot exact)
+            && exact.participants.Single(value => string.Equals(
+                    value.roleId,
+                    ProductionCombatOutcomeIds.ProducerRole.Value,
+                    StringComparison.Ordinal)).displayText
+                == graph.FacilityHandle.DisplayName
+            && exact.participants.Single(value => string.Equals(
+                    value.roleId,
+                    ProductionCombatOutcomeIds.WorkerRole.Value,
+                    StringComparison.Ordinal)).displayText
+                == graph.WorkerHandle.DisplayName,
+            "The production completion outcome did not freeze the actual facility and worker display names.");
+        GameplayResultKey missing = new(
+            ProductionCombatOutcomeIds.ProductionProducerId,
+            new GameplayOperationId(
+                $"production-cycle:{billId.Value}:{cycleSequence + 1}"),
+            cycleSequence + 1,
+            0);
+        Require(
+            !graph.CompletedOutcome.Ledger.TryGetResultIdentity(
+                missing,
+                out _),
+            "A production observation identity lookup accepted an uncommitted cycle.");
     }
 
     public static void VerifyFullCurrentFormatRoundTrip()
@@ -748,14 +862,14 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             "A full stock-sensor socket did not retain the same exact transit lot.");
 
         long outcomeSequence = graph.Production.Capture()
-            .nextCommandOutcomeSequence;
+            .nextCommandSequence;
         ProductionBillCommandResult installed =
             graph.Production.RequestStockSensorInstallation(facility);
         ProductionBillCommandResult acknowledged =
             graph.Production.AcknowledgeStockSensorUnlock(facility);
         Require(installed.Succeeded
             && acknowledged.Succeeded
-            && graph.Production.Capture().nextCommandOutcomeSequence
+            && graph.Production.Capture().nextCommandSequence
                 == outcomeSequence + 2L
             && graph.StockSensors.Has(facility)
             && graph.StockSensors.IsAcknowledged(facility)
@@ -2980,7 +3094,7 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
         && value.All(character => character is >= '0' and <= '9'
             or >= 'a' and <= 'f');
 
-    private sealed class ScenarioConfig
+    internal sealed class ScenarioConfig
     {
         internal ScenarioConfig(
             string label,
@@ -3052,21 +3166,142 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             throw new InvalidOperationException(message);
     }
 
-    private sealed class RuntimeGraph : IDisposable
+    internal sealed class ProductionCompletedOutcomeFixture : IDisposable
+    {
+        private readonly bool ownsCompletionFacts;
+
+        internal ProductionCompletedOutcomeFixture(string runId)
+        {
+            GameplayOutcomeRegistry registry = new(
+                new IGameplayOutcomeDescriptor[]
+                {
+                    new ProductionCompletedOutcomeDescriptor()
+                },
+                new IGameplayOutcomeAdapterRegistration[]
+                {
+                    new ProductionCompletedOutcomeAdapter()
+                });
+            Ledger = new GameplayOutcomeLedger(
+                registry,
+                new GameplayOutcomeBufferLimits(),
+                new GameplayOutcomeRunId(runId),
+                1L);
+            GameplayOutcomeRecorder recorder = new(
+                Ledger,
+                registry,
+                new GameEventBus());
+            GameplayDomainFactCommitGroup commits = new(recorder, Ledger);
+            CompletionFacts = new DomainFactDispatcher();
+            CompletionFacts.Subscribe(
+                "production.completion-observer",
+                new GameplayDomainFactObserver<
+                    ProductionCycleCompletedFact,
+                    ProductionCompletedOutcomeReceipt>(
+                    ProductionCompletionFactObservation.Capture,
+                    registry,
+                    Ledger,
+                    recorder,
+                    commits));
+            ownsCompletionFacts = true;
+        }
+
+        internal ProductionCompletedOutcomeFixture(
+            GameplayOutcomeLedger ledger,
+            DomainFactDispatcher completionFacts)
+        {
+            Ledger = ledger ?? throw new ArgumentNullException(nameof(ledger));
+            CompletionFacts = completionFacts
+                ?? throw new ArgumentNullException(nameof(completionFacts));
+        }
+
+        internal GameplayOutcomeLedger Ledger { get; }
+        internal DomainFactDispatcher CompletionFacts { get; }
+
+        public void Dispose()
+        {
+            if (ownsCompletionFacts)
+                CompletionFacts.Dispose();
+        }
+    }
+
+    private sealed class NoopObservedCareerLifeEvents :
+        IObservedCareerLifeEventCommand
+    {
+        public bool TryCaptureProductionDeclaredLoss(
+            ProductionDeclaredLossCycleReceipt source,
+            out bool stateChanged,
+            out string failureReason)
+        {
+            stateChanged = true;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryCaptureLastLesson(
+            CareerMentorshipSnapshot mentorship,
+            CharacterCareerSnapshot retirement,
+            CombatEquipmentInstance protectiveEquipment,
+            CareerMentorshipAwardCommitReceipt award,
+            int absoluteDay,
+            out bool stateChanged,
+            out string failureReason)
+        {
+            stateChanged = false;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryCaptureQuietPromotion(
+            CharacterProficiencyAwardCommitReceipt source,
+            out bool stateChanged,
+            out string failureReason)
+        {
+            stateChanged = false;
+            failureReason = string.Empty;
+            return true;
+        }
+    }
+
+    internal sealed class RuntimeGraph : IDisposable
     {
         private readonly GameObject facilityObject;
         private readonly GameObject workerObject;
         private readonly GameObject researchObject;
         private readonly GameObject textureObject;
         private readonly MutableGridProvider gridProvider;
+        private readonly DomainFactDispatcher ownedCommandFacts;
+        private readonly ProductionCompletedOutcomeFixture
+            ownedCompletedOutcome;
 
         internal RuntimeGraph(
             string suffix,
             int seed,
             ScenarioConfig config,
-            IProductionCommandOutcomeCommitter commandOutcomes = null)
+            IDomainFactStagingPublisher commandObservations = null,
+            IDomainFactRecoveryPublisher commandRecovery = null,
+            bool connectCompletedOutcome = false,
+            ProductionOwnerFamilyOutcomeFixture ownerFamilyOutcomes = null,
+            IPersistentIdGenerator persistentIds = null,
+            IDomainFactStagingPublisher completionObservations = null,
+            IDomainFactRecoveryPublisher completionRecovery = null)
         {
+            if ((completionObservations == null) != (completionRecovery == null))
+            {
+                throw new ArgumentException(
+                    "Production completion observation staging and recovery ports must be supplied together.");
+            }
+            if (ownerFamilyOutcomes != null
+                && (commandObservations != null
+                    || commandRecovery != null
+                    || connectCompletedOutcome
+                    || completionObservations != null))
+            {
+                throw new ArgumentException(
+                    "The production owner-family outcome fixture replaces both standalone outcome connections.",
+                    nameof(ownerFamilyOutcomes));
+            }
             Config = config ?? throw new ArgumentNullException(nameof(config));
+            ownedCommandFacts = ownerFamilyOutcomes?.CommandFacts;
             RootStore = new DungeonRuntimeAggregateRootStore();
             LifecycleRestoreCandidates =
                 new ProductionOutputLifecycleRestoreCandidateIndex(
@@ -3137,12 +3372,32 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 null);
 
             Clock = new UnityGameClock();
+            CommandCalendar = new EditorFixedGameCalendar(137, 9);
+            bool createStandaloneCompletion = connectCompletedOutcome
+                && completionObservations == null;
+            CompletedOutcome = ownerFamilyOutcomes?.CompletedOutcome
+                ?? (createStandaloneCompletion
+                    ? new ProductionCompletedOutcomeFixture(
+                        "run:production-completed-owner-editor")
+                    : null);
+            ownedCompletedOutcome = createStandaloneCompletion
+                ? CompletedOutcome
+                : null;
+            IDomainFactStagingPublisher completionPublisher =
+                ownerFamilyOutcomes?.CompletionFacts
+                ?? completionObservations
+                ?? CompletedOutcome?.CompletionFacts;
+            IDomainFactRecoveryPublisher completionRecoveryPublisher =
+                ownerFamilyOutcomes?.CompletionFacts
+                ?? completionRecovery
+                ?? CompletedOutcome?.CompletionFacts;
+            CompletionFacts = completionPublisher as DomainFactDispatcher;
             FixedCharacterIdRegistry characterIds = new();
             FixedHaulingSettings hauling = new();
             ICharacterAiWorldRegistry worldRegistry =
                 CharacterAiEditorTestDependencies.WorldRegistry;
             Repository = new WorldItemRepository(
-                new GuidPersistentIdGenerator(),
+                persistentIds ?? new GuidPersistentIdGenerator(),
                 RootStore);
             Claims = new FacilityBufferDestinationClaimRegistry();
             QuantityReservations = new ItemQuantityReservationService(
@@ -3333,10 +3588,12 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             Bridge = bridge;
             WorkerHandle = bridge.CaptureWorker(Worker);
             Require(
-                FacilityHandle.OutputBufferCycleCapacity ==
+                !string.IsNullOrWhiteSpace(FacilityHandle.DisplayName)
+                && !string.IsNullOrWhiteSpace(WorkerHandle.DisplayName)
+                && FacilityHandle.OutputBufferCycleCapacity ==
                     Config.ExpectedOutputBufferCycleCapacity,
                 Config.Label
-                    + " output-buffer cycle authority is not four.");
+                    + " fixture names or output-buffer cycle authority are invalid.");
 
             IProductionOutputPlanningService outputPlanning =
                 new ProductionOutputPlanningService(Economy, bridge);
@@ -3376,6 +3633,8 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 Mass,
                 Admission);
             Routing = new ProductionPreparedOutputRoutingAuthority();
+            ProductionAggregateStateStore productionState = new(RootStore);
+            State = productionState;
             PreparedOutput = new ProductionPreparedOutputExecutionAdapter(
                 Economy,
                 outputPlanning,
@@ -3397,10 +3656,12 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                 Occupancy,
                 Admission,
                 Publication,
-                Routing);
+                Routing,
+                massExplanations: null,
+                completionObservations: completionPublisher,
+                completionRecovery: completionRecoveryPublisher,
+                calendar: CommandCalendar);
 
-            ProductionAggregateStateStore productionState = new(RootStore);
-            State = productionState;
             ProductionInputDestinationClaimRuntime inputClaims = new(
                 Claims,
                 Admission,
@@ -3438,6 +3699,25 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                     PreparedOutput,
                     stockSensors,
                     new EmptyDistributionQuery());
+            ProductionRecipeExecutionReceiptAuthority recipeReceipts =
+                completionPublisher == null
+                    ? null
+                    : new ProductionRecipeExecutionReceiptAuthority(
+                        new NoopObservedCareerLifeEvents(),
+                        completionPublisher,
+                        completionRecoveryPublisher,
+                        productionState);
+            IDomainFactStagingPublisher commandPublisher =
+                ownerFamilyOutcomes?.CommandFacts
+                ?? commandObservations
+                ?? new RecordingProductionCommandObservationPublisher(
+                    DomainFactDeliveryPhase.Delivered);
+            IDomainFactRecoveryPublisher commandRecoveryPublisher =
+                ownerFamilyOutcomes?.CommandFacts
+                ?? commandRecovery
+                ?? commandPublisher as IDomainFactRecoveryPublisher
+                ?? throw new InvalidOperationException(
+                    "The production command observation fixture has no recovery publisher.");
             Production = new ProductionBillRuntime(
                 new ProductionBillOrderDependencies(
                     Economy,
@@ -3446,9 +3726,9 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                     productionState,
                     inputClaims,
                     new ProductionFacilityMutationEpochRuntime(),
-                    commandOutcomes: commandOutcomes
-                        ?? new RecordingProductionCommandOutcomeCommitter(
-                            durablyCommitted: true)),
+                    commandObservations: commandPublisher,
+                    commandRecovery: commandRecoveryPublisher,
+                    calendar: CommandCalendar),
                 new ProductionBillExecutionDependencies(
                     outputPlanning,
                     legacyOutput,
@@ -3457,7 +3737,8 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                     snapshots,
                     bridge,
                     Clock,
-                    Routing));
+                    Routing,
+                    recipeReceipts));
 
             Lifecycle = new ProductionOutputDestinationLifecycleQuery(
                 new ProductionBillLifecycleContributor(Production),
@@ -3559,11 +3840,25 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                     apparelPolicies = Array.Empty<CharacterApparelPolicySaveData>(),
                     apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>(),
                     apparelWorkOrderTerminalStates =
-                        Array.Empty<ApparelWorkOrderTerminalStateSaveData>()
+                        Array.Empty<ApparelWorkOrderTerminalStateSaveData>(),
+                    exposureOutcomes =
+                        Array.Empty<EnvironmentalExposureOutcomeSaveData>()
                 },
                 LifecycleRestoreCandidates.SetEnvironment,
                 new[]
                 {
+                    CharacterWorldSaveSection.Id,
+                    PhysicalItemsSaveSection.Id
+                });
+            IDungeonSaveSection fire = new ProjectionDependencySection<
+                DungeonEnvironmentalFireSaveData>(
+                EnvironmentalFireSaveSection.Id,
+                DungeonSaveRestorePhase.LateRuntimeState,
+                new DungeonEnvironmentalFireSaveData(),
+                LifecycleRestoreCandidates.SetFire,
+                new[]
+                {
+                    ModularFacilityWorldSaveSection.Id,
                     CharacterWorldSaveSection.Id,
                     PhysicalItemsSaveSection.Id
                 });
@@ -3592,7 +3887,8 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
                     routingSection,
                     combat,
                     maintenance,
-                    environment
+                    environment,
+                    fire
                 },
                 RootStore,
                 new IDungeonRestoreTransactionParticipant[]
@@ -3651,6 +3947,9 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
         internal ProductionAggregateStateStore State { get; }
         internal ProductionStockSensorRuntime StockSensors { get; }
         internal ProductionBillRuntime Production { get; }
+        internal EditorFixedGameCalendar CommandCalendar { get; }
+        internal ProductionCompletedOutcomeFixture CompletedOutcome { get; }
+        internal DomainFactDispatcher CompletionFacts { get; }
         internal ProductionOutputDestinationLifecycleQuery Lifecycle { get; }
         internal ModularFacilityWorldSaveService WorldService { get; }
         internal PhysicalItemsSaveSection PhysicalSection { get; }
@@ -3687,8 +3986,8 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
             };
             Require(
                 seed.version == DungeonProductionBillSaveData.CurrentVersion
-                && seed.version == 25,
-                "Production seed is not current V25.");
+                && seed.version == 27,
+                "Production seed is not current V27.");
             Production.Restore(Production.BuildRestore(seed));
             Require(
                 Production.Capture().bills.Count == 1,
@@ -3746,6 +4045,8 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
 
         public void Dispose()
         {
+            ownedCommandFacts?.Dispose();
+            ownedCompletedOutcome?.Dispose();
             WorldItems?.Dispose();
             UnityEngine.Object.DestroyImmediate(workerObject);
             UnityEngine.Object.DestroyImmediate(researchObject);
@@ -3826,108 +4127,135 @@ public static class ProductionPreparedOutputFullPersistenceDebugScenarios
         .Where(value => value != null)
         .ToArray();
 
-    private sealed class RecordingProductionCommandOutcomeCommitter :
-        IProductionCommandOutcomeCommitter
+    private sealed class RecordingProductionCommandObservationPublisher :
+        IDomainFactStagingPublisher,
+        IDomainFactRecoveryPublisher
     {
-        private bool durablyCommitted;
+        private const string Fingerprint =
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
-        internal RecordingProductionCommandOutcomeCommitter(
-            bool durablyCommitted)
+        internal RecordingProductionCommandObservationPublisher(
+            DomainFactDeliveryPhase deliveryPhase)
         {
-            this.durablyCommitted = durablyCommitted;
+            DeliveryPhase = deliveryPhase;
         }
 
         internal int PrepareCount { get; private set; }
         internal int CommitCount { get; private set; }
-        internal bool DurablyCommitted
-        {
-            get => durablyCommitted;
-            set => durablyCommitted = value;
-        }
+        internal DomainFactDeliveryPhase DeliveryPhase { get; set; }
+        internal ProductionCommandAppliedFact LastFact { get; private set; }
 
-        public bool TryPrepare(
-            in ProductionCommandOutcomeSource source,
-            long ownerRevision,
-            out IPreparedProductionCommandOutcome prepared,
-            out string failureReason)
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
+            out string failure)
         {
-            if (ownerRevision <= 0L
-                || string.IsNullOrWhiteSpace(source.FacilityId))
+            if (fact is not ProductionCommandAppliedFact command)
             {
-                prepared = null;
-                failureReason = "test-production-command-source-invalid";
+                stage = null;
+                failure = "test-production-command-fact-type-invalid";
                 return false;
             }
             PrepareCount++;
-            prepared = new Prepared(ownerRevision);
-            failureReason = string.Empty;
+            LastFact = command;
+            stage = new Stage(
+                this,
+                command.OwnerRevision,
+                PublicationKey(command.OwnerRevision));
+            failure = string.Empty;
             return true;
         }
 
-        public ProductionCommandOutcomeCommitResult Commit(
-            IPreparedProductionCommandOutcome prepared)
+        public bool ReplayBatch(
+            IReadOnlyList<DomainFactReplay> facts,
+            DomainFactDelivery[] results,
+            out string failure)
+        {
+            if (facts == null
+                || results == null
+                || facts.Count == 0
+                || facts.Count != results.Length
+                || facts.Any(value => value == null
+                    || string.IsNullOrWhiteSpace(value.PublicationKey)))
+            {
+                failure = "test-production-command-replay-invalid";
+                return false;
+            }
+            PrepareCount += facts.Count;
+            CommitCount += facts.Count;
+            for (int index = 0; index < facts.Count; index++)
+                results[index] = Delivery(facts[index].PublicationKey);
+            failure = DeliveryPhase == DomainFactDeliveryPhase.Rejected
+                ? "test-production-command-commit-rejected"
+                : string.Empty;
+            return DeliveryPhase != DomainFactDeliveryPhase.Rejected;
+        }
+
+        private DomainFactDelivery Commit(string operationKey)
         {
             CommitCount++;
-            return prepared is Prepared
-                ? new ProductionCommandOutcomeCommitResult(
-                    durablyCommitted,
-                    durablyCommitted
-                        ? string.Empty
-                        : "test-production-command-commit-rejected")
-                : new ProductionCommandOutcomeCommitResult(
-                    false,
-                    "test-production-command-token-invalid");
+            return Delivery(operationKey);
         }
 
-        public bool TryPreparePending(
-            ProductionCommandOutcomeOutboxSaveData pending,
-            out IPreparedProductionCommandOutcome prepared,
-            out string failureReason)
-        {
-            if (pending == null)
+        private DomainFactDelivery Delivery(string operationKey) =>
+            DeliveryPhase switch
             {
-                prepared = null;
-                failureReason = "test-production-command-pending-null";
-                return false;
-            }
-            PrepareCount++;
-            prepared = new Prepared(
-                pending.ownerRevision,
-                pending.ToFrozenContext());
-            failureReason = string.Empty;
-            return true;
-        }
+                DomainFactDeliveryPhase.Delivered => new DomainFactDelivery(
+                    DomainFactDeliveryPhase.Delivered,
+                    operationKey,
+                    "outcome:test-production-command:" + operationKey,
+                    Fingerprint,
+                    string.Empty),
+                DomainFactDeliveryPhase.AcceptedPendingDelivery =>
+                    new DomainFactDelivery(
+                        DomainFactDeliveryPhase.AcceptedPendingDelivery,
+                        operationKey,
+                        "outcome:test-production-command:" + operationKey,
+                        Fingerprint,
+                        "test-production-command-awaiting-delivery"),
+                DomainFactDeliveryPhase.InDoubt => new DomainFactDelivery(
+                    DomainFactDeliveryPhase.InDoubt,
+                    operationKey,
+                    null,
+                    null,
+                    "test-production-command-commit-in-doubt"),
+                _ => DomainFactDelivery.Reject(
+                    "test-production-command-commit-rejected")
+            };
 
-        public void Cancel(IPreparedProductionCommandOutcome prepared)
+        private static string PublicationKey(long ownerRevision) =>
+            "test-production-command:" + ownerRevision;
+
+        private sealed class Stage : IDomainFactStage
         {
-        }
+            private readonly RecordingProductionCommandObservationPublisher owner;
+            private bool active = true;
 
-        private sealed class Prepared : IPreparedProductionCommandOutcome
-        {
-            internal Prepared(long ownerRevision) : this(
-                ownerRevision,
-                new ProductionCommandOutcomeFrozenContext(
-                    "시험 시설",
-                    "test-facility-v1",
-                    1,
-                    string.Empty,
-                    0,
-                    "test-pronunciation-v1",
-                    "ko-KR",
-                    1))
-            {
-            }
-
-            internal Prepared(
+            internal Stage(
+                RecordingProductionCommandObservationPublisher owner,
                 long ownerRevision,
-                in ProductionCommandOutcomeFrozenContext frozenContext)
+                string operationKey)
             {
+                this.owner = owner;
                 OwnerRevision = ownerRevision;
-                FrozenContext = frozenContext;
+                OperationKey = operationKey;
             }
 
+            public string OperationKey { get; }
             public long OwnerRevision { get; }
-            public ProductionCommandOutcomeFrozenContext FrozenContext { get; }
+            public bool IsReplay => false;
+            public bool IsActive => active;
+
+            public DomainFactDelivery Commit()
+            {
+                if (!active)
+                    return DomainFactDelivery.Reject(
+                        "test-production-command-stage-inactive");
+                active = false;
+                return owner.Commit(OperationKey);
+            }
+
+            public void Cancel() => active = false;
         }
     }
 

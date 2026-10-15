@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -10,8 +11,12 @@ internal sealed class CropPlotState
     public BuildingInstanceId PlotId;
     public BuildableObject Building;
     public BuildingCropPlotAbility Ability;
+    public string PlotDisplayName = string.Empty;
+    public string RetirementPublicationKey = string.Empty;
     public Vector2Int LastKnownPosition;
     public string CropId = string.Empty;
+    public int NextCropSelectionOperationSequence;
+    public CropSelectionCommandSaveData CropSelectionOutcome = new();
     public CropPlotPhase Phase;
     public float SowWork;
     public float GrowthHours;
@@ -28,13 +33,16 @@ internal sealed class CropPlotState
     public string BlockedReason = string.Empty;
     public string GoldenHarvestHarvesterId = string.Empty;
     public int GoldenHarvestAttemptSequence;
+    public CropGoldenHarvestScheduleSaveData GoldenHarvestScheduleOutcome = new();
     public int NextSowOperationSequence;
     public CropPhysicalCommitSaveData PendingSow = new();
     public string PendingCycleCorrelationId = string.Empty;
     public CropCycleExecutionReceiptSaveData CycleExecutionReceipt = new();
+    public CropFailedOutcomeSaveData FailedOutcome = new();
     public float CurrentWater;
     public float WaterCapacity = CropWaterRules.WaterCapacity;
     public int NextWaterRefillOperationSequence;
+    public CropIrrigationPublicationSaveData IrrigationPublication = new();
     public CropWaterRefillSaveData WaterRefill = new();
     public int NextTreatmentOperationSequence;
     public int PestLureNextAllowedDay;
@@ -138,6 +146,7 @@ public sealed class CropPlotSimulationDependencies
 {
     public CropPlotSimulationDependencies(
         IGameClock gameClock,
+        IGameCalendar calendar,
         ProgressionSceneRuntimeReferences progressionRuntimes,
         IGameSessionStateProvider gameDataProvider,
         ISurvivalEnvironmentQuery environmentQuery,
@@ -147,11 +156,10 @@ public sealed class CropPlotSimulationDependencies
         ISeasonalEventQuery seasonalEvents,
         V20StoryContentCatalog storyCatalog,
         ExtremeTraitRuntime extremeTraits = null,
-        IRunSeedProvider runSeedProvider = null,
-        CharacterIdentityEventPublisher identityEvents = null,
-        IWorkCompletionIdentityDeliveryCommand completionDeliveries = null)
+        IRunSeedProvider runSeedProvider = null)
     {
         GameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         ProgressionRuntimes = progressionRuntimes
             ?? throw new ArgumentNullException(nameof(progressionRuntimes));
         GameDataProvider = gameDataProvider
@@ -169,11 +177,10 @@ public sealed class CropPlotSimulationDependencies
             ?? throw new ArgumentNullException(nameof(storyCatalog));
         ExtremeTraits = extremeTraits;
         RunSeedProvider = runSeedProvider;
-        IdentityEvents = identityEvents;
-        CompletionDeliveries = completionDeliveries;
     }
 
     public IGameClock GameClock { get; }
+    public IGameCalendar Calendar { get; }
     public ProgressionSceneRuntimeReferences ProgressionRuntimes { get; }
     public IGameSessionStateProvider GameDataProvider { get; }
     public ISurvivalEnvironmentQuery EnvironmentQuery { get; }
@@ -184,8 +191,6 @@ public sealed class CropPlotSimulationDependencies
     public V20StoryContentCatalog StoryCatalog { get; }
     public ExtremeTraitRuntime ExtremeTraits { get; }
     public IRunSeedProvider RunSeedProvider { get; }
-    public CharacterIdentityEventPublisher IdentityEvents { get; }
-    public IWorkCompletionIdentityDeliveryCommand CompletionDeliveries { get; }
 }
 
 public sealed class CropPlotRuntime :
@@ -202,6 +207,9 @@ public sealed class CropPlotRuntime :
 {
     public const string WaterRefillOperationPrefix = "crop-water-refill:";
     public const string IrrigationOperationPrefix = "crop-irrigation:";
+    public const string CropSelectionOperationPrefix = "crop-selection:";
+    public const string GoldenHarvestScheduleOperationPrefix =
+        "golden-harvest-schedule:";
 
     private const float MaterialRequestInterval = 0.5f;
     public const string HarvestOutputBatchCommitPrefix =
@@ -210,8 +218,6 @@ public sealed class CropPlotRuntime :
     public const string HarvestOutputPublicationOperationPrefix =
         ProductionDomainOutputPublicationIdentity.PublicationOperationPrefix
         + "crop-harvest:";
-    public const string HarvestCompletionDeliveryPrefix = "identity-event:";
-    public const string HarvestCompletionStreamPrefix = "crop-harvest:";
 
     private readonly IBuildingWorldQuery buildingWorld;
     private readonly IResourceEconomyContentCatalog catalog;
@@ -231,6 +237,7 @@ public sealed class CropPlotRuntime :
     private readonly ICropIrrigationRuntime irrigation;
     private readonly ICropIrrigationSupplyTransaction irrigationTransactions;
     private readonly IGameClock gameClock;
+    private readonly IGameCalendar calendar;
     private readonly BlueprintResearchRuntime research;
     private readonly ISurvivalEnvironmentQuery environmentQuery;
     private readonly IEnvironmentalFieldQuery environmentalField;
@@ -243,12 +250,17 @@ public sealed class CropPlotRuntime :
     private readonly V20StoryContentCatalog storyCatalog;
     private readonly ExtremeTraitRuntime extremeTraits;
     private readonly IRunSeedProvider runSeedProvider;
-    private readonly CharacterIdentityEventPublisher identityEvents;
-    private readonly IWorkCompletionIdentityDeliveryCommand completionDeliveries;
     private readonly ICharacterPerformanceQuery performance;
     private readonly IProductionFacilityMutationEpochQuery facilityMutations;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
-    private readonly IEnvironmentGameplayOutcomeCommitter environmentOutcomes;
+    private IDomainFactPublisher domainFacts;
+
+    [VContainer.Inject]
+    public void ConstructDomainFacts(IDomainFactPublisher publisher) =>
+        domainFacts = publisher ?? throw new ArgumentNullException(nameof(publisher));
+
+    private IDomainFactPublisher RequireDomainFacts() => domainFacts
+        ?? throw new InvalidOperationException("Crop domain-fact publisher is not registered.");
     private IDisposable dayEndedSubscription;
     private IDisposable contentEffectsResolvedSubscription;
     private int observedEnvironmentalFieldVersion = -1;
@@ -414,6 +426,7 @@ public sealed class CropPlotRuntime :
                 (BuildingInstanceId)plotId,
                 out CropPlotState state)
             || state == null
+            || !string.IsNullOrEmpty(state.RetirementPublicationKey)
             || state.MaterialsConsumed
             || state.PendingSow.phase != CropPhysicalCommitPhase.None
             || state.WaterRefill.phase != CropWaterRefillPhase.None
@@ -428,6 +441,13 @@ public sealed class CropPlotRuntime :
         }
         if (!TryRequireMutable(state.PlotId, out failureReason))
             return false;
+        if (state.GoldenHarvestScheduleOutcome is { IsEmpty: false }
+            && !TryAdvanceGoldenHarvestScheduleOutcome(state))
+        {
+            failureReason = "이전 황금 수확 예약 결과를 원장에 확정하는 중입니다: "
+                + state.GoldenHarvestScheduleOutcome.failureReason;
+            return false;
+        }
         CropPlotState[] existingOwners = states.Values
             .Where(candidate => candidate != null
                 && (string.Equals(
@@ -467,6 +487,11 @@ public sealed class CropPlotRuntime :
                     == CropCycleExecutionReceiptStatus.Active)
             {
                 failureReason = "crop-cycle-execution-receipt-active";
+                return false;
+            }
+            if (IsFailedCycleReceipt(state.CycleExecutionReceipt))
+            {
+                failureReason = "crop-cycle-failed-outcome-awaiting-acknowledgement";
                 return false;
             }
             if (state.CycleExecutionReceipt.explicitCorrelation)
@@ -551,6 +576,11 @@ public sealed class CropPlotRuntime :
         CropPlanExecutionReceiptAuthority.Validate(
             owners[0].CycleExecutionReceipt,
             requireCompleted: false);
+        if (owners[0].IrrigationPublication.pending)
+        {
+            failureReason = "crop-cycle-irrigation-publication-pending";
+            return false;
+        }
         if (!ProductionOutputClearanceProfileObservation.IsLowercaseSha256(
                 expectedRuntimeReceiptDigest)
             || !string.Equals(
@@ -568,8 +598,16 @@ public sealed class CropPlotRuntime :
             return false;
         }
 
+        if (IsFailedCycleReceipt(owners[0].CycleExecutionReceipt)
+            && (!TryEnsureFailedOutcomeAcknowledged(
+                    owners[0], out failureReason)
+                || !TryCloseFailedCyclePhysicalOwners(
+                    owners[0], out failureReason)))
+            return false;
+
         owners[0].CycleExecutionReceipt =
             new CropCycleExecutionReceiptSaveData();
+        owners[0].FailedOutcome = new CropFailedOutcomeSaveData();
         MarkChanged(replan: false);
         return true;
     }
@@ -580,8 +618,7 @@ public sealed class CropPlotRuntime :
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         IProductionFacilityMutationEpochQuery facilityMutations,
         IMilestoneGameplayModifierQuery milestoneModifiers = null,
-        ICharacterPerformanceQuery performance = null,
-        IEnvironmentGameplayOutcomeCommitter environmentOutcomes = null)
+        ICharacterPerformanceQuery performance = null)
     {
         world = world ?? throw new ArgumentNullException(nameof(world));
         simulation = simulation ?? throw new ArgumentNullException(nameof(simulation));
@@ -608,6 +645,7 @@ public sealed class CropPlotRuntime :
         facilityCandidates = world.FacilityCandidates;
         workforce = world.Workforce;
         gameClock = simulation.GameClock;
+        calendar = simulation.Calendar;
         research = simulation.ProgressionRuntimes
             .BlueprintResearch
             ?? throw new InvalidOperationException(
@@ -620,8 +658,6 @@ public sealed class CropPlotRuntime :
         storyCatalog = simulation.StoryCatalog;
         extremeTraits = simulation.ExtremeTraits;
         runSeedProvider = simulation.RunSeedProvider;
-        identityEvents = simulation.IdentityEvents;
-        completionDeliveries = simulation.CompletionDeliveries;
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
         this.aggregateRootStore = aggregateRootStore
@@ -630,8 +666,6 @@ public sealed class CropPlotRuntime :
             ?? throw new ArgumentNullException(nameof(facilityMutations));
         this.milestoneModifiers = milestoneModifiers
             ?? NeutralMilestoneGameplayModifierQuery.Instance;
-        this.environmentOutcomes = environmentOutcomes
-            ?? throw new ArgumentNullException(nameof(environmentOutcomes));
     }
 
     public int Version
@@ -745,11 +779,20 @@ public sealed class CropPlotRuntime :
         }
         if (!TryRequireMutable(state.PlotId, out message))
             return false;
+        if (state.CropSelectionOutcome is { IsEmpty: false }
+            && !TryAdvanceCropSelectionOutcome(state))
+        {
+            message = "이전 작물 지정 결과를 원장에 확정하는 중입니다: "
+                + state.CropSelectionOutcome.failureReason;
+            return false;
+        }
 
         if (state.MaterialsConsumed
             || state.PendingSow.phase != CropPhysicalCommitPhase.None
             || state.WaterRefill.phase != CropWaterRefillPhase.None
             || state.Treatment.phase != CropTreatmentOrderPhase.None
+            || state.FailedOutcome != null
+                && !state.FailedOutcome.IsEmpty
             || state.CycleExecutionReceipt != null
                 && !state.CycleExecutionReceipt.IsEmpty
                 && state.CycleExecutionReceipt.explicitCorrelation
@@ -785,12 +828,38 @@ public sealed class CropPlotRuntime :
             return true;
         }
 
+        int selectionSequence = state.NextCropSelectionOperationSequence;
+        string selectionOperationId = CropSelectionOperationPrefix
+            + state.PlotId.Value + ":"
+            + selectionSequence.ToString(
+                "D6",
+                System.Globalization.CultureInfo.InvariantCulture);
+        var pendingSelection = new CropSelectionCommandSaveData
+        {
+            phase = CropCommandOutcomePhase.MutationApplied,
+            operationSequence = selectionSequence, operationId = selectionOperationId,
+            cropBefore = state.CropId, cropAfter = crop.CropId,
+            waterBefore = state.CurrentWater, waterAfter = 0f,
+            completedAbsoluteDay = CurrentAbsoluteDay,
+            plotDisplayName = state.PlotDisplayName, cropDisplayName = crop.DisplayName,
+            locationX = state.LastKnownPosition.x, locationY = state.LastKnownPosition.y
+        };
+        IDomainFactPublisher publisher = RequireDomainFacts();
+        if (!publisher.TryReserve(new CropSelectionChangedFact(state.PlotId, pendingSelection),
+                out DomainFactLease selectionReservation, out string selectionReserveFailure))
+        {
+            message = "작물 지정 결과를 예약할 수 없습니다: " + selectionReserveFailure;
+            return false;
+        }
+        pendingSelection.publicationKey = selectionReservation.PublicationKey;
+
         if (!TryRetireDestination(
                 state,
                 state.MaterialDestinationId,
                 CropPlotInputOwnerAuthority.CropChangedReleaseReasonCode,
                 out string retireFailure))
         {
+            publisher.Cancel(selectionReservation);
             message = "기존 경작지 입력 소유권을 종료할 수 없습니다: "
                 + retireFailure;
             return false;
@@ -815,9 +884,81 @@ public sealed class CropPlotRuntime :
         state.SeasonalYieldDamage =
             new CropSeasonalYieldDamageSaveData();
         state.BlockedReason = string.Empty;
+        state.CropSelectionOutcome = pendingSelection;
         MarkChanged();
-        message = $"{crop.DisplayName} 재배를 지정했습니다.";
+        bool recorded = TryAdvanceCropSelectionOutcome(
+            state,
+            selectionReservation);
+        message = recorded
+            ? $"{crop.DisplayName} 재배를 지정했습니다."
+            : $"{crop.DisplayName} 재배 지정은 적용됐지만 결과 원장 확정이 대기 중입니다: "
+                + state.CropSelectionOutcome.failureReason;
+        return recorded;
+    }
+
+    private bool TryAdvanceCropSelectionOutcome(
+        CropPlotState state, DomainFactLease reserved = default)
+    {
+        CropSelectionCommandSaveData owner = state?.CropSelectionOutcome;
+        if (owner == null || owner.IsEmpty) return true;
+        DomainFactDelivery delivery = DeliverCropCommandFact(reserved, owner.publicationKey,
+            new CropSelectionChangedFact(state.PlotId, owner));
+        if (!ConfirmCropCommandPublication(delivery, owner.publicationKey,
+                owner.gameplayOutcomeId, owner.gameplayOutcomeDigest, out string failure))
+        {
+            owner.failureReason = failure;
+            snapshotsDirty = true;
+            return false;
+        }
+        owner.phase = CropCommandOutcomePhase.LedgerCommitted;
+        owner.gameplayOutcomeId = delivery.PublicationId;
+        owner.gameplayOutcomeDigest = delivery.Fingerprint;
+        if (delivery.Phase != DomainFactDeliveryPhase.Delivered)
+        {
+            owner.failureReason = delivery.Detail;
+            snapshotsDirty = true;
+            return false;
+        }
+        state.NextCropSelectionOperationSequence = checked(owner.operationSequence + 1);
+        state.CropSelectionOutcome = new CropSelectionCommandSaveData();
+        MarkChanged(replan: false);
         return true;
+    }
+
+    private DomainFactDelivery DeliverCropCommandFact<TFact>(
+        in DomainFactLease reservation, string publicationKey, TFact fact)
+    {
+        IDomainFactPublisher publisher = RequireDomainFacts();
+        try
+        {
+            if (reservation.IsValid) return publisher.Publish(reservation, fact);
+            if (publisher is not IDomainFactRecoveryPublisher recovery)
+                throw new InvalidOperationException("Crop command facts require exact-key recovery.");
+            var results = new DomainFactDelivery[1];
+            return recovery.ReplayBatch(new[] { DomainFactReplay.Create(publicationKey, fact) },
+                results, out string failure) ? results[0] : DomainFactDelivery.Reject(failure);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
+        {
+            // The authoritative crop command has already changed state. Retain
+            // its frozen fact/key; an unknown observer ACK never redoes it.
+            return DomainFactDelivery.Uncertain("crop-command-publication-unconfirmed:" + exception.Message);
+        }
+    }
+
+    private static bool ConfirmCropCommandPublication(DomainFactDelivery delivery,
+        string publicationKey, string previousId, string previousFingerprint, out string failure)
+    {
+        bool known = (delivery.Phase is DomainFactDeliveryPhase.Delivered
+                or DomainFactDeliveryPhase.AcceptedPendingDelivery)
+            && delivery.OperationKey == publicationKey
+            && !string.IsNullOrEmpty(delivery.PublicationId)
+            && IsCropCommandFingerprint(delivery.Fingerprint)
+            && (string.IsNullOrEmpty(previousId) || delivery.PublicationId == previousId)
+            && (string.IsNullOrEmpty(previousFingerprint) || delivery.Fingerprint == previousFingerprint);
+        failure = known ? string.Empty : "crop-command-unconfirmed:" + delivery.Detail;
+        return known;
     }
 
     public bool CanScheduleTreatment(
@@ -901,6 +1042,8 @@ public sealed class CropPlotRuntime :
         CropTreatmentOrderSaveData treatment = new()
         {
             phase = CropTreatmentOrderPhase.WaitingForDelivery,
+            outcomeSchemaVersion =
+                CropTreatmentOrderSaveData.CurrentOutcomeSchemaVersion,
             operationSequence = sequence,
             operationId = CropTreatmentPhysicalOutbox.FormatOperationId(
                 state.PlotId.Value,
@@ -948,6 +1091,7 @@ public sealed class CropPlotRuntime :
         }
         if (state.Treatment.phase is CropTreatmentOrderPhase.InputCommitted
                 or CropTreatmentOrderPhase.OutcomePublished
+                or CropTreatmentOrderPhase.LedgerCommitted
                 or CropTreatmentOrderPhase.PlotDestroyedLossPending)
         {
             message = "이미 물리 소비가 확정된 처리는 취소할 수 없습니다.";
@@ -1037,7 +1181,9 @@ public sealed class CropPlotRuntime :
                         ? "예약된 작물 처리 작업을 먼저 완료하거나 취소해야 합니다."
                     : phaseAvailable && !outputAvailable
                         ? "동결된 수확 출력이 시설 버퍼 공간을 기다리고 있습니다."
-                        : ResolveUnavailableReason(state));
+                        : ResolveUnavailableReason(state),
+                state.NextHarvestOperationSequence,
+                state.PendingHarvest.phase != CropHarvestOutputPhase.None);
             return true;
         }
 
@@ -1119,9 +1265,15 @@ public sealed class CropPlotRuntime :
             if (!TryRequireMutable(state.PlotId, out _))
                 return false;
             state.Phase = CropPlotPhase.Sowing;
+            float sowBefore = state.SowWork;
             state.SowWork = Mathf.Min(
                 crop.SowWork,
                 state.SowWork + amount);
+            RecordCycleContribution(
+                state,
+                worker,
+                Mathf.Max(0f, state.SowWork - sowBefore),
+                harvest: false);
             if (state.SowWork + 0.001f >= crop.SowWork)
             {
                 state.SowWork = crop.SowWork;
@@ -1146,9 +1298,15 @@ public sealed class CropPlotRuntime :
             if (!TryRequireMutable(state.PlotId, out _))
                 return false;
             state.Phase = CropPlotPhase.Harvesting;
+            float harvestBefore = state.HarvestWork;
             state.HarvestWork = Mathf.Min(
                 crop.HarvestWork,
                 state.HarvestWork + amount);
+            RecordCycleContribution(
+                state,
+                worker,
+                Mathf.Max(0f, state.HarvestWork - harvestBefore),
+                harvest: true);
             if (state.HarvestWork + 0.001f >= crop.HarvestWork)
             {
                 state.HarvestWork = crop.HarvestWork;
@@ -1176,9 +1334,16 @@ public sealed class CropPlotRuntime :
             if (!TryRequireMutable(state.PlotId, out _))
                 return false;
             state.Treatment.phase = CropTreatmentOrderPhase.Working;
+            float treatmentBefore = state.Treatment.completedWork;
             state.Treatment.completedWork = Mathf.Min(
                 state.Treatment.requiredWork,
                 state.Treatment.completedWork + amount);
+            RecordTreatmentContribution(
+                state.Treatment,
+                worker,
+                Mathf.Max(
+                    0f,
+                    state.Treatment.completedWork - treatmentBefore));
             if (state.Treatment.completedWork + 0.001f
                 >= state.Treatment.requiredWork)
             {
@@ -1210,9 +1375,16 @@ public sealed class CropPlotRuntime :
             if (!TryRequireMutable(state.PlotId, out _))
                 return false;
             state.WaterRefill.phase = CropWaterRefillPhase.Working;
+            float refillWorkBefore = state.WaterRefill.completedWork;
             state.WaterRefill.completedWork = Mathf.Min(
                 state.WaterRefill.requiredWork,
                 state.WaterRefill.completedWork + amount);
+            RecordWaterRefillContribution(
+                state.WaterRefill,
+                worker,
+                Mathf.Max(
+                    0f,
+                    state.WaterRefill.completedWork - refillWorkBefore));
             if (state.WaterRefill.completedWork + 0.001f
                 >= state.WaterRefill.requiredWork)
             {
@@ -1339,10 +1511,7 @@ public sealed class CropPlotRuntime :
             extremeSeedMultiplier,
             IsOperational(ResearchFacilityCommandKind.SeedSelection));
         string harvesterId = worker?.Identity?.PersistentId ?? string.Empty;
-        int completionAbsoluteDay = Mathf.Max(
-            0,
-            Mathf.FloorToInt(
-                gameClock.Time / GameCalendarRules.SecondsPerDay));
+        int completionAbsoluteDay = calendar.Day;
         string harvestLineId = CropHarvestOutputMaximumAuthority
             .HarvestOutputLineId(crop.CropId);
         string seedLineId = CropHarvestOutputMaximumAuthority
@@ -1369,6 +1538,8 @@ public sealed class CropPlotRuntime :
                 ? golden.Resolution.Outcome.ToString().ToLowerInvariant()
                 : "normal",
             ecologyOutcomeFingerprint = ecologyPrepared.OutcomeFingerprint,
+            ecologyBeforeFingerprint = ecologyPrepared.PlotBeforeFingerprint,
+            ecologyAfterFingerprint = ecologyPrepared.PlotAfterFingerprint,
             goldenPrepared = goldenPrepared,
             goldenTraitDefinitionId = goldenPrepared
                 ? golden.TraitDefinitionId
@@ -1420,15 +1591,6 @@ public sealed class CropPlotRuntime :
                 seedCapability),
             outputPublication = new ProductionDomainOutputPublicationSaveData()
         };
-        if (!string.IsNullOrEmpty(harvesterId))
-        {
-            pending.completionDeliveryId = HarvestCompletionDeliveryPrefix
-                + operationId;
-            WorkCompletionIdentityDeliveryRequest completion =
-                CreateHarvestCompletionDelivery(state.PlotId, pending);
-            pending.completionDeliveryFingerprint =
-                completion.PayloadFingerprint;
-        }
         if (pending.harvestQuantity > pending.maximumHarvestQuantity
             || pending.seedQuantity > pending.maximumSeedQuantity)
             throw new InvalidOperationException(
@@ -1528,26 +1690,41 @@ public sealed class CropPlotRuntime :
         }
         pending.phase = CropHarvestOutputPhase
             .OutputRestoredAwaitingFinalization;
+        // The crop terminal is the authority for the completion reaction. Keep
+        // the pending owner until both child and identity are durably applied;
+        // a deferred identity retries this same child without publishing output.
+        if (pending.terminalReceipt == null)
+            throw new InvalidOperationException("Crop terminal snapshot is missing.");
+        if (pending.terminalReceipt.IsEmpty)
+        {
+            pending.terminalReceipt = CropPlanExecutionReceiptAuthority.Complete(
+                state.CycleExecutionReceipt, pending, state.CurrentWater);
+            pending.terminalPlotDisplayName = RequirePlotDisplayName(state.Building);
+            pending.terminalCropDisplayName = crop.DisplayName?.Trim() ?? string.Empty;
+        }
+        CropCycleExecutionReceiptSaveData terminalReceipt = pending.terminalReceipt;
+        CropCycleTerminalFact terminalFact = new(state.PlotId, terminalReceipt,
+            pending.terminalPlotDisplayName, pending.terminalCropDisplayName,
+            pending.completionAbsoluteDay, checked((long)pending.operationSequence + 1L));
+        if (!TryDeliverCropFact(terminalFact,
+                ref pending.terminalPublicationKey, ref pending.terminalPublicationId,
+                ref pending.terminalPublicationFingerprint, out string outcomeFailure))
+        {
+            state.BlockedReason = outcomeFailure;
+            return;
+        }
+        pending.cropOutcomeAcknowledged = true;
         if (!pending.completionEventPublished)
         {
             if (!string.IsNullOrEmpty(pending.harvesterId))
             {
-                if (completionDeliveries == null)
-                    throw new InvalidOperationException(
-                        "Crop harvest has no durable completion delivery command.");
-                WorkCompletionIdentityDeliveryResult delivery =
-                    completionDeliveries.EnsureApplied(
-                        CreateHarvestCompletionDelivery(state.PlotId, pending));
-                if (delivery.Status ==
-                    WorkCompletionIdentityDeliveryStatus.Deferred)
+                var completionFact = new CropHarvestCompletedFact(state.PlotId, pending, state.CycleExecutionReceipt);
+                if (!TryDeliverCropFact(completionFact, ref pending.completionPublicationKey,
+                    ref pending.completionDeliveryId, ref pending.completionDeliveryFingerprint, out string failure))
                 {
-                    state.BlockedReason = delivery.FailureReason;
+                    state.BlockedReason = failure;
                     return;
                 }
-                if (!delivery.IsApplied)
-                    throw new InvalidOperationException(
-                        "Crop harvest completion delivery conflicted: "
-                        + delivery.FailureReason);
             }
             pending.completionEventPublished = true;
         }
@@ -1569,44 +1746,6 @@ public sealed class CropPlotRuntime :
                     "Crop harvest Golden Harvest receipt acknowledgement failed.");
             pending.goldenAcknowledged = true;
         }
-        CropCycleExecutionReceiptSaveData terminalReceipt =
-            CropPlanExecutionReceiptAuthority.Complete(
-            state.CycleExecutionReceipt,
-            pending);
-        CropPlanExecutionReceipt projectedReceipt =
-            CropPlanExecutionReceiptAuthority.ProjectTerminal(
-                terminalReceipt.correlationId,
-                terminalReceipt);
-        string plotDisplayName = state.Building?.BuildingData?.objectName?.Trim()
-            ?? string.Empty;
-        if (plotDisplayName.Length == 0)
-            throw new InvalidOperationException(
-                "Crop terminal outcome requires an immutable plot display snapshot.");
-        string cropDisplayName = crop.DisplayName?.Trim() ?? string.Empty;
-        if (cropDisplayName.Length == 0
-            || string.Equals(
-                cropDisplayName,
-                crop.CropId,
-                StringComparison.Ordinal))
-            throw new InvalidOperationException(
-                "Crop terminal outcome requires an authored crop display snapshot.");
-        long cropOutcomeRevision = checked((long)pending.operationSequence + 1L);
-        CropPlanGameplayOutcomeReceipt gameplayReceipt =
-            EnvironmentOutcomeReceiptFactory.CreateCropPlan(
-                projectedReceipt,
-                state.PlotId,
-                plotDisplayName,
-                cropDisplayName,
-                pending.completionAbsoluteDay,
-                cropOutcomeRevision);
-        if (!TryEnsureCropOutcomeAcknowledged(
-                gameplayReceipt,
-                cropOutcomeRevision,
-                out string outcomeFailure))
-        {
-            state.BlockedReason = outcomeFailure;
-            return;
-        }
         int nextHarvestSequence = checked(state.NextHarvestOperationSequence + 1);
         if (!TryResetForNextCycle(state, out string resetFailure))
         {
@@ -1622,48 +1761,312 @@ public sealed class CropPlotRuntime :
         cycleCompleted = true;
     }
 
-    private bool TryEnsureCropOutcomeAcknowledged(
-        in CropPlanGameplayOutcomeReceipt receipt,
-        long ownerRevision,
+    private bool TryDeliverCropFact<TFact>(TFact fact,
+        ref string publicationKey, ref string publicationId, ref string fingerprint,
         out string failureReason)
     {
-        if (environmentOutcomes.TryPrepare(
-                receipt,
-                out PreparedEnvironmentOutcome prepared,
-                out string prepareFailure))
+        DomainFactLease reservation = default;
+        try
         {
-            EnvironmentOutcomeCommitResult committed = environmentOutcomes.Commit(
-                prepared,
-                ownerRevision);
-            if (committed.CanClearOwnerPending)
+            if (string.IsNullOrEmpty(publicationKey))
             {
-                failureReason = string.Empty;
-                return true;
+                if (!RequireDomainFacts().TryReserve(fact, out reservation, out failureReason))
+                    return false;
+                publicationKey = reservation.PublicationKey;
             }
-            EnvironmentOutcomeCommitResult reconciled = environmentOutcomes.Reconcile(
-                receipt.Payload.ResultKey);
-            if (reconciled.CanClearOwnerPending)
-            {
-                failureReason = string.Empty;
+            DomainFactDelivery delivery = DeliverCropCommandFact(reservation, publicationKey, fact);
+            reservation = default;
+            if (!ConfirmCropCommandPublication(delivery, publicationKey, publicationId, fingerprint, out failureReason))
+                return false;
+            publicationId = delivery.PublicationId;
+            fingerprint = delivery.Fingerprint;
+            if (delivery.Phase == DomainFactDeliveryPhase.Delivered)
                 return true;
-            }
-            failureReason = string.IsNullOrWhiteSpace(committed.DetailCode)
-                ? "crop-outcome-awaiting-canonical-acknowledgement"
-                : committed.DetailCode;
+            failureReason = delivery.Detail;
             return false;
         }
-
-        if (environmentOutcomes.IsCanonicalAcknowledgedReplay(
-                receipt,
-                out string replayFailure))
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
         {
-            failureReason = string.Empty;
-            return true;
+            if (reservation.IsValid) RequireDomainFacts().Cancel(reservation);
+            failureReason = "crop-fact-publication-unconfirmed:" + exception.Message;
+            return false;
         }
-        failureReason = string.IsNullOrWhiteSpace(replayFailure)
-            ? prepareFailure
-            : replayFailure;
-        return false;
+        finally { snapshotsDirty = true; }
+    }
+
+    private static void RecordCycleContribution(
+        CropPlotState state,
+        CharacterActor worker,
+        float acceptedWork,
+        bool harvest)
+    {
+        if (acceptedWork <= 0f || state?.CycleExecutionReceipt == null)
+            return;
+        string characterId = worker?.Identity?.PersistentId?.Trim()
+            ?? string.Empty;
+        if (characterId.Length == 0)
+            return;
+        if (state.CycleExecutionReceipt.IsEmpty
+            || state.CycleExecutionReceipt.status
+                != CropCycleExecutionReceiptStatus.Active)
+        {
+            throw new InvalidOperationException(
+                "Crop work contribution has no active cycle receipt.");
+        }
+        state.CycleExecutionReceipt = CropPlanExecutionReceiptAuthority
+            .RecordContribution(
+                state.CycleExecutionReceipt,
+                characterId,
+                acceptedWork,
+                harvest);
+    }
+
+    private static void RecordTreatmentContribution(
+        CropTreatmentOrderSaveData treatment,
+        CharacterActor worker,
+        float acceptedWork)
+    {
+        if (acceptedWork <= 0f || treatment == null)
+            return;
+        string characterId = worker?.Identity?.PersistentId?.Trim()
+            ?? string.Empty;
+        string displayName = worker?.Identity?.DisplayName?.Trim()
+            ?? string.Empty;
+        if (characterId.Length == 0 || displayName.Length == 0)
+            return;
+        treatment.workContributions ??= new List<CraftContributionSaveData>();
+        CraftContributionSaveData contribution =
+            treatment.workContributions.FirstOrDefault(value => value != null
+                && string.Equals(
+                    value.characterId,
+                    characterId,
+                    StringComparison.Ordinal));
+        if (contribution == null)
+        {
+            contribution = new CraftContributionSaveData
+            {
+                characterId = characterId
+            };
+            treatment.workContributions.Add(contribution);
+        }
+        contribution.contributedWork += acceptedWork;
+        treatment.workContributions.Sort((left, right) =>
+            string.CompareOrdinal(left?.characterId, right?.characterId));
+        treatment.responsibleWorkerId = characterId;
+        treatment.responsibleWorkerDisplayName = displayName;
+    }
+
+    private static void RecordWaterRefillContribution(
+        CropWaterRefillSaveData refill,
+        CharacterActor worker,
+        float acceptedWork)
+    {
+        if (acceptedWork <= 0f || refill == null)
+            return;
+        string characterId = worker?.Identity?.PersistentId?.Trim()
+            ?? string.Empty;
+        string displayName = worker?.Identity?.DisplayName?.Trim()
+            ?? string.Empty;
+        if (characterId.Length == 0 || displayName.Length == 0)
+            return;
+        refill.workContributions ??= new List<CraftContributionSaveData>();
+        CraftContributionSaveData contribution = refill.workContributions
+            .FirstOrDefault(value => value != null
+                && string.Equals(
+                    value.characterId,
+                    characterId,
+                    StringComparison.Ordinal));
+        if (contribution == null)
+        {
+            contribution = new CraftContributionSaveData
+            {
+                characterId = characterId
+            };
+            refill.workContributions.Add(contribution);
+        }
+        contribution.contributedWork += acceptedWork;
+        refill.workContributions.Sort((left, right) =>
+            string.CompareOrdinal(left?.characterId, right?.characterId));
+        refill.responsibleWorkerId = characterId;
+        refill.responsibleWorkerDisplayName = displayName;
+    }
+
+    private static bool IsFailedCycleReceipt(
+        CropCycleExecutionReceiptSaveData receipt) => receipt != null
+        && receipt.status is CropCycleExecutionReceiptStatus.FailedCropDeath
+            or CropCycleExecutionReceiptStatus.FailedPlotDestroyed;
+
+    private static string RequirePlotDisplayName(BuildableObject building)
+    {
+        string name = building?.BuildingData?.objectName?.Trim()
+            ?? string.Empty;
+        if (name.Length == 0)
+            throw new InvalidOperationException(
+                "Crop terminal outcome requires an immutable plot display snapshot.");
+        return name;
+    }
+
+    private void FreezeFailedOutcome(CropPlotState state, int absoluteDay)
+    {
+        CropCycleExecutionReceiptSaveData terminal =
+            state?.CycleExecutionReceipt;
+        if (!IsFailedCycleReceipt(terminal))
+            throw new InvalidOperationException(
+                "A crop failure outcome requires a failed execution receipt.");
+        if (state.FailedOutcome != null && !state.FailedOutcome.IsEmpty)
+        {
+            if (!string.Equals(
+                    state.FailedOutcome.receiptDigest,
+                    terminal.sourceDigest,
+                    StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "Crop failure outcome snapshot drifted from its receipt.");
+            return;
+        }
+        if (!catalog.TryGetCrop(state.CropId, out CropDefinitionSO crop))
+            throw new InvalidOperationException(
+                "Crop failure outcome references unknown crop content.");
+        string plotName = state.PlotDisplayName?.Trim() ?? string.Empty;
+        string cropName = crop.DisplayName?.Trim() ?? string.Empty;
+        if (plotName.Length == 0 || cropName.Length == 0
+            || string.Equals(cropName, crop.CropId, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Crop failure outcome lacks an authored display snapshot.");
+        state.FailedOutcome = new CropFailedOutcomeSaveData
+        {
+            receiptDigest = terminal.sourceDigest,
+            plotDisplayName = plotName,
+            cropDisplayName = cropName,
+            absoluteDay = Math.Max(0, absoluteDay),
+            ownerRevision = checked((long)state.NextHarvestOperationSequence + 1L)
+        };
+    }
+
+    private bool TryEnsureFailedOutcomeAcknowledged(
+        CropPlotState state,
+        out string failureReason)
+    {
+        if (state?.IrrigationPublication.pending == true)
+        {
+            failureReason = "crop-failed-cycle-irrigation-publication-pending";
+            return false;
+        }
+        CropCycleExecutionReceiptSaveData terminal =
+            state?.CycleExecutionReceipt;
+        CropFailedOutcomeSaveData frozen = state?.FailedOutcome;
+        if (!IsFailedCycleReceipt(terminal)
+            || frozen == null
+            || frozen.IsEmpty
+            || !string.Equals(
+                frozen.receiptDigest,
+                terminal.sourceDigest,
+                StringComparison.Ordinal))
+        {
+            failureReason = "crop-failed-outcome-snapshot-invalid";
+            return false;
+        }
+        CropCycleTerminalFact fact = new(state.PlotId, terminal,
+            frozen.plotDisplayName, frozen.cropDisplayName, frozen.absoluteDay, frozen.ownerRevision);
+        return TryDeliverCropFact(fact, ref frozen.publicationKey,
+            ref frozen.publicationId, ref frozen.publicationFingerprint, out failureReason);
+    }
+
+    private bool TryCloseFailedCyclePhysicalOwners(
+        CropPlotState state,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (state.IrrigationPublication.pending)
+        {
+            failureReason = "crop-failed-cycle-irrigation-publication-pending";
+            return false;
+        }
+        if (state.PendingHarvest.phase != CropHarvestOutputPhase.None
+            || state.PendingSow.phase != CropPhysicalCommitPhase.None)
+        {
+            failureReason = "crop-failed-cycle-physical-child-pending";
+            return false;
+        }
+        if (!state.MaterialsConsumed
+            && state.CurrentWater == 0f
+            && state.Phase == CropPlotPhase.Blocked
+            && state.WaterRefill.phase == CropWaterRefillPhase.None
+            && state.Treatment.phase == CropTreatmentOrderPhase.None
+            && state.FrozenSowInputOperationSequence < 0)
+            return true;
+        if (!TryRetireInactiveWaterRefill(state))
+        {
+            failureReason = "crop-failed-cycle-water-refill-pending";
+            return false;
+        }
+        CropTreatmentOrderSaveData treatment = state.Treatment;
+        if (treatment.phase is CropTreatmentOrderPhase.OutcomePublished
+                or CropTreatmentOrderPhase.LedgerCommitted)
+            TryFinalizeTreatment(state);
+        else if (treatment.phase is CropTreatmentOrderPhase.WaitingForDelivery
+                or CropTreatmentOrderPhase.ReadyForWork
+                or CropTreatmentOrderPhase.Working)
+        {
+            if (!TryRetireDestination(
+                    state,
+                    treatment.destinationId,
+                    CropPlotInputOwnerAuthority.TreatmentCancelledReleaseReasonCode,
+                    out failureReason))
+                return false;
+            CropTreatmentPhysicalOutbox.Clear(treatment);
+        }
+        if (treatment.phase != CropTreatmentOrderPhase.None)
+        {
+            failureReason = "crop-failed-cycle-treatment-child-pending";
+            return false;
+        }
+        string releaseReason = state.Building == null
+            || state.Building.isDestroy
+            ? CropPlotInputOwnerAuthority.PlotLostReleaseReasonCode
+            : CropPlotInputOwnerAuthority.SowCompletedReleaseReasonCode;
+        if (!TryRetireDestination(
+                state,
+                state.MaterialDestinationId,
+                releaseReason,
+                out failureReason))
+            return false;
+        state.MaterialsConsumed = false;
+        state.CurrentWater = 0f;
+        state.Phase = CropPlotPhase.Blocked;
+        state.SeasonalYieldDamage = new CropSeasonalYieldDamageSaveData();
+        ClearFrozenSowInputs(state);
+        MarkChanged(replan: false);
+        return true;
+    }
+
+    private bool TryAdvanceFailedCycle(CropPlotState state)
+    {
+        if (!TryEnsureFailedOutcomeAcknowledged(
+                state, out string outcomeFailure))
+        {
+            state.BlockedReason = outcomeFailure;
+            snapshotsDirty = true;
+            return false;
+        }
+        if (!TryCloseFailedCyclePhysicalOwners(
+                state, out string cleanupFailure))
+        {
+            state.BlockedReason = cleanupFailure;
+            snapshotsDirty = true;
+            return false;
+        }
+        if (state.CycleExecutionReceipt.explicitCorrelation)
+        {
+            state.BlockedReason =
+                "crop-cycle-execution-receipt-awaiting-acknowledgement";
+            snapshotsDirty = true;
+            return false;
+        }
+        state.CycleExecutionReceipt = new CropCycleExecutionReceiptSaveData();
+        state.FailedOutcome = new CropFailedOutcomeSaveData();
+        MarkChanged(replan: false);
+        return true;
     }
 
     private static ProductionDomainOutputPublicationPlan CreateHarvestOutputPlan(
@@ -1719,7 +2122,7 @@ public sealed class CropPlotRuntime :
         CropHarvestOutputSaveData pending)
     {
         CanonicalSemanticDigestBuilder digest = new();
-        digest.Append("crop-harvest-frozen-output@2");
+        digest.Append("crop-harvest-frozen-output@3");
         digest.Append(pending.operationId);
         digest.Append(plotId.Value);
         digest.Append(pending.cropId);
@@ -1727,7 +2130,16 @@ public sealed class CropPlotRuntime :
         digest.Append(pending.harvesterId);
         digest.Append(pending.outcomeId);
         digest.Append(pending.ecologyOutcomeFingerprint);
+        digest.Append(pending.ecologyBeforeFingerprint);
+        digest.Append(pending.ecologyAfterFingerprint);
+        digest.Append(pending.goldenPrepared);
+        digest.Append(pending.goldenTraitDefinitionId);
         digest.Append(pending.goldenOutcomeFingerprint);
+        digest.Append((int)pending.goldenOutcome);
+        digest.AppendFloat(pending.goldenPrimaryMultiplier);
+        digest.AppendFloat(pending.goldenSecondaryMultiplier);
+        digest.Append(pending.goldenRollHash.ToString(
+            System.Globalization.CultureInfo.InvariantCulture));
         digest.Append(pending.harvestItemId);
         digest.Append(pending.harvestQuantity);
         digest.Append(pending.seasonalDamageSourceEventInstanceId);
@@ -1848,6 +2260,37 @@ public sealed class CropPlotRuntime :
             failureReason = "저장 가능한 작업자 ID가 필요합니다.";
             return false;
         }
+        int scheduleSequence = state.GoldenHarvestAttemptSequence;
+        string operationId = GoldenHarvestScheduleOperationPrefix
+            + state.PlotId.Value + ":"
+            + scheduleSequence.ToString(
+                "D6",
+                System.Globalization.CultureInfo.InvariantCulture);
+        if (!catalog.TryGetCrop(state.CropId, out CropDefinitionSO crop))
+        {
+            failureReason = "golden-harvest-crop-definition-missing";
+            return false;
+        }
+        var pendingSchedule = new CropGoldenHarvestScheduleSaveData
+        {
+            phase = CropCommandOutcomePhase.MutationApplied,
+            operationSequence = scheduleSequence, operationId = operationId,
+            cropId = state.CropId, harvesterId = harvesterId,
+            harvesterDisplayName = harvester.Identity.DisplayName,
+            harvesterBefore = string.Empty, harvesterAfter = harvesterId,
+            attemptBefore = scheduleSequence, attemptAfter = checked(scheduleSequence + 1),
+            completedAbsoluteDay = CurrentAbsoluteDay,
+            plotDisplayName = state.PlotDisplayName, cropDisplayName = crop.DisplayName,
+            locationX = state.LastKnownPosition.x, locationY = state.LastKnownPosition.y
+        };
+        IDomainFactPublisher publisher = RequireDomainFacts();
+        if (!publisher.TryReserve(new GoldenHarvestScheduledFact(state.PlotId, pendingSchedule),
+                out DomainFactLease reserved, out string reserveFailure))
+        {
+            failureReason = "황금 수확 예약 결과를 예약할 수 없습니다: " + reserveFailure;
+            return false;
+        }
+        pendingSchedule.publicationKey = reserved.PublicationKey;
         if (extremeTraits == null
             || !extremeTraits.TryScheduleGoldenHarvest(
                 harvester,
@@ -1855,14 +2298,48 @@ public sealed class CropPlotRuntime :
                 state.GoldenHarvestAttemptSequence,
                 gameClock.Time))
         {
+            publisher.Cancel(reserved);
             failureReason = "황금 수확을 예약할 수 없습니다.";
             return false;
         }
         state.GoldenHarvestHarvesterId = harvesterId;
         state.GoldenHarvestAttemptSequence = checked(
             state.GoldenHarvestAttemptSequence + 1);
+        state.GoldenHarvestScheduleOutcome = pendingSchedule;
         MarkChanged();
-        failureReason = $"{harvester.Identity.DisplayName}에게 황금 수확을 예약했습니다.";
+        bool recorded = TryAdvanceGoldenHarvestScheduleOutcome(state, reserved);
+        failureReason = recorded
+            ? $"{harvester.Identity.DisplayName}에게 황금 수확을 예약했습니다."
+            : "황금 수확 예약은 적용됐지만 결과 원장 확정이 대기 중입니다: "
+                + state.GoldenHarvestScheduleOutcome.failureReason;
+        return recorded;
+    }
+
+    private bool TryAdvanceGoldenHarvestScheduleOutcome(
+        CropPlotState state, DomainFactLease reserved = default)
+    {
+        CropGoldenHarvestScheduleSaveData owner = state?.GoldenHarvestScheduleOutcome;
+        if (owner == null || owner.IsEmpty) return true;
+        DomainFactDelivery delivery = DeliverCropCommandFact(reserved, owner.publicationKey,
+            new GoldenHarvestScheduledFact(state.PlotId, owner));
+        if (!ConfirmCropCommandPublication(delivery, owner.publicationKey,
+                owner.gameplayOutcomeId, owner.gameplayOutcomeDigest, out string failure))
+        {
+            owner.failureReason = failure;
+            snapshotsDirty = true;
+            return false;
+        }
+        owner.phase = CropCommandOutcomePhase.LedgerCommitted;
+        owner.gameplayOutcomeId = delivery.PublicationId;
+        owner.gameplayOutcomeDigest = delivery.Fingerprint;
+        if (delivery.Phase != DomainFactDeliveryPhase.Delivered)
+        {
+            owner.failureReason = delivery.Detail;
+            snapshotsDirty = true;
+            return false;
+        }
+        state.GoldenHarvestScheduleOutcome = new CropGoldenHarvestScheduleSaveData();
+        MarkChanged(replan: false);
         return true;
     }
 
@@ -1902,42 +2379,6 @@ public sealed class CropPlotRuntime :
                 out remainingSeconds);
     }
 
-    public static WorkCompletionIdentityDeliveryRequest
-        CreateHarvestCompletionDelivery(
-            BuildingInstanceId plotId,
-            CropHarvestOutputSaveData pending)
-    {
-        if (!plotId.IsValid
-            || pending == null
-            || string.IsNullOrWhiteSpace(pending.harvesterId)
-            || string.IsNullOrWhiteSpace(pending.operationId)
-            || string.IsNullOrWhiteSpace(pending.outcomeId))
-            throw new InvalidOperationException(
-                "Crop harvest completion provenance is incomplete.");
-        CharacterId character = new(pending.harvesterId);
-        WorkCompletionIdentityDeliveryRequest request = new(
-            HarvestCompletionDeliveryPrefix + pending.operationId,
-            HarvestCompletionStreamPrefix + plotId.Value,
-            pending.operationSequence,
-            character,
-            BuiltInWorkTypeIds.Harvest.Value,
-            plotId.Value + ":" + pending.outcomeId,
-            CharacterCommandOrigin.Autonomous,
-            pending.completionAbsoluteDay);
-        if (!string.IsNullOrEmpty(pending.completionDeliveryId)
-            && !string.Equals(
-                pending.completionDeliveryId,
-                request.DeliveryId,
-                StringComparison.Ordinal)
-            || !string.IsNullOrEmpty(pending.completionDeliveryFingerprint)
-            && !string.Equals(
-                pending.completionDeliveryFingerprint,
-                request.PayloadFingerprint,
-                StringComparison.Ordinal))
-            throw new InvalidOperationException(
-                "Crop harvest completion delivery provenance drifted.");
-        return request;
-    }
 
     public DungeonCropPlotSaveData Capture()
     {
@@ -1960,9 +2401,14 @@ public sealed class CropPlotRuntime :
             data.plots.Add(new CropPlotSaveData
             {
                 buildingInstanceId = state.PlotId.Value,
+                plotDisplayName = state.PlotDisplayName,
                 lastKnownGridX = state.LastKnownPosition.x,
                 lastKnownGridY = state.LastKnownPosition.y,
                 cropId = state.CropId,
+                retirementPublicationKey = state.RetirementPublicationKey,
+                nextCropSelectionOperationSequence =
+                    state.NextCropSelectionOperationSequence,
+                cropSelectionOutcome = state.CropSelectionOutcome.DeepClone(),
                 phase = state.Phase,
                 sowWork = state.SowWork,
                 growthHours = state.GrowthHours,
@@ -1987,15 +2433,19 @@ public sealed class CropPlotRuntime :
                     .ToList(),
                 goldenHarvestHarvesterId = state.GoldenHarvestHarvesterId,
                 goldenHarvestAttemptSequence = state.GoldenHarvestAttemptSequence,
+                goldenHarvestScheduleOutcome =
+                    state.GoldenHarvestScheduleOutcome.DeepClone(),
                 nextSowOperationSequence = state.NextSowOperationSequence,
                 pendingSow = state.PendingSow.DeepClone(),
                 pendingCycleCorrelationId =
                     state.PendingCycleCorrelationId,
                 cycleExecutionReceipt = state.CycleExecutionReceipt.DeepClone(),
+                failedOutcome = state.FailedOutcome.DeepClone(),
                 currentWater = state.CurrentWater,
                 waterCapacity = state.WaterCapacity,
                 nextWaterRefillOperationSequence =
                     state.NextWaterRefillOperationSequence,
+                irrigationPublication = state.IrrigationPublication.DeepClone(),
                 waterRefill = state.WaterRefill.DeepClone(),
                 nextTreatmentOperationSequence =
                     state.NextTreatmentOperationSequence,
@@ -2051,10 +2501,17 @@ public sealed class CropPlotRuntime :
             restored.States.Add(plotId, new CropPlotState
             {
                 PlotId = plotId,
+                PlotDisplayName = saved.plotDisplayName ?? string.Empty,
+                RetirementPublicationKey = saved.retirementPublicationKey,
                 LastKnownPosition = new Vector2Int(
                     saved.lastKnownGridX,
                     saved.lastKnownGridY),
                 CropId = crop.CropId,
+                NextCropSelectionOperationSequence = Math.Max(
+                    0,
+                    saved.nextCropSelectionOperationSequence),
+                CropSelectionOutcome = saved.cropSelectionOutcome?.DeepClone()
+                    ?? new CropSelectionCommandSaveData(),
                 Phase = saved.phase,
                 SowWork = saved.sowWork,
                 GrowthHours = saved.growthHours,
@@ -2083,16 +2540,22 @@ public sealed class CropPlotRuntime :
                 GoldenHarvestAttemptSequence = Math.Max(
                     0,
                     saved.goldenHarvestAttemptSequence),
+                GoldenHarvestScheduleOutcome = saved
+                    .goldenHarvestScheduleOutcome?.DeepClone()
+                    ?? new CropGoldenHarvestScheduleSaveData(),
                 NextSowOperationSequence = saved.nextSowOperationSequence,
                 PendingSow = saved.pendingSow.DeepClone(),
                 PendingCycleCorrelationId =
                     saved.pendingCycleCorrelationId ?? string.Empty,
                 CycleExecutionReceipt =
                     saved.cycleExecutionReceipt.DeepClone(),
+                FailedOutcome = saved.failedOutcome?.DeepClone()
+                    ?? new CropFailedOutcomeSaveData(),
                 CurrentWater = saved.currentWater,
                 WaterCapacity = saved.waterCapacity,
                 NextWaterRefillOperationSequence =
                     saved.nextWaterRefillOperationSequence,
+                IrrigationPublication = saved.irrigationPublication.DeepClone(),
                 WaterRefill = saved.waterRefill.DeepClone(),
                 NextTreatmentOperationSequence =
                     saved.nextTreatmentOperationSequence,
@@ -2129,6 +2592,17 @@ public sealed class CropPlotRuntime :
             return;
         }
 
+        if (!TryAdvanceIrrigationPublication(state)
+            || !TryAdvanceCropSelectionOutcome(state)
+            || !TryAdvanceGoldenHarvestScheduleOutcome(state))
+            return;
+
+        if (IsFailedCycleReceipt(state.CycleExecutionReceipt))
+        {
+            TryAdvanceFailedCycle(state);
+            return;
+        }
+
         if (state.PendingSow.phase == CropPhysicalCommitPhase.OutcomePublished)
         {
             FinalizePublishedSow(state);
@@ -2137,7 +2611,8 @@ public sealed class CropPlotRuntime :
         }
 
         if (state.WaterRefill.phase is CropWaterRefillPhase.InputCommitted
-                or CropWaterRefillPhase.OutcomePublished)
+                or CropWaterRefillPhase.OutcomePublished
+                or CropWaterRefillPhase.LedgerCommitted)
         {
             TryFinalizeWaterRefill(state);
             if (state.WaterRefill.phase != CropWaterRefillPhase.None)
@@ -2147,6 +2622,7 @@ public sealed class CropPlotRuntime :
         if (state.Treatment.phase is CropTreatmentOrderPhase.Working
                 or CropTreatmentOrderPhase.InputCommitted
                 or CropTreatmentOrderPhase.OutcomePublished
+                or CropTreatmentOrderPhase.LedgerCommitted
             && (state.Treatment.phase != CropTreatmentOrderPhase.Working
                 || state.Treatment.completedWork + 0.001f
                     >= state.Treatment.requiredWork))
@@ -2302,6 +2778,8 @@ public sealed class CropPlotRuntime :
                 BeginWaterRefill(state);
             }
         }
+        if (state.IrrigationPublication.pending)
+            return;
         TickWaterRefillDelivery(state, requestMaterials);
 
         float waterGrowthMultiplier = CropWaterRules.ResolveGrowthMultiplier(
@@ -2562,13 +3040,6 @@ public sealed class CropPlotRuntime :
         if (state.CycleExecutionReceipt == null
             || state.CycleExecutionReceipt.IsEmpty)
         {
-            state.CycleExecutionReceipt =
-                CropPlanExecutionReceiptAuthority.Begin(
-                    correlationId,
-                    explicitCorrelation,
-                    state.PlotId.Value,
-                    state.Ability.Indoor,
-                    state.PendingSow);
             int committedWater = (state.PendingSow.inputs
                     ?? new List<CropPhysicalInputSaveData>())
                 .Where(input => input != null && string.Equals(
@@ -2579,6 +3050,14 @@ public sealed class CropPlotRuntime :
             if (committedWater is < 0 or > (int)CropWaterRules.InitialWaterQuantity)
                 throw new InvalidOperationException(
                     "Crop sow committed an invalid initial clean-water quantity.");
+            state.CycleExecutionReceipt =
+                CropPlanExecutionReceiptAuthority.Begin(
+                    correlationId,
+                    explicitCorrelation,
+                    state.PlotId.Value,
+                    state.Ability.Indoor,
+                    state.PendingSow,
+                    committedWater);
             state.CurrentWater = committedWater;
             state.WaterCapacity = CropWaterRules.WaterCapacity;
         }
@@ -2613,132 +3092,167 @@ public sealed class CropPlotRuntime :
     }
 
     private CropIrrigationSupplyResult TryCommitAutomaticIrrigation(
-        CropPlotState state,
-        CropIrrigationRequest request)
+        CropPlotState state, CropIrrigationRequest request)
     {
+        if (state.IrrigationPublication.pending)
+            throw new InvalidOperationException("A previous irrigation fact is still pending.");
         CropIrrigationAssessment assessment = irrigation.Assess(request);
         if (!assessment.CanSupply)
-        {
-            return new CropIrrigationSupplyResult(
-                assessment,
-                false,
-                0f,
-                WorldWaterQuality.Clean);
-        }
+            return new CropIrrigationSupplyResult(assessment, false, 0f, WorldWaterQuality.Clean);
 
         int sequence = state.NextWaterRefillOperationSequence;
-        long ownerRevision = checked((long)sequence + 1L);
-        string operationId = IrrigationOperationPrefix
-            + state.PlotId.Value + ":"
-            + sequence.ToString(
-                "D6",
-                System.Globalization.CultureInfo.InvariantCulture);
-        var resultKey = new GameplayResultKey(
-            EnvironmentOutcomeIds.CropIrrigationProducer,
-            new GameplayOperationId(operationId),
-            ownerRevision,
-            0);
-        var reservationSpec = new EnvironmentOutcomeReservationSpec(
-            resultKey,
-            EnvironmentOutcomeIds.CropIrrigationSupplied,
-            CurrentAbsoluteDay,
-            GameplayOutcomeStatus.Succeeded,
-            ownerRevision,
-            participantCount: 2,
-            metricCount: 2,
-            subjectCount: 1,
-            tagCount: 1,
-            provenanceCount: 1,
-            factCount: 3);
-        if (!environmentOutcomes.TryReserve(
-                reservationSpec,
-                out ReservedEnvironmentOutcome reserved,
-                out string reserveFailure))
-            throw new InvalidOperationException(
-                "Crop irrigation outcome reservation failed: " + reserveFailure);
-
-        PreparedCropIrrigationSupply preparedSupply = null;
-        PreparedEnvironmentOutcome preparedOutcome = default;
+        int nextSequence = checked(sequence + 1);
         float waterBefore = state.CurrentWater;
-        bool ownerMutated = false;
+        CropCycleExecutionReceiptSaveData cycleBefore = state.CycleExecutionReceipt;
+        if (cycleBefore == null || cycleBefore.IsEmpty)
+            throw new InvalidOperationException("Crop irrigation requires its active physical cycle.");
+        PreparedCropIrrigationSupply prepared = null;
+        DomainFactLease lease = default;
+        IDomainFactPublisher publisher = RequireDomainFacts();
+        bool ownerChanged = false;
+        bool publicationMayBeCommitted = false;
         try
         {
-            if (!irrigationTransactions.TryPrepareSupply(
-                    request,
-                    out preparedSupply))
-            {
-                environmentOutcomes.Cancel(reserved);
-                return preparedSupply?.Result ?? new CropIrrigationSupplyResult(
-                    irrigation.Assess(request),
-                    false,
-                    0f,
-                    WorldWaterQuality.Clean);
-            }
-
-            CropIrrigationSupplyResult supplied = preparedSupply.Result;
+            // Fluid preparation is reversible. No observer failure may leave a
+            // debit unless an authoritative post-supply fact could be committed.
+            if (!irrigationTransactions.TryPrepareSupply(request, out prepared))
+                return new CropIrrigationSupplyResult(irrigation.Assess(request), false, 0f, WorldWaterQuality.Clean);
+            CropIrrigationSupplyResult supplied = prepared.Result;
             if (supplied.SuppliedWaterUnits != CropWaterRules.RefillQuantity
                 || waterBefore + supplied.SuppliedWaterUnits > state.WaterCapacity)
-                throw new InvalidOperationException(
-                    "Prepared crop irrigation drifted from its preflight quantity.");
-            CropIrrigationSupplyOutcomeReceipt receipt =
-                EnvironmentOutcomeReceiptFactory.CreateCropIrrigationSupply(
-                    supplied,
-                    operationId,
-                    ownerRevision,
-                    preparedSupply.PlotDisplayName,
-                    preparedSupply.IrrigatorDisplayName,
-                    new CoreGridCell(
-                        state.LastKnownPosition.x,
-                        state.LastKnownPosition.y),
-                    CurrentAbsoluteDay);
+                throw new InvalidOperationException("Prepared crop irrigation drifted from its preflight quantity.");
+            var pending = new CropIrrigationPublicationSaveData
+            {
+                pending = true, operationSequence = sequence,
+                operationId = IrrigationOperationPrefix + state.PlotId.Value + ":"
+                    + sequence.ToString("D6", System.Globalization.CultureInfo.InvariantCulture),
+                plotId = state.PlotId.Value, irrigatorId = supplied.Assessment.IrrigatorId.Value,
+                plotDisplayName = prepared.PlotDisplayName, irrigatorDisplayName = prepared.IrrigatorDisplayName,
+                absoluteDay = CurrentAbsoluteDay, locationX = state.LastKnownPosition.x, locationY = state.LastKnownPosition.y,
+                quantity = supplied.SuppliedWaterUnits, consumedQuality = supplied.ConsumedQuality,
+                waterBefore = waterBefore, waterAfter = waterBefore + supplied.SuppliedWaterUnits,
+                networkId = prepared.NetworkId, networkWaterBefore = prepared.NetworkWaterBefore,
+                networkWaterAfter = prepared.NetworkWaterAfter
+            };
+            CropIrrigationSuppliedFact fact = new(pending);
+            if (!publisher.TryReserve(fact, out lease, out string failure))
+                throw new InvalidOperationException("Crop irrigation observation reservation failed: " + failure);
+            pending.publicationKey = lease.PublicationKey;
+            CropCycleExecutionReceiptSaveData cycleAfter = CropPlanExecutionReceiptAuthority.RecordWaterSupply(
+                cycleBefore, pending.waterBefore, pending.waterAfter, pending.publicationKey);
 
-            state.CurrentWater = waterBefore + supplied.SuppliedWaterUnits;
-            ownerMutated = true;
-            if (!environmentOutcomes.TryWriteReserved(
-                    receipt,
-                    reserved,
-                    out preparedOutcome,
-                    out string writeFailure))
-                throw new InvalidOperationException(
-                    "Crop irrigation outcome write failed: " + writeFailure);
-
-            EnvironmentOutcomeCommitResult committed =
-                environmentOutcomes.Commit(preparedOutcome, ownerRevision);
-            if (!committed.DurablyCommitted)
-                throw new InvalidOperationException(
-                    "Crop irrigation outcome commit failed: "
-                    + committed.DetailCode);
-
-            irrigationTransactions.CommitPreparedSupply(preparedSupply);
-            state.NextWaterRefillOperationSequence = checked(sequence + 1);
+            // Persist the applied state, exact opaque identity and frozen fact
+            // before dispatch. An unknown ACK is forward recovery, never a
+            // second network debit or an inferred rollback of a committed fact.
+            state.CurrentWater = pending.waterAfter;
+            state.NextWaterRefillOperationSequence = nextSequence;
+            state.CycleExecutionReceipt = cycleAfter;
+            state.IrrigationPublication = pending;
+            ownerChanged = true;
+            DomainFactDelivery delivery = DeliverCropCommandFact(lease, pending.publicationKey, fact);
+            publicationMayBeCommitted = delivery.MayBeCommitted;
+            if (!publicationMayBeCommitted)
+                throw new InvalidOperationException("Crop irrigation observation rejected: " + delivery.Detail);
+            irrigationTransactions.CommitPreparedSupply(prepared);
+            ApplyIrrigationAcknowledgement(state, delivery);
             MarkChanged();
             return supplied;
         }
         catch
         {
-            EnvironmentOutcomeCommitResult reconciled =
-                environmentOutcomes.Reconcile(resultKey);
-            if (reconciled.DurablyCommitted)
+            if (!publicationMayBeCommitted)
             {
-                if (preparedSupply?.IsPending == true)
-                    irrigationTransactions.CommitPreparedSupply(preparedSupply);
-                state.NextWaterRefillOperationSequence = checked(sequence + 1);
-                MarkChanged();
-                return preparedSupply?.Result
-                    ?? throw new InvalidOperationException(
-                        "A committed irrigation outcome has no matching supply result.");
+                if (ownerChanged)
+                {
+                    state.CurrentWater = waterBefore;
+                    state.NextWaterRefillOperationSequence = sequence;
+                    state.CycleExecutionReceipt = cycleBefore;
+                    state.IrrigationPublication = new CropIrrigationPublicationSaveData();
+                }
+                if (prepared?.IsPending == true)
+                    irrigationTransactions.RollbackPreparedSupply(prepared);
+                if (lease.IsValid) publisher.Cancel(lease);
             }
-
-            if (ownerMutated)
-                state.CurrentWater = waterBefore;
-            if (preparedSupply?.IsPending == true)
-                irrigationTransactions.RollbackPreparedSupply(preparedSupply);
-            if (preparedOutcome.IsValid)
-                environmentOutcomes.Cancel(preparedOutcome);
-            else if (reserved.IsValid)
-                environmentOutcomes.Cancel(reserved);
+            else if (prepared?.IsPending == true)
+                irrigationTransactions.CommitPreparedSupply(prepared);
             throw;
         }
+    }
+
+    private bool TryAdvanceIrrigationPublication(CropPlotState state)
+    {
+        if (state == null || !state.IrrigationPublication.pending) return true;
+        CropIrrigationPublicationSaveData owner = state.IrrigationPublication;
+        DomainFactDelivery delivery = DeliverCropCommandFact(default, owner.publicationKey,
+            new CropIrrigationSuppliedFact(owner));
+        return ApplyIrrigationAcknowledgement(state, delivery);
+    }
+
+    private bool ApplyIrrigationAcknowledgement(CropPlotState state, DomainFactDelivery delivery)
+    {
+        CropIrrigationPublicationSaveData owner = state.IrrigationPublication;
+        if (!ConfirmCropCommandPublication(delivery, owner.publicationKey,
+                owner.publicationId, owner.fingerprint, out string failure))
+        {
+            owner.failureReason = failure;
+            snapshotsDirty = true;
+            return false;
+        }
+        owner.publicationId = delivery.PublicationId;
+        owner.fingerprint = delivery.Fingerprint;
+        if (delivery.Phase != DomainFactDeliveryPhase.Delivered)
+        {
+            owner.failureReason = delivery.Detail;
+            snapshotsDirty = true;
+            return false;
+        }
+        state.IrrigationPublication = new CropIrrigationPublicationSaveData();
+        MarkChanged(replan: false);
+        return true;
+    }
+
+    private static void ValidateIrrigationPublication(CropPlotSaveData saved, BuildingInstanceId plotId)
+    {
+        CropIrrigationPublicationSaveData owner = saved.irrigationPublication
+            ?? throw new InvalidOperationException("Crop irrigation publication owner is missing.");
+        if (owner.IsEmpty) return;
+        _ = new CropIrrigationSuppliedFact(owner);
+        ValidateCropCommandPublicationKey(owner.publicationKey);
+        bool acknowledged = !string.IsNullOrEmpty(owner.publicationId);
+        if (owner.plotId != plotId.Value
+            || saved.nextWaterRefillOperationSequence != owner.operationSequence + 1
+            || owner.quantity != CropWaterRules.RefillQuantity
+            || owner.waterAfter > saved.waterCapacity
+            || Math.Abs(saved.currentWater - owner.waterAfter) > 0.0001f
+            || (acknowledged
+                ? !IsCanonicalToken(owner.publicationId) || !IsCropCommandFingerprint(owner.fingerprint)
+                : !string.IsNullOrEmpty(owner.fingerprint))
+            || saved.cycleExecutionReceipt == null || saved.cycleExecutionReceipt.IsEmpty
+            || Math.Abs(saved.cycleExecutionReceipt.waterAfter - owner.waterAfter) > 0.0001f
+            || saved.cycleExecutionReceipt.irrigationChildResultKeys == null
+            || !saved.cycleExecutionReceipt.irrigationChildResultKeys.Contains(owner.publicationKey))
+            throw new InvalidOperationException("Crop irrigation publication contradicts its applied owner.");
+    }
+
+    private static void RecordCycleWaterSupply(
+        CropPlotState state,
+        float waterBefore,
+        float waterAfter,
+        string childResultKey)
+    {
+        if (state?.CycleExecutionReceipt == null
+            || state.CycleExecutionReceipt.IsEmpty)
+            return;
+        if (state.CycleExecutionReceipt.status
+            != CropCycleExecutionReceiptStatus.Active)
+            throw new InvalidOperationException(
+                "Crop water supply has no active cycle receipt.");
+        state.CycleExecutionReceipt = CropPlanExecutionReceiptAuthority
+            .RecordWaterSupply(
+                state.CycleExecutionReceipt,
+                waterBefore,
+                waterAfter,
+                childResultKey);
     }
 
     public static string FormatWaterRefillOperationId(
@@ -2772,6 +3286,8 @@ public sealed class CropPlotRuntime :
         CropWaterRefillSaveData refill = new()
         {
             phase = CropWaterRefillPhase.WaitingForDelivery,
+            outcomeSchemaVersion =
+                CropWaterRefillSaveData.CurrentOutcomeSchemaVersion,
             operationSequence = sequence,
             operationId = operationId,
             reasonCode = "crop-water-refill-input",
@@ -2806,7 +3322,8 @@ public sealed class CropPlotRuntime :
         if (refill == null
             || refill.phase is CropWaterRefillPhase.None
                 or CropWaterRefillPhase.InputCommitted
-                or CropWaterRefillPhase.OutcomePublished)
+                or CropWaterRefillPhase.OutcomePublished
+                or CropWaterRefillPhase.LedgerCommitted)
             return;
 
         CropPlotInputOwnerDescriptor descriptor =
@@ -2868,102 +3385,182 @@ public sealed class CropPlotRuntime :
         CropWaterRefillSaveData refill = state?.WaterRefill;
         if (refill == null || refill.phase == CropWaterRefillPhase.None)
             return false;
-
-        if (refill.phase == CropWaterRefillPhase.Working)
+        if (refill.outcomeSchemaVersion != CropWaterRefillSaveData.CurrentOutcomeSchemaVersion)
         {
-            if (refill.completedWork + 0.001f < refill.requiredWork)
-                return false;
-            if (state.CurrentWater + refill.quantity
-                > state.WaterCapacity + 0.001f)
-            {
-                refill.failureReason = "crop-water-refill-capacity-exceeded";
-                snapshotsDirty = true;
-                return false;
-            }
-            Dictionary<string, int> costs = new(StringComparer.Ordinal)
-            {
-                [refill.itemId] = refill.quantity
-            };
-            if (!items.ConsumeDeliveredToWip(
-                    refill.destinationId,
-                    costs,
-                    refill.operationId,
-                    out ProductionWipInputReceipt receipt,
-                    out string commitFailure))
-            {
-                refill.failureReason = commitFailure;
-                snapshotsDirty = true;
-                return false;
-            }
-            string[] sourceStackIds = (receipt.SourceStackIds
-                    ?? Array.Empty<string>())
-                .OrderBy(value => value, StringComparer.Ordinal)
-                .ToArray();
-            if (!receipt.IsCommitted
-                || !IsCanonicalToken(receipt.PhysicalRequestFingerprint)
-                || sourceStackIds.Length == 0
-                || sourceStackIds.Any(value => !IsCanonicalToken(value))
-                || sourceStackIds.Distinct(StringComparer.Ordinal).Count()
-                    != sourceStackIds.Length)
-                throw new InvalidOperationException(
-                    "Crop water refill WIP receipt is missing exact physical provenance.");
-            refill.commitId = receipt.CommitId;
-            refill.inputQuantity = receipt.Quantity;
-            refill.inputMassGrams = receipt.InputMassGrams;
-            refill.physicalRequestFingerprint =
-                receipt.PhysicalRequestFingerprint;
-            refill.sourceStackIds = sourceStackIds.ToList();
-            refill.phase = CropWaterRefillPhase.InputCommitted;
-            long expectedMass = items.GetDefinitionQuantityMassGrams(
-                refill.itemId,
-                refill.quantity);
-            if (!receipt.IsCommitted
-                || receipt.Quantity != refill.quantity
-                || receipt.InputMassGrams != expectedMass)
-                throw new InvalidOperationException(
-                    "Crop water refill WIP receipt contradicts its exact physical input.");
+            refill.failureReason = "crop-water-refill-outcome-schema-unsupported";
+            snapshotsDirty = true;
+            return false;
+        }
+        if (refill.phase is not (CropWaterRefillPhase.Working
+                or CropWaterRefillPhase.InputCommitted
+                or CropWaterRefillPhase.OutcomePublished
+                or CropWaterRefillPhase.LedgerCommitted))
+            return false;
+        if (string.IsNullOrWhiteSpace(refill.responsibleWorkerId)
+            || string.IsNullOrWhiteSpace(refill.responsibleWorkerDisplayName)
+            || refill.workContributions == null || refill.workContributions.Count == 0)
+        {
+            refill.failureReason = "crop-water-refill-worker-required";
+            snapshotsDirty = true;
+            return false;
         }
 
-        if (refill.phase == CropWaterRefillPhase.InputCommitted)
+        DomainFactLease reservation = default;
+        try
         {
-            if (state.CurrentWater + refill.quantity
-                > state.WaterCapacity + 0.001f)
+            if (refill.phase is CropWaterRefillPhase.OutcomePublished
+                or CropWaterRefillPhase.LedgerCommitted)
+            {
+                if (Math.Abs(state.CurrentWater - refill.waterAfter) > 0.0001f)
+                {
+                    refill.failureReason = "crop-water-refill-water-after-conflict";
+                    snapshotsDirty = true;
+                    return false;
+                }
+                return TryFinishCommittedWaterRefill(state, refill,
+                    DeliverCropCommandFact(default, refill.publicationKey,
+                        new CropWaterRefillFact(state.PlotId, refill)));
+            }
+
+            if (refill.completedWork + 0.001f < refill.requiredWork)
+                return false;
+            if (state.CurrentWater + refill.quantity > state.WaterCapacity + 0.001f)
             {
                 refill.failureReason = "crop-water-refill-capacity-exceeded";
                 snapshotsDirty = true;
                 return false;
             }
-            state.CurrentWater = Mathf.Min(
-                state.WaterCapacity,
-                state.CurrentWater + refill.quantity);
+
+            // Reserve observation capacity for a proposal, before consuming any
+            // input. Only the subsequent applied fact can create a completion.
+            CropWaterRefillSaveData proposal = refill.DeepClone();
+            if (refill.phase == CropWaterRefillPhase.Working)
+            {
+                proposal.plotDisplayName = state.PlotDisplayName;
+                proposal.itemDisplayName = ResolveTreatmentDisplayName(refill.itemId);
+                proposal.locationX = state.LastKnownPosition.x;
+                proposal.locationY = state.LastKnownPosition.y;
+                proposal.waterBefore = state.CurrentWater;
+                proposal.completedAbsoluteDay = CurrentAbsoluteDay;
+            }
+            if (!RequireDomainFacts().TryReserve(
+                    new CropWaterRefillFact(state.PlotId, proposal),
+                    out reservation, out string reserveFailure))
+            {
+                refill.failureReason = reserveFailure;
+                snapshotsDirty = true;
+                return false;
+            }
+            if (!string.IsNullOrEmpty(refill.publicationKey)
+                && refill.publicationKey != reservation.PublicationKey)
+                throw new InvalidOperationException("Crop water refill publication identity drifted.");
+            proposal.publicationKey = reservation.PublicationKey;
+            state.WaterRefill = refill = proposal;
+
+            if (refill.phase == CropWaterRefillPhase.Working)
+            {
+                Dictionary<string, int> costs = new(StringComparer.Ordinal)
+                {
+                    [refill.itemId] = refill.quantity
+                };
+                if (!items.ConsumeDeliveredToWip(
+                        refill.destinationId, costs, refill.operationId,
+                        out ProductionWipInputReceipt receipt, out string commitFailure))
+                {
+                    refill.failureReason = commitFailure;
+                    RequireDomainFacts().Cancel(reservation);
+                    reservation = default;
+                    snapshotsDirty = true;
+                    return false;
+                }
+                string[] sourceStackIds = (receipt.SourceStackIds ?? Array.Empty<string>())
+                    .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+                // Keep the committed physical receipt even if validation fails:
+                // retry must never consume the material a second time.
+                refill.commitId = receipt.CommitId;
+                refill.inputQuantity = receipt.Quantity;
+                refill.inputMassGrams = receipt.InputMassGrams;
+                refill.physicalRequestFingerprint = receipt.PhysicalRequestFingerprint;
+                refill.physicalOutcomeOwnerRevision = receipt.PhysicalOutcomeOwnerRevision;
+                refill.sourceStackIds = sourceStackIds.ToList();
+                refill.phase = CropWaterRefillPhase.InputCommitted;
+                MarkChanged(replan: false);
+                long expectedMass = items.GetDefinitionQuantityMassGrams(refill.itemId, refill.quantity);
+                if (!receipt.IsCommitted || receipt.PhysicalOutcomeOwnerRevision <= 0L
+                    || !IsCanonicalToken(receipt.PhysicalRequestFingerprint)
+                    || sourceStackIds.Length == 0 || sourceStackIds.Any(value => !IsCanonicalToken(value))
+                    || sourceStackIds.Distinct(StringComparer.Ordinal).Count() != sourceStackIds.Length
+                    || receipt.Quantity != refill.quantity || receipt.InputMassGrams != expectedMass)
+                    throw new InvalidOperationException(
+                        "Crop water refill WIP receipt contradicts its exact physical input.");
+            }
+
+            if (Math.Abs(state.CurrentWater - refill.waterBefore) > 0.0001f)
+            {
+                refill.failureReason = "crop-water-refill-water-before-conflict";
+                RequireDomainFacts().Cancel(reservation);
+                reservation = default;
+                snapshotsDirty = true;
+                return false;
+            }
+            if (refill.inputQuantity != refill.quantity
+                || refill.inputMassGrams != items.GetDefinitionQuantityMassGrams(refill.itemId, refill.quantity))
+                throw new InvalidOperationException("Crop water refill committed input mass contradicts its intent.");
+            state.CurrentWater = Mathf.Min(state.WaterCapacity, state.CurrentWater + refill.quantity);
+            refill.waterAfter = state.CurrentWater;
             refill.phase = CropWaterRefillPhase.OutcomePublished;
             refill.failureReason = string.Empty;
             MarkChanged();
-        }
 
-        if (refill.phase != CropWaterRefillPhase.OutcomePublished)
+            DomainFactDelivery delivered = DeliverCropCommandFact(
+                reservation, refill.publicationKey, new CropWaterRefillFact(state.PlotId, refill));
+            reservation = default;
+            return TryFinishCommittedWaterRefill(state, refill, delivered);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
+        {
+            if (reservation.IsValid) RequireDomainFacts().Cancel(reservation);
+            refill.failureReason = "crop-water-refill-finalize-threw:"
+                + exception.GetType().Name + ":" + exception.Message;
+            snapshotsDirty = true;
             return false;
-        if (!TryRetireDestination(
-                state,
-                refill.destinationId,
+        }
+    }
+
+    private bool TryFinishCommittedWaterRefill(
+        CropPlotState state, CropWaterRefillSaveData refill, DomainFactDelivery delivered)
+    {
+        if (!ConfirmCropCommandPublication(delivered, refill.publicationKey,
+                refill.gameplayOutcomeId, refill.gameplayOutcomeDigest, out string failure))
+        {
+            refill.failureReason = failure;
+            snapshotsDirty = true;
+            return false;
+        }
+        refill.phase = CropWaterRefillPhase.LedgerCommitted;
+        refill.gameplayOutcomeId = delivered.PublicationId;
+        refill.gameplayOutcomeDigest = delivered.Fingerprint;
+        if (delivered.Phase != DomainFactDeliveryPhase.Delivered)
+        {
+            refill.failureReason = delivered.Detail;
+            snapshotsDirty = true;
+            return false;
+        }
+        if (!TryRetireDestination(state, refill.destinationId,
                 CropPlotInputOwnerAuthority.WaterRefillCompletedReleaseReasonCode,
                 out string retireFailure))
         {
             refill.failureReason = retireFailure;
-            snapshotsDirty = true;
             return false;
         }
-        if (!items.AcknowledgeWipInput(
-                refill.commitId,
-                out string acknowledgeFailure))
+        if (!items.AcknowledgeWipInput(refill.commitId, out string acknowledgeFailure))
         {
             refill.failureReason = acknowledgeFailure;
-            snapshotsDirty = true;
             return false;
         }
-
-        state.NextWaterRefillOperationSequence = checked(
-            state.NextWaterRefillOperationSequence + 1);
+        RecordCycleWaterSupply(state, refill.waterBefore, refill.waterAfter, refill.publicationKey);
+        state.NextWaterRefillOperationSequence = checked(refill.operationSequence + 1);
         state.WaterRefill = new CropWaterRefillSaveData();
         MarkChanged();
         return true;
@@ -2975,7 +3572,8 @@ public sealed class CropPlotRuntime :
         if (refill == null || refill.phase == CropWaterRefillPhase.None)
             return true;
         if (refill.phase is CropWaterRefillPhase.InputCommitted
-                or CropWaterRefillPhase.OutcomePublished)
+                or CropWaterRefillPhase.OutcomePublished
+                or CropWaterRefillPhase.LedgerCommitted)
             return TryFinalizeWaterRefill(state);
         if (!TryRetireDestination(
                 state,
@@ -3029,6 +3627,7 @@ public sealed class CropPlotRuntime :
             CropWaterRefillPhase.WaitingForDelivery => "급수용 물 운반 대기",
             CropWaterRefillPhase.InputCommitted => "물리 물 투입 확정 대기",
             CropWaterRefillPhase.OutcomePublished => "물 투입 승인 대기",
+            CropWaterRefillPhase.LedgerCommitted => "물 투입 원장 승인 대기",
             _ => string.Empty
         };
     }
@@ -3050,6 +3649,7 @@ public sealed class CropPlotRuntime :
             || treatment.phase is CropTreatmentOrderPhase.None
                 or CropTreatmentOrderPhase.InputCommitted
                 or CropTreatmentOrderPhase.OutcomePublished
+                or CropTreatmentOrderPhase.LedgerCommitted
                 or CropTreatmentOrderPhase.PlotDestroyedLossPending)
             return;
 
@@ -3112,59 +3712,105 @@ public sealed class CropPlotRuntime :
     private bool TryFinalizeTreatment(CropPlotState state)
     {
         CropTreatmentOrderSaveData treatment = state?.Treatment;
-        if (treatment == null
-            || treatment.phase == CropTreatmentOrderPhase.None)
+        if (treatment == null || treatment.phase == CropTreatmentOrderPhase.None)
             return false;
-
-        bool outcomePublishedNow = false;
-        if (treatment.phase == CropTreatmentOrderPhase.Working)
+        if (treatment.outcomeSchemaVersion != CropTreatmentOrderSaveData.CurrentOutcomeSchemaVersion)
         {
-            string before = CreateEcologyFingerprint(state.PlotId.Value);
-            if (string.IsNullOrEmpty(treatment.ecologyBeforeFingerprint))
-                treatment.ecologyBeforeFingerprint = before;
-            else if (!string.Equals(
-                         treatment.ecologyBeforeFingerprint,
-                         before,
-                         StringComparison.Ordinal))
-            {
-                treatment.failureReason = "crop-treatment-ecology-before-conflict";
-                snapshotsDirty = true;
-                return false;
-            }
-            if (!CropTreatmentPhysicalOutbox.TryCommitOrResume(
-                    treatment,
-                    treatmentItems,
-                    out string commitFailure))
-            {
-                treatment.failureReason = commitFailure;
-                snapshotsDirty = true;
-                return false;
-            }
+            treatment.failureReason = "crop-treatment-outcome-schema-unsupported";
+            snapshotsDirty = true;
+            return false;
+        }
+        if (treatment.phase is not (CropTreatmentOrderPhase.Working
+            or CropTreatmentOrderPhase.InputCommitted or CropTreatmentOrderPhase.OutcomePublished
+            or CropTreatmentOrderPhase.LedgerCommitted))
+            return false;
+        if (string.IsNullOrWhiteSpace(treatment.responsibleWorkerId)
+            || string.IsNullOrWhiteSpace(treatment.responsibleWorkerDisplayName)
+            || treatment.workContributions == null || treatment.workContributions.Count == 0)
+        {
+            treatment.failureReason = "crop-treatment-worker-required";
+            snapshotsDirty = true;
+            return false;
         }
 
-        if (treatment.phase == CropTreatmentOrderPhase.InputCommitted)
+        DomainFactLease reservation = default;
+        try
         {
-            string current = CreateEcologyFingerprint(state.PlotId.Value);
-            if (!string.Equals(
-                    treatment.ecologyBeforeFingerprint,
-                    current,
-                    StringComparison.Ordinal))
+            if (treatment.phase is CropTreatmentOrderPhase.OutcomePublished or CropTreatmentOrderPhase.LedgerCommitted)
             {
-                treatment.failureReason = "crop-treatment-ecology-before-conflict";
-                snapshotsDirty = true;
+                if (treatment.phase == CropTreatmentOrderPhase.OutcomePublished
+                    && treatment.ecologyAfterFingerprint != CreateEcologyFingerprint(state.PlotId.Value))
+                {
+                    treatment.failureReason = "crop-treatment-ecology-after-conflict";
+                    return false;
+                }
+                return TryFinishCommittedTreatment(state, treatment,
+                    DeliverCropCommandFact(default, treatment.publicationKey,
+                        new CropTreatmentFact(state.PlotId, treatment)));
+            }
+            if (treatment.completedWork + 0.001f < treatment.requiredWork)
+                return false;
+
+            CropTreatmentOrderSaveData proposal = treatment.DeepClone();
+            if (treatment.phase == CropTreatmentOrderPhase.Working)
+            {
+                CropEcologyPlotSaveData before = RequireTreatmentEcology(state);
+                string beforeFingerprint = CreateEcologyFingerprint(state.PlotId.Value);
+                if (string.IsNullOrEmpty(proposal.ecologyBeforeFingerprint))
+                {
+                    proposal.ecologyBeforeFingerprint = beforeFingerprint;
+                    proposal.pestPressureBefore = before.pestPressure;
+                    proposal.diseasePressureBefore = before.diseasePressure;
+                    proposal.cooldownBeforeDay = GetNextTreatmentAllowedDay(state, proposal.treatmentKind);
+                    proposal.completedAbsoluteDay = CurrentAbsoluteDay;
+                    proposal.plotDisplayName = state.PlotDisplayName;
+                    proposal.itemDisplayName = ResolveTreatmentDisplayName(proposal.itemId);
+                    proposal.locationX = state.LastKnownPosition.x;
+                    proposal.locationY = state.LastKnownPosition.y;
+                }
+                else if (proposal.ecologyBeforeFingerprint != beforeFingerprint)
+                {
+                    treatment.failureReason = "crop-treatment-ecology-before-conflict";
+                    return false;
+                }
+            }
+
+            // The observer reserves only a proposal's bounded capacity. No
+            // applied receipt exists before physical input and ecology effects.
+            if (!RequireDomainFacts().TryReserve(new CropTreatmentFact(state.PlotId, proposal),
+                    out reservation, out string reserveFailure))
+            {
+                treatment.failureReason = reserveFailure;
                 return false;
             }
-            Vector2Int position = state.Building != null
-                ? state.Building.centerPos
-                : state.LastKnownPosition;
-            if (!CropTreatmentPhysicalOutbox.EnsureTareOutputs(
-                    treatment,
-                    position,
-                    packagedTare,
-                    out string tareFailure))
+            if (!string.IsNullOrEmpty(treatment.publicationKey)
+                && treatment.publicationKey != reservation.PublicationKey)
+                throw new InvalidOperationException("Crop treatment publication identity drifted.");
+            proposal.publicationKey = reservation.PublicationKey;
+            state.Treatment = treatment = proposal;
+
+            // Both a first consumption and a saved InputCommitted continuation
+            // must match the actual physical authority's pending receipt.
+            if (!CropTreatmentPhysicalOutbox.TryCommitOrResume(treatment, treatmentItems, out string commitFailure))
+            {
+                treatment.failureReason = commitFailure;
+                RequireDomainFacts().Cancel(reservation);
+                reservation = default;
+                return false;
+            }
+            if (treatment.ecologyBeforeFingerprint != CreateEcologyFingerprint(state.PlotId.Value))
+            {
+                treatment.failureReason = "crop-treatment-ecology-before-conflict";
+                RequireDomainFacts().Cancel(reservation);
+                reservation = default;
+                return false;
+            }
+            Vector2Int position = state.Building != null ? state.Building.centerPos : state.LastKnownPosition;
+            if (!CropTreatmentPhysicalOutbox.EnsureTareOutputs(treatment, position, packagedTare, out string tareFailure))
             {
                 treatment.failureReason = tareFailure;
-                snapshotsDirty = true;
+                RequireDomainFacts().Cancel(reservation);
+                reservation = default;
                 return false;
             }
 
@@ -3172,56 +3818,86 @@ public sealed class CropPlotRuntime :
             {
                 case CropTreatmentKind.PestLure:
                 case CropTreatmentKind.BotanicalPesticide:
-                    ecology.ApplyPestControl(
-                        state.PlotId.Value,
-                        treatment.effectAmount);
+                    ecology.ApplyPestControl(state.PlotId.Value, treatment.effectAmount);
                     break;
                 case CropTreatmentKind.Fungicide:
-                    ecology.ApplyFungicide(
-                        state.PlotId.Value,
-                        treatment.effectAmount);
+                    ecology.ApplyFungicide(state.PlotId.Value, treatment.effectAmount);
                     break;
                 default:
-                    treatment.failureReason = "crop-treatment-kind-invalid";
-                    return false;
+                    throw new InvalidOperationException("crop-treatment-kind-invalid");
             }
-            treatment.ecologyAfterFingerprint =
-                CreateEcologyFingerprint(state.PlotId.Value);
-            SetNextTreatmentAllowedDay(
-                state,
-                treatment.treatmentKind,
-                checked(CurrentAbsoluteDay + treatment.cooldownDays));
+            CropEcologyPlotSaveData after = RequireTreatmentEcology(state);
+            treatment.pestPressureAfter = after.pestPressure;
+            treatment.diseasePressureAfter = after.diseasePressure;
+            treatment.ecologyAfterFingerprint = CreateEcologyFingerprint(state.PlotId.Value);
+            treatment.cooldownAfterDay = checked(treatment.completedAbsoluteDay + treatment.cooldownDays);
+            SetNextTreatmentAllowedDay(state, treatment.treatmentKind, treatment.cooldownAfterDay);
             treatment.phase = CropTreatmentOrderPhase.OutcomePublished;
             treatment.failureReason = string.Empty;
-            outcomePublishedNow = true;
             MarkChanged();
-        }
 
-        if (treatment.phase != CropTreatmentOrderPhase.OutcomePublished)
+            DomainFactDelivery delivered = DeliverCropCommandFact(reservation, treatment.publicationKey,
+                new CropTreatmentFact(state.PlotId, treatment));
+            reservation = default;
+            return TryFinishCommittedTreatment(state, treatment, delivered);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
+        {
+            if (reservation.IsValid) RequireDomainFacts().Cancel(reservation);
+            treatment.failureReason = "crop-treatment-finalize-threw:"
+                + exception.GetType().Name + ":" + exception.Message;
             return false;
-        if (!TryRetireDestination(
-                state,
-                treatment.destinationId,
-                CropPlotInputOwnerAuthority
-                    .TreatmentCompletedReleaseReasonCode,
-                out string retireFailure))
+        }
+        finally { snapshotsDirty = true; }
+    }
+
+    private CropEcologyPlotSaveData RequireTreatmentEcology(CropPlotState state)
+    {
+        CropEcologyPlotSaveData plot = ecology.Plots.SingleOrDefault(value =>
+            value != null
+            && state != null
+            && string.Equals(
+                value.plotId,
+                state.PlotId.Value,
+                StringComparison.Ordinal));
+        return plot ?? throw new InvalidOperationException(
+            "Crop treatment requires an owned ecology plot.");
+    }
+
+    private bool TryFinishCommittedTreatment(
+        CropPlotState state, CropTreatmentOrderSaveData treatment, DomainFactDelivery delivered)
+    {
+        if (!ConfirmCropCommandPublication(delivered, treatment.publicationKey,
+                treatment.gameplayOutcomeId, treatment.gameplayOutcomeDigest, out string failure))
+        {
+            treatment.failureReason = failure;
+            snapshotsDirty = true;
+            return false;
+        }
+        treatment.phase = CropTreatmentOrderPhase.LedgerCommitted;
+        treatment.gameplayOutcomeId = delivered.PublicationId;
+        treatment.gameplayOutcomeDigest = delivered.Fingerprint;
+        if (delivered.Phase != DomainFactDeliveryPhase.Delivered)
+        {
+            treatment.failureReason = delivered.Detail;
+            snapshotsDirty = true;
+            return false;
+        }
+        if (!TryRetireDestination(state, treatment.destinationId,
+                CropPlotInputOwnerAuthority.TreatmentCompletedReleaseReasonCode, out string retireFailure))
         {
             treatment.failureReason = retireFailure;
             snapshotsDirty = true;
-            return outcomePublishedNow;
+            return false;
         }
-        if (!CropTreatmentPhysicalOutbox.TryAcknowledgeOutcome(
-                treatment,
-                treatmentItems,
-                out string acknowledgeFailure))
+        if (!CropTreatmentPhysicalOutbox.TryAcknowledgeOutcome(treatment, treatmentItems, out string acknowledgeFailure))
         {
             treatment.failureReason = acknowledgeFailure;
             snapshotsDirty = true;
-            return outcomePublishedNow;
+            return false;
         }
-
-        state.NextTreatmentOperationSequence = checked(
-            state.NextTreatmentOperationSequence + 1);
+        state.NextTreatmentOperationSequence = checked(treatment.operationSequence + 1);
         CropTreatmentPhysicalOutbox.Clear(treatment);
         MarkChanged();
         return true;
@@ -3232,9 +3908,7 @@ public sealed class CropPlotRuntime :
             ecology.Plots,
             plotId);
 
-    private int CurrentAbsoluteDay => Mathf.Max(
-        0,
-        Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
+    private int CurrentAbsoluteDay => calendar.Day;
 
     private bool TryResolveTreatment(
         string treatmentItemId,
@@ -3290,6 +3964,7 @@ public sealed class CropPlotRuntime :
             CropTreatmentOrderPhase.WaitingForDelivery => "처리제 운반 대기",
             CropTreatmentOrderPhase.InputCommitted => "처리 결과 확정 대기",
             CropTreatmentOrderPhase.OutcomePublished => "물리 소비 승인 대기",
+            CropTreatmentOrderPhase.LedgerCommitted => "원장 승인 대기",
             CropTreatmentOrderPhase.PlotDestroyedLossPending =>
                 "파괴된 경작지 처리 손실 승인 대기",
             _ => string.Empty
@@ -3679,9 +4354,13 @@ public sealed class CropPlotRuntime :
             }
             else
             {
+                if (!string.IsNullOrEmpty(state.RetirementPublicationKey))
+                    throw new InvalidOperationException("A retiring crop plot cannot be reattached to a live building.");
                 state.Building = building;
                 state.Ability = ability;
                 state.LastKnownPosition = building.centerPos;
+                if (string.IsNullOrWhiteSpace(state.PlotDisplayName))
+                    state.PlotDisplayName = RequirePlotDisplayName(building);
             }
 
             statesByBuilding[building] = state;
@@ -3692,6 +4371,9 @@ public sealed class CropPlotRuntime :
                      .ToArray())
         {
             CropPlotState removed = states[removedId];
+            if (string.IsNullOrWhiteSpace(removed.PlotDisplayName)
+                && removed.Building != null)
+                removed.PlotDisplayName = RequirePlotDisplayName(removed.Building);
             if (!string.IsNullOrEmpty(removed.PendingCycleCorrelationId)
                 && (removed.CycleExecutionReceipt == null
                     || removed.CycleExecutionReceipt.IsEmpty))
@@ -3704,6 +4386,27 @@ public sealed class CropPlotRuntime :
                         removed.Ability?.Indoor ?? false,
                         "crop-cycle-failed-plot-destroyed-before-sow");
                 removed.PendingCycleCorrelationId = string.Empty;
+                FreezeFailedOutcome(removed, CurrentAbsoluteDay);
+            }
+            else if (removed.CycleExecutionReceipt?.status
+                    == CropCycleExecutionReceiptStatus.Active
+                && removed.PendingHarvest.phase
+                    == CropHarvestOutputPhase.None)
+            {
+                removed.CycleExecutionReceipt =
+                    CropPlanExecutionReceiptAuthority.Fail(
+                        removed.CycleExecutionReceipt,
+                        CropCycleExecutionReceiptStatus.FailedPlotDestroyed,
+                        "crop-cycle-failed-plot-destroyed");
+                FreezeFailedOutcome(removed, CurrentAbsoluteDay);
+            }
+            if (IsFailedCycleReceipt(removed.CycleExecutionReceipt))
+            {
+                removed.Building = null;
+                removed.Ability = null;
+                removed.Phase = CropPlotPhase.Blocked;
+                removed.BlockedReason = "crop-plot-destroyed-awaiting-outcome";
+                continue;
             }
             if (!TryRetireDestination(
                     removed,
@@ -3759,24 +4462,23 @@ public sealed class CropPlotRuntime :
                 && (environment.OutdoorTemperature < range.x - 5f
                     || environment.OutdoorTemperature > range.y + 5f);
             if (ecology.AdvanceDay(state.PlotId.Value, lethal)) continue;
-            if (state.CycleExecutionReceipt != null
-                && !state.CycleExecutionReceipt.IsEmpty
-                && state.CycleExecutionReceipt.status
-                    == CropCycleExecutionReceiptStatus.Active)
-            {
-                state.CycleExecutionReceipt =
-                    CropPlanExecutionReceiptAuthority.Fail(
-                        state.CycleExecutionReceipt,
-                        CropCycleExecutionReceiptStatus.FailedCropDeath,
-                        "crop-cycle-failed-crop-death");
-            }
-            state.MaterialsConsumed = false;
-            state.CurrentWater = 0f;
+            if (state.CycleExecutionReceipt == null
+                || state.CycleExecutionReceipt.status
+                    != CropCycleExecutionReceiptStatus.Active)
+                throw new InvalidOperationException(
+                    "A dying crop has no active execution receipt.");
+            state.CycleExecutionReceipt =
+                CropPlanExecutionReceiptAuthority.Fail(
+                    state.CycleExecutionReceipt,
+                    CropCycleExecutionReceiptStatus.FailedCropDeath,
+                    "crop-cycle-failed-crop-death");
+            FreezeFailedOutcome(state, Math.Max(0, ended.day));
             state.SeasonalYieldDamage =
                 new CropSeasonalYieldDamageSaveData();
             state.Phase = CropPlotPhase.Blocked;
             state.BlockedReason = "작물이 극한 환경 또는 해충으로 고사했습니다.";
             MarkChanged();
+            TryAdvanceFailedCycle(state);
         }
     }
 
@@ -3794,6 +4496,7 @@ public sealed class CropPlotRuntime :
             PlotId = plotId,
             Building = building,
             Ability = ability,
+            PlotDisplayName = RequirePlotDisplayName(building),
             LastKnownPosition = building.centerPos,
             CropId = crop?.CropId ?? string.Empty,
             Phase = crop != null
@@ -3946,6 +4649,18 @@ public sealed class CropPlotRuntime :
         BuildingInstanceId plotId,
         ISet<string> handledSeasonalStarts)
     {
+        if (saved.retirementPublicationKey == null)
+            throw new InvalidOperationException("Crop retirement publication key is missing.");
+        if (saved.retirementPublicationKey.Length != 0)
+        {
+            ValidateCropCommandPublicationKey(saved.retirementPublicationKey);
+            if (!string.IsNullOrEmpty(saved.pendingCycleCorrelationId)
+                || saved.materialsConsumed || saved.pendingHarvest?.phase != CropHarvestOutputPhase.None
+                || saved.pendingSow?.phase != CropPhysicalCommitPhase.None
+                || saved.treatment?.phase != CropTreatmentOrderPhase.None
+                || saved.waterRefill?.phase != CropWaterRefillPhase.None)
+                throw new InvalidOperationException("Retiring crop plot still has active work or physical owners.");
+        }
         if (!Enum.IsDefined(typeof(CropPlotPhase), saved.phase))
         {
             throw new InvalidOperationException(
@@ -3962,9 +4677,12 @@ public sealed class CropPlotRuntime :
             0f,
             saved.waterCapacity,
             "current water");
-        if (saved.goldenHarvestAttemptSequence < 0)
+        if (saved.goldenHarvestAttemptSequence < 0
+            || saved.nextCropSelectionOperationSequence < 0
+            || saved.cropSelectionOutcome == null
+            || saved.goldenHarvestScheduleOutcome == null)
             throw new InvalidOperationException(
-                "Crop-plot golden-harvest attempt sequence cannot be negative.");
+                "Crop-plot command outcome owner or sequence is invalid.");
         if (saved.nextSowOperationSequence < 0 || saved.pendingSow == null)
             throw new InvalidOperationException(
                 "Crop-plot sow transaction owner is missing or invalid.");
@@ -4034,6 +4752,9 @@ public sealed class CropPlotRuntime :
                 "Crop water-refill provenance requires an active physical cycle.");
 
         ValidatePendingSow(saved, crop);
+        ValidateIrrigationPublication(saved, plotId);
+        ValidateCropSelectionOutcome(saved, plotId);
+        ValidateGoldenHarvestScheduleOutcome(saved, plotId);
         ValidateFrozenSowInputs(saved, crop, plotId);
         ValidateCycleExecutionReceipt(saved, crop, plotId);
         ValidateSeasonalYieldDamage(
@@ -4103,6 +4824,8 @@ public sealed class CropPlotRuntime :
                 && string.IsNullOrEmpty(owner.harvesterId)
                 && string.IsNullOrEmpty(owner.outcomeId)
                 && string.IsNullOrEmpty(owner.ecologyOutcomeFingerprint)
+                && string.IsNullOrEmpty(owner.ecologyBeforeFingerprint)
+                && string.IsNullOrEmpty(owner.ecologyAfterFingerprint)
                 && !owner.ecologyCommitted
                 && !owner.ecologyAcknowledged
                 && !owner.goldenPrepared
@@ -4115,6 +4838,7 @@ public sealed class CropPlotRuntime :
                 && !owner.goldenCommitted
                 && !owner.goldenAcknowledged
                 && !owner.completionEventPublished
+                && string.IsNullOrEmpty(owner.completionPublicationKey)
                 && string.IsNullOrEmpty(owner.completionDeliveryId)
                 && string.IsNullOrEmpty(owner.completionDeliveryFingerprint)
                 && owner.completionAbsoluteDay == 0
@@ -4137,7 +4861,8 @@ public sealed class CropPlotRuntime :
                 && owner.outputPublication is { IsEmpty: true };
             if (!empty)
                 throw new InvalidOperationException(
-                    "Empty crop harvest owner contains frozen provenance.");
+                    "Empty crop harvest owner contains frozen provenance: "
+                    + DescribeEmptyHarvestProvenance(owner));
             return;
         }
 
@@ -4187,6 +4912,10 @@ public sealed class CropPlotRuntime :
                 StringComparison.Ordinal)
             || !string.Equals(owner.cropId, crop.CropId, StringComparison.Ordinal)
             || string.IsNullOrWhiteSpace(owner.ecologyOutcomeFingerprint)
+            || !ProductionOutputClearanceProfileObservation.IsLowercaseSha256(
+                owner.ecologyBeforeFingerprint)
+            || !ProductionOutputClearanceProfileObservation.IsLowercaseSha256(
+                owner.ecologyAfterFingerprint)
             || owner.harvestQuantity <= 0
             || owner.seedQuantity <= 0
             || owner.returnedSeedLot == null
@@ -4221,14 +4950,15 @@ public sealed class CropPlotRuntime :
             || owner.goldenAcknowledged
                 && (!owner.ecologyAcknowledged
                     || !owner.completionEventPublished)
-            || owner.completionEventPublished
+            || owner.completionEventPublished && !owner.cropOutcomeAcknowledged
+            || owner.cropOutcomeAcknowledged
                 && (owner.phase != CropHarvestOutputPhase
                         .OutputRestoredAwaitingFinalization
                     || !owner.ecologyCommitted
+                    || !owner.outputPublication.outputAcknowledged
                     || owner.goldenPrepared && !owner.goldenCommitted)
             || owner.completionAbsoluteDay < 0
-            || !string.IsNullOrEmpty(owner.harvesterId)
-                && !IsCanonicalToken(owner.harvesterId)
+            || !IsCanonicalToken(owner.harvesterId)
             || !IsCanonicalToken(owner.outcomeId)
             || !Enum.IsDefined(typeof(ExtremeRiskOutcome), owner.goldenOutcome)
             || !IsFinitePositive(owner.goldenPrimaryMultiplier)
@@ -4238,27 +4968,22 @@ public sealed class CropPlotRuntime :
                 "Crop harvest frozen owner contradicts plot state or authored maximums.");
         }
 
+        ValidateHarvestTerminalPublication(saved, plotId);
         if (string.IsNullOrEmpty(owner.harvesterId))
         {
-            if (!string.IsNullOrEmpty(owner.completionDeliveryId)
+            if (!string.IsNullOrEmpty(owner.completionPublicationKey)
+                || !string.IsNullOrEmpty(owner.completionDeliveryId)
                 || !string.IsNullOrEmpty(owner.completionDeliveryFingerprint))
                 throw new InvalidOperationException(
                     "Workerless crop harvest contains completion delivery provenance.");
         }
         else
         {
-            WorkCompletionIdentityDeliveryRequest completion =
-                CreateHarvestCompletionDelivery(plotId, owner);
-            if (!string.Equals(
-                    owner.completionDeliveryId,
-                    completion.DeliveryId,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    owner.completionDeliveryFingerprint,
-                    completion.PayloadFingerprint,
-                    StringComparison.Ordinal))
-                throw new InvalidOperationException(
-                    "Crop harvest completion delivery fingerprint is invalid.");
+            _ = new CropHarvestCompletedFact(plotId, owner, saved.cycleExecutionReceipt);
+            ValidateCropTerminalPublicationFields(owner.completionPublicationKey, owner.completionDeliveryId,
+                owner.completionDeliveryFingerprint, owner.completionEventPublished);
+            if (!string.IsNullOrEmpty(owner.completionPublicationKey) && !owner.cropOutcomeAcknowledged)
+                throw new InvalidOperationException("Crop completion publication precedes its terminal acknowledgement.");
         }
 
         if (owner.goldenPrepared)
@@ -4460,6 +5185,99 @@ public sealed class CropPlotRuntime :
                 "Crop harvest publication vector drifted from its frozen outcome.");
     }
 
+    private static string DescribeEmptyHarvestProvenance(
+        CropHarvestOutputSaveData owner)
+    {
+        if (owner == null)
+            return "owner=null";
+
+        List<string> fields = new();
+        void Add(bool present, string field)
+        {
+            if (present)
+                fields.Add(field);
+        }
+
+        Add(owner.operationSequence != 0, nameof(owner.operationSequence));
+        Add(!string.IsNullOrEmpty(owner.operationId), nameof(owner.operationId));
+        Add(!string.IsNullOrEmpty(owner.cropId), nameof(owner.cropId));
+        Add(owner.indoor, nameof(owner.indoor));
+        Add(!string.IsNullOrEmpty(owner.harvesterId), nameof(owner.harvesterId));
+        Add(!string.IsNullOrEmpty(owner.outcomeId), nameof(owner.outcomeId));
+        Add(!string.IsNullOrEmpty(owner.ecologyOutcomeFingerprint),
+            nameof(owner.ecologyOutcomeFingerprint));
+        Add(!string.IsNullOrEmpty(owner.ecologyBeforeFingerprint),
+            nameof(owner.ecologyBeforeFingerprint));
+        Add(!string.IsNullOrEmpty(owner.ecologyAfterFingerprint),
+            nameof(owner.ecologyAfterFingerprint));
+        Add(owner.ecologyCommitted, nameof(owner.ecologyCommitted));
+        Add(owner.ecologyAcknowledged, nameof(owner.ecologyAcknowledged));
+        Add(owner.goldenPrepared, nameof(owner.goldenPrepared));
+        Add(!string.IsNullOrEmpty(owner.goldenTraitDefinitionId),
+            nameof(owner.goldenTraitDefinitionId));
+        Add(!string.IsNullOrEmpty(owner.goldenOutcomeFingerprint),
+            nameof(owner.goldenOutcomeFingerprint));
+        Add(owner.goldenOutcome != default, nameof(owner.goldenOutcome));
+        Add(owner.goldenPrimaryMultiplier != 0f,
+            nameof(owner.goldenPrimaryMultiplier));
+        Add(owner.goldenSecondaryMultiplier != 0f,
+            nameof(owner.goldenSecondaryMultiplier));
+        Add(owner.goldenRollHash != 0UL, nameof(owner.goldenRollHash));
+        Add(owner.goldenCommitted, nameof(owner.goldenCommitted));
+        Add(owner.goldenAcknowledged, nameof(owner.goldenAcknowledged));
+        Add(owner.cropOutcomeAcknowledged, nameof(owner.cropOutcomeAcknowledged));
+        Add(owner.terminalReceipt == null || !owner.terminalReceipt.IsEmpty, nameof(owner.terminalReceipt));
+        Add(!string.IsNullOrEmpty(owner.terminalPlotDisplayName), nameof(owner.terminalPlotDisplayName));
+        Add(!string.IsNullOrEmpty(owner.terminalCropDisplayName), nameof(owner.terminalCropDisplayName));
+        Add(!string.IsNullOrEmpty(owner.terminalPublicationKey), nameof(owner.terminalPublicationKey));
+        Add(!string.IsNullOrEmpty(owner.terminalPublicationId), nameof(owner.terminalPublicationId));
+        Add(!string.IsNullOrEmpty(owner.terminalPublicationFingerprint), nameof(owner.terminalPublicationFingerprint));
+        Add(owner.completionEventPublished,
+            nameof(owner.completionEventPublished));
+        Add(!string.IsNullOrEmpty(owner.completionDeliveryId),
+            nameof(owner.completionDeliveryId));
+        Add(!string.IsNullOrEmpty(owner.completionPublicationKey), nameof(owner.completionPublicationKey));
+        Add(!string.IsNullOrEmpty(owner.completionDeliveryFingerprint),
+            nameof(owner.completionDeliveryFingerprint));
+        Add(owner.completionAbsoluteDay != 0,
+            nameof(owner.completionAbsoluteDay));
+        Add(!string.IsNullOrEmpty(owner.harvestItemId),
+            nameof(owner.harvestItemId));
+        Add(owner.harvestQuantity != 0, nameof(owner.harvestQuantity));
+        Add(!string.IsNullOrEmpty(owner.seedItemId), nameof(owner.seedItemId));
+        Add(owner.seedQuantity != 0, nameof(owner.seedQuantity));
+        Add(!IsSerializedEmptySeedLot(owner.returnedSeedLot),
+            nameof(owner.returnedSeedLot));
+        Add(owner.maximumHarvestQuantity != 0,
+            nameof(owner.maximumHarvestQuantity));
+        Add(owner.maximumSeedQuantity != 0,
+            nameof(owner.maximumSeedQuantity));
+        Add(!string.IsNullOrEmpty(owner.seasonalDamageSourceEventInstanceId),
+            nameof(owner.seasonalDamageSourceEventInstanceId));
+        Add(!string.IsNullOrEmpty(owner.seasonalDamageSourceDefinitionId),
+            nameof(owner.seasonalDamageSourceDefinitionId));
+        Add(owner.seasonalPrimaryBatchLossPercent != 0,
+            nameof(owner.seasonalPrimaryBatchLossPercent));
+        Add(owner.primaryQuantityBeforeSeasonalLoss != 0,
+            nameof(owner.primaryQuantityBeforeSeasonalLoss));
+        Add(owner.seasonalPrimaryLossQuantity != 0,
+            nameof(owner.seasonalPrimaryLossQuantity));
+        Add(owner.harvestCapability is not { IsEmpty: true },
+            nameof(owner.harvestCapability));
+        Add(owner.seedCapability is not { IsEmpty: true },
+            nameof(owner.seedCapability));
+        Add(owner.outputPublication == null,
+            nameof(owner.outputPublication) + "=null");
+        if (owner.outputPublication is { IsEmpty: false })
+        {
+            fields.Add(
+                nameof(owner.outputPublication)
+                + "="
+                + JsonUtility.ToJson(owner.outputPublication));
+        }
+        return fields.Count == 0 ? "unknown" : string.Join(",", fields);
+    }
+
     private static bool IsSerializedEmptySeedLot(SeedLotState value) =>
         value == null
         || string.IsNullOrEmpty(value.cropId)
@@ -4569,15 +5387,170 @@ public sealed class CropPlotRuntime :
         && string.Equals(saved.fingerprint, expected.Fingerprint,
             StringComparison.Ordinal);
 
+    private static void ValidateCropSelectionOutcome(
+        CropPlotSaveData saved,
+        BuildingInstanceId plotId)
+    {
+        CropSelectionCommandSaveData owner = saved.cropSelectionOutcome;
+        if (owner.IsEmpty)
+            return;
+        _ = new CropSelectionChangedFact(plotId, owner);
+        ValidateCropCommandPublicationKey(owner.publicationKey);
+        string expectedOperationId = CropSelectionOperationPrefix
+            + plotId.Value + ":"
+            + owner.operationSequence.ToString(
+                "D6",
+                System.Globalization.CultureInfo.InvariantCulture);
+        bool ledgerExact = owner.phase == CropCommandOutcomePhase.LedgerCommitted
+            ? IsCanonicalToken(owner.gameplayOutcomeId)
+                && IsCropCommandFingerprint(
+                    owner.gameplayOutcomeDigest)
+            : string.IsNullOrEmpty(owner.gameplayOutcomeId)
+                && string.IsNullOrEmpty(owner.gameplayOutcomeDigest);
+        if (!Enum.IsDefined(typeof(CropCommandOutcomePhase), owner.phase)
+            || owner.phase == CropCommandOutcomePhase.None
+            || owner.operationSequence
+                != saved.nextCropSelectionOperationSequence
+            || !string.Equals(
+                owner.operationId,
+                expectedOperationId,
+                StringComparison.Ordinal)
+            || !IsCanonicalToken(owner.cropAfter)
+            || !string.Equals(owner.cropAfter, saved.cropId, StringComparison.Ordinal)
+            || !float.IsFinite(owner.waterBefore)
+            || !float.IsFinite(owner.waterAfter)
+            || owner.waterBefore < 0f
+            || owner.waterAfter != 0f
+            || owner.completedAbsoluteDay < 0
+            || !ledgerExact)
+            throw new InvalidOperationException(
+                "Crop selection command outcome is invalid.");
+    }
+
+    private static void ValidateGoldenHarvestScheduleOutcome(
+        CropPlotSaveData saved,
+        BuildingInstanceId plotId)
+    {
+        CropGoldenHarvestScheduleSaveData owner =
+            saved.goldenHarvestScheduleOutcome;
+        if (owner.IsEmpty)
+            return;
+        _ = new GoldenHarvestScheduledFact(plotId, owner);
+        ValidateCropCommandPublicationKey(owner.publicationKey);
+        string expectedOperationId = GoldenHarvestScheduleOperationPrefix
+            + plotId.Value + ":"
+            + owner.operationSequence.ToString(
+                "D6",
+                System.Globalization.CultureInfo.InvariantCulture);
+        bool ledgerExact = owner.phase == CropCommandOutcomePhase.LedgerCommitted
+            ? IsCanonicalToken(owner.gameplayOutcomeId)
+                && IsCropCommandFingerprint(
+                    owner.gameplayOutcomeDigest)
+            : string.IsNullOrEmpty(owner.gameplayOutcomeId)
+                && string.IsNullOrEmpty(owner.gameplayOutcomeDigest);
+        if (!Enum.IsDefined(typeof(CropCommandOutcomePhase), owner.phase)
+            || owner.phase == CropCommandOutcomePhase.None
+            || owner.operationSequence != owner.attemptBefore
+            || owner.attemptAfter != checked(owner.attemptBefore + 1)
+            || owner.attemptAfter != saved.goldenHarvestAttemptSequence
+            || !string.Equals(
+                owner.operationId,
+                expectedOperationId,
+                StringComparison.Ordinal)
+            || !string.Equals(owner.cropId, saved.cropId, StringComparison.Ordinal)
+            || !IsCanonicalToken(owner.harvesterId)
+            || string.IsNullOrWhiteSpace(owner.harvesterDisplayName)
+            || !string.IsNullOrEmpty(owner.harvesterBefore)
+            || !string.Equals(
+                owner.harvesterAfter,
+                saved.goldenHarvestHarvesterId,
+                StringComparison.Ordinal)
+            || owner.completedAbsoluteDay < 0
+            || !ledgerExact)
+            throw new InvalidOperationException(
+                "Golden harvest schedule outcome is invalid.");
+    }
+
+    private static void ValidateCropTerminalPublicationFields(string key, string id, string fingerprint, bool acknowledged = false)
+    {
+        if (key == null || id == null || fingerprint == null)
+            throw new InvalidOperationException("Crop terminal publication fields must be explicit.");
+        if (key.Length == 0)
+        {
+            if (id.Length != 0 || fingerprint.Length != 0 || acknowledged)
+                throw new InvalidOperationException("Crop terminal response is missing its publication key.");
+            return;
+        }
+        ValidateCropCommandPublicationKey(key);
+        bool hasIdentity = id.Length != 0;
+        if (hasIdentity != (fingerprint.Length != 0)
+            || hasIdentity && (!IsCanonicalToken(id) || !IsCropCommandFingerprint(fingerprint))
+            || acknowledged && !hasIdentity)
+            throw new InvalidOperationException("Crop terminal publication acknowledgement is incomplete.");
+    }
+
+    private static void ValidateHarvestTerminalPublication(CropPlotSaveData saved, BuildingInstanceId plotId)
+    {
+        CropHarvestOutputSaveData owner = saved.pendingHarvest;
+        if (owner.terminalReceipt == null)
+            throw new InvalidOperationException("Crop harvest terminal snapshot must be explicit.");
+        ValidateCropTerminalPublicationFields(owner.terminalPublicationKey, owner.terminalPublicationId,
+            owner.terminalPublicationFingerprint, owner.cropOutcomeAcknowledged);
+        if (owner.terminalReceipt.IsEmpty)
+        {
+            if (!string.IsNullOrEmpty(owner.terminalPlotDisplayName)
+                || !string.IsNullOrEmpty(owner.terminalCropDisplayName)
+                || !string.IsNullOrEmpty(owner.terminalPublicationKey) || owner.cropOutcomeAcknowledged)
+                throw new InvalidOperationException("Empty harvest terminal snapshot contains publication provenance.");
+            return;
+        }
+        if (owner.phase != CropHarvestOutputPhase.OutputRestoredAwaitingFinalization
+            || !owner.outputPublication.outputAcknowledged || !owner.ecologyCommitted
+            || owner.goldenPrepared && !owner.goldenCommitted)
+            throw new InvalidOperationException("Harvest terminal was frozen before its physical effects completed.");
+        _ = new CropCycleTerminalFact(plotId, owner.terminalReceipt,
+            owner.terminalPlotDisplayName, owner.terminalCropDisplayName,
+            owner.completionAbsoluteDay, checked((long)owner.operationSequence + 1L));
+        CropCycleExecutionReceiptSaveData expected = CropPlanExecutionReceiptAuthority.Complete(
+            saved.cycleExecutionReceipt, owner, saved.currentWater);
+        if (owner.terminalReceipt.sourceDigest != expected.sourceDigest)
+            throw new InvalidOperationException("Harvest terminal snapshot drifted from its authoritative execution.");
+    }
+
+    private static void ValidateCropCommandPublicationKey(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key) || key.Length > 512
+            || !string.Equals(key, key.Trim(), StringComparison.Ordinal)
+            || key.Any(char.IsControl))
+            throw new InvalidOperationException("Crop command publication key is invalid.");
+    }
+
+    private static bool IsCropCommandFingerprint(string value) =>
+        value != null && value.Length == 64
+        && value.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f');
+
     private void ValidatePendingWaterRefill(
         CropPlotSaveData saved,
         CropDefinitionSO crop,
         BuildingInstanceId plotId)
     {
         CropWaterRefillSaveData owner = saved.waterRefill;
+        bool hasPublication = !string.IsNullOrEmpty(owner.publicationKey);
+        if (hasPublication)
+        {
+            ValidateCropCommandPublicationKey(owner.publicationKey);
+            _ = new CropWaterRefillFact(plotId, owner);
+        }
+        else if (!string.IsNullOrEmpty(owner.plotDisplayName)
+            || !string.IsNullOrEmpty(owner.itemDisplayName)
+            || owner.locationX != 0 || owner.locationY != 0
+            || owner.phase is CropWaterRefillPhase.InputCommitted
+                or CropWaterRefillPhase.OutcomePublished or CropWaterRefillPhase.LedgerCommitted)
+            throw new InvalidOperationException("Crop water-refill publication snapshot is missing its key.");
         if (owner.phase == CropWaterRefillPhase.None)
         {
-            bool empty = owner.operationSequence == 0
+            bool empty = !hasPublication && owner.operationSequence == 0
+                && owner.outcomeSchemaVersion == 0
                 && string.IsNullOrEmpty(owner.operationId)
                 && string.IsNullOrEmpty(owner.reasonCode)
                 && string.IsNullOrEmpty(owner.destinationId)
@@ -4590,7 +5563,16 @@ public sealed class CropPlotRuntime :
                 && owner.inputMassGrams == 0L
                 && string.IsNullOrEmpty(owner.requestFingerprint)
                 && string.IsNullOrEmpty(owner.physicalRequestFingerprint)
+                && owner.physicalOutcomeOwnerRevision == 0L
                 && (owner.sourceStackIds?.Count ?? 0) == 0
+                && string.IsNullOrEmpty(owner.responsibleWorkerId)
+                && string.IsNullOrEmpty(owner.responsibleWorkerDisplayName)
+                && (owner.workContributions?.Count ?? 0) == 0
+                && owner.waterBefore == 0f
+                && owner.waterAfter == 0f
+                && owner.completedAbsoluteDay == 0
+                && string.IsNullOrEmpty(owner.gameplayOutcomeId)
+                && string.IsNullOrEmpty(owner.gameplayOutcomeDigest)
                 && string.IsNullOrEmpty(owner.failureReason);
             if (!empty)
                 throw new InvalidOperationException(
@@ -4599,6 +5581,8 @@ public sealed class CropPlotRuntime :
         }
 
         if (!Enum.IsDefined(typeof(CropWaterRefillPhase), owner.phase)
+            || owner.outcomeSchemaVersion
+                != CropWaterRefillSaveData.CurrentOutcomeSchemaVersion
             || crop.DailyWater <= 0f
             || owner.operationSequence
                 != saved.nextWaterRefillOperationSequence
@@ -4642,7 +5626,8 @@ public sealed class CropPlotRuntime :
         }
 
         bool committed = owner.phase is CropWaterRefillPhase.InputCommitted
-            or CropWaterRefillPhase.OutcomePublished;
+            or CropWaterRefillPhase.OutcomePublished
+            or CropWaterRefillPhase.LedgerCommitted;
         long expectedMass = items.GetDefinitionQuantityMassGrams(
             owner.itemId,
             owner.quantity);
@@ -4654,6 +5639,7 @@ public sealed class CropPlotRuntime :
             && owner.inputQuantity == owner.quantity
             && owner.inputMassGrams == expectedMass
             && IsCanonicalToken(owner.physicalRequestFingerprint)
+            && owner.physicalOutcomeOwnerRevision > 0L
             && owner.sourceStackIds != null
             && owner.sourceStackIds.Count > 0
             && owner.sourceStackIds.All(IsCanonicalToken)
@@ -4668,16 +5654,43 @@ public sealed class CropPlotRuntime :
             && owner.inputQuantity == 0
             && owner.inputMassGrams == 0L
             && string.IsNullOrEmpty(owner.physicalRequestFingerprint)
+            && owner.physicalOutcomeOwnerRevision == 0L
             && (owner.sourceStackIds?.Count ?? 0) == 0;
+        bool workerExact = owner.phase is CropWaterRefillPhase.Working
+                or CropWaterRefillPhase.InputCommitted
+                or CropWaterRefillPhase.OutcomePublished
+                or CropWaterRefillPhase.LedgerCommitted
+            ? IsCanonicalToken(owner.responsibleWorkerId)
+                && !string.IsNullOrWhiteSpace(
+                    owner.responsibleWorkerDisplayName)
+                && owner.workContributions != null
+                && owner.workContributions.Count > 0
+            : string.IsNullOrEmpty(owner.responsibleWorkerId)
+                && string.IsNullOrEmpty(owner.responsibleWorkerDisplayName)
+                && (owner.workContributions?.Count ?? 0) == 0;
+        bool outcomeExact = owner.phase == CropWaterRefillPhase.LedgerCommitted
+            ? IsCanonicalToken(owner.gameplayOutcomeId)
+                && IsCropCommandFingerprint(owner.gameplayOutcomeDigest)
+            : string.IsNullOrEmpty(owner.gameplayOutcomeId)
+                && string.IsNullOrEmpty(owner.gameplayOutcomeDigest);
         if (committed != receiptExact
             || !committed && !receiptEmpty
             || committed
                 && owner.completedWork + 0.001f < owner.requiredWork
+            || !workerExact
+            || !outcomeExact
+            || committed && (!float.IsFinite(owner.waterBefore)
+                || owner.waterBefore < 0f
+                || owner.completedAbsoluteDay < 0)
             || owner.phase == CropWaterRefillPhase.InputCommitted
                 && saved.currentWater + owner.quantity
                     > saved.waterCapacity + 0.001f
-            || owner.phase == CropWaterRefillPhase.OutcomePublished
-                && saved.currentWater + 0.001f < owner.quantity
+            || (owner.phase is CropWaterRefillPhase.OutcomePublished
+                    or CropWaterRefillPhase.LedgerCommitted)
+                && (Math.Abs(saved.currentWater - owner.waterAfter) > 0.0001f
+                    || Math.Abs(
+                        owner.waterBefore + owner.quantity - owner.waterAfter)
+                        > 0.0001f)
             || owner.phase == CropWaterRefillPhase.WaitingForDelivery
                 && owner.completedWork != 0f)
         {
@@ -4833,9 +5846,28 @@ public sealed class CropPlotRuntime :
         BuildingInstanceId plotId)
     {
         CropTreatmentOrderSaveData owner = saved.treatment;
+        bool hasPublication = !string.IsNullOrEmpty(owner.publicationKey);
+        if (hasPublication)
+        {
+            ValidateCropCommandPublicationKey(owner.publicationKey);
+            if (owner.phase != CropTreatmentOrderPhase.PlotDestroyedLossPending)
+                _ = new CropTreatmentFact(plotId, owner);
+            else if (string.IsNullOrWhiteSpace(owner.plotDisplayName)
+                || string.IsNullOrWhiteSpace(owner.itemDisplayName))
+                throw new InvalidOperationException("Destroyed crop treatment lost its frozen presentation.");
+        }
+        else if (!string.IsNullOrEmpty(owner.plotDisplayName) || !string.IsNullOrEmpty(owner.itemDisplayName)
+            || owner.locationX != 0 || owner.locationY != 0
+            || !string.IsNullOrEmpty(owner.ecologyBeforeFingerprint)
+            || owner.pestPressureBefore != 0f || owner.diseasePressureBefore != 0f
+            || owner.cooldownBeforeDay != 0 || owner.completedAbsoluteDay != 0
+            || owner.phase is CropTreatmentOrderPhase.InputCommitted or CropTreatmentOrderPhase.OutcomePublished
+                or CropTreatmentOrderPhase.LedgerCommitted or CropTreatmentOrderPhase.PlotDestroyedLossPending)
+            throw new InvalidOperationException("Crop treatment publication snapshot is missing its key.");
         if (owner.phase == CropTreatmentOrderPhase.None)
         {
-            bool empty = owner.operationSequence == 0
+            bool empty = !hasPublication && owner.outcomeSchemaVersion == 0
+                && owner.operationSequence == 0
                 && string.IsNullOrEmpty(owner.operationId)
                 && string.IsNullOrEmpty(owner.reasonCode)
                 && string.IsNullOrEmpty(owner.destinationId)
@@ -4856,6 +5888,18 @@ public sealed class CropPlotRuntime :
                 && (owner.tareOutputCommitIds?.Count ?? 0) == 0
                 && string.IsNullOrEmpty(owner.ecologyBeforeFingerprint)
                 && string.IsNullOrEmpty(owner.ecologyAfterFingerprint)
+                && string.IsNullOrEmpty(owner.responsibleWorkerId)
+                && string.IsNullOrEmpty(owner.responsibleWorkerDisplayName)
+                && (owner.workContributions?.Count ?? 0) == 0
+                && owner.pestPressureBefore == 0f
+                && owner.pestPressureAfter == 0f
+                && owner.diseasePressureBefore == 0f
+                && owner.diseasePressureAfter == 0f
+                && owner.cooldownBeforeDay == 0
+                && owner.cooldownAfterDay == 0
+                && owner.completedAbsoluteDay == 0
+                && string.IsNullOrEmpty(owner.gameplayOutcomeId)
+                && string.IsNullOrEmpty(owner.gameplayOutcomeDigest)
                 && owner.terminalDisposition
                     == CropTreatmentTerminalDisposition.None
                 && string.IsNullOrEmpty(owner.terminalReasonCode)
@@ -4868,6 +5912,7 @@ public sealed class CropPlotRuntime :
         }
 
         if (!Enum.IsDefined(typeof(CropTreatmentOrderPhase), owner.phase)
+            || owner.outcomeSchemaVersion != CropTreatmentOrderSaveData.CurrentOutcomeSchemaVersion
             || owner.operationSequence != saved.nextTreatmentOperationSequence
             || !string.Equals(
                 owner.operationId,
@@ -4895,6 +5940,42 @@ public sealed class CropPlotRuntime :
             throw new InvalidOperationException(
                 "Crop treatment intent contradicts authored policy or plot identity.");
 
+        bool hasWorker = !string.IsNullOrWhiteSpace(owner.responsibleWorkerId)
+            && string.Equals(
+                owner.responsibleWorkerId,
+                owner.responsibleWorkerId.Trim(),
+                StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(
+                owner.responsibleWorkerDisplayName)
+            && owner.workContributions != null
+            && owner.workContributions.Count > 0
+            && owner.workContributions.All(value => value != null
+                && !string.IsNullOrWhiteSpace(value.characterId)
+                && value.characterId == value.characterId.Trim()
+                && float.IsFinite(value.contributedWork)
+                && value.contributedWork > 0f)
+            && owner.workContributions.Select(value => value.characterId)
+                .Distinct(StringComparer.Ordinal).Count()
+                == owner.workContributions.Count;
+        bool hasBeforeSnapshot = !string.IsNullOrWhiteSpace(
+                owner.ecologyBeforeFingerprint)
+            && float.IsFinite(owner.pestPressureBefore)
+            && owner.pestPressureBefore is >= 0f and <= 100f
+            && float.IsFinite(owner.diseasePressureBefore)
+            && owner.diseasePressureBefore is >= 0f and <= 100f
+            && owner.cooldownBeforeDay >= 0
+            && owner.completedAbsoluteDay >= 0;
+        bool hasAfterSnapshot = hasBeforeSnapshot
+            && !string.IsNullOrWhiteSpace(owner.ecologyAfterFingerprint)
+            && float.IsFinite(owner.pestPressureAfter)
+            && owner.pestPressureAfter is >= 0f and <= 100f
+            && float.IsFinite(owner.diseasePressureAfter)
+            && owner.diseasePressureAfter is >= 0f and <= 100f
+            && owner.cooldownAfterDay
+                == owner.completedAbsoluteDay + owner.cooldownDays;
+        bool hasLedgerIdentity = IsCanonicalToken(owner.gameplayOutcomeId)
+            && IsCropCommandFingerprint(owner.gameplayOutcomeDigest);
+
         bool hasReceipt = owner.sourceStackIds != null
             && owner.sourceStackIds.Count > 0
             && owner.sourceStackIds.All(value =>
@@ -4916,6 +5997,8 @@ public sealed class CropPlotRuntime :
             && (owner.tareOutputCommitIds?.Count ?? 0) == 0
             && string.IsNullOrEmpty(owner.ecologyBeforeFingerprint)
             && string.IsNullOrEmpty(owner.ecologyAfterFingerprint)
+            && string.IsNullOrEmpty(owner.gameplayOutcomeId)
+            && string.IsNullOrEmpty(owner.gameplayOutcomeDigest)
             && owner.terminalDisposition
                 == CropTreatmentTerminalDisposition.None
             && string.IsNullOrEmpty(owner.terminalReasonCode)
@@ -4926,19 +6009,40 @@ public sealed class CropPlotRuntime :
             or CropTreatmentOrderPhase.ReadyForWork
             or CropTreatmentOrderPhase.Working;
         bool valid = preCommit
-            ? emptyReceipt
+            ? emptyReceipt && (owner.completedWork <= 0f || hasWorker)
+                    || owner.phase == CropTreatmentOrderPhase.Working
+                        && hasWorker
+                        && hasBeforeSnapshot
+                        && (owner.sourceStackIds?.Count ?? 0) == 0
+                        && owner.inputMassGrams == 0L
+                        && string.IsNullOrEmpty(owner.commitId)
+                        && string.IsNullOrEmpty(owner.requestFingerprint)
             : owner.phase == CropTreatmentOrderPhase.InputCommitted
                 ? hasReceipt
                     && string.IsNullOrEmpty(owner.ecologyAfterFingerprint)
+                    && hasWorker && hasBeforeSnapshot
                     && owner.terminalDisposition
                         == CropTreatmentTerminalDisposition.None
                 : owner.phase == CropTreatmentOrderPhase.OutcomePublished
                     ? hasReceipt
                         && !string.IsNullOrWhiteSpace(
                             owner.ecologyAfterFingerprint)
+                        && hasWorker && hasAfterSnapshot
+                        && string.IsNullOrEmpty(owner.gameplayOutcomeId)
+                        && string.IsNullOrEmpty(owner.gameplayOutcomeDigest)
                         && owner.terminalDisposition
                             == CropTreatmentTerminalDisposition.None
-                    : CropTreatmentPhysicalOutbox.ValidateDestroyedPlotLoss(
+                    : owner.phase == CropTreatmentOrderPhase.LedgerCommitted
+                        ? hasReceipt
+                            && hasWorker
+                            && hasAfterSnapshot
+                            && hasLedgerIdentity
+                            && owner.terminalDisposition
+                                == CropTreatmentTerminalDisposition.None
+                    : hasReceipt && hasWorker && hasBeforeSnapshot
+                        && string.IsNullOrEmpty(owner.gameplayOutcomeId)
+                        && string.IsNullOrEmpty(owner.gameplayOutcomeDigest)
+                        && CropTreatmentPhysicalOutbox.ValidateDestroyedPlotLoss(
                         owner,
                         out _);
         if (!valid)
@@ -4959,7 +6063,9 @@ public sealed class CropPlotRuntime :
         if (receipt.IsEmpty)
         {
             if (saved.materialsConsumed
-                || saved.pendingHarvest.phase != CropHarvestOutputPhase.None)
+                || saved.pendingHarvest.phase != CropHarvestOutputPhase.None
+                || saved.failedOutcome != null
+                    && !saved.failedOutcome.IsEmpty)
             {
                 throw new InvalidOperationException(
                     "Active crop cycle is missing its durable execution receipt.");
@@ -4974,12 +6080,48 @@ public sealed class CropPlotRuntime :
                 "Crop execution receipt drifted from its plot or crop.");
         }
 
+        CropFailedOutcomeSaveData failedOutcome = saved.failedOutcome
+            ?? new CropFailedOutcomeSaveData();
+        if (IsFailedCycleReceipt(receipt))
+        {
+            if (failedOutcome.IsEmpty
+                || !ProductionOutputClearanceProfileObservation
+                    .IsLowercaseSha256(failedOutcome.receiptDigest)
+                || !string.Equals(
+                    failedOutcome.receiptDigest,
+                    receipt.sourceDigest,
+                    StringComparison.Ordinal)
+                || string.IsNullOrWhiteSpace(failedOutcome.plotDisplayName)
+                || string.IsNullOrWhiteSpace(failedOutcome.cropDisplayName)
+                || !string.Equals(
+                    saved.plotDisplayName,
+                    failedOutcome.plotDisplayName,
+                    StringComparison.Ordinal)
+                || failedOutcome.absoluteDay < 0
+                || failedOutcome.ownerRevision != checked((long)saved.nextHarvestOperationSequence + 1L))
+                throw new InvalidOperationException(
+                    "Crop failure outcome snapshot contradicts its terminal receipt.");
+            ValidateCropTerminalPublicationFields(failedOutcome.publicationKey,
+                failedOutcome.publicationId, failedOutcome.publicationFingerprint);
+            _ = new CropCycleTerminalFact(plotId, receipt, failedOutcome.plotDisplayName,
+                failedOutcome.cropDisplayName, failedOutcome.absoluteDay, failedOutcome.ownerRevision);
+        }
+        else if (!failedOutcome.IsEmpty)
+            throw new InvalidOperationException(
+                "A non-failed crop cycle retained a failure outcome snapshot.");
+
         bool activeCycle = saved.materialsConsumed
             || saved.pendingHarvest.phase != CropHarvestOutputPhase.None;
         if (activeCycle
-            && receipt.status != CropCycleExecutionReceiptStatus.Active)
+            && receipt.status != CropCycleExecutionReceiptStatus.Active
+            && !(IsFailedCycleReceipt(receipt)
+                && saved.phase == CropPlotPhase.Blocked
+                && saved.pendingHarvest.phase == CropHarvestOutputPhase.None))
             throw new InvalidOperationException(
-                "Active crop cycle must retain its active execution receipt.");
+                "Active crop cycle must retain its active execution receipt: "
+                + $"status={receipt.status}, phase={saved.phase}, "
+                + $"materialsConsumed={saved.materialsConsumed}, "
+                + $"pendingHarvest={saved.pendingHarvest.phase}.");
         if (!activeCycle
             && receipt.status == CropCycleExecutionReceiptStatus.Active)
             throw new InvalidOperationException(
@@ -5219,6 +6361,11 @@ public sealed class CropPlotRuntime :
         CropPlotState state,
         out string failureReason)
     {
+        if (state.IrrigationPublication.pending)
+        {
+            failureReason = "crop-next-cycle-irrigation-publication-pending";
+            return false;
+        }
         try
         {
             if (!TryRetireInactiveWaterRefill(state))
@@ -5268,10 +6415,32 @@ public sealed class CropPlotRuntime :
         if (state == null)
             return true;
 
-        // Destructive mutation must be fenced by the shared facility lifecycle
-        // query before the plot disappears. If a caller bypasses that fence,
-        // retain the exact frozen/committed owner instead of deleting output or
-        // inventing a loose fallback location.
+        if (!TryAdvanceIrrigationPublication(state))
+        {
+            state.BlockedReason = "crop-irrigation-publication-blocks-plot-destruction";
+            snapshotsDirty = true;
+            return false;
+        }
+
+        if (state.CropSelectionOutcome is { IsEmpty: false }
+            && !TryAdvanceCropSelectionOutcome(state))
+        {
+            state.BlockedReason =
+                "crop-selection-outcome-blocks-plot-destruction";
+            snapshotsDirty = true;
+            return false;
+        }
+        if (state.GoldenHarvestScheduleOutcome is { IsEmpty: false }
+            && !TryAdvanceGoldenHarvestScheduleOutcome(state))
+        {
+            state.BlockedReason =
+                "golden-harvest-schedule-outcome-blocks-plot-destruction";
+            snapshotsDirty = true;
+            return false;
+        }
+
+        // A frozen harvest publication still owns its terminal cycle.  Let it
+        // settle before choosing a destruction failure for that correlation.
         if (state.PendingHarvest?.phase != CropHarvestOutputPhase.None)
         {
             state.BlockedReason =
@@ -5280,10 +6449,60 @@ public sealed class CropPlotRuntime :
             return false;
         }
 
+        if (!string.IsNullOrEmpty(state.PendingCycleCorrelationId)
+            && (state.CycleExecutionReceipt == null
+                || state.CycleExecutionReceipt.IsEmpty))
+        {
+            state.CycleExecutionReceipt =
+                CropPlanExecutionReceiptAuthority.FailBeforeSow(
+                    state.PendingCycleCorrelationId,
+                    state.PlotId.Value,
+                    state.CropId,
+                    state.Ability?.Indoor ?? false,
+                    "crop-cycle-failed-plot-destroyed-before-sow");
+            state.PendingCycleCorrelationId = string.Empty;
+            FreezeFailedOutcome(state, CurrentAbsoluteDay);
+        }
+        if (state.CycleExecutionReceipt?.status
+            == CropCycleExecutionReceiptStatus.Active)
+        {
+            state.CycleExecutionReceipt =
+                CropPlanExecutionReceiptAuthority.Fail(
+                    state.CycleExecutionReceipt,
+                    CropCycleExecutionReceiptStatus.FailedPlotDestroyed,
+                    "crop-cycle-failed-plot-destroyed");
+            FreezeFailedOutcome(state, CurrentAbsoluteDay);
+        }
+        if (IsFailedCycleReceipt(state.CycleExecutionReceipt))
+        {
+            if (state.Phase != CropPlotPhase.Blocked)
+            {
+                state.Phase = CropPlotPhase.Blocked;
+                state.SeasonalYieldDamage =
+                    new CropSeasonalYieldDamageSaveData();
+                state.BlockedReason =
+                    "crop-plot-destroyed-awaiting-outcome";
+                MarkChanged(replan: false);
+            }
+            if (!TryEnsureFailedOutcomeAcknowledged(
+                    state, out string outcomeFailure))
+            {
+                state.BlockedReason = outcomeFailure;
+                snapshotsDirty = true;
+                return false;
+            }
+        }
+
+        // Destructive mutation must be fenced by the shared facility lifecycle
+        // query before the plot disappears. If a caller bypasses that fence,
+        // retain the exact frozen/committed owner instead of deleting output or
+        // inventing a loose fallback location.
+
         if (!TryRetireInactiveWaterRefill(state))
             return false;
 
-        if (state.Treatment.phase == CropTreatmentOrderPhase.OutcomePublished)
+        if (state.Treatment.phase is CropTreatmentOrderPhase.OutcomePublished
+                or CropTreatmentOrderPhase.LedgerCommitted)
         {
             TryFinalizeTreatment(state);
             if (state.Treatment.phase != CropTreatmentOrderPhase.None)
@@ -5368,14 +6587,13 @@ public sealed class CropPlotRuntime :
             CropPlanExecutionReceiptAuthority.Validate(
                 state.CycleExecutionReceipt,
                 requireCompleted: false);
-            if (state.CycleExecutionReceipt.status
-                == CropCycleExecutionReceiptStatus.Active)
+            if (IsFailedCycleReceipt(state.CycleExecutionReceipt))
             {
-                state.CycleExecutionReceipt =
-                    CropPlanExecutionReceiptAuthority.Fail(
-                        state.CycleExecutionReceipt,
-                        CropCycleExecutionReceiptStatus.FailedPlotDestroyed,
-                        "crop-cycle-failed-plot-destroyed");
+                state.Phase = CropPlotPhase.Blocked;
+                state.SeasonalYieldDamage =
+                    new CropSeasonalYieldDamageSaveData();
+                if (!TryAdvanceFailedCycle(state))
+                    return false;
             }
             if (state.CycleExecutionReceipt.explicitCorrelation)
             {
@@ -5428,11 +6646,14 @@ public sealed class CropPlotRuntime :
                 "Crop-plot destroyed water-refill owner retirement failed: "
                 + waterRetireFailure);
         ecology.AbandonPlot(plotId.Value);
-        if (completionDeliveries != null
-            && !completionDeliveries.RetireProducerStream(
-                HarvestCompletionStreamPrefix + plotId.Value))
-            throw new InvalidOperationException(
-                "Crop completion delivery stream retirement failed.");
+        string publicationId = string.Empty;
+        string fingerprint = string.Empty;
+        if (!TryDeliverCropFact(new CropPlotRetiredFact(plotId), ref state.RetirementPublicationKey,
+            ref publicationId, ref fingerprint, out string failure))
+        {
+            state.BlockedReason = failure;
+            return;
+        }
         states.Remove(plotId);
         MarkChanged();
     }
@@ -5542,7 +6763,7 @@ public sealed class CropPlotRuntime :
                 throw new InvalidOperationException(
                     $"Crop plot '{state.PlotId.Value}' in phase {state.Phase} "
                     + "requires an owned ecology phenotype.");
-            CropGenomePhenotype temperaturePhenotype = ecologyPlot != null
+            CropGenomePhenotype temperaturePhenotype = requiresEcologyPhenotype
                 ? ecology.GetPhenotype(state.PlotId.Value)
                 : new CropGenomePhenotype(
                     coldToleranceDegrees: 0f,
@@ -5747,6 +6968,8 @@ public sealed class CropPlotRuntime :
                 CropPlotWaterStatus.InputCommitted,
             CropWaterRefillPhase.OutcomePublished =>
                 CropPlotWaterStatus.OutcomePublished,
+            CropWaterRefillPhase.LedgerCommitted =>
+                CropPlotWaterStatus.OutcomePublished,
             _ => state.CurrentWater <= 0f
                 ? CropPlotWaterStatus.Empty
                 : state.CurrentWater + 0.001f < dailyWaterDemand
@@ -5804,6 +7027,12 @@ public sealed class CropPlotRuntime :
         BuildingInstanceId plotId,
         out string failureReason)
     {
+        if (states.TryGetValue(plotId, out CropPlotState state)
+            && state.IrrigationPublication.pending)
+        {
+            failureReason = "crop-irrigation-publication-pending:" + state.IrrigationPublication.failureReason;
+            return false;
+        }
         if (ProductionFacilityMutationWorkPolicy.TryRequireMutable(
                 facilityMutations,
                 plotId,

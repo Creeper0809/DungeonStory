@@ -178,28 +178,71 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
 
     public void AddRenown(float amount, string source)
     {
+        float before = state.renown;
         ExternalInfluenceDomainRules.AddRenown(state, amount);
+        RecordValueChange(
+            ExternalInfluenceOperationKind.RenownChange,
+            source,
+            amount,
+            before,
+            state.renown);
     }
 
     public void AddDread(float amount, string source)
     {
+        float before = state.dread;
         ExternalInfluenceDomainRules.AddDread(state, amount);
+        RecordValueChange(
+            ExternalInfluenceOperationKind.DreadChange,
+            source,
+            amount,
+            before,
+            state.dread);
     }
 
     public void AddHostileRumor(float amount, string source)
     {
+        float before = state.hostileRumor;
         ExternalInfluenceDomainRules.AddHostileRumor(state, amount);
+        RecordValueChange(
+            ExternalInfluenceOperationKind.HostileRumorChange,
+            source,
+            amount,
+            before,
+            state.hostileRumor);
     }
 
     public void AddEcologyPressure(float amount, string source)
     {
+        float before = state.ecologyPressure;
         ExternalInfluenceDomainRules.AddEcologyPressure(state, amount);
+        RecordValueChange(
+            ExternalInfluenceOperationKind.EcologyPressureChange,
+            source,
+            amount,
+            before,
+            state.ecologyPressure);
         CheckEcologyThresholds();
     }
 
-    public void AddScoutingLabor(float amount)
+    public void AddScoutingLabor(
+        float amount,
+        int reconLevel,
+        int newlyRevealed)
     {
+        float before = state.scoutingLabor;
         ExternalInfluenceDomainRules.AddScoutingLabor(state, amount);
+        ExternalInfluenceOperationSaveData operation = CreateOperation(
+            $"external-influence:recon:{reconLevel}",
+            ExternalInfluenceOperationKind.ReconUpgrade,
+            ExternalInfluenceOperationPhase.Completed,
+            nameof(OffenseWorldMapRuntime),
+            $"recon:{reconLevel}");
+        operation.requestedAmount = Math.Max(0f, amount);
+        operation.appliedAmount = Math.Max(0f, state.scoutingLabor - before);
+        operation.valueBefore = before;
+        operation.valueAfter = state.scoutingLabor;
+        operation.newlyRevealed = Math.Max(0, newlyRevealed);
     }
 
     public bool TryMitigateHostileRumor(
@@ -221,8 +264,19 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
             return false;
         }
 
+        string operationId =
+            $"external-influence:rumor:{state.currentOperatingDay}:{method}";
+        string financeTransactionId = string.Empty;
+        float rumorBefore = state.hostileRumor;
         if (method == HostileRumorMitigationMethod.Gold)
         {
+            if (money is not IIdempotentGameMoneyAccount idempotentMoney)
+            {
+                failure = new DomainFailure(
+                    FailureCode.ExternalPaymentRejected,
+                    "idempotent-money-account-required");
+                return false;
+            }
             if (!money.CanSpend(cost))
             {
                 failure = new DomainFailure(
@@ -231,43 +285,94 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
                     cost.ToString());
                 return false;
             }
-            if (!money.TrySpend(
+            if (!idempotentMoney.TrySpendOnce(
                     cost,
                     new EconomyTransactionContext(
                         EconomyTransactionKind.Bribe,
-                        "ExternalInfluenceRuntime",
+                        operationId,
                         $"rumor:{state.currentOperatingDay}",
                         "적대적 소문 수습"),
-                    out _))
+                    out EconomyTransactionRecord receipt,
+                    out string paymentFailure))
             {
                 failure = new DomainFailure(
-                    FailureCode.ExternalPaymentRejected);
+                    FailureCode.ExternalPaymentRejected,
+                    paymentFailure);
                 return false;
             }
+            financeTransactionId = receipt?.transactionId ?? string.Empty;
         }
 
+        ExternalInfluenceOperationSaveData operation = GetOrCreateOperation(
+            operationId,
+            ExternalInfluenceOperationKind.RumorMitigation,
+            method == HostileRumorMitigationMethod.Gold
+                ? ExternalInfluenceOperationPhase.CostCommitted
+                : ExternalInfluenceOperationPhase.Applied,
+            "circus-panel",
+            $"rumor:{state.currentOperatingDay}");
+        operation.costKind = method == HostileRumorMitigationMethod.Gold
+            ? ExternalInfluenceCostKind.Gold
+            : ExternalInfluenceCostKind.Renown;
+        operation.costAmount = cost;
+        operation.requestedAmount = reducedAmount;
+        operation.valueBefore = rumorBefore;
+        operation.financeTransactionId = financeTransactionId;
         ExternalInfluenceDomainRules.CommitRumorMitigation(
             state,
             method,
             reducedAmount,
             cost);
+        operation.appliedAmount = Math.Max(0f, rumorBefore - state.hostileRumor);
+        operation.valueAfter = state.hostileRumor;
+        operation.phase = ExternalInfluenceOperationPhase.Completed;
         failure = DomainFailure.None;
         return true;
     }
 
     public bool TryArmDreadDefense(out DomainFailure failure)
     {
-        return ExternalInfluenceDomainRules.TryArmDreadDefense(
+        float before = state.dread;
+        if (!ExternalInfluenceDomainRules.TryArmDreadDefense(
             state,
             rules.DreadDefenseCost,
-            out failure);
+            out failure))
+        {
+            return false;
+        }
+
+        ExternalInfluenceOperationSaveData operation = CreateOperation(
+            operationId: null,
+            ExternalInfluenceOperationKind.DreadDefense,
+            ExternalInfluenceOperationPhase.CostCommitted,
+            "circus-panel",
+            "invasion:pending");
+        operation.costKind = ExternalInfluenceCostKind.Dread;
+        operation.costAmount = rules.DreadDefenseCost;
+        operation.valueBefore = before;
+        operation.valueAfter = state.dread;
+        operation.appliedAmount = Math.Max(0f, before - state.dread);
+        return true;
     }
 
     public bool BeginInvasionDread(bool boss)
     {
-        return ExternalInfluenceDomainRules.BeginInvasionDread(
-            aggregateState,
-            boss);
+        if (!ExternalInfluenceDomainRules.BeginInvasionDread(
+                aggregateState,
+                boss))
+        {
+            return false;
+        }
+
+        ExternalInfluenceOperationSaveData operation = FindLatestOperation(
+            ExternalInfluenceOperationKind.DreadDefense,
+            ExternalInfluenceOperationPhase.CostCommitted);
+        if (operation != null)
+        {
+            operation.phase = ExternalInfluenceOperationPhase.ResultPublished;
+            operation.targetId = boss ? "invasion:boss" : "invasion:regular";
+        }
+        return true;
     }
 
     public float GetMoveSpeedMultiplier(string characterId)
@@ -301,16 +406,27 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
             return false;
         }
 
-        if (ExternalInfluenceTrailCharmOutbox.HasPending(state)
-            && !ExternalInfluenceTrailCharmOutbox.TryFinalizePending(
-                aggregateState,
-                batchDispositions,
-                out string pendingFailure))
+        if (ExternalInfluenceTrailCharmOutbox.HasPending(state))
         {
-            failure = new DomainFailure(
-                FailureCode.ExternalPaymentRejected,
-                pendingFailure);
-            return false;
+            string pendingSiteId = state.pendingTrailCharmSiteId;
+            string pendingCommitId = state.pendingTrailCharmCommitId;
+            if (!ExternalInfluenceTrailCharmOutbox.TryFinalizePending(
+                    aggregateState,
+                    batchDispositions,
+                    out string pendingFailure))
+            {
+                RecordTrailCharmIntelPhase(
+                    pendingSiteId,
+                    pendingCommitId,
+                    pendingFailure);
+                failure = new DomainFailure(
+                    FailureCode.ExternalPaymentRejected,
+                    pendingFailure);
+                return false;
+            }
+            CompleteTrailCharmIntelOperation(
+                pendingSiteId,
+                pendingCommitId);
         }
 
         if (ExternalInfluenceDomainRules.IsIntelUnlocked(
@@ -321,16 +437,27 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
             return true;
         }
 
+        string operationId = FormatIntelOperationId(normalized);
+        string financeTransactionId = string.Empty;
+        string physicalCommitId = string.Empty;
+        float valueBefore = GetIntelCostBalance(payment);
         bool paid = payment switch
         {
             ExpeditionIntelPaymentMethod.Renown =>
                 TrySpendRenown(out failure),
             ExpeditionIntelPaymentMethod.Gold =>
-                TrySpendGoldForIntel(normalized, out failure),
+                TrySpendGoldForIntel(
+                    normalized,
+                    operationId,
+                    out financeTransactionId,
+                    out failure),
             ExpeditionIntelPaymentMethod.ScoutingLabor =>
                 TrySpendScouting(out failure),
             ExpeditionIntelPaymentMethod.TrailCharm =>
-                TryConsumeTrailCharm(normalized, out failure),
+                TryConsumeTrailCharm(
+                    normalized,
+                    out physicalCommitId,
+                    out failure),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(payment),
                 payment,
@@ -338,15 +465,40 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
         };
         if (!paid)
         {
+            if (payment == ExpeditionIntelPaymentMethod.TrailCharm
+                && ExternalInfluenceTrailCharmOutbox.HasPending(state))
+            {
+                RecordTrailCharmIntelPhase(
+                    normalized,
+                    state.pendingTrailCharmCommitId,
+                    failure.Code.ToString());
+            }
             return false;
         }
 
+        ExternalInfluenceOperationSaveData operation = GetOrCreateOperation(
+            operationId,
+            ExternalInfluenceOperationKind.IntelUnlock,
+            ExternalInfluenceOperationPhase.CostCommitted,
+            "external-influence:intel-unlock",
+            normalized);
+        operation.costKind = GetIntelCostKind(payment);
+        operation.costAmount = GetIntelCostAmount(payment);
+        operation.valueBefore = valueBefore;
+        operation.valueAfter = GetIntelCostBalance(payment);
+        operation.appliedAmount = Math.Max(
+            0f,
+            operation.valueBefore - operation.valueAfter);
+        operation.financeTransactionId = financeTransactionId;
+        operation.physicalCommitId = physicalCommitId;
         if (payment != ExpeditionIntelPaymentMethod.TrailCharm)
         {
             ExternalInfluenceDomainRules.UnlockIntel(
                 aggregateState,
                 normalized);
         }
+        operation.phase = ExternalInfluenceOperationPhase.Completed;
+        operation.failureReason = string.Empty;
         failure = DomainFailure.None;
         return true;
     }
@@ -442,15 +594,26 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
             restored.DreadAffectedIntruders.Add(id);
         }
         stateStore.Replace(restored);
-        if (ExternalInfluenceTrailCharmOutbox.HasPending(restored.Data)
-            && !ExternalInfluenceTrailCharmOutbox.TryFinalizePending(
-                restored,
-                batchDispositions,
-                out string failureReason))
+        if (ExternalInfluenceTrailCharmOutbox.HasPending(restored.Data))
         {
-            throw new InvalidOperationException(
-                "External-influence trail-charm restore reconciliation failed: "
-                + failureReason);
+            string pendingSiteId = restored.Data.pendingTrailCharmSiteId;
+            string pendingCommitId = restored.Data.pendingTrailCharmCommitId;
+            if (!ExternalInfluenceTrailCharmOutbox.TryFinalizePending(
+                    restored,
+                    batchDispositions,
+                    out string failureReason))
+            {
+                RecordTrailCharmIntelPhase(
+                    pendingSiteId,
+                    pendingCommitId,
+                    failureReason);
+                throw new InvalidOperationException(
+                    "External-influence trail-charm restore reconciliation failed: "
+                    + failureReason);
+            }
+            CompleteTrailCharmIntelOperation(
+                pendingSiteId,
+                pendingCommitId);
         }
     }
 
@@ -467,10 +630,25 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
             return;
         }
 
+        float renownBefore = state.renown;
+        float rumorBefore = state.hostileRumor;
         ExternalInfluenceDomainRules.ApplyOperatingDayReport(
             state,
             report.totalVisits,
             report.averageSatisfaction);
+        string source = $"operating-day-report:{state.currentOperatingDay}";
+        RecordValueChange(
+            ExternalInfluenceOperationKind.RenownChange,
+            source,
+            state.renown - renownBefore,
+            renownBefore,
+            state.renown);
+        RecordValueChange(
+            ExternalInfluenceOperationKind.HostileRumorChange,
+            source,
+            state.hostileRumor - rumorBefore,
+            rumorBefore,
+            state.hostileRumor);
     }
 
     private void OnOperatingDayStarted(OperatingDayStartedEvent eventType)
@@ -478,11 +656,19 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
         SurvivalEnvironmentSnapshot environment =
             survival.GetEnvironmentSnapshot();
         int exposedFood = wildlife.GetReachableFoodRaidTargets().Count;
-        ExternalInfluenceDomainRules.BeginOperatingDay(
+        float ecologyBefore = state.ecologyPressure;
+        ExternalInfluencePressureResult pressure =
+            ExternalInfluenceDomainRules.BeginOperatingDay(
             state,
             eventType.day,
             environment.Weather == SurvivalWeatherType.ColdSnap,
             exposedFood);
+        RecordValueChange(
+            ExternalInfluenceOperationKind.EcologyPressureChange,
+            $"operating-day:{eventType.day}",
+            pressure.Total,
+            ecologyBefore,
+            state.ecologyPressure);
         CheckEcologyThresholds();
     }
 
@@ -515,6 +701,16 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
             return;
         }
 
+        string raidId = FormatEcologyRaidOperationId(state.ecologyRaidSequence);
+        ExternalInfluenceOperationSaveData pressureSource =
+            FindLatestOperation(ExternalInfluenceOperationKind.EcologyPressureChange);
+        CreateOperation(
+            raidId,
+            ExternalInfluenceOperationKind.EcologyRaid,
+            ExternalInfluenceOperationPhase.Applied,
+            pressureSource?.sourceId ?? "external-influence:ecology-threshold",
+            raidId);
+
         events.RaiseAlert(
             "늑대 식량 습격 예정",
             $"60게임초 뒤 외부 진입로에서 늑대 2마리가 접근합니다. "
@@ -534,6 +730,12 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
                 out string failureReason))
         {
             ExternalInfluenceDomainRules.RecordEcologyRaidStartFailure(state);
+            ExternalInfluenceOperationSaveData failed =
+                GetRequiredOperation(raidId);
+            failed.phase = ExternalInfluenceOperationPhase.Failed;
+            failed.failureReason = string.IsNullOrWhiteSpace(failureReason)
+                ? "wildlife-raid-start-rejected"
+                : failureReason;
             events.RaiseAlert(
                 "늑대 식량 습격 무산",
                 string.IsNullOrWhiteSpace(failureReason)
@@ -545,6 +747,9 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
         }
 
         ExternalInfluenceDomainRules.RecordEcologyRaidStarted(state);
+        ExternalInfluenceOperationSaveData started = GetRequiredOperation(raidId);
+        started.phase = ExternalInfluenceOperationPhase.ResultPublished;
+        started.resultCount = orders.Count;
         events.RaiseAlert(
             "늑대 식량 습격 진행",
             $"외부 진입로에서 늑대 {orders.Count}마리가 실제 식량으로 이동합니다. "
@@ -566,6 +771,13 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
         int cancelled = orders.Count(order =>
             order.State == WildlifeFoodRaidOrderState.Cancelled);
         ExternalInfluenceDomainRules.RecordEcologyRaidResolved(state);
+        string raidId = FormatEcologyRaidOperationId(state.ecologyRaidSequence);
+        ExternalInfluenceOperationSaveData resolved = GetRequiredOperation(raidId);
+        resolved.phase = ExternalInfluenceOperationPhase.Completed;
+        resolved.resultCount = stolen;
+        resolved.failureReason = cancelled > 0
+            ? $"cancelled:{cancelled}"
+            : string.Empty;
         events.RaiseAlert(
             "늑대 식량 습격 해결",
             $"실제 도난 {stolen}개, 처치·제거로 취소 {cancelled}마리. "
@@ -586,11 +798,28 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
         ExternalInfluenceDomainRules.MarkDreadAffectedIntruder(
             aggregateState,
             eventType.intruderActor?.Identity?.PersistentId);
+        ExternalInfluenceOperationSaveData operation = FindLatestOperation(
+            ExternalInfluenceOperationKind.DreadDefense,
+            ExternalInfluenceOperationPhase.ResultPublished);
+        string intruderId = ExternalInfluenceDomainRules.NormalizeId(
+            eventType.intruderActor?.Identity?.PersistentId);
+        if (operation != null && intruderId.Length > 0)
+        {
+            operation.targetId = intruderId;
+            operation.resultCount = dreadAffectedIntruders.Count;
+        }
     }
 
     private void EndDreadDefense()
     {
         ExternalInfluenceDomainRules.EndInvasionDread(aggregateState);
+        ExternalInfluenceOperationSaveData operation = FindLatestOperation(
+            ExternalInfluenceOperationKind.DreadDefense,
+            ExternalInfluenceOperationPhase.ResultPublished);
+        if (operation != null)
+        {
+            operation.phase = ExternalInfluenceOperationPhase.Completed;
+        }
     }
 
     private bool TrySpendRenown(out DomainFailure failure)
@@ -603,8 +832,18 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
 
     private bool TrySpendGoldForIntel(
         string siteId,
+        string operationId,
+        out string transactionId,
         out DomainFailure failure)
     {
+        transactionId = string.Empty;
+        if (money is not IIdempotentGameMoneyAccount idempotentMoney)
+        {
+            failure = new DomainFailure(
+                FailureCode.ExternalPaymentRejected,
+                "idempotent-money-account-required");
+            return false;
+        }
         if (!money.CanSpend(rules.GoldIntelCost))
         {
             failure = new DomainFailure(
@@ -614,19 +853,23 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
             return false;
         }
 
-        if (!money.TrySpend(
+        if (!idempotentMoney.TrySpendOnce(
                 rules.GoldIntelCost,
                 new EconomyTransactionContext(
                     EconomyTransactionKind.Bribe,
-                    "ExternalInfluenceRuntime",
+                    operationId,
                     siteId,
                     "external-intel"),
-                out _))
+                out EconomyTransactionRecord receipt,
+                out string paymentFailure))
         {
-            failure = new DomainFailure(FailureCode.ExternalPaymentRejected);
+            failure = new DomainFailure(
+                FailureCode.ExternalPaymentRejected,
+                paymentFailure);
             return false;
         }
 
+        transactionId = receipt?.transactionId ?? string.Empty;
         failure = DomainFailure.None;
         return true;
     }
@@ -641,8 +884,10 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
 
     private bool TryConsumeTrailCharm(
         string siteId,
+        out string physicalCommitId,
         out DomainFailure failure)
     {
+        physicalCommitId = string.Empty;
         WorldItemStackSnapshot charm = items.GetAllStacks()
             .Where(stack => stack != null
                 && !stack.Forbidden
@@ -673,6 +918,7 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
             return false;
         }
 
+        physicalCommitId = receipt.CommitId;
         ExternalInfluenceTrailCharmOutbox.RecordPending(
             state,
             siteId,
@@ -691,5 +937,249 @@ public sealed class ExternalInfluenceRuntimeApplicationAdapter :
 
         failure = DomainFailure.None;
         return true;
+    }
+
+    private void RecordValueChange(
+        ExternalInfluenceOperationKind kind,
+        string source,
+        float requestedAmount,
+        float before,
+        float after)
+    {
+        if (Math.Abs(after - before) <= 0.0001f)
+        {
+            return;
+        }
+
+        ExternalInfluenceOperationSaveData operation = CreateOperation(
+            operationId: null,
+            kind,
+            ExternalInfluenceOperationPhase.Completed,
+            RequireCanonicalId(source, nameof(source)),
+            string.Empty);
+        operation.requestedAmount = requestedAmount;
+        operation.appliedAmount = after - before;
+        operation.valueBefore = before;
+        operation.valueAfter = after;
+    }
+
+    private ExternalInfluenceOperationSaveData CreateOperation(
+        string operationId,
+        ExternalInfluenceOperationKind kind,
+        ExternalInfluenceOperationPhase phase,
+        string sourceId,
+        string targetId)
+    {
+        if (state.nextOperationRevision <= 0L
+            || state.nextOperationRevision == long.MaxValue)
+        {
+            throw new InvalidOperationException(
+                "External-influence operation revision is exhausted.");
+        }
+        state.operations ??= new List<ExternalInfluenceOperationSaveData>();
+        long revision = state.nextOperationRevision;
+        string normalizedOperationId = string.IsNullOrWhiteSpace(operationId)
+            ? $"external-influence:operation:{revision:D8}"
+            : RequireCanonicalId(operationId, nameof(operationId));
+        if (state.operations.Any(candidate => candidate != null
+            && string.Equals(
+                candidate.operationId,
+                normalizedOperationId,
+                StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                $"External-influence operation '{normalizedOperationId}' already exists.");
+        }
+
+        ExternalInfluenceOperationSaveData operation = new()
+        {
+            revision = revision,
+            operationId = normalizedOperationId,
+            kind = kind,
+            phase = phase,
+            sourceId = RequireCanonicalId(sourceId, nameof(sourceId)),
+            targetId = NormalizeOptionalId(targetId),
+            recordedDay = state.currentOperatingDay
+        };
+        state.operations.Add(operation);
+        state.nextOperationRevision = checked(revision + 1L);
+        return operation;
+    }
+
+    private ExternalInfluenceOperationSaveData GetOrCreateOperation(
+        string operationId,
+        ExternalInfluenceOperationKind kind,
+        ExternalInfluenceOperationPhase phase,
+        string sourceId,
+        string targetId)
+    {
+        ExternalInfluenceOperationSaveData existing = state.operations?
+            .FirstOrDefault(candidate => candidate != null
+                && string.Equals(
+                    candidate.operationId,
+                    operationId,
+                    StringComparison.Ordinal));
+        if (existing == null)
+        {
+            return CreateOperation(
+                operationId,
+                kind,
+                phase,
+                sourceId,
+                targetId);
+        }
+        if (existing.kind != kind
+            || !string.Equals(existing.sourceId, sourceId, StringComparison.Ordinal)
+            || !string.Equals(existing.targetId, targetId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"External-influence operation '{operationId}' conflicts with its saved identity.");
+        }
+        return existing;
+    }
+
+    private ExternalInfluenceOperationSaveData GetRequiredOperation(
+        string operationId) => state.operations?
+        .FirstOrDefault(candidate => candidate != null
+            && string.Equals(
+                candidate.operationId,
+                operationId,
+                StringComparison.Ordinal))
+        ?? throw new InvalidOperationException(
+            $"External-influence operation '{operationId}' is missing.");
+
+    private ExternalInfluenceOperationSaveData FindLatestOperation(
+        ExternalInfluenceOperationKind kind,
+        ExternalInfluenceOperationPhase? phase = null) => state.operations?
+        .Where(candidate => candidate != null
+            && candidate.kind == kind
+            && (!phase.HasValue || candidate.phase == phase.Value))
+        .OrderByDescending(candidate => candidate.revision)
+        .FirstOrDefault();
+
+    private void RecordTrailCharmIntelPhase(
+        string siteId,
+        string physicalCommitId,
+        string failureReason)
+    {
+        string normalized = RequireCanonicalId(siteId, nameof(siteId));
+        ExternalInfluenceOperationSaveData operation = GetOrCreateOperation(
+            FormatIntelOperationId(normalized),
+            ExternalInfluenceOperationKind.IntelUnlock,
+            ExternalInfluenceOperationPhase.CostCommitted,
+            "external-influence:intel-unlock",
+            normalized);
+        operation.costKind = ExternalInfluenceCostKind.TrailCharm;
+        operation.costAmount = 1f;
+        operation.valueBefore = Math.Max(1f, operation.valueBefore);
+        operation.valueAfter = 0f;
+        operation.appliedAmount = 1f;
+        operation.physicalCommitId =
+            RequireCanonicalId(physicalCommitId, nameof(physicalCommitId));
+        operation.phase = state.trailCharmCommitPhase
+            == ExternalInfluenceTrailCharmCommitPhase.IntelPublished
+                ? ExternalInfluenceOperationPhase.ResultPublished
+                : ExternalInfluenceOperationPhase.CostCommitted;
+        operation.failureReason = string.IsNullOrWhiteSpace(failureReason)
+            ? "trail-charm-finalization-incomplete"
+            : failureReason.Trim();
+    }
+
+    private void CompleteTrailCharmIntelOperation(
+        string siteId,
+        string physicalCommitId)
+    {
+        string normalized = RequireCanonicalId(siteId, nameof(siteId));
+        ExternalInfluenceOperationSaveData operation = GetOrCreateOperation(
+            FormatIntelOperationId(normalized),
+            ExternalInfluenceOperationKind.IntelUnlock,
+            ExternalInfluenceOperationPhase.Completed,
+            "external-influence:intel-unlock",
+            normalized);
+        operation.costKind = ExternalInfluenceCostKind.TrailCharm;
+        operation.costAmount = 1f;
+        operation.appliedAmount = 1f;
+        operation.physicalCommitId =
+            RequireCanonicalId(physicalCommitId, nameof(physicalCommitId));
+        operation.phase = ExternalInfluenceOperationPhase.Completed;
+        operation.failureReason = string.Empty;
+    }
+
+    private float GetIntelCostBalance(ExpeditionIntelPaymentMethod payment) =>
+        payment switch
+        {
+            ExpeditionIntelPaymentMethod.Renown => state.renown,
+            ExpeditionIntelPaymentMethod.Gold => money.Balance,
+            ExpeditionIntelPaymentMethod.ScoutingLabor => state.scoutingLabor,
+            ExpeditionIntelPaymentMethod.TrailCharm => items.GetAllStacks()
+                .Where(stack => stack != null
+                    && string.Equals(
+                        stack.ItemId,
+                        trailCharmItemId.Value,
+                        StringComparison.Ordinal))
+                .Sum(stack => stack.Quantity),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(payment),
+                payment,
+                null)
+        };
+
+    private ExternalInfluenceCostKind GetIntelCostKind(
+        ExpeditionIntelPaymentMethod payment) => payment switch
+        {
+            ExpeditionIntelPaymentMethod.Renown =>
+                ExternalInfluenceCostKind.Renown,
+            ExpeditionIntelPaymentMethod.Gold =>
+                ExternalInfluenceCostKind.Gold,
+            ExpeditionIntelPaymentMethod.ScoutingLabor =>
+                ExternalInfluenceCostKind.ScoutingLabor,
+            ExpeditionIntelPaymentMethod.TrailCharm =>
+                ExternalInfluenceCostKind.TrailCharm,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(payment),
+                payment,
+                null)
+        };
+
+    private float GetIntelCostAmount(
+        ExpeditionIntelPaymentMethod payment) => payment switch
+        {
+            ExpeditionIntelPaymentMethod.Renown => rules.RenownIntelCost,
+            ExpeditionIntelPaymentMethod.Gold => rules.GoldIntelCost,
+            ExpeditionIntelPaymentMethod.ScoutingLabor => rules.ScoutingIntelCost,
+            ExpeditionIntelPaymentMethod.TrailCharm => 1f,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(payment),
+                payment,
+                null)
+        };
+
+    private static string FormatIntelOperationId(string siteId) =>
+        $"external-influence:intel:{siteId}";
+
+    private static string FormatEcologyRaidOperationId(int sequence) =>
+        $"ecology:{sequence}";
+
+    private static string RequireCanonicalId(string value, string parameterName)
+    {
+        string normalized = value?.Trim() ?? string.Empty;
+        if (normalized.Length == 0
+            || !string.Equals(normalized, value, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "A canonical non-empty ID is required.",
+                parameterName);
+        }
+        return normalized;
+    }
+
+    private static string NormalizeOptionalId(string value)
+    {
+        string normalized = value?.Trim() ?? string.Empty;
+        if (!string.Equals(normalized, value ?? string.Empty, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Optional IDs must already be canonical.");
+        }
+        return normalized;
     }
 }

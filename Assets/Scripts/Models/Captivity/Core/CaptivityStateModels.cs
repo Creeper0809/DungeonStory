@@ -102,11 +102,11 @@ public sealed class CaptivityInterrogationTerminalState
     public string informationText = string.Empty;
     public bool highFearCaution;
     public bool codexPublicationCompleted;
-    public bool noticePublicationCompleted;
+    public bool factPublicationCompleted;
 
     public bool HasOutcome => attemptId > 0;
     public bool HasPendingPublication => HasOutcome
-        && !noticePublicationCompleted;
+        && !factPublicationCompleted;
 
     public CaptivityInterrogationTerminalState Clone() =>
         (CaptivityInterrogationTerminalState)MemberwiseClone();
@@ -116,6 +116,10 @@ public sealed class CaptivityInterrogationTerminalState
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CaptivityInteractionTerminalState
 {
+    public string captiveDisplayName = string.Empty;
+    [Min(0)] public int absoluteDay;
+    public string publicationKey = string.Empty;
+    public bool deliveryPending;
     [Min(0)] public int attemptId;
     [Min(0)] public long outcomeRevision;
     public string interactionId = string.Empty;
@@ -152,11 +156,83 @@ public sealed class CaptivityInteractionTerminalState
 
     public bool HasOutcome => attemptId > 0;
     public bool HasCommittedOutcome => HasOutcome && outcomeRevision > 0L;
+    public bool HasDeliveredOutcome => HasCommittedOutcome && !deliveryPending && !string.IsNullOrWhiteSpace(publicationKey);
     public bool HasOutput => outputAmount > 0;
     public Vector2Int ResultPosition => new(resultGridX, resultGridY);
 
     public CaptivityInteractionTerminalState Clone() =>
         (CaptivityInteractionTerminalState)MemberwiseClone();
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class CaptivityRehabilitationTerminalState
+{
+    public string publicationKey = string.Empty;
+    [Min(0)] public long outcomeRevision;
+    public bool outcomePending;
+    public string captiveDisplayName = string.Empty;
+    public string wardenId = string.Empty;
+    public string wardenDisplayName = string.Empty;
+    public string facilityId = string.Empty;
+    public string facilityDisplayName = string.Empty;
+    [Min(0)] public int absoluteDay;
+    public bool completedDay;
+    [Min(0f)] public float approvedWork;
+    [Min(0f)] public float workBefore;
+    [Min(0f)] public float workAfter;
+    [Min(0)] public int rehabilitationDaysBefore;
+    [Min(0)] public int rehabilitationDaysAfter;
+    public float trustBefore;
+    public float trustAfter;
+    public float grudgeBefore;
+    public float grudgeAfter;
+    public float corruptionBefore;
+    public float corruptionAfter;
+    [Min(0)] public int foodConsumed;
+
+    public bool HasOutcome => outcomeRevision > 0L;
+
+    public CaptivityRehabilitationTerminalState Clone() =>
+        (CaptivityRehabilitationTerminalState)MemberwiseClone();
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class CaptivityReleaseTerminalState
+{
+    public string publicationKey = string.Empty;
+    public bool effectsApplied;
+    public bool decisionPublished;
+    [Min(0)] public long outcomeRevision;
+    public bool outcomePending;
+    public bool observersPending;
+    public string captiveDisplayName = string.Empty;
+    public string deciderId = string.Empty;
+    public string deciderDisplayName = string.Empty;
+    public string facilityId = string.Empty;
+    public string facilityDisplayName = string.Empty;
+    [Min(0)] public int absoluteDay;
+    public CaptivityStatus statusBefore;
+    public CaptivityStatus statusAfter;
+    public bool inCustodyBefore;
+    public bool inCustodyAfter;
+    public bool restrainedBefore;
+    public bool restrainedAfter;
+    public string actorTypeBefore = string.Empty;
+    public string actorTypeAfter = string.Empty;
+    public string lifecycleBefore = string.Empty;
+    public string lifecycleAfter = string.Empty;
+    public bool aiPausedBefore;
+    public bool aiPausedAfter;
+    public bool doorCaptiveBefore;
+    public bool doorCaptiveAfter;
+    public bool physicalInputsReturned;
+
+    public bool HasOutcome => outcomeRevision > 0L;
+
+    public CaptivityReleaseTerminalState Clone() =>
+        (CaptivityReleaseTerminalState)MemberwiseClone();
 }
 
 [Serializable]
@@ -230,8 +306,11 @@ public sealed class CaptiveState
     [Min(0)] public long carePriorityOutcomeRevision;
     [Min(0)] public long staffContractOutcomeRevision;
     [Min(0)] public long finalContractOutcomeRevision;
+    public List<CaptivePerformerMilestoneObservationData> performerMilestones = new();
     [Min(0)] public long escapeOutcomeRevision;
+    public CaptiveEscapeObservationData escapeObservation = new();
     [Min(0)] public long ransomOutcomeRevision;
+    public CaptiveRansomObservationData ransomObservation = new();
     [Min(0)] public int ransomAcceptedAmount;
     public bool ransomIncomeCredited;
     public bool ransomObserversPending;
@@ -248,6 +327,10 @@ public sealed class CaptiveState
     public bool rehabilitationInProgress;
     public string rehabilitationFacilityBuildingId = string.Empty;
     public Vector2Int rehabilitationPosition;
+    [Min(0)] public long rehabilitationOutcomeRevision;
+    public CaptivityRehabilitationTerminalState rehabilitationTerminal = new();
+    [Min(0)] public long releaseOutcomeRevision;
+    public CaptivityReleaseTerminalState releaseTerminal = new();
     public int lastMinionSocialAbsoluteDay = -1;
 
     public bool IsInCustody => status is CaptivityStatus.AwaitingCapture
@@ -286,6 +369,11 @@ public sealed class CaptiveState
         CaptiveState clone = (CaptiveState)MemberwiseClone();
         clone.interactionTerminal = interactionTerminal?.Clone();
         clone.interrogationTerminal = interrogationTerminal?.Clone();
+        clone.rehabilitationTerminal = rehabilitationTerminal?.Clone();
+        clone.releaseTerminal = releaseTerminal?.Clone();
+        clone.performerMilestones = performerMilestones?.ConvertAll(value => value?.Clone());
+        clone.escapeObservation = escapeObservation?.Clone();
+        clone.ransomObservation = ransomObservation?.Clone();
         return clone;
     }
 }
@@ -315,6 +403,7 @@ public static class CaptivityBodyHealthRules
 public static class CaptivityStateTransitionRules
 {
     public const float RehabilitationRequiredWork = 18f;
+    public const int RehabilitationFoodCost = 1;
 
     public static string CaptureStateSnapshot(CaptiveState state)
     {
@@ -442,7 +531,7 @@ public static class CaptivityInteractionAttemptIdentity
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CaptivitySaveData
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 11;
     public int version = CurrentVersion;
     public int captureSequence;
     public int policySequence;

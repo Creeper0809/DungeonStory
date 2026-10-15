@@ -370,14 +370,16 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
         GameObject generatedTabContent,
         Button generatedTabButton,
         Button generatedGlobalPolicyButton,
-        Button generatedCharacterPermissionButton)
+        Button generatedCharacterPermissionButton,
+        Button generatedFamilyPlanningPolicyButton)
     {
         populationTabContent = generatedTabContent;
         populationTabButton = generatedTabButton;
         statusPresenter.BindPopulation(
             generatedSummaryText,
             generatedGlobalPolicyButton,
-            generatedCharacterPermissionButton);
+            generatedCharacterPermissionButton,
+            generatedFamilyPlanningPolicyButton);
         RefreshPopulationDetails();
     }
 
@@ -481,6 +483,11 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
     public void ToggleCharacterApprenticeship()
     {
         statusPresenter.ToggleCharacterApprenticeship(actor);
+    }
+
+    public void CycleFamilyPlanningPolicy()
+    {
+        statusPresenter.CycleFamilyPlanningPolicy(actor);
     }
 
     private void RefreshPopulationDetails()
@@ -822,7 +829,8 @@ public class CharacterSummaryInfo : UIPopUp, ICharacterSummaryGeneratedView
             new CharacterSummaryGrowthActions(ToggleSkillAt),
             new CharacterSummaryPopulationActions(
                 ToggleGlobalApprenticeship,
-                ToggleCharacterApprenticeship));
+                ToggleCharacterApprenticeship,
+                CycleFamilyPlanningPolicy));
         return viewActions;
     }
 

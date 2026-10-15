@@ -51,6 +51,7 @@ public sealed class CombatLoadoutPreparationRuntime :
         public bool Finished;
         public bool CombatResupply;
         public bool WasAiPaused;
+        public string FailureMessage = string.Empty;
         public float NextReservationAttemptAt;
     }
 
@@ -342,56 +343,20 @@ public sealed class CombatLoadoutPreparationRuntime :
             return false;
         }
 
-        List<(string InstanceId, string StackId)> spawned =
-            new List<(string InstanceId, string StackId)>();
-        Vector2Int dropPosition = actor.GetNowXY();
-        foreach (string instanceId in instanceIds)
+        if (!equipmentRuntime.TryUnequipSlotToWorld(
+                actorId,
+                slot,
+                actor.GetNowXY(),
+                out IReadOnlyList<string> stackIds,
+                out string failureReason))
         {
-            if (!equipmentRuntime.TryGetInstance(instanceId, out CombatEquipmentInstance instance)
-                || !equipmentCatalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
-                || !itemRuntime.SpawnExistingUniqueItemAt(
-                    definition.ItemId,
-                    (ItemInstanceId)instance.instanceId,
-                    dropPosition,
-                    WorldItemStackState.Loose,
-                    string.Empty,
-                    out string stackId))
-            {
-                foreach ((string _, string spawnedStackId) in spawned)
-                {
-                    itemRuntime.DeleteStack(spawnedStackId);
-                }
-
-                message = "장비를 내려놓을 공간을 만들지 못했습니다.";
-                return false;
-            }
-
-            spawned.Add((instanceId, stackId));
-        }
-
-        if (!equipmentRuntime.TryUnassignSlot(actorId, slot, out message))
-        {
-            foreach ((string _, string stackId) in spawned)
-            {
-                itemRuntime.DeleteStack(stackId);
-            }
-
+            message = string.IsNullOrWhiteSpace(failureReason)
+                ? "장비를 바닥에 내려놓지 못했습니다."
+                : failureReason;
             return false;
         }
 
-        foreach ((string instanceId, string stackId) in spawned)
-        {
-            if (!equipmentRuntime.TryLinkToWorldStack(
-                instanceId,
-                stackId,
-                CombatEquipmentWorldState.Loose))
-            {
-                message = "장비와 물리 스택 연결에 실패했습니다.";
-                return false;
-            }
-        }
-
-        message = $"장비 {spawned.Count}개를 바닥에 내려놓았습니다.";
+        message = $"장비 {stackIds.Count}개를 바닥에 내려놓았습니다.";
         return true;
     }
 
@@ -603,7 +568,16 @@ public sealed class CombatLoadoutPreparationRuntime :
 
         if (state.Current.IsEquipment)
         {
-            EquipPickedItem(state);
+            if (!TryEquipPickedItem(state, out string equipFailure))
+            {
+                state.FailureMessage = string.IsNullOrWhiteSpace(equipFailure)
+                    ? "장비 장착에 실패했습니다. 수령한 장비는 운반 중 상태로 유지됩니다."
+                    : $"장비 장착 실패: {equipFailure}";
+                state.Current = null;
+                state.Reservation = default;
+                state.Finished = true;
+                return;
+            }
         }
 
         state.Current.Quantity = Mathf.Max(0, state.Current.Quantity - pickedUp);
@@ -655,25 +629,27 @@ public sealed class CombatLoadoutPreparationRuntime :
         }
     }
 
-    private void EquipPickedItem(ActorPreparationState state)
+    private bool TryEquipPickedItem(
+        ActorPreparationState state,
+        out string failureReason)
     {
+        failureReason = string.Empty;
         if (!equipmentRuntime.TryGetInstanceBySourceStack(
                 state.Reservation.StackId,
                 out CombatEquipmentInstance instance))
         {
-            throw new InvalidOperationException(
-                $"Picked equipment stack '{state.Reservation.StackId}' has no item-instance state.");
+            failureReason =
+                $"Picked equipment stack '{state.Reservation.StackId}' has no item-instance state.";
+            return false;
         }
 
-        if (equipmentRuntime.TryAssignToCharacter(
+        return equipmentRuntime.TryAssignPickedEquipmentToCharacter(
             GetId(state.Actor),
             instance.instanceId,
-            out _))
-        {
-            state.Inventory.TryConsumeSourceStack(
-                state.Reservation.StackId,
-                state.Current.ItemId);
-        }
+            state.Inventory,
+            state.Reservation.StackId,
+            state.Current.ItemId,
+            out failureReason);
     }
 
     private void ReleaseCurrent(ActorPreparationState state)
@@ -718,7 +694,9 @@ public sealed class CombatLoadoutPreparationRuntime :
 
         state.Actor.SetAiPaused(state.WasAiPaused);
         DefenseCombatPresentation.Ensure(state.Actor)?.SetStatus(
-            state.CombatResupply ? "탄약 재보급 완료" : "전투 준비 완료",
+            string.IsNullOrWhiteSpace(state.FailureMessage)
+                ? state.CombatResupply ? "탄약 재보급 완료" : "전투 준비 완료"
+                : state.FailureMessage,
             combatActive: state.CombatResupply);
     }
 

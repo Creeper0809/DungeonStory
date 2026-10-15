@@ -970,7 +970,8 @@ public static class CombatSystemDebugScenarios
             moduleCatalog: new ResourceEquipmentModuleCatalog(gameContent),
             materialCatalog: new ResourceEconomyContentCatalog(gameContent),
             evolutionModules: EmptyEvolutionModuleRegistry.Instance,
-            itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance,
+            calendar: new EditorFixedGameCalendar(137, 9));
         CombatEquipmentInstance instance = equipment.CreateInstance(
             definitionId,
             CombatEquipmentQuality.Normal);
@@ -1022,7 +1023,7 @@ public static class CombatSystemDebugScenarios
             catalog,
             itemRepository,
             new CharacterCarryInventoryRegistry(),
-            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         CombatEquipmentInstance bow = runtime.CreateInstance("weapon:shortbow", CombatEquipmentQuality.Good);
         CombatEquipmentInstance hood = runtime.CreateInstance("armor:cloth-hood", CombatEquipmentQuality.Normal);
         CombatEquipmentInstance cap = runtime.CreateInstance("armor:leather-cap", CombatEquipmentQuality.Normal);
@@ -1069,7 +1070,7 @@ public static class CombatSystemDebugScenarios
             catalog,
             itemRepository,
             new CharacterCarryInventoryRegistry(),
-            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         restored.PublishRestoreCandidate(
             restored.BuildRestoreCandidate(save));
         if (!restored.TryGetInstance(bow.instanceId, out CombatEquipmentInstance restoredBow)
@@ -1360,7 +1361,7 @@ public static class CombatSystemDebugScenarios
                 new GuidPersistentIdGenerator(),
                 new DungeonRuntimeAggregateRootStore()),
             new CharacterCarryInventoryRegistry(),
-            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         GameEventBus events = new GameEventBus();
         CombatEquipmentCharacterDeathConnector connector =
             new CombatEquipmentCharacterDeathConnector(runtime, events);
@@ -1450,7 +1451,8 @@ public static class CombatSystemDebugScenarios
                     new ResourceAnatomyProfileCatalog(
                         new ResourceGameContentCatalog(
                             new UnityGameContentRootLoader())),
-                    new DungeonRuntimeAggregateRootStore());
+                    new DungeonRuntimeAggregateRootStore(),
+                    CharacterAiEditorTestDependencies.GameCalendar);
             CharacterBodyHealthSnapshot critical = new CharacterBodyHealthSnapshot(
                 CreateBodyParts(headAndTorsoRatio: 0.2f, legRatio: 1f),
                 bloodLoss: 0f,
@@ -1505,23 +1507,29 @@ public static class CombatSystemDebugScenarios
             CharacterAiEditorTestDependencies.Inject(gameObject);
             actor.EnsureRuntimeState();
             actor.Identity.SetPersistentId("character:combat-body-damage-owner");
+            var events = new GameEventBus();
+            using var vitalsActivities = new CharacterVitalsActivityObserver(
+                events,
+                CharacterAiEditorTestDependencies.WorldRegistry);
+            vitalsActivities.Initialize();
             CharacterBodyHealthRuntime bodyHealth =
                 new CharacterBodyHealthRuntime(
                     CharacterAiEditorTestDependencies.WorldRegistry,
                     new UnityGameClock(),
-                    new GameEventBus(),
+                    events,
                     new DynamicFrameWorkBudget(
                         new UnityGameClock(),
                         new UnityUiClock()),
                     new ResourceAnatomyProfileCatalog(
                         new ResourceGameContentCatalog(
                             new UnityGameContentRootLoader())),
-                    new DungeonRuntimeAggregateRootStore());
+                    new DungeonRuntimeAggregateRootStore(),
+                    CharacterAiEditorTestDependencies.GameCalendar);
             actor.Stats.ConstructCharacterVitals(
                 new CharacterStatsVitalsService(
                     bodyHealth,
                     bodyHealth,
-                    new GameEventBus(),
+                    events,
                     new CharacterDeathEventFactory(
                         CharacterAiEditorTestDependencies.WorldRegistry,
                         CharacterAiEditorTestDependencies.GameCalendar),
@@ -1743,7 +1751,8 @@ public static class CombatSystemDebugScenarios
                 new DynamicFrameWorkBudget(new UnityGameClock(), new UnityUiClock()),
                 new ResourceAnatomyProfileCatalog(
                     new ResourceGameContentCatalog(new UnityGameContentRootLoader())),
-                root);
+                root,
+                CharacterAiEditorTestDependencies.GameCalendar);
             runtime.ConfigureVitals(actor, 123f, resetCurrentHealth: true);
             CharacterBodyHealthSaveSection section = new CharacterBodyHealthSaveSection(runtime);
             if (section is not IDungeonRollbackFreeSaveSection

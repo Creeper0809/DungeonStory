@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
@@ -29,16 +30,82 @@ public sealed class CharacterEnvironmentUnityAdapter :
     private readonly ICharacterApparelPersistence apparel;
     private readonly ICharacterApparelCommand apparelCommands;
     private readonly IApparelWorkOrderPersistence apparelWorkOrders;
+    private readonly ICharacterBodyHealthQuery bodyHealth;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly IGameClock clock;
+    private readonly IGameCalendar calendar;
+    private readonly IDomainFactPublisher domainFacts;
     private readonly CharacterEnvironmentAggregateStateStore stateStore;
     private readonly ICharacterPerformanceQuery performance;
     private readonly ApparelConditionRuntime apparelConditions;
+#if UNITY_EDITOR
+    private HashSet<CharacterId> debugIsolatedPreparationExposureIds;
+    private int debugHeldPreparationExposureSteps;
+    public bool DebugIsolatedPreparationExposureHeld => debugIsolatedPreparationExposureIds != null;
+    public int DebugHeldPreparationExposureSteps => debugHeldPreparationExposureSteps;
+
+    // An owned isolated test-preparation lease, never saved or available in a
+    // player. Existing outcome convergence and apparel processing still run.
+    public IDisposable DebugHoldExposureForIsolatedPreparation(IReadOnlyCollection<string> actorIds)
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification
+                || Environment.GetEnvironmentVariable("DUNGEONSTORY_SKILL_PREPARATION_ENVIRONMENT_FIXTURE") != "1")
+            throw new InvalidOperationException("Exposure hold requires isolated batch test preparation.");
+        if (debugIsolatedPreparationExposureIds != null)
+            throw new InvalidOperationException("Exposure preparation already has an owner.");
+        HashSet<CharacterId> ids = new((actorIds ?? Array.Empty<string>()).Select(id => new CharacterId(id)));
+        HashSet<CharacterId> available = new((characters.Characters ?? Array.Empty<CharacterActor>())
+            .Where(actor => actor != null && !actor.IsDead)
+            .Select(actor => new CharacterId(actor.Identity.PersistentId)));
+        if (actorIds == null || actorIds.Count != 3 || ids.Count != 3
+                || ids.Any(id => !id.IsValid || !available.Contains(id)))
+            throw new InvalidOperationException("Exposure preparation requires exactly three unique live residents.");
+        if (exposureOutcomes.Values.Any(value => value != null
+                && ids.Contains(new CharacterId(value.characterId))))
+            throw new InvalidOperationException("Exposure preparation cannot bypass a resident's pending exposure outcome.");
+        debugIsolatedPreparationExposureIds = ids;
+        debugHeldPreparationExposureSteps = 0;
+        return new IsolatedPreparationExposureHold(this);
+    }
+
+    private sealed class IsolatedPreparationExposureHold : IDisposable
+    {
+        private CharacterEnvironmentUnityAdapter owner;
+        public IsolatedPreparationExposureHold(CharacterEnvironmentUnityAdapter owner) => this.owner = owner;
+        public void Dispose()
+        {
+            if (owner == null) return;
+            owner.debugIsolatedPreparationExposureIds = null;
+            owner = null;
+        }
+    }
+
+    public void DebugNeutralizeHeldPreparationExposure()
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification
+                || debugIsolatedPreparationExposureIds == null)
+            throw new InvalidOperationException("Neutral preparation input requires its owned isolated exposure lease.");
+        foreach (CharacterId id in debugIsolatedPreparationExposureIds)
+        {
+            states[id] = new CharacterEnvironmentExposure
+            {
+                characterId = id.Value,
+                physiologicalBand = EnvironmentalExposureBand.Stable,
+                visualBand = EnvironmentalExposureBand.Stable
+            };
+            workContexts.Remove(id);
+        }
+        // Other actors, accumulator, workwear, revisions and outcome owners
+        // are untouched. Do not use a full world-restore candidate here.
+    }
+#endif
 
     private Dictionary<CharacterId, CharacterEnvironmentExposure> states =>
         stateStore.Current.Exposures;
     private Dictionary<CharacterId, EnvironmentalWorkKind> workContexts =>
         stateStore.Current.WorkContexts;
+    private Dictionary<string, EnvironmentalExposureOutcomeSaveData>
+        exposureOutcomes => stateStore.Current.ExposureOutcomes;
 
     public CharacterEnvironmentUnityAdapter(
         IEnvironmentalFieldQuery field,
@@ -50,11 +117,14 @@ public sealed class CharacterEnvironmentUnityAdapter :
         ICharacterApparelPersistence apparel,
         ICharacterApparelCommand apparelCommands,
         IApparelWorkOrderPersistence apparelWorkOrders,
+        ICharacterBodyHealthQuery bodyHealth,
         ICharacterBodyHealthCommand bodyHealthCommands,
         IGameClock clock,
         CharacterEnvironmentAggregateStateStore stateStore,
         ICharacterPerformanceQuery performance,
-        ApparelConditionRuntime apparelConditions)
+        ApparelConditionRuntime apparelConditions,
+        IGameCalendar calendar,
+        IDomainFactPublisher domainFacts)
     {
         this.field = field ?? throw new ArgumentNullException(nameof(field));
         this.characters = characters
@@ -73,19 +143,25 @@ public sealed class CharacterEnvironmentUnityAdapter :
             ?? throw new ArgumentNullException(nameof(apparelCommands));
         this.apparelWorkOrders = apparelWorkOrders
             ?? throw new ArgumentNullException(nameof(apparelWorkOrders));
+        this.bodyHealth = bodyHealth
+            ?? throw new ArgumentNullException(nameof(bodyHealth));
         this.bodyHealthCommands = bodyHealthCommands
             ?? throw new ArgumentNullException(nameof(bodyHealthCommands));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
         this.apparelConditions = apparelConditions
             ?? throw new ArgumentNullException(nameof(apparelConditions));
+        this.domainFacts = domainFacts
+            ?? throw new ArgumentNullException(nameof(domainFacts));
     }
 
     public void Tick()
     {
+        AdvanceExposureOutcomes();
         if (clock.IsPaused || !field.IsInitialized)
         {
             return;
@@ -301,7 +377,11 @@ public sealed class CharacterEnvironmentUnityAdapter :
 
     public void ClearWorkContext(CharacterId characterId)
     {
-        workContexts.Remove(characterId);
+        // Work contexts are transient. After restore, retiring actors may still
+        // cancel their old routines against the newly published apparel owner.
+        // No owned context means no authority to reset its saved/manual policy.
+        if (!workContexts.Remove(characterId))
+            return;
         apparelCommands.TrySetSelectionPurpose(
             characterId,
             ApparelSelectionPurpose.Daily,
@@ -339,7 +419,16 @@ public sealed class CharacterEnvironmentUnityAdapter :
                 .ToArray(),
             apparelWorkOrders = apparelWorkOrders.CaptureOrders(),
             apparelWorkOrderTerminalStates =
-                apparelWorkOrders.CaptureTerminalStates()
+                apparelWorkOrders.CaptureTerminalStates(),
+            nextExposureOutcomeSequence =
+                stateStore.Current.NextExposureOutcomeSequence,
+            exposureOutcomes = exposureOutcomes.Values
+                .Where(value => value != null
+                    && persistentCharacterIds.Contains(
+                        new CharacterId(value.characterId)))
+                .OrderBy(value => value.operationId, StringComparer.Ordinal)
+                .Select(CloneExposureOutcome)
+                .ToArray()
         };
     }
 
@@ -365,7 +454,8 @@ public sealed class CharacterEnvironmentUnityAdapter :
 
         CharacterEnvironmentAggregateState restored = new()
         {
-            WorkwearVersion = stateStore.Current.WorkwearVersion + 1
+            WorkwearVersion = stateStore.Current.WorkwearVersion + 1,
+            NextExposureOutcomeSequence = source.nextExposureOutcomeSequence
         };
 
         HashSet<CharacterId> availableCharacters = new(
@@ -387,6 +477,23 @@ public sealed class CharacterEnvironmentUnityAdapter :
             {
                 throw new InvalidOperationException(
                     $"Duplicate environment exposure character '{entry.characterId}'.");
+            }
+        }
+        foreach (EnvironmentalExposureOutcomeSaveData pending
+                 in source.exposureOutcomes)
+        {
+            CharacterId characterId = new(pending.characterId);
+            if (!availableCharacters.Contains(characterId))
+            {
+                throw new InvalidOperationException(
+                    $"Environment exposure outcome references unknown character '{pending.characterId}'.");
+            }
+            if (!restored.ExposureOutcomes.TryAdd(
+                    pending.operationId,
+                    CloneExposureOutcome(pending)))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate environment exposure outcome '{pending.operationId}'.");
             }
         }
 
@@ -493,7 +600,6 @@ public sealed class CharacterEnvironmentUnityAdapter :
             throw new InvalidOperationException(
                 $"Apparel condition step failed: {apparelFailure}");
         }
-
         HashSet<CharacterId> activeIds = new();
         IReadOnlyList<CharacterActor> actors =
             characters.Characters ?? Array.Empty<CharacterActor>();
@@ -518,8 +624,28 @@ public sealed class CharacterEnvironmentUnityAdapter :
                 continue;
             }
             activeIds.Add(characterId);
+#if UNITY_EDITOR
+            if (debugIsolatedPreparationExposureIds?.Contains(characterId) == true)
+            {
+                debugHeldPreparationExposureSteps++;
+                continue;
+            }
+#endif
+            if (exposureOutcomes.Values.Any(value => value != null
+                    && string.Equals(
+                        value.characterId,
+                        characterId.Value,
+                        StringComparison.Ordinal)))
+            {
+                continue;
+            }
             CharacterEnvironmentExposure state =
                 GetOrCreate(characterId);
+            float coldBefore = state.coldExposure;
+            float heatBefore = state.heatExposure;
+            float airborneBefore = state.airborneExposure;
+            EnvironmentalExposureBand bandBefore = state.physiologicalBand;
+            float criticalTimerBefore = state.criticalDamageTimer;
             ThermalProtectionProfile resolvedProtection =
                 protection.Resolve(actor);
             ApplySleepingInsulation(actor, resolvedProtection);
@@ -579,28 +705,133 @@ public sealed class CharacterEnvironmentUnityAdapter :
                             || environment.LightLevel
                                 >= EnvironmentalThresholdRules.PrecisionMinimumLight,
                         deltaTime));
+            EnvironmentalExposureBand bandAfter =
+                (EnvironmentalExposureBand)step.PhysiologicalBand;
+            bool periodicDamage = bandAfter >= EnvironmentalExposureBand.Critical
+                && criticalTimerBefore + deltaTime >= 10f;
+            bool lethalDamage = lethalTemperature
+                || environment.AirQuality
+                    < EnvironmentalThresholdRules.ToxicAirQuality;
+            CharacterVitalsSnapshot vitalsBefore = bodyHealth.GetVitals(actor);
+            float healthBefore = vitalsBefore.CurrentHealth;
+            float plannedDamage = (periodicDamage
+                    ? vitalsBefore.MaximumHealth * 0.01f
+                    : 0f)
+                + (lethalDamage
+                    ? vitalsBefore.MaximumHealth * 0.01f * deltaTime
+                    : 0f);
+            var reservations = new List<ExposureOutcomeReservation>(2);
+            int nextSequence = stateStore.Current.NextExposureOutcomeSequence;
+            ExposureOutcomeReservation bandReservation = default;
+            if (bandAfter != bandBefore
+                && !TryReserveExposureOutcome(
+                    actor,
+                    characterId,
+                    environment,
+                    coldBefore,
+                    step.ColdExposure,
+                    heatBefore,
+                    step.HeatExposure,
+                    airborneBefore,
+                    step.AirborneExposure,
+                    bandBefore,
+                    bandAfter,
+                    0f,
+                    healthBefore,
+                    healthBefore,
+                    "band-transition",
+                    "physiological-band-transition",
+                    nextSequence++,
+                    out bandReservation))
+            {
+                continue;
+            }
+            else if (bandAfter != bandBefore)
+            {
+                reservations.Add(bandReservation);
+            }
+            ExposureOutcomeReservation damageReservation = default;
+            if (plannedDamage > 0f
+                && !TryReserveExposureOutcome(
+                    actor,
+                    characterId,
+                    environment,
+                    coldBefore,
+                    step.ColdExposure,
+                    heatBefore,
+                    step.HeatExposure,
+                    airborneBefore,
+                    step.AirborneExposure,
+                    bandBefore,
+                    bandAfter,
+                    plannedDamage,
+                    healthBefore,
+                    healthBefore,
+                    "damage-tick",
+                    lethalDamage && periodicDamage
+                        ? "critical-and-lethal-environment"
+                        : lethalDamage
+                            ? "lethal-environment"
+                            : "critical-environment",
+                    nextSequence++,
+                    out damageReservation))
+            {
+                foreach (ExposureOutcomeReservation reservation in reservations)
+                    domainFacts.Cancel(reservation.Reserved);
+                continue;
+            }
+            else if (plannedDamage > 0f)
+            {
+                reservations.Add(damageReservation);
+            }
             state.coldExposure = step.ColdExposure;
             state.heatExposure = step.HeatExposure;
             state.airborneExposure = step.AirborneExposure;
             state.visualStrain = step.VisualStrain;
             state.physiologicalBand =
-                (EnvironmentalExposureBand)step.PhysiologicalBand;
+                bandAfter;
             state.visualBand = (EnvironmentalExposureBand)step.VisualBand;
             ApplyLightAdaptationMood(actor, lightAdaptation);
-            ApplyBandEffects(
-                actor,
-                state,
-                (EnvironmentalExposureBand)step.PreviousPhysiologicalBand,
-                deltaTime);
-            if (lethalTemperature
-                || environment.AirQuality
-                    < EnvironmentalThresholdRules.ToxicAirQuality)
+            ApplyBandEffects(actor, state, bandBefore);
+            if (bandAfter >= EnvironmentalExposureBand.Critical)
+            {
+                state.criticalDamageTimer = criticalTimerBefore + deltaTime;
+                if (periodicDamage)
+                    state.criticalDamageTimer -= 10f;
+            }
+            else
+                state.criticalDamageTimer = 0f;
+            if (plannedDamage > 0f)
             {
                 bodyHealthCommands.ApplyLegacyDamage(
                     actor,
-                    actor.MaxHealth * 0.01f * deltaTime,
-                    "치명적 환경 노출",
-                    allowDeath: true);
+                    plannedDamage,
+                    lethalDamage
+                        ? "치명적 환경 노출"
+                        : "환경 위급 노출",
+                    allowDeath: lethalDamage);
+            }
+            float healthAfter = bodyHealth.GetVitals(actor).CurrentHealth;
+            stateStore.Current.NextExposureOutcomeSequence = nextSequence;
+            foreach (ExposureOutcomeReservation reservation in reservations)
+            {
+                EnvironmentalExposureOutcomeSaveData pending =
+                    reservation.Pending;
+                if (string.Equals(
+                        pending.eventKind,
+                        "damage-tick",
+                        StringComparison.Ordinal))
+                {
+                    pending.damage = Mathf.Max(0f, healthBefore - healthAfter);
+                    pending.healthBefore = healthBefore;
+                    pending.healthAfter = healthAfter;
+                    if (pending.damage <= 0f)
+                    {
+                        domainFacts.Cancel(reservation.Reserved);
+                        continue;
+                    }
+                }
+                TryCommitExposureOutcome(reservation.Reserved, pending);
             }
         }
 
@@ -610,6 +841,126 @@ public sealed class CharacterEnvironmentUnityAdapter :
         {
             workContexts.Remove(staleId);
         }
+    }
+
+    private readonly struct ExposureOutcomeReservation
+    {
+        public ExposureOutcomeReservation(
+            DomainFactLease reserved,
+            EnvironmentalExposureOutcomeSaveData pending)
+        {
+            Reserved = reserved;
+            Pending = pending ?? throw new ArgumentNullException(nameof(pending));
+        }
+
+        public DomainFactLease Reserved { get; }
+        public EnvironmentalExposureOutcomeSaveData Pending { get; }
+    }
+
+    private bool TryReserveExposureOutcome(
+        CharacterActor actor,
+        CharacterId characterId,
+        EnvironmentalCellSnapshot environment,
+        float coldBefore,
+        float coldAfter,
+        float heatBefore,
+        float heatAfter,
+        float airborneBefore,
+        float airborneAfter,
+        EnvironmentalExposureBand bandBefore,
+        EnvironmentalExposureBand bandAfter,
+        float damage,
+        float healthBefore,
+        float healthAfter,
+        string eventKind,
+        string reasonCode,
+        int sequence,
+        out ExposureOutcomeReservation reservation)
+    {
+        reservation = default;
+        if (actor == null
+            || !characterId.IsValid
+            || sequence < 0
+            || (eventKind != "band-transition" && eventKind != "damage-tick")
+            || string.IsNullOrWhiteSpace(reasonCode))
+        {
+            return false;
+        }
+
+        string displayName = actor.Identity?.DisplayName?.Trim();
+        if (string.IsNullOrEmpty(displayName))
+            displayName = actor.name?.Trim();
+        if (string.IsNullOrEmpty(displayName))
+            return false;
+
+        string operationId = "environment-exposure:" + characterId.Value + ":"
+            + sequence.ToString("D6", System.Globalization.CultureInfo.InvariantCulture)
+            + ":" + eventKind;
+        long ownerRevision = checked((long)sequence + 1L);
+        var pending = new EnvironmentalExposureOutcomeSaveData
+        {
+            operationId = operationId,
+            eventKind = eventKind,
+            characterId = characterId.Value,
+            characterDisplayName = displayName,
+            x = environment.Position.x,
+            y = environment.Position.y,
+            absoluteDay = Mathf.Max(0, calendar.Day),
+            ownerRevision = ownerRevision,
+            temperatureC = environment.TemperatureC,
+            airQuality = environment.AirQuality,
+            lightLevel = environment.LightLevel,
+            coldBefore = coldBefore,
+            coldAfter = coldAfter,
+            heatBefore = heatBefore,
+            heatAfter = heatAfter,
+            airborneBefore = airborneBefore,
+            airborneAfter = airborneAfter,
+            bandBefore = bandBefore,
+            bandAfter = bandAfter,
+            damage = Mathf.Max(0f, damage),
+            healthBefore = Mathf.Max(0f, healthBefore),
+            healthAfter = Mathf.Max(0f, healthAfter),
+            reasonCode = reasonCode.Trim()
+        };
+        if (!domainFacts.TryReserve(
+                new CharacterEnvironmentExposureFact(pending),
+                out DomainFactLease reserved,
+                out _))
+        {
+            return false;
+        }
+        reservation = new ExposureOutcomeReservation(reserved, pending);
+        return true;
+    }
+
+    private void TryCommitExposureOutcome(
+        in DomainFactLease reserved,
+        EnvironmentalExposureOutcomeSaveData pending)
+    {
+        exposureOutcomes[pending.operationId] = CloneExposureOutcome(pending);
+        DomainFactDelivery committed = domainFacts.Publish(
+            reserved, new CharacterEnvironmentExposureFact(pending));
+        if (committed.Completed)
+            exposureOutcomes.Remove(pending.operationId);
+    }
+
+    private void AdvanceExposureOutcomes()
+    {
+        foreach (KeyValuePair<string, EnvironmentalExposureOutcomeSaveData> pair
+                 in exposureOutcomes.ToArray())
+            TryAdvanceExposureOutcome(pair.Key, pair.Value);
+    }
+
+    private bool TryAdvanceExposureOutcome(
+        string operationId,
+        EnvironmentalExposureOutcomeSaveData pending)
+    {
+        DomainFactDelivery existing = domainFacts.Replay(new CharacterEnvironmentExposureFact(pending));
+        if (!existing.Completed)
+            return false;
+        exposureOutcomes.Remove(operationId);
+        return true;
     }
 
     private static void ApplySleepingInsulation(
@@ -645,8 +996,7 @@ public sealed class CharacterEnvironmentUnityAdapter :
     private void ApplyBandEffects(
         CharacterActor actor,
         CharacterEnvironmentExposure state,
-        EnvironmentalExposureBand previous,
-        float deltaTime)
+        EnvironmentalExposureBand previous)
     {
         if (state.physiologicalBand != previous)
         {
@@ -680,23 +1030,6 @@ public sealed class CharacterEnvironmentUnityAdapter :
             }
         }
 
-        if (state.physiologicalBand >= EnvironmentalExposureBand.Critical)
-        {
-            state.criticalDamageTimer += deltaTime;
-            if (state.criticalDamageTimer >= 10f)
-            {
-                state.criticalDamageTimer -= 10f;
-                bodyHealthCommands.ApplyLegacyDamage(
-                    actor,
-                    actor.MaxHealth * 0.01f,
-                    "환경 위급 노출",
-                    allowDeath: false);
-            }
-        }
-        else
-        {
-            state.criticalDamageTimer = 0f;
-        }
     }
 
     private CharacterEnvironmentExposure GetOrCreate(CharacterId characterId)
@@ -834,6 +1167,35 @@ public sealed class CharacterEnvironmentUnityAdapter :
             coldWorkCooldownActive = source.coldWorkCooldownActive
         };
     }
+
+    private static EnvironmentalExposureOutcomeSaveData CloneExposureOutcome(
+        EnvironmentalExposureOutcomeSaveData source) => new()
+    {
+        schemaVersion = source.schemaVersion,
+        operationId = source.operationId,
+        eventKind = source.eventKind,
+        characterId = source.characterId,
+        characterDisplayName = source.characterDisplayName,
+        x = source.x,
+        y = source.y,
+        absoluteDay = source.absoluteDay,
+        ownerRevision = source.ownerRevision,
+        temperatureC = source.temperatureC,
+        airQuality = source.airQuality,
+        lightLevel = source.lightLevel,
+        coldBefore = source.coldBefore,
+        coldAfter = source.coldAfter,
+        heatBefore = source.heatBefore,
+        heatAfter = source.heatAfter,
+        airborneBefore = source.airborneBefore,
+        airborneAfter = source.airborneAfter,
+        bandBefore = source.bandBefore,
+        bandAfter = source.bandAfter,
+        damage = source.damage,
+        healthBefore = source.healthBefore,
+        healthAfter = source.healthAfter,
+        reasonCode = source.reasonCode
+    };
 
     internal static void Clamp(CharacterEnvironmentExposure state)
     {

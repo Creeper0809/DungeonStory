@@ -1,8 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -31,8 +33,13 @@ public sealed class InvasionOwnerEvacuationService :
     private readonly IDefenseEngagementStore defenseEngagements;
     private readonly IEnvironmentalFireQuery environmentalFires;
     private readonly IWorldHazardZoneQuery worldHazards;
+    private readonly IDomainFactStagingPublisher evacuationFacts;
+    private readonly IGameCalendar calendar;
+    private bool flushingResidentFacts;
     private readonly Dictionary<string, ResidentRuntime> residents =
         new(StringComparer.Ordinal);
+    private readonly List<ResidentEvacuationTerminalSaveData>
+        pendingResidentOutcomes = new();
     private readonly HashSet<Vector2Int> observedFireCells = new();
     private IDisposable invasionSpawnedSubscription;
     private CharacterActor owner;
@@ -49,6 +56,8 @@ public sealed class InvasionOwnerEvacuationService :
     private bool restoreResumePending;
     private Grid restoreResumeGrid;
     private long nextResidentMovementEpoch;
+    private long nextResidentEvacuationRequestSequence = 1L;
+    private string lastOutcomeFailure = string.Empty;
 
     private sealed class ResidentRuntime
     {
@@ -61,6 +70,17 @@ public sealed class InvasionOwnerEvacuationService :
         internal IReadOnlyList<Vector2Int> CandidateTargets =
             Array.Empty<Vector2Int>();
         internal int TargetCandidateIndex;
+        internal string OperationId;
+        internal string RequestGroupId;
+        internal string CharacterDisplayName;
+        internal ResidentEvacuationInitiationKind InitiationKind;
+        internal ResidentEvacuationThreatKind ThreatKind;
+        internal int RequestedAbsoluteDay;
+        internal Vector2Int Origin;
+        internal IReadOnlyList<string> IntruderRuntimeIds =
+            Array.Empty<string>();
+        internal IReadOnlyList<string> FireCells = Array.Empty<string>();
+        internal bool TerminalOutcomeQueued;
     }
 
     private sealed class RestoredResident
@@ -68,6 +88,16 @@ public sealed class InvasionOwnerEvacuationService :
         internal CharacterActor Actor;
         internal Vector2Int Target;
         internal ResidentEvacuationParticipantStatus Status;
+        internal string OperationId;
+        internal string RequestGroupId;
+        internal string CharacterDisplayName;
+        internal ResidentEvacuationInitiationKind InitiationKind;
+        internal ResidentEvacuationThreatKind ThreatKind;
+        internal int RequestedAbsoluteDay;
+        internal Vector2Int Origin;
+        internal IReadOnlyList<string> IntruderRuntimeIds;
+        internal IReadOnlyList<string> FireCells;
+        internal bool TerminalOutcomeQueued;
     }
 
     private sealed class RestoreCandidate
@@ -80,6 +110,9 @@ public sealed class InvasionOwnerEvacuationService :
         internal ResidentEvacuationZoneSaveData Zone;
         internal Grid Grid;
         internal RoomInstance Room;
+        internal long NextRequestSequence;
+        internal readonly List<ResidentEvacuationTerminalSaveData>
+            PendingOutcomes = new();
         internal readonly List<RestoredResident> Residents = new();
     }
 
@@ -95,7 +128,9 @@ public sealed class InvasionOwnerEvacuationService :
         IBuildingWorldQuery buildingWorld,
         IDefenseEngagementStore defenseEngagements,
         IEnvironmentalFireQuery environmentalFires,
-        IWorldHazardZoneQuery worldHazards)
+        IWorldHazardZoneQuery worldHazards,
+        IDomainFactStagingPublisher evacuationFacts,
+        IGameCalendar calendar)
     {
         this.invasionContext = invasionContext
             ?? throw new ArgumentNullException(nameof(invasionContext));
@@ -123,6 +158,10 @@ public sealed class InvasionOwnerEvacuationService :
             ?? throw new ArgumentNullException(nameof(environmentalFires));
         this.worldHazards = worldHazards
             ?? throw new ArgumentNullException(nameof(worldHazards));
+        this.evacuationFacts = evacuationFacts
+            ?? throw new ArgumentNullException(nameof(evacuationFacts));
+        this.calendar = calendar
+            ?? throw new ArgumentNullException(nameof(calendar));
     }
 
     public bool IsEvacuating { get; private set; }
@@ -167,6 +206,8 @@ public sealed class InvasionOwnerEvacuationService :
             return;
         }
 
+        FlushPendingResidentOutcomes();
+
         bool invasionThreatActive = director.ActiveIntruders.Count > 0;
         bool fireThreatActive = RefreshObservedFireCells();
         if (!invasionThreatActive && IsEvacuating)
@@ -176,20 +217,28 @@ public sealed class InvasionOwnerEvacuationService :
         if (!invasionThreatActive && !fireThreatActive)
         {
             autoRequestTicksRemaining = 0;
-            if (residents.Count > 0) ReleaseResidents(clear: true);
+            if (residents.Count > 0)
+            {
+                TerminalizeAndReleaseResidents(
+                    ResidentEvacuationTerminalKind.ThreatEnded);
+            }
+            FlushPendingResidentOutcomes();
             return;
         }
 
         ValidateResidentTopology();
         if (autoRequestTicksRemaining > 0 && --autoRequestTicksRemaining == 0)
         {
-            TryRequestResidentEvacuation(out _);
+            TryRequestResidentEvacuation(
+                ResidentEvacuationInitiationKind.Automatic,
+                out _);
         }
         foreach (KeyValuePair<string, ResidentRuntime> pair
                  in residents.ToArray())
         {
             TickResident(pair.Key, pair.Value);
         }
+        FlushPendingResidentOutcomes();
     }
 
     private void OnInvasionSpawned(InvasionSpawnedEvent eventType)
@@ -259,7 +308,11 @@ public sealed class InvasionOwnerEvacuationService :
             return false;
         }
 
-        ReleaseResidents(clear: true);
+        if (residents.Count > 0)
+        {
+            TerminalizeAndReleaseResidents(
+                ResidentEvacuationTerminalKind.ZoneCleared);
+        }
         residentZone = BuildZone(room);
         residentGrid = grid;
         residentRoom = room;
@@ -276,7 +329,8 @@ public sealed class InvasionOwnerEvacuationService :
             failureReason = "해제할 주민 대피 구역이 없습니다.";
             return false;
         }
-        ReleaseResidents(clear: true);
+        TerminalizeAndReleaseResidents(
+            ResidentEvacuationTerminalKind.ZoneCleared);
         residentZone = new ResidentEvacuationZoneSaveData();
         residentGrid = null;
         residentRoom = null;
@@ -285,7 +339,14 @@ public sealed class InvasionOwnerEvacuationService :
         return true;
     }
 
-    public bool TryRequestResidentEvacuation(out string failureReason)
+    public bool TryRequestResidentEvacuation(out string failureReason) =>
+        TryRequestResidentEvacuation(
+            ResidentEvacuationInitiationKind.Manual,
+            out failureReason);
+
+    private bool TryRequestResidentEvacuation(
+        ResidentEvacuationInitiationKind initiationKind,
+        out string failureReason)
     {
         failureReason = string.Empty;
         if (!HasResidentThreat())
@@ -301,6 +362,16 @@ public sealed class InvasionOwnerEvacuationService :
             return false;
         }
 
+        CharacterActor[] eligibleActors = characterWorld.Characters
+            .Where(IsEligibleResident)
+            .OrderBy(GetCharacterId, StringComparer.Ordinal)
+            .ToArray();
+        if (eligibleActors.Length == 0)
+        {
+            failureReason = "대피 대상인 일반 직원 또는 비전투 하수인이 없습니다.";
+            return false;
+        }
+
         autoRequestTicksRemaining = 0;
         Dictionary<string, Vector2Int> previousTargets = residents
             .Where(pair => pair.Value != null
@@ -309,29 +380,54 @@ public sealed class InvasionOwnerEvacuationService :
                 pair => pair.Key,
                 pair => pair.Value.Target,
                 StringComparer.Ordinal);
-        ReleaseResidents(clear: true);
+        if (residents.Count > 0)
+        {
+            TerminalizeAndReleaseResidents(
+                ResidentEvacuationTerminalKind.ReplacedByRequest);
+        }
+        long requestSequence = nextResidentEvacuationRequestSequence;
+        nextResidentEvacuationRequestSequence = checked(requestSequence + 1L);
+        string requestGroupId = "resident-evacuation-request:"
+            + requestSequence.ToString(CultureInfo.InvariantCulture);
+        CaptureResidentThreat(
+            out ResidentEvacuationThreatKind threatKind,
+            out string[] intruderIds,
+            out string[] fireCells);
+        int requestedDay = Math.Max(1, calendar.Day);
         HashSet<Vector2Int> claimedTargets = new();
         int eligibleCount = 0;
-        foreach (CharacterActor actor in characterWorld.Characters
-            .Where(IsEligibleResident)
-            .OrderBy(GetCharacterId, StringComparer.Ordinal))
+        foreach (CharacterActor actor in eligibleActors)
         {
             eligibleCount++;
+            string actorId = GetCharacterId(actor);
             ResidentRuntime runtime = new()
             {
                 Actor = actor,
-                Status = ResidentEvacuationParticipantStatus.PendingRoute
+                Status = ResidentEvacuationParticipantStatus.PendingRoute,
+                OperationId = "resident-evacuation:"
+                    + requestSequence.ToString(CultureInfo.InvariantCulture)
+                    + ":"
+                    + eligibleCount.ToString(CultureInfo.InvariantCulture),
+                RequestGroupId = requestGroupId,
+                CharacterDisplayName = actor.Identity?.DisplayName
+                    ?? actor.name,
+                InitiationKind = initiationKind,
+                ThreatKind = threatKind,
+                RequestedAbsoluteDay = requestedDay,
+                Origin = actor.GetNowXY(),
+                IntruderRuntimeIds = intruderIds,
+                FireCells = fireCells
             };
-            residents.Add(GetCharacterId(actor), runtime);
+            residents.Add(actorId, runtime);
 
             previousTargets.TryGetValue(
-                GetCharacterId(actor),
+                actorId,
                 out Vector2Int previousTarget);
             Vector2Int[] available = BuildResidentTargetCandidates(
                 actor,
                 grid,
                 room,
-                previousTargets.ContainsKey(GetCharacterId(actor))
+                previousTargets.ContainsKey(actorId)
                     ? previousTarget
                     : null,
                 claimedTargets);
@@ -339,18 +435,16 @@ public sealed class InvasionOwnerEvacuationService :
             if (available.Length == 0)
             {
                 runtime.Status = ResidentEvacuationParticipantStatus.NoCapacity;
+                QueueResidentTerminal(
+                    runtime,
+                    ResidentEvacuationTerminalKind.NoCapacity);
                 continue;
             }
 
             runtime.Target = available[0];
             claimedTargets.Add(runtime.Target);
             BeginOrResumeResident(runtime);
-        }
-
-        if (eligibleCount == 0)
-        {
-            failureReason = "대피 대상인 일반 직원 또는 비전투 하수인이 없습니다.";
-            return false;
+            QueueTerminalForCurrentStatus(runtime);
         }
         int routed = residents.Values.Count(runtime => HasTarget(runtime.Status));
         gameEventBus.RaiseAlert(
@@ -361,8 +455,10 @@ public sealed class InvasionOwnerEvacuationService :
         if (routed == 0)
         {
             failureReason = "대피 구역에 도달 가능한 빈 안전 칸이 없습니다.";
+            FlushPendingResidentOutcomes();
             return false;
         }
+        FlushPendingResidentOutcomes();
         return true;
     }
 
@@ -381,10 +477,6 @@ public sealed class InvasionOwnerEvacuationService :
             capturedZone.status = ResidentEvacuationZoneStatus.LostByTopology;
             capturedResidents.Clear();
         }
-        if (!HasResidentThreat())
-        {
-            capturedResidents.Clear();
-        }
         return new OwnerEvacuationSaveSnapshot
         {
             active = IsEvacuating,
@@ -393,7 +485,14 @@ public sealed class InvasionOwnerEvacuationService :
             usedAdministrationRoom = usedAdministrationRoom,
             statusText = StatusText,
             residentZone = capturedZone,
-            residentParticipants = capturedResidents
+            residentParticipants = capturedResidents,
+            residentContractVersion =
+                OwnerEvacuationSaveSnapshot.ResidentContractVersion,
+            nextResidentEvacuationRequestSequence =
+                nextResidentEvacuationRequestSequence,
+            pendingResidentOutcomes = pendingResidentOutcomes
+                .Select(CloneTerminalOutcome)
+                .ToList()
         };
     }
 
@@ -431,8 +530,15 @@ public sealed class InvasionOwnerEvacuationService :
             UsedAdministrationRoom = snapshot.usedAdministrationRoom,
             StatusText = snapshot.statusText,
             Zone = CloneZone(snapshot.residentZone),
-            Grid = candidateGrid
+            Grid = candidateGrid,
+            NextRequestSequence = Math.Max(
+                1L,
+                snapshot.nextResidentEvacuationRequestSequence)
         };
+        candidate.PendingOutcomes.AddRange(
+            (snapshot.pendingResidentOutcomes
+                ?? new List<ResidentEvacuationTerminalSaveData>())
+            .Select(CloneTerminalOutcome));
         if (snapshot.active)
         {
             CharacterActor[] candidateOwners = candidateCharacters
@@ -499,7 +605,21 @@ public sealed class InvasionOwnerEvacuationService :
             {
                 Actor = actor,
                 Target = target,
-                Status = participant.status
+                Status = participant.status,
+                OperationId = participant.operationId,
+                RequestGroupId = participant.requestGroupId,
+                CharacterDisplayName = participant.characterDisplayName,
+                InitiationKind = participant.initiationKind,
+                ThreatKind = participant.threatKind,
+                RequestedAbsoluteDay = participant.requestedAbsoluteDay,
+                Origin = new Vector2Int(
+                    participant.originX,
+                    participant.originY),
+                IntruderRuntimeIds = participant.intruderRuntimeIds
+                    ?.ToArray() ?? Array.Empty<string>(),
+                FireCells = participant.fireCells?.ToArray()
+                    ?? Array.Empty<string>(),
+                TerminalOutcomeQueued = participant.terminalOutcomeQueued
             });
         }
         restoreCandidate = candidate;
@@ -643,9 +763,14 @@ public sealed class InvasionOwnerEvacuationService :
                             && HasTarget(item.Status))
                         .Select(item => item.Target)))
                 : Array.Empty<Vector2Int>();
-            if (HasResidentThreat() && HasTarget(runtime.Status))
+            if (runtime.Status == ResidentEvacuationParticipantStatus.Moving)
             {
-                BeginOrResumeResident(runtime);
+                // A saved movement coroutine cannot survive publication. Do
+                // not query paths from inside the completed-restore hook:
+                // doors, traversal links, and path brokers finish their own
+                // completed hooks in the same transaction. The next normal
+                // Tick owns a fresh route from the published actor position.
+                runtime.Status = ResidentEvacuationParticipantStatus.PendingRoute;
             }
         }
 
@@ -653,6 +778,7 @@ public sealed class InvasionOwnerEvacuationService :
         {
             StartOwnerMovement(TargetCell, StatusText);
         }
+        FlushPendingResidentOutcomes();
     }
 
     private void ApplyRestoredResidents(RestoreCandidate candidate)
@@ -664,6 +790,12 @@ public sealed class InvasionOwnerEvacuationService :
         residentRoom = candidate.Room;
         observedResidentStructure = -1;
         observedFireCells.Clear();
+        nextResidentEvacuationRequestSequence = Math.Max(
+            1L,
+            candidate.NextRequestSequence);
+        pendingResidentOutcomes.Clear();
+        pendingResidentOutcomes.AddRange(
+            candidate.PendingOutcomes.Select(CloneTerminalOutcome));
         foreach (RestoredResident restored in candidate.Residents)
         {
             ResidentRuntime runtime = new()
@@ -671,7 +803,18 @@ public sealed class InvasionOwnerEvacuationService :
                 Actor = restored.Actor,
                 Target = restored.Target,
                 Status = restored.Status,
-                CandidateTargets = Array.Empty<Vector2Int>()
+                CandidateTargets = Array.Empty<Vector2Int>(),
+                OperationId = restored.OperationId,
+                RequestGroupId = restored.RequestGroupId,
+                CharacterDisplayName = restored.CharacterDisplayName,
+                InitiationKind = restored.InitiationKind,
+                ThreatKind = restored.ThreatKind,
+                RequestedAbsoluteDay = restored.RequestedAbsoluteDay,
+                Origin = restored.Origin,
+                IntruderRuntimeIds = restored.IntruderRuntimeIds
+                    ?? Array.Empty<string>(),
+                FireCells = restored.FireCells ?? Array.Empty<string>(),
+                TerminalOutcomeQueued = restored.TerminalOutcomeQueued
             };
             residents.Add(GetCharacterId(restored.Actor), runtime);
         }
@@ -717,12 +860,18 @@ public sealed class InvasionOwnerEvacuationService :
         if (actor == null || actor.IsDead
             || actor.CurrentLifecycleState != CharacterLifecycleState.Active)
         {
+            QueueResidentTerminal(
+                runtime,
+                ResidentEvacuationTerminalKind.ResidentUnavailable);
             ReleaseResident(runtime);
             residents.Remove(actorId);
             return;
         }
         if (!IsEligibleResident(actor))
         {
+            QueueResidentTerminal(
+                runtime,
+                ResidentEvacuationTerminalKind.ResidentUnavailable);
             ReleaseResident(runtime);
             residents.Remove(actorId);
             return;
@@ -745,6 +894,7 @@ public sealed class InvasionOwnerEvacuationService :
         {
             BeginOrResumeResident(runtime);
         }
+        QueueTerminalForCurrentStatus(runtime);
     }
 
     private void BeginOrResumeResident(ResidentRuntime runtime)
@@ -757,6 +907,11 @@ public sealed class InvasionOwnerEvacuationService :
             if (runtime != null)
             {
                 runtime.Status = ResidentEvacuationParticipantStatus.Unreachable;
+                QueueResidentTerminal(
+                    runtime,
+                    ResidentEvacuationTerminalKind.Unreachable,
+                    hasTargetOverride: runtime.CandidateTargets?.Count > 0,
+                    targetOverride: runtime.Target);
                 runtime.Target = default;
             }
             return;
@@ -789,6 +944,9 @@ public sealed class InvasionOwnerEvacuationService :
                 "주민 대피",
                 "Holding",
                 $"지정 대피 구역 {runtime.Target}");
+            QueueResidentTerminal(
+                runtime,
+                ResidentEvacuationTerminalKind.Arrived);
             return;
         }
 
@@ -959,13 +1117,10 @@ public sealed class InvasionOwnerEvacuationService :
             runtime.Status = ResidentEvacuationParticipantStatus.Holding;
             brain.UpdateExternallyDrivenAction(
                 runLease, "주민 대피", "Holding", $"지정 대피 구역 {runTarget}");
-            actor.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Combat,
-                CharacterActivityOutcomes.Completed,
-                "주민 대피 구역 도착",
-                actionId: "invasion:resident-evacuation",
-                sentiment: -0.1f,
-                bubbleEligible: true));
+            gameEventBus.Publish(new ResidentEvacuationArrivedEvent(actor));
+            QueueResidentTerminal(
+                runtime,
+                ResidentEvacuationTerminalKind.Arrived);
             yield break;
         }
 
@@ -1048,7 +1203,7 @@ public sealed class InvasionOwnerEvacuationService :
         runtime.MovementEpoch = 0L;
     }
 
-    private static void FailResidentRunIfCurrent(
+    private void FailResidentRunIfCurrent(
         ResidentRuntime runtime,
         AIBrain brain,
         in CharacterActionIntentLease runLease,
@@ -1074,6 +1229,11 @@ public sealed class InvasionOwnerEvacuationService :
         {
             runtime.Lease = default;
         }
+        QueueResidentTerminal(
+            runtime,
+            ResidentEvacuationTerminalKind.Unreachable,
+            hasTargetOverride: true,
+            targetOverride: runTarget);
         if (clearTarget)
         {
             runtime.Target = default;
@@ -1102,12 +1262,18 @@ public sealed class InvasionOwnerEvacuationService :
                     continue;
                 }
                 ReleaseResident(runtime);
-                runtime.Target = default;
                 runtime.Status = ResidentEvacuationParticipantStatus.NoCapacity;
+                QueueResidentTerminal(
+                    runtime,
+                    ResidentEvacuationTerminalKind.NoCapacity,
+                    hasTargetOverride: true,
+                    targetOverride: runtime.Target);
+                runtime.Target = default;
             }
             return;
         }
-        ReleaseResidents(clear: true);
+        TerminalizeAndReleaseResidents(
+            ResidentEvacuationTerminalKind.ZoneLost);
         residentZone.status = ResidentEvacuationZoneStatus.LostByTopology;
         residentRoom = null;
         autoRequestTicksRemaining = 0;
@@ -1323,6 +1489,215 @@ public sealed class InvasionOwnerEvacuationService :
         if (clear) residents.Clear();
     }
 
+    private void TerminalizeAndReleaseResidents(
+        ResidentEvacuationTerminalKind terminalKind)
+    {
+        foreach (ResidentRuntime runtime in residents.Values)
+        {
+            QueueResidentTerminal(runtime, terminalKind);
+            ReleaseResident(runtime);
+        }
+        residents.Clear();
+        FlushPendingResidentOutcomes();
+    }
+
+    private void QueueTerminalForCurrentStatus(ResidentRuntime runtime)
+    {
+        if (runtime == null || runtime.TerminalOutcomeQueued)
+        {
+            return;
+        }
+        switch (runtime.Status)
+        {
+            case ResidentEvacuationParticipantStatus.Holding:
+                QueueResidentTerminal(
+                    runtime,
+                    ResidentEvacuationTerminalKind.Arrived,
+                    hasTargetOverride: true,
+                    targetOverride: runtime.Target);
+                break;
+            case ResidentEvacuationParticipantStatus.NoCapacity:
+                QueueResidentTerminal(
+                    runtime,
+                    ResidentEvacuationTerminalKind.NoCapacity);
+                break;
+            case ResidentEvacuationParticipantStatus.Unreachable:
+                QueueResidentTerminal(
+                    runtime,
+                    ResidentEvacuationTerminalKind.Unreachable);
+                break;
+        }
+    }
+
+    private void QueueResidentTerminal(
+        ResidentRuntime runtime,
+        ResidentEvacuationTerminalKind terminalKind,
+        bool? hasTargetOverride = null,
+        Vector2Int? targetOverride = null)
+    {
+        if (runtime == null
+            || runtime.TerminalOutcomeQueued
+            || terminalKind == ResidentEvacuationTerminalKind.None)
+        {
+            return;
+        }
+        CharacterActor actor = runtime.Actor;
+        Vector2Int final = actor != null
+            ? actor.GetNowXY()
+            : runtime.Origin;
+        bool hasTarget = hasTargetOverride ?? HasTarget(runtime.Status);
+        Vector2Int target = targetOverride ?? runtime.Target;
+        ResidentEvacuationTerminalSaveData pending = new()
+        {
+            operationId = runtime.OperationId ?? string.Empty,
+            requestGroupId = runtime.RequestGroupId ?? string.Empty,
+            ownerRevision = 1L,
+            characterId = actor != null
+                && CharacterPersistentIdentity.TryGet(actor, out CharacterId id)
+                    ? id.Value
+                    : string.Empty,
+            characterDisplayName = runtime.CharacterDisplayName
+                ?? string.Empty,
+            initiationKind = runtime.InitiationKind,
+            threatKind = runtime.ThreatKind,
+            terminalKind = terminalKind,
+            intruderRuntimeIds = runtime.IntruderRuntimeIds
+                ?.ToList() ?? new List<string>(),
+            fireCells = runtime.FireCells?.ToList()
+                ?? new List<string>(),
+            requestedAbsoluteDay = runtime.RequestedAbsoluteDay,
+            terminalAbsoluteDay = Math.Max(
+                runtime.RequestedAbsoluteDay,
+                Math.Max(1, calendar.Day)),
+            originX = runtime.Origin.x,
+            originY = runtime.Origin.y,
+            hasTarget = hasTarget,
+            targetX = hasTarget ? target.x : 0,
+            targetY = hasTarget ? target.y : 0,
+            finalX = final.x,
+            finalY = final.y
+        };
+        pendingResidentOutcomes.Add(pending);
+        runtime.TerminalOutcomeQueued = true;
+    }
+
+    private void FlushPendingResidentOutcomes()
+    {
+        if (flushingResidentFacts || restoreResumePending) return;
+        flushingResidentFacts = true;
+        try
+        {
+            int index = 0;
+            while (index < pendingResidentOutcomes.Count)
+            {
+                var pending = pendingResidentOutcomes[index];
+                IDomainFactStage stage = null;
+                try
+                {
+                    var fact = new ResidentEvacuationTerminalFact(pending);
+                    if (!evacuationFacts.TryStage(fact, out stage, out string failure))
+                    { ReportOutcomeFailure(pending.operationId, "prepare:" + failure); index++; continue; }
+                    if (stage == null || !stage.IsActive)
+                    { ReportOutcomeFailure(pending.operationId, "stage-invalid"); index++; continue; }
+                    var delivery = stage.Commit();
+                    // The movement/terminal state is already real. An uncertain
+                    // response retains the exact fact, never repeats movement.
+                    if (!delivery.Completed)
+                    { ReportOutcomeFailure(pending.operationId, "publication-pending:" + delivery.Detail); index++; continue; }
+                    pendingResidentOutcomes.RemoveAt(index);
+                }
+                catch (Exception exception) when (exception is not OutOfMemoryException
+                    and not StackOverflowException and not AccessViolationException)
+                {
+                    ReportOutcomeFailure(pending?.operationId, "exception:" + exception.GetType().Name);
+                    index++;
+                }
+                finally
+                {
+                    try { stage?.Cancel(); }
+                    catch (Exception exception) when (exception is not OutOfMemoryException
+                        and not StackOverflowException and not AccessViolationException)
+                    { ReportOutcomeFailure(pending?.operationId, "release:" + exception.GetType().Name); }
+                }
+            }
+            if (pendingResidentOutcomes.Count == 0) lastOutcomeFailure = string.Empty;
+        }
+        finally { flushingResidentFacts = false; }
+    }
+
+    private void ReportOutcomeFailure(string operationId, string reason)
+    {
+        string current = (operationId ?? string.Empty) + ":" + reason;
+        if (string.Equals(lastOutcomeFailure, current, StringComparison.Ordinal))
+        {
+            return;
+        }
+        lastOutcomeFailure = current;
+        Debug.LogError(
+            "Resident evacuation terminal outcome remains pending: "
+            + current);
+    }
+
+    private static ResidentEvacuationTerminalSaveData CloneTerminalOutcome(
+        ResidentEvacuationTerminalSaveData source)
+    {
+        source ??= new ResidentEvacuationTerminalSaveData();
+        return new ResidentEvacuationTerminalSaveData
+        {
+            operationId = source.operationId ?? string.Empty,
+            requestGroupId = source.requestGroupId ?? string.Empty,
+            ownerRevision = source.ownerRevision,
+            characterId = source.characterId ?? string.Empty,
+            characterDisplayName = source.characterDisplayName
+                ?? string.Empty,
+            initiationKind = source.initiationKind,
+            threatKind = source.threatKind,
+            terminalKind = source.terminalKind,
+            intruderRuntimeIds = source.intruderRuntimeIds
+                ?.ToList() ?? new List<string>(),
+            fireCells = source.fireCells?.ToList()
+                ?? new List<string>(),
+            requestedAbsoluteDay = source.requestedAbsoluteDay,
+            terminalAbsoluteDay = source.terminalAbsoluteDay,
+            originX = source.originX,
+            originY = source.originY,
+            hasTarget = source.hasTarget,
+            targetX = source.targetX,
+            targetY = source.targetY,
+            finalX = source.finalX,
+            finalY = source.finalY
+        };
+    }
+
+    private void CaptureResidentThreat(
+        out ResidentEvacuationThreatKind threatKind,
+        out string[] intruderRuntimeIds,
+        out string[] fireCells)
+    {
+        intruderRuntimeIds = director.ActiveIntruders
+            .Where(value => value != null
+                && !string.IsNullOrWhiteSpace(value.RuntimeId))
+            .Select(value => value.RuntimeId)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        fireCells = environmentalFires.GetActiveFireCells()
+            .Select(value => value.x.ToString(CultureInfo.InvariantCulture)
+                + ","
+                + value.y.ToString(CultureInfo.InvariantCulture))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        threatKind = intruderRuntimeIds.Length > 0
+            ? fireCells.Length > 0
+                ? ResidentEvacuationThreatKind.InvasionAndFire
+                : ResidentEvacuationThreatKind.Invasion
+            : fireCells.Length > 0
+                ? ResidentEvacuationThreatKind.Fire
+                : throw new InvalidOperationException(
+                    "Resident evacuation requires an exact active threat source.");
+    }
+
     private static void ReleaseResident(ResidentRuntime runtime)
     {
         CharacterActor actor = runtime?.Actor;
@@ -1390,7 +1765,21 @@ public sealed class InvasionOwnerEvacuationService :
             characterId = id,
             status = status,
             targetX = runtime.Target.x,
-            targetY = runtime.Target.y
+            targetY = runtime.Target.y,
+            operationId = runtime.OperationId ?? string.Empty,
+            requestGroupId = runtime.RequestGroupId ?? string.Empty,
+            characterDisplayName = runtime.CharacterDisplayName
+                ?? string.Empty,
+            initiationKind = runtime.InitiationKind,
+            threatKind = runtime.ThreatKind,
+            requestedAbsoluteDay = runtime.RequestedAbsoluteDay,
+            originX = runtime.Origin.x,
+            originY = runtime.Origin.y,
+            intruderRuntimeIds = runtime.IntruderRuntimeIds
+                ?.ToList() ?? new List<string>(),
+            fireCells = runtime.FireCells?.ToList()
+                ?? new List<string>(),
+            terminalOutcomeQueued = runtime.TerminalOutcomeQueued
         };
     }
 
@@ -1575,13 +1964,7 @@ public sealed class InvasionOwnerEvacuationService :
         {
             StatusText = usedAdministrationRoom ? "사장실 대피 완료" : "임시 대피 완료";
             DefenseCombatPresentation.Ensure(owner)?.SetStatus("대피 완료", false);
-            owner.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Combat,
-                CharacterActivityOutcomes.Completed,
-                StatusText,
-                actionId: "invasion:owner-evacuation",
-                sentiment: -0.15f,
-                bubbleEligible: true));
+            gameEventBus.Publish(new OwnerEvacuationArrivedEvent(owner, usedAdministrationRoom));
         }
         else StatusText = "대피 경로 막힘";
         movementRoutine = null;

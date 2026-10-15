@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
@@ -17,7 +18,9 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
     private IGameEventBus gameEventBus;
     private IExternalInfluenceRuntime externalInfluence;
     private IOffenseCampaignCatalog targetCatalog;
-    private IOffenseTruthRevealOutcomeCommitter truthOutcomeCommitter;
+    private IDomainFactStagingPublisher facts;
+    private IDomainFactRecoveryPublisher recovery;
+    private float nextTruthRetry;
     private IGameCalendar gameCalendar;
 
     public event Action Changed;
@@ -69,7 +72,8 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
         IOffenseCampaignStateAuthority campaign,
         IOffenseCampaignRuntime campaignPersistence,
         IOffenseCampaignCatalog targetCatalog,
-        IOffenseTruthRevealOutcomeCommitter truthOutcomeCommitter,
+        IDomainFactStagingPublisher facts,
+        IDomainFactRecoveryPublisher recovery,
         IGameCalendar gameCalendar)
     {
         this.gameEventBus = gameEventBus
@@ -86,8 +90,8 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
         }
         this.targetCatalog = targetCatalog
             ?? throw new ArgumentNullException(nameof(targetCatalog));
-        this.truthOutcomeCommitter = truthOutcomeCommitter
-            ?? throw new ArgumentNullException(nameof(truthOutcomeCommitter));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
         this.gameCalendar = gameCalendar
             ?? throw new ArgumentNullException(nameof(gameCalendar));
         StartWorldMap();
@@ -116,7 +120,10 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
         }
 
         int newlyRevealed = OffenseWorldMapService.RevealTargetsInRange(MutableState, targets);
-        externalInfluence?.AddScoutingLabor(60f);
+        externalInfluence?.AddScoutingLabor(
+            60f,
+            MutableState.ReconLevel,
+            newlyRevealed);
         message = $"정찰 Lv.{MutableState.ReconLevel}: 새 원정 대상 {newlyRevealed}개 발견";
         gameEventBus.RaiseAlert(
             "정찰 강화",
@@ -186,6 +193,8 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
         out string message)
     {
         EnsureInitialized();
+        if (campaign.TruthObservation.pending && !TryRecoverPendingTruth(out message))
+        { completedTarget = null; return false; }
         OffenseTargetDefinition target = targets.FirstOrDefault(candidate =>
             candidate != null
             && string.Equals(candidate.id, targetId, StringComparison.Ordinal));
@@ -194,6 +203,13 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
             completedTarget = null;
             message = "?????녿뒗 ?ㅽ렂??紐⑺몴?낅땲??";
             return false;
+        }
+
+        if (target.revealsTruth && MutableState.RevealedTruthTargetId == target.id)
+        {
+            completedTarget = target.ToSnapshot(HasPreciseIntel(target.id), MutableState);
+            message = "이미 지상의 진실을 밝혔습니다.";
+            return true;
         }
 
         if (!OffenseWorldMapService.CanAttemptTarget(MutableState, target, out message))
@@ -240,6 +256,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
         out string message)
     {
         EnsureInitialized();
+        if (campaign.TruthObservation.pending && !TryRecoverPendingTruth(out message)) return false;
         OffenseTargetDefinition target = targets.FirstOrDefault(candidate =>
             candidate != null
             && candidate.revealsTruth
@@ -255,6 +272,8 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
 
         if (MutableState.TruthRevealed)
         {
+            if (MutableState.RevealedTruthTargetId != target.id)
+            { message = "이미 공개한 진실의 목표와 일치하지 않습니다."; return false; }
             message = "이미 지상의 진실을 밝혔습니다.";
             return true;
         }
@@ -267,106 +286,61 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
     }
 
     private bool TryCommitTruthReveal(
-        OffenseTargetDefinition target,
-        bool addKnownTarget,
-        out OffenseTargetSnapshot completedTarget,
-        out string message)
+        OffenseTargetDefinition target, bool addKnownTarget,
+        out OffenseTargetSnapshot completedTarget, out string message)
     {
         completedTarget = null;
-        long ownerRevision = MutableState.CompletedTargetCount
-            + (MutableState.IsTargetCompleted(target.id) ? 0L : 1L);
-        OffenseTruthRevealOutcomeReceipt receipt;
+        OffenseTruthRevealedFact fact;
         try
         {
-            receipt = new OffenseTruthRevealOutcomeReceipt(
-                target.id,
-                ownerRevision,
-                target.title,
-                OffenseWorldMapService.TruthTitle,
-                target.truthText,
-                Math.Max(0, gameCalendar.Day));
+            fact = new OffenseTruthRevealedFact(new OffenseTruthFactData
+            {
+                targetId = target.id, targetDisplayName = target.title?.Trim(),
+                truthTitle = OffenseWorldMapService.TruthTitle,
+                truthText = target.truthText?.Trim(), absoluteDay = gameCalendar.Day,
+                ownerRevision = MutableState.CompletedTargetCount + (MutableState.IsTargetCompleted(target.id) ? 0L : 1L)
+            });
         }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or InvalidOperationException
-                                           or OverflowException)
-        {
-            message = "진실 공개 기록이 유효하지 않습니다: " + exception.Message;
-            return false;
-        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or OverflowException)
+        { message = "진실 공개 사실이 유효하지 않습니다: " + exception.Message; return false; }
 
-        if (!truthOutcomeCommitter.TryPrepare(
-                receipt,
-                out PreparedExternalFactionOutcome prepared,
-                out string prepareFailure))
-        {
-            message = "진실 공개 기록 용량을 확보하지 못했습니다: "
-                + prepareFailure;
-            return false;
-        }
-
-        OffenseCampaignRestoreCandidate rollback;
-        OffenseCampaignRestoreCandidate candidate;
-        try
-        {
-            DungeonOffenseCampaignSaveData source =
-                campaignPersistence.Capture();
-            rollback = campaignPersistence.BuildRestoreCandidate(source);
-            candidate = campaignPersistence.BuildRestoreCandidate(source);
-        }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or InvalidOperationException
-                                           or OverflowException)
-        {
-            truthOutcomeCommitter.Cancel(prepared);
-            message = "진실 공개 상태 후보를 만들지 못했습니다: "
-                + exception.Message;
-            return false;
-        }
-        if (addKnownTarget)
-            candidate.State.AddKnownTarget(target.id);
-        if (!candidate.State.IsTargetCompleted(target.id)
-            && !candidate.State.MarkTargetCompleted(target.id))
-        {
-            truthOutcomeCommitter.Cancel(prepared);
-            message = "진실 공개 목표를 완료 상태로 전환하지 못했습니다.";
-            return false;
-        }
-        candidate.State.RevealTruth(target.id);
-        if (!candidate.State.TruthRevealed)
-        {
-            truthOutcomeCommitter.Cancel(prepared);
-            message = "진실 공개 상태를 확정하지 못했습니다.";
-            return false;
-        }
-
-        campaignPersistence.PublishRestoreCandidate(candidate);
-        if (!truthOutcomeCommitter.TryCommit(
-                prepared,
-                ownerRevision,
-                out string commitFailure))
-        {
-            campaignPersistence.PublishRestoreCandidate(rollback);
-            message = "진실 공개 기록을 원자적으로 확정하지 못했습니다: "
-                + commitFailure;
-            return false;
-        }
-
-        completedTarget = target.ToSnapshot(
-            HasPreciseIntel(target.id),
-            MutableState);
-        RaiseChanged();
-        gameEventBus.RaiseAlert(
-            OffenseWorldMapService.TruthTitle,
-            target.truthText,
-            EventAlertImportance.High,
-            "원정");
-        gameEventBus.Publish(new OffenseTruthRevealedEvent(
-            target.id,
-            OffenseWorldMapService.TruthTitle,
-            target.truthText));
-        message = "최종 작전을 마치고 지상의 진실을 공개했습니다!";
+        if (!campaign.TryRevealTruth(fact, addKnownTarget, facts, out string failure))
+        { message = "진실 공개를 확정하지 못했습니다: " + failure; return false; }
+        completedTarget = target.ToSnapshot(HasPreciseIntel(target.id), MutableState);
+        NotifyDeliveredTruth();
+        message = campaign.TruthObservation.pending
+            ? "진실 공개 적용됨 · 결과 전달 대기: " + failure
+            : "최종 작전을 마치고 지상의 진실을 공개했습니다!";
         return true;
     }
+
+    public bool TryRecoverPendingTruth(out string failure)
+    {
+        if (!campaign.TryRecoverTruth(recovery, out failure)) return false;
+        NotifyDeliveredTruth();
+        return true;
+    }
+
+    private void NotifyDeliveredTruth()
+    {
+        var observation = campaign.TruthObservation;
+        if (observation.pending || !observation.notificationPending) return;
+        var fact = campaign.TakeTruthNotification();
+        if (fact == null) return;
+        try { RaiseChanged(); }
+        catch (Exception exception) when (Recoverable(exception)) { Debug.LogException(exception); }
+        try { gameEventBus.Publish(fact); }
+        catch (Exception exception) when (Recoverable(exception)) { Debug.LogException(exception); }
+    }
+
+    private void Update()
+    {
+        if (campaign == null || !campaign.HasPendingTruthWork || Time.unscaledTime < nextTruthRetry) return;
+        nextTruthRetry = Time.unscaledTime + 1f;
+        if (!TryRecoverPendingTruth(out string failure)) Debug.LogWarning(failure);
+    }
+    private static bool Recoverable(Exception exception) => exception is not OutOfMemoryException
+        && exception is not StackOverflowException && exception is not AccessViolationException;
 
     public void SetPreciseIntelForDebug(bool value)
     {

@@ -75,7 +75,8 @@ public static class IndustrialInfrastructureSaveValidation
                 && MathfApproximately(pending.fuelSecondsAfter, 0f)
                 && string.IsNullOrEmpty(pending.commitId)
                 && (pending.sourceStackIds?.Count ?? 0) == 0
-                && pending.inputMassGrams == 0L;
+                && pending.inputMassGrams == 0L
+                && pending.outcomeOwnerRevision == 0L;
         }
 
         bool common = phase is PowerFuelCommitPhase.IntentRecorded
@@ -106,14 +107,16 @@ public static class IndustrialInfrastructureSaveValidation
             return MathfApproximately(node.fuelSeconds, pending.fuelSecondsBefore)
                 && pending.sourceStackIds.Count == 0
                 && pending.inputMassGrams == 0L
-                && string.IsNullOrEmpty(pending.commitId);
+                && string.IsNullOrEmpty(pending.commitId)
+                && pending.outcomeOwnerRevision == 0L;
         }
 
         return node.fuelSeconds >= 0f
             && node.fuelSeconds <= pending.fuelSecondsAfter + 0.0001f
             && pending.sourceStackIds.Count > 0
             && pending.inputMassGrams > 0L
-            && IsCanonicalRequired(pending.commitId);
+            && IsCanonicalRequired(pending.commitId)
+            && pending.outcomeOwnerRevision > 0L;
     }
 
     private static bool MathfApproximately(float left, float right) =>
@@ -173,7 +176,8 @@ public static class IndustrialInfrastructureSaveValidation
                         node.frozenPipeOccurrenceInstanceId)
                 || node.frozenPipeLatched
                     && node.frozenPipeOccurrenceInstanceId.Length == 0
-                || !ValidateContainerFeed(node))
+                || !ValidateContainerFeed(node)
+                || !ValidateFluidAutonomousState(node))
             {
                 report.AddError(
                     $"Fluid node {node.buildingInstanceId} has invalid state.");
@@ -244,6 +248,59 @@ public static class IndustrialInfrastructureSaveValidation
                     $"Fluid node {node.buildingInstanceId} has multiple immediate manual-water owners.");
             }
         }
+    }
+
+    private static bool ValidateFluidAutonomousState(FluidNodeSaveData node)
+    {
+        if (node.nextAutonomousOutcomeSequence < 1
+            || node.pendingAutonomousOutcomes == null
+            || !IsNonNegativeFinite(node.leakEpisodeStartCleanWater)
+            || !IsNonNegativeFinite(node.leakEpisodeStartUnsafeWater)
+            || !IsNonNegativeFinite(node.leakEpisodeStartFoulWater)
+            || !IsNonNegativeFinite(node.leakEpisodeCleanLoss)
+            || !IsNonNegativeFinite(node.leakEpisodeUnsafeLoss)
+            || !IsNonNegativeFinite(node.leakEpisodeFoulLoss)
+            || !IsNonNegativeFinite(node.leakEpisodeFilthAmount)
+            || node.leakEpisodeFilthIds == null
+            || node.leakEpisodeFilthIds.Any(
+                value => !IsCanonicalRequired(value))
+            || node.leakEpisodeFilthIds.Distinct(
+                StringComparer.Ordinal).Count()
+                != node.leakEpisodeFilthIds.Count
+            || !IsOrdinallySorted(node.leakEpisodeFilthIds))
+        {
+            return false;
+        }
+
+        float totalLoss = node.leakEpisodeCleanLoss
+            + node.leakEpisodeUnsafeLoss
+            + node.leakEpisodeFoulLoss;
+        if (totalLoss <= 0.0001f
+            && (node.leakEpisodeStartCleanWater > 0.0001f
+                || node.leakEpisodeStartUnsafeWater > 0.0001f
+                || node.leakEpisodeStartFoulWater > 0.0001f
+                || node.leakEpisodeFilthAmount > 0.0001f
+                || node.leakEpisodeFilthIds.Count > 0))
+        {
+            return false;
+        }
+
+        int previousSequence = 0;
+        foreach (FluidAutonomousOutcomeSaveData pending in
+                 node.pendingAutonomousOutcomes)
+        {
+            if (pending == null || pending.sequence <= previousSequence
+                || pending.sequence >= node.nextAutonomousOutcomeSequence || pending.fact == null
+                || pending.fact.ownerRevision != 0 || pending.fact.facilityId != node.buildingInstanceId
+                || pending.fact.targetId != node.buildingInstanceId
+                || pending.fact.kind < IndustrialTransitionKind.WastewaterBatchCompleted
+                || pending.fact.details?.operationId != $"fluid-autonomous:{node.buildingInstanceId}:{pending.sequence:D8}")
+                return false;
+            try { IndustrialTransitionFact.ValidateDraft(pending.fact); }
+            catch (InvalidOperationException) { return false; }
+            previousSequence = pending.sequence;
+        }
+        return true;
     }
 
     private static bool ValidateContainerFeed(FluidNodeSaveData node)

@@ -824,9 +824,15 @@ public sealed class OffenseBattleSession
     internal float Heal(OffenseBattleCombatant target, float amount)
     {
         float applied = target?.Heal(amount) ?? 0f;
-        if (applied > 0f && target.Team == OffenseBattleTeam.Allies)
+        if (applied > 0f && target.Team == OffenseBattleTeam.Allies
+                && settlementOwner != null
+                && settlementOwner.MemberActors.Concat(settlementOwner.ProtectedRescueActors)
+                    .Any(actor => actor != null && string.Equals(
+                        actor.Identity?.PersistentId, target.PersistentId, StringComparison.Ordinal)))
         {
-            settlementOwner?.RecordHealing(target.PersistentId, applied);
+            // Battle-only allies (e.g. protected objectives) keep their real
+            // battle heal but do not create a resident return-treatment receipt.
+            settlementOwner.RecordHealing(target.PersistentId, applied);
         }
         return applied;
     }

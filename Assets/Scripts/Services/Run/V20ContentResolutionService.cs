@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.Operation;
 using UnityEngine;
 
@@ -915,10 +916,9 @@ public sealed class V21ContentAlertChoiceActionDispatcher :
 
         foreach (V20ResolvedEventResult resolved in result.Resolutions)
         {
-            V20SocietyEventAlertProjection.PublishResolved(
-                events,
+            events.Publish(new V20ContentEffectsResolvedEvent(
                 resolved,
-                physicalEffectsApplied: true);
+                physicalEffectsApplied: true));
         }
         return true;
     }
@@ -962,7 +962,7 @@ public sealed class V20ContentResolutionService :
     private readonly IEconomyProjectInputOwnerPort factionContractInputOwners;
     private readonly RunAdministrativeSealDurableEquipmentRuntime
         administrativeSealEquipment;
-    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private readonly ISocialRitualFactPublisher factPublisher;
 
     private sealed class CharacterEffectOwnerSnapshot
     {
@@ -997,6 +997,53 @@ public sealed class V20ContentResolutionService :
             Array.Empty<CharacterEffectOwnerSnapshot>();
     }
 
+    private sealed class EffectCommitReferences
+    {
+        internal static EffectCommitReferences From(
+            V20ContentResolutionRecoverySaveData recovery) => new()
+        {
+            MoneyTransactionId = recovery?.moneyTransactionId ?? string.Empty,
+            ItemConsumptionOperationId = recovery?.itemConsumptionOperationId
+                ?? string.Empty,
+            ItemGrantBatchCommitId = recovery?.itemGrantBatchCommitId
+                ?? string.Empty,
+            DurableEquipmentStackId = recovery?.durableEquipmentStackId
+                ?? string.Empty,
+            DurableEquipmentItemId = recovery?.durableEquipmentItemId
+                ?? string.Empty,
+            DurableEquipmentContext = recovery?.durableEquipmentContext
+                ?? string.Empty
+        };
+
+        internal string MoneyTransactionId { get; set; } = string.Empty;
+        internal string ItemConsumptionOperationId { get; set; } = string.Empty;
+        internal string ItemGrantBatchCommitId { get; set; } = string.Empty;
+        internal string DurableEquipmentStackId { get; private set; } =
+            string.Empty;
+        internal string DurableEquipmentItemId { get; private set; } =
+            string.Empty;
+        internal string DurableEquipmentContext { get; private set; } =
+            string.Empty;
+
+        internal void SetDurableEquipment(
+            DurableFacilityEquipmentUseEvidence equipment)
+        {
+            if (equipment == null)
+                return;
+            DurableEquipmentStackId = equipment.StackId;
+            DurableEquipmentItemId = equipment.ItemId;
+            DurableEquipmentContext = equipment.ToCanonicalString();
+        }
+
+        internal string ChildCommitId(V20ContentEffectKind kind) => kind switch
+        {
+            V20ContentEffectKind.Money => MoneyTransactionId,
+            V20ContentEffectKind.ItemConsume => ItemConsumptionOperationId,
+            V20ContentEffectKind.ItemGrant => ItemGrantBatchCommitId,
+            _ => string.Empty
+        };
+    }
+
     public V20ContentResolutionService(
         V20CampaignRuntime live,
         V20StoryContentCatalog catalog,
@@ -1026,7 +1073,7 @@ public sealed class V20ContentResolutionService :
         IPhysicalFacilityItemBatchTransferGateway factionContractTransfers,
         IEconomyProjectInputOwnerPort factionContractInputOwners,
         RunAdministrativeSealDurableEquipmentRuntime administrativeSealEquipment,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        ISocialRitualFactPublisher factPublisher)
     {
         this.live = live ?? throw new ArgumentNullException(nameof(live));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -1069,8 +1116,8 @@ public sealed class V20ContentResolutionService :
             ?? throw new ArgumentNullException(nameof(factionContractInputOwners));
         this.administrativeSealEquipment = administrativeSealEquipment
             ?? throw new ArgumentNullException(nameof(administrativeSealEquipment));
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.factPublisher = factPublisher
+            ?? throw new ArgumentNullException(nameof(factPublisher));
     }
 
     internal V20ContentResolutionService(
@@ -1080,42 +1127,54 @@ public sealed class V20ContentResolutionService :
         ICharacterWorldQuery characters,
         IStockQuery stock,
         IAtomicItemConsumptionService atomicItems,
-        IMigratedProducerOutcomeTransaction outcomeTransactions,
-        ICharacterNarrativeCommand narrative = null)
+        ISocialRitualFactPublisher factPublisher,
+        ICharacterNarrativeCommand narrative = null,
+        IPhysicalItemExactSourcePublicationService exactSources = null,
+        ICharacterNarrativeCatalog narrativeCatalog = null,
+        IItemReservationService reservations = null,
+        IWorldItemStackRuntime items = null,
+        IWorldDropZoneQuery dropZones = null,
+        IGameMoneyAccount money = null,
+        ICharacterBodyHealthCommand bodyHealth = null,
+        ICareerPersistence careers = null,
+        ICareerService careerQuery = null,
+        IPopulationHealthService populationHealth = null,
+        IDiseaseDefinitionCatalog diseases = null,
+        IGriefTraumaService grief = null)
     {
         this.live = live ?? throw new ArgumentNullException(nameof(live));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-        narrativeCatalog = null;
+        this.narrativeCatalog = narrativeCatalog;
         this.requirements = requirements
             ?? throw new ArgumentNullException(nameof(requirements));
         this.characters = characters
             ?? throw new ArgumentNullException(nameof(characters));
-        careers = null;
-        careerQuery = null;
+        this.careers = careers;
+        this.careerQuery = careerQuery;
         calendar = null;
         milestoneWorld = null;
-        narrativeQuery = null;
+        narrativeQuery = narrative as ICharacterNarrativeQuery;
         proficiencyQuery = null;
         this.narrative = narrative;
-        grief = null;
-        bodyHealth = null;
-        populationHealth = null;
-        diseases = null;
+        this.grief = grief;
+        this.bodyHealth = bodyHealth;
+        this.populationHealth = populationHealth;
+        this.diseases = diseases;
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
-        reservations = null;
+        this.reservations = reservations;
         this.atomicItems = atomicItems
             ?? throw new ArgumentNullException(nameof(atomicItems));
-        items = null;
-        exactSources = null;
-        dropZones = null;
-        money = null;
+        this.items = items;
+        this.exactSources = exactSources;
+        this.dropZones = dropZones;
+        this.money = money;
         facilities = null;
         physicalDispositions = null;
         factionContractTransfers = null;
         factionContractInputOwners = null;
         administrativeSealEquipment = null;
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.factPublisher = factPublisher
+            ?? throw new ArgumentNullException(nameof(factPublisher));
     }
 
     private EffectOwnerSnapshot CaptureEffectOwners(
@@ -1247,6 +1306,49 @@ public sealed class V20ContentResolutionService :
             live.PrepareMilestones(snapshot.Milestones));
     }
 
+    private void RestoreTypedEffectOwners(EffectOwnerSnapshot snapshot)
+    {
+        snapshot = snapshot
+            ?? throw new ArgumentNullException(nameof(snapshot));
+        foreach (CharacterEffectOwnerSnapshot character in snapshot.Characters)
+        {
+            if (character.Stats != null)
+                character.Actor.Stats?.RestoreMoodDeliveryTransactionState(
+                    character.Stats);
+            if (character.Progression != null)
+                character.Actor.Progression?.RestorePersistentState(
+                    character.Progression);
+            if (character.Social != null)
+                character.Actor.SocialMemory?.RestoreSnapshot(character.Social);
+        }
+        if (snapshot.BodyHealth != null
+            && bodyHealth is ICharacterBodyHealthPersistence bodyPersistence)
+        {
+            bodyPersistence.PublishRestore(
+                bodyPersistence.PrepareRestore(snapshot.BodyHealth));
+        }
+        if (snapshot.Psychosocial != null
+            && grief is IPsychosocialPersistence psychosocialPersistence)
+        {
+            psychosocialPersistence.PublishRestore(
+                psychosocialPersistence.PrepareRestore(snapshot.Psychosocial));
+        }
+        if (snapshot.PopulationHealth != null
+            && populationHealth is IPopulationHealthPersistence populationPersistence)
+        {
+            populationPersistence.PublishRestore(
+                populationPersistence.PrepareRestore(snapshot.PopulationHealth));
+        }
+        if (snapshot.Narrative != null
+            && narrative is ICharacterNarrativePersistence narrativePersistence)
+        {
+            narrativePersistence.PublishRestore(
+                narrativePersistence.PrepareRestore(snapshot.Narrative));
+        }
+        if (snapshot.Careers != null && careers != null)
+            careers.PublishRestore(careers.PrepareRestore(snapshot.Careers));
+    }
+
     public bool CanScheduleRetirement(CharacterId characterId)
     {
         if (!IsEligibleLivingElder(characterId)) return false;
@@ -1261,6 +1363,8 @@ public sealed class V20ContentResolutionService :
         V20CampaignRuntime candidate = CreateCampaignCandidate();
         ObservedLifeEventCommitResult observed =
             candidate.RecordObservedFuneralLifeEvent(receipt);
+        if (!observed.StateChanged)
+            throw new InvalidOperationException("Observed funeral was already committed.");
         RequireObservedLifeEventEffectsPreflight(
             receipt.SourceOperationId,
             receipt.AbsoluteDay,
@@ -1271,14 +1375,15 @@ public sealed class V20ContentResolutionService :
 
     internal IReadOnlyList<V20ResolvedEventResult>
         CommitObservedFuneralLifeEvent(
-            ObservedFuneralLifeEventReceipt receipt) =>
+            ObservedFuneralLifeEventReceipt receipt,
+            DomainFactLease sourceLease) =>
         CommitObservedLifeEvents(
             receipt.SourceOperationId,
             receipt.AbsoluteDay,
             candidate => new[]
             {
                 candidate.RecordObservedFuneralLifeEvent(receipt)
-            });
+            }, DomainFactEmission.Create(sourceLease, receipt));
 
     [GameplayInternalOnly(
         "Commits the source-owned apprentice-mistake occurrence.",
@@ -1313,11 +1418,43 @@ public sealed class V20ContentResolutionService :
                 matches[0],
                 absoluteDay,
                 ResolveGeneration(absoluteDay));
-            stateChanged = CommitObservedPendingLifeEvent(
-                receipt.SourceOperationId,
-                receipt.AbsoluteDay,
-                candidate => candidate.RecordObservedProductionLossLifeEvent(
-                    receipt));
+            SocietyEventWorldSaveData societyBefore = live.CaptureSociety();
+            if (!factPublisher.TryReserve(
+                    receipt,
+                    out DomainFactLease prepared,
+                    out string reservationFailure))
+            {
+                failureReason =
+                    "observed-production-loss-outcome-reservation-failed:"
+                    + reservationFailure;
+                return false;
+            }
+
+            bool mutationAttempted = false;
+            try
+            {
+                mutationAttempted = true;
+                stateChanged = CommitObservedPendingLifeEvent(
+                    receipt.SourceOperationId,
+                    receipt.AbsoluteDay,
+                    DomainFactEmission.Create(prepared, receipt),
+                    candidate => candidate.RecordObservedProductionLossLifeEvent(
+                        receipt));
+                if (!stateChanged)
+                {
+                    factPublisher.Cancel(prepared);
+                    return true;
+                }
+
+                mutationAttempted = false;
+            }
+            catch
+            {
+                factPublisher.Cancel(prepared);
+                if (mutationAttempted)
+                    RestoreObservedSociety(societyBefore);
+                throw;
+            }
             return true;
         }
         catch (Exception exception) when (exception is ArgumentException
@@ -1386,11 +1523,10 @@ public sealed class V20ContentResolutionService :
                 award,
                 absoluteDay,
                 ResolveGeneration(absoluteDay));
-            var observedOutcomes = new ObservedLifeEventOutcomeCoordinator(
-                outcomeTransactions);
-            if (!observedOutcomes.TryReserveLastLesson(
+            SocietyEventWorldSaveData societyBefore = live.CaptureSociety();
+            if (!factPublisher.TryReserve(
                     receipt,
-                    out PreparedMigratedProducerOutcome prepared,
+                    out DomainFactLease prepared,
                     out string reservationFailure))
             {
                 failureReason =
@@ -1399,7 +1535,6 @@ public sealed class V20ContentResolutionService :
                 return false;
             }
 
-            SocietyEventWorldSaveData societyBefore = live.CaptureSociety();
             bool mutationAttempted = false;
             try
             {
@@ -1407,33 +1542,20 @@ public sealed class V20ContentResolutionService :
                 stateChanged = CommitObservedPendingLifeEvent(
                     receipt.SourceOperationId,
                     receipt.AbsoluteDay,
+                    DomainFactEmission.Create(prepared, receipt),
                     candidate => candidate.RecordObservedLastLessonLifeEvent(
                         receipt));
                 if (!stateChanged)
                 {
-                    outcomeTransactions.Cancel(prepared);
+                    factPublisher.Cancel(prepared);
                     return true;
                 }
 
-                MigratedProducerOutcomeCommitResult committed =
-                    observedOutcomes.CommitLastLesson(
-                        prepared,
-                        receipt);
-                if (!committed.DurablyCommitted)
-                {
-                    RestoreObservedSociety(societyBefore);
-                    mutationAttempted = false;
-                    stateChanged = false;
-                    failureReason =
-                        "observed-last-lesson-outcome-commit-rejected:"
-                        + committed.DetailCode;
-                    return false;
-                }
                 mutationAttempted = false;
             }
             catch
             {
-                outcomeTransactions.Cancel(prepared);
+                factPublisher.Cancel(prepared);
                 if (mutationAttempted)
                     RestoreObservedSociety(societyBefore);
                 throw;
@@ -1552,11 +1674,9 @@ public sealed class V20ContentResolutionService :
             }
             CharacterNarrativeWorldSaveData narrativeBefore =
                 narrativePersistence.Capture();
-            var observedOutcomes = new ObservedLifeEventOutcomeCoordinator(
-                outcomeTransactions);
-            if (!observedOutcomes.TryReserveQuietPromotion(
+            if (!factPublisher.TryReserve(
                     receipt,
-                    out PreparedMigratedProducerOutcome prepared,
+                    out DomainFactLease prepared,
                     out string reservationFailure))
             {
                 failureReason =
@@ -1572,38 +1692,20 @@ public sealed class V20ContentResolutionService :
                 stateChanged = CommitObservedPendingLifeEvent(
                     receipt.SourceOperationId,
                     receipt.AbsoluteDay,
+                    DomainFactEmission.Create(prepared, receipt),
                     candidate => candidate
                         .RecordObservedQuietPromotionLifeEvent(receipt));
                 if (!stateChanged)
                 {
-                    outcomeTransactions.Cancel(prepared);
+                    factPublisher.Cancel(prepared);
                     return true;
                 }
 
-                MigratedProducerOutcomeCommitResult committed =
-                    observedOutcomes.CommitQuietPromotion(
-                        prepared,
-                        receipt);
-                if (!committed.DurablyCommitted)
-                {
-                    RestoreQuietPromotionOwner(
-                        societyBefore,
-                        owner,
-                        moodBefore,
-                        narrativePersistence,
-                        narrativeBefore);
-                    mutationAttempted = false;
-                    stateChanged = false;
-                    failureReason =
-                        "observed-quiet-promotion-outcome-commit-rejected:"
-                        + committed.DetailCode;
-                    return false;
-                }
                 mutationAttempted = false;
             }
             catch
             {
-                outcomeTransactions.Cancel(prepared);
+                factPublisher.Cancel(prepared);
                 if (mutationAttempted)
                 {
                     RestoreQuietPromotionOwner(
@@ -1632,6 +1734,7 @@ public sealed class V20ContentResolutionService :
     private bool CommitObservedPendingLifeEvent(
         string operationId,
         int absoluteDay,
+        DomainFactEmission sourceFact,
         Func<V20CampaignRuntime, ObservedLifeEventCommitResult> observe)
     {
         bool stateChanged = false;
@@ -1643,49 +1746,9 @@ public sealed class V20ContentResolutionService :
                 ObservedLifeEventCommitResult result = observe(candidate);
                 stateChanged = result.StateChanged;
                 return new[] { result };
-            });
+            }, sourceFact);
         return stateChanged;
     }
-
-    private static MigratedProducerOutcomeSubject CreateLastLessonSubject(
-        in ObservedLastLessonLifeEventReceipt receipt) => new(
-        MigratedProducerOutcomeIds.CharacterKind,
-        receipt.MentorCharacterId.Value,
-        receipt.MentorCharacterId.Value,
-        MigratedProducerOutcomeIds.ActorRole);
-
-    private static string BuildLastLessonSummary(
-        in ObservedLastLessonLifeEventReceipt receipt) =>
-        "마지막 가르침 목격: mentor=" + receipt.MentorCharacterId.Value
-        + "; student=" + receipt.StudentCharacterId.Value
-        + "; academy=" + receipt.AcademyBuildingId.Value
-        + "; proficiency=" + receipt.ProficiencyId.Value
-        + "; equipment=" + receipt.ProtectiveEquipmentInstanceId
-        + "; award=" + receipt.AwardLedgerStackId
-        + "; revision=" + receipt.AwardBeforeContentRevision
-        + "->" + receipt.AwardAfterContentRevision
-        + "; day=" + receipt.AbsoluteDay
-        + "; generation=" + receipt.Generation;
-
-    private static MigratedProducerOutcomeSubject CreateQuietPromotionSubject(
-        in ObservedQuietPromotionLifeEventReceipt receipt) => new(
-        MigratedProducerOutcomeIds.CharacterKind,
-        receipt.CharacterId.Value,
-        receipt.CharacterId.Value,
-        MigratedProducerOutcomeIds.ActorRole);
-
-    private static string BuildQuietPromotionSummary(
-        in ObservedQuietPromotionLifeEventReceipt receipt) =>
-        "조용한 승진 목격: character=" + receipt.CharacterId.Value
-        + "; proficiency=" + receipt.ProficiencyId.Value
-        + "; rank=" + receipt.BeforeRank + "->" + receipt.AfterRank
-        + "; current=" + receipt.BeforeCurrentMilliExperience
-        + "->" + receipt.AfterCurrentMilliExperience
-        + "; lifetime=" + receipt.BeforeLifetimeMilliExperience
-        + "->" + receipt.AfterLifetimeMilliExperience
-        + "; hour=" + receipt.AbsoluteHour
-        + "; day=" + receipt.AbsoluteDay
-        + "; generation=" + receipt.Generation;
 
     private void RestoreObservedSociety(SocietyEventWorldSaveData snapshot) =>
         live.PublishSociety(live.PrepareSociety(
@@ -1724,7 +1787,8 @@ public sealed class V20ContentResolutionService :
         string operationId,
         int absoluteDay,
         Func<V20CampaignRuntime, IReadOnlyList<ObservedLifeEventCommitResult>>
-            observe)
+            observe,
+        DomainFactEmission sourceFact = null)
     {
         V20CampaignRuntime candidate = CreateCampaignCandidate();
         IReadOnlyList<ObservedLifeEventCommitResult> observed =
@@ -1759,30 +1823,105 @@ public sealed class V20ContentResolutionService :
         RunMilestoneAggregateState milestones =
             live.PrepareMilestones(candidate.CaptureMilestones());
         EffectOwnerSnapshot ownersBefore = CaptureEffectOwners(resolutions);
+        string stateBeforeFingerprint =
+            CaptureEffectOwnerFingerprint(ownersBefore);
+        string stateAfterFingerprint = string.Empty;
+        // Observed parent and child facts are one completion boundary. Pure typed
+        // effects have captured rollback-capable owners, so a definite rejection
+        // must not leave them in forward recovery without their parent receipt.
+        // Monetary/physical commits still retain the existing forward-only boundary.
+        bool requiresForwardRecovery = RequiresForwardRecovery(
+            plan,
+            resolutions) && (sourceFact == null || plan.MoneyDelta != 0
+                || plan.ItemCosts.Count > 0 || plan.Grants.Count > 0);
+        V20ContentResolutionRecoveryPhase effectPhase =
+            V20ContentResolutionRecoveryPhase.Prepared;
+        EffectCommitReferences childCommits = new();
+        bool recoveryPublished = false;
         try
         {
             if (!TryCommitEffects(
                     request,
                     resolutions,
                     plan,
-                    out DomainFailure effectFailure))
+                    out DomainFailure effectFailure,
+                    out effectPhase,
+                    out childCommits))
             {
                 throw new InvalidOperationException(
                     $"Observed life-event effect commit failed: {effectFailure.Code}.");
+            }
+            stateAfterFingerprint = CaptureEffectOwnerFingerprint(
+                CaptureEffectOwners(resolutions));
+            if (requiresForwardRecovery)
+            {
+                UpsertRecovery(
+                    milestones,
+                    CreateRecovery(
+                        request,
+                        resolutions,
+                        plan.Dropoff,
+                        V20ContentResolutionRecoveryPhase.TypedEffectsApplied,
+                        childCommits,
+                        stateBeforeFingerprint,
+                        stateAfterFingerprint));
             }
             live.PublishContentResolution(
                 seasonal,
                 society,
                 factions,
                 milestones);
-            CommitResolvedEventOutcomes(
+            recoveryPublished = requiresForwardRecovery;
+            PublishResolvedFacts(
                 operationId,
                 absoluteDay,
-                resolutions);
+                resolutions,
+                childCommits,
+                stateBeforeFingerprint,
+                stateAfterFingerprint,
+                sourceFact);
+            if (requiresForwardRecovery)
+            {
+                AdvanceContentResolutionRecovery(
+                    operationId,
+                    V20ContentResolutionRecoveryPhase.OutcomesCommitted);
+                RemoveContentResolutionRecovery(operationId);
+            }
         }
         catch
         {
-            RestoreEffectOwners(ownersBefore, operationId);
+            if (requiresForwardRecovery
+                && effectPhase
+                    >= V20ContentResolutionRecoveryPhase.ItemCostsCommitted)
+            {
+                if (effectPhase
+                    == V20ContentResolutionRecoveryPhase.ItemGrantsCommitted)
+                {
+                    RestoreTypedEffectOwners(ownersBefore);
+                }
+                if (!recoveryPublished)
+                {
+                    UpsertRecovery(
+                        milestones,
+                        CreateRecovery(
+                            request,
+                            resolutions,
+                            plan.Dropoff,
+                            effectPhase,
+                            childCommits,
+                            stateBeforeFingerprint,
+                            string.Empty));
+                    live.PublishContentResolution(
+                        seasonal,
+                        society,
+                        factions,
+                        milestones);
+                }
+            }
+            else
+            {
+                RestoreEffectOwners(ownersBefore, operationId);
+            }
             plan.Release(reservations);
             throw;
         }
@@ -1809,17 +1948,462 @@ public sealed class V20ContentResolutionService :
         plan.Release(reservations);
     }
 
+    private static V20ContentResolutionRecoverySaveData CreateRecovery(
+        ContentResolutionRequest request,
+        IReadOnlyList<V20ResolvedEventResult> resolutions,
+        Vector2Int grantDropoff,
+        V20ContentResolutionRecoveryPhase phase,
+        EffectCommitReferences childCommits,
+        string stateBeforeFingerprint,
+        string stateAfterFingerprint) => new()
+    {
+        actionId = request.ActionId.Trim(),
+        absoluteDay = Math.Max(1, request.AbsoluteDay),
+        requestKind = request.Kind,
+        phase = phase,
+        grantDropoffX = grantDropoff.x,
+        grantDropoffY = grantDropoff.y,
+        childCommitEvidenceVersion = 1,
+        moneyTransactionId = childCommits?.MoneyTransactionId ?? string.Empty,
+        itemConsumptionOperationId = childCommits
+            ?.ItemConsumptionOperationId ?? string.Empty,
+        itemGrantBatchCommitId = childCommits?.ItemGrantBatchCommitId
+            ?? string.Empty,
+        durableEquipmentEvidenceVersion = string.IsNullOrWhiteSpace(
+            childCommits?.DurableEquipmentContext)
+                ? 0
+                : 1,
+        durableEquipmentStackId = childCommits?.DurableEquipmentStackId
+            ?? string.Empty,
+        durableEquipmentItemId = childCommits?.DurableEquipmentItemId
+            ?? string.Empty,
+        durableEquipmentContext = childCommits?.DurableEquipmentContext
+            ?? string.Empty,
+        outcomeEvidenceVersion = 1,
+        stateBeforeFingerprint = stateBeforeFingerprint ?? string.Empty,
+        stateAfterFingerprint = stateAfterFingerprint ?? string.Empty,
+        resolutions = (resolutions ?? Array.Empty<V20ResolvedEventResult>())
+            .Select(ToRecovery)
+            .ToList()
+    };
+
+    private static V20ResolvedEventRecoverySaveData ToRecovery(
+        V20ResolvedEventResult value) => new()
+    {
+        definitionId = value.DefinitionId,
+        resolutionId = value.ResolutionId,
+        effects = value.Effects.Select(effect => new V20ContentEffect
+        {
+            kind = effect.kind,
+            targetId = effect.targetId,
+            amount = effect.amount,
+            durationDays = effect.durationDays
+        }).ToList(),
+        participantCharacterIds = value.ParticipantCharacterIds.ToList(),
+        contextFactionId = value.ContextFactionId,
+        instanceId = value.InstanceId,
+        displayName = value.DisplayName,
+        riskTier = value.RiskTier,
+        riskReason = value.RiskReason,
+        terminalActionLabel = value.TerminalActionLabel,
+        terminalOutcomeNarrative = value.TerminalOutcomeNarrative,
+        terminalEffectKinds = value.TerminalEffectKinds.ToList(),
+        observedCause = value.ObservedCause,
+        occurrenceInstanceId = value.OccurrenceInstanceId,
+        applications = value.Applications
+            .Select(application => application.Clone())
+            .ToList()
+    };
+
+    private static V20ResolvedEventResult FromRecovery(
+        V20ResolvedEventRecoverySaveData value) => new(
+        value.definitionId,
+        value.resolutionId,
+        (value.effects ?? new List<V20ContentEffect>()).Select(effect =>
+            new V20ContentEffect
+            {
+                kind = effect.kind,
+                targetId = effect.targetId,
+                amount = effect.amount,
+                durationDays = effect.durationDays
+            }).ToArray(),
+        value.participantCharacterIds?.ToArray() ?? Array.Empty<string>(),
+        value.contextFactionId,
+        value.instanceId,
+        value.displayName,
+        value.riskTier,
+        value.riskReason,
+        value.terminalActionLabel,
+        value.terminalOutcomeNarrative,
+        value.terminalEffectKinds?.ToArray()
+            ?? Array.Empty<V20ContentEffectKind>(),
+        value.observedCause,
+        value.occurrenceInstanceId,
+        value.applications?.Select(application => application?.Clone())
+            .Where(application => application != null)
+            .ToArray()
+            ?? Array.Empty<V20EffectApplicationEvidence>());
+
+    private static void UpsertRecovery(
+        RunMilestoneAggregateState milestones,
+        V20ContentResolutionRecoverySaveData recovery)
+    {
+        milestones.Data.pendingContentResolutions.RemoveAll(value =>
+            value != null && string.Equals(
+                value.actionId,
+                recovery.actionId,
+                StringComparison.Ordinal));
+        milestones.Data.pendingContentResolutions.Add(recovery);
+        milestones.Data.pendingContentResolutions = milestones.Data
+            .pendingContentResolutions
+            .OrderBy(value => value.actionId, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private bool TryRecoverPendingContentResolutions(
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        RunMilestoneAggregateState milestones = live.PrepareMilestones(
+            live.CaptureMilestones());
+        V20ContentResolutionRecoverySaveData[] pending = milestones.Data
+            .pendingContentResolutions
+            .OrderBy(value => value.actionId, StringComparer.Ordinal)
+            .ToArray();
+        foreach (V20ContentResolutionRecoverySaveData row in pending)
+        {
+            V20ContentResolutionRecoverySaveData current = row;
+            string actionId = current.actionId;
+            V20ResolvedEventResult[] resolved = current.resolutions
+                .Select(FromRecovery)
+                .ToArray();
+            EffectCommitReferences childCommits = EffectCommitReferences.From(
+                current);
+            if (!TryValidateRecoveredChildCommits(
+                    current,
+                    resolved,
+                    out failure))
+            {
+                return false;
+            }
+            if (current.phase == V20ContentResolutionRecoveryPhase.ItemCostsCommitted)
+            {
+                EffectCommitPlan plan = new(current.actionId)
+                {
+                    Dropoff = new Vector2Int(
+                        current.grantDropoffX,
+                        current.grantDropoffY)
+                };
+                plan.Grants.AddRange(resolved
+                    .SelectMany(value => value.Effects)
+                    .Where(value => value.kind
+                        == V20ContentEffectKind.ItemGrant));
+                if (plan.Grants.Count > 0)
+                {
+                    if (!exactSources.TryPrepare(
+                            plan.CreateGrantPublicationPlan(),
+                            out PhysicalItemExactSourcePublicationTransaction
+                                transaction,
+                            out _)
+                        || !string.Equals(
+                            transaction.BatchCommitId,
+                            childCommits.ItemGrantBatchCommitId,
+                            StringComparison.Ordinal)
+                        || !exactSources.TryCommitReleased(
+                            transaction,
+                            plan.Dropoff,
+                            "content-resolution-grant",
+                            out PhysicalItemExactSourcePublicationReceipt receipt,
+                            out _)
+                        || !string.Equals(
+                            receipt.BatchCommitId,
+                            childCommits.ItemGrantBatchCommitId,
+                            StringComparison.Ordinal))
+                    {
+                        failure = new DomainFailure(
+                            FailureCode.ProductionOutputUnavailable);
+                        return false;
+                    }
+                }
+                current.phase =
+                    V20ContentResolutionRecoveryPhase.ItemGrantsCommitted;
+                live.PublishMilestones(milestones);
+                milestones = live.PrepareMilestones(live.CaptureMilestones());
+                current = milestones.Data.pendingContentResolutions.Single(value =>
+                    string.Equals(
+                        value.actionId,
+                        actionId,
+                        StringComparison.Ordinal));
+            }
+
+            if (current.phase == V20ContentResolutionRecoveryPhase.ItemGrantsCommitted)
+            {
+                EffectOwnerSnapshot before = CaptureEffectOwners(resolved);
+                string recoveryBeforeFingerprint =
+                    current.outcomeEvidenceVersion == 1
+                    && !string.IsNullOrWhiteSpace(
+                        current.stateBeforeFingerprint)
+                        ? current.stateBeforeFingerprint
+                        : CaptureEffectOwnerFingerprint(before);
+                CharacterCareerAggregate latestCareer = null;
+                try
+                {
+                    ContentResolutionRequest recoveryRequest = new()
+                    {
+                        ActionId = current.actionId,
+                        AbsoluteDay = current.absoluteDay,
+                        Kind = current.requestKind
+                    };
+                    if (!TryPrepareRetirementSchedule(
+                            recoveryRequest,
+                            resolved,
+                            out RetirementSchedulePlan retirementPlan,
+                            out DomainFailure retirementFailure))
+                    {
+                        failure = retirementFailure;
+                        return false;
+                    }
+                    ApplyTypedDomainEffects(current.absoluteDay, resolved);
+                    if (retirementPlan.IsRequired)
+                    {
+                        latestCareer = careers.PrepareRestore(careers.Capture());
+                        string retirementFailureReason =
+                            "character is no longer an eligible living elder";
+                        if (!IsEligibleLivingElder(retirementPlan.CharacterId)
+                            || !latestCareer.TryScheduleRetirement(
+                                retirementPlan.CharacterId,
+                                retirementPlan.EventId,
+                                retirementPlan.ChoiceId,
+                                retirementPlan.DecisionAbsoluteDay,
+                                retirementPlan.DueAbsoluteDay,
+                                out retirementFailureReason))
+                        {
+                            throw new InvalidOperationException(
+                                "Retirement recovery could not schedule the frozen decision: "
+                                + retirementFailureReason);
+                        }
+                    }
+                }
+                catch
+                {
+                    RestoreTypedEffectOwners(before);
+                    failure = new DomainFailure(
+                        FailureCode.ExternalInfluenceUnavailable,
+                        "content-typed-effect-recovery-failed");
+                    return false;
+                }
+                current.phase =
+                    V20ContentResolutionRecoveryPhase.TypedEffectsApplied;
+                current.outcomeEvidenceVersion = 1;
+                current.stateBeforeFingerprint = recoveryBeforeFingerprint;
+                EffectOwnerSnapshot after = CaptureEffectOwners(resolved);
+                after.Milestones = milestones.Data;
+                if (latestCareer != null)
+                    after.Careers = latestCareer.CaptureWorld();
+                resolved = AttachApplicationEvidence(
+                    resolved,
+                    before,
+                    after,
+                    childCommits).ToArray();
+                current.resolutions = resolved.Select(ToRecovery).ToList();
+                current.stateAfterFingerprint =
+                    CaptureEffectOwnerFingerprint(after);
+                if (latestCareer != null)
+                {
+                    live.PublishContentResolution(
+                        live.PrepareSeasonal(live.CaptureSeasonal()),
+                        live.PrepareSociety(live.CaptureSociety()),
+                        live.PrepareFactions(live.CaptureFactions()),
+                        milestones,
+                        latestCareer);
+                }
+                else
+                {
+                    live.PublishMilestones(milestones);
+                }
+                milestones = live.PrepareMilestones(live.CaptureMilestones());
+                current = milestones.Data.pendingContentResolutions.Single(value =>
+                    string.Equals(
+                        value.actionId,
+                        actionId,
+                        StringComparison.Ordinal));
+            }
+
+            if (current.phase == V20ContentResolutionRecoveryPhase.TypedEffectsApplied)
+            {
+                try
+                {
+                    PublishResolvedFacts(
+                        current.actionId,
+                        current.absoluteDay,
+                        resolved,
+                        childCommits,
+                        string.IsNullOrWhiteSpace(
+                            current.stateBeforeFingerprint)
+                            ? "legacy-unavailable"
+                            : current.stateBeforeFingerprint,
+                        string.IsNullOrWhiteSpace(
+                            current.stateAfterFingerprint)
+                            ? CaptureEffectOwnerFingerprint(
+                                CaptureEffectOwners(resolved))
+                            : current.stateAfterFingerprint);
+                }
+                catch
+                {
+                    failure = new DomainFailure(
+                        FailureCode.ExternalInfluenceUnavailable,
+                        "content-outcome-recovery-failed");
+                    return false;
+                }
+                current.phase =
+                    V20ContentResolutionRecoveryPhase.OutcomesCommitted;
+                live.PublishMilestones(milestones);
+                milestones = live.PrepareMilestones(live.CaptureMilestones());
+                current = milestones.Data.pendingContentResolutions.Single(value =>
+                    string.Equals(
+                        value.actionId,
+                        actionId,
+                        StringComparison.Ordinal));
+            }
+
+            if (current.phase == V20ContentResolutionRecoveryPhase.OutcomesCommitted)
+            {
+                milestones.Data.pendingContentResolutions.RemoveAll(value =>
+                    value != null && string.Equals(
+                        value.actionId,
+                        current.actionId,
+                        StringComparison.Ordinal));
+                live.PublishMilestones(milestones);
+                milestones = live.PrepareMilestones(live.CaptureMilestones());
+            }
+        }
+        return true;
+    }
+
+    private bool TryValidateRecoveredChildCommits(
+        V20ContentResolutionRecoverySaveData recovery,
+        IReadOnlyList<V20ResolvedEventResult> resolutions,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        int moneyDelta = (resolutions ?? Array.Empty<V20ResolvedEventResult>())
+            .SelectMany(value => value.Effects)
+            .Where(value => value != null
+                && value.IsValid
+                && value.kind == V20ContentEffectKind.Money)
+            .Sum(value => Mathf.RoundToInt(value.amount));
+        if (moneyDelta == 0)
+            return true;
+
+        EconomyTransactionKind kind = moneyDelta > 0
+            ? EconomyTransactionKind.ContractIncome
+            : EconomyTransactionKind.LegacyExpense;
+        string sourceId = "content:" + recovery.actionId;
+        if (money is not IGameMoneyTransactionQuery query
+            || !query.TryGetSuccessfulTransaction(
+                kind,
+                sourceId,
+                out EconomyTransactionRecord record)
+            || record == null
+            || record.amount != moneyDelta
+            || !string.Equals(
+                record.transactionId,
+                recovery.moneyTransactionId,
+                StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(
+                FailureCode.ExternalInfluenceUnavailable,
+                "content-money-recovery-evidence-missing");
+            return false;
+        }
+        return true;
+    }
+
+    private void AdvanceContentResolutionRecovery(
+        string actionId,
+        V20ContentResolutionRecoveryPhase phase)
+    {
+        RunMilestoneAggregateState milestones = live.PrepareMilestones(
+            live.CaptureMilestones());
+        V20ContentResolutionRecoverySaveData recovery = milestones.Data
+            .pendingContentResolutions.Single(value => value != null
+                && string.Equals(
+                    value.actionId,
+                    actionId?.Trim(),
+                    StringComparison.Ordinal));
+        recovery.phase = phase;
+        live.PublishMilestones(milestones);
+    }
+
+    private void RemoveContentResolutionRecovery(string actionId)
+    {
+        RunMilestoneAggregateState milestones = live.PrepareMilestones(
+            live.CaptureMilestones());
+        int removed = milestones.Data.pendingContentResolutions.RemoveAll(value =>
+            value != null && string.Equals(
+                value.actionId,
+                actionId?.Trim(),
+                StringComparison.Ordinal));
+        if (removed != 1)
+        {
+            throw new InvalidOperationException(
+                "Completed content resolution did not own exactly one recovery row.");
+        }
+        live.PublishMilestones(milestones);
+    }
+
     public bool TryExecute(
         ContentResolutionRequest request,
         out ContentResolutionResult result,
         out DomainFailure failure)
     {
+        factPublisher.AssertIdle();
         result = null;
         failure = DomainFailure.None;
+        string requestedActionId = request?.ActionId?.Trim() ?? string.Empty;
+        V20ContentResolutionRecoverySaveData requestedRecovery =
+            requestedActionId.Length == 0
+                ? null
+                : live.CaptureMilestones().pendingContentResolutions
+                    .SingleOrDefault(value => value != null && string.Equals(
+                        value.actionId,
+                        requestedActionId,
+                        StringComparison.Ordinal));
+        if (!TryRecoverPendingContentResolutions(out failure))
+        {
+            return false;
+        }
         if (request == null || string.IsNullOrWhiteSpace(request.ActionId))
         {
             failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
             return false;
+        }
+        if (requestedRecovery != null)
+        {
+            V20ResolvedEventResult[] recoveredResolutions = requestedRecovery
+                .resolutions
+                .Select(FromRecovery)
+                .ToArray();
+            ContentResolutionRequest recoveredRequest = new()
+            {
+                ActionId = requestedRecovery.actionId,
+                AbsoluteDay = requestedRecovery.absoluteDay,
+                Kind = requestedRecovery.requestKind,
+                InstanceId = recoveredResolutions
+                    .Select(value => value.InstanceId)
+                    .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))
+            };
+            result = new ContentResolutionResult
+            {
+                ActionId = requestedRecovery.actionId,
+                Resolutions = recoveredResolutions,
+                Disposition = IsPendingGuestRequestChoice(
+                        CreateCampaignCandidate(),
+                        recoveredRequest)
+                    ? ContentResolutionDisposition.AcceptedPending
+                    : ContentResolutionDisposition.Terminal
+            };
+            return true;
         }
         if (request.Kind == ContentResolutionRequestKind.FactionContractOutcome
             && request.ContractSucceeded
@@ -1953,9 +2537,19 @@ public sealed class V20ContentResolutionService :
             plan.Release(reservations);
             throw;
         }
+        string stateBeforeFingerprint =
+            CaptureEffectOwnerFingerprint(ownersBefore);
+        string stateAfterFingerprint = string.Empty;
 
+        bool requiresForwardRecovery = RequiresForwardRecovery(plan, resolved);
         DomainFailure effectFailure = DomainFailure.None;
+        V20ContentResolutionRecoveryPhase effectPhase =
+            V20ContentResolutionRecoveryPhase.Prepared;
+        EffectCommitReferences childCommits = new();
         Exception transactionFailure = null;
+        bool durableRecoveryPending = false;
+        bool recoveryPublished = false;
+        DurableFacilityEquipmentUseEvidence administrativeEquipment = null;
         bool CommitResolution()
         {
             try
@@ -1964,15 +2558,18 @@ public sealed class V20ContentResolutionService :
                         request,
                         resolved,
                         plan,
-                        out effectFailure))
+                        out effectFailure,
+                        out effectPhase,
+                        out childCommits))
                 {
                     return false;
                 }
+                childCommits.SetDurableEquipment(administrativeEquipment);
 
+                CharacterCareerAggregate latestCareer = null;
                 if (retirementPlan.IsRequired)
                 {
-                    CharacterCareerAggregate latestCareer =
-                        careers.PrepareRestore(careers.Capture());
+                    latestCareer = careers.PrepareRestore(careers.Capture());
                     string retirementFailure =
                         "character is no longer an eligible living elder";
                     if (!IsEligibleLivingElder(retirementPlan.CharacterId)
@@ -1989,6 +2586,38 @@ public sealed class V20ContentResolutionService :
                             + "latest career state was preserved. "
                             + retirementFailure);
                     }
+                }
+
+                EffectOwnerSnapshot ownersAfter = CaptureEffectOwners(resolved);
+                ownersAfter.Seasonal = seasonal.Data;
+                ownersAfter.Society = society.Data;
+                ownersAfter.Factions = factions.Data;
+                ownersAfter.Milestones = milestones.Data;
+                if (latestCareer != null)
+                    ownersAfter.Careers = latestCareer.CaptureWorld();
+                resolved = AttachApplicationEvidence(
+                    resolved,
+                    ownersBefore,
+                    ownersAfter,
+                    childCommits);
+                stateAfterFingerprint = CaptureEffectOwnerFingerprint(
+                    ownersAfter);
+
+                if (requiresForwardRecovery)
+                {
+                    UpsertRecovery(
+                        milestones,
+                        CreateRecovery(
+                            request,
+                            resolved,
+                            plan.Dropoff,
+                            V20ContentResolutionRecoveryPhase.TypedEffectsApplied,
+                            childCommits,
+                            stateBeforeFingerprint,
+                            stateAfterFingerprint));
+                }
+                if (latestCareer != null)
+                {
                     live.PublishContentResolution(
                         seasonal,
                         society,
@@ -2004,15 +2633,58 @@ public sealed class V20ContentResolutionService :
                         factions,
                         milestones);
                 }
-                CommitResolvedEventOutcomes(
+                recoveryPublished = requiresForwardRecovery;
+                PublishResolvedFacts(
                     request.ActionId,
                     request.AbsoluteDay,
-                    resolved);
+                    resolved,
+                    childCommits,
+                    stateBeforeFingerprint,
+                    stateAfterFingerprint);
+                if (requiresForwardRecovery)
+                {
+                    AdvanceContentResolutionRecovery(
+                        request.ActionId,
+                        V20ContentResolutionRecoveryPhase.OutcomesCommitted);
+                    RemoveContentResolutionRecovery(request.ActionId);
+                }
                 return true;
             }
             catch (Exception exception)
             {
                 transactionFailure = exception;
+                if (requiresForwardRecovery && effectPhase
+                    >= V20ContentResolutionRecoveryPhase.ItemCostsCommitted)
+                {
+                    if (!recoveryPublished)
+                    {
+                        if (effectPhase
+                            >= V20ContentResolutionRecoveryPhase.ItemGrantsCommitted)
+                        {
+                            RestoreTypedEffectOwners(ownersBefore);
+                            effectPhase = V20ContentResolutionRecoveryPhase
+                                .ItemGrantsCommitted;
+                        }
+                        UpsertRecovery(
+                            milestones,
+                            CreateRecovery(
+                                request,
+                                resolved,
+                                plan.Dropoff,
+                                effectPhase,
+                                childCommits,
+                                stateBeforeFingerprint,
+                                string.Empty));
+                        live.PublishContentResolution(
+                            seasonal,
+                            society,
+                            factions,
+                            milestones);
+                        recoveryPublished = true;
+                    }
+                    durableRecoveryPending = true;
+                    return true;
+                }
                 return false;
             }
         }
@@ -2024,7 +2696,13 @@ public sealed class V20ContentResolutionService :
                 ? administrativeSealEquipment.TryCommitResolution(
                     administrationOffice.RequirePersistentInstanceId(),
                     administrationOffice.centerPos,
-                    CommitResolution,
+                    context =>
+                    {
+                        administrativeEquipment =
+                            new DurableFacilityEquipmentUseEvidence(context);
+                        return CommitResolution();
+                    },
+                    out _,
                     out _)
                 : CommitResolution();
         }
@@ -2032,6 +2710,21 @@ public sealed class V20ContentResolutionService :
         {
             transactionFailure ??= exception;
             transactionCommitted = false;
+        }
+
+        if (durableRecoveryPending)
+        {
+            plan.Release(reservations);
+            if (transactionFailure != null)
+            {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo
+                    .Capture(transactionFailure)
+                    .Throw();
+            }
+            failure = new DomainFailure(
+                FailureCode.ExternalInfluenceUnavailable,
+                "content-resolution-recovery-pending");
+            return false;
         }
 
         if (!transactionCommitted)
@@ -2071,95 +2764,86 @@ public sealed class V20ContentResolutionService :
         return true;
     }
 
-    private void CommitResolvedEventOutcomes(
+    private void PublishResolvedFacts(
         string operationId,
         int absoluteDay,
-        IReadOnlyList<V20ResolvedEventResult> resolutions)
+        IReadOnlyList<V20ResolvedEventResult> resolutions,
+        EffectCommitReferences childCommits,
+        string stateBeforeFingerprint,
+        string stateAfterFingerprint,
+        DomainFactEmission sourceFact = null)
     {
-        V20ResolvedEventResult[] concrete = (resolutions
-                ?? Array.Empty<V20ResolvedEventResult>())
-            .ToArray();
-        if (concrete.Length == 0)
-            return;
-
-        var prepared = new PreparedMigratedProducerOutcome[concrete.Length];
-        var subjects = new MigratedProducerOutcomeSubject[concrete.Length];
-        var summaries = new string[concrete.Length];
-        int reservedCount = 0;
+        var concrete = (resolutions ?? Array.Empty<V20ResolvedEventResult>()).ToArray();
+        var leases = new List<DomainFactLease>();
+        var emissions = new List<DomainFactEmission>();
         try
         {
             for (int index = 0; index < concrete.Length; index++)
             {
-                V20ResolvedEventResult resolution = concrete[index];
-                string childIdentity = (operationId?.Trim() ?? string.Empty)
-                    + ":resolution:" + index.ToString("D4");
-                if (!outcomeTransactions.TryReserveSingleSubject(
-                        MigratedProducerOutcomeKind.V20ResolvedEventResult,
-                        childIdentity,
-                        Math.Max(1, absoluteDay),
-                        GameplayOutcomeStatus.Succeeded,
-                        out prepared[index],
-                        out string reservationFailure))
+                var fact = new ContentResolutionFact(new ContentResolutionFactData
                 {
-                    throw new InvalidOperationException(
-                        "V20 resolved-event outcome reservation failed: "
-                        + reservationFailure);
-                }
-                reservedCount++;
-
-                string characterId = resolution.ParticipantCharacterIds
-                    .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
-                if (!string.IsNullOrWhiteSpace(characterId))
-                {
-                    subjects[index] = new MigratedProducerOutcomeSubject(
-                        MigratedProducerOutcomeIds.CharacterKind,
-                        characterId,
-                        characterId,
-                        MigratedProducerOutcomeIds.ActorRole);
-                }
-                else if (!string.IsNullOrWhiteSpace(resolution.ContextFactionId))
-                {
-                    subjects[index] = new MigratedProducerOutcomeSubject(
-                        MigratedProducerOutcomeIds.FactionKind,
-                        resolution.ContextFactionId,
-                        resolution.ContextFactionId,
-                        MigratedProducerOutcomeIds.FactionRole);
-                }
-                else
-                {
-                    subjects[index] = new MigratedProducerOutcomeSubject(
-                        MigratedProducerOutcomeIds.OperationKind,
-                        childIdentity,
-                        string.IsNullOrWhiteSpace(resolution.DisplayName)
-                            ? resolution.DefinitionId
-                            : resolution.DisplayName,
-                        MigratedProducerOutcomeIds.OperationRole);
-                }
-
-                summaries[index] =
-                    $"definition={resolution.DefinitionId}; resolution={resolution.ResolutionId}; instance={resolution.InstanceId}; occurrence={resolution.OccurrenceInstanceId}; faction={resolution.ContextFactionId}; participants={string.Join(",", resolution.ParticipantCharacterIds)}; effects={string.Join(",", resolution.Effects.Where(value => value != null).Select(value => value.kind.ToString()))}; narrative={resolution.TerminalOutcomeNarrative}";
+                    operationId = operationId.Trim(), absoluteDay = Math.Max(1, absoluteDay),
+                    resolutionIndex = index, resolution = ToRecovery(concrete[index]),
+                    moneyTransactionId = childCommits?.MoneyTransactionId ?? string.Empty,
+                    itemConsumptionOperationId = childCommits?.ItemConsumptionOperationId ?? string.Empty,
+                    itemGrantBatchCommitId = childCommits?.ItemGrantBatchCommitId ?? string.Empty,
+                    durableEquipmentStackId = childCommits?.DurableEquipmentStackId ?? string.Empty,
+                    durableEquipmentItemId = childCommits?.DurableEquipmentItemId ?? string.Empty,
+                    durableEquipmentContext = childCommits?.DurableEquipmentContext ?? string.Empty,
+                    stateBeforeFingerprint = stateBeforeFingerprint ?? string.Empty,
+                    stateAfterFingerprint = stateAfterFingerprint ?? string.Empty
+                });
+                if (!factPublisher.TryReserve(fact, out var lease, out string failure))
+                    throw new ContentResolutionFactRejectedException("content-resolution-fact-reservation:" + failure);
+                leases.Add(lease);
+                emissions.Add(DomainFactEmission.Create(lease, fact));
             }
-
-            var results = new MigratedProducerOutcomeCommitResult[
-                concrete.Length];
-            if (!outcomeTransactions.CommitSingleSubjectBatch(
-                    prepared,
-                    subjects,
-                    summaries,
-                    results,
-                    out string commitFailure))
-            {
-                throw new InvalidOperationException(
-                    "V20 resolved-event outcome batch commit failed: "
-                    + commitFailure);
-            }
+            if (sourceFact != null) emissions.Add(sourceFact);
+            if (emissions.Count == 0) return;
+            var results = new DomainFactDelivery[emissions.Count];
+            if (!factPublisher.PublishBatch(emissions, results, out string detail)
+                || results.Any(value => !value.MayBeCommitted))
+                throw new ContentResolutionFactRejectedException("content-resolution-fact-publication:" + detail);
+            // Uncertain acknowledgement keeps the effects. Recovery replays only frozen facts.
         }
         catch
         {
-            for (int index = 0; index < reservedCount; index++)
-                outcomeTransactions.Cancel(prepared[index]);
+            foreach (var lease in leases) factPublisher.Cancel(lease);
+            if (sourceFact != null) factPublisher.Cancel(sourceFact.Lease);
             throw;
         }
+    }
+
+    private static string CaptureEffectOwnerFingerprint(
+        EffectOwnerSnapshot snapshot)
+    {
+        snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
+        var parts = new List<string>
+        {
+            JsonUtility.ToJson(snapshot.Seasonal),
+            JsonUtility.ToJson(snapshot.Society),
+            JsonUtility.ToJson(snapshot.Factions),
+            JsonUtility.ToJson(snapshot.Milestones),
+            JsonUtility.ToJson(snapshot.Items),
+            snapshot.MoneyBalance.ToString(
+                System.Globalization.CultureInfo.InvariantCulture),
+            JsonUtility.ToJson(snapshot.Careers),
+            JsonUtility.ToJson(snapshot.BodyHealth),
+            JsonUtility.ToJson(snapshot.Psychosocial),
+            JsonUtility.ToJson(snapshot.PopulationHealth),
+            JsonUtility.ToJson(snapshot.Narrative)
+        };
+        foreach (CharacterEffectOwnerSnapshot character in snapshot.Characters
+                     .OrderBy(value => value.Actor.Identity?.PersistentId,
+                         StringComparer.Ordinal))
+        {
+            parts.Add(character.Actor.Identity?.PersistentId ?? string.Empty);
+            parts.Add(JsonUtility.ToJson(character.Stats));
+            parts.Add(JsonUtility.ToJson(character.Progression));
+            parts.Add(JsonUtility.ToJson(character.Social));
+        }
+        return NarrativeInferenceHash.ComputeSha256Utf8(
+            string.Join("\n", parts));
     }
 
     private static bool RequiresAdministrativeSeal(
@@ -2368,6 +3052,7 @@ public sealed class V20ContentResolutionService :
 
     public void ValidateBeforeCapture()
     {
+        factPublisher.AssertIdle();
         FactionCampaignStateSaveData[] states = live.CaptureFactions().factions
             .Where(value => value != null)
             .ToArray();
@@ -3715,6 +4400,15 @@ public sealed class V20ContentResolutionService :
         plan.MoneyDelta = effects
             .Where(value => value.kind == V20ContentEffectKind.Money)
             .Sum(value => Mathf.RoundToInt(value.amount));
+        if (plan.MoneyDelta != 0
+            && (money is not IIdempotentGameMoneyAccount
+                || money is not IGameMoneyTransactionQuery))
+        {
+            failure = new DomainFailure(
+                FailureCode.ServiceFeatureMissing,
+                "content-money-transaction-authority");
+            return false;
+        }
         if (plan.MoneyDelta < 0 && !money.CanSpend(-plan.MoneyDelta))
         {
             failure = new DomainFailure(
@@ -3806,9 +4500,21 @@ public sealed class V20ContentResolutionService :
         ContentResolutionRequest request,
         IReadOnlyList<V20ResolvedEventResult> resolutions,
         EffectCommitPlan plan,
-        out DomainFailure failure)
+        out DomainFailure failure,
+        out V20ContentResolutionRecoveryPhase recoveryPhase,
+        out EffectCommitReferences childCommits)
     {
         failure = DomainFailure.None;
+        recoveryPhase = V20ContentResolutionRecoveryPhase.Prepared;
+        childCommits = new EffectCommitReferences
+        {
+            ItemConsumptionOperationId = plan.ItemCosts.Count > 0
+                ? plan.ReservationOwnerId
+                : string.Empty,
+            ItemGrantBatchCommitId = plan.Grants.Count > 0
+                ? plan.CreateGrantPublicationPlan().BatchCommitId
+                : string.Empty
+        };
         PhysicalItemExactSourcePublicationTransaction grantTransaction = default;
         bool hasPreparedGrants = plan.Grants.Count > 0;
         if (hasPreparedGrants
@@ -3821,15 +4527,36 @@ public sealed class V20ContentResolutionService :
             failure = new DomainFailure(FailureCode.ProductionOutputUnavailable);
             return false;
         }
+        if (hasPreparedGrants
+            && !string.Equals(
+                grantTransaction.BatchCommitId,
+                childCommits.ItemGrantBatchCommitId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Prepared content grant did not preserve its deterministic batch identity.");
+        }
         EconomyTransactionContext transaction = new(
             plan.MoneyDelta >= 0
                 ? EconomyTransactionKind.ContractIncome
                 : EconomyTransactionKind.LegacyExpense,
             $"content:{request.ActionId}",
             description: request.Kind.ToString());
-        if (plan.MoneyDelta > 0) money.Add(plan.MoneyDelta, transaction);
-        else if (plan.MoneyDelta < 0
-            && !money.TrySpend(-plan.MoneyDelta, transaction, out _))
+        IIdempotentGameMoneyAccount idempotentMoney =
+            money as IIdempotentGameMoneyAccount;
+        bool moneyCommitted = plan.MoneyDelta > 0
+            ? idempotentMoney.TryCreditOnce(
+                plan.MoneyDelta,
+                transaction,
+                out _)
+            : plan.MoneyDelta < 0
+                ? idempotentMoney.TrySpendOnce(
+                    -plan.MoneyDelta,
+                    transaction,
+                    out _,
+                    out _)
+                : true;
+        if (!moneyCommitted)
         {
             RollbackPreparedGrantsOrThrow(
                 grantTransaction,
@@ -3841,6 +4568,22 @@ public sealed class V20ContentResolutionService :
                 money.Balance.ToString(),
                 (-plan.MoneyDelta).ToString());
             return false;
+        }
+        if (plan.MoneyDelta != 0)
+        {
+            if (money is not IGameMoneyTransactionQuery moneyQuery
+                || !moneyQuery.TryGetSuccessfulTransaction(
+                    transaction.kind,
+                    transaction.sourceId,
+                    out EconomyTransactionRecord moneyRecord)
+                || moneyRecord == null
+                || moneyRecord.amount != plan.MoneyDelta
+                || string.IsNullOrWhiteSpace(moneyRecord.transactionId))
+            {
+                throw new InvalidOperationException(
+                    "Committed content money effect is missing its exact transaction record.");
+            }
+            childCommits.MoneyTransactionId = moneyRecord.transactionId;
         }
         if (!atomicItems.TryConsumeReserved(
                 plan.ItemCosts,
@@ -3862,20 +4605,55 @@ public sealed class V20ContentResolutionService :
             plan.Release(reservations);
             return false;
         }
+        recoveryPhase = V20ContentResolutionRecoveryPhase.ItemCostsCommitted;
+        PhysicalItemExactSourcePublicationReceipt grantReceipt = default;
         if (hasPreparedGrants
             && !exactSources.TryCommitReleased(
                 grantTransaction,
                 plan.Dropoff,
                 "content-resolution-grant",
-                out _,
+                out grantReceipt,
                 out string grantCommitFailure))
         {
             throw new InvalidOperationException(
                 "Content item costs committed but exact grant publication could not finalize: "
                 + grantCommitFailure);
         }
+        if (hasPreparedGrants
+            && !string.Equals(
+                grantReceipt.BatchCommitId,
+                childCommits.ItemGrantBatchCommitId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Committed content grant receipt changed its prepared batch identity.");
+        }
+        recoveryPhase = V20ContentResolutionRecoveryPhase.ItemGrantsCommitted;
         ApplyTypedDomainEffects(request.AbsoluteDay, resolutions);
+        recoveryPhase = V20ContentResolutionRecoveryPhase.TypedEffectsApplied;
         return true;
+    }
+
+    private static bool RequiresForwardRecovery(
+        EffectCommitPlan plan,
+        IReadOnlyList<V20ResolvedEventResult> resolutions)
+    {
+        if (plan == null)
+            throw new ArgumentNullException(nameof(plan));
+        if (plan.MoneyDelta != 0
+            || plan.ItemCosts.Count > 0
+            || plan.Grants.Count > 0)
+        {
+            return true;
+        }
+
+        return (resolutions ?? Array.Empty<V20ResolvedEventResult>())
+            .SelectMany(value => value.Effects)
+            .Any(effect => effect != null && effect.kind is
+                V20ContentEffectKind.Health
+                or V20ContentEffectKind.Trauma
+                or V20ContentEffectKind.DiseaseExposure
+                or V20ContentEffectKind.AmbitionProgress);
     }
 
     private void RollbackPreparedGrantsOrThrow(
@@ -3894,6 +4672,572 @@ public sealed class V20ContentResolutionService :
                 "Prepared content grant rollback failed: " + failureReason);
         }
     }
+
+    private static IReadOnlyList<V20ResolvedEventResult>
+        AttachApplicationEvidence(
+            IReadOnlyList<V20ResolvedEventResult> resolutions,
+            EffectOwnerSnapshot before,
+            EffectOwnerSnapshot after,
+            EffectCommitReferences childCommits)
+    {
+        if (before == null) throw new ArgumentNullException(nameof(before));
+        if (after == null) throw new ArgumentNullException(nameof(after));
+        return (resolutions ?? Array.Empty<V20ResolvedEventResult>())
+            .Select(resolution => resolution.WithApplications(
+                CreateApplicationEvidence(
+                    resolution,
+                    before,
+                    after,
+                    childCommits)))
+            .ToArray();
+    }
+
+    private static IReadOnlyList<V20EffectApplicationEvidence>
+        CreateApplicationEvidence(
+            V20ResolvedEventResult resolution,
+            EffectOwnerSnapshot before,
+            EffectOwnerSnapshot after,
+            EffectCommitReferences childCommits)
+    {
+        var result = new List<V20EffectApplicationEvidence>();
+        string[] participants = resolution.ParticipantCharacterIds
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        for (int effectIndex = 0;
+             effectIndex < resolution.Effects.Count;
+             effectIndex++)
+        {
+            V20ContentEffect effect = resolution.Effects[effectIndex];
+            if (effect == null || !effect.IsValid)
+                continue;
+            string childCommitId = childCommits?.ChildCommitId(effect.kind)
+                ?? string.Empty;
+            if (RequiresCharacter(effect.kind)
+                || effect.kind == V20ContentEffectKind.RetirementSchedule)
+            {
+                foreach (string participantId in participants)
+                {
+                    bool targetExists = HasCharacterOwner(before, participantId)
+                        || effect.kind == V20ContentEffectKind.RetirementSchedule
+                            && HasCareer(before, participantId);
+                    string beforeValue = CharacterEffectValue(
+                        before,
+                        resolution,
+                        effect,
+                        participantId,
+                        participants);
+                    string afterValue = CharacterEffectValue(
+                        after,
+                        resolution,
+                        effect,
+                        participantId,
+                        participants);
+                    float appliedAmount = ResolveCharacterAppliedAmount(
+                        effect,
+                        before,
+                        after,
+                        participantId,
+                        beforeValue,
+                        afterValue);
+                    result.Add(new V20EffectApplicationEvidence
+                    {
+                        effectIndex = effectIndex,
+                        targetId = participantId,
+                        status = ResolveCharacterApplicationStatus(
+                            effect,
+                            targetExists,
+                            appliedAmount,
+                            beforeValue,
+                            afterValue),
+                        requestedAmount = effect.amount,
+                        appliedAmount = appliedAmount,
+                        beforeValue = beforeValue,
+                        afterValue = afterValue,
+                        semantic = EffectSemantic(effect.kind),
+                        childCommitId = childCommitId
+                    });
+                }
+                continue;
+            }
+
+            string actualTarget = ResolveGlobalEffectTarget(
+                resolution,
+                effect,
+                before,
+                after);
+            string globalBefore = GlobalEffectValue(
+                resolution,
+                effect,
+                actualTarget,
+                before);
+            string globalAfter = GlobalEffectValue(
+                resolution,
+                effect,
+                actualTarget,
+                after);
+            float globalApplied = ResolveGlobalAppliedAmount(
+                effect,
+                globalBefore,
+                globalAfter);
+            result.Add(new V20EffectApplicationEvidence
+            {
+                effectIndex = effectIndex,
+                targetId = actualTarget,
+                status = string.Equals(
+                        globalBefore,
+                        globalAfter,
+                        StringComparison.Ordinal)
+                    ? V20EffectApplicationStatus.NoOp
+                    : V20EffectApplicationStatus.Applied,
+                requestedAmount = effect.amount,
+                appliedAmount = globalApplied,
+                beforeValue = globalBefore,
+                afterValue = globalAfter,
+                semantic = EffectSemantic(effect.kind),
+                childCommitId = childCommitId
+            });
+        }
+        return result.AsReadOnly();
+    }
+
+    private static V20EffectApplicationStatus ResolveCharacterApplicationStatus(
+        V20ContentEffect effect,
+        bool targetExists,
+        float appliedAmount,
+        string beforeValue,
+        string afterValue)
+    {
+        if (!targetExists)
+            return V20EffectApplicationStatus.Skipped;
+        bool changed = !string.Equals(
+            beforeValue,
+            afterValue,
+            StringComparison.Ordinal);
+        if (effect.kind == V20ContentEffectKind.DiseaseExposure && !changed)
+            return V20EffectApplicationStatus.Skipped;
+        float expected = effect.kind switch
+        {
+            V20ContentEffectKind.SkillExperience =>
+                Math.Max(0, Mathf.RoundToInt(effect.amount)),
+            V20ContentEffectKind.Relationship =>
+                Mathf.Clamp(effect.amount / 10f, -1f, 1f),
+            V20ContentEffectKind.DiseaseExposure =>
+                Math.Max(0.1f, Math.Abs(effect.amount)),
+            V20ContentEffectKind.AmbitionProgress =>
+                Mathf.RoundToInt(effect.amount),
+            V20ContentEffectKind.RetirementSchedule => effect.durationDays,
+            _ => effect.amount
+        };
+        if (!Mathf.Approximately(appliedAmount, expected))
+            return V20EffectApplicationStatus.Clamped;
+        return changed
+            ? V20EffectApplicationStatus.Applied
+            : V20EffectApplicationStatus.NoOp;
+    }
+
+    private static float ResolveCharacterAppliedAmount(
+        V20ContentEffect effect,
+        EffectOwnerSnapshot before,
+        EffectOwnerSnapshot after,
+        string participantId,
+        string beforeValue,
+        string afterValue)
+    {
+        switch (effect.kind)
+        {
+            case V20ContentEffectKind.Mood:
+                return MoodFactorValue(after, participantId, effect)
+                    - MoodFactorValue(before, participantId, effect);
+            case V20ContentEffectKind.Trauma:
+                return TraumaValue(after, participantId)
+                    - TraumaValue(before, participantId);
+            case V20ContentEffectKind.SkillExperience:
+                return string.Equals(beforeValue, afterValue, StringComparison.Ordinal)
+                    ? 0f
+                    : Math.Max(0, Mathf.RoundToInt(effect.amount));
+            case V20ContentEffectKind.Health:
+                return HealthValue(after, participantId)
+                    - HealthValue(before, participantId);
+            case V20ContentEffectKind.Relationship:
+                return string.Equals(beforeValue, afterValue, StringComparison.Ordinal)
+                    ? 0f
+                    : Mathf.Clamp(effect.amount / 10f, -1f, 1f);
+            case V20ContentEffectKind.DiseaseExposure:
+                return ExposureValue(after, participantId, effect.targetId)
+                    - ExposureValue(before, participantId, effect.targetId);
+            case V20ContentEffectKind.AmbitionProgress:
+                return AmbitionProgress(after, participantId)
+                    - AmbitionProgress(before, participantId);
+            case V20ContentEffectKind.RetirementSchedule:
+                return string.Equals(beforeValue, afterValue, StringComparison.Ordinal)
+                    ? 0f
+                    : effect.durationDays;
+            default:
+                return 0f;
+        }
+    }
+
+    private static string CharacterEffectValue(
+        EffectOwnerSnapshot snapshot,
+        V20ResolvedEventResult resolution,
+        V20ContentEffect effect,
+        string participantId,
+        IReadOnlyList<string> participants)
+    {
+        if (!HasCharacterOwner(snapshot, participantId)
+            && effect.kind != V20ContentEffectKind.RetirementSchedule)
+            return "unavailable";
+        return effect.kind switch
+        {
+            V20ContentEffectKind.Mood =>
+                FormatFloat(MoodFactorValue(snapshot, participantId, effect)),
+            V20ContentEffectKind.Trauma =>
+                FormatFloat(TraumaValue(snapshot, participantId)),
+            V20ContentEffectKind.SkillExperience =>
+                ProgressionValue(snapshot, participantId),
+            V20ContentEffectKind.Health =>
+                FormatFloat(HealthValue(snapshot, participantId)),
+            V20ContentEffectKind.Relationship =>
+                RelationshipValue(snapshot, participantId, participants),
+            V20ContentEffectKind.DiseaseExposure =>
+                DiseaseExposureValue(
+                    snapshot,
+                    participantId,
+                    effect.targetId),
+            V20ContentEffectKind.AmbitionProgress =>
+                AmbitionValue(snapshot, participantId),
+            V20ContentEffectKind.RetirementSchedule =>
+                RetirementValue(snapshot, participantId),
+            _ => "unavailable"
+        };
+    }
+
+    private static string ResolveGlobalEffectTarget(
+        V20ResolvedEventResult resolution,
+        V20ContentEffect effect,
+        EffectOwnerSnapshot before,
+        EffectOwnerSnapshot after)
+    {
+        if (effect.kind == V20ContentEffectKind.Money)
+            return "treasury";
+        if (effect.kind is V20ContentEffectKind.FactionRapport
+            or V20ContentEffectKind.FactionGrievance
+            or V20ContentEffectKind.FactionObligation)
+        {
+            string changed = (after.Factions?.factions
+                    ?? new List<FactionCampaignStateSaveData>())
+                .Where(candidate => candidate != null)
+                .Select(candidate => candidate.factionId)
+                .FirstOrDefault(factionId => !string.Equals(
+                    FactionValue(before, factionId, effect.kind),
+                    FactionValue(after, factionId, effect.kind),
+                    StringComparison.Ordinal));
+            if (!string.IsNullOrWhiteSpace(changed))
+                return changed;
+            if (!string.IsNullOrWhiteSpace(effect.targetId))
+                return effect.targetId;
+            if (!string.IsNullOrWhiteSpace(resolution.ContextFactionId))
+                return resolution.ContextFactionId;
+        }
+        if (effect.kind == V20ContentEffectKind.WorkDelayDays)
+        {
+            string changed = (after.Society?.workDelays
+                    ?? new List<V20WorkDelaySaveData>())
+                .Where(value => value != null)
+                .Select(value => value.scopeId)
+                .FirstOrDefault(scope => !string.Equals(
+                    WorkDelayValue(before, scope),
+                    WorkDelayValue(after, scope),
+                    StringComparison.Ordinal));
+            if (!string.IsNullOrWhiteSpace(changed))
+                return changed;
+        }
+        return string.IsNullOrWhiteSpace(effect.targetId)
+            ? "content-resolution"
+            : effect.targetId;
+    }
+
+    private static string GlobalEffectValue(
+        V20ResolvedEventResult resolution,
+        V20ContentEffect effect,
+        string targetId,
+        EffectOwnerSnapshot snapshot) => effect.kind switch
+    {
+        V20ContentEffectKind.FactionRapport
+            or V20ContentEffectKind.FactionGrievance
+            or V20ContentEffectKind.FactionObligation =>
+            FactionValue(snapshot, targetId, effect.kind),
+        V20ContentEffectKind.Money => snapshot.MoneyBalance.ToString(
+            System.Globalization.CultureInfo.InvariantCulture),
+        V20ContentEffectKind.ItemGrant
+            or V20ContentEffectKind.ItemConsume =>
+            ItemQuantity(snapshot, targetId).ToString(
+                System.Globalization.CultureInfo.InvariantCulture),
+        V20ContentEffectKind.WorldFlag =>
+            BoolValue(snapshot.Milestones?.worldFlags?.Contains(
+                targetId,
+                StringComparer.Ordinal) == true),
+        V20ContentEffectKind.WorkDelayDays => WorkDelayValue(snapshot, targetId),
+        V20ContentEffectKind.Threat
+            or V20ContentEffectKind.MilestonePressure =>
+            BoolValue(snapshot.Milestones?.activePressureIds?.Contains(
+                targetId,
+                StringComparer.Ordinal) == true),
+        _ => "unavailable"
+    };
+
+    private static float ResolveGlobalAppliedAmount(
+        V20ContentEffect effect,
+        string beforeValue,
+        string afterValue)
+    {
+        if (effect.kind is V20ContentEffectKind.WorldFlag
+            or V20ContentEffectKind.Threat
+            or V20ContentEffectKind.MilestonePressure)
+            return string.Equals(beforeValue, afterValue, StringComparison.Ordinal)
+                ? 0f
+                : 1f;
+        if (effect.kind == V20ContentEffectKind.ItemConsume)
+            return Mathf.RoundToInt(effect.amount);
+        if (effect.kind is V20ContentEffectKind.ItemGrant
+            or V20ContentEffectKind.Money
+            or V20ContentEffectKind.FactionRapport
+            or V20ContentEffectKind.FactionGrievance
+            or V20ContentEffectKind.FactionObligation
+            or V20ContentEffectKind.WorkDelayDays)
+            return Mathf.RoundToInt(effect.amount);
+        return effect.amount;
+    }
+
+    private static string EffectSemantic(V20ContentEffectKind kind) => kind switch
+    {
+        V20ContentEffectKind.Mood => "mood-factor",
+        V20ContentEffectKind.Trauma => "trauma",
+        V20ContentEffectKind.SkillExperience => "skill-experience",
+        V20ContentEffectKind.Health => "health-change-not-pressure",
+        V20ContentEffectKind.Relationship => "relationship-sentiment",
+        V20ContentEffectKind.FactionRapport => "faction-rapport",
+        V20ContentEffectKind.FactionGrievance => "faction-grievance",
+        V20ContentEffectKind.FactionObligation => "faction-obligation",
+        V20ContentEffectKind.Money => "treasury-balance",
+        V20ContentEffectKind.ItemGrant => "item-grant",
+        V20ContentEffectKind.ItemConsume => "item-consumption",
+        V20ContentEffectKind.WorldFlag => "world-flag",
+        V20ContentEffectKind.WorkDelayDays => "work-delay",
+        V20ContentEffectKind.Threat => "pressure-activated-not-health-damage",
+        V20ContentEffectKind.DiseaseExposure =>
+            "exposure-pending-not-infection",
+        V20ContentEffectKind.AmbitionProgress => "ambition-progress",
+        V20ContentEffectKind.MilestonePressure =>
+            "pressure-activated-not-health-damage",
+        V20ContentEffectKind.RetirementSchedule =>
+            "retirement-scheduled-not-character-exit",
+        _ => "unsupported"
+    };
+
+    private static bool HasCharacterOwner(
+        EffectOwnerSnapshot snapshot,
+        string characterId) => snapshot?.Characters?.Any(value =>
+        value?.Actor?.Identity != null
+        && string.Equals(
+            value.Actor.Identity.PersistentId,
+            characterId,
+            StringComparison.Ordinal)) == true;
+
+    private static bool HasCareer(
+        EffectOwnerSnapshot snapshot,
+        string characterId) => snapshot?.Careers?.characters?.Any(value =>
+        value != null && string.Equals(
+            value.characterId,
+            characterId,
+            StringComparison.Ordinal)) == true;
+
+    private static CharacterEffectOwnerSnapshot CharacterOwner(
+        EffectOwnerSnapshot snapshot,
+        string characterId) => snapshot?.Characters?.FirstOrDefault(value =>
+        value?.Actor?.Identity != null
+        && string.Equals(
+            value.Actor.Identity.PersistentId,
+            characterId,
+            StringComparison.Ordinal));
+
+    private static float MoodFactorValue(
+        EffectOwnerSnapshot snapshot,
+        string characterId,
+        V20ContentEffect effect)
+    {
+        string factorSuffix = ":" + effect.targetId;
+        CharacterMoodMemory factor = CharacterOwner(snapshot, characterId)
+            ?.Stats?.Factors?.FirstOrDefault(value => value != null
+                && value.Id.StartsWith("content:", StringComparison.Ordinal)
+                && value.Id.EndsWith(factorSuffix, StringComparison.Ordinal));
+        return factor?.TotalValue ?? 0f;
+    }
+
+    private static float HealthValue(
+        EffectOwnerSnapshot snapshot,
+        string characterId) => snapshot?.BodyHealth?.characters
+        ?.FirstOrDefault(value => value != null && string.Equals(
+            value.characterId,
+            characterId,
+            StringComparison.Ordinal))?.currentHealth ?? 0f;
+
+    private static float TraumaValue(
+        EffectOwnerSnapshot snapshot,
+        string characterId) => snapshot?.Psychosocial?.characters
+        ?.FirstOrDefault(value => value != null && string.Equals(
+            value.characterId,
+            characterId,
+            StringComparison.Ordinal))?.trauma ?? 0f;
+
+    private static string ProgressionValue(
+        EffectOwnerSnapshot snapshot,
+        string characterId)
+    {
+        CharacterProgressionSnapshot value = CharacterOwner(snapshot, characterId)
+            ?.Progression;
+        return value == null
+            ? "unavailable"
+            : "level=" + value.Level + ",xp=" + value.CurrentExperience;
+    }
+
+    private static string RelationshipValue(
+        EffectOwnerSnapshot snapshot,
+        string characterId,
+        IReadOnlyList<string> participants)
+    {
+        CharacterSocialMemorySnapshot social = CharacterOwner(snapshot, characterId)
+            ?.Social;
+        if (social == null)
+            return "unavailable";
+        return string.Join(",", participants
+            .Where(value => !string.Equals(
+                value,
+                characterId,
+                StringComparison.Ordinal))
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .Select(other => other + "=" + FormatFloat(
+                social.characterSentiments?
+                    .FirstOrDefault(value => value != null && string.Equals(
+                        value.key,
+                        other,
+                        StringComparison.Ordinal))?.value ?? 0f)));
+    }
+
+    private static float ExposureValue(
+        EffectOwnerSnapshot snapshot,
+        string characterId,
+        string diseaseId) => snapshot?.PopulationHealth?.pendingExposures
+        ?.FirstOrDefault(value => value != null
+            && string.Equals(value.characterId, characterId, StringComparison.Ordinal)
+            && string.Equals(value.diseaseId, diseaseId, StringComparison.Ordinal))
+        ?.weightedExposureHours ?? 0f;
+
+    private static string DiseaseExposureValue(
+        EffectOwnerSnapshot snapshot,
+        string characterId,
+        string diseaseId)
+    {
+        bool infected = snapshot?.PopulationHealth?.characters
+            ?.FirstOrDefault(value => value != null && string.Equals(
+                value.characterId,
+                characterId,
+                StringComparison.Ordinal))?.activeDiseases?.Any(value =>
+                value != null && string.Equals(
+                    value.diseaseId,
+                    diseaseId,
+                    StringComparison.Ordinal)) == true;
+        return "exposureHours="
+            + FormatFloat(ExposureValue(snapshot, characterId, diseaseId))
+            + ",infected=" + BoolValue(infected);
+    }
+
+    private static int AmbitionProgress(
+        EffectOwnerSnapshot snapshot,
+        string characterId) => snapshot?.Narrative?.characters
+        ?.FirstOrDefault(value => value != null && string.Equals(
+            value.characterId,
+            characterId,
+            StringComparison.Ordinal))?.ambitionProgress ?? 0;
+
+    private static string AmbitionValue(
+        EffectOwnerSnapshot snapshot,
+        string characterId)
+    {
+        CharacterNarrativeSaveData value = snapshot?.Narrative?.characters
+            ?.FirstOrDefault(candidate => candidate != null && string.Equals(
+                candidate.characterId,
+                characterId,
+                StringComparison.Ordinal));
+        return value == null
+            ? "unavailable"
+            : "id=" + (value.activeAmbitionId ?? string.Empty)
+                + ",status=" + value.ambitionStatus
+                + ",progress=" + value.ambitionProgress;
+    }
+
+    private static string RetirementValue(
+        EffectOwnerSnapshot snapshot,
+        string characterId)
+    {
+        CharacterCareerSaveData value = snapshot?.Careers?.characters
+            ?.FirstOrDefault(candidate => candidate != null && string.Equals(
+                candidate.characterId,
+                characterId,
+                StringComparison.Ordinal));
+        return value == null
+            ? "unavailable"
+            : "status=" + value.retirementScheduleStatus
+                + ",due=" + value.retirementDueAbsoluteDay
+                + ",terminal=" + value.retirementTerminalAbsoluteDay
+                + ",retired=" + BoolValue(value.retired);
+    }
+
+    private static string FactionValue(
+        EffectOwnerSnapshot snapshot,
+        string factionId,
+        V20ContentEffectKind kind)
+    {
+        FactionCampaignStateSaveData value = snapshot?.Factions?.factions
+            ?.FirstOrDefault(candidate => candidate != null && string.Equals(
+                candidate.factionId,
+                factionId,
+                StringComparison.Ordinal));
+        if (value == null)
+            return "unavailable";
+        return (kind switch
+        {
+            V20ContentEffectKind.FactionRapport => value.rapport,
+            V20ContentEffectKind.FactionGrievance => value.grievance,
+            V20ContentEffectKind.FactionObligation => value.obligationTokens,
+            _ => 0
+        }).ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static int ItemQuantity(
+        EffectOwnerSnapshot snapshot,
+        string itemId) => snapshot?.Items?.stacks?
+        .Where(value => value != null && string.Equals(
+            value.itemId,
+            itemId,
+            StringComparison.Ordinal))
+        .Sum(value => Math.Max(0, value.quantity)) ?? 0;
+
+    private static string WorkDelayValue(
+        EffectOwnerSnapshot snapshot,
+        string scopeId) => (snapshot?.Society?.workDelays
+            ?.FirstOrDefault(value => value != null && string.Equals(
+                value.scopeId,
+                scopeId,
+                StringComparison.Ordinal))?.untilAbsoluteDayExclusive ?? 0)
+            .ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string FormatFloat(float value) => value.ToString(
+        "R",
+        System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string BoolValue(bool value) => value ? "true" : "false";
 
     private void ApplyTypedDomainEffects(
         int requestedAbsoluteDay,

@@ -53,7 +53,9 @@ public sealed class CharacterSkillGenerationResponseDto : ILlmJsonPayload
     public List<CharacterSkillCandidateResponseDto> candidates =
         new List<CharacterSkillCandidateResponseDto>();
 
-    public bool Validate(out string error)
+    public bool Validate(out string error) => Validate(out error, null);
+
+    public bool Validate(out string error, string authoritativeCharacterName)
     {
         error = string.Empty;
         if (string.IsNullOrWhiteSpace(presentationId)
@@ -72,11 +74,8 @@ public sealed class CharacterSkillGenerationResponseDto : ILlmJsonPayload
             error = "presentationId must be a canonical presentation:skill:<sha256> identifier.";
             return false;
         }
-        if ((displayName + narrativeFlavor).Any(character =>
-            character is >= '0' and <= '9'
-            or >= '０' and <= '９'
-            or '%'
-            or '％'))
+        if (CharacterSkillPresentationText.ContainsMechanicalNumber(displayName, authoritativeCharacterName)
+            || CharacterSkillPresentationText.ContainsMechanicalNumber(narrativeFlavor, authoritativeCharacterName))
         {
             error = "displayName and narrativeFlavor cannot restate mechanical numbers or percentages.";
             return false;
@@ -95,7 +94,9 @@ public sealed class CharacterSkillModuleSelectionResponseDto : ILlmJsonPayload
     public string displayName = string.Empty;
     public string narrativeFlavor = string.Empty;
 
-    public bool Validate(out string error)
+    public bool Validate(out string error) => Validate(out error, null);
+
+    public bool Validate(out string error, string authoritativeCharacterName)
     {
         error = string.Empty;
         if (string.IsNullOrWhiteSpace(selectionId)
@@ -128,13 +129,21 @@ public sealed class CharacterSkillModuleSelectionResponseDto : ILlmJsonPayload
             error = "Module-selection displayName and narrativeFlavor must be single-line text.";
             return false;
         }
-        if ((displayName + narrativeFlavor).Any(character =>
-            character is >= '0' and <= '9'
-            or >= '０' and <= '９'
-            or '%'
-            or '％'))
+        if (!string.IsNullOrWhiteSpace(authoritativeCharacterName)
+            && string.Equals(displayName.Trim(), authoritativeCharacterName.Trim(), StringComparison.Ordinal))
+        {
+            error = "Module-selection displayName must be a skill name, not only the character name.";
+            return false;
+        }
+        if (CharacterSkillPresentationText.ContainsMechanicalNumber(displayName, authoritativeCharacterName)
+            || CharacterSkillPresentationText.ContainsMechanicalNumber(narrativeFlavor, authoritativeCharacterName))
         {
             error = "displayName and narrativeFlavor cannot invent or restate mechanical numbers.";
+            return false;
+        }
+        if (!narrativeFlavor.TrimEnd().EndsWith(".", StringComparison.Ordinal))
+        {
+            error = "Module-selection narrativeFlavor must end as a complete sentence with a period.";
             return false;
         }
         return true;
@@ -146,7 +155,9 @@ public sealed class CharacterSkillModuleSelectionBatchResponseDto : ILlmJsonPayl
 {
     public List<CharacterSkillModuleSelectionResponseDto> candidates = new();
 
-    public bool Validate(out string error)
+    public bool Validate(out string error) => Validate(out error, null);
+
+    public bool Validate(out string error, string authoritativeCharacterName)
     {
         error = string.Empty;
         if (candidates == null || candidates.Count == 0 || candidates.Count > 3)
@@ -154,16 +165,52 @@ public sealed class CharacterSkillModuleSelectionBatchResponseDto : ILlmJsonPayl
             error = "Module-selection candidates must contain between one and three items.";
             return false;
         }
+        var names = new HashSet<string>(StringComparer.Ordinal);
         for (int index = 0; index < candidates.Count; index++)
         {
             CharacterSkillModuleSelectionResponseDto candidate = candidates[index];
-            if (candidate == null || !candidate.Validate(out error))
+            if (candidate == null || !candidate.Validate(out error, authoritativeCharacterName))
             {
                 error = $"Module-selection candidate {index} is invalid: {error}";
                 return false;
             }
+            if (!names.Add(candidate.displayName.Trim()))
+            {
+                error = $"Module-selection candidate {index} repeats another candidate's skill name.";
+                return false;
+            }
         }
         return true;
+    }
+}
+
+// Names come only from the immutable request context, never from the response.
+// "세나 1" is an identity, whereas "세나 1의 회복 20%" still contains a forbidden effect number.
+internal static class CharacterSkillPresentationText
+{
+    internal static bool ContainsMechanicalNumber(string text, string authoritativeName)
+    {
+        text ??= string.Empty;
+        if (text.IndexOf('%') >= 0 || text.IndexOf('％') >= 0) return true;
+        bool allowName = !string.IsNullOrWhiteSpace(authoritativeName)
+            && authoritativeName.Any(char.IsLetter)
+            && authoritativeName.IndexOf('%') < 0 && authoritativeName.IndexOf('％') < 0;
+        for (int index = 0; index < text.Length; index++)
+        {
+            if (allowName && index + authoritativeName.Length <= text.Length
+                && string.CompareOrdinal(text, index, authoritativeName, 0, authoritativeName.Length) == 0
+                && (index == 0 || !char.IsLetterOrDigit(text[index - 1]))
+                && (index + authoritativeName.Length == text.Length
+                    || !char.IsNumber(text, index + authoritativeName.Length)))
+            {
+                index += authoritativeName.Length - 1;
+                continue;
+            }
+            // Unicode Number includes ideographic/letter numbers, superscripts,
+            // fractions and supplementary-plane digits, not only decimal Nd.
+            if (char.IsNumber(text, index)) return true;
+        }
+        return false;
     }
 }
 
@@ -469,7 +516,6 @@ public sealed class CharacterSkillGenerationService :
         public bool completionOwnedByRuntime;
         public bool moduleSelectionBatch;
         public bool cancelled;
-        public string correction = string.Empty;
         public string preparedPrompt = string.Empty;
         public NarrativePublicContextMaterial publicMaterial;
         public string transportRequestKey = string.Empty;
@@ -481,6 +527,7 @@ public sealed class CharacterSkillGenerationService :
     private readonly IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery;
     private readonly Dictionary<string, PendingRequest> pending = new Dictionary<string, PendingRequest>();
     private readonly List<PendingRequest> tickBuffer = new List<PendingRequest>();
+    private readonly HashSet<CharacterProgression> invalidatedDraftRegeneration = new();
     private float providerUnhealthyUntil;
 
     public int PendingRequestCount => pending.Count;
@@ -492,6 +539,48 @@ public sealed class CharacterSkillGenerationService :
         providerUnhealthyUntil - uiClock.Time);
     public int ProviderCircuitTripCount { get; private set; }
     public NarrativeInferenceAuditRecord? LastInferenceAudit { get; private set; }
+
+#if UNITY_EDITOR
+    // Read the actual submitted transport identities for one production owner.
+    // Isolated verifiers must not rebuild keys from a draft or inspect the queue's
+    // private state to dispatch a population-preparation request.
+    public IReadOnlyList<string> CapturePendingModuleDispatchIdsForOwner(string ownerId)
+    {
+        if (string.IsNullOrWhiteSpace(ownerId))
+            throw new ArgumentException("A persistent request owner is required.", nameof(ownerId));
+        return pending.Values.Where(value => value != null && value.inFlight
+                && !value.cancelled && value.progression?.Actor?.Identity != null
+                && string.Equals(value.progression.Actor.Identity.PersistentId, ownerId,
+                    StringComparison.Ordinal))
+            .Select(value => value.transportRequestKey)
+            .Where(value => TryCapturePendingModuleDispatch(value, out _, out _, out _, out _))
+            .Distinct(StringComparer.Ordinal).OrderBy(value => value, StringComparer.Ordinal).ToArray();
+    }
+
+    // Observation only: binds a queue dispatch to the very pending request that
+    // submitted it. Exporters must not recreate a draft or guess a correlation ID.
+    public bool TryCapturePendingModuleDispatch(string correlationId,
+        out CharacterProgression progression, out CharacterSkillDraft draft,
+        out string prompt, out bool batch)
+    {
+        progression = null;
+        draft = null;
+        prompt = string.Empty;
+        batch = false;
+        PendingRequest[] matches = pending.Values.Where(value => value != null && value.inFlight
+            && !value.cancelled && string.Equals(value.transportRequestKey, correlationId, StringComparison.Ordinal)).ToArray();
+        if (matches.Length != 1) return false;
+        PendingRequest request = matches[0];
+        if (request.draft.formulaVersion < CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion
+            || request.draft.ownerBinding == null || !request.draft.ownerBinding.Matches(request.progression, out _)
+            || string.IsNullOrWhiteSpace(request.preparedPrompt)) return false;
+        progression = request.progression;
+        draft = request.draft.Clone();
+        prompt = request.preparedPrompt;
+        batch = request.moduleSelectionBatch;
+        return true;
+    }
+#endif
 
     [Inject]
     public CharacterSkillGenerationService(
@@ -531,6 +620,9 @@ public sealed class CharacterSkillGenerationService :
         {
             throw new ArgumentNullException(nameof(progression));
         }
+        if (progression.Actor != null && progression.Actor.IsDead)
+            throw new InvalidOperationException(
+                "INELIGIBLE_DEAD_OWNER: a dead character cannot request a new skill.");
 
         CharacterGrowthState growth = progression.GrowthState;
         growth.EnsureCollections();
@@ -541,25 +633,34 @@ public sealed class CharacterSkillGenerationService :
             ? CharacterPersistentIdentity.Require(progression.Actor).Value
             : $"unbound-growth:{growth.generationSeed}";
         List<GameplayOutcomeEvidenceBindingSnapshot> outcomeEvidence =
-            GameplayOutcomeEvidenceFormulaProjection.CaptureExact(
+            GameplayOutcomeEvidenceFormulaProjection.Capture(
                 progression.Actor == null || outcomeEvidenceQuery == null
                     ? Array.Empty<GameplayOutcomeNarrativeEvidenceSource>()
                     : outcomeEvidenceQuery.GetForCharacter(
-                        actorId, 24, 0f, includeCompacted: false));
+                        actorId, 24, 0f, includeCompacted: true));
         int formulaBudget = CharacterSkillFormulaGeneration
             .CalculateNarrativeBudget(
                 progression,
                 settingsProvider.Settings,
                 outcomeEvidence);
 
-        string requestKey = $"skill:{actorId}:{kind}:{Mathf.Max(1, unlockLevel)}:r{Mathf.Max(0, revision)}";
+        CharacterNarrativeRequestOwnerBinding ownerBinding = CharacterNarrativeRequestOwnerBinding.Capture(progression);
+        string raritySeedKey = $"skill:{actorId}:{kind}:{Mathf.Max(1, unlockLevel)}:r{Mathf.Max(0, revision)}:{ownerBinding.IdentitySuffix}";
+        int priorEvidenceInvalidations = growth.drafts.Count(value => value != null
+            && value.kind == kind && value.unlockLevel == Mathf.Max(1, unlockLevel)
+            && value.presentationState == CharacterSkillPresentationState.InvalidatedEvidence);
+        string requestKey = priorEvidenceInvalidations == 0 ? raritySeedKey
+            : raritySeedKey + ":evidence" + priorEvidenceInvalidations;
+        // Retain the same rarity roll when only the evidence snapshot expires.
+        // The new request identity belongs to a fresh capture, not the old reply.
         IRandomStream random = new DeterministicRandomSequence(
-            CharacterGrowthRules.StableHash(requestKey));
+            CharacterGrowthRules.StableHash(raritySeedKey));
         CharacterSkillDraft draft = new CharacterSkillDraft
         {
             unlockLevel = Mathf.Max(1, unlockLevel),
             kind = kind,
             requestKey = requestKey,
+            ownerBinding = ownerBinding,
             requestedUltimateDomain = CharacterUltimateDomain.None,
             formulaVersion = formulaPolicy.FormulaVersion,
             formulaCatalogSha256 = settingsProvider.Settings.formulaPolicy.RequireCatalogSha256()
@@ -611,10 +712,17 @@ public sealed class CharacterSkillGenerationService :
 
     public void RequestDraft(CharacterProgression progression, CharacterSkillDraft draft)
     {
+        if (progression?.Actor != null && progression.Actor.IsDead)
+        {
+            CancelRequests(progression);
+            LastDiagnostic = "INELIGIBLE_DEAD_OWNER: skill request rejected before dispatch.";
+            return;
+        }
         if (progression == null
             || draft == null
             || draft.isReady
             || draft.permanentlyChosen
+            || draft.IsInvalidated()
             || string.IsNullOrWhiteSpace(draft.requestKey))
         {
             return;
@@ -643,6 +751,18 @@ public sealed class CharacterSkillGenerationService :
             throw new InvalidOperationException(
                 "CharacterSkill request state is incomplete or stale; legacy variants are load-only.");
         }
+        // Invalid mechanics are not a stale-owner retry: reject before auditing or
+        // scheduling regeneration, which both require a structurally valid draft.
+        if (draft.ownerBinding == null || !draft.ownerBinding.Matches(progression, out _))
+        {
+            PendingRequest stale = pending.TryGetValue(draft.requestKey, out PendingRequest existing)
+                && ReferenceEquals(existing.progression, progression) && ReferenceEquals(existing.draft, draft)
+                ? existing : new PendingRequest { progression = progression, draft = draft,
+                    transportRequestKey = draft.requestKey };
+            RejectChangedOwner(stale);
+            return;
+        }
+        draft.RestoreRequestPublicContext();
         if (draft.presentationState == CharacterSkillPresentationState.AwaitingNarrativeRetry)
         {
             draft.presentationState = CharacterSkillPresentationState.PresentationPending;
@@ -653,6 +773,7 @@ public sealed class CharacterSkillGenerationService :
         {
             if (!TryBuildLivePublicMaterial(
                     progression,
+                    draft,
                     out NarrativePublicContextMaterial publicMaterial,
                     out string unavailableReason))
             {
@@ -687,6 +808,7 @@ public sealed class CharacterSkillGenerationService :
                 RemoveRequest(draft.requestKey);
                 if (!TryBuildLivePublicMaterial(
                         progression,
+                        draft,
                         out NarrativePublicContextMaterial publicMaterial,
                         out string unavailableReason))
                 {
@@ -718,16 +840,28 @@ public sealed class CharacterSkillGenerationService :
 
     private static bool TryBuildLivePublicMaterial(
         CharacterProgression progression,
+        CharacterSkillDraft draft,
         out NarrativePublicContextMaterial publicMaterial,
         out string unavailableReason)
     {
         try
         {
-            publicMaterial = CharacterSkillPromptBuilder.BuildPublicMaterial(progression);
+            publicMaterial = draft.RestoreRequestPublicContext();
+            if (publicMaterial == null)
+            {
+                publicMaterial = CharacterSkillPromptBuilder.BuildModuleSelectionPublicMaterial(
+                    progression, draft);
+                var frozen = CharacterSkillRequestContextSnapshot.Capture(progression, draft, publicMaterial);
+                string frozenHash = frozen.ComputeHash(draft.requestKey);
+                draft.requestContext = frozen;
+                draft.requestContextHash = frozenHash;
+                draft.requestContextVersion = 1;
+            }
+            CharacterSkillPromptBuilder.BuildNarrativeEvidenceReferences(draft, publicMaterial);
             unavailableReason = string.Empty;
             return true;
         }
-        catch (InvalidOperationException exception)
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
         {
             publicMaterial = null;
             unavailableReason = string.IsNullOrWhiteSpace(exception.Message)
@@ -735,6 +869,44 @@ public sealed class CharacterSkillGenerationService :
                 : exception.Message.Trim();
             return false;
         }
+    }
+
+    private static bool RequestOwnerChanged(PendingRequest request)
+    {
+        return request.draft.ownerBinding == null
+            || !request.draft.ownerBinding.Matches(request.progression, out _);
+    }
+
+    private void RejectChangedOwner(PendingRequest request)
+    {
+        const string reason = "STALE_OWNER: skill request owner died or changed after submission.";
+        request.cancelled = true;
+        request.draft.requestSubmitted = false;
+        request.draft.presentationState = CharacterSkillPresentationState.InvalidatedOwner;
+        request.draft.ownerInvalidationReason = reason;
+        request.progression.MarkGenerationRequestCompleted(request.draft.requestKey);
+        RemoveRequest(request.draft.requestKey);
+        if (request.inFlight && llmRuntimeProvider.TryGetRuntime(out ILocalLlmRuntime runtime)
+            && runtime is ICorrelatedCharacterSkillLlmRuntime correlated)
+            correlated.CancelCharacterSkillRequest(request.transportRequestKey);
+        request.inFlight = false;
+        RecordAudit(request, false, reason, false, string.Empty, null);
+        LastDiagnostic = reason;
+        if (request.progression.Actor != null && !request.progression.Actor.IsDead)
+            invalidatedDraftRegeneration.Add(request.progression);
+    }
+
+    private void RejectChangedEvidence(PendingRequest request, string publicFactId)
+    {
+        string reason = "STALE_EVIDENCE: skill request evidence changed before response commit: " + publicFactId;
+        request.cancelled = true;
+        request.progression.InvalidateEvidenceDraft(request.draft, reason);
+        RemoveRequest(request.draft.requestKey);
+        request.inFlight = false;
+        RecordAudit(request, false, reason, false, string.Empty, null);
+        LastDiagnostic = reason;
+        if (request.progression.Actor != null && !request.progression.Actor.IsDead)
+            invalidatedDraftRegeneration.Add(request.progression);
     }
 
     private static string NormalizeDiagnostic(string value)
@@ -777,11 +949,23 @@ public sealed class CharacterSkillGenerationService :
 
     private void TickRuntime()
     {
-        if (pending.Count == 0)
+        if (pending.Count == 0 && invalidatedDraftRegeneration.Count == 0)
         {
             return;
         }
 
+        foreach (PendingRequest request in pending.Values.ToArray())
+        {
+            if (request?.progression != null && request.draft != null
+                && !request.cancelled && RequestOwnerChanged(request))
+                RejectChangedOwner(request);
+        }
+        foreach (CharacterProgression progression in invalidatedDraftRegeneration.ToArray())
+        {
+            invalidatedDraftRegeneration.Remove(progression);
+            if (progression != null)
+                progression.ResumeInvalidatedDrafts();
+        }
         float now = uiClock.Time;
         if (IsProviderCircuitOpenAt(now))
         {
@@ -865,12 +1049,10 @@ public sealed class CharacterSkillGenerationService :
         if (!NarrativeExactKeyContract.TryValidateProfileResponse(
                 LocalLlmRequestProfiles.CharacterSkill.Id,
                 response,
-                out _,
+                out string presentationJson,
                 out error)
-            || !LlmJsonResponseParser.TryParse(
-            response,
-            out CharacterSkillGenerationResponseDto payload,
-            out error))
+            || !TryReadSkillPayload(presentationJson, out CharacterSkillGenerationResponseDto payload, out error)
+            || !payload.Validate(out error, FrozenCharacterName(draft)))
         {
             return false;
         }
@@ -928,7 +1110,7 @@ public sealed class CharacterSkillGenerationService :
             error = "The formula draft has no pending module-selection slot.";
             return false;
         }
-        if (!TryParseModuleSelectionItem(response, out CharacterSkillModuleSelectionResponseDto payload, out error))
+        if (!TryParseModuleSelectionItem(response, FrozenCharacterName(draft), out CharacterSkillModuleSelectionResponseDto payload, out error))
             return false;
         return TryResolveModuleSelectionPayload(draft, payload, out skills, out error);
     }
@@ -953,10 +1135,8 @@ public sealed class CharacterSkillGenerationService :
                 response,
                 out string json,
                 out error)
-            || !LlmJsonResponseParser.TryParse(
-                json,
-                out CharacterSkillModuleSelectionBatchResponseDto payload,
-                out error))
+            || !TryReadSkillPayload(json, out CharacterSkillModuleSelectionBatchResponseDto payload, out error)
+            || !payload.Validate(out error, FrozenCharacterName(draft)))
         {
             return false;
         }
@@ -990,6 +1170,7 @@ public sealed class CharacterSkillGenerationService :
 
     private static bool TryParseModuleSelectionItem(
         string response,
+        string authoritativeCharacterName,
         out CharacterSkillModuleSelectionResponseDto payload,
         out string error)
     {
@@ -1015,7 +1196,22 @@ public sealed class CharacterSkillGenerationService :
             error = "JSON parse produced a null module-selection item.";
             return false;
         }
-        return payload.Validate(out error);
+        return payload.Validate(out error, authoritativeCharacterName);
+    }
+
+    private static string FrozenCharacterName(CharacterSkillDraft draft) =>
+        draft.requestContext?.version == 1 ? draft.requestContext.characterName : null;
+
+    private static bool TryReadSkillPayload<T>(string json, out T payload, out string error) where T : class
+    {
+        // Callers have already enforced the exact-key JSON contract.
+        payload = null;
+        error = string.Empty;
+        try { payload = JsonUtility.FromJson<T>(json); }
+        catch (Exception exception) { error = "JSON parse failed: " + exception.Message; return false; }
+        if (payload != null) return true;
+        error = "JSON parse produced a null skill payload.";
+        return false;
     }
 
     private bool TryResolveModuleSelectionPayload(
@@ -1289,6 +1485,7 @@ public sealed class CharacterSkillGenerationService :
         if (request.publicMaterial == null
             && !TryBuildLivePublicMaterial(
                 request.progression,
+                request.draft,
                 out request.publicMaterial,
                 out string unavailableReason))
         {
@@ -1357,7 +1554,7 @@ public sealed class CharacterSkillGenerationService :
                 request.draft,
                 settingsProvider.Settings,
                 request.publicMaterial,
-                request.correction,
+                request.draft.presentationCorrection,
                 request.moduleSelectionBatch).Prompt;
         }
 
@@ -1413,8 +1610,17 @@ public sealed class CharacterSkillGenerationService :
             return;
         }
 
-        if (request.cancelled)
+        if (request.cancelled
+            || request.draft.isReady
+            || request.draft.permanentlyChosen
+            || request.draft.IsInvalidated())
         {
+            return;
+        }
+
+        if (RequestOwnerChanged(request))
+        {
+            RejectChangedOwner(request);
             return;
         }
 
@@ -1442,13 +1648,24 @@ public sealed class CharacterSkillGenerationService :
                     out skills,
                     out validationError));
         if (valid
-            && !TryValidateNarrativeText(request.progression, skills, out validationError))
+            && !TryValidateNarrativeText(request.progression, request.draft, skills, out validationError))
         {
             valid = false;
         }
 
         if (valid)
         {
+            foreach (GameplayOutcomeEvidenceBindingSnapshot binding in skills.SelectMany(value =>
+                         value.evidenceBindings ?? new List<GameplayOutcomeEvidenceBindingSnapshot>()))
+            {
+                if (outcomeEvidenceQuery == null)
+                    throw new InvalidOperationException("CharacterSkill evidence query is required before response commit.");
+                if (!outcomeEvidenceQuery.TryResolveExactBinding(binding, out _))
+                {
+                    RejectChangedEvidence(request, binding?.publicFactId ?? "<null>");
+                    return;
+                }
+            }
             foreach (CharacterSkillInstance skill in skills)
             {
                 skill.narrativeTrace = result.NarrativeTrace;
@@ -1465,7 +1682,7 @@ public sealed class CharacterSkillGenerationService :
             if (request.draft.nextPresentationIndex < expectedCount)
             {
                 request.attempts = 0;
-                request.correction = string.Empty;
+                request.draft.presentationCorrection = string.Empty;
                 request.preparedPrompt = string.Empty;
                 request.transportRequestKey = BuildTransportRequestKey(request);
                 request.nextAttemptAt = uiClock.Time;
@@ -1485,7 +1702,7 @@ public sealed class CharacterSkillGenerationService :
 
         if (result.IsSuccess)
         {
-            request.correction = validationError;
+            request.draft.presentationCorrection = validationError;
             request.preparedPrompt = string.Empty;
             LastDiagnostic = $"rejected={request.draft.requestKey}; reason={validationError}; response={result.Content.Length}";
         }
@@ -1508,11 +1725,13 @@ public sealed class CharacterSkillGenerationService :
 
     private static bool TryValidateNarrativeText(
         CharacterProgression progression,
+        CharacterSkillDraft draft,
         IEnumerable<CharacterSkillInstance> skills,
         out string error)
     {
         error = string.Empty;
-        string characterName = progression?.Actor?.Identity?.DisplayName;
+        string characterName = draft.requestContext?.version == 1
+            ? draft.requestContext.characterName : progression?.Actor?.Identity?.DisplayName;
         if (string.IsNullOrWhiteSpace(characterName))
         {
             characterName = progression?.GrowthState?.displayName;
@@ -1554,7 +1773,7 @@ public sealed class CharacterSkillGenerationService :
         request.completionOwnedByRuntime = false;
         request.draft.presentationFailureCount++;
         request.attempts++;
-        request.correction = reason?.Trim() ?? string.Empty;
+        request.draft.presentationCorrection = reason?.Trim() ?? string.Empty;
         request.preparedPrompt = string.Empty;
         LastDiagnostic = $"presentation-failed={request.draft.requestKey}; count={request.draft.presentationFailureCount}; reason={NormalizeDiagnostic(reason)}";
         if (request.draft.presentationFailureCount >= 5)
@@ -1759,6 +1978,50 @@ public static class CharacterSkillValidation
 
 public static class CharacterSkillPromptBuilder
 {
+    public static NarrativePublicContextMaterial BuildModuleSelectionPublicMaterial(
+        CharacterProgression progression, CharacterSkillDraft draft)
+    {
+        if (progression == null || draft == null) throw new ArgumentNullException();
+        string[] required = NarrativeEvidenceIds(draft);
+        CharacterNarrativeFact[] facts = progression.NarrativeLedger.Facts
+            .Where(fact => fact != null && required.Contains(
+                CharacterSkillFormulaGeneration.BuildEvidenceId(fact), StringComparer.Ordinal))
+            .ToArray();
+        if (facts.Length != required.Length)
+            throw new InvalidOperationException("Selected skill narrative evidence is absent or ambiguous.");
+        NarrativePublicContextMaterial material =
+            NarrativeRequestContextBuilder.BuildSkillMaterialWithRequiredFacts(progression,
+                facts.Select(fact => NarrativePublicContextFactory.BuildProjectedFactId(
+                    fact.domain.ToString(), fact.factId, fact.subjectId)));
+        material = GameplayOutcomeEvidencePublicMaterialComposer.AddExactEvidence(
+            material, draft.outcomeEvidenceBindings);
+        BuildNarrativeEvidenceReferences(draft, material);
+        return material;
+    }
+
+    private static string[] NarrativeEvidenceIds(CharacterSkillDraft draft) =>
+        (draft.moduleSelectionOffers ?? new List<CharacterSkillModuleOfferState>())
+        .Skip(draft.nextPresentationIndex).SelectMany(offer => offer.evidenceFactIds)
+        .Where(id => id.StartsWith("skill-evidence:", StringComparison.Ordinal))
+        .Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal).ToArray();
+
+    internal static Newtonsoft.Json.Linq.JObject BuildNarrativeEvidenceReferences(
+        CharacterSkillDraft draft, NarrativePublicContextMaterial material)
+    {
+        var references = new Newtonsoft.Json.Linq.JObject();
+        foreach (string id in NarrativeEvidenceIds(draft))
+        {
+            NarrativePublicFact[] matches = material.PublicFacts.Where(fact =>
+                CharacterSkillFormulaGeneration.BuildEvidenceId(
+                    fact.Domain, fact.OriginalFactId, fact.SourceSubjectId) == id).ToArray();
+            if (matches.Length != 1 || !material.Events.Any(value => value.FactId == matches[0].FactId))
+                throw new InvalidOperationException(
+                    "Selected skill evidence has no exact frozen public event: " + id);
+            references.Add(id, matches[0].FactId);
+        }
+        return references;
+    }
+
     public static NarrativePublicContextMaterial BuildPublicMaterial(
         CharacterProgression progression)
     {
@@ -1794,7 +2057,7 @@ public static class CharacterSkillPromptBuilder
             progression,
             draft,
             settings,
-            BuildPublicMaterial(progression),
+            draft.RestoreRequestPublicContext() ?? BuildModuleSelectionPublicMaterial(progression, draft),
             correction).Prompt;
     }
 
@@ -1808,7 +2071,7 @@ public static class CharacterSkillPromptBuilder
             progression,
             draft,
             settings,
-            BuildPublicMaterial(progression),
+            draft.RestoreRequestPublicContext() ?? BuildModuleSelectionPublicMaterial(progression, draft),
             correction);
     }
 
@@ -1871,16 +2134,23 @@ public static class CharacterSkillPromptBuilder
                 ? BuildModuleSelectionBatchPacket(draft, settings)
                 : BuildModuleSelectionPacket(draft, settings)
             : BuildPresentationPacket(draft));
-        string characterName = progression.Actor?.Identity?.DisplayName;
+        NarrativePublicContextMaterial frozenMaterial = draft.RestoreRequestPublicContext();
+        if (frozenMaterial != null && frozenMaterial.SemanticHash != publicMaterial.SemanticHash)
+            throw new InvalidOperationException("CharacterSkill prompt must use its frozen public context.");
+        CharacterSkillRequestContextSnapshot frozenHeader = frozenMaterial == null ? null : draft.requestContext;
+        string characterName = frozenHeader?.characterName ?? progression.Actor?.Identity?.DisplayName;
         if (string.IsNullOrWhiteSpace(characterName))
         {
             characterName = progression.GrowthState.displayName;
         }
 
         builder.AppendLine($"character={characterName ?? "인물"}");
-        builder.AppendLine($"origin={progression.GrowthState.origin ?? string.Empty}");
-        builder.AppendLine($"species={progression.Actor?.SpeciesTag ?? string.Empty}");
-        builder.AppendLine($"potential={CharacterSkillDisplay.Potential(progression.GrowthState.potentialGrade)}");
+        builder.AppendLine($"origin={frozenHeader?.origin ?? progression.GrowthState.origin ?? string.Empty}");
+        builder.AppendLine($"species={frozenHeader?.species ?? progression.Actor?.SpeciesTag ?? string.Empty}");
+        builder.AppendLine($"potential={frozenHeader?.potential ?? CharacterSkillDisplay.Potential(progression.GrowthState.potentialGrade)}");
+        if (moduleSelection)
+            builder.AppendLine("narrativeEvidenceRefs=" + BuildNarrativeEvidenceReferences(draft, publicMaterial)
+                .ToString(Newtonsoft.Json.Formatting.None));
         builder.AppendLine("반드시 JSON 객체 하나만 반환한다.");
         builder.AppendLine(moduleSelection
             ? batchModuleSelection
@@ -1888,6 +2158,10 @@ public static class CharacterSkillPromptBuilder
                 : "형식: {\"selectionId\":\"제공된 값 그대로\",\"positiveModuleIds\":[\"lowercase_snake_case 1~3개\"],\"drawbackModuleIds\":[\"character-skill:drawback:lowercase-kebab 0~1개\"],\"evidenceFactIds\":[\"제공된 근거 1~2개\"],\"displayName\":\"14자 이하 한국어 이름\",\"narrativeFlavor\":\"48자 이하 간결한 한국어 한 문장\"}"
             : "형식: {\"presentationId\":\"제공된 값 그대로\",\"displayName\":\"14자 이하 한국어 이름\",\"narrativeFlavor\":\"90자 이하 획득 서사\"}");
         builder.AppendLine("절대 규칙:");
+        if (moduleSelection)
+            builder.AppendLine("주효과 계약 v1: positiveModuleIds의 첫 항목은 근거 서사의 중심 효과이며 나머지는 보조다. "
+                + "C#은 추가 강화 예산을 주효과에 보조 전체 이상 배분한다. displayName은 첫 효과를 중심으로 짓고 "
+                + "보조 기능을 주된 능력처럼 이름 붙이지 않는다. 수치나 배분 비율은 작성하지 않는다.");
         builder.AppendLine(moduleSelection
             ? batchModuleSelection
                 ? "1. 최상위에는 candidates만 출력하고, 제공된 후보 수와 정확히 같은 수의 객체를 제공된 순서대로 출력한다. 각 객체에는 selectionId, positiveModuleIds, drawbackModuleIds, evidenceFactIds, displayName, narrativeFlavor만 출력한다."
@@ -1967,6 +2241,7 @@ public static class CharacterSkillPromptBuilder
         builder.AppendLine("skillContext=" + CharacterSkillPresentationSemantics
             .DescribeContext(rule, draft.kind));
         builder.AppendLine($"positiveModuleLimit=1..{request.MaximumPositiveModules}");
+        builder.AppendLine("주효과 계약 v1: positiveModuleIds[0]이 주효과다. 나머지는 보조효과다. 이름과 설명은 첫 효과를 중심으로 쓰고 보조효과를 주효과처럼 이름 붙이지 않는다. 수치·비율은 C#만 배분한다.");
         builder.AppendLine("positiveModules:");
         foreach (NarrativeFormulaModuleOffer offer in request.Offers
                      .Where(value => value.Polarity == NarrativeFormulaModulePolarity.Positive))

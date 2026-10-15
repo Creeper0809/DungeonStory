@@ -2025,7 +2025,7 @@ public sealed class AbilityHaul : MonoBehaviour, IHaulDeliveryPathFailureQuery
                     itemRuntime.ReleaseHaulDeliveryIntent(ownerOperationId);
                 actor.AddLog($"바닥 물건 {pickedStackCount}묶음을 정리했다.");
                 unloadReason = WorldItemHaulPlanUnloadReason.Completed;
-                AwardHaulingProficiency(deliveredQuantity);
+                AwardHaulingProficiency(deliveredQuantity, ownerOperationIds);
             }
 
             break;
@@ -2591,7 +2591,9 @@ public sealed class AbilityHaul : MonoBehaviour, IHaulDeliveryPathFailureQuery
         }
     }
 
-    private void AwardHaulingProficiency(int deliveredQuantity)
+    private void AwardHaulingProficiency(
+        int deliveredQuantity,
+        IReadOnlyCollection<string> ownerOperationIds)
     {
         if (deliveredQuantity <= 0
             || proficiencyCommands == null
@@ -2614,11 +2616,36 @@ public sealed class AbilityHaul : MonoBehaviour, IHaulDeliveryPathFailureQuery
                 BuiltInWorkTypeIds.Haul),
             repetitionMultiplier: 1f,
             absoluteHour: calendar.AbsoluteHour);
-        if (!speciesCommands.RecordCompletedWork(
+        string[] owners = (ownerOperationIds ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        if (owners.Length == 0)
+            throw new System.InvalidOperationException(
+                "Species hauling wear requires the completed delivery identity.");
+        string sourceOperationId = owners.Length == 1
+                && GameplayOutcomeStableIdSyntax.IsValid(owners[0])
+            ? owners[0]
+            : "haul-delivery:"
+                + id.Value
+                + ":"
+                + PersistentEntityId.GetStableHash32(string.Join("|", owners));
+        DomainFailure failure;
+        bool recorded = speciesCommands is ICharacterSpeciesContributionCommand exact
+            ? exact.RecordCompletedWork(
+                id,
+                sourceOperationId,
+                BuiltInWorkTypeIds.Haul.Value,
+                deliveredQuantity,
+                out failure)
+            : speciesCommands.RecordCompletedWork(
                 id,
                 BuiltInWorkTypeIds.Haul.Value,
                 deliveredQuantity,
-                out DomainFailure failure))
+                out failure);
+        if (!recorded)
             throw new System.InvalidOperationException(
                 $"Species hauling wear projection failed: {failure.Code}");
     }

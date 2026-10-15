@@ -51,6 +51,8 @@ public interface IWildlifeCaptureRuntime
     IReadOnlyList<CapturedWildlifeState> CapturedAnimals { get; }
     void CopyCapturedAnimalReferences(List<CapturedWildlifeState> destination);
     IReadOnlyList<CapturedWildlifeState> Capture();
+    int NextGameplayOutcomeSequence { get; }
+    IReadOnlyList<WildlifeGameplayOutcomeSaveData> CaptureGameplayOutcomes();
     void ValidateRestore(CircusSaveData saveData, DungeonGameRestoreReport report);
     void StageRestore(CircusRestoreCandidate candidate);
     void PublishRestoreProjection();

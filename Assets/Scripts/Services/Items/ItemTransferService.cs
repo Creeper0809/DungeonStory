@@ -384,8 +384,64 @@ public interface IAtomicItemConsumptionService
         out DomainFailure failure);
 }
 
+public readonly struct AtomicItemConsumptionLine
+{
+    public AtomicItemConsumptionLine(
+        string stackId,
+        string itemId,
+        int requestedQuantity,
+        int quantityBefore,
+        int quantityAfter)
+    {
+        StackId = stackId?.Trim() ?? string.Empty;
+        ItemId = itemId?.Trim() ?? string.Empty;
+        RequestedQuantity = Mathf.Max(0, requestedQuantity);
+        QuantityBefore = Mathf.Max(0, quantityBefore);
+        QuantityAfter = Mathf.Max(0, quantityAfter);
+    }
+
+    public string StackId { get; }
+    public string ItemId { get; }
+    public int RequestedQuantity { get; }
+    public int QuantityBefore { get; }
+    public int QuantityAfter { get; }
+}
+
+public sealed class AtomicItemConsumptionReceipt
+{
+    public AtomicItemConsumptionReceipt(
+        string reservationOwnerId,
+        IReadOnlyList<AtomicItemConsumptionLine> lines)
+    {
+        ReservationOwnerId = reservationOwnerId?.Trim() ?? string.Empty;
+        Lines = (lines ?? Array.Empty<AtomicItemConsumptionLine>()).ToArray();
+    }
+
+    public string ReservationOwnerId { get; }
+    public IReadOnlyList<AtomicItemConsumptionLine> Lines { get; }
+
+    public string ToCanonicalEvidence() => string.Join(
+        ";",
+        Lines
+            .OrderBy(value => value.StackId, StringComparer.Ordinal)
+            .Select(value =>
+                $"owner={ReservationOwnerId}|stack={value.StackId}|item={value.ItemId}" +
+                $"|requested={value.RequestedQuantity}|before={value.QuantityBefore}" +
+                $"|after={value.QuantityAfter}"));
+}
+
+public interface IAtomicItemConsumptionEvidenceService
+{
+    bool TryConsumeReservedWithEvidence(
+        IReadOnlyList<ReservedItemConsumption> consumptions,
+        string reservationOwnerId,
+        out AtomicItemConsumptionReceipt receipt,
+        out DomainFailure failure);
+}
+
 public sealed class AtomicItemConsumptionService :
-    IAtomicItemConsumptionService
+    IAtomicItemConsumptionService,
+    IAtomicItemConsumptionEvidenceService
 {
     private readonly WorldItemRepository repository;
     private readonly IItemMarkerPresenter markerPresenter;
@@ -413,6 +469,20 @@ public sealed class AtomicItemConsumptionService :
         string reservationOwnerId,
         out DomainFailure failure)
     {
+        return TryConsumeReservedWithEvidence(
+            consumptions,
+            reservationOwnerId,
+            out _,
+            out failure);
+    }
+
+    public bool TryConsumeReservedWithEvidence(
+        IReadOnlyList<ReservedItemConsumption> consumptions,
+        string reservationOwnerId,
+        out AtomicItemConsumptionReceipt receipt,
+        out DomainFailure failure)
+    {
+        receipt = null;
         failure = DomainFailure.None;
         string owner = reservationOwnerId?.Trim() ?? string.Empty;
         ReservedItemConsumption[] costs = (consumptions
@@ -426,6 +496,9 @@ public sealed class AtomicItemConsumptionService :
             .ToArray();
         if (costs.Length == 0)
         {
+            receipt = new AtomicItemConsumptionReceipt(
+                owner,
+                Array.Empty<AtomicItemConsumptionLine>());
             return true;
         }
         if (owner.Length == 0)
@@ -460,6 +533,7 @@ public sealed class AtomicItemConsumptionService :
         }
 
         List<(WorldItemStackRecord record, int quantity)> resolved = new();
+        List<AtomicItemConsumptionLine> evidenceLines = new();
         List<(string leaseId, int quantity)> leaseConsumptions = new();
         foreach (ReservedItemConsumption cost in costs)
         {
@@ -494,6 +568,12 @@ public sealed class AtomicItemConsumptionService :
                 return false;
             }
             resolved.Add((record, cost.Quantity));
+            evidenceLines.Add(new AtomicItemConsumptionLine(
+                record.stackId,
+                record.itemId,
+                cost.Quantity,
+                record.quantity,
+                record.quantity - cost.Quantity));
         }
 
         if (resolved.Any(value =>
@@ -538,6 +618,7 @@ public sealed class AtomicItemConsumptionService :
         {
             markerPresenter.RefreshAt(position);
         }
+        receipt = new AtomicItemConsumptionReceipt(owner, evidenceLines);
         return true;
     }
 }

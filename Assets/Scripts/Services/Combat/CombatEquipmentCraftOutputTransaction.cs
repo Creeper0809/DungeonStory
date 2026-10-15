@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 /// <summary>
@@ -26,7 +27,8 @@ public sealed class CombatEquipmentCraftOutputTransaction :
     private readonly IQualityRejectedSaleDestinationAuthority
         rejectedSaleDestination;
     private readonly IEquipmentPhysicalItemGateway physicalItems;
-    private readonly IProductQualityOutcomeCommitter qualityOutcomes;
+    private readonly IDomainFactStagingPublisher facts;
+    private readonly IObservedProductionDomainOutputPublicationService observedPublication;
 
     public CombatEquipmentCraftOutputTransaction(
         CombatEquipmentRuntimeStateStore stateStore,
@@ -34,7 +36,8 @@ public sealed class CombatEquipmentCraftOutputTransaction :
         IProductionDomainOutputPublicationService publication,
         IQualityRejectedSaleDestinationAuthority rejectedSaleDestination,
         IEquipmentPhysicalItemGateway physicalItems,
-        IProductQualityOutcomeCommitter qualityOutcomes)
+        IDomainFactStagingPublisher facts,
+        IObservedProductionDomainOutputPublicationService observedPublication)
     {
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
@@ -46,8 +49,9 @@ public sealed class CombatEquipmentCraftOutputTransaction :
             ?? throw new ArgumentNullException(nameof(rejectedSaleDestination));
         this.physicalItems = physicalItems
             ?? throw new ArgumentNullException(nameof(physicalItems));
-        this.qualityOutcomes = qualityOutcomes
-            ?? throw new ArgumentNullException(nameof(qualityOutcomes));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.observedPublication = observedPublication
+            ?? throw new ArgumentNullException(nameof(observedPublication));
     }
 
     public string OutputOwnerDomainId => OwnerDomainId;
@@ -120,14 +124,28 @@ public sealed class CombatEquipmentCraftOutputTransaction :
                     order.outputCapability.ToDescriptor())
             },
             releaseTarget);
-        ProductionDomainOutputPublicationResult result = publication
-            .EnsureCommitted(order.outputPublication, plan);
+        ProductionDomainOutputPublicationResult result;
+        try
+        {
+            result = observedPublication.EnsureCommitted(order.outputPublication, plan, preview =>
+            {
+                if (order.outputPublication.observationExpected)
+                    return CombatEquipmentCraftCompletedFact.Restore(order, preview);
+                var fact = CombatEquipmentCraftCompletedFact.Capture(order, preview);
+                order.completionFact = fact.Snapshot();
+                return fact;
+            });
+        }
+        finally
+        {
+            if (!order.outputPublication.observationExpected)
+                order.completionFact = new CombatEquipmentCraftCompletionFactData();
+        }
         if (result.IsCommitted)
         {
             order.outputPhase = CombatEquipmentCraftOutputPhase
                 .PublishedAwaitingInputAcknowledgement;
-            // Transitional compatibility fields remain derived until the
-            // unique-equipment path joins this same envelope.
+            // Compatibility projections derive from the same physical owner.
             order.outputPublished = true;
             order.outputCommitId = order.outputPublication.batchCommitId;
             order.outputStackId = ammunition
@@ -144,64 +162,70 @@ public sealed class CombatEquipmentCraftOutputTransaction :
     {
         conflict = false;
         failureReason = string.Empty;
-        if (order.qualityOutcomeSchemaVersion == 0)
-        {
-            // Legacy resolved attempts predate the canonical product-quality
-            // receipt. Do not invent a historical maker/name snapshot.
-            return true;
-        }
-        if (order.qualityOutcomeSchemaVersion != 1)
-        {
-            conflict = true;
-            failureReason = "combat-quality-outcome-schema-invalid";
-            return false;
-        }
-        if (order.qualityOutcomeCommitted)
-            return true;
-
-        ProductQualityOutcomeReceipt receipt;
+        CombatEquipmentQualityResolvedFact fact;
         try
         {
-            receipt = new ProductQualityOutcomeReceipt(
-                order.outputOperationId,
-                order.qualityAttemptIndex,
-                order.resolvedMakerCharacterId,
-                order.resolvedMakerDisplayName,
-                order.definitionId,
-                (CraftsmanshipQualityTier)(int)order.resolvedQuality,
-                order.qualityAttemptIndex,
-                order.resolvedAbsoluteDay,
-                (int)order.resolvedQuality < (int)order.minimumQuality);
+            CombatEquipmentQualityResolvedFact.ValidateOwner(order);
+            fact = CombatEquipmentQualityResolvedFact.FromOrder(order);
         }
         catch (Exception exception) when (exception is ArgumentException
                                            or InvalidOperationException
                                            or OverflowException)
         {
             conflict = true;
-            failureReason = "combat-quality-outcome-receipt-invalid:"
+            failureReason = "combat-quality-fact-invalid:"
                 + exception.Message;
             return false;
         }
-        if (!qualityOutcomes.TryPrepare(
-                receipt,
-                out PreparedEvolutionOutcome prepared,
-                out string prepareFailure))
+        if (!facts.TryStage(fact, out var stage, out string prepareFailure))
         {
             failureReason = "combat-quality-outcome-prepare:"
                 + prepareFailure;
             return false;
         }
-        if (!qualityOutcomes.TryCommit(
-                prepared,
-                order.qualityAttemptIndex,
-                out string commitFailure))
+        if (stage.OwnerRevision != fact.OwnerRevision
+            || order.qualityOutcomeResultKey.Length > 0 && order.qualityOutcomeResultKey != stage.OperationKey
+            || order.qualityOutcomeCommitted && !stage.IsReplay)
         {
-            failureReason = "combat-quality-outcome-commit:"
-                + commitFailure;
+            stage.Cancel(); conflict = true;
+            failureReason = "combat-quality-observation-identity-conflict";
+            return false;
+        }
+        // Persist the observer's opaque identity before committing. An unknown
+        // reply retries this same resolved attempt, never rerolls or emits a new one.
+        order.qualityOutcomeResultKey = stage.OperationKey;
+        DomainFactDelivery delivered = stage.Commit();
+        if (!delivered.Completed)
+        {
+            failureReason = "combat-quality-observation-pending:" + delivered.Detail;
+            return false;
+        }
+        if (delivered.OperationKey != order.qualityOutcomeResultKey)
+        {
+            conflict = true; failureReason = "combat-quality-observation-delivery-conflict";
             return false;
         }
         order.qualityOutcomeCommitted = true;
         return true;
+    }
+
+    public bool TryEnsureObservationDelivered(
+        CombatEquipmentCraftOrderSaveData order,
+        out string failureReason)
+    {
+        if (order?.outputPublication?.observationExpected != true)
+        {
+            failureReason = "combat-craft-observation-owner-missing";
+            return false;
+        }
+        if (order.outputPublication.outputAcknowledged)
+        {
+            CombatEquipmentCraftCompletedFact.Restore(order);
+            failureReason = order.outputPublication.observationDelivered ? string.Empty : "combat-craft-ack-before-observation";
+            return order.outputPublication.observationDelivered;
+        }
+        return observedPublication.TryRecover(order.outputPublication, OwnerStableId(order),
+            preview => CombatEquipmentCraftCompletedFact.Restore(order, preview), out failureReason);
     }
 
     public bool TryAcknowledgeAndRoute(
@@ -211,7 +235,7 @@ public sealed class CombatEquipmentCraftOutputTransaction :
     {
         failureReason = string.Empty;
         if (order == null
-            || order.outputPublication == null
+            || order.outputPublication == null || !order.outputPublication.observationDelivered
             || order.outputPhase is not (
                 CombatEquipmentCraftOutputPhase
                     .PublishedAwaitingInputAcknowledgement

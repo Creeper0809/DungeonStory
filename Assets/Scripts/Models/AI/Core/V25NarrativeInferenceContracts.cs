@@ -355,6 +355,49 @@ public static class NarrativeExactKeyContract
         return true;
     }
 
+    // Exact keys are checked before this projection. Transport identifiers are
+    // validated against the offered candidates by each domain parser; they are
+    // not player prose and may intentionally contain a public fact's stable ID.
+    internal static bool TryCollectPlayerFacingText(string json, out List<string> text, out string error)
+    {
+        text = new List<string>();
+        return CollectPlayerFacingText(json, text, out error);
+    }
+
+    private static bool CollectPlayerFacingText(string json, List<string> text, out string error)
+    {
+        if (!StrictJsonReader.TryReadSingleObject(json, out _, out Dictionary<string, string> properties, out error))
+            return false;
+        foreach (KeyValuePair<string, string> property in properties)
+        {
+            switch (property.Key)
+            {
+                case "displayName": case "narrativeFlavor": case "description": case "narrativeReason":
+                case "personaName": case "flavorText": case "historyReason": case "reason":
+                    if (!StrictJsonReader.TryReadStringValue(property.Value, out string value, out error))
+                        return false;
+                    text.Add(value);
+                    break;
+                case "candidates": case "reasons":
+                    if (!StrictJsonReader.TryReadArrayElements(property.Value, out List<string> elements, out error))
+                        return false;
+                    foreach (string element in elements)
+                        if (!CollectPlayerFacingText(element, text, out error)) return false;
+                    break;
+                case "presentationId": case "selectionId": case "positiveModuleIds": case "drawbackModuleIds":
+                case "evidenceFactIds": case "ruleId": case "combinationId": case "proposalIds": case "mutationTags":
+                case "confidence": case "proposalId": case "selectedIndex": case "requestKey": case "targetPersistentId":
+                case "nodeId": case "parentNodeId": case "effectId": case "effectBudget": case "evidenceIds":
+                    break;
+                default:
+                    error = "Narrative quality field contract is missing: " + property.Key;
+                    return false;
+            }
+        }
+        error = string.Empty;
+        return true;
+    }
+
     internal static bool TryReadIntegerProperty(
         string json,
         string propertyName,
@@ -386,6 +429,20 @@ public static class NarrativeExactKeyContract
         private StrictJsonReader(string source)
         {
             this.source = source ?? string.Empty;
+        }
+
+        public static bool TryReadStringValue(string json, out string value, out string error)
+        {
+            var reader = new StrictJsonReader(json);
+            reader.SkipWhitespace();
+            if (!reader.TryReadString(out value, out error)) return false;
+            reader.SkipWhitespace();
+            if (reader.position != reader.source.Length)
+            {
+                error = "Narrative prose contains trailing JSON content.";
+                return false;
+            }
+            return true;
         }
 
         public static bool TryReadSingleObject(

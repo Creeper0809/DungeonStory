@@ -9,6 +9,7 @@ public sealed class CharacterAmbitionDefinitionSO : V20AuthoredContentSO
 {
     public CharacterAmbitionCategory category;
     [Min(1)] public int targetProgress = 100;
+    [Min(1)] public int deadlineDays = 30;
     public V20ContentRequirementSet activationRequirements = new();
     public V20ContentRequirementSet failureConditions = new();
     public List<V20ContentEffect> completionRewards = new();
@@ -21,6 +22,8 @@ public sealed class CharacterAmbitionDefinitionSO : V20AuthoredContentSO
         List<string> errors = base.ValidateDefinition().ToList();
         errors.AddRange((activationRequirements ?? new()).Validate(StableId));
         if (targetProgress < 1) errors.Add($"'{StableId}' target progress must be positive.");
+        if (deadlineDays < 1)
+            errors.Add($"'{StableId}' ambition deadline must be positive.");
         if (completionRewards == null || completionRewards.Count == 0 || completionRewards.Any(value => value == null || !value.IsValid))
             errors.Add($"'{StableId}' requires valid completion rewards.");
         return errors;

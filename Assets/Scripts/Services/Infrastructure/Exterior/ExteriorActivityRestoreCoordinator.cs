@@ -404,6 +404,13 @@ internal sealed class ExteriorActivityRestoreCoordinator
             new(activeIncidentActorIds, StringComparer.Ordinal);
         legitimateTransientCustomerOwners.UnionWith(
             societyIncidentActorIds);
+        // Ordinary visitors are owned by the population in this same save,
+        // not by an incident. Never consult the previous live population here.
+        if (world.RestoreCandidates is IRestoreVisitingPopulationCandidateQuery population
+            && population.TryGetVisitingPopulationIds(out IReadOnlyList<CharacterId> visitingIds))
+            legitimateTransientCustomerOwners.UnionWith(visitingIds.Select(value => value.Value));
+        else if (restoredCustomerIds.Count > 0)
+            report.AddError("Exterior activity restore requires the staged visitor population candidate.");
         foreach (string customerId in restoredCustomerIds
                      .Except(
                          legitimateTransientCustomerOwners,
@@ -411,7 +418,7 @@ internal sealed class ExteriorActivityRestoreCoordinator
                      .OrderBy(value => value, StringComparer.Ordinal))
         {
             report.AddError(
-                $"Restored transient customer '{customerId}' is not owned by an active Exterior or Society incident.");
+                $"Restored transient customer '{customerId}' is not owned by the visiting population or an active Exterior or Society incident.");
         }
     }
 

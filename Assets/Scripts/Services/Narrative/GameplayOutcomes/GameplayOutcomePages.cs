@@ -12,7 +12,7 @@ public sealed class GameplayOutcomeBufferLimits
     public const int AbsoluteMaximumProvenancePerOutcome = 2048;
     public const int AbsoluteMaximumFactsPerOutcome = 64;
     public const int MaximumFactValueUtf16Length = 4096;
-    public const int MaximumDisplayTextUtf16Length = 256;
+    public const int MaximumDisplayTextUtf16Length = DungeonStory.Foundation.Facts.DomainFactValueSyntax.MaximumNameCharacters;
     public const int MaximumPronunciationValueUtf16Length = 128;
     public const int MaximumLocaleLength = 32;
     public const int AbsoluteMaximumCompactedMetricKeys = 8192;
@@ -27,7 +27,11 @@ public sealed class GameplayOutcomeBufferLimits
         int smallTags = 16,
         int smallAnchors = 16,
         int smallProvenance = 16,
-        int smallFacts = 8,
+        // Fact count alone must not consume the eight giant participant/metric
+        // slabs: routine work/facility/skill results already carry 9/12/22 facts.
+        // Facts have a separate hard bound of 64; keep that bounded lane available
+        // in ordinary records without increasing any page or retained-slot count.
+        int smallFacts = AbsoluteMaximumFactsPerOutcome,
         int largeParticipants = AbsoluteMaximumParticipantsPerOutcome,
         int largeMetrics = AbsoluteMaximumMetricsPerOutcome,
         int largeSubjects = AbsoluteMaximumSubjectsPerOutcome,
@@ -197,11 +201,15 @@ internal sealed class GameplayOutcomeValuePage
     public GameplayOperationId OperationId;
     public long Sequence;
     public int AbsoluteDay;
+    public int DeliveryMetadataVersion;
+    public string DeliveryClockId = string.Empty;
+    public long RecordedAbsoluteHour;
     public GameplayOutcomeStatus Status;
     public long WorldEpoch;
     public long OwnerRevision;
     public long CommitGeneration;
     public long PublishedRevision;
+    public string DeliveryDelayReason = string.Empty;
     public int PublishedListSlot;
     public GameplayLocationReference Location;
     public GameplayOutcomeCausation Causation;
@@ -258,11 +266,15 @@ internal sealed class GameplayOutcomeValuePage
         OperationId = requirements.OperationId;
         Sequence = 0L;
         AbsoluteDay = requirements.AbsoluteDay;
+        DeliveryMetadataVersion = 0;
+        DeliveryClockId = string.Empty;
+        RecordedAbsoluteHour = 0L;
         Status = requirements.Status;
         WorldEpoch = requirements.WorldEpoch;
         OwnerRevision = requirements.OwnerRevision;
         CommitGeneration = -1L;
         PublishedRevision = 0L;
+        DeliveryDelayReason = string.Empty;
         PublishedListSlot = -1;
         Location = default;
         Causation = default;
@@ -312,8 +324,13 @@ internal sealed class GameplayOutcomeValuePage
         ResultKey = default;
         OutcomeTypeId = default;
         OperationId = default;
+        DeliveryMetadataVersion = 0;
+        DeliveryClockId = string.Empty;
+        RecordedAbsoluteHour = 0L;
+        PublishedRevision = 0L;
         Location = default;
         Causation = default;
+        DeliveryDelayReason = string.Empty;
         LastDeliveryFaultCode = string.Empty;
         ImmutablePayloadHash = string.Empty;
         Array.Clear(ImmutablePayloadDigest, 0, ImmutablePayloadDigest.Length);
@@ -367,11 +384,15 @@ internal sealed class GameplayOutcomeValuePage
         OperationId = source.OperationId;
         Sequence = source.Sequence;
         AbsoluteDay = source.AbsoluteDay;
+        DeliveryMetadataVersion = source.DeliveryMetadataVersion;
+        DeliveryClockId = source.DeliveryClockId;
+        RecordedAbsoluteHour = source.RecordedAbsoluteHour;
         Status = source.Status;
         WorldEpoch = source.WorldEpoch;
         OwnerRevision = source.OwnerRevision;
         CommitGeneration = source.CommitGeneration;
         PublishedRevision = source.PublishedRevision;
+        DeliveryDelayReason = source.DeliveryDelayReason;
         PublishedListSlot = source.PublishedListSlot;
         Location = source.Location;
         Causation = source.Causation;
@@ -829,6 +850,11 @@ public readonly struct GameplayOutcomeReadView
     public long Sequence => page.Sequence;
     public long OwnerRevision => page.OwnerRevision;
     public int AbsoluteDay => page.AbsoluteDay;
+    public int DeliveryMetadataVersion => page.DeliveryMetadataVersion;
+    public string DeliveryClockId => page.DeliveryClockId;
+    public long RecordedAbsoluteHour => page.RecordedAbsoluteHour;
+    public long PublishedRevision => page.PublishedRevision;
+    public string DeliveryDelayReason => page.DeliveryDelayReason;
     public GameplayOutcomeStatus Status => page.Status;
     public GameplayLocationReference Location => page.Location;
     public GameplayOutcomeCausation Causation => page.Causation;

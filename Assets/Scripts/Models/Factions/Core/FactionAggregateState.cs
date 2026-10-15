@@ -17,6 +17,8 @@ public sealed class FactionAggregateState
     public int RouteSequence { get; set; }
     public int RouteSettlementOperationSequence { get; set; }
     public int GoodwillOperationSequence { get; set; }
+    public int RelationshipObservationSequence { get; set; }
+    public List<FactionRelationshipObservationData> RelationshipObservations { get; } = new();
     public long AllianceBenefitBalanceMilliEwu { get; set; }
     public long AllianceBenefitRefillRemainder { get; set; }
     public int AllianceBenefitLastRefillDay { get; set; } = 1;

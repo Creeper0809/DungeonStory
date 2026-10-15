@@ -438,14 +438,9 @@ public sealed class CharacterAlarmResponseRuntime :
                 characterId,
                 epochId,
                 reasonCode);
-            actor?.AddActivity(CharacterActivityEvent.Work(
-                suspended.WorkTypeId,
-                CharacterActivityOutcomes.Cancelled,
-                target == null
-                    ? "비상 중단 중 원래 작업 대상이 사라져 작업을 폐기하고 다시 계획합니다."
-                    : $"비상 중단 작업을 복귀하지 못해 다시 계획합니다: {restoreFailure}",
-                target,
-                reasonCode: reasonCode));
+            if (cleared.Success && actor != null)
+                events.Publish(new CharacterInterruptedWorkAbandonedEvent(
+                    actor, suspended.WorkTypeId, target, reasonCode, restoreFailure));
         }
         if (!cleared.Success)
         {
@@ -842,6 +837,11 @@ public sealed class CharacterAlarmResponseRuntime :
         in EmergencyWorkSuspensionReceipt receipt,
         long effectiveAlertEpochId)
     {
+        TryFindCharacter(characterId, out var worker);
+        BuildableObject target = null;
+        foreach (var building in buildings.Buildings)
+            if (building != null && building.PersistentInstanceId.Value == receipt.TargetBuildingId)
+            { target = building; break; }
         EmergencyAccountingResult recorded = alerts.RecordSuspendedWork(
             new SettlementSuspendedWorkSnapshot(
                 characterId,
@@ -852,7 +852,9 @@ public sealed class CharacterAlarmResponseRuntime :
                 receipt.ProgressExternallyPersisted,
                 receipt.InlineCompletedWork,
                 receipt.InlineRequiredWork,
-                receipt.OutcomeOwnerRevision));
+                receipt.OutcomeOwnerRevision,
+                worker?.Identity?.DisplayName?.Trim() ?? string.Empty,
+                target?.BuildingData?.objectName?.Trim() ?? string.Empty));
         if (recorded.Success)
             return;
 

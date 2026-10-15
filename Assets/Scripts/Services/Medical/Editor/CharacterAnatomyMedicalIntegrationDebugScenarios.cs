@@ -1,12 +1,106 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 
 public static class CharacterAnatomyMedicalIntegrationDebugScenarios
 {
+    public static void RunD04FromBatch()
+    {
+        if (!Application.isBatchMode)
+        {
+            throw new InvalidOperationException(
+                "D04 requires the owned isolated batch verification context.");
+        }
+        string configured = Environment.GetEnvironmentVariable(
+            "DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        if (string.IsNullOrWhiteSpace(configured)
+            || !Path.IsPathRooted(configured))
+        {
+            throw new InvalidOperationException(
+                "D04 requires an absolute isolated QA output directory.");
+        }
+
+        string projectRoot = Directory.GetParent(Application.dataPath)?.FullName
+            ?? throw new InvalidOperationException("Unity project root is unavailable.");
+        string qaRoot = Path.GetFullPath(Path.Combine(projectRoot, "Artifacts/QA"));
+        string output = Path.GetFullPath(configured);
+        string reportPath = Path.Combine(output, "medical-d04-components-report.json");
+        if (!output.StartsWith(
+                qaRoot + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase)
+            || File.Exists(reportPath))
+        {
+            throw new InvalidOperationException(
+                "D04 report must be a create-only path under Artifacts/QA.");
+        }
+
+        string runDirectory = Directory.GetParent(output)?.FullName
+            ?? throw new InvalidOperationException("D04 run directory is unavailable.");
+        if (!string.Equals(Path.GetFileName(output), "unity-evidence",
+                StringComparison.OrdinalIgnoreCase)
+            || !runDirectory.StartsWith(qaRoot + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("D04 requires the launcher evidence directory.");
+        string probePath = Path.Combine(runDirectory, "isolation-probe.txt");
+        string probe = File.ReadAllText(probePath);
+        if (!probe.Contains("PASS_NONINTERACTIVE_PROBE", StringComparison.Ordinal)
+            || !probe.Contains("visible=false", StringComparison.Ordinal)
+            || !probe.Contains("windowCreatedAndDestroyed=true", StringComparison.Ordinal)
+            || !probe.Contains("inJob=true", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "D04 requires the successful per-run noninteractive OS probe.");
+        }
+
+        string previousRoot = Environment.GetEnvironmentVariable(
+            DungeonPersistencePaths.VerificationRootVariable);
+        try
+        {
+            Environment.SetEnvironmentVariable(
+                DungeonPersistencePaths.VerificationRootVariable,
+                Path.Combine(output, "persistent-data"));
+            if (!DungeonPersistencePaths.IsIsolatedVerification)
+                throw new InvalidOperationException("D04 isolated persistence is unavailable.");
+            // These retained component contracts are not a new natural-play or
+            // coupled clinical witness. The real scene witness is bound separately.
+            CharacterMedicalOutcomeProductionEntryDebugScenarios.RunOrThrow();
+            VerifySurfaceHealingAuthority();
+            CharacterMedicalSupplyOutboxDebugScenarios.RunAll();
+
+            JObject report = new()
+            {
+                ["schema"] = "dungeonstory-d04-component-report@1",
+                ["rowId"] = "D04",
+                ["passed"] = true,
+                ["rowCurrentEvidenceComplete"] = false,
+                ["clinicalOutcome"] = "stabilization,reserve-rejected,write-rejected,small-treatment,pending-ledger-restore-retry,partial-labor-interruption",
+                ["surfaceHealing"] = "human,slime;canonical-budget,read-stability,zero-work-no-op",
+                ["physicalSupply"] = "published-ack-fault,ack-only-recovery,uncommitted-intent,exact-extracted-blood-definition",
+                ["scope"] = "Original clinical runtime/real ledger with body-mutation and supply test ports; separate real body-health surface contracts; real physical repository/Sink/coordinator with controlled stock queries and tare. Not a coupled natural clinical, Brain/UI, whole-world or cold-restore witness.",
+                ["exportLimitations"] = "Assertion summary only; no observed full DTO or numeric identity export is fabricated from test expectations.",
+                ["fullAuditClosure"] = false,
+                ["humanApprovalClaimed"] = false,
+                ["trainingEligible"] = false
+            };
+            Directory.CreateDirectory(output);
+            using FileStream stream = new(
+                reportPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            using StreamWriter writer = new(stream);
+            writer.Write(report.ToString(Newtonsoft.Json.Formatting.Indented));
+            Debug.Log("U0_D04_MEDICAL_COMPONENTS=PASS; report=" + reportPath);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(
+                DungeonPersistencePaths.VerificationRootVariable, previousRoot);
+        }
+    }
+
     public static void VerifySurfaceHealingAuthority()
     {
         VerifySurfaceHealing("Human", "torso");

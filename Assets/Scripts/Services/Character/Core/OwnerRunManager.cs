@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
+using DungeonStory.Foundation.Facts;
 using System.Linq;
 using DungeonStory.Content.CoreSession;
 using DungeonStory.Foundation;
@@ -23,7 +23,12 @@ public class OwnerRunManager : SerializedMonoBehaviour
     private IOwnerCandidateCatalog ownerCandidateCatalog;
     private IOwnerCharacterFactory ownerCharacterFactory;
     private IGameEventBus gameEventBus;
-    private IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private IDomainFactPublisher factPublisher;
+    private IDomainFactRecoveryPublisher factRecovery;
+    private IRunCompletionPreparation completionPreparation;
+    private bool completionMutationActive;
+    private float nextCompletionRetry;
+    private string lastCompletionFailure;
     private IRunSeedProvider runSeedProvider;
     private DungeonRuntimeAggregateRootStore aggregateRootStore;
     private CoreSessionRulesDefinition coreSessionRules;
@@ -46,6 +51,8 @@ public class OwnerRunManager : SerializedMonoBehaviour
         selectedOwnerData ??= new Data<CharacterSO>();
     }
 
+    #if UNITY_EDITOR
+    // Actor-only fixture setup; completion still requires explicit fact observers.
     public void ConstructOwnerRunManager(
         IOwnerCandidateCatalog ownerCandidateCatalog,
         IOwnerCharacterFactory ownerCharacterFactory,
@@ -56,24 +63,31 @@ public class OwnerRunManager : SerializedMonoBehaviour
         null,
         null,
         null,
+        null,
+        null,
         null);
+    #endif
 
     [Inject]
     public void ConstructOwnerRunManager(
         IOwnerCandidateCatalog ownerCandidateCatalog,
         IOwnerCharacterFactory ownerCharacterFactory,
         IGameEventBus gameEventBus,
-        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        IDomainFactPublisher factPublisher,
         IRunSeedProvider runSeedProvider,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
-        ICoreSessionRulesProvider rulesProvider)
+        ICoreSessionRulesProvider rulesProvider,
+        IDomainFactRecoveryPublisher factRecovery,
+        IRunCompletionPreparation completionPreparation)
     {
         this.ownerCandidateCatalog = ownerCandidateCatalog
             ?? throw new ArgumentNullException(nameof(ownerCandidateCatalog));
         this.ownerCharacterFactory = ownerCharacterFactory
             ?? throw new ArgumentNullException(nameof(ownerCharacterFactory));
         this.gameEventBus = gameEventBus;
-        this.outcomeTransactions = outcomeTransactions;
+        this.factPublisher = factPublisher;
+        this.factRecovery = factRecovery;
+        this.completionPreparation = completionPreparation;
         this.runSeedProvider = runSeedProvider;
         this.aggregateRootStore = aggregateRootStore;
         coreSessionRules = rulesProvider?.CoreSessionRules;
@@ -98,7 +112,7 @@ public class OwnerRunManager : SerializedMonoBehaviour
         EnsureOwnerCandidates();
         if (index < 0 || index >= ownerCandidates.Length)
         {
-            gameEventBus?.ShowNotice("선택할 사장 후보가 없습니다.", NoticeFeedEvent.Grade.WARNING);
+            gameEventBus?.Publish(new OwnerRunObservation(OwnerRunObservationKind.InvalidCandidateIndex));
             return;
         }
 
@@ -108,16 +122,18 @@ public class OwnerRunManager : SerializedMonoBehaviour
     public void SelectOwner(CharacterSO ownerData, string displayNameOverride = null)
     {
         RequireNoPendingRestorePublication();
+        if (aggregateRootStore?.GetOrCreate(() => new DungeonRunFlowAggregateState()).PendingCompletion != null)
+            throw new InvalidOperationException("Owner replacement is blocked by pending completion observation.");
 
         if (ownerData == null)
         {
-            gameEventBus?.ShowNotice("사장 데이터가 없습니다.", NoticeFeedEvent.Grade.DANGER);
+            gameEventBus?.Publish(new OwnerRunObservation(OwnerRunObservationKind.MissingOwnerData));
             return;
         }
 
         if (!ownerData.IsOwnerCandidate)
         {
-            gameEventBus?.ShowNotice($"{ownerData.characterName}은 사장 후보가 아닙니다.", NoticeFeedEvent.Grade.WARNING);
+            gameEventBus?.Publish(new OwnerRunObservation(OwnerRunObservationKind.NotOwnerCandidate, ownerData.characterName));
             return;
         }
 
@@ -132,10 +148,7 @@ public class OwnerRunManager : SerializedMonoBehaviour
         string displayName = string.IsNullOrWhiteSpace(displayNameOverride)
             ? ownerData.characterName
             : displayNameOverride.Trim();
-        string notice = displayName.EndsWith("사장", StringComparison.Ordinal)
-            ? $"{displayName}으로 시작"
-            : $"{displayName} 사장으로 시작";
-        gameEventBus?.ShowNotice(notice, NoticeFeedEvent.Grade.NONE);
+        gameEventBus?.Publish(new OwnerRunObservation(OwnerRunObservationKind.OwnerSelected, displayName));
     }
 
     public CharacterActor RestoreOwner(CharacterSO ownerData)
@@ -289,130 +302,165 @@ public class OwnerRunManager : SerializedMonoBehaviour
 
     public bool CompleteRun(DungeonRunOutcome outcome, string reason)
     {
-        if (pendingRestorePublication != null
-            || outcome == DungeonRunOutcome.None
-            || IsRunEnded
-            || currentOwnerActor == null)
+        if (completionMutationActive || pendingRestorePublication != null
+            || outcome is not (DungeonRunOutcome.Victory or DungeonRunOutcome.Defeat)
+            || IsRunEnded || currentOwnerActor == null) return false;
+        if (factPublisher == null || factRecovery == null || gameEventBus == null || completionPreparation == null
+            || runSeedProvider == null || runSeedProvider.RunSeed == 0
+            || aggregateRootStore == null || coreSessionRules == null
+            || !CharacterPersistentIdentity.TryGet(currentOwnerActor, out CharacterId ownerId))
         {
+            Debug.LogError("Owner-run completion requires fact observers and run identity.");
             return false;
         }
 
+        var previous = aggregateRootStore.GetOrCreate(() => new DungeonRunFlowAggregateState());
+        if (previous.Outcome != DungeonRunOutcome.None || previous.PendingCompletion != null) return false;
         string resolvedReason = string.IsNullOrWhiteSpace(reason)
             ? outcome == DungeonRunOutcome.Victory ? "오펜스를 완수해 던전의 진실을 밝혔습니다" : "사장 사망"
             : reason.Trim();
-        if (gameEventBus == null)
+        var raw = new OwnerRunCompletionFactData
         {
-            throw new InvalidOperationException(
-                $"{nameof(OwnerRunManager)} requires {nameof(IGameEventBus)} injection.");
-        }
-
-        PreparedMigratedProducerOutcome prepared = default;
-        bool reserved = false;
-        CharacterId ownerId = default;
-        DungeonRunFlowAggregateState previousFlow = null;
-        DungeonRunFlowTransition terminalTransition = null;
-        if (outcomeTransactions != null)
-        {
-            if (runSeedProvider == null
-                || runSeedProvider.RunSeed == 0
-                || aggregateRootStore == null
-                || coreSessionRules == null
-                || !CharacterPersistentIdentity.TryGet(
-                    currentOwnerActor,
-                    out ownerId))
-            {
-                Debug.LogError(
-                    "Owner-run completion outcome identity is unavailable.");
-                return false;
-            }
-            DungeonRunFlowAggregateState currentFlow =
-                aggregateRootStore.GetOrCreate(
-                    () => new DungeonRunFlowAggregateState());
-            previousFlow = CloneRunFlow(currentFlow);
-            terminalTransition = DungeonRunFlowReducer.Reduce(
-                currentFlow,
-                DungeonRunFlowEvent.OwnerRunEnded(outcome),
-                coreSessionRules);
-            string operationIdentity = string.Join(":", new[]
-            {
-                "owner-run-ended",
-                runSeedProvider.RunSeed.ToString(CultureInfo.InvariantCulture),
-                ownerId.Value
-            });
-            if (!outcomeTransactions.TryReserveSingleSubject(
-                    MigratedProducerOutcomeKind.OwnerRunEndedEvent,
-                    operationIdentity,
-                    Math.Max(1, currentFlow.CurrentDay),
-                    outcome == DungeonRunOutcome.Victory
-                        ? GameplayOutcomeStatus.Succeeded
-                        : GameplayOutcomeStatus.Failed,
-                    out prepared,
-                    out string failureReason))
-            {
-                Debug.LogError(
-                    "Owner-run completion outcome reservation failed: "
-                    + failureReason);
-                return false;
-            }
-            reserved = true;
-        }
-
-        bool previousRunEnded = IsRunEnded;
-        IsRunEnded = true;
-        if (terminalTransition?.StateChanged == true)
-        {
-            aggregateRootStore.Replace(terminalTransition.State);
-        }
+            runSeed = runSeedProvider.RunSeed, ownerId = ownerId.Value,
+            displayName = currentOwnerActor.Identity?.DisplayName ?? ownerId.Value,
+            outcome = outcome, absoluteDay = previous.CurrentDay, reason = resolvedReason
+        };
+        var fact = new OwnerRunCompletionFact(raw);
+        completionMutationActive = true;
         try
         {
-            if (reserved)
+            if (!factPublisher.TryReserve(fact, out var lease, out string failure))
             {
-                MigratedProducerOutcomeCommitResult committed =
-                    outcomeTransactions.CommitSingleSubject(
-                        prepared,
-                        new MigratedProducerOutcomeSubject(
-                            MigratedProducerOutcomeIds.CharacterKind,
-                            ownerId.Value,
-                            currentOwnerActor.Identity?.DisplayName
-                                ?? ownerId.Value,
-                            MigratedProducerOutcomeIds.ActorRole),
-                        string.Join("|", new[]
-                        {
-                            "owner-run-ended@1",
-                            runSeedProvider.RunSeed.ToString(
-                                CultureInfo.InvariantCulture),
-                            ownerId.Value,
-                            ((int)outcome).ToString(
-                                CultureInfo.InvariantCulture),
-                            previousFlow.CurrentDay.ToString(
-                                CultureInfo.InvariantCulture),
-                            resolvedReason
-                        }));
-                if (!committed.DurablyCommitted)
+                Debug.LogError("Owner-run completion observation reservation failed: " + failure);
+                return false;
+            }
+            DungeonRunFlowAggregateState terminal;
+            IRunCompletionPreparedState preparedState = null;
+            try
+            {
+                preparedState = completionPreparation.Prepare(raw.Clone())
+                    ?? throw new InvalidOperationException("Run completion preparation returned no state.");
+                terminal = DungeonRunFlowReducer.Reduce(previous,
+                    DungeonRunFlowEvent.OwnerRunEnded(outcome), coreSessionRules).State;
+                terminal.PendingCompletion = new OwnerRunCompletionPendingData
+                { publicationKey = lease.PublicationKey, fact = raw.Clone() };
+                terminal.PendingCompletion.Validate(outcome, previous.CurrentDay);
+                preparedState.Publish();
+                aggregateRootStore.Replace(terminal);
+                IsRunEnded = true;
+            }
+            catch
+            {
+                try { preparedState?.Cancel(); }
+                finally
                 {
-                    IsRunEnded = previousRunEnded;
-                    aggregateRootStore.Replace(previousFlow);
-                    Debug.LogError(
-                        "Owner-run completion outcome commit was rejected: "
-                        + committed.DetailCode);
-                    return false;
+                    factPublisher.Cancel(lease);
+                    aggregateRootStore.Replace(previous);
+                    IsRunEnded = false;
                 }
+                throw;
             }
-        }
-        catch
-        {
-            if (reserved) outcomeTransactions.Cancel(prepared);
-            IsRunEnded = previousRunEnded;
-            if (previousFlow != null)
-            {
-                aggregateRootStore.Replace(previousFlow);
-            }
-            throw;
-        }
 
-        PublishRunEndedObservers(resolvedReason, outcome);
-        return true;
+            DomainFactDelivery delivery;
+            try { delivery = factPublisher.Publish(lease, fact); }
+            catch (Exception error) when (IsRecoverable(error))
+            {
+                factPublisher.Cancel(lease);
+                delivery = DomainFactDelivery.Uncertain(error.GetType().Name);
+            }
+            if (delivery.Phase == DomainFactDeliveryPhase.Rejected)
+            {
+                preparedState.Cancel();
+                aggregateRootStore.Replace(previous);
+                IsRunEnded = false;
+                Debug.LogError("Owner-run completion observation rejected: " + delivery.Detail);
+                return false;
+            }
+            if (Acknowledged(terminal.PendingCompletion, delivery))
+                FinishCompletion(terminal.PendingCompletion);
+            else ReportPending(delivery.Detail);
+            return true;
+        }
+        finally { completionMutationActive = false; }
     }
+
+    // Replay only the saved fact. Never rerun the terminal reducer or award effects.
+    public bool ResumePendingRunCompletion()
+    {
+        AssertCompletionIdle();
+        if (pendingRestorePublication != null || aggregateRootStore == null) return false;
+        var state = aggregateRootStore.GetOrCreate(() => new DungeonRunFlowAggregateState());
+        var pending = state.PendingCompletion;
+        if (pending == null) return true;
+        pending.Validate(state.Outcome, state.CurrentDay);
+        if (factRecovery == null || runSeedProvider?.RunSeed != pending.fact.runSeed
+            || !CharacterPersistentIdentity.TryGet(currentOwnerActor, out CharacterId id)
+            || id.Value != pending.fact.ownerId)
+        {
+            ReportPending("owner-or-recovery-binding-unavailable");
+            return false;
+        }
+        completionMutationActive = true;
+        try
+        {
+            var results = new DomainFactDelivery[1];
+            bool accepted;
+            string failure;
+            try
+            {
+                accepted = factRecovery.ReplayBatch(new[] {
+                    DomainFactReplay.Create(pending.publicationKey, new OwnerRunCompletionFact(pending.fact))
+                }, results, out failure);
+            }
+            catch (Exception error) when (IsRecoverable(error))
+            { accepted = false; failure = error.GetType().Name; }
+            if (!accepted || !Acknowledged(pending, results[0]))
+            { ReportPending(failure + ":" + results[0].Detail); return false; }
+            IsRunEnded = true;
+            FinishCompletion(pending);
+            return true;
+        }
+        finally { completionMutationActive = false; }
+    }
+
+    public void AssertCompletionIdle()
+    {
+        if (completionMutationActive)
+            throw new InvalidOperationException("Owner-run completion publication is active.");
+    }
+
+    private static bool Acknowledged(OwnerRunCompletionPendingData pending, DomainFactDelivery result) =>
+        result.Phase is DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery
+        && result.OperationKey == pending.publicationKey
+        && !string.IsNullOrWhiteSpace(result.PublicationId)
+        && !string.IsNullOrWhiteSpace(result.Fingerprint);
+
+    private void FinishCompletion(OwnerRunCompletionPendingData pending)
+    {
+        var state = CloneRunFlow(aggregateRootStore.GetOrCreate(() => new DungeonRunFlowAggregateState()));
+        state.PendingCompletion = null;
+        aggregateRootStore.Replace(state);
+        lastCompletionFailure = null;
+        PublishRunEndedObservers(pending.fact.displayName, pending.fact.reason, pending.fact.outcome);
+    }
+
+    private void ReportPending(string detail)
+    {
+        if (lastCompletionFailure != detail)
+            Debug.LogWarning("owner-run-completion-observation-pending:" + detail);
+        lastCompletionFailure = detail;
+    }
+
+    private void Update()
+    {
+        if (completionMutationActive || Time.unscaledTime < nextCompletionRetry) return;
+        nextCompletionRetry = Time.unscaledTime + 5f;
+        ResumePendingRunCompletion();
+    }
+
+    private static bool IsRecoverable(Exception error) =>
+        error is not OutOfMemoryException && error is not StackOverflowException
+        && error is not AccessViolationException;
 
     private static DungeonRunFlowAggregateState CloneRunFlow(
         DungeonRunFlowAggregateState source) => new()
@@ -422,21 +470,18 @@ public class OwnerRunManager : SerializedMonoBehaviour
         CurrentDay = source.CurrentDay,
         BossCycle = source.BossCycle,
         BossArmed = source.BossArmed,
-        BossActive = source.BossActive
+        BossActive = source.BossActive,
+        PendingCompletion = source.PendingCompletion?.Clone()
     };
 
     private void PublishRunEndedObservers(
+        string ownerName,
         string resolvedReason,
         DungeonRunOutcome outcome)
     {
         PublishObserver(
-            () => gameEventBus.ShowNotice(
-                outcome == DungeonRunOutcome.Victory
-                    ? $"런 승리: {resolvedReason}"
-                    : $"런 패배: {resolvedReason}",
-                outcome == DungeonRunOutcome.Victory
-                    ? NoticeFeedEvent.Grade.NONE
-                    : NoticeFeedEvent.Grade.DANGER),
+            () => gameEventBus.Publish(new OwnerRunObservation(
+                OwnerRunObservationKind.RunCompleted, reason: resolvedReason, outcome: outcome)),
             "owner-run-ended-notice");
         PublishObserver(
             () => OnRunEnded?.Invoke(currentOwnerActor, resolvedReason),
@@ -445,7 +490,8 @@ public class OwnerRunManager : SerializedMonoBehaviour
             () => gameEventBus.Publish(new OwnerRunEndedEvent(
                 currentOwnerActor,
                 resolvedReason,
-                outcome)),
+                outcome,
+                ownerName)),
             "owner-run-ended-event");
     }
 
@@ -525,6 +571,7 @@ public class OwnerRunManager : SerializedMonoBehaviour
 
     private void RequireNoPendingRestorePublication()
     {
+        AssertCompletionIdle();
         if (pendingRestorePublication != null)
         {
             throw new InvalidOperationException(
@@ -688,15 +735,18 @@ public sealed class OwnerRestorePublication
 public readonly struct OwnerRunEndedEvent
 {
     public CharacterActor OwnerActor { get; }
+    public string OwnerName { get; }
     public string Reason { get; }
     public DungeonRunOutcome Outcome { get; }
 
     public OwnerRunEndedEvent(
         CharacterActor owner,
         string reason,
-        DungeonRunOutcome outcome = DungeonRunOutcome.Defeat)
+        DungeonRunOutcome outcome = DungeonRunOutcome.Defeat,
+        string ownerName = null)
     {
         OwnerActor = owner;
+        OwnerName = ownerName ?? owner?.Identity?.DisplayName ?? owner?.name ?? "사장";
         Reason = reason;
         Outcome = outcome == DungeonRunOutcome.None ? DungeonRunOutcome.Defeat : outcome;
     }

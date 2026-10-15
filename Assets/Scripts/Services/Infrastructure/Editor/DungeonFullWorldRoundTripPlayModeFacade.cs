@@ -16,8 +16,9 @@ public static class DungeonFullWorldRoundTripPlayModeFacade
 {
     public const string RequestPath =
         "Temp/full-world-round-trip-playmode.request";
-    public const string ReportPath =
-        "Artifacts/QA/full-world-round-trip-playmode-report.txt";
+    public static string ReportPath => DungeonPersistencePaths.IsIsolatedVerification
+        ? Path.Combine(Path.GetDirectoryName(DungeonPersistencePaths.Root), "full-world-report.txt")
+        : "Artifacts/QA/full-world-round-trip-playmode-report.txt";
     public const string GameplayScenePath =
         "Assets/Scenes/GameplayScene.unity";
 
@@ -25,6 +26,14 @@ public static class DungeonFullWorldRoundTripPlayModeFacade
         "full-world-round-trip-playmode";
     private const string EarlyConsoleBufferPath =
         "Temp/full-world-round-trip-playmode-console.buffer";
+    private static bool isolatedLiveNarrativeRunnerActive;
+
+    internal static void SetIsolatedLiveNarrativeRunnerActive(bool active)
+    {
+        isolatedLiveNarrativeRunnerActive = active
+            && Application.isBatchMode
+            && DungeonPersistencePaths.IsIsolatedVerification;
+    }
 
     static DungeonFullWorldRoundTripPlayModeFacade()
     {
@@ -38,6 +47,8 @@ public static class DungeonFullWorldRoundTripPlayModeFacade
     [MenuItem("DungeonStory/QA/Request Full World Round Trip PlayMode")]
     public static void RequestRunFromMenu()
     {
+        if (DungeonPersistencePaths.IsIsolatedVerification)
+            throw new InvalidOperationException("Use the create-only isolated batch entry.");
         Directory.CreateDirectory("Temp");
         Directory.CreateDirectory("Artifacts/QA");
         File.Delete(ReportPath);
@@ -53,6 +64,39 @@ public static class DungeonFullWorldRoundTripPlayModeFacade
             RequestPath,
             DateTime.UtcNow.Ticks.ToString());
         Debug.Log("Full-world PlayMode round-trip request queued.");
+    }
+
+    public static void RequestIsolatedBatch()
+    {
+        if (!DungeonPersistencePaths.IsIsolatedVerification)
+            throw new InvalidOperationException("Explicit isolated batch persistence is required.");
+        if (Directory.Exists("Temp/playmode-persistence-snapshots")
+            || File.Exists(RequestPath) || File.Exists(EarlyConsoleBufferPath)
+            || File.Exists(ReportPath))
+            throw new InvalidOperationException("Existing verification state must be preserved.");
+        Directory.CreateDirectory(Path.GetDirectoryName(ReportPath));
+        Directory.CreateDirectory("Temp");
+        U1FullWorldOwnerBindingVerification.VerifyIsolationConfiguration();
+        WildlifeAiHuntPlayModeVerifier.PrepareIsolatedBackgroundNarrativeDeferral();
+        File.WriteAllText(RequestPath, DateTime.UtcNow.Ticks.ToString());
+        EnsureEarlyConsoleCapture();
+        Debug.Log("Isolated full-world verification queued; player persistence is excluded.");
+    }
+
+    public static void RequestInjuredReturneeSaveRegression()
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification)
+            throw new InvalidOperationException("Injured visitor save regression requires isolated batch persistence.");
+        Environment.SetEnvironmentVariable("DUNGEONSTORY_INJURED_RETURNEE_SAVE_REGRESSION", "1");
+        RequestIsolatedBatch();
+    }
+
+    public static void RequestExteriorDepartureExposureRegression()
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification)
+            throw new InvalidOperationException("Exterior departure regression requires isolated batch persistence.");
+        Environment.SetEnvironmentVariable("DUNGEONSTORY_EXTERIOR_DEPARTURE_EXPOSURE_REGRESSION", "1");
+        RequestIsolatedBatch();
     }
 
     internal static void CleanupTransientArtifacts()
@@ -106,6 +150,11 @@ public static class DungeonFullWorldRoundTripPlayModeFacade
 
     private static void OnPlayModeStateChanged(PlayModeStateChange change)
     {
+        if (change is PlayModeStateChange.ExitingPlayMode
+            or PlayModeStateChange.EnteredEditMode)
+        {
+            isolatedLiveNarrativeRunnerActive = false;
+        }
         if (change == PlayModeStateChange.ExitingEditMode
             && File.Exists(RequestPath))
         {
@@ -166,6 +215,15 @@ public static class DungeonFullWorldRoundTripPlayModeFacade
 
     private static void OnEditorUpdate()
     {
+        // The live runner removes RequestPath once it owns the run. Keep its
+        // normal PlayerLoop awake without advancing time or activating a window.
+        if (isolatedLiveNarrativeRunnerActive
+            && EditorApplication.isPlaying
+            && Application.isBatchMode
+            && DungeonPersistencePaths.IsIsolatedVerification)
+        {
+            EditorApplication.QueuePlayerLoopUpdate();
+        }
         if (!File.Exists(RequestPath))
         {
             return;
@@ -250,9 +308,12 @@ public static class DungeonFullWorldRoundTripPlayModeFacade
                 "exception=" + exception
             });
         CleanupTransientArtifacts();
-        PlayModeVerificationPersistenceSnapshot.Restore(PersistenceSnapshotId);
+        if (!DungeonPersistencePaths.IsIsolatedVerification)
+            PlayModeVerificationPersistenceSnapshot.Restore(PersistenceSnapshotId);
         Debug.LogError(
             "Full-world PlayMode round-trip setup failed. " + ReportPath);
+        if (Application.isBatchMode && DungeonPersistencePaths.IsIsolatedVerification)
+            EditorApplication.Exit(1);
     }
 }
 
@@ -275,6 +336,235 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
 
     private IEnumerator Start()
     {
+        if (string.Equals(Environment.GetEnvironmentVariable(
+                "DUNGEONSTORY_U0_BDCD01_DOOR_TRAVERSAL_VERIFY"), "1", StringComparison.Ordinal))
+        {
+            yield return DoorHeldOpenOutcomeDebugScenarios.VerifyTraversalPlayMode(warnings, errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable(
+                "DUNGEONSTORY_EXTERIOR_DEPARTURE_EXPOSURE_REGRESSION"), "1", StringComparison.Ordinal))
+        {
+            yield return ExteriorActivityDebugScenarios.VerifyDepartureExposureSave(warnings, errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable(
+                "DUNGEONSTORY_INJURED_RETURNEE_SAVE_REGRESSION"), "1", StringComparison.Ordinal))
+        {
+            yield return ExteriorActivityDebugScenarios.VerifyInjuredReturneeSave(warnings, errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable(
+                "DUNGEONSTORY_TERMINAL_DEATH_SAVE_VERIFY"), "1", StringComparison.Ordinal))
+        {
+            yield return TerminalDeathSavePlayModeVerifier.Verify(warnings, errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (CharacterVisitorControlJourneyPlayModeVerifier.ExitOnlyRequested
+            || CharacterVisitorControlJourneyPlayModeVerifier
+                .VandalismOnlyRequested)
+        {
+            CharacterVisitorControlJourneyPlayModeVerifier
+                .StartIsolatedFromFacade(warnings, errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (CharacterAiSelfCarePlayModeVerifier.A09SafeDrinkRequested)
+        {
+            CharacterAiSelfCarePlayModeVerifier.StartIsolatedFromFacade(
+                warnings,
+                errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (CharacterDeprivationProductionBtPlayModeVerifier
+                .VandalismOnlyRequested
+            || CharacterDeprivationProductionBtPlayModeVerifier
+                .FullMatrixRequested
+            || CharacterDeprivationProductionBtPlayModeVerifier.CorpseEatingOnlyRequested)
+        {
+            CharacterDeprivationProductionBtPlayModeVerifier
+                .StartIsolatedFromFacade(warnings, errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable(
+                "DUNGEONSTORY_U0_G12_GOLEM_UPKEEP_VERIFY"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            yield return G12GolemUpkeepPlayModeVerifier.Verify(
+                warnings,
+                errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable(
+                "DUNGEONSTORY_U0_E01_REGISTRY_INVENTORY_VERIFY"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            yield return E01GameplayOutcomeRegistryPlayModeVerifier.Verify(
+                warnings,
+                errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable(
+                "DUNGEONSTORY_U0_E09_ENVIRONMENT_EXPOSURE_VERIFY"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            yield return E09EnvironmentExposurePlayModeVerifier.Verify(
+                warnings,
+                errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable(
+                "DUNGEONSTORY_U0_E11_WILDLIFE_VERIFY"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            yield return WildlifeAiHuntPlayModeVerifier.Verify(
+                warnings,
+                errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable("DUNGEONSTORY_EEC03_DRIFT_CARGO_VERIFY"), "1", StringComparison.Ordinal))
+        {
+            Wim009SeasonalDriftCargoNaturalPlayModeVerifier.StartFocused(
+                warnings,
+                errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable("DUNGEONSTORY_EEC05_APPAREL_VERIFY"), "1", StringComparison.Ordinal))
+        {
+            Eec05ApparelPlayModeVerifier.StartFocused(warnings, errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (CharacterAiWorkTypeLiveMatrixPlayModeVerifier.IsW03MedicalLaborVerification)
+        {
+            CharacterAiWorkTypeLiveMatrixPlayModeRunner verifier =
+                new GameObject("W03 Medical Labor PlayMode Runner")
+                    .AddComponent<CharacterAiWorkTypeLiveMatrixPlayModeRunner>();
+            verifier.W03MedicalLaborOnly = true;
+            verifier.AddInitialConsoleIssues(warnings, errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (CharacterAiWorkTypeLiveMatrixPlayModeVerifier.IsW04RepairLiveVerification)
+        {
+            CharacterAiWorkTypeLiveMatrixPlayModeRunner verifier =
+                new GameObject("W04 Repair Live PlayMode Runner")
+                    .AddComponent<CharacterAiWorkTypeLiveMatrixPlayModeRunner>();
+            verifier.W04RepairLiveOnly = true;
+            verifier.AddInitialConsoleIssues(warnings, errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (CharacterAiWorkTypeLiveMatrixPlayModeVerifier.IsW06ResourceCausalityVerification)
+        {
+            CharacterAiWorkTypeLiveMatrixPlayModeRunner verifier =
+                new GameObject("W06 Resource Causality PlayMode Runner")
+                    .AddComponent<CharacterAiWorkTypeLiveMatrixPlayModeRunner>();
+            verifier.W06ResourceCausalityOnly = true;
+            verifier.AddInitialConsoleIssues(warnings, errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (CharacterAiWorkTypeLiveMatrixPlayModeVerifier.IsW01WorkTerminalJoinVerification)
+        {
+            CharacterAiWorkTypeLiveMatrixPlayModeRunner verifier =
+                new GameObject("W01 Work Terminal Join PlayMode Runner")
+                    .AddComponent<CharacterAiWorkTypeLiveMatrixPlayModeRunner>();
+            verifier.W01WorkTerminalJoinOnly = true;
+            verifier.AddInitialConsoleIssues(warnings, errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable("DUNGEONSTORY_W05_HARVEST_IDENTITY_VERIFY"), "1", StringComparison.Ordinal))
+        {
+            CharacterAiWorkTypeLiveMatrixPlayModeRunner verifier =
+                new GameObject("W05 Harvest Identity PlayMode Runner")
+                    .AddComponent<CharacterAiWorkTypeLiveMatrixPlayModeRunner>();
+            verifier.W05HarvestIdentityOnly = true;
+            verifier.AddInitialConsoleIssues(warnings, errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable("DUNGEONSTORY_W05_SURGERY_IDENTITY_VERIFY"), "1", StringComparison.Ordinal))
+        {
+            SurgeryPlayModeVerificationRunner verifier =
+                new GameObject("W05 Surgery Identity PlayMode Runner")
+                    .AddComponent<SurgeryPlayModeVerificationRunner>();
+            verifier.AddInitialConsoleIssues(warnings, errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable("DUNGEONSTORY_PERSISTENT_COOK_PAUSE_VERIFY"), "1", StringComparison.Ordinal))
+        {
+            CharacterAiWorkTypeLiveMatrixPlayModeRunner verifier =
+                new GameObject("Persistent Cook Pause PlayMode Runner")
+                    .AddComponent<CharacterAiWorkTypeLiveMatrixPlayModeRunner>();
+            verifier.P15AutomationModesOnly = true;
+            verifier.AddInitialConsoleIssues(warnings, errors);
+            Application.logMessageReceived -= CaptureLog;
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable("DUNGEONSTORY_MEAL_CONTINUATION_VERIFY"), "1", StringComparison.Ordinal))
+        {
+            Application.logMessageReceived -= CaptureLog;
+            yield return new MealUseContinuationPlayModeRunner(warnings, errors).Run();
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable("DUNGEONSTORY_DRINK_CONTINUATION_VERIFY"), "1", StringComparison.Ordinal))
+        {
+            Application.logMessageReceived -= CaptureLog;
+            yield return new MealUseContinuationPlayModeRunner(warnings, errors).Run();
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable("DUNGEONSTORY_SHOP_CONTINUATION_VERIFY"), "1", StringComparison.Ordinal))
+        {
+            Application.logMessageReceived -= CaptureLog;
+            yield return new ShopUseContinuationPlayModeRunner(warnings, errors).Run();
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable("DUNGEONSTORY_MEDICAL_CONTINUATION_VERIFY"), "1", StringComparison.Ordinal))
+        {
+            Application.logMessageReceived -= CaptureLog;
+            yield return new MedicalTreatmentContinuationPlayModeRunner(warnings, errors).Run();
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable("DUNGEONSTORY_FACILITY_CONTINUATION_VERIFY"), "1", StringComparison.Ordinal))
+        {
+            Application.logMessageReceived -= CaptureLog;
+            yield return new FacilityUseContinuationPlayModeRunner(warnings, errors).Run();
+            yield break;
+        }
+        if (string.Equals(Environment.GetEnvironmentVariable("DUNGEONSTORY_LIVE_NARRATIVE_CAPTURE"), "1", StringComparison.Ordinal))
+        {
+            Application.logMessageReceived -= CaptureLog;
+            DungeonFullWorldRoundTripPlayModeFacade
+                .SetIsolatedLiveNarrativeRunnerActive(true);
+            try
+            {
+                yield return new DungeonLiveNarrativeCampaignRunner(warnings, errors).Run();
+            }
+            finally
+            {
+                DungeonFullWorldRoundTripPlayModeFacade
+                    .SetIsolatedLiveNarrativeRunnerActive(false);
+            }
+            yield break;
+        }
         File.Delete(DungeonFullWorldRoundTripPlayModeFacade.RequestPath);
         float deadline = Time.realtimeSinceStartup
             + RuntimeReadyTimeoutSeconds;
@@ -417,6 +707,12 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
                         afterCharacterContracts));
             }
 
+            if (DungeonPersistencePaths.IsIsolatedVerification)
+            {
+                U1FullWorldOwnerBindingVerification.Run(scope, saves);
+                U1FullWorldOwnerBindingVerification.RunTrait(scope, saves);
+            }
+
             bool roundTripReturned = false;
             try
             {
@@ -476,6 +772,9 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
                 }
             }
 
+            if (DungeonPersistencePaths.IsIsolatedVerification)
+                U1FullWorldOwnerBindingVerification.VerifyDurableAutosave(scope);
+
             passed = characterProgressionContractsPassed
                 && roundTripReturned
                 && canonicalBaselineMatched
@@ -527,6 +826,10 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
         {
             passed ? "RESULT=PASS" : "RESULT=FAIL",
             "target=FULL_WORLD_ROUND_TRIP",
+            "isolatedPersistence=" + DungeonPersistencePaths.IsIsolatedVerification,
+            "setup=controlled-start-party-fixture; not-training-source",
+            "humanApprovalClaimed=false",
+            "trainingEligible=false",
             "scene=" + DungeonFullWorldRoundTripPlayModeFacade.GameplayScenePath,
             "registeredSections=" + registeredSections,
             "capturedSections=" + capturedSections,

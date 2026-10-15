@@ -345,11 +345,13 @@ public static class RegularCustomerDebugScenarios
         {
             MigratedProducerOutcomeEditorFixture outcomes = new(
                 "run:regular-customer-visits");
+            using var facts = new RegularCustomerFactEditorFixture(outcomes);
             runtime.ConstructRecruitmentRuntime(
                 new FakeRecruitActivationService(),
                 new DungeonStory.Foundation.GameEventBus(),
                 new FixedSessionStateProvider(1),
-                outcomes.Transaction);
+                facts.Publisher,
+                facts.Recovery);
             customer = CreateCustomer(106, "Runtime Candidate", "Orc", 85f);
             facility = CreateFacility();
             runtime.BecameRegular += CountRegular;
@@ -436,11 +438,13 @@ public static class RegularCustomerDebugScenarios
         RegularCustomerRuntime runtime = runtimeObject.AddComponent<RegularCustomerRuntime>();
         MigratedProducerOutcomeEditorFixture outcomes = new(
             "run:regular-customer-reward");
+        using var facts = new RegularCustomerFactEditorFixture(outcomes);
         runtime.ConstructRecruitmentRuntime(
             new FakeRecruitActivationService(),
             new DungeonStory.Foundation.GameEventBus(),
             new FixedSessionStateProvider(1),
-            outcomes.Transaction);
+            facts.Publisher,
+            facts.Recovery);
         RegularCustomerRules rules = RegularCustomerRules.CreateDefault();
         CharacterActor first = CreateCustomer(109, "Reward Visitor A", "Slime", 92f);
         CharacterActor second = CreateCustomer(110, "Reward Visitor B", "Slime", 74f);

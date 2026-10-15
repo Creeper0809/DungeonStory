@@ -7,6 +7,7 @@ public sealed partial class GameplayOutcomeLedger :
     IGameplayOutcomeMemoryCommands,
     IGameplayOutcomeConsolidationService,
     IGameplayOutcomeDiagnosticsQuery,
+    IGameplayOutcomeRestoreCandidateQuery,
     IGameplayOutcomePersistence,
     IDungeonRestoreTransactionParticipant
 {
@@ -14,6 +15,7 @@ public sealed partial class GameplayOutcomeLedger :
     private readonly IGameplayOutcomeRegistry registry;
     private readonly GameplayOutcomeBufferLimits configuredLimits;
     private readonly GameplayOutcomeCanonicalHash.ExactDigestWriter exactDigestWriter;
+    private readonly IGameCalendar deliveryCalendar;
     private GameplayOutcomeLedgerRuntimeState state;
     private GameplayOutcomeLedgerRuntimeState stagedRestoreState;
     private GameplayOutcomeLedgerRuntimeState previousRestoreState;
@@ -34,12 +36,25 @@ public sealed partial class GameplayOutcomeLedger :
     public GameplayOutcomeLedger(
         IGameplayOutcomeRegistry registry,
         GameplayOutcomeBufferLimits limits,
+        IGameCalendar calendar)
+        : this(registry, limits, new GameplayOutcomeRunId("run:" + Guid.NewGuid().ToString("N")),
+            1L, calendar ?? throw new ArgumentNullException(nameof(calendar)))
+    {
+    }
+
+    // Unclocked constructors remain for historical/integration fixtures. They do not
+    // claim observed game time; the production registration always supplies its calendar.
+    public GameplayOutcomeLedger(
+        IGameplayOutcomeRegistry registry,
+        GameplayOutcomeBufferLimits limits,
         GameplayOutcomeRunId runId,
-        long worldEpoch)
+        long worldEpoch,
+        IGameCalendar calendar = null)
     {
         this.registry = registry ?? throw new ArgumentNullException(nameof(registry));
         configuredLimits = limits ?? throw new ArgumentNullException(nameof(limits));
         exactDigestWriter = new GameplayOutcomeCanonicalHash.ExactDigestWriter();
+        deliveryCalendar = calendar;
         state = new GameplayOutcomeLedgerRuntimeState(runId, worldEpoch, limits);
         GameplayOutcomeVisibilityRules.ValidateExactSubjectTierContract();
     }
@@ -62,6 +77,14 @@ public sealed partial class GameplayOutcomeLedger :
         reservation = default;
         if (!ValidateRequirements(requirements, out string validationFailure))
             return new OutcomePrepareResult(OutcomePrepareCode.InvalidReceipt, validationFailure);
+        if (deliveryCalendar != null)
+        {
+            if (!GameplayOutcomeDeliveryTime.TryReadCalendarHour(deliveryCalendar, out long currentHour))
+                return new OutcomePrepareResult(OutcomePrepareCode.InvalidReceipt, "outcome-calendar-clock-inconsistent");
+            if (requirements.AbsoluteDay < 1
+                || GameplayOutcomeDeliveryTime.OccurrenceStartHour(requirements.AbsoluteDay) > currentHour)
+                return new OutcomePrepareResult(OutcomePrepareCode.InvalidReceipt, "outcome-occurs-after-current-calendar");
+        }
 
         lock (gate)
         {
@@ -130,6 +153,8 @@ public sealed partial class GameplayOutcomeLedger :
         out PreparedOutcomeToken prepared)
     {
         prepared = default;
+        if (!ValidateRequirements(requirements, out string validationFailure))
+            return new OutcomePrepareResult(OutcomePrepareCode.InvalidReceipt, validationFailure);
         lock (gate)
         {
             GameplayOutcomeValuePage page = state.Pool.Get(reservation.PageIndex);
@@ -145,43 +170,59 @@ public sealed partial class GameplayOutcomeLedger :
             if (!registry.TryGetDescriptor(page.OutcomeTypeId, out IGameplayOutcomeDescriptor descriptor))
                 return new OutcomePrepareResult(OutcomePrepareCode.DescriptorMissing, "descriptor-missing");
 
-            FilterOptionalWitnessLinks(page, descriptor.PerceptionPolicy);
-            NormalizeInitialSubjectTiers(page);
-            if (!ValidateDirectSubjectCoverage(page, out string coverageFailure))
-                return new OutcomePrepareResult(OutcomePrepareCode.InvalidReceipt, coverageFailure);
-
-            page.Sequence = state.NextSequence;
-            page.OutcomeId = new GameplayOutcomeId(state.RunId, page.Sequence);
-            GameplayOutcomeReadView view = new GameplayOutcomeReadView(page);
-            OutcomeValidationResult validation = ValidateDescriptorVocabulary(page, descriptor);
-            if (validation.Valid)
-                validation = descriptor.Validate(view);
-            if (!validation.Valid)
+            // Reservation owns capacity and identity, not a clinical/result
+            // prediction. Validate and hash the status of the final receipt.
+            GameplayOutcomeStatus previewStatus = page.Status;
+            page.Status = requirements.Status;
+            try
             {
-                page.Sequence = 0L;
-                page.OutcomeId = default;
-                return new OutcomePrepareResult(
-                    OutcomePrepareCode.InvalidReceipt,
-                    string.IsNullOrEmpty(validation.DetailCode) ? "descriptor-rejected" : validation.DetailCode);
-            }
+                FilterOptionalWitnessLinks(page, descriptor.PerceptionPolicy);
+                NormalizeInitialSubjectTiers(page);
+                if (!ValidateDirectSubjectCoverage(page, out string coverageFailure))
+                    return new OutcomePrepareResult(OutcomePrepareCode.InvalidReceipt, coverageFailure);
+                if (page.Causation.HasParent
+                    && !GameplayOutcomeDeliveryTime.TryValidateParent(state, page.Causation.ParentOutcomeId,
+                        page.AbsoluteDay, allowUnknownHistoricalParent: false, out string parentFailure))
+                    return new OutcomePrepareResult(OutcomePrepareCode.InvalidReceipt, parentFailure);
 
-            page.CaptureImmutableRows();
-            exactDigestWriter.Write(
-                new GameplayOutcomeReadView(page),
-                page.ImmutablePayloadDigest);
-            page.HasImmutablePayloadDigest = true;
-            page.ImmutablePayloadHash = string.Empty;
-            page.State = GameplayOutcomePageState.Prepared;
-            state.NextSequence++;
-            state.ActiveByOutcomeId.Add(page.OutcomeId, reservation.PageIndex);
-            prepared = new PreparedOutcomeToken(
-                reservation.PageIndex,
-                reservation.PageGeneration,
-                state.WorldEpoch,
-                page.OwnerRevision,
-                page.ResultKey,
-                page.OutcomeId);
-            return OutcomePrepareResult.Prepared();
+                page.Sequence = state.NextSequence;
+                page.OutcomeId = new GameplayOutcomeId(state.RunId, page.Sequence);
+                GameplayOutcomeReadView view = new GameplayOutcomeReadView(page);
+                OutcomeValidationResult validation = ValidateDescriptorVocabulary(page, descriptor);
+                if (validation.Valid)
+                    validation = descriptor.Validate(view);
+                if (!validation.Valid)
+                {
+                    page.Sequence = 0L;
+                    page.OutcomeId = default;
+                    return new OutcomePrepareResult(
+                        OutcomePrepareCode.InvalidReceipt,
+                        string.IsNullOrEmpty(validation.DetailCode) ? "descriptor-rejected" : validation.DetailCode);
+                }
+
+                page.CaptureImmutableRows();
+                exactDigestWriter.Write(
+                    new GameplayOutcomeReadView(page),
+                    page.ImmutablePayloadDigest);
+                page.HasImmutablePayloadDigest = true;
+                page.ImmutablePayloadHash = string.Empty;
+                page.State = GameplayOutcomePageState.Prepared;
+                state.NextSequence++;
+                state.ActiveByOutcomeId.Add(page.OutcomeId, reservation.PageIndex);
+                prepared = new PreparedOutcomeToken(
+                    reservation.PageIndex,
+                    reservation.PageGeneration,
+                    state.WorldEpoch,
+                    page.OwnerRevision,
+                    page.ResultKey,
+                    page.OutcomeId);
+                return OutcomePrepareResult.Prepared();
+            }
+            finally
+            {
+                if (page.State == GameplayOutcomePageState.Reserved)
+                    page.Status = previewStatus;
+            }
         }
     }
 
@@ -383,6 +424,12 @@ public sealed partial class GameplayOutcomeLedger :
 
             try
             {
+                long recordedHour = 0L;
+                if (deliveryCalendar != null && !GameplayOutcomeDeliveryTime.TryReadCalendarHour(deliveryCalendar, out recordedHour))
+                    return SetDeliveryFault(page, OutcomeDeliveryCode.DescriptorRejected, "outcome-calendar-clock-inconsistent");
+                if (deliveryCalendar != null && (recordedHour < 0L || page.AbsoluteDay < 1
+                    || GameplayOutcomeDeliveryTime.OccurrenceStartHour(page.AbsoluteDay) > recordedHour))
+                    return SetDeliveryFault(page, OutcomeDeliveryCode.DescriptorRejected, "outcome-occurs-after-current-calendar");
                 if (!registry.TryGetDescriptor(page.OutcomeTypeId, out IGameplayOutcomeDescriptor descriptor))
                     return SetDeliveryFault(page, OutcomeDeliveryCode.DescriptorRejected, "descriptor-missing");
                 OutcomeValidationResult validation = ValidateDescriptorVocabulary(page, descriptor);
@@ -398,11 +445,22 @@ public sealed partial class GameplayOutcomeLedger :
 
                 page.State = GameplayOutcomePageState.PublishedAwaitingAcknowledgement;
                 page.PublishedRevision = ++state.Revision;
+                if (deliveryCalendar != null)
+                {
+                    page.DeliveryMetadataVersion = GameplayOutcomeDeliveryTime.CurrentVersion;
+                    page.DeliveryClockId = GameplayOutcomeDeliveryTime.CalendarClockId;
+                    page.RecordedAbsoluteHour = recordedHour;
+                    page.DeliveryDelayReason = GameplayOutcomeDeliveryTime.ClassifyDelay(
+                        page.AbsoluteDay, recordedHour, page.DeliveryFaultCount);
+                }
                 page.PublishedListSlot = state.PublishedPageIndices.Count;
                 state.PublishedPageIndices.Add(committed.PageIndex);
                 MarkDuePageDirty(committed.PageIndex, page);
                 state.PendingDeliveryCount--;
                 state.PublishedCount++;
+                state.QueryTimeUpperBoundHour = Math.Max(state.QueryTimeUpperBoundHour,
+                    GameplayOutcomeDeliveryTime.QueryTimeUpperBound(page.AbsoluteDay,
+                        page.DeliveryMetadataVersion, page.RecordedAbsoluteHour));
                 return new OutcomeDeliveryResult(OutcomeDeliveryCode.Published, page.OutcomeId, string.Empty);
             }
             catch (Exception exception) when (IsRecoverableDeliveryException(exception))
@@ -603,6 +661,26 @@ public sealed partial class GameplayOutcomeLedger :
             return TryGetResultIdentityNoLock(resultKey, out identity);
     }
 
+    public bool IsGameplayOutcomeRestoreTransactionActive
+    {
+        get { lock (gate) return restoreTransactionBegun; }
+    }
+
+    public bool HasStagedGameplayOutcomeRestore
+    {
+        get { lock (gate) return restoreTransactionBegun && stagedRestoreState != null; }
+    }
+
+    public bool TryGetStagedResultIdentity(GameplayResultKey resultKey, out GameplayOutcomeReplayIdentity identity)
+    {
+        lock (gate)
+        {
+            identity = default;
+            return restoreTransactionBegun && stagedRestoreState != null
+                && TryGetResultIdentityNoLock(stagedRestoreState, resultKey, out identity);
+        }
+    }
+
     internal OutcomePrepareResult TryCreateReplayComparisonCore(
         in OutcomeWriteRequirements requirements,
         out GameplayOutcomeReplayIdentity baseline,
@@ -707,11 +785,17 @@ public sealed partial class GameplayOutcomeLedger :
     private bool TryGetResultIdentityNoLock(
         GameplayResultKey resultKey,
         out GameplayOutcomeReplayIdentity identity)
+        => TryGetResultIdentityNoLock(state, resultKey, out identity);
+
+    private static bool TryGetResultIdentityNoLock(
+        GameplayOutcomeLedgerRuntimeState source,
+        GameplayResultKey resultKey,
+        out GameplayOutcomeReplayIdentity identity)
     {
         if (resultKey.IsValid
-            && state.ActiveByResultKey.TryGetValue(resultKey, out int pageIndex))
+            && source.ActiveByResultKey.TryGetValue(resultKey, out int pageIndex))
         {
-            GameplayOutcomeValuePage page = state.Pool.Get(pageIndex);
+            GameplayOutcomeValuePage page = source.Pool.Get(pageIndex);
             GameplayOutcomeReplayState replayState = ToReplayState(page.State);
             string hash = page.State >= GameplayOutcomePageState.Prepared
                 ? page.MaterializeImmutablePayloadHash()
@@ -723,9 +807,9 @@ public sealed partial class GameplayOutcomeLedger :
                 hash);
             return true;
         }
-        if (state.TombstoneByResultKey.TryGetValue(resultKey, out int tombstoneIndex))
+        if (source.TombstoneByResultKey.TryGetValue(resultKey, out int tombstoneIndex))
         {
-            GameplayOutcomeTombstoneSnapshot tombstone = state.Tombstones[tombstoneIndex];
+            GameplayOutcomeTombstoneSnapshot tombstone = source.Tombstones[tombstoneIndex];
             identity = new GameplayOutcomeReplayIdentity(
                 resultKey,
                 new GameplayOutcomeId(new GameplayOutcomeRunId(tombstone.runId), tombstone.sequence),
@@ -942,25 +1026,7 @@ public sealed partial class GameplayOutcomeLedger :
     }
 
     internal static bool IsValidBoundedUtf16(string value, int maximumLength, bool allowEmpty)
-    {
-        if (value == null || value.Length > maximumLength
-            || !allowEmpty && string.IsNullOrWhiteSpace(value))
-            return false;
-        for (int index = 0; index < value.Length; index++)
-        {
-            char current = value[index];
-            if (char.IsHighSurrogate(current))
-            {
-                if (++index >= value.Length || !char.IsLowSurrogate(value[index]))
-                    return false;
-            }
-            else if (char.IsLowSurrogate(current))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
+        => DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(value, maximumLength, allowEmpty);
 
     private static bool RequiresNeutralFrame(GameplayOutcomeValuePage page)
     {

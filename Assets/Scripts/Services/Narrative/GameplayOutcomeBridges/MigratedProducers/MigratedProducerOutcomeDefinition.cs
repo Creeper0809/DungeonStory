@@ -13,6 +13,20 @@ public static class MigratedProducerOutcomeIds
     public static readonly GameplayEntityKindId RouteKind = new("route");
     public static readonly GameplayEntityKindId RunKind = new("run");
     public static readonly GameplayEntityKindId OperationKind = new("operation");
+    public static readonly GameplayEntityKindId ItemDefinitionKind =
+        new("item-definition");
+    public static readonly GameplayEntityKindId WorldLocationKind =
+        new("world-location");
+    public static readonly GameplayEntityKindId AbilityKind =
+        new("ability");
+    public static readonly GameplayEntityKindId WildlifeKind =
+        new("wildlife");
+    public static readonly GameplayEntityKindId ItemStackKind =
+        new("item-stack");
+    public static readonly GameplayEntityKindId WaterSourceKind =
+        new("water-source");
+    public static readonly GameplayEntityKindId ProficiencyKind =
+        new("proficiency");
 
     public static readonly GameplayRoleId ActorRole = new("actor");
     public static readonly GameplayRoleId TargetRole = new("target");
@@ -26,7 +40,19 @@ public static class MigratedProducerOutcomeIds
     public static readonly GameplayRoleId SourceRole = new("source");
     public static readonly GameplayRoleId DestinationRole = new("destination");
     public static readonly GameplayRoleId WitnessRole = new("witness");
+    public static readonly GameplayRoleId BetrayerRole = new("betrayer");
     public static readonly GameplayRoleId OperationRole = new("operation");
+    public static readonly GameplayRoleId IntruderRole = new("intruder");
+    public static readonly GameplayRoleId AttackedFacilityRole =
+        new("attacked-facility");
+    public static readonly GameplayRoleId DefenderRole = new("defender");
+    public static readonly GameplayRoleId DefenseFacilityRole =
+        new("defense-facility");
+    public static readonly GameplayRoleId MemberRole = new("member");
+    public static readonly GameplayRoleId AbilityRole = new("ability");
+    public static readonly GameplayRoleId EquipmentRole = new("equipment");
+    public static readonly GameplayRoleId RewardRole = new("reward");
+    public static readonly GameplayRoleId ArrivalRole = new("arrival");
 
     public static readonly GameplayMetricId AmountMetric = new("amount");
     public static readonly GameplayMetricId PreviousMetric = new("previous");
@@ -34,6 +60,10 @@ public static class MigratedProducerOutcomeIds
     public static readonly GameplayMetricId DeltaMetric = new("delta");
     public static readonly GameplayMetricId CountMetric = new("count");
     public static readonly GameplayMetricId QuantityMetric = new("quantity");
+    public static readonly GameplayMetricId SecuredCountMetric =
+        new("secured-count");
+    public static readonly GameplayMetricId ExpiredCountMetric =
+        new("expired-count");
     public static readonly GameplayMetricId MassMetric = new("mass");
     public static readonly GameplayMetricId DamageMetric = new("damage");
     public static readonly GameplayMetricId RatioMetric = new("ratio");
@@ -42,6 +72,110 @@ public static class MigratedProducerOutcomeIds
     public static readonly GameplayMetricId RevisionMetric = new("revision");
     public static readonly GameplayMetricId StatusMetric = new("status");
     public static readonly GameplayMetricId ValueMetric = new("value");
+    public static readonly GameplayMetricId CurrentExperienceBeforeMetric =
+        new("current-experience-before");
+    public static readonly GameplayMetricId CurrentExperienceAfterMetric =
+        new("current-experience-after");
+    public static readonly GameplayMetricId LifetimeExperienceBeforeMetric =
+        new("lifetime-experience-before");
+    public static readonly GameplayMetricId LifetimeExperienceAfterMetric =
+        new("lifetime-experience-after");
+    public static readonly GameplayMetricId RankBeforeMetric =
+        new("rank-before");
+    public static readonly GameplayMetricId RankAfterMetric =
+        new("rank-after");
+    public static readonly GameplayMetricId AbsoluteHourMetric =
+        new("absolute-hour");
+    public static readonly GameplayMetricId RequiredWorkMetric =
+        new("required-work-milli-units");
+    public static readonly GameplayMetricId CompletedWorkMetric =
+        new("completed-work-milli-units");
+    public static readonly GameplayMetricId InputQuantityMetric =
+        new("input-quantity");
+    public static readonly GameplayMetricId OutputQuantityMetric =
+        new("output-quantity");
+    public static readonly GameplayMetricId InputMassMetric =
+        new("input-mass");
+    public static readonly GameplayMetricId OutputMassMetric =
+        new("output-mass");
+    public static readonly GameplayMetricId DamageIndexBeforeMetric =
+        new("damage-index-before");
+    public static readonly GameplayMetricId DamageIndexAfterMetric =
+        new("damage-index-after");
+    public static readonly GameplayMetricId StateBeforeMetric =
+        new("state-before");
+    public static readonly GameplayMetricId StateAfterMetric =
+        new("state-after");
+    public static readonly GameplayMetricId RiskBeforeMetric =
+        new("risk-before");
+    public static readonly GameplayMetricId RiskAfterMetric =
+        new("risk-after");
+    public static readonly GameplayMetricId TrustBeforeMetric =
+        new("trust-before");
+    public static readonly GameplayMetricId TrustAfterMetric =
+        new("trust-after");
+    public static readonly GameplayMetricId StrengthBeforeMetric =
+        new("strength-before");
+    public static readonly GameplayMetricId StrengthAfterMetric =
+        new("strength-after");
+    public static readonly GameplayMetricId DelayBeforeMetric =
+        new("delay-before");
+    public static readonly GameplayMetricId DelayAfterMetric =
+        new("delay-after");
+    public static readonly GameplayMetricId HealthBeforeMetric =
+        new("health-before");
+    public static readonly GameplayMetricId HealthAfterMetric =
+        new("health-after");
+    public static readonly GameplayMetricId PowerMetric = new("power");
+    public static readonly GameplayMetricId RequiredPowerMetric =
+        new("required-power");
+    public static readonly GameplayMetricId DangerMetric = new("danger");
+    public static readonly GameplayMetricId RequestedCountMetric =
+        new("requested-count");
+    public static readonly GameplayMetricId MaterializedCountMetric =
+        new("materialized-count");
+    public static readonly GameplayMetricId EscapedCountMetric =
+        new("escaped-count");
+    public static readonly GameplayMetricId HungerBeforeMetric =
+        new("hunger-before");
+    public static readonly GameplayMetricId HungerAfterMetric =
+        new("hunger-after");
+    public static readonly GameplayMetricId ThirstBeforeMetric =
+        new("thirst-before");
+    public static readonly GameplayMetricId ThirstAfterMetric =
+        new("thirst-after");
+    public static readonly GameplayMetricId HygieneBeforeMetric =
+        new("hygiene-before");
+    public static readonly GameplayMetricId HygieneAfterMetric =
+        new("hygiene-after");
+    public static readonly GameplayMetricId InfectionBeforeMetric =
+        new("infection-before");
+    public static readonly GameplayMetricId InfectionAfterMetric =
+        new("infection-after");
+    public static readonly GameplayMetricId MoodBeforeMetric =
+        new("mood-before");
+    public static readonly GameplayMetricId MoodAfterMetric =
+        new("mood-after");
+    public static readonly GameplayMetricId SleepBeforeMetric =
+        new("sleep-before");
+    public static readonly GameplayMetricId SleepAfterMetric =
+        new("sleep-after");
+    public static readonly GameplayMetricId FunBeforeMetric =
+        new("fun-before");
+    public static readonly GameplayMetricId FunAfterMetric =
+        new("fun-after");
+    public static readonly GameplayMetricId ExcretionBeforeMetric =
+        new("excretion-before");
+    public static readonly GameplayMetricId ExcretionAfterMetric =
+        new("excretion-after");
+    public static readonly GameplayMetricId InjuryBeforeMetric =
+        new("injury-before");
+    public static readonly GameplayMetricId InjuryAfterMetric =
+        new("injury-after");
+    public static readonly GameplayMetricId StressBeforeMetric =
+        new("stress-before");
+    public static readonly GameplayMetricId StressAfterMetric =
+        new("stress-after");
 
     public static readonly GameplayMetricUnitId CountUnit = new("count");
     public static readonly GameplayMetricUnitId PointUnit = new("point");
@@ -52,6 +186,11 @@ public static class MigratedProducerOutcomeIds
     public static readonly GameplayMetricUnitId GramUnit = new("gram");
     public static readonly GameplayMetricUnitId SecondUnit = new("second");
     public static readonly GameplayMetricUnitId EnumUnit = new("enum");
+    public static readonly GameplayMetricUnitId HourUnit = new("hour");
+    public static readonly GameplayMetricUnitId MilliExperienceUnit =
+        new("milli-experience");
+    public static readonly GameplayMetricUnitId MilliWorkUnit =
+        new("milli-work-unit");
 
     public static readonly GameplayOutcomeFactId SourceTypeFact = new("source-type");
     public static readonly GameplayOutcomeFactId SummaryFact = new("summary");
@@ -61,6 +200,94 @@ public static class MigratedProducerOutcomeIds
     public static readonly GameplayOutcomeFactId BeforeFact = new("state-before");
     public static readonly GameplayOutcomeFactId AfterFact = new("state-after");
     public static readonly GameplayOutcomeFactId OperationFact = new("operation-id");
+    public static readonly GameplayOutcomeFactId FacilityFact = new("facility-id");
+    public static readonly GameplayOutcomeFactId HouseholdFact = new("household-id");
+    public static readonly GameplayOutcomeFactId CharacterFact = new("character-id");
+    public static readonly GameplayOutcomeFactId SpeciesFact = new("species-id");
+    public static readonly GameplayOutcomeFactId OccurrenceFact =
+        new("occurrence-id");
+    public static readonly GameplayOutcomeFactId RecipeFact = new("recipe-id");
+    public static readonly GameplayOutcomeFactId BillFact = new("bill-id");
+    public static readonly GameplayOutcomeFactId BatchFact = new("batch-commit-id");
+    public static readonly GameplayOutcomeFactId FingerprintFact = new("outcome-fingerprint");
+    public static readonly GameplayOutcomeFactId ProficiencyFact = new("proficiency-id");
+    public static readonly GameplayOutcomeFactId RetirementEventFact = new("retirement-event-id");
+    public static readonly GameplayOutcomeFactId RetirementChoiceFact = new("retirement-choice-id");
+    public static readonly GameplayOutcomeFactId EquipmentDefinitionFact = new("equipment-definition-id");
+    public static readonly GameplayOutcomeFactId AwardKindFact =
+        new("award-kind");
+    public static readonly GameplayOutcomeFactId WorkOrderFact =
+        new("work-order-id");
+    public static readonly GameplayOutcomeFactId TerminalKindFact =
+        new("terminal-kind");
+    public static readonly GameplayOutcomeFactId ConstructionSiteFact =
+        new("construction-site-id");
+    public static readonly GameplayOutcomeFactId BuildingDefinitionFact =
+        new("building-definition-id");
+    public static readonly GameplayOutcomeFactId FinalFacilityFact =
+        new("final-facility-id");
+    public static readonly GameplayOutcomeFactId ReplacedFacilityFact =
+        new("replaced-facility-id");
+    public static readonly GameplayOutcomeFactId SupportFacilitiesFact =
+        new("support-facility-ids");
+    public static readonly GameplayOutcomeFactId ContributorsFact =
+        new("contributors-and-work");
+    public static readonly GameplayOutcomeFactId RequiredMaterialsFact =
+        new("required-materials");
+    public static readonly GameplayOutcomeFactId MaterialInputOperationFact =
+        new("material-input-operation-id");
+    public static readonly GameplayOutcomeFactId RestitutionOperationFact =
+        new("restitution-operation-id");
+    public static readonly GameplayOutcomeFactId PlacementOperationFact =
+        new("placement-operation-id");
+    public static readonly GameplayOutcomeFactId QualityFact =
+        new("quality-tier");
+    public static readonly GameplayOutcomeFactId ActionFact =
+        new("action-id");
+    public static readonly GameplayOutcomeFactId TargetFact =
+        new("target-id");
+    public static readonly GameplayOutcomeFactId NodeFact =
+        new("node-id");
+    public static readonly GameplayOutcomeFactId EffectFact =
+        new("effect-detail");
+    public static readonly GameplayOutcomeFactId EffectApplicationFact =
+        new("effect-application");
+    public static readonly GameplayOutcomeFactId RewardFact =
+        new("reward-detail");
+    public static readonly GameplayOutcomeFactId CampaignFact =
+        new("campaign-transition");
+    public static readonly GameplayOutcomeFactId StateBeforeFingerprintFact =
+        new("state-before-fingerprint");
+    public static readonly GameplayOutcomeFactId StateAfterFingerprintFact =
+        new("state-after-fingerprint");
+    public static readonly GameplayOutcomeFactId ItemDefinitionFact =
+        new("item-definition-id");
+    public static readonly GameplayOutcomeFactId SourceStackFact =
+        new("source-stack-ids");
+    public static readonly GameplayOutcomeFactId PhysicalCommitFact =
+        new("physical-commit-id");
+    public static readonly GameplayOutcomeFactId WaterQualityFact =
+        new("quality");
+    public static readonly GameplayOutcomeFactId PathogenFact =
+        new("pathogen-id");
+    public static readonly GameplayOutcomeFactId ActiveConditionsFact =
+        new("active-condition-ids");
+    public static readonly GameplayOutcomeFactId SourceOperationFact =
+        new("source-operation-id");
+    public static readonly GameplayOutcomeFactId ServiceSessionFact =
+        new("service-session-id");
+    public static readonly GameplayOutcomeFactId FacilityRoleFact =
+        new("facility-role");
+    public static readonly GameplayOutcomeFactId OutcomeStatusFact =
+        new("outcome-status");
+    public static readonly GameplayOutcomeFactId ChildResultKeysFact =
+        new("child-result-keys");
+    public static readonly GameplayOutcomeFactId InjuryBeforeFact =
+        new("injury-before");
+    public static readonly GameplayOutcomeFactId InjuryAfterFact =
+        new("injury-after");
+    public static readonly GameplayOutcomeFactId MaximumHealthFact =
+        new("maximum-health-before-after");
 
     public static readonly GameplayOutcomeProvenanceReference ProducerMigrationProvenance =
         new("capture-contract", "migrated-producer-v1");
@@ -69,20 +296,48 @@ public static class MigratedProducerOutcomeIds
     {
         ActorRole, TargetRole, FacilityRole, ItemRole, FactionRole,
         ExpeditionRole, RouteRole, OwnerRole, CustomerRole, SourceRole,
-        DestinationRole, WitnessRole, OperationRole
+        DestinationRole, WitnessRole, BetrayerRole, OperationRole
+        , IntruderRole, AttackedFacilityRole, DefenderRole,
+        DefenseFacilityRole, MemberRole, AbilityRole, EquipmentRole,
+        RewardRole, ArrivalRole
     };
 
     private static readonly GameplayMetricId[] KnownMetricsInternal =
     {
         AmountMetric, PreviousMetric, CurrentMetric, DeltaMetric, CountMetric,
-        QuantityMetric, MassMetric, DamageMetric, RatioMetric, DurationMetric,
-        DayMetric, RevisionMetric, StatusMetric, ValueMetric
+        QuantityMetric, SecuredCountMetric, ExpiredCountMetric, MassMetric,
+        DamageMetric, RatioMetric, DurationMetric,
+        DayMetric, RevisionMetric, StatusMetric, ValueMetric,
+        CurrentExperienceBeforeMetric, CurrentExperienceAfterMetric,
+        LifetimeExperienceBeforeMetric, LifetimeExperienceAfterMetric,
+        RankBeforeMetric, RankAfterMetric, AbsoluteHourMetric,
+        RequiredWorkMetric, CompletedWorkMetric,
+        InputQuantityMetric, OutputQuantityMetric, InputMassMetric,
+        OutputMassMetric, DamageIndexBeforeMetric, DamageIndexAfterMetric,
+        StateBeforeMetric, StateAfterMetric, RiskBeforeMetric,
+        RiskAfterMetric, TrustBeforeMetric, TrustAfterMetric,
+        StrengthBeforeMetric, StrengthAfterMetric,
+        DelayBeforeMetric, DelayAfterMetric,
+        HealthBeforeMetric, HealthAfterMetric, PowerMetric,
+        RequiredPowerMetric, DangerMetric, RequestedCountMetric,
+        MaterializedCountMetric, EscapedCountMetric,
+        HungerBeforeMetric, HungerAfterMetric,
+        ThirstBeforeMetric, ThirstAfterMetric,
+        HygieneBeforeMetric, HygieneAfterMetric,
+        InfectionBeforeMetric, InfectionAfterMetric,
+        MoodBeforeMetric, MoodAfterMetric,
+        SleepBeforeMetric, SleepAfterMetric,
+        FunBeforeMetric, FunAfterMetric,
+        ExcretionBeforeMetric, ExcretionAfterMetric,
+        InjuryBeforeMetric, InjuryAfterMetric,
+        StressBeforeMetric, StressAfterMetric
     };
 
     private static readonly GameplayMetricUnitId[] KnownUnitsInternal =
     {
         CountUnit, PointUnit, RatioUnit, CurrencyUnit, DayUnit, RevisionUnit,
-        GramUnit, SecondUnit, EnumUnit
+        GramUnit, SecondUnit, EnumUnit, HourUnit, MilliExperienceUnit,
+        MilliWorkUnit
     };
 
     public static bool IsKnownRole(GameplayRoleId roleId) =>
@@ -390,6 +645,12 @@ internal sealed class MigratedProducerOutcomeConsolidator : IOutcomeMemoryConsol
 internal sealed class MigratedProducerOutcomeProjector : INarrativePerspectiveProjector
 {
     private const string RendererVersion = "migrated-producer-v1";
+    private static readonly string[] AttachedNameParticles =
+    {
+        "으로부터", "에게서", "한테서", "으로", "에게", "한테", "께서",
+        "은", "는", "이", "가", "을", "를", "과", "와", "의", "로",
+        "에", "도", "만", "부터", "까지"
+    };
     private readonly IKoreanJosaFormatter josa;
     private readonly MigratedProducerOutcomeDefinition definition;
 
@@ -407,14 +668,25 @@ internal sealed class MigratedProducerOutcomeProjector : INarrativePerspectivePr
     {
         GameplayOutcomeParticipant subject = outcome.GetParticipant(0);
         string summary = FindFact(outcome, MigratedProducerOutcomeIds.SummaryFact);
+        for (int index = 0; index < outcome.ParticipantCount; index++)
+        {
+            summary = NormalizeSubjectParticlePlaceholder(
+                summary,
+                outcome.GetParticipant(index).DisplayName);
+        }
         KoreanJosaFormatResult formatted = josa.Format(new KoreanJosaRequest(
             subject.DisplayName,
             KoreanJosaKind.Topic));
         bool neutral = formatted.RequiresNeutralFrame;
-        string text = neutral
-            ? definition.KoreanLabel + " · " + subject.DisplayName.DisplayText
-                + ": " + summary
-            : formatted.Text + " " + summary;
+        bool summaryAlreadyNamesSubject = SummaryNamesSubject(
+            summary,
+            subject.DisplayName);
+        string text = summaryAlreadyNamesSubject
+            ? summary
+            : neutral
+                ? definition.KoreanLabel + " · " + subject.DisplayName.DisplayText
+                    + ": " + summary
+                : formatted.Text + " " + summary;
         return new NarrativeView(
             outcome.OutcomeId,
             perspective.Kind,
@@ -422,6 +694,122 @@ internal sealed class MigratedProducerOutcomeProjector : INarrativePerspectivePr
             RendererVersion,
             neutral);
     }
+
+    private string NormalizeSubjectParticlePlaceholder(
+        string summary,
+        KoreanNameSnapshot subjectName)
+    {
+        string displayText = subjectName.DisplayText;
+        string placeholder = displayText + "이(가)";
+        if (!ContainsStandaloneToken(summary, placeholder))
+            return summary;
+
+        KoreanJosaFormatResult subject = josa.Format(new KoreanJosaRequest(
+            subjectName,
+            KoreanJosaKind.Subject));
+        string replacement = subject.RequiresNeutralFrame
+            ? displayText
+            : subject.Text;
+        return ReplaceStandaloneToken(summary, placeholder, replacement);
+    }
+
+    private bool SummaryNamesSubject(
+        string summary,
+        KoreanNameSnapshot subjectName)
+    {
+        string displayText = subjectName.DisplayText;
+        if (ContainsNameMention(summary, displayText))
+            return true;
+
+        KoreanJosaFormatResult subject = josa.Format(new KoreanJosaRequest(
+            subjectName,
+            KoreanJosaKind.Subject));
+        return !subject.RequiresNeutralFrame
+            && ContainsStandaloneToken(summary, subject.Text);
+    }
+
+    private static bool ContainsNameMention(string summary, string displayText)
+    {
+        if (ContainsStandaloneToken(summary, displayText))
+            return true;
+
+        for (int index = 0; index < AttachedNameParticles.Length; index++)
+        {
+            if (ContainsStandaloneToken(
+                    summary,
+                    displayText + AttachedNameParticles[index]))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool ContainsStandaloneToken(string text, string token)
+    {
+        if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(token))
+            return false;
+
+        int searchIndex = 0;
+        while (searchIndex <= text.Length - token.Length)
+        {
+            int matchIndex = text.IndexOf(
+                token,
+                searchIndex,
+                StringComparison.Ordinal);
+            if (matchIndex < 0)
+                return false;
+
+            int endIndex = matchIndex + token.Length;
+            if (IsTokenBoundaryBefore(text, matchIndex)
+                && IsTokenBoundaryAfter(text, endIndex))
+            {
+                return true;
+            }
+            searchIndex = endIndex;
+        }
+        return false;
+    }
+
+    private static string ReplaceStandaloneToken(
+        string text,
+        string token,
+        string replacement)
+    {
+        int searchIndex = 0;
+        while (searchIndex <= text.Length - token.Length)
+        {
+            int matchIndex = text.IndexOf(
+                token,
+                searchIndex,
+                StringComparison.Ordinal);
+            if (matchIndex < 0)
+                break;
+
+            int endIndex = matchIndex + token.Length;
+            if (IsTokenBoundaryBefore(text, matchIndex)
+                && IsTokenBoundaryAfter(text, endIndex))
+            {
+                text = text.Remove(matchIndex, token.Length)
+                    .Insert(matchIndex, replacement);
+                searchIndex = matchIndex + replacement.Length;
+            }
+            else
+            {
+                searchIndex = endIndex;
+            }
+        }
+        return text;
+    }
+
+    private static bool IsTokenBoundaryBefore(string text, int index) =>
+        index == 0 || !IsTokenCharacter(text[index - 1]);
+
+    private static bool IsTokenBoundaryAfter(string text, int index) =>
+        index >= text.Length || !IsTokenCharacter(text[index]);
+
+    private static bool IsTokenCharacter(char value) =>
+        char.IsLetterOrDigit(value) || value == '_';
 
     private static string FindFact(
         in GameplayOutcomeReadView outcome,
@@ -475,7 +863,6 @@ public sealed class MigratedProducerOutcomeDescriptor : IGameplayOutcomeDescript
             || outcome.SubjectCount == 0
             || outcome.TagCount != 1
             || !outcome.GetTag(0).Equals(definition.DomainTag)
-            || outcome.AnchorCount != 0
             || outcome.ProvenanceCount == 0
             || outcome.FactCount < 2
             || !string.Equals(
@@ -545,8 +932,7 @@ public static class MigratedProducerOutcomeRegistration
         this IContainerBuilder builder)
     {
         builder.Register<MigratedProducerOutcomeAdapter>(Lifetime.Singleton)
-            .As<IGameplayOutcomeAdapterRegistration>();
-        builder.Register<MigratedProducerOutcomeDescriptorCatalog>(Lifetime.Singleton)
-            .As<IGameplayOutcomeDescriptorCatalog>();
+            .AsSelf();
+        builder.RegisterGameplayActionLogs("migrated");
     }
 }

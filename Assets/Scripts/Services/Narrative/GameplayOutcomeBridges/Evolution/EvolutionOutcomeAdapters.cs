@@ -23,6 +23,9 @@ public sealed class ApparelPhysicalOutcomeAdapter :
             && GameplayOutcomeStableIdSyntax.IsValid(receipt.FacilityPersistentId)
             && GameplayOutcomeStableIdSyntax.IsValid(receipt.OrderId)
             && GameplayOutcomeStableIdSyntax.IsValid(receipt.OutputItemId)
+            && (receipt.QualitySchemaVersion == 0
+                || GameplayOutcomeStableIdSyntax.IsValid(
+                    receipt.Result.OutputInstanceId))
             && receipt.Result.IsCompleted
             && receipt.Result.InputMassGrams >= 0L
             && receipt.Result.OutputMassGrams >= 0L
@@ -53,6 +56,13 @@ public sealed class ApparelPhysicalOutcomeAdapter :
         GameplayEntityId output = new(
             EvolutionOutcomeIds.ApparelKind,
             receipt.OutputItemId);
+        bool hasOutputInstance = GameplayOutcomeStableIdSyntax.IsValid(
+            receipt.Result.OutputInstanceId);
+        GameplayEntityId physicalOutput = hasOutputInstance
+            ? new GameplayEntityId(
+                EvolutionOutcomeIds.ItemInstanceKind,
+                receipt.Result.OutputInstanceId)
+            : output;
         bool written = builder.AddParticipant(new GameplayOutcomeParticipant(
                    facility,
                    EvolutionOutcomeIds.PhysicalTransactionOwnerRole,
@@ -61,6 +71,9 @@ public sealed class ApparelPhysicalOutcomeAdapter :
                    receipt.FacilityDisplayName))
             && builder.AddSubject(new GameplayOutcomeSubjectLink(
                 facility, 0.55f, NarrativeMemoryTier.Recent, false, false, 0))
+            && builder.AddSubject(new GameplayOutcomeSubjectLink(
+                physicalOutput, 0.8f, NarrativeMemoryTier.Episodic,
+                false, false, 0))
             && builder.AddMetric(new GameplayOutcomeMetric(
                 EvolutionOutcomeIds.PhysicalInputMassMetric,
                 receipt.Result.InputMassGrams,
@@ -77,7 +90,12 @@ public sealed class ApparelPhysicalOutcomeAdapter :
             && builder.AddAnchor(facility, HashEvidence(
                 "output-stack-sha256", receipt.Result.OutputStackId))
             && builder.AddAnchor(facility, HashEvidence(
-                "output-instance-sha256", receipt.Result.OutputInstanceId));
+                hasOutputInstance
+                    ? "output-instance-sha256"
+                    : "output-definition-sha256",
+                hasOutputInstance
+                    ? receipt.Result.OutputInstanceId
+                    : receipt.OutputItemId));
         if (written && receipt.HasProductQuality)
         {
             GameplayEntityId maker = new(
@@ -127,7 +145,7 @@ public sealed class ApparelPhysicalOutcomeAdapter :
         ownerRevision,
         hasProductQuality ? 2 : 1,
         hasProductQuality ? 5 : 2,
-        hasProductQuality ? 2 : 1,
+        hasProductQuality ? 3 : 2,
         hasProductQuality ? 2 : 1,
         3);
 
@@ -249,7 +267,7 @@ public sealed class AcquiredTraitInferenceOutcomeAdapter :
             GameplayOutcomeStatus.Succeeded,
             currentWorldEpoch,
             audit.ResultingRevision,
-            1, 2, 1, 1, 3);
+            1, 2, 1, 1, 3, factCount: 5);
         bool valid = receipt.OperationId.IsValid
             && receipt.Result.Succeeded
             && audit.CommandKind == CharacterAcquiredTraitInferenceCommandKind.Completion
@@ -299,6 +317,21 @@ public sealed class AcquiredTraitInferenceOutcomeAdapter :
                 "candidate-packet-sha256", audit.CandidatePacketHash))
             && builder.AddAnchor(character, HashEvidence(
                 "selected-combination-sha256", audit.SelectedCombinationId))
+            && builder.AddFact(new GameplayOutcomeFact(
+                EvolutionOutcomeIds.TraitInstanceFact,
+                receipt.TraitInstanceId))
+            && builder.AddFact(new GameplayOutcomeFact(
+                EvolutionOutcomeIds.TraitCombinationFact,
+                receipt.CombinationId))
+            && builder.AddFact(new GameplayOutcomeFact(
+                EvolutionOutcomeIds.TraitDisplayNameFact,
+                receipt.TraitDisplayName))
+            && builder.AddFact(new GameplayOutcomeFact(
+                EvolutionOutcomeIds.TraitModuleIdsFact,
+                string.Join("|", receipt.ModuleIds)))
+            && builder.AddFact(new GameplayOutcomeFact(
+                EvolutionOutcomeIds.TraitEvidenceFactIdsFact,
+                string.Join("|", receipt.EvidenceFactIds)))
                 ? OutcomePrepareResult.Prepared()
                 : Failed("acquired-trait-inference-write-failed");
     }
@@ -403,7 +436,7 @@ public sealed class ApparelChangeOutcomeAdapter :
             receipt.OwnerRevision,
             1, 2, 1, 1, 0);
         return ValidateCommon(receipt.OperationId, receipt.CharacterId.IsValid,
-            receipt.ApparelId, receipt.AbsoluteDay);
+            receipt.CharacterDisplayName, receipt.ApparelId, receipt.AbsoluteDay);
     }
 
     public override OutcomePrepareResult TryWrite(
@@ -420,7 +453,8 @@ public sealed class ApparelChangeOutcomeAdapter :
                    character,
                    EvolutionOutcomeIds.WearerRole,
                    GameplayParticipationKind.Direct,
-                   true))
+                   true,
+                   receipt.CharacterDisplayName))
             && builder.AddSubject(new GameplayOutcomeSubjectLink(
                 character, 0.45f, NarrativeMemoryTier.Recent, false, false, 0))
             && builder.AddMetric(new GameplayOutcomeMetric(
@@ -441,9 +475,13 @@ public sealed class ApparelChangeOutcomeAdapter :
     private static OutcomePrepareResult ValidateCommon(
         GameplayOperationId operationId,
         bool entityValid,
+        DungeonStory.Narrative.Korean.KoreanNameSnapshot displayName,
         string definitionId,
         int absoluteDay) => operationId.IsValid
         && entityValid
+        && !string.IsNullOrWhiteSpace(displayName.DisplayText)
+        && !string.IsNullOrWhiteSpace(displayName.DisplaySnapshotRevision)
+        && !string.IsNullOrWhiteSpace(displayName.Locale)
         && GameplayOutcomeStableIdSyntax.IsValid(definitionId)
         && absoluteDay >= 0
             ? OutcomePrepareResult.Prepared()
@@ -477,6 +515,7 @@ public sealed class AcquiredTraitReactionOutcomeAdapter :
         bool valid = receipt.OperationId.IsValid
             && receipt.OwnerRevision >= 0L
             && receipt.CharacterId.IsValid
+            && HasValidName(receipt.CharacterDisplayName)
             && !string.IsNullOrWhiteSpace(receipt.TraitInstanceId)
             && GameplayOutcomeStableIdSyntax.IsValid(receipt.ReactionId)
             && float.IsFinite(receipt.AppliedValue)
@@ -507,7 +546,8 @@ public sealed class AcquiredTraitReactionOutcomeAdapter :
                    character,
                    EvolutionOutcomeIds.TraitOwnerRole,
                    GameplayParticipationKind.Direct,
-                   true))
+                   true,
+                   receipt.CharacterDisplayName))
             && builder.AddSubject(new GameplayOutcomeSubjectLink(
                 character, 0.65f, NarrativeMemoryTier.Recent, false, false, 0))
             && builder.AddMetric(new GameplayOutcomeMetric(
@@ -526,6 +566,12 @@ public sealed class AcquiredTraitReactionOutcomeAdapter :
 
     private static NarrativeEvidenceReference HashEvidence(string type, string value) =>
         new(type, NarrativeInferenceHash.ComputeSha256Utf8(value ?? string.Empty));
+
+    private static bool HasValidName(
+        DungeonStory.Narrative.Korean.KoreanNameSnapshot value) =>
+        !string.IsNullOrWhiteSpace(value.DisplayText)
+        && !string.IsNullOrWhiteSpace(value.DisplaySnapshotRevision)
+        && !string.IsNullOrWhiteSpace(value.Locale);
 
     private static OutcomePrepareResult Failed(string detail) =>
         new(OutcomePrepareCode.AdapterWriteFailed, detail);
@@ -559,6 +605,7 @@ public sealed class FacilityEvolutionOutcomeAdapter :
         bool valid = receipt.OperationId.IsValid
             && receipt.OwnerRevision > 0L
             && GameplayOutcomeStableIdSyntax.IsValid(receipt.FacilityPersistentId)
+            && HasValidName(receipt.FacilityDisplayName)
             && GameplayOutcomeStableIdSyntax.IsValid(receipt.RecipeId)
             && GameplayOutcomeStableIdSyntax.IsValid(receipt.ResultFacilityDefinitionId)
             && receipt.ResultStarGrade > 0
@@ -585,7 +632,8 @@ public sealed class FacilityEvolutionOutcomeAdapter :
                 facility,
                 EvolutionOutcomeIds.EvolvedFacilityRole,
                 GameplayParticipationKind.Direct,
-                true))
+                true,
+                receipt.FacilityDisplayName))
             && builder.AddSubject(new GameplayOutcomeSubjectLink(
                 facility, 0.9f, NarrativeMemoryTier.Recent, true, false, 0))
             && builder.AddMetric(new GameplayOutcomeMetric(
@@ -617,6 +665,15 @@ public sealed class FacilityEvolutionOutcomeAdapter :
                     "material-source-set-sha256",
                     string.Join("|", receipt.SourceStackIds)));
         }
+        if (written)
+        {
+            written = builder.AddFact(new GameplayOutcomeFact(
+                    EvolutionOutcomeIds.FacilityRecipeFact,
+                    receipt.RecipeId))
+                && builder.AddFact(new GameplayOutcomeFact(
+                    EvolutionOutcomeIds.FacilityResultDefinitionFact,
+                    receipt.ResultFacilityDefinitionId));
+        }
         return written
             ? OutcomePrepareResult.Prepared()
             : Failed("facility-evolution-write-failed");
@@ -634,10 +691,17 @@ public sealed class FacilityEvolutionOutcomeAdapter :
             GameplayOutcomeStatus.Succeeded,
             worldEpoch,
             ownerRevision,
-            1, 4, 1, 1, hasMaterialCommit ? 2 : 0);
+            1, 4, 1, 1, hasMaterialCommit ? 2 : 0,
+            factCount: 2);
 
     private static NarrativeEvidenceReference HashEvidence(string type, string value) =>
         new(type, NarrativeInferenceHash.ComputeSha256Utf8(value ?? string.Empty));
+
+    private static bool HasValidName(
+        DungeonStory.Narrative.Korean.KoreanNameSnapshot value) =>
+        !string.IsNullOrWhiteSpace(value.DisplayText)
+        && !string.IsNullOrWhiteSpace(value.DisplaySnapshotRevision)
+        && !string.IsNullOrWhiteSpace(value.Locale);
 
     private static OutcomePrepareResult Failed(string detail) =>
         new(OutcomePrepareCode.AdapterWriteFailed, detail);
@@ -664,6 +728,7 @@ public sealed class MemoryErasureOutcomeAdapter :
             currentWorldEpoch);
         bool valid = receipt.OperationId.IsValid
             && GameplayOutcomeStableIdSyntax.IsValid(receipt.Result.TargetCharacterId)
+            && HasValidName(receipt.TargetCharacterDisplayName)
             && !string.IsNullOrWhiteSpace(receipt.Result.TraitInstanceId)
             && !string.IsNullOrWhiteSpace(receipt.Result.AuditId)
             && receipt.Result.PreviousRevision >= 0
@@ -688,7 +753,8 @@ public sealed class MemoryErasureOutcomeAdapter :
                 character,
                 EvolutionOutcomeIds.ErasureTargetRole,
                 GameplayParticipationKind.Direct,
-                true))
+                true,
+                receipt.TargetCharacterDisplayName))
             && builder.AddSubject(new GameplayOutcomeSubjectLink(
                 character, consumed ? 1f : 0.6f,
                 NarrativeMemoryTier.Recent, consumed, false, 0))
@@ -720,6 +786,21 @@ public sealed class MemoryErasureOutcomeAdapter :
             written = builder.AddAnchor(character, HashEvidence(
                 "physical-commit-sha256", receipt.Result.PhysicalCommitId));
         }
+        if (written)
+        {
+            written = builder.AddFact(new GameplayOutcomeFact(
+                    EvolutionOutcomeIds.TraitInstanceFact,
+                    receipt.Result.TraitInstanceId))
+                && builder.AddFact(new GameplayOutcomeFact(
+                    EvolutionOutcomeIds.TraitCombinationFact,
+                    receipt.CombinationId))
+                && builder.AddFact(new GameplayOutcomeFact(
+                    EvolutionOutcomeIds.TraitDisplayNameFact,
+                    receipt.TraitDisplayName))
+                && builder.AddFact(new GameplayOutcomeFact(
+                    EvolutionOutcomeIds.TraitModuleIdsFact,
+                    string.Join("|", receipt.ModuleIds)));
+        }
         return written
             ? OutcomePrepareResult.Prepared()
             : Failed("memory-erasure-write-failed");
@@ -737,7 +818,8 @@ public sealed class MemoryErasureOutcomeAdapter :
             status,
             worldEpoch,
             0L,
-            1, 4, 1, 1, hasPhysicalCommit ? 2 : 1);
+            1, 4, 1, 1, hasPhysicalCommit ? 2 : 1,
+            factCount: 4);
 
     public static GameplayOutcomeStatus MapStatus(MemoryErasureSealUseStatus status) =>
         status switch
@@ -756,6 +838,12 @@ public sealed class MemoryErasureOutcomeAdapter :
 
     private static NarrativeEvidenceReference HashEvidence(string type, string value) =>
         new(type, NarrativeInferenceHash.ComputeSha256Utf8(value ?? string.Empty));
+
+    private static bool HasValidName(
+        DungeonStory.Narrative.Korean.KoreanNameSnapshot value) =>
+        !string.IsNullOrWhiteSpace(value.DisplayText)
+        && !string.IsNullOrWhiteSpace(value.DisplaySnapshotRevision)
+        && !string.IsNullOrWhiteSpace(value.Locale);
 
     private static OutcomePrepareResult Failed(string detail) =>
         new(OutcomePrepareCode.AdapterWriteFailed, detail);

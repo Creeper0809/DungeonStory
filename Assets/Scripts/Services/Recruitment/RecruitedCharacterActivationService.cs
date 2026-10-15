@@ -224,7 +224,7 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
 
         if (!progression.EnsureMinimumLevel(
                 minimumLevel,
-                minimumLevel > 1 ? "원정 합류 훈련을 마쳤다." : string.Empty))
+                CharacterLevelChangeCause.CampaignRecruitmentTraining))
         {
             return;
         }

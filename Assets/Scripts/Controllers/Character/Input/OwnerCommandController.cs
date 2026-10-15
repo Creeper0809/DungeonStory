@@ -78,6 +78,7 @@ public class OwnerCommandController :
     private IGameEventBus gameEventBus;
     private IGameCalendar gameCalendar;
     private IRoomLayoutCache roomLayoutCache;
+    private ICharacterSkillActivationTransaction skillActivationTransactions;
     private CharacterActor pendingManualSkillSource;
     private string pendingManualSkillId = string.Empty;
     private readonly OwnerCommandSelectionState selection = new();
@@ -146,12 +147,16 @@ public class OwnerCommandController :
     [Inject]
     public void ConstructManualSkillCommands(
         IGameCalendar gameCalendar,
-        IRoomLayoutCache roomLayoutCache)
+        IRoomLayoutCache roomLayoutCache,
+        ICharacterSkillActivationTransaction skillActivationTransactions)
     {
         this.gameCalendar = gameCalendar
             ?? throw new ArgumentNullException(nameof(gameCalendar));
         this.roomLayoutCache = roomLayoutCache
             ?? throw new ArgumentNullException(nameof(roomLayoutCache));
+        this.skillActivationTransactions = skillActivationTransactions
+            ?? throw new ArgumentNullException(
+                nameof(skillActivationTransactions));
     }
 
     private void Update()
@@ -703,14 +708,11 @@ public class OwnerCommandController :
 
         if (!WorkCommandResolver.TryResolveFacilityCommand(selectedActor, target, out WorkTypeId workTypeId, out string errorMessage))
         {
-            selectedActor.AddActivity(CharacterActivityEvent.Facility(
-                CharacterActivityKinds.Command,
-                CharacterActivityOutcomes.Failed,
-                $"우선 지정 실패: {errorMessage}",
+            gameEventBus.Publish(CreatePriorityWorkCommandFailure(
+                selectedActor,
                 target,
-                actionId: "command:priority-work",
-                reasonCode: "unsupported-facility-command",
-                bubbleEligible: true));
+                errorMessage,
+                "unsupported-facility-command"));
             gameEventBus.ShowNotice(errorMessage, NoticeFeedEvent.Grade.WARNING);
             message = errorMessage;
             return false;
@@ -722,14 +724,11 @@ public class OwnerCommandController :
 
         if (!work.TrySetPriorityWorkTarget(target, workTypeId, searchResult, out errorMessage))
         {
-            selectedActor.AddActivity(CharacterActivityEvent.Facility(
-                CharacterActivityKinds.Command,
-                CharacterActivityOutcomes.Failed,
-                $"우선 지정 실패: {errorMessage}",
+            gameEventBus.Publish(CreatePriorityWorkCommandFailure(
+                selectedActor,
                 target,
-                actionId: "command:priority-work",
-                reasonCode: "priority-target-rejected",
-                bubbleEligible: true));
+                errorMessage,
+                "priority-target-rejected"));
             gameEventBus.ShowNotice(errorMessage, NoticeFeedEvent.Grade.WARNING);
             message = errorMessage;
             return false;
@@ -758,7 +757,8 @@ public class OwnerCommandController :
     {
         if (!TrySelectActor(actor, out message))
             return false;
-        if (gameCalendar == null || roomLayoutCache == null)
+        if (gameCalendar == null || roomLayoutCache == null
+            || skillActivationTransactions == null)
         {
             message = "작업 능력 대상 시스템이 준비되지 않았습니다.";
             return false;
@@ -779,6 +779,7 @@ public class OwnerCommandController :
             worldRegistry,
             roomLayoutCache,
             gameCalendar.AbsoluteHour,
+            skillActivationTransactions,
             out message);
         gameEventBus.ShowNotice(
             message,
@@ -794,7 +795,8 @@ public class OwnerCommandController :
         CharacterActor source = pendingManualSkillSource;
         string skillId = pendingManualSkillId;
         if (source == null || string.IsNullOrEmpty(skillId)
-            || gameCalendar == null || roomLayoutCache == null)
+            || gameCalendar == null || roomLayoutCache == null
+            || skillActivationTransactions == null)
         {
             pendingManualSkillSource = null;
             pendingManualSkillId = string.Empty;
@@ -809,6 +811,7 @@ public class OwnerCommandController :
             worldRegistry,
             roomLayoutCache,
             gameCalendar.AbsoluteHour,
+            skillActivationTransactions,
             out message);
         if (success)
         {
@@ -838,7 +841,8 @@ public class OwnerCommandController :
         if (!selectedActor.TryGetAbility(out AbilityWork work))
         {
             message = "선택한 캐릭터는 작업 능력이 없습니다.";
-            selectedActor.AddActivity(CreateSuppressCommandFailure(
+            gameEventBus.Publish(CreateSuppressCommandFailure(
+                selectedActor,
                 target,
                 message,
                 "missing-work-ability"));
@@ -852,7 +856,8 @@ public class OwnerCommandController :
 
         if (!work.TrySetPrioritySuppressTarget(target, searchResult, out string errorMessage))
         {
-            selectedActor.AddActivity(CreateSuppressCommandFailure(
+            gameEventBus.Publish(CreateSuppressCommandFailure(
+                selectedActor,
                 target,
                 errorMessage,
                 "priority-target-rejected"));
@@ -867,23 +872,40 @@ public class OwnerCommandController :
         return true;
     }
 
-    private static CharacterActivityEvent CreateSuppressCommandFailure(
-        CharacterActor target,
-        string message,
+    private static OwnerCommandRejectedEvent CreatePriorityWorkCommandFailure(
+        CharacterActor subject,
+        BuildableObject target,
+        string detail,
         string reasonCode)
     {
-        return CharacterActivityEvent.Create(
-            CharacterActivityKinds.Command,
-            CharacterActivityOutcomes.Failed,
-            $"우선 지정 실패: {message}",
-            actionId: "command:priority-suppress",
-            targetId: target != null
-                ? CharacterPersistentIdentity.Require(target).Value
-                : string.Empty,
-            targetName: target != null ? target.name : string.Empty,
-            reasonCode: reasonCode,
-            sentiment: -0.7f,
-            bubbleEligible: true);
+        string targetName = target.BuildingData != null
+            && !string.IsNullOrWhiteSpace(target.BuildingData.objectName)
+                ? target.BuildingData.objectName
+                : target.name;
+        return new OwnerCommandRejectedEvent(
+            OwnerCommandRejectedKind.PriorityWork,
+            CharacterPersistentIdentity.Require(subject),
+            target.RequirePersistentInstanceId().Value,
+            targetName,
+            target.id,
+            reasonCode,
+            detail);
+    }
+
+    private static OwnerCommandRejectedEvent CreateSuppressCommandFailure(
+        CharacterActor subject,
+        CharacterActor target,
+        string detail,
+        string reasonCode)
+    {
+        return new OwnerCommandRejectedEvent(
+            OwnerCommandRejectedKind.Suppress,
+            CharacterPersistentIdentity.Require(subject),
+            CharacterPersistentIdentity.Require(target).Value,
+            target.name,
+            -1,
+            reasonCode,
+            detail);
     }
 
     public void OnTriggerEvent(InfoFeedEvent eventType)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 [Serializable]
@@ -15,9 +16,28 @@ public sealed class KinshipHouseholdWorldSaveData
 
 public interface IHouseholdService
 {
-    void Assign(CharacterId characterId, HouseholdId householdId, BuildingInstanceId roomId, BuildingInstanceId bedId);
+    IReadOnlyList<CharacterRoomAssignmentSaveData> Assignments { get; }
+    IReadOnlyList<HouseholdPendingAssignmentSaveData> PendingAssignments { get; }
+    void Assign(
+        CharacterId characterId,
+        HouseholdId householdId,
+        BuildingInstanceId roomId,
+        BuildingInstanceId bedId,
+        int bedSlotIndex = 0);
+    void MarkPending(
+        CharacterId characterId,
+        HouseholdId preferredHouseholdId,
+        CharacterId firstParentId,
+        CharacterId secondParentId,
+        CharacterId carrierId,
+        int requestedAbsoluteDay,
+        string reasonCode);
+    void ClearPending(CharacterId characterId);
     void Clear(CharacterId characterId);
     bool TryGet(CharacterId characterId, out CharacterRoomAssignmentSaveData assignment);
+    bool TryGetPending(
+        CharacterId characterId,
+        out HouseholdPendingAssignmentSaveData pending);
     IReadOnlyList<CharacterId> GetMembers(HouseholdId householdId);
 }
 
@@ -63,19 +83,18 @@ public sealed class KinshipHouseholdRuntime :
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly V20CampaignRuntime campaign;
     private readonly IGameEventBus events;
-    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private readonly ISocialRitualFactPublisher factPublisher;
     public KinshipHouseholdRuntime(
         DungeonRuntimeAggregateRootStore rootStore,
         V20CampaignRuntime campaign,
         IGameEventBus events,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        ISocialRitualFactPublisher factPublisher)
     {
         this.rootStore = rootStore
             ?? throw new ArgumentNullException(nameof(rootStore));
         this.campaign = campaign ?? throw new ArgumentNullException(nameof(campaign));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.factPublisher = factPublisher ?? throw new ArgumentNullException(nameof(factPublisher));
     }
 
     public IReadOnlyCollection<CharacterTombstoneSaveData> Tombstones =>
@@ -143,26 +162,14 @@ public sealed class KinshipHouseholdRuntime :
             .ToArray();
         foreach (ObservedLineageCompressionLifeEventReceipt receipt in receipts)
             campaign.RequireCanRecordObservedLineageCompressionLifeEvent(receipt);
-        if (receipts.Length
-            > GameplayOutcomeTransactionLimits.MaximumAtomicCommitBatchCount)
-        {
-            throw new InvalidOperationException(
-                "Lineage compression exceeds the atomic outcome batch limit.");
-        }
-
-        PreparedMigratedProducerOutcome[] prepared =
-            new PreparedMigratedProducerOutcome[receipts.Length];
+        CampaignMutationSnapshot campaignBefore = CaptureCampaign();
+        DomainFactLease[] prepared = new DomainFactLease[receipts.Length];
         try
         {
             for (int index = 0; index < receipts.Length; index++)
             {
                 ObservedLineageCompressionLifeEventReceipt receipt = receipts[index];
-                if (!outcomeTransactions.TryReserveSingleSubject(
-                        MigratedProducerOutcomeKind
-                            .ObservedLineageCompressionLifeEventReceipt,
-                        receipt.SourceOperationId,
-                        receipt.ArchiveAbsoluteDay,
-                        GameplayOutcomeStatus.Succeeded,
+                if (!factPublisher.TryReserve(receipt,
                         out prepared[index],
                         out string failureReason))
                 {
@@ -178,19 +185,14 @@ public sealed class KinshipHouseholdRuntime :
             throw;
         }
 
-        CampaignMutationSnapshot campaignBefore = CaptureCampaign();
         var observed = new List<ObservedLifeEventCommitResult>(receipts.Length);
-        var changedPrepared = new List<PreparedMigratedProducerOutcome>(
-            receipts.Length);
-        var changedSubjects = new List<MigratedProducerOutcomeSubject>(
-            receipts.Length);
-        var changedSummaries = new List<string>(receipts.Length);
+        var emissions = new List<DomainFactEmission>(receipts.Length);
         bool mutationAttempted = false;
         bool outcomesDurable = false;
         try
         {
             mutationAttempted = true;
-            PublishRestore(candidate);
+            rootStore.Replace(candidate);
             for (int index = 0; index < receipts.Length; index++)
             {
                 ObservedLineageCompressionLifeEventReceipt receipt = receipts[index];
@@ -199,25 +201,19 @@ public sealed class KinshipHouseholdRuntime :
                 observed.Add(committed);
                 if (!committed.StateChanged)
                 {
-                    outcomeTransactions.Cancel(prepared[index]);
+                    factPublisher.Cancel(prepared[index]);
                     continue;
                 }
-                changedPrepared.Add(prepared[index]);
-                changedSubjects.Add(CreateLineageSubject(receipt));
-                changedSummaries.Add(BuildLineageSummary(receipt));
+                emissions.Add(DomainFactEmission.Create(prepared[index], receipt));
             }
 
-            if (changedPrepared.Count > 0)
+            if (emissions.Count > 0)
             {
-                var results = new MigratedProducerOutcomeCommitResult[
-                    changedPrepared.Count];
-                if (!outcomeTransactions.CommitSingleSubjectBatch(
-                        changedPrepared.ToArray(),
-                        changedSubjects.ToArray(),
-                        changedSummaries.ToArray(),
+                var results = new DomainFactDelivery[emissions.Count];
+                if (!factPublisher.PublishBatch(emissions,
                         results,
                         out string failureReason)
-                    || results.Any(value => !value.DurablyCommitted))
+                    || results.Any(value => !value.MayBeCommitted))
                 {
                     throw new InvalidOperationException(
                         "Lineage-compression outcome batch commit was rejected: "
@@ -233,7 +229,7 @@ public sealed class KinshipHouseholdRuntime :
                 CancelLineageOutcomes(prepared);
                 if (mutationAttempted)
                 {
-                    PublishRestore(PrepareRestore(beforeState));
+                    rootStore.Replace(PrepareRestore(beforeState));
                     RestoreCampaign(campaignBefore);
                 }
             }
@@ -243,55 +239,74 @@ public sealed class KinshipHouseholdRuntime :
         foreach (ObservedLifeEventCommitResult committed in observed)
         {
             if (committed.Resolution.HasValue)
-                PublishLineageObserver(committed.Resolution.Value);
+                PublishLineageCompletion(committed.Resolution.Value);
         }
     }
     public void Assign(CharacterId characterId, HouseholdId householdId,
-        BuildingInstanceId roomId, BuildingInstanceId bedId) =>
-        Writable.Households.Assign(characterId, householdId, roomId, bedId);
+        BuildingInstanceId roomId, BuildingInstanceId bedId,
+        int bedSlotIndex = 0) =>
+        Writable.Households.Assign(
+            characterId,
+            householdId,
+            roomId,
+            bedId,
+            bedSlotIndex);
+    public IReadOnlyList<CharacterRoomAssignmentSaveData> Assignments =>
+        Current.Households.Assignments;
+    public IReadOnlyList<HouseholdPendingAssignmentSaveData> PendingAssignments =>
+        Current.Households.PendingAssignments;
+    public void MarkPending(
+        CharacterId characterId,
+        HouseholdId preferredHouseholdId,
+        CharacterId firstParentId,
+        CharacterId secondParentId,
+        CharacterId carrierId,
+        int requestedAbsoluteDay,
+        string reasonCode) => Writable.Households.MarkPending(
+            characterId,
+            preferredHouseholdId,
+            firstParentId,
+            secondParentId,
+            carrierId,
+            requestedAbsoluteDay,
+            reasonCode);
+    public void ClearPending(CharacterId characterId) =>
+        Writable.Households.ClearPending(characterId);
     public void Clear(CharacterId characterId) => Writable.Households.Clear(characterId);
     public bool TryGet(CharacterId characterId, out CharacterRoomAssignmentSaveData assignment) =>
         Current.Households.TryGet(characterId, out assignment);
+    public bool TryGetPending(
+        CharacterId characterId,
+        out HouseholdPendingAssignmentSaveData pending) =>
+        Current.Households.TryGetPending(characterId, out pending);
     public IReadOnlyList<CharacterId> GetMembers(HouseholdId householdId) =>
         Current.Households.GetMembers(householdId);
-    public KinshipHouseholdWorldSaveData Capture() => Current.Capture();
+    public KinshipHouseholdWorldSaveData Capture() { factPublisher.AssertIdle(); return Current.Capture(); }
     public KinshipHouseholdAggregateState PrepareRestore(KinshipHouseholdWorldSaveData data) =>
         KinshipHouseholdAggregateState.Restore(data);
-    public void PublishRestore(KinshipHouseholdAggregateState candidate) =>
-        rootStore.Replace(candidate ?? throw new ArgumentNullException(nameof(candidate)));
+    public void PublishRestore(KinshipHouseholdAggregateState candidate)
+    { factPublisher.AssertIdle(); rootStore.Replace(candidate ?? throw new ArgumentNullException(nameof(candidate))); }
 
     private KinshipHouseholdAggregateState Current => rootStore.GetOrCreate(CreateFresh);
-    private KinshipHouseholdAggregateState Writable => rootStore.GetOrCreateWritable(
-        CreateFresh,
-        value => KinshipHouseholdAggregateState.Restore(value.Capture()));
+    private KinshipHouseholdAggregateState Writable
+    {
+        get
+        {
+            factPublisher.AssertIdle();
+            return rootStore.GetOrCreateWritable(CreateFresh,
+                value => KinshipHouseholdAggregateState.Restore(value.Capture()));
+        }
+    }
     private static KinshipHouseholdAggregateState CreateFresh() =>
         new(new CharacterKinshipAggregate(), new CharacterHouseholdAggregate());
 
-    private static MigratedProducerOutcomeSubject CreateLineageSubject(
-        in ObservedLineageCompressionLifeEventReceipt receipt) => new(
-        MigratedProducerOutcomeIds.CharacterKind,
-        receipt.CharacterId.Value,
-        receipt.CharacterId.Value,
-        MigratedProducerOutcomeIds.ActorRole);
-
-    private static string BuildLineageSummary(
-        in ObservedLineageCompressionLifeEventReceipt receipt) =>
-        "계보 압축 목격: character=" + receipt.CharacterId.Value
-        + "; species=" + receipt.PhenotypeSpeciesId.Value
-        + "; household=" + receipt.SummaryHouseholdId
-        + "; generation=" + receipt.Generation
-        + "; archive-day=" + receipt.ArchiveAbsoluteDay
-        + "; archived-count=" + receipt.SummaryArchivedCharacterCount
-        + "; life=" + receipt.BirthAbsoluteDay
-        + "->" + receipt.DeathAbsoluteDay;
 
     private void CancelLineageOutcomes(
-        IEnumerable<PreparedMigratedProducerOutcome> prepared)
+        IEnumerable<DomainFactLease> prepared)
     {
-        foreach (PreparedMigratedProducerOutcome item in prepared
-                     ?? Array.Empty<PreparedMigratedProducerOutcome>())
+        foreach (DomainFactLease item in prepared ?? Array.Empty<DomainFactLease>())
         {
-            outcomeTransactions.Cancel(item);
+            factPublisher.Cancel(item);
         }
     }
 
@@ -308,14 +323,12 @@ public sealed class KinshipHouseholdRuntime :
             campaign.PrepareFactions(snapshot.Factions),
             campaign.PrepareMilestones(snapshot.Milestones));
 
-    private void PublishLineageObserver(V20ResolvedEventResult resolution)
+    private void PublishLineageCompletion(V20ResolvedEventResult resolution)
     {
         try
         {
-            V20SocietyEventAlertProjection.PublishResolved(
-                events,
-                resolution,
-                physicalEffectsApplied: true);
+            events.Publish(new V20ContentEffectsResolvedEvent(resolution,
+                physicalEffectsApplied: true));
         }
         catch (Exception exception) when (
             exception is not OutOfMemoryException
@@ -373,6 +386,10 @@ public sealed class ReproductionRuntime : IReproductionService, IReproductionPer
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams))).Get(RandomStreamId);
     }
     public FamilyPlanningPolicy FamilyPlanningPolicy => Current.FamilyPlanningPolicy;
+    public long FamilyPlanningPolicyRevision =>
+        Current.FamilyPlanningPolicyRevision;
+    public bool HasPendingFamilyPlanningPolicyChange =>
+        Current.HasPendingFamilyPlanningPolicyChange;
     public int LastAllowedPolicyEvaluationDay =>
         Current.LastAllowedPolicyEvaluationDay;
     public IReadOnlyList<ReproductionProcess> Processes => Current.Processes;
@@ -656,6 +673,8 @@ public interface IGriefTraumaService
 {
     bool TryGet(CharacterId characterId, out CharacterGriefAggregate state);
     CharacterGriefAggregate Require(CharacterId characterId);
+    void RetireAfterDeath(CharacterId characterId);
+    void RetireAfterDeparture(CharacterId characterId);
     void RecordDeath(CharacterId characterId, CharacterLifeDeathRecord death, GriefRelationshipKind relationship);
     void CompleteFuneral(CharacterId characterId, CharacterId deceasedId, int absoluteDay, bool matchingRitual);
     void CompleteJointMemorial(
@@ -694,6 +713,13 @@ public sealed class PsychosocialAggregateState
     }
     public bool TryGet(CharacterId id, out CharacterGriefAggregate value) =>
         characters.TryGetValue(id, out value);
+    public void RetireAfterDeath(CharacterId id) => RetireAfterDeparture(id);
+    public void RetireAfterDeparture(CharacterId id)
+    {
+        if (!id.IsValid)
+            throw new ArgumentException("Psychosocial retirement requires a valid character ID.", nameof(id));
+        characters.Remove(id);
+    }
     public CharacterPsychosocialWorldSaveData Capture() => new()
     {
         characters = characters.Values.OrderBy(value => value.CharacterId.Value, StringComparer.Ordinal)
@@ -723,6 +749,10 @@ public sealed class GriefTraumaRuntime : IGriefTraumaService, IPsychosocialPersi
     public CharacterGriefAggregate Require(CharacterId characterId) => Writable.Require(characterId);
     public bool TryGet(CharacterId characterId, out CharacterGriefAggregate state) =>
         Current.TryGet(characterId, out state);
+    public void RetireAfterDeath(CharacterId characterId) =>
+        Writable.RetireAfterDeath(characterId);
+    public void RetireAfterDeparture(CharacterId characterId) =>
+        Writable.RetireAfterDeparture(characterId);
     public void RecordDeath(CharacterId characterId, CharacterLifeDeathRecord death, GriefRelationshipKind relationship) =>
         Writable.Require(characterId).RecordDeath(death, relationship);
     public void CompleteFuneral(CharacterId characterId, CharacterId deceasedId, int absoluteDay, bool matchingRitual) =>

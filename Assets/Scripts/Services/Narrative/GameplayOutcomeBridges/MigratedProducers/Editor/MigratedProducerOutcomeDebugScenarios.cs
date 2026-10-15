@@ -9,6 +9,7 @@ public static class MigratedProducerOutcomeDebugScenarios
         try
         {
             VerifyEveryCatalogKindCommitsAndQueries();
+            VerifyProjectionDoesNotDuplicateLeadingSubject();
             VerifyOwnerRevisionSaveRoundTripAndMalformedRejection();
             VerifyE2EFaultProbeAndDurableDeliveryRetry();
             return true;
@@ -21,11 +22,192 @@ public static class MigratedProducerOutcomeDebugScenarios
         }
     }
 
+    private static void VerifyProjectionDoesNotDuplicateLeadingSubject()
+    {
+        var fixture = new MigratedProducerOutcomeEditorFixture(
+            "run:migrated-producer-projection-subject");
+        MigratedProducerOutcomeCommitResult duplicateCandidate =
+            fixture.Transaction.CommitRequiredSingleSubject(
+                MigratedProducerOutcomeKind.HealthThresholdCrossedEvent,
+                "projection-subject",
+                absoluteDay: 1,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    "character:yeonhwa",
+                    "연화",
+                    MigratedProducerOutcomeIds.ActorRole),
+                "연화의 건강이 임계치를 넘었다.");
+        MigratedProducerOutcomeCommitResult placeholderCandidate =
+            fixture.Transaction.CommitRequiredSingleSubject(
+                MigratedProducerOutcomeKind.CharacterBodyHealthDownedEvent,
+                "projection-subject-placeholder",
+                absoluteDay: 1,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    "character:yeonhwa",
+                    "연화",
+                    MigratedProducerOutcomeIds.ActorRole),
+                "연화이(가) 전투 불능이 됐다.");
+        MigratedProducerOutcomeCommitResult embeddedPlaceholderCandidate =
+            fixture.Transaction.CommitRequiredSingleSubject(
+                MigratedProducerOutcomeKind.CharacterKilledEvent,
+                "projection-embedded-subject-placeholder",
+                absoluteDay: 1,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    "character:yeonhwa",
+                    "연화",
+                    MigratedProducerOutcomeIds.ActorRole),
+                "철갑 추격자의 공격으로 연화이(가) 쓰러졌다.");
+        MigratedProducerOutcomeCommitResult consonantLeadingPlaceholderCandidate =
+            fixture.Transaction.CommitRequiredSingleSubject(
+                MigratedProducerOutcomeKind.CharacterBodyHealthRecoveredEvent,
+                "projection-consonant-leading-subject-placeholder",
+                absoluteDay: 1,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    "character:minseok",
+                    "민석",
+                    MigratedProducerOutcomeIds.ActorRole),
+                "민석이(가) 전투 불능에서 회복됐다.");
+        MigratedProducerOutcomeCommitResult consonantEmbeddedPlaceholderCandidate =
+            fixture.Transaction.CommitRequiredSingleSubject(
+                MigratedProducerOutcomeKind.CharacterDeathEvent,
+                "projection-consonant-embedded-subject-placeholder",
+                absoluteDay: 1,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    "character:minseok",
+                    "민석",
+                    MigratedProducerOutcomeIds.ActorRole),
+                "철갑 추격자의 공격으로 민석이(가) 쓰러졌다.");
+        MigratedProducerOutcomeCommitResult prefixPartialNameCandidate =
+            fixture.Transaction.CommitRequiredSingleSubject(
+                MigratedProducerOutcomeKind.CombatAttackResult,
+                "projection-prefix-partial-name",
+                absoluteDay: 1,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    "character:yeonhwa",
+                    "연화",
+                    MigratedProducerOutcomeIds.ActorRole),
+                "연화가루가 흩어졌다.");
+        MigratedProducerOutcomeCommitResult suffixPartialNameCandidate =
+            fixture.Transaction.CommitRequiredSingleSubject(
+                MigratedProducerOutcomeKind.DefenseFacilityStateChangedEvent,
+                "projection-suffix-partial-name",
+                absoluteDay: 1,
+                new MigratedProducerOutcomeSubject(
+                    MigratedProducerOutcomeIds.CharacterKind,
+                    "character:yeonhwa",
+                    "연화",
+                    MigratedProducerOutcomeIds.ActorRole),
+                "초연화이(가) 쓰러졌다.");
+        Require(
+            duplicateCandidate.DurablyCommitted
+            && fixture.Ledger.TryProject(
+                duplicateCandidate.OutcomeId,
+                new NarrativePerspectiveContext(
+                    default,
+                    NarrativePerspectiveKind.Global,
+                    "ko-KR"),
+                out NarrativeView view)
+            && string.Equals(
+                view.Text,
+                "연화의 건강이 임계치를 넘었다.",
+                StringComparison.Ordinal),
+            "A summary that already names its subject was prefixed twice.");
+        Require(
+            placeholderCandidate.DurablyCommitted
+            && fixture.Ledger.TryProject(
+                placeholderCandidate.OutcomeId,
+                new NarrativePerspectiveContext(
+                    default,
+                    NarrativePerspectiveKind.Global,
+                    "ko-KR"),
+                out NarrativeView placeholderView)
+            && string.Equals(
+                placeholderView.Text,
+                "연화가 전투 불능이 됐다.",
+                StringComparison.Ordinal),
+            "A leading Korean subject placeholder was not resolved.");
+        Require(
+            embeddedPlaceholderCandidate.DurablyCommitted
+            && fixture.Ledger.TryProject(
+                embeddedPlaceholderCandidate.OutcomeId,
+                new NarrativePerspectiveContext(
+                    default,
+                    NarrativePerspectiveKind.Global,
+                    "ko-KR"),
+                out NarrativeView embeddedPlaceholderView)
+            && string.Equals(
+                embeddedPlaceholderView.Text,
+                "철갑 추격자의 공격으로 연화가 쓰러졌다.",
+                StringComparison.Ordinal),
+            "An embedded Korean subject placeholder was not resolved.");
+        Require(
+            consonantLeadingPlaceholderCandidate.DurablyCommitted
+            && fixture.Ledger.TryProject(
+                consonantLeadingPlaceholderCandidate.OutcomeId,
+                new NarrativePerspectiveContext(
+                    default,
+                    NarrativePerspectiveKind.Global,
+                    "ko-KR"),
+                out NarrativeView consonantLeadingPlaceholderView)
+            && string.Equals(
+                consonantLeadingPlaceholderView.Text,
+                "민석이 전투 불능에서 회복됐다.",
+                StringComparison.Ordinal),
+            "A leading consonant-final Korean subject placeholder was not resolved.");
+        Require(
+            consonantEmbeddedPlaceholderCandidate.DurablyCommitted
+            && fixture.Ledger.TryProject(
+                consonantEmbeddedPlaceholderCandidate.OutcomeId,
+                new NarrativePerspectiveContext(
+                    default,
+                    NarrativePerspectiveKind.Global,
+                    "ko-KR"),
+                out NarrativeView consonantEmbeddedPlaceholderView)
+            && string.Equals(
+                consonantEmbeddedPlaceholderView.Text,
+                "철갑 추격자의 공격으로 민석이 쓰러졌다.",
+                StringComparison.Ordinal),
+            "An embedded consonant-final Korean subject placeholder was not resolved.");
+        Require(
+            prefixPartialNameCandidate.DurablyCommitted
+            && fixture.Ledger.TryProject(
+                prefixPartialNameCandidate.OutcomeId,
+                new NarrativePerspectiveContext(
+                    default,
+                    NarrativePerspectiveKind.Global,
+                    "ko-KR"),
+                out NarrativeView prefixPartialNameView)
+            && string.Equals(
+                prefixPartialNameView.Text,
+                "연화는 연화가루가 흩어졌다.",
+                StringComparison.Ordinal),
+            "A name-prefix partial match suppressed the subject frame.");
+        Require(
+            suffixPartialNameCandidate.DurablyCommitted
+            && fixture.Ledger.TryProject(
+                suffixPartialNameCandidate.OutcomeId,
+                new NarrativePerspectiveContext(
+                    default,
+                    NarrativePerspectiveKind.Global,
+                    "ko-KR"),
+                out NarrativeView suffixPartialNameView)
+            && string.Equals(
+                suffixPartialNameView.Text,
+                "연화는 초연화이(가) 쓰러졌다.",
+                StringComparison.Ordinal),
+            "A name-suffix partial match rewrote another name's placeholder.");
+    }
+
     private static void VerifyEveryCatalogKindCommitsAndQueries()
     {
         Require(
-            MigratedProducerOutcomeCatalog.Definitions.Count == 57,
-            "The migrated producer catalog no longer contains exactly 57 kinds.");
+            MigratedProducerOutcomeCatalog.Definitions.Count == 72,
+            "The migrated producer catalog no longer contains exactly 72 kinds.");
         var fixture = new MigratedProducerOutcomeEditorFixture(
             "run:migrated-producer-all-kinds");
 
@@ -68,7 +250,7 @@ public static class MigratedProducerOutcomeDebugScenarios
         }
 
         Require(
-            fixture.Transaction.Capture().owners.Count == 57,
+            fixture.Transaction.Capture().owners.Count == 72,
             "The all-kind commit did not persist one owner revision per catalog kind.");
     }
 

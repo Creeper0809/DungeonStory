@@ -1957,14 +1957,6 @@ public sealed class FacilityBufferMassAdmissionService :
                 out failureCode,
                 out failureReason);
         }
-        if (HasOperationId(request.PublicationOperationId))
-        {
-            return Fail(
-                FacilityBufferMassAdmissionFailureCode.TokenMismatch,
-                $"Facility-buffer operation '{request.PublicationOperationId}' is duplicated.",
-                out failureCode,
-                out failureReason);
-        }
         long massAuthorityRevision = plannedOutputMassQuery.AuthorityRevision;
         if (!TryCapturePlannedOutput(
                 request,
@@ -1974,6 +1966,16 @@ public sealed class FacilityBufferMassAdmissionService :
                 out failureReason))
         {
             return false;
+        }
+
+        if (HasOperationId(request.PublicationOperationId)
+            && !CanRetryRolledBackPlannedOutput(request.PublicationOperationId, planned.Fingerprint))
+        {
+            return Fail(
+                FacilityBufferMassAdmissionFailureCode.TokenMismatch,
+                $"Facility-buffer operation '{request.PublicationOperationId}' is duplicated or conflicts with its rolled-back request.",
+                out failureCode,
+                out failureReason);
         }
 
         FacilityBufferPhysicalOccupancySnapshot physical =
@@ -3028,6 +3030,31 @@ public sealed class FacilityBufferMassAdmissionService :
             value.Token.Request.PublicationOperationId,
             operationId,
             StringComparison.Ordinal));
+
+    private bool CanRetryRolledBackPlannedOutput(string operationId, string plannedFingerprint)
+    {
+        // A prepare rollback has no published effect to replay. Keep its token
+        // history/idempotent release, but admit the exact same frozen request
+        // with a new transient token. Active/routed/cancelled/conflicting and
+        // source-transfer operations remain non-reusable.
+        if (tokens.Values.Any(value => string.Equals(value.Token.Request.TransferOperationId,
+                operationId, StringComparison.Ordinal)))
+            return false;
+        bool found = false;
+        foreach (PlannedOutputTokenState state in plannedOutputTokens.Values)
+        {
+            if (!string.Equals(state.Token.Request.PublicationOperationId,
+                    operationId, StringComparison.Ordinal))
+                continue;
+            found = true;
+            if (state.Status != FacilityBufferMassAdmissionTokenStatus.Released
+                || state.ReleaseReason != FacilityBufferMassAdmissionReleaseReason.TransactionRollback
+                || !string.Equals(state.Token.PlannedOutput.Fingerprint,
+                    plannedFingerprint, StringComparison.Ordinal))
+                return false;
+        }
+        return found;
+    }
 
     private static string BuildPlannedOutputFingerprint(
         FacilityBufferPlannedOutputRequest request,

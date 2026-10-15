@@ -38,21 +38,27 @@ public sealed class TreasuryEconomyPersistence : ITreasuryEconomyPersistence
             ?? throw new ArgumentNullException(nameof(stateStore));
     }
 
-    public TreasuryEconomySaveData Capture() => new()
+    public TreasuryEconomySaveData Capture()
     {
-        transactionLedger = transactionLedger.Capture(),
-        employment = employment.Capture(),
-        autoProcurement = autoProcurement.Capture(),
-        facilityContracts = facilityContracts.Capture(),
-        overclock = overclock.Capture(),
-        treasuryDefense = treasuryDefense.Capture()
-    };
+        stateStore.AssertStockSupplyIdle();
+        return new TreasuryEconomySaveData
+        {
+            warehouseSupply = StockSupplyFactSaveData.ValidateAndClone(stateStore.Current.WarehouseSupply),
+            transactionLedger = transactionLedger.Capture(),
+            employment = employment.Capture(),
+            autoProcurement = autoProcurement.Capture(),
+            facilityContracts = facilityContracts.Capture(),
+            overclock = overclock.Capture(),
+            treasuryDefense = treasuryDefense.Capture()
+        };
+    }
 
     public TreasuryEconomyRestoreCandidate BuildRestore(
         TreasuryEconomySaveData saveData)
     {
         TreasuryEconomySaveValidation.Validate(saveData);
         TreasuryEconomyAggregateState restored = new();
+        restored.WarehouseSupply = StockSupplyFactSaveData.ValidateAndClone(saveData.warehouseSupply);
         transactionLedger.PopulateRestoreState(
             restored,
             saveData.transactionLedger);
@@ -73,6 +79,7 @@ public sealed class TreasuryEconomyPersistence : ITreasuryEconomyPersistence
     public void PublishRestoreCandidate(
         TreasuryEconomyRestoreCandidate candidate)
     {
+        stateStore.AssertStockSupplyIdle();
         stateStore.Replace(
             (candidate ?? throw new ArgumentNullException(nameof(candidate)))
             .State);
@@ -101,6 +108,7 @@ internal static class TreasuryEconomySaveValidation
                 $"Treasury payload version {data.version} is not current V{TreasuryEconomySaveData.CurrentVersion}.");
         }
         if (data.transactionLedger == null
+            || data.warehouseSupply == null
             || data.employment == null
             || data.autoProcurement == null
             || data.facilityContracts == null
@@ -112,6 +120,7 @@ internal static class TreasuryEconomySaveValidation
         }
 
         ValidateLedger(data.transactionLedger);
+        StockSupplyFactSaveData.ValidateAndClone(data.warehouseSupply);
         ValidateEmployment(data.employment);
         ValidateProcurement(data.autoProcurement);
         ValidateFacilityContracts(data.facilityContracts);
@@ -175,6 +184,40 @@ internal static class TreasuryEconomySaveValidation
                 throw new InvalidOperationException(
                     $"Wage state for '{id.Value}' is duplicated or out of range.");
             }
+            RequireCanonical(
+                state.departureFinanceSourceId,
+                "departure finance source",
+                allowEmpty: true);
+            RequireCanonical(
+                state.departureFinanceTransactionId,
+                "departure finance transaction",
+                allowEmpty: true);
+            RequireCanonical(
+                state.departureFailureReason,
+                "departure failure",
+                allowEmpty: true);
+            bool hasDeparture = state.departurePending || state.departed;
+            if (state.departureContractDay < 0
+                || (hasDeparture
+                    && (state.contractKind != EmploymentContractKind.Mercenary
+                        || state.active
+                        || state.departureContractDay < 1
+                        || state.departureFinanceSourceId.Length == 0
+                        || state.departureFinanceTransactionId.Length == 0))
+                || (state.departurePending
+                    && (state.departed
+                        || state.departureFailureReason.Length == 0))
+                || (state.departed
+                    && state.departureFailureReason.Length != 0)
+                || (!hasDeparture
+                    && (state.departureContractDay != 0
+                        || state.departureFinanceSourceId.Length != 0
+                        || state.departureFinanceTransactionId.Length != 0
+                        || state.departureFailureReason.Length != 0)))
+            {
+                throw new InvalidOperationException(
+                    $"Wage departure state for '{id.Value}' is inconsistent.");
+            }
         }
 
         HashSet<CharacterId> mercenaries = new();
@@ -191,6 +234,23 @@ internal static class TreasuryEconomySaveValidation
                     $"Mercenary contract for '{id.Value}' is duplicated or out of range.");
             }
         }
+
+        foreach (EmployeeWageState state in data.wageStates.Where(value =>
+                     value.contractKind == EmploymentContractKind.Mercenary))
+        {
+            MercenaryContract contract = data.mercenaryContracts
+                .SingleOrDefault(value => string.Equals(
+                    value.characterId,
+                    state.characterId,
+                    StringComparison.Ordinal));
+            if (contract == null
+                || ((state.departurePending || state.departed)
+                    && contract.active))
+            {
+                throw new InvalidOperationException(
+                    $"Mercenary wage state for '{state.characterId}' has no matching contract state.");
+            }
+        }
     }
 
     private static void ValidateProcurement(AutoProcurementSaveData data)
@@ -202,6 +262,10 @@ internal static class TreasuryEconomySaveValidation
             MaxRuleRecords,
             "processed offer keys");
         RequireList(data.lastResults, MaxResultRecords, "procurement results");
+        RequireList(data.pendingFacts, 1, "procurement pending facts");
+        if (data.parentResults != null)
+            RequireList(data.parentResults, MaxRuleRecords,
+                "procurement parent results");
         if (data.dailyBudget < 0
             || data.minimumReserve < 0
             || data.lastProcessedDay < 0)
@@ -252,12 +316,68 @@ internal static class TreasuryEconomySaveValidation
             if (result == null
                 || result.day < 0
                 || result.quantity < 0
-                || result.cost < 0)
+                || result.cost < 0
+                || result.attemptedQuantity < 0
+                || result.attemptedCost < 0
+                || result.committedQuantity < 0
+                || result.committedCost < 0)
             {
                 throw new InvalidOperationException(
                     "Procurement result is null or out of range.");
             }
             RequireCanonical(result.ruleId, "result rule", allowEmpty: true);
+            RequireCanonical(result.attemptedItemId,
+                "attempted procurement item", allowEmpty: true);
+            RequireCanonical(result.committedItemId,
+                "committed procurement item", allowEmpty: true);
+            RequireCanonical(result.childPurchaseResultKey,
+                "procurement child result key", allowEmpty: true);
+            foreach (AutoProcurementPhysicalStackRef physical in
+                     result.physicalStacks
+                     ?? new List<AutoProcurementPhysicalStackRef>())
+            {
+                if (physical == null || physical.quantity <= 0)
+                    throw new InvalidOperationException(
+                        "Procurement physical stack reference is invalid.");
+                RequireCanonical(physical.stackId,
+                    "procurement physical stack ID");
+                RequireCanonical(physical.itemInstanceId,
+                    "procurement physical instance ID", allowEmpty: true);
+            }
+        }
+        HashSet<string> parentKeys = new(StringComparer.Ordinal);
+        foreach (AutoProcurementParentSaveData parent in data.parentResults
+                     ?? new List<AutoProcurementParentSaveData>())
+        {
+            RequireCanonical(parent?.offerKey,
+                "procurement parent offer key");
+            RequireCanonical(parent.childPurchaseResultKey,
+                "procurement parent child key");
+            if (!parentKeys.Add(parent.offerKey)
+                || !Enum.IsDefined(typeof(AutoProcurementParentPhase),
+                    parent.phase)
+                || parent.result == null
+                || parent.result.childPurchaseResultKey
+                    != parent.childPurchaseResultKey)
+                throw new InvalidOperationException(
+                    "Procurement parent result is duplicated or invalid.");
+        }
+        foreach (var pending in data.pendingFacts)
+        {
+            RequireCanonical(pending?.publicationKey, "procurement pending publication key");
+            RequireCanonical(pending.offerKey, "procurement pending offer key", allowEmpty: true);
+            var fact = new AutoProcurementCompletedFact(pending.offerKey, pending.result);
+            string snapshot = JsonUtility.ToJson(fact.CaptureResult());
+            if (fact.Day > data.lastProcessedDay
+                || !data.lastResults.Any(value => JsonUtility.ToJson(value) == snapshot)
+                || pending.offerKey.Length > 0 && !data.processedOfferKeys.Contains(pending.offerKey))
+                throw new InvalidOperationException("Procurement pending fact does not match its applied result.");
+            if (fact.ChildPurchaseResultKey.Length > 0
+                && !(data.parentResults ?? new List<AutoProcurementParentSaveData>()).Any(parent =>
+                    parent.offerKey == pending.offerKey && parent.childPurchaseResultKey == fact.ChildPurchaseResultKey
+                    && parent.phase == AutoProcurementParentPhase.ParentPending
+                    && JsonUtility.ToJson(parent.result) == snapshot))
+                throw new InvalidOperationException("Procurement pending fact does not match its delivery parent.");
         }
     }
 

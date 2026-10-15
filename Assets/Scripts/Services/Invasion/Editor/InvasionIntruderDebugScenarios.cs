@@ -1487,11 +1487,32 @@ public static class InvasionIntruderDebugScenarios
 
         GameObject managerObject = new GameObject("Intruder Final Combat OwnerRunManager");
         world.Track(managerObject);
+        var ownerStore = new DungeonRuntimeAggregateRootStore();
+        var ownerOutcomes = new MigratedProducerOutcomeEditorFixture(
+            "run:intruder-final-combat-owner",
+            ownerStore);
+        var ownerProbe = new MigratedProducerOutcomeProbeTransaction(
+            ownerOutcomes.Transaction,
+            ownerOutcomes.Recorder)
+        {
+            TargetKind = MigratedProducerOutcomeKind.OwnerRunEndedEvent
+        };
+        using var ownerFacts = new OwnerRunCompletionFactEditorFixture(
+            ownerOutcomes,
+            ownerProbe);
+        var ownerContent = new ResourceGameContentCatalog(
+            new UnityGameContentRootLoader());
         OwnerRunManager manager = managerObject.AddComponent<OwnerRunManager>();
         manager.ConstructOwnerRunManager(
             new FixedOwnerCandidateCatalog(ownerData),
             new ScenarioOwnerCharacterFactory(world),
-            CharacterAiEditorTestDependencies.GameEvents);
+            CharacterAiEditorTestDependencies.GameEvents,
+            ownerFacts.Publisher,
+            new ScenarioRunSeedProvider(104729),
+            ownerStore,
+            ownerContent,
+            ownerFacts.Recovery,
+            EmptyRunCompletionPreparation.Instance);
         manager.SelectOwner(ownerData);
 
         CharacterActor owner = manager.CurrentOwnerActor;
@@ -1550,6 +1571,7 @@ public static class InvasionIntruderDebugScenarios
         GameObject directorObject = new GameObject("Final Invasion Withdrawal Director");
         world.Track(directorObject);
         InvasionDirectorRuntime director = directorObject.AddComponent<InvasionDirectorRuntime>();
+        director.ConfigureEquipment(CharacterAiEditorTestDependencies.CombatEquipment);
         CharacterActor intruder = world.CreateIntruder(new Vector2Int(1, 0));
         InvasionIntruderRuntime runtime = intruder.gameObject.AddComponent<InvasionIntruderRuntime>();
         SetPrivateField(runtime, "intruderActor", CharacterActor.From(intruder));
@@ -1824,6 +1846,16 @@ public static class InvasionIntruderDebugScenarios
         {
             manager.HandleOwnerDeath(owner, reason);
         }
+    }
+
+    private sealed class ScenarioRunSeedProvider : IRunSeedProvider
+    {
+        private readonly int runSeed;
+
+        internal ScenarioRunSeedProvider(int runSeed) =>
+            this.runSeed = runSeed;
+
+        public int RunSeed => runSeed;
     }
 
     private sealed class TestHallwayOccupant : IGridOccupant

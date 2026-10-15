@@ -53,11 +53,15 @@ public class BlueprintResearchTask
 public sealed class BlueprintResearchAggregateState
 {
     internal long OutcomeSequence;
+    internal ResearchWorkPendingPublication PendingPublication;
+    internal readonly Dictionary<string, FacilityShopFulfillmentRecord>
+        ShopFulfillments = new(StringComparer.Ordinal);
     internal readonly ResearchProjectRuntimeState Projects;
     internal readonly List<BlueprintResearchTask> Tasks;
     internal readonly HashSet<int> CompletedBlueprintIds;
     internal readonly HashSet<int> UnlockedBuildingIds;
     internal readonly HashSet<string> UnlockedRecipeIds;
+    internal readonly Dictionary<string, string> CompletedProjectResultKeys;
     internal readonly IReadOnlyList<BlueprintResearchTask> TasksView;
     internal readonly IReadOnlyCollection<int> CompletedBlueprintIdsView;
     internal readonly IReadOnlyCollection<int> UnlockedBuildingIdsView;
@@ -69,7 +73,8 @@ public sealed class BlueprintResearchAggregateState
             new List<BlueprintResearchTask>(),
             new HashSet<int>(),
             new HashSet<int>(),
-            new HashSet<string>(StringComparer.Ordinal))
+            new HashSet<string>(StringComparer.Ordinal),
+            new Dictionary<string, string>(StringComparer.Ordinal))
     {
     }
 
@@ -78,13 +83,15 @@ public sealed class BlueprintResearchAggregateState
         List<BlueprintResearchTask> tasks,
         HashSet<int> completedBlueprintIds,
         HashSet<int> unlockedBuildingIds,
-        HashSet<string> unlockedRecipeIds)
+        HashSet<string> unlockedRecipeIds,
+        Dictionary<string, string> completedProjectResultKeys)
     {
         Projects = projects;
         Tasks = tasks;
         CompletedBlueprintIds = completedBlueprintIds;
         UnlockedBuildingIds = unlockedBuildingIds;
         UnlockedRecipeIds = unlockedRecipeIds;
+        CompletedProjectResultKeys = completedProjectResultKeys;
         TasksView = ReadOnlyView.List(Tasks);
         CompletedBlueprintIdsView = ReadOnlyView.Collection(CompletedBlueprintIds);
         UnlockedBuildingIdsView = ReadOnlyView.Collection(UnlockedBuildingIds);
@@ -93,14 +100,43 @@ public sealed class BlueprintResearchAggregateState
 
     public BlueprintResearchAggregateState DeepClone()
     {
-        return new BlueprintResearchAggregateState(
+        BlueprintResearchAggregateState clone = new BlueprintResearchAggregateState(
             Projects.DeepClone(),
             Tasks.Select(task => task?.DeepClone()).ToList(),
             new HashSet<int>(CompletedBlueprintIds),
             new HashSet<int>(UnlockedBuildingIds),
-            new HashSet<string>(UnlockedRecipeIds, StringComparer.Ordinal))
-        { OutcomeSequence = OutcomeSequence };
+            new HashSet<string>(UnlockedRecipeIds, StringComparer.Ordinal),
+            new Dictionary<string, string>(
+                CompletedProjectResultKeys,
+                StringComparer.Ordinal))
+        { OutcomeSequence = OutcomeSequence, PendingPublication = PendingPublication?.Clone() };
+        foreach (KeyValuePair<string, FacilityShopFulfillmentRecord> pair
+                 in ShopFulfillments)
+            clone.ShopFulfillments.Add(pair.Key, pair.Value.Clone());
+        return clone;
     }
+}
+
+public sealed class FacilityShopFulfillmentRecord
+{
+    public string PurchaseResultKey { get; set; } = string.Empty;
+    public string OfferTypeId { get; set; } = string.Empty;
+    public int OfferDataId { get; set; }
+    public string ItemDefinitionId { get; set; } = string.Empty;
+    public string ItemDisplayName { get; set; } = string.Empty;
+    public FacilityShopFulfillmentPhase Phase { get; set; }
+    public string StackId { get; set; } = string.Empty;
+    public string ItemInstanceId { get; set; } = string.Empty;
+
+    public FacilityShopFulfillmentRecord Clone() =>
+        (FacilityShopFulfillmentRecord)MemberwiseClone();
+}
+
+public interface IFacilityShopFulfillmentQuery
+{
+    bool TryGetShopFulfillment(
+        string purchaseResultKey,
+        out FacilityShopFulfillmentRecord record);
 }
 
 public class BlueprintResearchState : IBuildingUnlockStateView
@@ -133,6 +169,121 @@ public class BlueprintResearchState : IBuildingUnlockStateView
     public bool HasActiveTask => TryGetActiveTask(out _);
 
     public long OutcomeSequence => Current.OutcomeSequence;
+    public ResearchWorkPendingPublication PendingPublication => Current.PendingPublication?.Clone();
+    public bool HasPendingPublication => Current.PendingPublication != null;
+
+    internal void RestorePendingPublication(ResearchWorkPendingPublication pending)
+    {
+        if (pending != null && (!pending.active || string.IsNullOrWhiteSpace(pending.publicationKey)
+            || pending.fact == null || pending.fact.revision != OutcomeSequence))
+            throw new ArgumentException("Research pending publication must own the current revision.");
+        if (pending != null) _ = new ResearchWorkAppliedFact(pending.fact);
+        Writable.PendingPublication = pending?.Clone();
+    }
+
+    public IReadOnlyDictionary<string, string>
+        CompletedProjectResultKeys => Current.CompletedProjectResultKeys;
+
+    public bool TryGetCompletedProjectResultKey(
+        string projectId,
+        out string resultKey) =>
+        Current.CompletedProjectResultKeys.TryGetValue(
+            projectId ?? string.Empty,
+            out resultKey)
+        && !string.Equals(Current.PendingPublication?.publicationKey, resultKey, StringComparison.Ordinal);
+
+    internal void RecordCompletedProjectResultKey(
+        string projectId,
+        string resultKey)
+    {
+        if (string.IsNullOrWhiteSpace(projectId) || projectId != projectId.Trim()
+            || string.IsNullOrWhiteSpace(resultKey)
+            || !Writable.Projects.CompletedProjectIds.Contains(projectId))
+        {
+            throw new ArgumentException(
+                "A committed research result for a completed project is required.");
+        }
+        Writable.CompletedProjectResultKeys.Add(projectId, resultKey);
+    }
+
+    public IReadOnlyList<FacilityShopFulfillmentRecord>
+        CaptureShopFulfillments() => Current.ShopFulfillments.Values
+            .OrderBy(value => value.PurchaseResultKey, StringComparer.Ordinal)
+            .Select(value => value.Clone())
+            .ToArray();
+
+    public bool TryGetShopFulfillment(
+        string purchaseResultKey,
+        out FacilityShopFulfillmentRecord record)
+    {
+        bool found = Current.ShopFulfillments.TryGetValue(
+            purchaseResultKey ?? string.Empty,
+            out FacilityShopFulfillmentRecord existing);
+        record = found ? existing.Clone() : null;
+        return found;
+    }
+
+    public bool EnqueueShopFulfillment(FacilityShopFulfillmentRecord request)
+    {
+        if (request == null
+            || string.IsNullOrWhiteSpace(request.PurchaseResultKey)
+            || string.IsNullOrWhiteSpace(request.OfferTypeId)
+            || request.OfferDataId < 0
+            || string.IsNullOrWhiteSpace(request.ItemDefinitionId))
+            throw new ArgumentException(
+                "A shop fulfillment requires a purchase and exact item identity.",
+                nameof(request));
+        Dictionary<string, FacilityShopFulfillmentRecord> records =
+            Writable.ShopFulfillments;
+        if (records.TryGetValue(request.PurchaseResultKey, out var existing))
+        {
+            if (existing.OfferTypeId != request.OfferTypeId
+                || existing.OfferDataId != request.OfferDataId
+                || existing.ItemDefinitionId != request.ItemDefinitionId)
+                throw new InvalidOperationException(
+                    "Shop fulfillment purchase key was reused for another item.");
+            return false;
+        }
+        records.Add(request.PurchaseResultKey, request.Clone());
+        return true;
+    }
+
+    public void RestoreShopFulfillment(FacilityShopFulfillmentRecord record)
+    {
+        if (!EnqueueShopFulfillment(record))
+            throw new InvalidOperationException(
+                "Duplicate shop fulfillment in restore payload.");
+        Writable.ShopFulfillments[record.PurchaseResultKey] = record.Clone();
+    }
+
+    public void MarkShopFulfillmentSpawned(
+        string purchaseResultKey,
+        string stackId)
+    {
+        if (string.IsNullOrWhiteSpace(stackId)
+            || !Writable.ShopFulfillments.TryGetValue(
+                purchaseResultKey, out var record)
+            || record.Phase != FacilityShopFulfillmentPhase.Pending)
+            throw new InvalidOperationException(
+                "Shop fulfillment cannot mark an unowned spawn.");
+        record.StackId = stackId;
+        record.Phase = FacilityShopFulfillmentPhase.Spawned;
+    }
+
+    public void MarkShopFulfillmentDelivered(
+        string purchaseResultKey,
+        string itemInstanceId)
+    {
+        if (string.IsNullOrWhiteSpace(itemInstanceId)
+            || !Writable.ShopFulfillments.TryGetValue(
+                purchaseResultKey, out var record)
+            || record.Phase != FacilityShopFulfillmentPhase.Spawned
+            || string.IsNullOrWhiteSpace(record.StackId))
+            throw new InvalidOperationException(
+                "Shop fulfillment cannot complete without its exact stack.");
+        record.ItemInstanceId = itemInstanceId;
+        record.Phase = FacilityShopFulfillmentPhase.Delivered;
+    }
 
     internal void RestoreOutcomeSequence(long value)
     {
@@ -172,7 +323,7 @@ public class BlueprintResearchState : IBuildingUnlockStateView
 
     public bool TryCancelBlueprint(FacilityBlueprintSO blueprint)
     {
-        if (blueprint == null)
+        if (blueprint == null || Current.PendingPublication?.fact?.blueprintId == blueprint.id)
         {
             return false;
         }
@@ -288,7 +439,9 @@ public readonly struct BlueprintResearchWorkResult
         float requiredWork,
         bool completed,
         string message,
-        bool capacityDeferred = false)
+        bool capacityDeferred = false,
+        string committedResultKey = null,
+        bool publicationPending = false)
     {
         Success = success;
         Blueprint = blueprint;
@@ -299,6 +452,8 @@ public readonly struct BlueprintResearchWorkResult
         Completed = completed;
         Message = message ?? string.Empty;
         CapacityDeferred = capacityDeferred;
+        CommittedResultKey = committedResultKey ?? string.Empty;
+        PublicationPending = publicationPending;
     }
 
     public static BlueprintResearchWorkResult ForProject(
@@ -309,7 +464,9 @@ public readonly struct BlueprintResearchWorkResult
         float requiredWork,
         bool completed,
         string message,
-        bool capacityDeferred = false)
+        bool capacityDeferred = false,
+        string committedResultKey = null,
+        bool publicationPending = false)
     {
         return new BlueprintResearchWorkResult(
             success,
@@ -320,7 +477,9 @@ public readonly struct BlueprintResearchWorkResult
             completed,
             message,
             projectResult: true,
-            capacityDeferred: capacityDeferred);
+            capacityDeferred: capacityDeferred,
+            committedResultKey: committedResultKey,
+            publicationPending: publicationPending);
     }
 
     private BlueprintResearchWorkResult(
@@ -332,7 +491,9 @@ public readonly struct BlueprintResearchWorkResult
         bool completed,
         string message,
         bool projectResult,
-        bool capacityDeferred)
+        bool capacityDeferred,
+        string committedResultKey,
+        bool publicationPending)
     {
         Success = success;
         Blueprint = project?.Blueprint;
@@ -343,6 +504,8 @@ public readonly struct BlueprintResearchWorkResult
         Completed = completed;
         Message = message ?? string.Empty;
         CapacityDeferred = capacityDeferred;
+        CommittedResultKey = committedResultKey ?? string.Empty;
+        PublicationPending = publicationPending;
     }
 
     public bool Success { get; }
@@ -356,6 +519,8 @@ public readonly struct BlueprintResearchWorkResult
     public float ProgressRatio => Mathf.Clamp01(TotalProgress / RequiredWork);
     public bool Completed { get; }
     public string Message { get; }
+    public string CommittedResultKey { get; }
+    public bool PublicationPending { get; }
 }
 
 public struct BlueprintResearchCompletedEvent
@@ -363,21 +528,28 @@ public struct BlueprintResearchCompletedEvent
     public FacilityBlueprintSO blueprint;
     public ResearchProjectSO project;
     public BlueprintResearchUnlockResult unlockResult;
+    public string committedResearchResultKey;
 
-    public BlueprintResearchCompletedEvent(FacilityBlueprintSO blueprint, BlueprintResearchUnlockResult unlockResult)
+    public BlueprintResearchCompletedEvent(
+        FacilityBlueprintSO blueprint,
+        BlueprintResearchUnlockResult unlockResult,
+        string committedResearchResultKey = null)
     {
         this.blueprint = blueprint;
         project = null;
         this.unlockResult = unlockResult;
+        this.committedResearchResultKey = committedResearchResultKey;
     }
 
     public BlueprintResearchCompletedEvent(
         ResearchProjectSO project,
-        BlueprintResearchUnlockResult unlockResult)
+        BlueprintResearchUnlockResult unlockResult,
+        string committedResearchResultKey = null)
     {
         this.project = project;
         blueprint = project?.Blueprint;
         this.unlockResult = unlockResult;
+        this.committedResearchResultKey = committedResearchResultKey;
     }
 }
 

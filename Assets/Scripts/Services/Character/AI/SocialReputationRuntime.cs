@@ -303,9 +303,15 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
         }
 
         FillSourceIfMissing(rumor, speaker);
+        rumor.baseSentiment = Mathf.Clamp(rumor.sentiment, -1f, 1f);
+        rumor.relationshipSkillModifierProvenance =
+            CharacterSkillRuntimeEffects.CaptureManagementModifierProvenance(
+                speaker,
+                CharacterSkillTrigger.RelationshipChanged,
+                new[] { "relationship" });
         rumor.sentiment = CharacterSkillRuntimeEffects.ApplyPositiveRelationshipBonus(
             speaker,
-            rumor.sentiment);
+            rumor.baseSentiment);
         if (rumor.targetType == SocialRumorTargetType.Facility)
         {
             RequireGlobalReputationLedger().Apply(

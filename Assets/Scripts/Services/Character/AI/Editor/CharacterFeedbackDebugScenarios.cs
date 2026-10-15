@@ -314,8 +314,10 @@ public static class CharacterFeedbackDebugScenarios
             && !character.Log.Any(line => line == "행동 시작");
 
         CharacterActor unassigned = CreateCharacter("Feedback_Unassigned_Work_Log_Test");
-        WorkDebugLog.LogStarted(unassigned);
-        WorkDebugLog.LogEnd(unassigned, "근무 피로 누적");
+        WorkControlChangedEvent.PublishAssigned(unassigned,
+            WorkControlTransition.AssignedWorkStarted);
+        WorkControlChangedEvent.PublishAssigned(unassigned,
+            WorkControlTransition.AssignedWorkStopped, "근무 피로 누적");
         valid &= unassigned.Log.Count == 0;
 
         if (!valid)

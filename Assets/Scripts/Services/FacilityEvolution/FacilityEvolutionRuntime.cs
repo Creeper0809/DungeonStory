@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
@@ -722,19 +723,21 @@ public interface IFacilityEvolutionEngineFactory
 
 public sealed class FacilityEvolutionEngineFactory : IFacilityEvolutionEngineFactory
 {
-    private readonly IFacilityEvolutionOutcomeCommitter outcomeCommitter;
+    private readonly IDomainFactPublisher facts;
+    private readonly IDomainFactRecoveryPublisher factRecovery;
     private readonly IGameCalendar calendar;
     private readonly IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery;
     private readonly IGameplayOutcomeEvidenceUseTransaction evidenceUseTransaction;
 
     public FacilityEvolutionEngineFactory(
-        IFacilityEvolutionOutcomeCommitter outcomeCommitter,
+        IDomainFactPublisher facts,
+        IDomainFactRecoveryPublisher factRecovery,
         IGameCalendar calendar,
         IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery,
         IGameplayOutcomeEvidenceUseTransaction evidenceUseTransaction)
     {
-        this.outcomeCommitter = outcomeCommitter
-            ?? throw new ArgumentNullException(nameof(outcomeCommitter));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.factRecovery = factRecovery ?? throw new ArgumentNullException(nameof(factRecovery));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.outcomeEvidenceQuery = outcomeEvidenceQuery
             ?? throw new ArgumentNullException(nameof(outcomeEvidenceQuery));
@@ -749,7 +752,8 @@ public sealed class FacilityEvolutionEngineFactory : IFacilityEvolutionEngineFac
         return new FacilityEvolutionEngine(
             definitions,
             execution,
-            outcomeCommitter,
+            facts,
+            factRecovery,
             calendar,
             outcomeEvidenceQuery,
             evidenceUseTransaction);
@@ -773,7 +777,8 @@ public sealed class FacilityEvolutionEngine
     private readonly IFacilityEvolutionRecordComponentService recordComponentService;
     private readonly IFacilityEvolutionMutationResolver mutationResolver;
     private readonly Func<BlueprintResearchState> researchStateProvider;
-    private readonly IFacilityEvolutionOutcomeCommitter outcomeCommitter;
+    private readonly IDomainFactPublisher facts;
+    private readonly IDomainFactRecoveryPublisher factRecovery;
     private readonly IGameCalendar calendar;
     private readonly IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery;
     private readonly IGameplayOutcomeEvidenceUseTransaction evidenceUseTransaction;
@@ -785,7 +790,8 @@ public sealed class FacilityEvolutionEngine
     public FacilityEvolutionEngine(
         FacilityEvolutionDefinitionContext definitions,
         FacilityEvolutionExecutionContext execution,
-        IFacilityEvolutionOutcomeCommitter outcomeCommitter = null,
+        IDomainFactPublisher facts,
+        IDomainFactRecoveryPublisher factRecovery,
         IGameCalendar calendar = null,
         IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery = null,
         IGameplayOutcomeEvidenceUseTransaction evidenceUseTransaction = null)
@@ -809,8 +815,9 @@ public sealed class FacilityEvolutionEngine
         recordTokenConsumer = execution.RecordTokenConsumer;
         mutationResolver = execution.MutationResolver;
         researchStateProvider = execution.ResearchStateProvider;
-        this.outcomeCommitter = outcomeCommitter;
-        this.calendar = calendar;
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.factRecovery = factRecovery ?? throw new ArgumentNullException(nameof(factRecovery));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.outcomeEvidenceQuery = outcomeEvidenceQuery;
         this.evidenceUseTransaction = evidenceUseTransaction;
     }
@@ -915,8 +922,7 @@ public sealed class FacilityEvolutionEngine
                 "시설 진화의 표현 확정이 대기 중입니다.");
             return false;
         }
-        // Legacy material receipts must resume their recorded result rather than
-        // starting a new v1 presentation request.
+        // An unfinished evolution resumes its frozen result, never a new proposal.
         if (context.State.HasPendingMaterialCommit && !authorizedFormulaCommit)
         {
             return TryResumePending(
@@ -938,14 +944,14 @@ public sealed class FacilityEvolutionEngine
             IReadOnlyList<GameplayOutcomeEvidenceBindingSnapshot> exactBindings =
                 outcomeEvidenceQuery == null
                     ? Array.Empty<GameplayOutcomeEvidenceBindingSnapshot>()
-                    : GameplayOutcomeEvidenceFormulaProjection.CaptureExact(
+                    : GameplayOutcomeEvidenceFormulaProjection.Capture(
                         outcomeEvidenceQuery.GetForEntity(
                             new GameplayEntityId(
                                 new GameplayEntityKindId("facility"),
                                 preparedState.facilityPersistentId),
                             maximumCount: 32,
                             minimumSalience: 0f,
-                            includeCompacted: false));
+                            includeCompacted: true));
             if (!FacilityFormulaEvolutionAuthority.TryPrepare(
                     preparedState, recipe,
                     out FacilityEvolutionFormulaPresentationPendingSnapshot presentation,
@@ -1026,6 +1032,10 @@ public sealed class FacilityEvolutionEngine
             return false;
         }
 
+        // Reject an invalid resolved aggregate before physical material commit
+        // or world replacement can retire its source owner.
+        FacilityEvolutionAggregateAdapter.Prepare(resolvedResultState);
+
         if (!resourceProvider.TryCommitMaterialsPending(
                 recipe.requiredMaterials,
                 materialOperationId,
@@ -1043,25 +1053,22 @@ public sealed class FacilityEvolutionEngine
             return false;
         }
 
-        if (!materialReceipt.IsCommitted)
+        var completedFact = new FacilityEvolutionCompletedFactData
         {
-            return TryPublishResolvedEvolutionWithoutMaterials(
-                facility,
-                recipe,
-                proposal,
-                sourceFacilityName,
-                mutationResult.Tags,
-                resolvedResultState,
-                materialOperationId,
-                historySequence,
-                out result);
-        }
-
-        context.State.RecordPendingMaterialCommit(
-            materialReceipt,
-            recipe,
+            operationId = materialOperationId, historySequence = historySequence,
+            facilityPersistentId = sourcePersistentId, facilityDisplayName = sourceFacilityName,
+            recipeId = recipe.EffectiveId,
+            resultFacilityDefinitionId = FacilityEvolutionUtility.GetFacilityId(recipe.resultBuilding),
+            resultStarGrade = recipe.resultStarGrade,
+            materialCommitId = materialReceipt.CommitId ?? string.Empty,
+            sourceStackIds = materialReceipt.SourceStackIds?.ToArray() ?? Array.Empty<string>(),
+            materialQuantity = materialReceipt.Quantity, materialInputMassGrams = materialReceipt.InputMassGrams,
+            absoluteDay = calendar.Day
+        };
+        context.State.RecordPendingEvolution(
+            completedFact,
+            materialReasonCode,
             FacilityEvolutionUtility.GetFacilityId(facility.BuildingData),
-            historySequence,
             resolvedResultState,
             mutationResult.Tags);
         if (authorizedFormulaCommits.TryGetValue(
@@ -1309,6 +1316,16 @@ public sealed class FacilityEvolutionEngine
                 failureReason = result.Message;
                 return false;
             }
+            if (!result.Success || result.ResultBuilding == null)
+            {
+                failureReason = string.IsNullOrWhiteSpace(result.Message)
+                    ? "Facility formula module selection completed without a published result building."
+                    : result.Message;
+                if (!state.HasPendingMaterialCommit)
+                    state.RestoreFormulaPresentation(original);
+                preparedEvidence?.TryRollbackAnchors(out _);
+                return false;
+            }
             if (preparedEvidence != null && !preparedEvidence.IsTerminal)
                 preparedEvidence.CompleteOwnerCommit();
             return true;
@@ -1413,14 +1430,14 @@ public sealed class FacilityEvolutionEngine
             stateSnapshot.pendingMaterialCommit;
         bool evidenceManagedByCaller = authorizedFormulaCommits.ContainsKey(
             pending.sourceFacilityPersistentId);
-        string sourceFacilityName =
-            FacilityShopService.GetBuildingName(facility.BuildingData);
+        string sourceFacilityName = pending.completedFact.facilityDisplayName;
         if (recipe == null
             || !string.Equals(
                 recipe.EffectiveId,
                 pending.recipeId,
                 StringComparison.Ordinal)
             || recipe.resultBuilding == null
+            || recipe.resultStarGrade != pending.completedFact.resultStarGrade
             || !string.Equals(
                 FacilityEvolutionUtility.GetFacilityId(recipe.resultBuilding),
                 pending.resultFacilityDefinitionId,
@@ -1432,14 +1449,16 @@ public sealed class FacilityEvolutionEngine
             return false;
         }
 
-        if (!resourceProvider.TryGetPendingMaterialCommit(
+        FacilityEvolutionMaterialCommitReceipt receipt = default;
+        string receiptFailure = string.Empty;
+        if (pending.completedFact.HasMaterialCommit && (!resourceProvider.TryGetPendingMaterialCommit(
                 pending.operationId,
                 pending.reasonCode,
-                out FacilityEvolutionMaterialCommitReceipt receipt,
-                out string receiptFailure)
+                out receipt,
+                out receiptFailure)
             || !FacilityEvolutionMaterialCommitAuthority.Matches(
                 pending,
-                receipt))
+                receipt)))
         {
             failureReason = !string.IsNullOrWhiteSpace(receiptFailure)
                 ? receiptFailure
@@ -1450,19 +1469,18 @@ public sealed class FacilityEvolutionEngine
 
         BuildableObject resultBuilding = facility;
         FacilityEvolutionStateComponent resultState = state;
-        FacilityEvolutionStateSnapshot resolvedResultState =
-            pending.ReadResolvedResultState();
-        if (!TryPrepareFacilityOutcome(
-                pending.operationId,
-                pending.historySequence,
-                pending.sourceFacilityPersistentId,
-                recipe,
-                receipt,
-                out PreparedEvolutionOutcome preparedOutcome,
-                out failureReason))
+        DomainFactLease lease = default;
+        try
         {
-            result = Fail(recipe, facility, default, failureReason);
-            return false;
+        if (pending.phase == FacilityEvolutionMaterialCommitPhase.MaterialCommitted)
+        {
+            if (!facts.TryReserve(new FacilityEvolutionCompletedFact(pending.completedFact), out lease, out failureReason))
+            {
+                result = Fail(recipe, facility, default, "Facility evolution observer reserve failed: " + failureReason);
+                return false;
+            }
+            state.SetPendingObservationKey(pending.operationId, lease.PublicationKey);
+            pending = state.PendingMaterialCommit;
         }
         PreparedGameplayOutcomeEvidenceUse pendingEvidence = null;
         if (evidenceManagedByCaller)
@@ -1477,7 +1495,6 @@ public sealed class FacilityEvolutionEngine
             {
                 failureReason =
                     "Facility evolution mandatory evidence-use transaction is unavailable.";
-                outcomeCommitter?.Cancel(preparedOutcome);
                 result = Fail(recipe, facility, default, failureReason);
                 return false;
             }
@@ -1491,7 +1508,6 @@ public sealed class FacilityEvolutionEngine
                 || !pendingEvidence.TryCommitAnchors(out failureReason))
             {
                 pendingEvidence?.Cancel();
-                outcomeCommitter?.Cancel(preparedOutcome);
                 result = Fail(recipe, facility, default, failureReason);
                 return false;
             }
@@ -1509,7 +1525,6 @@ public sealed class FacilityEvolutionEngine
             {
                 failureReason =
                     "Facility evolution pending source building authority changed before publication.";
-                outcomeCommitter?.Cancel(preparedOutcome);
                 pendingEvidence?.TryRollbackAnchors(out _);
                 result = Fail(recipe, facility, default, failureReason);
                 return false;
@@ -1522,7 +1537,6 @@ public sealed class FacilityEvolutionEngine
                     out string replaceReason))
             {
                 failureReason = replaceReason;
-                outcomeCommitter?.Cancel(preparedOutcome);
                 pendingEvidence?.TryRollbackAnchors(out _);
                 result = Fail(recipe, facility, default, replaceReason);
                 return false;
@@ -1530,16 +1544,7 @@ public sealed class FacilityEvolutionEngine
 
             resultBuilding.SetFacilityLevel(recipe.resultStarGrade);
             resultState = stateComponentFactory.GetOrAdd(resultBuilding);
-            resultState.ApplySnapshot(resolvedResultState);
-            resultState.RecordPendingMaterialCommit(
-                receipt,
-                recipe,
-                pending.sourceFacilityDefinitionId,
-                pending.historySequence,
-                resolvedResultState,
-                pending.resolvedMutationTags,
-                FacilityEvolutionMaterialCommitPhase.DomainApplied);
-            resultState.CopyPendingEvidenceUseIntent(pending);
+            resultState.PublishPendingEvolutionResult(pending);
             recordComponentService.ReplaceWith(
                 resultBuilding,
                 resultState.GetRecord());
@@ -1547,9 +1552,9 @@ public sealed class FacilityEvolutionEngine
             roomLayoutCache.Clear();
         }
 
-        if (!CommitFacilityOutcome(
-                preparedOutcome,
-                pending.historySequence,
+        if (!TryPublishPendingObservation(
+                resultState,
+                lease,
                 out string outcomeCommitFailure))
         {
             failureReason = "Facility evolution outcome commit failed: "
@@ -1594,7 +1599,7 @@ public sealed class FacilityEvolutionEngine
             }
         }
 
-        if (!resourceProvider.AcknowledgeMaterialCommit(
+        if (pending.completedFact.HasMaterialCommit && !resourceProvider.AcknowledgeMaterialCommit(
                 receipt.CommitId,
                 out string acknowledgementReason))
         {
@@ -1605,7 +1610,7 @@ public sealed class FacilityEvolutionEngine
             return false;
         }
 
-        resultState.ClearPendingMaterialCommit(receipt.CommitId);
+        resultState.ClearPendingEvolution(pending.operationId);
         facilityCandidateCache.MarkDynamicStateDirty();
         FacilityEvolutionProposal persistedProposal = BuildPersistedProposal(pending);
         result = new FacilityEvolutionResult(
@@ -1619,134 +1624,44 @@ public sealed class FacilityEvolutionEngine
             pending.resolvedMutationTags,
             pending.operationId,
             pending.historySequence,
-            receipt.CommitId,
-            receipt.SourceStackIds,
-            receipt.Quantity,
-            receipt.InputMassGrams);
+            pending.commitId,
+            pending.sourceStackIds,
+            pending.quantity,
+            pending.inputMassGrams);
         return true;
+        }
+        finally
+        {
+            if (lease.IsValid) facts.Cancel(lease);
+        }
     }
 
-    private bool TryPublishResolvedEvolutionWithoutMaterials(
-        BuildableObject facility,
-        FacilityEvolutionRecipeSO recipe,
-        FacilityEvolutionProposal proposal,
-        string sourceFacilityName,
-        IReadOnlyList<string> mutationTags,
-        FacilityEvolutionStateSnapshot resolvedResultState,
-        string operationId,
-        int historySequence,
-        out FacilityEvolutionResult result)
+    private bool TryPublishPendingObservation(
+        FacilityEvolutionStateComponent state, DomainFactLease lease, out string failureReason)
     {
-        FacilityEvolutionMaterialCommitReceipt emptyMaterialReceipt = default;
-        string facilityPersistentId = stateComponentFactory
-            .GetOrAdd(facility)
-            .FacilityPersistentId;
-        if (!TryPrepareFacilityOutcome(
-                operationId,
-                historySequence,
-                facilityPersistentId,
-                recipe,
-                emptyMaterialReceipt,
-                out PreparedEvolutionOutcome preparedOutcome,
-                out string outcomePrepareFailure))
+        var pending = state.PendingMaterialCommit
+            ?? throw new InvalidOperationException("Facility evolution observation has no durable owner.");
+        if (pending.phase != FacilityEvolutionMaterialCommitPhase.DomainApplied)
+            throw new InvalidOperationException("Facility evolution observation precedes its domain result.");
+        failureReason = string.Empty;
+        if (pending.observationDelivered) return true;
+        var fact = new FacilityEvolutionCompletedFact(pending.completedFact);
+        DomainFactDelivery delivery;
+        if (lease.IsValid) delivery = facts.Publish(lease, fact);
+        else
         {
-            result = Fail(recipe, facility, proposal, outcomePrepareFailure);
+            var results = new DomainFactDelivery[1];
+            factRecovery.ReplayBatch(new[] { DomainFactReplay.Create(pending.publicationKey, fact) }, results, out _);
+            delivery = results[0];
+        }
+        if (delivery.Phase is DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery)
+            state.ConfirmPendingObservation(delivery);
+        if (!delivery.Completed)
+        {
+            failureReason = "facility-evolution-observation-incomplete:" + delivery.Phase + ":" + delivery.Detail;
             return false;
         }
-        if (!buildingReplacer.TryReplace(
-                facility,
-                recipe.resultBuilding,
-                out BuildableObject resultBuilding,
-                out string replaceReason))
-        {
-            outcomeCommitter?.Cancel(preparedOutcome);
-            result = Fail(recipe, facility, proposal, replaceReason);
-            return false;
-        }
-
-        resultBuilding.SetFacilityLevel(recipe.resultStarGrade);
-        FacilityEvolutionStateComponent nextState =
-            stateComponentFactory.GetOrAdd(resultBuilding);
-        nextState.ApplySnapshot(resolvedResultState);
-        recordComponentService.ReplaceWith(resultBuilding, nextState.GetRecord());
-        facilityCandidateCache.MarkDynamicStateDirty();
-        roomLayoutCache.Clear();
-        if (!CommitFacilityOutcome(
-                preparedOutcome,
-                historySequence,
-                out string outcomeCommitFailure))
-        {
-            throw new InvalidOperationException(
-                "Facility evolution committed without its mandatory outcome: "
-                + outcomeCommitFailure);
-        }
-        result = new FacilityEvolutionResult(
-            true,
-            recipe,
-            resultBuilding,
-            recipe.resultStarGrade,
-            sourceFacilityName,
-            proposal,
-            $"{recipe.DisplayName} 진화 완료",
-            mutationTags,
-            operationId,
-            historySequence);
         return true;
-    }
-
-    private bool TryPrepareFacilityOutcome(
-        string operationId,
-        int historySequence,
-        string facilityPersistentId,
-        FacilityEvolutionRecipeSO recipe,
-        FacilityEvolutionMaterialCommitReceipt materialReceipt,
-        out PreparedEvolutionOutcome prepared,
-        out string failureReason)
-    {
-        prepared = default;
-        failureReason = string.Empty;
-        if (outcomeCommitter == null)
-            return true;
-        try
-        {
-            FacilityEvolutionOutcomeReceipt receipt = new(
-                operationId,
-                historySequence,
-                facilityPersistentId,
-                recipe.EffectiveId,
-                FacilityEvolutionUtility.GetFacilityId(recipe.resultBuilding),
-                recipe.resultStarGrade,
-                materialReceipt.CommitId,
-                materialReceipt.SourceStackIds,
-                materialReceipt.Quantity,
-                materialReceipt.InputMassGrams,
-                Math.Max(0, calendar?.Day ?? 0));
-            return outcomeCommitter.TryPrepare(
-                receipt,
-                out prepared,
-                out failureReason);
-        }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or InvalidOperationException
-                                           or OverflowException)
-        {
-            failureReason = "Facility evolution outcome receipt is invalid: "
-                + exception.Message;
-            return false;
-        }
-    }
-
-    private bool CommitFacilityOutcome(
-        in PreparedEvolutionOutcome prepared,
-        long ownerRevision,
-        out string failureReason)
-    {
-        failureReason = string.Empty;
-        return outcomeCommitter == null
-            || outcomeCommitter.TryCommit(
-                prepared,
-                ownerRevision,
-                out failureReason);
     }
 
     private static FacilityEvolutionProposal BuildPersistedProposal(
@@ -1820,7 +1735,6 @@ public sealed class FacilityEvolutionEngine
 
 public class FacilityEvolutionRuntime : MonoBehaviour
 {
-    [SerializeField] private bool raiseAlertOnEvolution = true;
     [SerializeField, HideInInspector] private bool enableLlmProposals;
 
     private IFacilityEvolutionRecipeQuery recipeQuery;
@@ -2009,17 +1923,33 @@ public class FacilityEvolutionRuntime : MonoBehaviour
 
     private void PublishCompletion(FacilityEvolutionResult result)
     {
-        Completed?.Invoke(result);
-        (gameEventBus
-            ?? throw new InvalidOperationException($"{nameof(FacilityEvolutionRuntime)} requires {nameof(IGameEventBus)} injection."))
-            .Publish(new FacilityEvolutionCompletedEvent(result));
-        if (raiseAlertOnEvolution)
+        IGameEventBus events = gameEventBus
+            ?? throw new InvalidOperationException(
+                $"{nameof(FacilityEvolutionRuntime)} requires {nameof(IGameEventBus)} injection.");
+        InvokeCompletionObserver(
+            () => Completed?.Invoke(result),
+            "facility-evolution-completed-callback");
+        InvokeCompletionObserver(
+            () => events.Publish(new FacilityEvolutionCompletedEvent(result)),
+            "facility-evolution-completed-event");
+    }
+
+    private static void InvokeCompletionObserver(
+        Action observer,
+        string diagnosticId)
+    {
+        try
         {
-            gameEventBus.RaiseAlert(
-                "시설 진화 완료",
-                $"{result.SourceFacilityName} -> {FacilityShopService.GetBuildingName(result.ResultBuilding.BuildingData)} {result.ResultStarGrade}성",
-                EventAlertImportance.Medium,
-                "시설 진화");
+            observer?.Invoke();
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogWarning(
+                diagnosticId + ":" + exception.GetType().Name
+                + ":" + exception.Message);
         }
     }
 

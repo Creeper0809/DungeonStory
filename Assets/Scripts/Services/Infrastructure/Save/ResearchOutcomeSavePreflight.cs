@@ -24,6 +24,10 @@ public sealed class ResearchOutcomeSavePreflight :
                 saveData,
                 GameplayOutcomeLedgerSaveSection.Id);
         ValidateSequence(research, ledger, report);
+        ValidateCompletedProjectResultKeys(research, ledger, report);
+        ValidateSpaceExpansionPending(research,
+            DungeonSaveSectionPayload.ReadOrNew<ModularFacilityWorldSaveData>(
+                saveData, ModularFacilityWorldSaveSection.Id), ledger, report);
         ValidateKnowledgeCompletionJoin(
             research,
             DungeonSaveSectionPayload.ReadOrNew<DungeonPhysicalItemSaveData>(
@@ -31,6 +35,26 @@ public sealed class ResearchOutcomeSavePreflight :
                 PhysicalItemsSaveSection.Id),
             ledger,
             report);
+    }
+
+    internal static void ValidateSpaceExpansionPending(DungeonResearchSaveData research,
+        ModularFacilityWorldSaveData world, GameplayOutcomeLedgerSaveData ledger, DungeonGameRestoreReport report)
+    {
+        try
+        {
+            DungeonSpaceExpandedFact.ValidateSavedPublication(world);
+            var pending = world.spaceExpansionPublication;
+            if (!pending.active) return;
+            if (pending.trigger == DungeonSpaceExpansionTrigger.ResearchCompletion
+                && (research.completedProjectIds?.Contains(pending.projectId) != true
+                    || research.completedProjectResults?.Count(value => value != null
+                        && value.projectId == pending.projectId
+                        && value.publicationKey == pending.parentResearchPublicationKey) != 1))
+                throw new InvalidOperationException("space-pending-completed-parent-mismatch");
+            DungeonSpaceExpansionFactObservation.ValidatePending(pending, ledger);
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or OverflowException)
+        { report.AddError("space-pending-publication-invalid:" + exception.Message); }
     }
 
     internal static void ValidateSequence(DungeonResearchSaveData research,
@@ -51,6 +75,26 @@ public sealed class ResearchOutcomeSavePreflight :
             foreach (var retired in ledger.tombstones)
                 if (retired != null && retired.producerId == ResearchWorkOutcomeIds.ProducerId)
                     Add(retired.operationId, retired.commitRevision, retired.localResultIndex, retired.ownerRevision);
+
+        if (research.pendingWorkPublication?.active == true)
+        {
+            try
+            {
+                ResearchWorkPendingPublication pending = research.pendingWorkPublication;
+                ResearchWorkAppliedFact fact = new(pending.fact);
+                if (fact.Revision != research.outcomeSequence)
+                    throw new InvalidOperationException("research-pending-sequence-mismatch");
+                ValidatePendingOwner(research, fact);
+                ResearchWorkFactObservation.ValidatePending(fact, pending.publicationKey, ledger);
+                if (!revisions.Contains(fact.Revision))
+                {
+                    revisions.Add(fact.Revision);
+                    maximum = Math.Max(maximum, fact.Revision);
+                }
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or OverflowException)
+            { report.AddError("research-pending-publication-invalid:" + exception.Message); }
+        }
 
         // Positive, unique revisions bounded by maximum are contiguous iff their
         // count equals maximum. No allocation/iteration from an untrusted sequence.
@@ -85,145 +129,114 @@ public sealed class ResearchOutcomeSavePreflight :
         }
     }
 
-    internal static void ValidateKnowledgeCompletionJoin(
+    internal static void ValidateCompletedProjectResultKeys(
         DungeonResearchSaveData research,
-        DungeonPhysicalItemSaveData physical,
         GameplayOutcomeLedgerSaveData ledger,
         DungeonGameRestoreReport report)
     {
-        if (research == null || physical == null || ledger == null
-            || report == null)
-            throw new ArgumentNullException(
-                "Knowledge completion save join requires detached payloads and report.");
-
-        Dictionary<string, PhysicalItemBatchDispositionSaveData> pending =
-            (physical.pendingBatchDispositions
-                    ?? new List<PhysicalItemBatchDispositionSaveData>())
-                .Where(value => value != null)
-                .GroupBy(value => value.operationId, StringComparer.Ordinal)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group.Single(),
-                    StringComparer.Ordinal);
-        Dictionary<string, KnowledgeResidueTaskSaveData> owners =
-            (research.knowledgeTasks
-                    ?? new List<KnowledgeResidueTaskSaveData>())
-                .Where(value => value != null)
-                .GroupBy(value => value.sinkOperationId, StringComparer.Ordinal)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group.Single(),
-                    StringComparer.Ordinal);
-
-        foreach (KnowledgeResidueTaskSaveData task in owners.Values)
+        var projects = new HashSet<string>(StringComparer.Ordinal);
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (DungeonResearchCompletionResultSaveData saved in
+                 research.completedProjectResults
+                     ?? new List<DungeonResearchCompletionResultSaveData>())
         {
-            bool hasPending = pending.TryGetValue(
-                task.sinkOperationId,
-                out PhysicalItemBatchDispositionSaveData input);
-            if (!hasPending)
+            if (saved == null
+                || !projects.Add(saved.projectId) || !keys.Add(saved.publicationKey)
+                || research.completedProjectIds?.Contains(saved.projectId) != true
+                || !ResearchWorkFactObservation.TryReadKey(saved.publicationKey, out GameplayResultKey key)
+                || key.CommitRevision > research.outcomeSequence)
             {
-                if (task.dispositionPhase !=
-                    KnowledgeResidueDispositionPhase.AwaitingInput)
-                    report.AddError(
-                        "knowledge-completion-physical-owner-missing:"
-                        + task.taskId);
+                report.AddError("research-completion-parent-key-invalid");
                 continue;
             }
 
-            bool typedCompletion = IsTypedCompletion(input, task);
-            if (task.completionOwnerRevision > 0)
-            {
-                if (task.dispositionPhase !=
-                        KnowledgeResidueDispositionPhase.OutcomePublished
-                    || !typedCompletion
-                    || input.outcomeOwnerRevision
-                        != task.completionOwnerRevision
-                    || !HasCompletionOutcome(
-                        ledger,
-                        task.sinkOperationId,
-                        task.completionOwnerRevision))
-                    report.AddError(
-                        "knowledge-completion-durable-join-mismatch:"
-                        + task.taskId);
-            }
-            else if (typedCompletion
-                && !HasCompletionOutcome(
-                    ledger,
-                    task.sinkOperationId,
-                    input.outcomeOwnerRevision))
-            {
-                report.AddError(
-                    "knowledge-completion-torn-owner-ledger-missing:"
-                    + task.taskId);
-            }
+            bool foundExact = (ledger.outbox
+                    ?? new List<GameplayOutcomeSnapshot>())
+                .Concat(ledger.exactOutcomes
+                    ?? new List<GameplayOutcomeSnapshot>())
+                .Any(outcome => outcome != null
+                    && string.Equals(outcome.producerId,
+                        key.ProducerId, StringComparison.Ordinal)
+                    && string.Equals(outcome.operationId,
+                        key.OperationId.Value, StringComparison.Ordinal)
+                    && outcome.commitRevision == key.CommitRevision
+                    && outcome.localResultIndex == 0
+                    && string.Equals(outcome.outcomeTypeId,
+                        ResearchWorkOutcomeIds.WorkApplied.Value,
+                        StringComparison.Ordinal)
+                    && outcome.participants?.Any(participant => participant != null
+                        && string.Equals(participant.roleId,
+                            ResearchWorkOutcomeIds.ProjectRole.Value,
+                            StringComparison.Ordinal)
+                        && string.Equals(participant.entityId,
+                            saved.projectId, StringComparison.Ordinal)) == true
+                    && outcome.facts?.Any(fact => fact != null
+                        && string.Equals(fact.factId,
+                            ResearchWorkOutcomeIds.CompletedFact.Value,
+                            StringComparison.Ordinal)
+                        && string.Equals(fact.value, "true",
+                            StringComparison.Ordinal)) == true);
+            bool retired = (ledger.tombstones
+                    ?? new List<GameplayOutcomeTombstoneSnapshot>())
+                .Any(value => value != null
+                    && string.Equals(value.producerId,
+                        key.ProducerId, StringComparison.Ordinal)
+                    && string.Equals(value.operationId,
+                        key.OperationId.Value, StringComparison.Ordinal)
+                    && value.commitRevision == key.CommitRevision
+                    && value.localResultIndex == 0);
+            var pending = research.pendingWorkPublication;
+            bool pendingMatch = pending?.active == true && pending.publicationKey == saved.publicationKey
+                && pending.fact?.isProject == true && pending.fact.completed
+                && pending.fact.subjectId == saved.projectId && pending.fact.revision == key.CommitRevision;
+            if (!foundExact && !retired && !pendingMatch)
+                report.AddError("research-completion-parent-ledger-missing:"
+                    + saved.projectId);
         }
+        if ((research.completedProjectIds ?? new()).Any(value => !projects.Contains(value)))
+            report.AddError("research-completion-parent-reference-missing");
+    }
 
-        foreach (PhysicalItemBatchDispositionSaveData input in pending.Values)
+    private static void ValidatePendingOwner(DungeonResearchSaveData research, ResearchWorkAppliedFact fact)
+    {
+        if (fact.Cause == ResearchWorkCause.KnowledgeProgress)
         {
-            if (input.gameplayOutcomeExpected
-                && string.Equals(
-                    input.expectedOutcomeProducerId,
-                    KnowledgeCompletionOutcomeIds.ProducerId,
-                    StringComparison.Ordinal)
-                && !owners.ContainsKey(input.operationId))
-                report.AddError(
-                    "knowledge-completion-research-owner-missing:"
-                    + input.operationId);
+            var task = research.knowledgeTasks?.SingleOrDefault(value => value?.taskId == fact.SubjectId);
+            if (task == null || task.completedWork != fact.After || task.requiredWork != fact.Required
+                || task.dispositionPhase != KnowledgeResidueDispositionPhase.AwaitingInput
+                || task.facilityInstanceId != fact.FacilityId)
+                throw new InvalidOperationException("research-pending-knowledge-owner-mismatch");
+        }
+        else if (fact.IsProject)
+        {
+            var progress = research.projectProgress?.SingleOrDefault(value => value?.projectId == fact.SubjectId);
+            if (progress == null || progress.progress != fact.After || progress.requiredWorkAtCapture != fact.Required
+                || (research.completedProjectIds?.Contains(fact.SubjectId) == true) != fact.Completed
+                || fact.Completed && research.completedProjectResults?.Any(value => value?.projectId == fact.SubjectId
+                    && value.publicationKey == research.pendingWorkPublication.publicationKey) != true)
+                throw new InvalidOperationException("research-pending-project-owner-mismatch");
+        }
+        else
+        {
+            var task = research.tasks?.SingleOrDefault(value => value?.blueprintId == fact.BlueprintId);
+            if ((research.completedBlueprintIds?.Contains(fact.BlueprintId) == true) != fact.Completed
+                || !fact.Completed && (task == null || task.progress != fact.After)
+                || task != null && task.progress != fact.After)
+                throw new InvalidOperationException("research-pending-blueprint-owner-mismatch");
+        }
+        foreach (var unlock in fact.Unlocks)
+        {
+            if (unlock.UnlockTypeId == BlueprintUnlockTypeIds.Building
+                && (!int.TryParse(unlock.ValueId, NumberStyles.None, CultureInfo.InvariantCulture, out int building)
+                    || research.unlockedBuildingIds?.Contains(building) != true)
+                || unlock.UnlockTypeId == BlueprintUnlockTypeIds.Recipe
+                    && research.unlockedRecipeIds?.Contains(unlock.ValueId) != true)
+                throw new InvalidOperationException("research-pending-unlock-owner-mismatch");
         }
     }
 
-    private static bool IsTypedCompletion(
-        PhysicalItemBatchDispositionSaveData input,
-        KnowledgeResidueTaskSaveData task) =>
-        input != null
-        && task != null
-        && input.gameplayOutcomeExpected
-        && string.Equals(
-            input.expectedOutcomeProducerId,
-            KnowledgeCompletionOutcomeIds.ProducerId,
-            StringComparison.Ordinal)
-        && string.Equals(
-            input.expectedOutcomeOperationId,
-            task.sinkOperationId,
-            StringComparison.Ordinal)
-        && input.expectedOutcomeCommitRevision > 0
-        && input.expectedOutcomeCommitRevision == input.outcomeOwnerRevision
-        && input.expectedOutcomeLocalResultIndex == 0
-        && input.gameplayOutcome != null
-        && string.Equals(
-            input.gameplayOutcome.producerId,
-            input.expectedOutcomeProducerId,
-            StringComparison.Ordinal)
-        && string.Equals(
-            input.gameplayOutcome.operationId,
-            input.expectedOutcomeOperationId,
-            StringComparison.Ordinal)
-        && input.gameplayOutcome.commitRevision
-            == input.expectedOutcomeCommitRevision
-        && input.gameplayOutcome.localResultIndex
-            == input.expectedOutcomeLocalResultIndex;
-
-    private static bool HasCompletionOutcome(
-        GameplayOutcomeLedgerSaveData ledger,
-        string operationId,
-        long revision) =>
-        (ledger.outbox ?? new List<GameplayOutcomeSnapshot>())
-            .Concat(ledger.exactOutcomes
-                ?? new List<GameplayOutcomeSnapshot>())
-            .Any(value => value != null
-                && string.Equals(
-                    value.producerId,
-                    KnowledgeCompletionOutcomeIds.ProducerId,
-                    StringComparison.Ordinal)
-                && string.Equals(
-                    value.operationId,
-                    operationId,
-                    StringComparison.Ordinal)
-                && value.commitRevision == revision
-                && value.ownerRevision == revision
-                && value.localResultIndex == 0
-                && string.Equals(
-                    value.outcomeTypeId,
-                    KnowledgeCompletionOutcomeIds.Completed.Value,
-                    StringComparison.Ordinal));
+    internal static void ValidateKnowledgeCompletionJoin(
+        DungeonResearchSaveData research, DungeonPhysicalItemSaveData physical,
+        GameplayOutcomeLedgerSaveData ledger, DungeonGameRestoreReport report) =>
+        KnowledgeCompletionFactObservation.ValidateSavedJoin(research, physical, ledger, report);
 }

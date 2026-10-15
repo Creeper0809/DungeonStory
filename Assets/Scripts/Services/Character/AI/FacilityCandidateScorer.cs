@@ -777,18 +777,26 @@ public static class FacilityCandidateScorer
             return;
         }
 
-        string selectedWhy = selectedBreakdown?.ToCompactString(6)
-            ?? $"score={selectedScore:0.###}";
-        string nearestWhy = nearestBreakdown?.ToCompactString(6)
-            ?? $"score={nearestScore:0.###}";
-        actor.AddActivity(CharacterActivityEvent.InternalAi(
-            CharacterActivityOutcomes.Observed,
-            "facility-distant-selection",
-            $"role={role}; selected={GetFacilityLabel(selected)}@{selected.centerPos}"
-            + $":score={selectedScore:0.###}:travel={selectedTravel:0.##}"
-            + $"; nearest={GetFacilityLabel(nearest)}@{nearest.centerPos}"
-            + $":score={nearestScore:0.###}:travel={nearestTravel:0.##}"
-            + $"; extraTravel={extraTravel:0.##}; selectedWhy={selectedWhy}; nearestWhy={nearestWhy}"));
+        actor.PublishDomainEvent(new CharacterAiDistantFacilitySelectionEvent(
+            actor,
+            role,
+            GetFacilityLabel(selected),
+            selected.centerPos.x,
+            selected.centerPos.y,
+            selectedScore,
+            selectedTravel,
+            CharacterAiUtilityBreakdownEvidence.Capture(
+                selectedBreakdown,
+                selectedScore),
+            GetFacilityLabel(nearest),
+            nearest.centerPos.x,
+            nearest.centerPos.y,
+            nearestScore,
+            nearestTravel,
+            CharacterAiUtilityBreakdownEvidence.Capture(
+                nearestBreakdown,
+                nearestScore),
+            extraTravel));
     }
 
     private static void EnsureScoredCandidateBuffers(int count)

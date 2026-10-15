@@ -155,6 +155,10 @@ public static class NarrativeMechanicCatalogExporter
             projectRoot,
             snapshot.RelevantPaths,
             gameCommit);
+        byte[] b1A05G13AcceptedEvidenceBytes = CaptureProvenanceFileBytes(
+            projectRoot,
+            provenance,
+            NarrativeMechanicCatalogProvenance.B1A05G13AcceptedEvidencePath);
         TrainingDecision training = TrainingDecision.Evaluate(
             snapshot,
             request,
@@ -178,7 +182,8 @@ public static class NarrativeMechanicCatalogExporter
             gameCommit,
             catalogHash,
             catalogBytes,
-            rawTestResultsBytes);
+            rawTestResultsBytes,
+            b1A05G13AcceptedEvidenceBytes);
     }
 
     private static string WriteNewExport(
@@ -384,6 +389,9 @@ public static class NarrativeMechanicCatalogExporter
             new DeliveredFile("packet_parity_cases.json", BuildPacketParity(captured).ToCanonicalUtf8()),
             new DeliveredFile("policy.json", BuildPolicy(captured).ToCanonicalUtf8()),
             new DeliveredFile("README.md", BuildReadmeBytes()),
+            new DeliveredFile(
+                "b1_a05_g13_accepted_evidence.json",
+                captured.B1A05G13AcceptedEvidenceBytes),
             new DeliveredFile("scenario_schema.json", BuildScenarioSchema().ToCanonicalUtf8()),
             new DeliveredFile("scenarios_100.json", BuildPositiveScenarios(captured).ToCanonicalUtf8()),
             new DeliveredFile("test_evidence.json", BuildTestEvidence(captured).ToCanonicalUtf8())
@@ -518,7 +526,7 @@ public static class NarrativeMechanicCatalogExporter
             + "## Regeneration\n\n"
             + "In the authoritative DungeonStory Unity project, run `DungeonStory/Narrative/Export Mechanic Catalog`. The exporter captures every fixture through its named production producer and validator, computes full `inputDigest` provenance plus the distinct dirty-only `uncommittedSourceHash`, and writes a create-new directory through an atomic staging move. Existing versions are never overwritten. To attach raw test output, pass an immutable canonical JSON value as `rawTestResults` on `NarrativeMechanicCatalogExportRequest`; the resulting `raw_test_results.json` is delivery-only and does not enter catalog or training inputs.\n\n"
             + "## Validation\n\n"
-            + "Verify every SHA-256 entry in `delivery_manifest.json`, then require its `currentCommit`, `inputDigest`, `uncommittedSourceHash`, and `catalogHash` to match the package. Recompute `uncommittedSourceHash` from schemaVersion 1 plus only non-clean declared source entries using canonical `path`, `sha256`, `gitStatus`, and `tracked` fields; the empty set is still hashed. Validate `scenarios_100.json` and `negative_scenarios.json` against `scenario_schema.json`. `continuity_scenarios.json` is a separate deterministic boundary-witness document; it is never added to the 100 accepted scenarios or 15 rejected scenarios. If `raw_test_results.json` is present, verify it through the normal delivery hashes but never treat it as catalog/model input, catalogHash/inputDigest material, or training evidence. Run `NarrativeMechanicCatalogExporter.CompareIndependentExports(() => new NarrativeMechanicCatalogUnityAssetSource()).RequireByteIdentical()` for a normal package, or pass the same immutable request to the overload when comparing a package with raw results, in the authoritative Unity Editor. Supply separately produced evidence gates before claiming training eligibility.\n\n"
+            + "Verify every SHA-256 entry in `delivery_manifest.json`, then require its `currentCommit`, `inputDigest`, `uncommittedSourceHash`, and `catalogHash` to match the package. Recompute `uncommittedSourceHash` from schemaVersion 1 plus only non-clean declared source entries using canonical `path`, `sha256`, `gitStatus`, and `tracked` fields; the empty set is still hashed. Validate `scenarios_100.json` and `negative_scenarios.json` against `scenario_schema.json`. `continuity_scenarios.json` is a separate deterministic boundary-witness document; it is never added to the 100 accepted scenarios or 15 rejected scenarios. `b1_a05_g13_accepted_evidence.json` is the immutable audit contract for manual/automatic skill effects and calculation-only work, retail, and relationship provenance. Its source files and the evidence manifest itself are also part of `inputDigest`; it is delivery/audit evidence, never model input or human approval. If `raw_test_results.json` is present, verify it through the normal delivery hashes but never treat it as catalog/model input, catalogHash/inputDigest material, or training evidence. Run `NarrativeMechanicCatalogExporter.CompareIndependentExports(() => new NarrativeMechanicCatalogUnityAssetSource()).RequireByteIdentical()` for a normal package, or pass the same immutable request to the overload when comparing a package with raw results, in the authoritative Unity Editor. Supply separately produced evidence gates before claiming training eligibility.\n\n"
             + "## CharacterSkill public semantics\n\n"
             + "CharacterSkill formula generation is authoritative in C#. `characterSkill.formulaPolicy` exports formulaVersion, catalogSha256, strength/soft-cap inputs, milestone weights and the instance-local drawback-credit policy. Every module exports a closed `formula` descriptor containing all four quantized ranges, costs, affinity/conflict declarations, formatterId and applicatorId. Missing metadata fails export. For formulaVersion 2 and later C# exposes all individually legal authored modules and evidence IDs; the model returns only `{selectionId,positiveModuleIds,drawbackModuleIds,evidenceFactIds,displayName,narrativeFlavor}`. C# rejects stale, invented, conflicting or negative-only selections and allocates all numeric values only after validation. A reachable, mandatory and inseparable drawback may finance only its attached generated instance; `positiveCost - drawbackCredit = netCost <= narrativeBudget`, and no credit enters a global or persistent budget. Legacy committed numeric instances remain load support and never authorize new mechanics.\n\n"
             + "## Immutable reproduction\n\n"
@@ -759,31 +767,89 @@ public static class NarrativeMechanicCatalogExporter
 
     private static NarrativeMechanicCatalogCanonicalJsonObject BuildCharacterSkillRequestSchema()
     {
-        NarrativeMechanicCatalogCanonicalJsonObject combination =
+        NarrativeMechanicCatalogCanonicalJsonObject moduleOption =
             NarrativeMechanicCatalogCanonicalJson.Object(
                 NarrativeMechanicCatalogCanonicalJson.Property(
-                    "properties", NarrativeMechanicCatalogCanonicalJson.Object(
-                        SchemaProperty("semantics", SchemaReference(
-                            "#/$defs/characterSkillCombinationSemantics")))),
+                    "additionalProperties", NarrativeMechanicCatalogCanonicalJson.Boolean(false)),
                 NarrativeMechanicCatalogCanonicalJson.Property(
-                    "required", SchemaStringArray("semantics")),
+                    "properties", NarrativeMechanicCatalogCanonicalJson.Object(
+                        SchemaProperty("capabilityId", SchemaNonBlankString()),
+                        SchemaProperty("moduleDisplayName", SchemaNonBlankString()),
+                        SchemaProperty("moduleId", SchemaNonBlankString()),
+                        SchemaProperty("polarity", SchemaStringEnum(new[]
+                        {
+                            NarrativeFormulaModulePolarity.Positive.ToString(),
+                            NarrativeFormulaModulePolarity.Drawback.ToString()
+                        })))),
+                NarrativeMechanicCatalogCanonicalJson.Property(
+                    "required", SchemaStringArray(
+                        "capabilityId", "moduleDisplayName", "moduleId", "polarity")),
                 NarrativeMechanicCatalogCanonicalJson.Property(
                     "type", NarrativeMechanicCatalogCanonicalJson.String("object")));
         NarrativeMechanicCatalogCanonicalJsonObject rule =
             NarrativeMechanicCatalogCanonicalJson.Object(
                 NarrativeMechanicCatalogCanonicalJson.Property(
                     "properties", NarrativeMechanicCatalogCanonicalJson.Object(
-                        SchemaProperty("combinationOptions", SchemaArray(combination, 1)))),
+                        SchemaProperty("moduleOptions", SchemaArray(moduleOption, 1)),
+                        SchemaProperty("ruleId", SchemaNonBlankString()))),
                 NarrativeMechanicCatalogCanonicalJson.Property(
-                    "required", SchemaStringArray("combinationOptions")),
+                    "required", SchemaStringArray("moduleOptions", "ruleId")),
+                NarrativeMechanicCatalogCanonicalJson.Property(
+                    "type", NarrativeMechanicCatalogCanonicalJson.String("object")));
+        NarrativeMechanicCatalogCanonicalJsonObject selectionOffer =
+            NarrativeMechanicCatalogCanonicalJson.Object(
+                NarrativeMechanicCatalogCanonicalJson.Property(
+                    "additionalProperties", NarrativeMechanicCatalogCanonicalJson.Boolean(false)),
+                NarrativeMechanicCatalogCanonicalJson.Property(
+                    "properties", NarrativeMechanicCatalogCanonicalJson.Object(
+                        SchemaProperty("capabilityId", SchemaNonBlankString()),
+                        SchemaProperty("moduleId", SchemaNonBlankString()),
+                        SchemaProperty("polarity", SchemaStringEnum(new[]
+                        {
+                            NarrativeFormulaModulePolarity.Positive.ToString(),
+                            NarrativeFormulaModulePolarity.Drawback.ToString()
+                        })),
+                        SchemaProperty("requiredCompanionGroups", SchemaArray(
+                            SchemaNonBlankString(), 0)),
+                        SchemaProperty("requiredCompanionModuleIds", SchemaArray(
+                            SchemaNonBlankString(), 0)),
+                        SchemaProperty("semanticDescription", SchemaNonBlankString()))),
+                NarrativeMechanicCatalogCanonicalJson.Property(
+                    "required", SchemaStringArray(
+                        "capabilityId", "moduleId", "polarity",
+                        "requiredCompanionGroups", "requiredCompanionModuleIds",
+                        "semanticDescription")),
+                NarrativeMechanicCatalogCanonicalJson.Property(
+                    "type", NarrativeMechanicCatalogCanonicalJson.String("object")));
+        NarrativeMechanicCatalogCanonicalJsonObject selectionRequest =
+            NarrativeMechanicCatalogCanonicalJson.Object(
+                NarrativeMechanicCatalogCanonicalJson.Property(
+                    "additionalProperties", NarrativeMechanicCatalogCanonicalJson.Boolean(false)),
+                NarrativeMechanicCatalogCanonicalJson.Property(
+                    "properties", NarrativeMechanicCatalogCanonicalJson.Object(
+                        SchemaProperty("evidenceFactIds", SchemaArray(
+                            SchemaNonBlankString(), 1)),
+                        SchemaProperty("maximumDrawbackModules", SchemaType("integer")),
+                        SchemaProperty("maximumPositiveModules", SchemaType("integer")),
+                        SchemaProperty("minimumPositiveModules", SchemaConstInteger(1)),
+                        SchemaProperty("offers", SchemaArray(selectionOffer, 1)),
+                        SchemaProperty("qualifiedNegativeEvidenceFactIds", SchemaArray(
+                            SchemaNonBlankString(), 0)),
+                        SchemaProperty("selectionId", SchemaNonBlankString()))),
+                NarrativeMechanicCatalogCanonicalJson.Property(
+                    "required", SchemaStringArray(
+                        "evidenceFactIds", "maximumDrawbackModules",
+                        "maximumPositiveModules", "minimumPositiveModules", "offers",
+                        "qualifiedNegativeEvidenceFactIds", "selectionId")),
                 NarrativeMechanicCatalogCanonicalJson.Property(
                     "type", NarrativeMechanicCatalogCanonicalJson.String("object")));
         return NarrativeMechanicCatalogCanonicalJson.Object(
             NarrativeMechanicCatalogCanonicalJson.Property(
                 "properties", NarrativeMechanicCatalogCanonicalJson.Object(
-                    SchemaProperty("rules", SchemaArray(rule, 1)))),
+                    SchemaProperty("rules", SchemaArray(rule, 1)),
+                    SchemaProperty("selectionRequest", selectionRequest))),
             NarrativeMechanicCatalogCanonicalJson.Property(
-                "required", SchemaStringArray("rules")),
+                "required", SchemaStringArray("rules", "selectionRequest")),
             NarrativeMechanicCatalogCanonicalJson.Property(
                 "type", NarrativeMechanicCatalogCanonicalJson.String("object")));
     }
@@ -791,22 +857,32 @@ public static class NarrativeMechanicCatalogExporter
     private static NarrativeMechanicCatalogCanonicalJsonObject
         BuildCharacterSkillFullLegalCandidateSchema()
     {
-        NarrativeMechanicCatalogCanonicalJsonObject combination =
+        NarrativeMechanicCatalogCanonicalJsonObject moduleOption =
             NarrativeMechanicCatalogCanonicalJson.Object(
                 NarrativeMechanicCatalogCanonicalJson.Property(
-                    "properties", NarrativeMechanicCatalogCanonicalJson.Object(
-                        SchemaProperty("semantics", SchemaReference(
-                            "#/$defs/characterSkillCombinationSemantics")))),
+                    "additionalProperties", NarrativeMechanicCatalogCanonicalJson.Boolean(false)),
                 NarrativeMechanicCatalogCanonicalJson.Property(
-                    "required", SchemaStringArray("semantics")),
+                    "properties", NarrativeMechanicCatalogCanonicalJson.Object(
+                        SchemaProperty("capabilityId", SchemaNonBlankString()),
+                        SchemaProperty("moduleDisplayName", SchemaNonBlankString()),
+                        SchemaProperty("moduleId", SchemaNonBlankString()),
+                        SchemaProperty("polarity", SchemaStringEnum(new[]
+                        {
+                            NarrativeFormulaModulePolarity.Positive.ToString(),
+                            NarrativeFormulaModulePolarity.Drawback.ToString()
+                        })))),
+                NarrativeMechanicCatalogCanonicalJson.Property(
+                    "required", SchemaStringArray(
+                        "capabilityId", "moduleDisplayName", "moduleId", "polarity")),
                 NarrativeMechanicCatalogCanonicalJson.Property(
                     "type", NarrativeMechanicCatalogCanonicalJson.String("object")));
         return NarrativeMechanicCatalogCanonicalJson.Object(
             NarrativeMechanicCatalogCanonicalJson.Property(
                 "properties", NarrativeMechanicCatalogCanonicalJson.Object(
-                    SchemaProperty("options", SchemaArray(combination, 1)))),
+                    SchemaProperty("options", SchemaArray(moduleOption, 1)),
+                    SchemaProperty("ruleId", SchemaNonBlankString()))),
             NarrativeMechanicCatalogCanonicalJson.Property(
-                "required", SchemaStringArray("options")),
+                "required", SchemaStringArray("options", "ruleId")),
             NarrativeMechanicCatalogCanonicalJson.Property(
                 "type", NarrativeMechanicCatalogCanonicalJson.String("object")));
     }
@@ -952,8 +1028,15 @@ public static class NarrativeMechanicCatalogExporter
                     SchemaProperty("memoryFactIds", SchemaReferenceArray(0, 128)),
                     SchemaProperty("priorHistoryFactIds", SchemaReferenceArray(0, 128)),
                     SchemaProperty("profileId", SchemaStringEnum(
-                        NarrativeMechanicScenarioProfiles.ExpectedPositiveCounts
-                            .Select(pair => pair.Key))),
+                        new[]
+                        {
+                            "AcquiredTrait",
+                            "CharacterSkill",
+                            "EquipmentChoiceLegacyV2",
+                            "EvolutionHistoryLegacyV2",
+                            "FacilityEvolutionLegacyV2",
+                            "Persona"
+                        })),
                     SchemaProperty("relationshipFactIds", SchemaReferenceArray(0, 128)),
                     SchemaProperty("schemaVersion", SchemaConstInteger(1)),
                     SchemaProperty("selection", selection),
@@ -1177,6 +1260,35 @@ public static class NarrativeMechanicCatalogExporter
         return DateTime.UtcNow.ToString("yyyyMMddTHHmmss.fffffffZ", CultureInfo.InvariantCulture);
     }
 
+    private static byte[] CaptureProvenanceFileBytes(
+        string projectRoot,
+        SourceProvenance provenance,
+        string relativePath)
+    {
+        SourceFile declared = provenance.Files.SingleOrDefault(file =>
+            string.Equals(file.Path, relativePath, StringComparison.Ordinal));
+        if (declared == null)
+        {
+            throw new NarrativeMechanicCatalogExportException(
+                "delivered-evidence-not-in-provenance",
+                $"Delivered evidence '{relativePath}' is not part of catalog provenance.");
+        }
+
+        string fullPath = Path.Combine(
+            projectRoot,
+            relativePath.Replace('/', Path.DirectorySeparatorChar));
+        byte[] bytes = File.ReadAllBytes(fullPath);
+        string actualHash = NarrativeMechanicCatalogCanonicalJson.Sha256Prefixed(bytes);
+        if (!string.Equals(actualHash, declared.Hash, StringComparison.Ordinal))
+        {
+            throw new NarrativeMechanicCatalogExportException(
+                "delivered-evidence-changed-during-capture",
+                $"Delivered evidence '{relativePath}' changed while the package was captured.");
+        }
+
+        return bytes;
+    }
+
     private static void ValidateVersion(string version)
     {
         if (version.Length == 0 || version.Any(character =>
@@ -1200,7 +1312,8 @@ public static class NarrativeMechanicCatalogExporter
             string gameCommit,
             string catalogHash,
             byte[] catalogBytes,
-            byte[] rawTestResultsBytes)
+            byte[] rawTestResultsBytes,
+            byte[] b1A05G13AcceptedEvidenceBytes)
         {
             Snapshot = snapshot;
             Provenance = provenance;
@@ -1211,6 +1324,10 @@ public static class NarrativeMechanicCatalogExporter
             RawTestResultsBytes = rawTestResultsBytes == null
                 ? null
                 : (byte[])rawTestResultsBytes.Clone();
+            B1A05G13AcceptedEvidenceBytes = (byte[])(
+                b1A05G13AcceptedEvidenceBytes
+                ?? throw new ArgumentNullException(
+                    nameof(b1A05G13AcceptedEvidenceBytes))).Clone();
         }
 
         public NarrativeMechanicCatalogSnapshot Snapshot { get; }
@@ -1220,6 +1337,7 @@ public static class NarrativeMechanicCatalogExporter
         public string CatalogHash { get; }
         public byte[] CatalogBytes { get; }
         public byte[] RawTestResultsBytes { get; }
+        public byte[] B1A05G13AcceptedEvidenceBytes { get; }
         public string InputDigest => Provenance.InputDigest;
         public string UncommittedSourceHash => Provenance.UncommittedSourceHash;
         public bool TrainingEligible => Training.IsEligible;
@@ -1582,6 +1700,9 @@ public static class NarrativeMechanicCatalogExporter
 /// </summary>
 public static class NarrativeMechanicCatalogProvenance
 {
+    public const string B1A05G13AcceptedEvidencePath =
+        "Artifacts/QA/GameplayActionLedgerAudit-20260926-r1/A05/accepted-evidence.json";
+
     public static void AddRelevantPaths(ICollection<string> relevantPaths)
     {
         if (relevantPaths == null)
@@ -1596,6 +1717,7 @@ public static class NarrativeMechanicCatalogProvenance
     {
         string[] sourcePaths =
         {
+            B1A05G13AcceptedEvidencePath,
             "Assets/Scripts/Content/GameContentCatalogSO.cs",
             "Assets/Scripts/Content/GameDomainContentCatalogSO.cs",
             "Assets/Scripts/Models/AI/Core/LlmStaticSchemaCatalog.cs",
@@ -1695,7 +1817,25 @@ public static class NarrativeMechanicCatalogProvenance
             "Assets/Scripts/Services/Offense/OffenseSaveSections.cs",
             "Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs",
             "Assets/Scripts/Services/Character/AI/Editor/V25NarrativeInferenceDebugScenarios.cs",
+            "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanDebugScenarios.cs",
+            "Assets/Scripts/Services/Character/AI/Editor/CharacterSkillActivationOutcomeDebugScenarios.cs",
+            "Assets/Scripts/Services/Character/AI/Editor/WorkCompletionIdentityCausalProductionEntryDebugScenarios.cs",
+            "Assets/Scripts/Services/Character/Ability/AbilityShopping.cs",
+            "Assets/Scripts/Services/Character/AI/CharacterSocialMemory.cs",
+            "Assets/Scripts/Services/Character/AI/SocialReputationRuntime.cs",
+            "Assets/Scripts/Services/Character/Core/CharacterManualSkillRuntime.cs",
+            "Assets/Scripts/Services/Character/Core/CharacterSkillActivationOutcomeTransaction.cs",
             "Assets/Scripts/Services/Items/Editor/PhysicalItemPilePlayModeVerifier.cs",
+            "Assets/Scripts/Models/Buildings/Core/BuildingVisitorPorts.cs",
+            "Assets/Scripts/Services/Buildings/Shop.cs",
+            "Assets/Scripts/Services/Buildings/ShopCustomerInteractionService.cs",
+            "Assets/Scripts/Services/Infrastructure/CharacterWorldSaveValidation.cs",
+            "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Evolution/CharacterSkillActivationOutcomeDefinition.cs",
+            "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/ProductionCombat/WorkCompletionIdentityOutcomeDefinition.cs",
+            "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerEconomyEntryExtendedE2EDebugScenarios.cs",
+            "Assets/Scripts/Services/Narrative/GameplayOutcomes/Editor/GameplayOutcomeLedgerPhase80BatchRunner.cs",
+            "Assets/Scripts/Services/Narrative/GameplayOutcomes/Editor/LedgerB1RegressionIsolationRunner.cs",
+            "Assets/Scripts/Services/Offense/OffenseBattleRuntime.cs",
             "Assets/Scripts/Services/Offense/Editor/OffenseRewardDebugScenarios.cs",
             "Assets/Scripts/Views/UI/CharacterSummaryGrowthPresenter.cs",
             "Assets/Scripts/Views/UI/CharacterSummaryInfo.cs",

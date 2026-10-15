@@ -190,6 +190,19 @@ public interface ICombatEquipmentRuntime :
         Vector2Int position,
         out string stackId,
         out string failureReason);
+    bool TryAssignPickedEquipmentToCharacter(
+        string characterId,
+        string instanceId,
+        CharacterCarryInventory inventory,
+        string sourceStackId,
+        string itemId,
+        out string failureReason);
+    bool TryUnequipSlotToWorld(
+        string characterId,
+        CombatEquipmentLoadoutSlot slot,
+        Vector2Int position,
+        out IReadOnlyList<string> stackIds,
+        out string failureReason);
     bool TrySetWorldStateBySourceStack(string sourceStackId, CombatEquipmentWorldState worldState);
     bool TryMarkLost(string instanceId);
     bool TryBindRetailStock(
@@ -262,6 +275,12 @@ public interface ICombatEquipmentRuntime :
         string ammunitionItemId,
         int amount);
     bool TryApplyDurabilityDamage(string instanceId, float damage);
+    bool TryApplyArcaneOverchargeDurabilityDamage(
+        string instanceId,
+        float damage);
+    bool TryRollbackArcaneOverchargeDurabilityDamage(
+        string instanceId,
+        float durabilityRatio);
     bool TryDetachForMaintenance(
         string instanceId,
         out CombatEquipmentInstance detached);
@@ -274,6 +293,7 @@ public interface ICombatEquipmentRuntime :
         Vector2Int position,
         out string failureReason);
     void HandleCharacterDeath(string characterId);
+    void RetireCharacterEquipment(string characterId);
     bool TryRestoreDurability(string instanceId, float durabilityRatio);
     IReadOnlyCollection<EquipmentModuleInstance> ModuleInstances { get; }
     IReadOnlyList<EquipmentHistoryTransferOrder> HistoryTransferOrders { get; }

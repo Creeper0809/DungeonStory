@@ -5,205 +5,20 @@ using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer.Unity;
 
-public sealed class CharacterConsumablesOutcomeTransaction :
-    ICharacterConsumablesOutcomeTransaction,
-    ICharacterConsumablesPrimitiveOutcomeTransaction
-{
-    private sealed class Reservation : ICharacterConsumablesOutcomeReservation
-    {
-        internal Reservation(in PreparedMigratedProducerOutcome prepared)
-        {
-            Prepared = prepared;
-        }
-
-        internal PreparedMigratedProducerOutcome Prepared { get; }
-    }
-
-    private readonly IGameSessionStateProvider gameDataProvider;
-    private readonly IMigratedProducerOutcomeTransaction transactions;
-
-    public CharacterConsumablesOutcomeTransaction(
-        IGameSessionStateProvider gameDataProvider,
-        IMigratedProducerOutcomeTransaction transactions)
-    {
-        this.gameDataProvider = gameDataProvider
-            ?? throw new ArgumentNullException(nameof(gameDataProvider));
-        this.transactions = transactions
-            ?? throw new ArgumentNullException(nameof(transactions));
-    }
-
-    public bool TryReserve(
-        CharacterConsumablesOutcomeKind kind,
-        string operationIdentity,
-        out ICharacterConsumablesOutcomeReservation reservation,
-        out string failureReason)
-    {
-        reservation = null;
-        string identity = operationIdentity?.Trim() ?? string.Empty;
-        if (identity.Length == 0)
-        {
-            failureReason = "character-consumables-outcome-identity-invalid";
-            return false;
-        }
-        if (!gameDataProvider.TryGetSessionState(out GameSessionState gameData)
-            || gameData?.day == null)
-        {
-            failureReason = "character-consumables-outcome-day-unavailable";
-            return false;
-        }
-        if (!TryMapKind(kind, out MigratedProducerOutcomeKind migratedKind))
-        {
-            failureReason = "character-consumables-outcome-kind-invalid";
-            return false;
-        }
-        if (!transactions.TryReserveSingleSubject(
-                migratedKind,
-                identity,
-                Math.Max(1, gameData.day.Value),
-                GameplayOutcomeStatus.Succeeded,
-                out PreparedMigratedProducerOutcome prepared,
-                out failureReason))
-        {
-            return false;
-        }
-        reservation = new Reservation(prepared);
-        return true;
-    }
-
-    public CharacterConsumablesOutcomeCommitResult Commit(
-        ICharacterConsumablesOutcomeReservation reservation,
-        CharacterId characterId,
-        string summary)
-    {
-        if (reservation is not Reservation owned || !characterId.IsValid)
-        {
-            return new CharacterConsumablesOutcomeCommitResult(
-                false,
-                "character-consumables-outcome-reservation-invalid");
-        }
-        MigratedProducerOutcomeCommitResult committed =
-            transactions.CommitSingleSubject(
-                owned.Prepared,
-                new MigratedProducerOutcomeSubject(
-                    MigratedProducerOutcomeIds.CharacterKind,
-                    characterId.Value,
-                    characterId.Value,
-                    MigratedProducerOutcomeIds.ActorRole),
-                summary);
-        return new CharacterConsumablesOutcomeCommitResult(
-            committed.DurablyCommitted,
-            committed.DetailCode);
-    }
-
-    public void Cancel(ICharacterConsumablesOutcomeReservation reservation)
-    {
-        if (reservation is Reservation owned)
-            transactions.Cancel(owned.Prepared);
-    }
-
-    public bool TryReservePrimitiveSurvival(
-        CharacterId characterId,
-        out ICharacterConsumablesOutcomeReservation reservation,
-        out string failureReason)
-    {
-        reservation = null;
-        if (!characterId.IsValid)
-        {
-            failureReason = "primitive-survival-character-invalid";
-            return false;
-        }
-        if (!gameDataProvider.TryGetSessionState(out GameSessionState gameData)
-            || gameData?.day == null)
-        {
-            failureReason = "primitive-survival-outcome-day-unavailable";
-            return false;
-        }
-        if (!transactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.CharacterPrimitiveSurvivalCompletedEvent,
-                "primitive-survival:" + characterId.Value,
-                Math.Max(1, gameData.day.Value),
-                GameplayOutcomeStatus.Succeeded,
-                out PreparedMigratedProducerOutcome prepared,
-                out failureReason))
-        {
-            return false;
-        }
-        reservation = new Reservation(prepared);
-        return true;
-    }
-
-    public CharacterConsumablesOutcomeCommitResult
-        CommitMealAndPrimitiveSurvival(
-            ICharacterConsumablesOutcomeReservation mealReservation,
-            ICharacterConsumablesOutcomeReservation primitiveReservation,
-            CharacterId characterId,
-            string mealSummary,
-            string primitiveSummary)
-    {
-        if (mealReservation is not Reservation meal
-            || primitiveReservation is not Reservation primitive
-            || !characterId.IsValid)
-        {
-            return new CharacterConsumablesOutcomeCommitResult(
-                false,
-                "character-consumables-primitive-batch-invalid");
-        }
-
-        MigratedProducerOutcomeSubject subject =
-            new MigratedProducerOutcomeSubject(
-                MigratedProducerOutcomeIds.CharacterKind,
-                characterId.Value,
-                characterId.Value,
-                MigratedProducerOutcomeIds.ActorRole);
-        MigratedProducerOutcomeCommitResult[] results =
-            new MigratedProducerOutcomeCommitResult[2];
-        bool committed = transactions.CommitSingleSubjectBatch(
-            new[] { meal.Prepared, primitive.Prepared },
-            new[] { subject, subject },
-            new[] { mealSummary, primitiveSummary },
-            results,
-            out string failureReason);
-        if (!committed
-            || results.Any(result => !result.DurablyCommitted))
-        {
-            return new CharacterConsumablesOutcomeCommitResult(
-                false,
-                string.IsNullOrWhiteSpace(failureReason)
-                    ? "character-consumables-primitive-batch-rejected"
-                    : failureReason);
-        }
-        return new CharacterConsumablesOutcomeCommitResult(
-            true,
-            string.Join(",", results.Select(result => result.DetailCode)));
-    }
-
-    private static bool TryMapKind(
-        CharacterConsumablesOutcomeKind kind,
-        out MigratedProducerOutcomeKind migratedKind)
-    {
-        migratedKind = kind switch
-        {
-            CharacterConsumablesOutcomeKind.Meal =>
-                MigratedProducerOutcomeKind.CharacterConsumablesMealResult,
-            CharacterConsumablesOutcomeKind.Substance =>
-                MigratedProducerOutcomeKind.CharacterConsumablesSubstanceResult,
-            CharacterConsumablesOutcomeKind.Detox =>
-                MigratedProducerOutcomeKind.CharacterDetoxTreatmentResult,
-            _ => default
-        };
-        return kind is CharacterConsumablesOutcomeKind.Meal
-            or CharacterConsumablesOutcomeKind.Substance
-            or CharacterConsumablesOutcomeKind.Detox;
-    }
-}
-
 public sealed class CharacterConsumablesApplicationPorts :
     ICharacterConsumablesWorldPort,
     ICharacterConsumablesInventoryPort,
     ICharacterConsumablesEventPort,
     ICharacterConsumablesWorkforcePort,
-    ICharacterRitualFastingMealPort
+    ICharacterRitualFastingMealPort,
+    ICharacterConsumablesEffectTransactionPort
 {
+    private sealed class EffectTransactionSnapshot
+    {
+        internal CharacterMoodDeliveryTransactionSnapshot Stats;
+        internal CharacterProgressionSnapshot Progression;
+        internal DungeonCharacterBodyHealthSaveData Body;
+    }
     private readonly IItemDefinitionCatalog catalog;
     private readonly IWorldItemStackRuntime items;
     private readonly ICharacterAiWorldRegistry world;
@@ -215,6 +30,7 @@ public sealed class CharacterConsumablesApplicationPorts :
     private readonly ICharacterRitualFastingQuery ritualFastingQuery;
     private readonly ICharacterRitualFastingCommand ritualFastingCommand;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
+    private readonly ICharacterBodyHealthPersistence bodyHealthPersistence;
     private readonly IItemQuantityReservationService quantityReservations;
     private readonly IReservedItemTransferService reservedTransfers;
     private readonly IReservedPhysicalItemBatchDispositionService
@@ -225,6 +41,9 @@ public sealed class CharacterConsumablesApplicationPorts :
     private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
     private readonly Dictionary<string, HashSet<string>> mealFacilitySlotOwners =
         new(StringComparer.Ordinal);
+#if UNITY_EDITOR
+    internal Func<CharacterMealEffectCommand, bool> DebugRejectMealEffects { get; set; }
+#endif
 
     public CharacterConsumablesApplicationPorts(
         IItemDefinitionCatalog catalog,
@@ -244,7 +63,8 @@ public sealed class CharacterConsumablesApplicationPorts :
         IReservedPhysicalItemBatchDispositionService reservedBatchDispositions = null,
         IPhysicalItemBatchDispositionService batchDispositions = null,
         IPackagedLotTareDispositionService tareDispositions = null,
-        ICharacterBodyHealthCommand bodyHealthCommands = null)
+        ICharacterBodyHealthCommand bodyHealthCommands = null,
+        ICharacterBodyHealthPersistence bodyHealthPersistence = null)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
@@ -259,6 +79,7 @@ public sealed class CharacterConsumablesApplicationPorts :
         this.ritualFastingQuery = ritualFastingQuery;
         this.ritualFastingCommand = ritualFastingCommand;
         this.bodyHealthCommands = bodyHealthCommands;
+        this.bodyHealthPersistence = bodyHealthPersistence;
         this.quantityReservations = quantityReservations;
         this.reservedTransfers = reservedTransfers;
         this.reservedBatchDispositions = reservedBatchDispositions;
@@ -334,7 +155,10 @@ public sealed class CharacterConsumablesApplicationPorts :
             actor.Mood.Value,
             GetNeed(actor, CharacterCondition.HUNGER),
             combatStance.IsInCombatStance(actor),
-            actor.GetNowXY());
+            actor.GetNowXY(),
+            actor.Identity?.DisplayName ?? id.Value,
+            CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work)
+                && work.RequiresRoutineNeedRecovery(CharacterCondition.HUNGER));
         return true;
     }
 
@@ -610,12 +434,32 @@ public sealed class CharacterConsumablesApplicationPorts :
                 == CharacterRitualFastPhase.Fasting;
     }
 
-    public void RecordMealConsumed(
+    public bool CanReceiveMealPostCommitObservers(CharacterId id)
+    {
+        CharacterActor actor = FindActor(id);
+        // Paused or suspended living actors still own their persistent traits.
+        // Despawned/dead actors and removed restore owners do not receive live notifications.
+        return actor != null && !actor.IsDead;
+    }
+
+    public bool RecordMealConsumed(
         CharacterId characterId,
-        bool directPlayerOrder)
+        bool directPlayerOrder,
+        CharacterMealConsumedFact meal,
+        string mealResultKey,
+        out string failureReason)
     {
         CharacterActor actor = RequireActor(characterId);
-        ritualFastingCommand?.RecordMealConsumed(actor, directPlayerOrder);
+        failureReason = string.Empty;
+        if (ritualFastingCommand != null)
+            return ritualFastingCommand.RecordMealConsumed(actor, directPlayerOrder,
+                meal, mealResultKey, out failureReason);
+        if (ritualFastingQuery?.GetStatus(actor).Available == true)
+        {
+            failureReason = "ritual-fasting-command-unavailable";
+            return false;
+        }
+        return true;
     }
 
     public void RecoverHunger(CharacterId id, float amount)
@@ -691,6 +535,166 @@ public sealed class CharacterConsumablesApplicationPorts :
             subjectId,
             outcome,
             value);
+
+    public bool TryApplyMealEffects(
+        in CharacterMealEffectCommand command,
+        out CharacterConsumablesEffectEvidence evidence,
+        out string failureReason)
+    {
+#if UNITY_EDITOR
+        if (DebugRejectMealEffects?.Invoke(command) == true)
+        {
+            evidence = default;
+            failureReason = "qa-con03-meal-effects-rejected";
+            return false;
+        }
+#endif
+        CharacterActor actor = FindActor(command.CharacterId);
+        if (actor == null || actor.Stats == null)
+        {
+            evidence = default;
+            failureReason = "meal-effect-actor-missing";
+            return false;
+        }
+        EffectTransactionSnapshot before = CaptureEffectTransaction(actor);
+        try
+        {
+            RecoverHunger(command.CharacterId, command.Nutrition);
+            if (command.PolicyViolation)
+            {
+                RecordNeedNarrative(
+                    command.CharacterId,
+                    "diet:emergency-violation",
+                    command.ItemId,
+                    "survived",
+                    1f);
+            }
+            if (!Mathf.Approximately(command.Mood, 0f))
+            {
+                ApplyBestMealMood(
+                    command.CharacterId,
+                    $"Ate {command.DisplayName}",
+                    command.Mood,
+                    180f);
+            }
+            if (command.ApplyContaminationDamage)
+            {
+                ApplyContaminatedMealDamage(
+                    command.CharacterId,
+                    3f,
+                    "contaminated meal");
+            }
+            evidence = new CharacterConsumablesEffectEvidence(
+                GetSnapshotStat(before.Stats, CharacterCondition.HUNGER),
+                actor.Stats.GetConditionValue(CharacterCondition.HUNGER),
+                before.Stats.CurrentHealth,
+                actor.Stats.CurrentHealth,
+                GetSnapshotStat(before.Stats, CharacterCondition.MOOD),
+                actor.Stats.Mood);
+            failureReason = string.Empty;
+            return true;
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            RestoreEffectTransaction(actor, before);
+            evidence = default;
+            failureReason = "meal-effect-transaction-rolled-back:"
+                + exception.GetType().Name;
+            return false;
+        }
+    }
+
+    private static float GetSnapshotStat(
+        CharacterMoodDeliveryTransactionSnapshot snapshot,
+        CharacterCondition condition) =>
+        snapshot != null
+        && snapshot.Stats != null
+        && snapshot.Stats.TryGetValue(condition, out float value)
+            ? value
+            : 0f;
+
+    public bool TryApplySubstanceEffects(
+        in CharacterSubstanceEffectCommand command,
+        out string failureReason)
+    {
+        CharacterActor actor = FindActor(command.CharacterId);
+        if (actor == null || actor.Stats == null)
+        {
+            failureReason = "substance-effect-actor-missing";
+            return false;
+        }
+        EffectTransactionSnapshot before = CaptureEffectTransaction(actor);
+        try
+        {
+            if (!Mathf.Approximately(command.Mood, 0f))
+            {
+                ApplyMood(
+                    command.CharacterId,
+                    $"substance:{command.ItemId}",
+                    command.DisplayName,
+                    command.Mood,
+                    command.DurationSeconds);
+            }
+            RecordNeedNarrative(
+                command.CharacterId,
+                $"substance:{command.ItemId}",
+                command.ItemId,
+                command.Overdosed ? "overdose" : "consumed",
+                command.Tolerance);
+            if (command.Overdosed)
+            {
+                ApplyMood(
+                    command.CharacterId,
+                    $"substance:overdose:{command.ItemId}",
+                    $"{command.DisplayName} overdose",
+                    -12f,
+                    300f);
+                ApplyDamage(
+                    command.CharacterId,
+                    command.OverdoseDamage,
+                    $"{command.DisplayName} overdose");
+            }
+            failureReason = string.Empty;
+            return true;
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            RestoreEffectTransaction(actor, before);
+            failureReason = "substance-effect-transaction-rolled-back:"
+                + exception.GetType().Name;
+            return false;
+        }
+    }
+
+    private EffectTransactionSnapshot CaptureEffectTransaction(
+        CharacterActor actor) => new()
+    {
+        Stats = actor.Stats.CaptureMoodDeliveryTransactionState(),
+        Progression = actor.Progression?.CapturePersistentState(),
+        Body = bodyHealthPersistence?.Capture()
+    };
+
+    private void RestoreEffectTransaction(
+        CharacterActor actor,
+        EffectTransactionSnapshot snapshot)
+    {
+        if (snapshot.Body != null && bodyHealthPersistence != null)
+        {
+            bodyHealthPersistence.PublishRestore(
+                bodyHealthPersistence.PrepareRestore(snapshot.Body));
+        }
+        if (snapshot.Progression != null)
+        {
+            actor.Progression?.RestorePersistentState(snapshot.Progression);
+        }
+        actor.Stats.RestoreMoodDeliveryTransactionState(snapshot.Stats);
+    }
 
     public IReadOnlyList<CharacterConsumablesStackSnapshot> GetAllStacks() =>
         items.GetAllStacks()
@@ -1057,6 +1061,16 @@ public sealed class CharacterConsumablesApplicationPorts :
             "meal",
             out failureReason);
 
+    public bool TryAcknowledgeMealConsumption(
+        CharacterId characterId,
+        ConsumableItemDefinitionId itemId,
+        int quantity,
+        string commitId,
+        Vector2Int consumptionPosition,
+        out string failureReason) =>
+        TryPublishTareAndAcknowledge(characterId, itemId, quantity, commitId,
+            "meal", out failureReason, consumptionPosition);
+
     public bool TryCommitSubstanceConsumptionPending(
         ConsumableOperationId operationId,
         CharacterId characterId,
@@ -1297,7 +1311,8 @@ public sealed class CharacterConsumablesApplicationPorts :
         int quantity,
         string commitId,
         string consumerKind,
-        out string failureReason)
+        out string failureReason,
+        Vector2Int? consumptionPosition = null)
     {
         if (batchDispositions == null)
         {
@@ -1316,7 +1331,7 @@ public sealed class CharacterConsumablesApplicationPorts :
         if (tareDispositions != null)
         {
             CharacterActor actor = FindActor(characterId);
-            if (actor == null || quantity <= 0 || !itemId.IsValid)
+            if ((!consumptionPosition.HasValue && actor == null) || quantity <= 0 || !itemId.IsValid)
             {
                 failureReason = consumerKind + "-tare-output-context-invalid";
                 return false;
@@ -1326,7 +1341,7 @@ public sealed class CharacterConsumablesApplicationPorts :
                     {
                         [itemId.Value] = quantity
                     },
-                    actor.GetNowXY(),
+                    consumptionPosition ?? actor.GetNowXY(),
                     commitId,
                     out _,
                     out failureReason))
@@ -1367,12 +1382,14 @@ public sealed class CharacterConsumablesApplicationPorts :
     private static bool IsFinitePositive(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value) && value > 0f;
 
-    public void ReleaseMealQuantity(string leaseId)
+    public void ReleaseMealQuantity(ConsumableOperationId operationId)
     {
-        if (quantityReservations != null && !string.IsNullOrWhiteSpace(leaseId))
+        if (quantityReservations != null && operationId.IsValid)
         {
-            quantityReservations.Release(
-                leaseId,
+            // Restore regenerates lease IDs before the meal tick can rebind one.
+            // Cancellation must also work in that interval, using the durable owner.
+            quantityReservations.ReleaseByOwner(
+                operationId.Value,
                 ItemReservationReleaseReason.Cancelled);
         }
     }
@@ -1407,7 +1424,8 @@ public sealed class CharacterConsumablesApplicationPorts :
             consumedEvent.OperationId,
             actor,
             facility,
-            MealConsumptionResult.FromCore(consumedEvent.Result)));
+            MealConsumptionResult.FromCore(consumedEvent.Result),
+            consumedEvent.FacilityId));
     }
 
     internal static CharacterConsumablesMealDefinitionSnapshot ToMealSnapshot(
@@ -1575,15 +1593,25 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
     public CharacterDietPolicyKind GetPolicy(CharacterActor actor) =>
         runtime.GetDietPolicy(GetCharacterId(actor));
 
-    public void SetPolicy(CharacterActor actor, CharacterDietPolicyKind policy) =>
-        runtime.SetDietPolicy(GetCharacterId(actor), policy);
+    public CharacterConsumablesPolicyChangeResult SetPolicy(
+        CharacterActor actor,
+        CharacterDietPolicyKind policy) =>
+        runtime.SetDietPolicy(
+            GetCharacterId(actor),
+            policy,
+            "character-summary-ui");
 
     public CharacterMealQualityLimit GetMealQualityLimit(CharacterActor actor) =>
         runtime.GetMealQualityLimit(GetCharacterId(actor));
 
     [GameplayEntryPoint("CharacterSummaryHealthPresenter.CycleMealQualityLimit; WimMealQualityPlayModeVerifier")]
-    public void SetMealQualityLimit(CharacterActor actor, CharacterMealQualityLimit qualityLimit) =>
-        runtime.SetMealQualityLimit(GetCharacterId(actor), qualityLimit);
+    public CharacterConsumablesPolicyChangeResult SetMealQualityLimit(
+        CharacterActor actor,
+        CharacterMealQualityLimit qualityLimit) =>
+        runtime.SetMealQualityLimit(
+            GetCharacterId(actor),
+            qualityLimit,
+            "character-summary-ui");
 
     public bool IsAllowed(CharacterActor actor, ResourceItemDefinitionSO meal) =>
         meal != null && runtime.IsMealAllowed(
@@ -1679,7 +1707,7 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
         string substanceId) =>
         runtime.GetSubstancePolicy(GetCharacterId(actor), substanceId);
 
-    public void SetPolicy(
+    public CharacterConsumablesPolicyChangeResult SetPolicy(
         CharacterActor actor,
         string substanceId,
         SubstancePolicyMode mode,
@@ -1690,7 +1718,8 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
             substanceId,
             mode,
             moodThreshold,
-            scheduledHour);
+            scheduledHour,
+            "character-summary-ui");
 
     public CharacterSubstanceState GetState(
         CharacterActor actor,

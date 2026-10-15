@@ -91,7 +91,9 @@ public readonly struct StaffDiscontentOutcomeReceipt
         StaffDiscontentSnapshot before,
         StaffDiscontentSnapshot after,
         CharacterId responder = default,
-        KoreanNameSnapshot responderName = default)
+        KoreanNameSnapshot responderName = default,
+        bool moodApplied = false,
+        float resolvedMoodDelta = 0f)
     {
         if (ownerRevision <= 0L)
             throw new ArgumentOutOfRangeException(nameof(ownerRevision));
@@ -125,9 +127,18 @@ public readonly struct StaffDiscontentOutcomeReceipt
         After = after;
         Responder = responder;
         ResponderName = responderName;
+        FactDigest = new StaffRebellionResponseResolvedFact(new StaffDiscontentFactData
+        {
+            kind = StaffDiscontentFactKind.Response, revision = ownerRevision, absoluteDay = absoluteDay,
+            responseType = responseType, before = StaffDiscontentFactValues.Capture(before), after = StaffDiscontentFactValues.Capture(after),
+            responderId = responder.IsValid ? responder.Value : string.Empty,
+            responderDisplayName = responder.IsValid ? responderName.DisplayText : string.Empty,
+            moodApplied = moodApplied, resolvedMoodDelta = resolvedMoodDelta
+        }).ComputeSemanticDigest();
     }
 
     public long OwnerRevision { get; }
+    public string FactDigest { get; }
     public int AbsoluteDay { get; }
     public StaffRebellionResponseType ResponseType { get; }
     public CharacterId Staff { get; }
@@ -185,7 +196,7 @@ public sealed class StaffDiscontentOutcomeAdapter :
         subjectCount: hasResponder ? 2 : 1,
         tagCount: 3,
         anchorCount: 0,
-        provenanceCount: 1);
+        provenanceCount: 2);
 
     public override OutcomePrepareResult TryGetRequirements(
         in StaffDiscontentOutcomeReceipt receipt,
@@ -322,7 +333,8 @@ public sealed class StaffDiscontentOutcomeAdapter :
             && builder.AddTag(StaffDiscontentOutcomeIds.RelationshipTag)
             && builder.AddTag(StaffDiscontentOutcomeIds.StaffTag)
             && builder.AddTag(StaffDiscontentOutcomeIds.RebellionResponseTag)
-            && builder.AddProvenance(StaffDiscontentOutcomeIds.Source);
+            && builder.AddProvenance(StaffDiscontentOutcomeIds.Source)
+            && builder.AddProvenance(new GameplayOutcomeProvenanceReference("domain-fact-sha256", receipt.FactDigest));
 
         if (written && receipt.HasResponder)
         {
@@ -385,149 +397,6 @@ public sealed class StaffDiscontentOutcomeAdapter :
         };
 }
 
-public readonly struct ReservedStaffDiscontentOutcome
-{
-    internal ReservedStaffDiscontentOutcome(
-        PreparedOutcomeReservation reservation,
-        GameplayResultKey resultKey)
-    {
-        Reservation = reservation;
-        ResultKey = resultKey;
-    }
-
-    internal PreparedOutcomeReservation Reservation { get; }
-    public GameplayResultKey ResultKey { get; }
-    public bool IsValid => Reservation.IsValid && ResultKey.IsValid;
-}
-
-public interface IStaffDiscontentOutcomeCommitter
-{
-    bool TryReserve(
-        long ownerRevision,
-        int absoluteDay,
-        bool hasResponder,
-        out ReservedStaffDiscontentOutcome reserved,
-        out string failureReason);
-    bool TryWrite(
-        in StaffDiscontentOutcomeReceipt receipt,
-        in ReservedStaffDiscontentOutcome reserved,
-        out PreparedOwnerOutcome prepared,
-        out string failureReason);
-    OwnerOutcomeCommitResult Commit(
-        in PreparedOwnerOutcome prepared,
-        long expectedOwnerRevision);
-    OwnerOutcomeCommitResult Reconcile(GameplayResultKey resultKey);
-    void Cancel(in ReservedStaffDiscontentOutcome reserved);
-    void Cancel(in PreparedOwnerOutcome prepared);
-}
-
-public sealed class StaffDiscontentGameplayOutcomeBridge :
-    IStaffDiscontentOutcomeCommitter
-{
-    private readonly IGameplayOutcomeRecorder recorder;
-    private readonly GameplayOutcomeLedger ledger;
-    private readonly PreparedOutcomeOwnerTransaction transactions;
-
-    public StaffDiscontentGameplayOutcomeBridge(
-        IGameplayOutcomeRecorder recorder,
-        GameplayOutcomeLedger ledger,
-        IGameplayOutcomeDiagnosticsQuery diagnostics)
-    {
-        this.recorder = recorder ?? throw new ArgumentNullException(nameof(recorder));
-        this.ledger = ledger ?? throw new ArgumentNullException(nameof(ledger));
-        transactions = new PreparedOutcomeOwnerTransaction(
-            recorder,
-            diagnostics ?? throw new ArgumentNullException(nameof(diagnostics)));
-    }
-
-    public bool TryReserve(
-        long ownerRevision,
-        int absoluteDay,
-        bool hasResponder,
-        out ReservedStaffDiscontentOutcome reserved,
-        out string failureReason)
-    {
-        reserved = default;
-        GameplayResultKey key;
-        try
-        {
-            key = StaffDiscontentOutcomeIds.ResultKey(ownerRevision);
-        }
-        catch (Exception exception) when (IsCaptureException(exception))
-        {
-            failureReason = "staff-response-result-key-invalid:"
-                + exception.Message;
-            return false;
-        }
-        OutcomePrepareResult result = recorder.TryReserve(
-            StaffDiscontentOutcomeAdapter.CreateRequirements(
-                key,
-                ownerRevision,
-                absoluteDay,
-                hasResponder,
-                ledger.CurrentWorldEpoch),
-            out PreparedOutcomeReservation reservation);
-        if (!result.Success)
-        {
-            failureReason = "staff-response-reserve-" + result.Code
-                + ":" + result.DetailCode;
-            return false;
-        }
-        reserved = new ReservedStaffDiscontentOutcome(reservation, key);
-        failureReason = string.Empty;
-        return true;
-    }
-
-    public bool TryWrite(
-        in StaffDiscontentOutcomeReceipt receipt,
-        in ReservedStaffDiscontentOutcome reserved,
-        out PreparedOwnerOutcome prepared,
-        out string failureReason)
-    {
-        prepared = default;
-        if (!reserved.IsValid || reserved.ResultKey != receipt.ResultKey)
-        {
-            failureReason = "staff-response-reservation-mismatch";
-            return false;
-        }
-        OutcomePrepareResult result = recorder.TryWriteReserved(
-            receipt,
-            reserved.Reservation,
-            out PreparedOutcomeToken token);
-        if (!result.Success)
-        {
-            recorder.CancelReservation(reserved.Reservation);
-            failureReason = "staff-response-write-" + result.Code
-                + ":" + result.DetailCode;
-            return false;
-        }
-        prepared = new PreparedOwnerOutcome(token);
-        failureReason = string.Empty;
-        return true;
-    }
-
-    public OwnerOutcomeCommitResult Commit(
-        in PreparedOwnerOutcome prepared,
-        long expectedOwnerRevision) =>
-        transactions.Commit(prepared, expectedOwnerRevision);
-
-    public OwnerOutcomeCommitResult Reconcile(GameplayResultKey resultKey) =>
-        transactions.Reconcile(resultKey);
-
-    public void Cancel(in ReservedStaffDiscontentOutcome reserved)
-    {
-        if (reserved.Reservation.IsValid)
-            recorder.CancelReservation(reserved.Reservation);
-    }
-
-    public void Cancel(in PreparedOwnerOutcome prepared) =>
-        transactions.Cancel(prepared);
-
-    private static bool IsCaptureException(Exception exception) =>
-        exception is ArgumentException
-            or InvalidOperationException
-            or OverflowException;
-}
 
 internal sealed class StaffDiscontentOutcomeMemoryPolicy : IOutcomeMemoryPolicy
 {
@@ -775,7 +644,7 @@ public sealed class StaffDiscontentOutcomeDescriptor :
         && outcome.SubjectCount == outcome.ParticipantCount
         && outcome.TagCount == 3
         && outcome.AnchorCount == 0
-        && outcome.ProvenanceCount == 1
+        && outcome.ProvenanceCount == 2
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject(
                 "staff-response-shape-invalid");

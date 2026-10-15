@@ -173,6 +173,7 @@ public sealed class ResourceGatheringWorkExecutionHandler :
                         resourceNode,
                         context.WorkTypeId,
                         delta,
+                        context.Actor?.Identity?.PersistentId,
                         out bool cycleCompleted);
                     progressApplied &= succeeded;
                     completed |= cycleCompleted;
@@ -208,8 +209,41 @@ public sealed class ResourceGatheringWorkExecutionHandler :
                     completed |= cycleCompleted;
                     return succeeded;
                 });
+            if (context.WorkTypeId == BuiltInWorkTypeIds.Harvest
+                && progressApplied && !completed
+                && cropWork.HarvestOperationSequence >= 0)
+            {
+                // Approved work can finish before output/child/identity delivery.
+                // The domain tick owns that pending commit. Do not add work, emit
+                // a generic failure, or infer success merely from unavailability.
+                while (cropPlots.TryGetWork(context.Target, context.WorkTypeId,
+                        out CropPlotWorkSnapshot current)
+                    && current.PlotId == cropWork.PlotId)
+                {
+                    if ((long)current.HarvestOperationSequence
+                        == (long)cropWork.HarvestOperationSequence + 1L)
+                    {
+                        completed = true;
+                        break;
+                    }
+                    if (current.HarvestOperationSequence != cropWork.HarvestOperationSequence
+                        || !current.HarvestCompletionPending || !context.CanContinue)
+                        break;
+                    yield return null;
+                }
+            }
             result.CompletedSuccessfully = progressApplied && completed;
             result.CompletionEffectsAlreadyApplied = completed;
+            if (context.WorkTypeId == BuiltInWorkTypeIds.Harvest
+                && completed
+                && CharacterPersistentIdentity.TryGet(
+                    context.Actor,
+                    out _))
+            {
+                // CropPlotRuntime only completes the cycle after its own
+                // durable completion delivery and crop outcome are applied.
+                result.CompletionIdentityAlreadyPublished = true;
+            }
             yield break;
         }
 

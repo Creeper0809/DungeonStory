@@ -58,6 +58,7 @@ public enum FailureCode
 
     // Environment field, evacuation, and protective workwear commands.
     EnvironmentThermostatUnsupported,
+    EnvironmentOutcomeUnavailable,
     EnvironmentEvacuationContextInvalid,
     EnvironmentEvacuationCellUnavailable,
     EnvironmentWorkwearCharacterMissing,

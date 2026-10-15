@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -21,11 +23,59 @@ public static class RunInvasionDurableEquipmentDebugScenarios
     public static void RunAll()
     {
         DurableFacilityEquipmentUseRuntimeDebugScenarios.RunAll();
+        DurableFacilityEquipmentSlotRuntimeDebugScenarios.RunAll();
         DurableFacilityEquipmentSaveDebugScenarios.RunAll();
         VerifyExactPoliciesAndAuthoredMass();
         VerifyAdministrativeResolutionTransaction();
         VerifySignalHornRallyTransaction();
         VerifyLostOwnersCloseBothSlots();
+    }
+
+    public static void RunG11FromBatch()
+    {
+        string reportPath = RequireG11ReportPath();
+        try
+        {
+            RunAll();
+            ReproductionDurableEquipmentDebugScenarios.RunAll();
+            ClimateDurableEquipmentDebugScenarios.RunAll();
+            ReproductionProcessTransitionDebugScenarios
+                .RunG11DurablePlanEvidence();
+            WriteG11Report(
+                reportPath,
+                new G11Report
+                {
+                    passed = true,
+                    commonCommittedContext = true,
+                    wearSeparatedFromConsumption = true,
+                    effectFailureRollback = true,
+                    administrationOwnerResult = true,
+                    signalOwnerResult = true,
+                    reproductionOwnerResult = true,
+                    climatePairOwnerResult = true,
+                    secondToolFailureRollback = true,
+                    drainSaveRestoreResume = true
+                });
+            Debug.Log(
+                "[AuditRemediation][G11] PASS owners=administration,reproduction,signal,climate; drain-resume=1");
+        }
+        catch (Exception exception)
+        {
+            if (!File.Exists(reportPath))
+            {
+                WriteG11Report(
+                    reportPath,
+                    new G11Report
+                    {
+                        passed = false,
+                        failure = exception.GetType().Name
+                            + ": "
+                            + exception.Message
+                    });
+            }
+            Debug.LogException(exception);
+            throw;
+        }
     }
 
     private static void VerifyExactPoliciesAndAuthoredMass()
@@ -61,18 +111,27 @@ public static class RunInvasionDurableEquipmentDebugScenarios
             slots,
             use);
         int commits = 0;
+        DurableFacilityEquipmentUseContext observed = null;
+        DurableFacilityEquipmentUseEvidence evidence = null;
         Require(runtime.TryCommitResolution(
                 OfficeId,
                 new Vector2Int(11, 4),
-                () =>
+                context =>
                 {
+                    observed = context;
+                    evidence = new DurableFacilityEquipmentUseEvidence(context);
                     commits++;
                     return true;
                 },
+                out DurableFacilityEquipmentUseResult useResult,
                 out string failure)
             && commits == 1
+            && ReferenceEquals(observed, useResult.CommittedContext)
+            && observed.Before.ItemId.Equals(
+                (ItemDefinitionId)DurableToolItemRules.AdministrativeSeal)
             && failure.Length == 0,
-            "Administrative seal resolution did not commit exactly once.");
+            "Administrative seal resolution did not return its exact wear context.");
+        VerifyEncodedOwnerResult(evidence, DurableToolItemRules.AdministrativeSeal);
         VerifyLastAssignment(
             slots,
             RunAdministrativeSealDurableEquipmentPolicySource.LogicalOwnerDomain,
@@ -106,18 +165,27 @@ public static class RunInvasionDurableEquipmentDebugScenarios
         Require(runtime.TryEnsureReady(SignalPostId, position, out _),
             "Signal-horn supply did not become ready.");
         int commits = 0;
+        DurableFacilityEquipmentUseContext observed = null;
+        DurableFacilityEquipmentUseEvidence evidence = null;
         Require(runtime.TryCommitRally(
                 SignalPostId,
                 position,
-                () =>
+                context =>
                 {
+                    observed = context;
+                    evidence = new DurableFacilityEquipmentUseEvidence(context);
                     commits++;
                     return true;
                 },
+                out DurableFacilityEquipmentUseResult useResult,
                 out string failure)
             && commits == 1
+            && ReferenceEquals(observed, useResult.CommittedContext)
+            && observed.Before.ItemId.Equals(
+                (ItemDefinitionId)DurableToolItemRules.WatchSignalHorn)
             && failure.Length == 0,
-            "Signal-horn rally did not commit exactly once.");
+            "Signal-horn rally did not return its exact wear context.");
+        VerifyEncodedOwnerResult(evidence, DurableToolItemRules.WatchSignalHorn);
         VerifyLastAssignment(
             slots,
             InvasionSignalHornDurableEquipmentPolicySource.LogicalOwnerDomain,
@@ -225,6 +293,96 @@ public static class RunInvasionDurableEquipmentDebugScenarios
             && assignment.Requirements[0].ItemId.Equals((ItemDefinitionId)itemId)
             && assignment.Requirements[0].RequiredQuantity == 1,
             "Event-tool assignment lost exact facility/item/quantity identity.");
+    }
+
+    private static void VerifyEncodedOwnerResult(
+        DurableFacilityEquipmentUseEvidence evidence,
+        string expectedItemId)
+    {
+        var operation = new MigratedProducerOutcomeSubject(
+            MigratedProducerOutcomeIds.OperationKind,
+            "operation:g11-owner-result",
+            "operation:g11-owner-result",
+            MigratedProducerOutcomeIds.OperationRole);
+        MigratedProducerOutcomeDetails encoded =
+            DurableFacilityEquipmentOutcomeEncoding.Append(
+                new MigratedProducerOutcomeDetails(
+                    new[] { operation },
+                    Array.Empty<GameplayOutcomeMetric>(),
+                    Array.Empty<GameplayOutcomeFact>(),
+                    "G11 durable owner result"),
+                evidence);
+        Require(encoded.Subjects.Length == 2
+            && encoded.Subjects[1].EntityId.Kind.Equals(
+                MigratedProducerOutcomeIds.ItemStackKind)
+            && encoded.Subjects[1].Role.Equals(
+                MigratedProducerOutcomeIds.EquipmentRole)
+            && encoded.Facts.Any(value => value.FactId.Equals(
+                    MigratedProducerOutcomeIds.EquipmentDefinitionFact)
+                && string.Equals(
+                    value.Value,
+                    expectedItemId,
+                    StringComparison.Ordinal))
+            && encoded.Facts.Any(value => value.FactId.Equals(
+                    MigratedProducerOutcomeIds.DetailFact)
+                && value.Value.StartsWith(
+                    "semantics=wear;item=" + expectedItemId,
+                    StringComparison.Ordinal)
+                && value.Value.Contains(
+                    ";quantity=1->1;",
+                    StringComparison.Ordinal)),
+            "A durable owner result lost exact wear evidence: "
+            + expectedItemId);
+    }
+
+    private static string RequireG11ReportPath()
+    {
+        string output = Environment.GetEnvironmentVariable(
+            "DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            throw new InvalidOperationException(
+                "G11 verification requires its isolated output directory.");
+        }
+        string directory = Path.GetFullPath(output);
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "report.json");
+        if (File.Exists(path))
+            throw new InvalidOperationException("G11 report already exists: " + path);
+        return path;
+    }
+
+    private static void WriteG11Report(string path, G11Report report)
+    {
+        using FileStream stream = new(
+            path,
+            FileMode.CreateNew,
+            FileAccess.Write,
+            FileShare.None);
+        using StreamWriter writer = new(
+            stream,
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.Write(JsonUtility.ToJson(report, prettyPrint: true));
+    }
+
+    [Serializable]
+    private sealed class G11Report
+    {
+        public string rowId = "G11";
+        public bool passed;
+        public string failure = string.Empty;
+        public bool commonCommittedContext;
+        public bool wearSeparatedFromConsumption;
+        public bool effectFailureRollback;
+        public bool administrationOwnerResult;
+        public bool signalOwnerResult;
+        public bool reproductionOwnerResult;
+        public bool climatePairOwnerResult;
+        public bool secondToolFailureRollback;
+        public bool drainSaveRestoreResume;
+        public bool fullAuditExecuted;
+        public bool humanApprovalRecorded;
+        public bool trainingExecuted;
     }
 
     private static void Require(bool condition, string message)
@@ -353,7 +511,7 @@ public static class RunInvasionDurableEquipmentDebugScenarios
                 1L,
                 requirement.ItemId,
                 1,
-                Array.Empty<DurableFacilityEquipmentComponentSnapshot>());
+                new[] { Durability(10d, 10d) });
             if (!effect.TryPreflight(
                     slot,
                     requirement,
@@ -368,15 +526,14 @@ public static class RunInvasionDurableEquipmentDebugScenarios
                 2L,
                 requirement.ItemId,
                 1,
-                Array.Empty<DurableFacilityEquipmentComponentSnapshot>());
-            if (!effect.TryCommit(
-                    new DurableFacilityEquipmentUseContext(
-                        slot,
-                        requirement,
-                        before,
-                        after,
-                        wearAmount),
-                    out failure))
+                new[] { Durability(10d - wearAmount, 10d) });
+            DurableFacilityEquipmentUseContext context = new(
+                slot,
+                requirement,
+                before,
+                after,
+                wearAmount);
+            if (!effect.TryCommit(context, out failure))
             {
                 return Failure(slot, failure);
             }
@@ -384,7 +541,8 @@ public static class RunInvasionDurableEquipmentDebugScenarios
                 DurableFacilityEquipmentUseStatus.Applied,
                 slot,
                 before.StackId,
-                string.Empty);
+                string.Empty,
+                committedContext: context);
         }
 
         private static DurableFacilityEquipmentUseResult Failure(
@@ -394,5 +552,28 @@ public static class RunInvasionDurableEquipmentDebugScenarios
             slot,
             string.Empty,
             reason);
+
+        private static DurableFacilityEquipmentComponentSnapshot Durability(
+            double current,
+            double maximum) => new(
+            ItemInstanceComponentIds.Durability,
+            1,
+            new[]
+            {
+                new DurableFacilityEquipmentComponentValueSnapshot(
+                    "current",
+                    ItemStateValueKind.Decimal,
+                    string.Empty,
+                    0L,
+                    current,
+                    false),
+                new DurableFacilityEquipmentComponentValueSnapshot(
+                    "maximum",
+                    ItemStateValueKind.Decimal,
+                    string.Empty,
+                    0L,
+                    maximum,
+                    false)
+            });
     }
 }

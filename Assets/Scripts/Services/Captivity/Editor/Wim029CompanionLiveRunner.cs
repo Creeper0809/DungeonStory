@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DungeonStory.Foundation;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,22 +16,48 @@ using static UnityEngine.Object;
 // preparation; actual UI, autonomous follower and current save registry are observed.
 public sealed class Wim029CompanionLiveRunner
 {
-    public const string ReportPath = "Artifacts/QA/wim-implementation/wim-029-companion-live-verified.txt";
+    private const string DefaultReportPath =
+        "Artifacts/QA/wim-implementation/wim-029-companion-live-verified.txt";
+    public const string E11ReportPathEnvironmentVariable =
+        "DUNGEONSTORY_U0_E11_ROLE_REPORT_PATH";
+    public static string ReportPath
+    {
+        get
+        {
+            string configured = Environment.GetEnvironmentVariable(
+                E11ReportPathEnvironmentVariable);
+            return string.IsNullOrWhiteSpace(configured)
+                ? DefaultReportPath
+                : configured;
+        }
+    }
     public const string CombatReportPath = "Artifacts/QA/wim-implementation/wim-029-companion-combat-live.txt";
     public const string CareReportPath = "Artifacts/QA/wim-implementation/wim-029-companion-care-live.txt";
-    public const string HaulReportPath = "Artifacts/QA/wim-implementation/wim-029-animal-haul-live.txt";
+    private const string DefaultHaulReportPath = "Artifacts/QA/wim-implementation/wim-029-animal-haul-live.txt";
+    public static string HaulReportPath => string.IsNullOrWhiteSpace(
+        Environment.GetEnvironmentVariable(E11ReportPathEnvironmentVariable))
+        ? DefaultHaulReportPath
+        : Path.GetFullPath(Environment.GetEnvironmentVariable(E11ReportPathEnvironmentVariable).Trim());
+    internal static bool IsE11CreateOnly => !string.IsNullOrWhiteSpace(
+        Environment.GetEnvironmentVariable(E11ReportPathEnvironmentVariable));
     private static bool running;
     private bool combatOnly;
     private bool careOnly;
     private bool haulOnly;
     private string OutputPath => haulOnly ? HaulReportPath : combatOnly ? CombatReportPath : careOnly ? CareReportPath : ReportPath;
     private readonly List<string> lines = new();
+    private readonly JArray e11Observations = new();
+    private string e11PetId;
     private DungeonRuntimeLifetimeScope scope;
     private IGameClock clock;
     private IGameTimeScaleController timeScale;
     private ICharacterAiWorldRegistry world;
     private IWildlifeCaptureRuntime capture;
     private IWildlifeCompanionRoleQuery roles;
+    private ICircusPersistence circus;
+    private GameplayOutcomeLedger outcomeLedger;
+    private LocalLlmRequestQueue deferredNarrativeQueue;
+    private bool backgroundNarrativeDeferralConfigured;
     private WildlifeRuntime wildlife;
     private WildlifeActor pet;
     private CharacterActor owner;
@@ -44,6 +71,73 @@ public sealed class Wim029CompanionLiveRunner
     public static string StartCombat() => Start(true);
     public static string StartCare() => Start(false, true);
     public static string StartHaul() => Start(false, false, true);
+
+    public static void RunRecoveryClockPrecisionBatch()
+    {
+        Require(Application.isBatchMode && !Application.isPlaying,
+            "Recovery-clock precision diagnostic requires isolated EditMode batch.");
+        string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        Require(!string.IsNullOrWhiteSpace(output) && Path.IsPathFullyQualified(output),
+            "Recovery-clock precision diagnostic requires an explicit absolute output.");
+        output = Path.GetFullPath(output);
+        string qaRoot = Path.GetFullPath(Path.Combine(
+            Directory.GetParent(Application.dataPath).FullName, "Artifacts", "QA"))
+            + Path.DirectorySeparatorChar;
+        Require(output.StartsWith(qaRoot, StringComparison.OrdinalIgnoreCase),
+            "Recovery-clock diagnostic output must stay inside project QA.");
+        var cases = new JArray();
+        int unityReaderChanged = 0;
+        int exactReaderChanged = 0;
+        int observerChanged = 0;
+        foreach (long bits in new[]
+                 { 0x4036D3E808000000L, 0x4036D3E807FFFFFFL, 0x4036D3E808000001L })
+        {
+            var payload = new DungeonPhysicalItemSaveData
+            {
+                stacks = new List<WorldItemStackSaveData>
+                {
+                    new() { stackId = "precision-probe", recoveryDeadlineGameTime =
+                        BitConverter.Int64BitsToDouble(bits) }
+                }
+            };
+            string json = JsonUtility.ToJson(payload);
+            var unityRead = JsonUtility.FromJson<DungeonPhysicalItemSaveData>(json);
+            var exactRead = DungeonSaveJson.Deserialize<DungeonPhysicalItemSaveData>(json);
+            long unityBits = BitConverter.DoubleToInt64Bits(unityRead.stacks[0].recoveryDeadlineGameTime);
+            long exactBits = BitConverter.DoubleToInt64Bits(exactRead.stacks[0].recoveryDeadlineGameTime);
+            long observerBits = BitConverter.DoubleToInt64Bits(
+                JObject.Parse(json)["stacks"][0]["recoveryDeadlineGameTime"].Value<double>());
+            if (unityBits != bits) unityReaderChanged++;
+            if (exactBits != bits) exactReaderChanged++;
+            if (observerBits != bits) observerChanged++;
+            cases.Add(new JObject
+            {
+                ["inputBits"] = bits.ToString("X16"), ["sectionPayloadJson"] = json,
+                ["unityReaderBits"] = unityBits.ToString("X16"),
+                ["existingExactReaderBits"] = exactBits.ToString("X16"),
+                ["observerBits"] = observerBits.ToString("X16")
+            });
+        }
+        var report = new JObject
+        {
+            ["status"] = unityReaderChanged > 0
+                ? "NATIVE_PRECISION_DIAGNOSTIC_REPRODUCED" : "NATIVE_PRECISION_NOT_REPRODUCED",
+            ["unityReaderChanged"] = unityReaderChanged,
+            ["existingExactReaderChanged"] = exactReaderChanged,
+            ["observerChanged"] = observerChanged, ["cases"] = cases,
+            ["productionSerializerExpressionExecuted"] = true,
+            ["legacyUnityReaderIsNegativeControl"] = true,
+            ["currentPhysicalReader"] = "DungeonSaveJson.Deserialize",
+            ["productionOwnerExecuted"] = false, ["gameplayPassClaimed"] = false,
+            ["trainingEligible"] = false, ["arbitraryToleranceAdded"] = false
+        };
+        string path = Path.Combine(output, "unity-evidence", "recovery-clock-precision.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
+        using (var writer = new StreamWriter(stream)) writer.Write(report.ToString());
+        Require(cases.Count == 3 && exactReaderChanged == 0,
+            "Existing exact save reader changed recovery-clock bits; inspect the diagnostic report.");
+    }
 
     private static string Start(bool combatOnly, bool careOnly = false, bool haulOnly = false)
     {
@@ -59,8 +153,22 @@ public sealed class Wim029CompanionLiveRunner
         host.isPause = true;
         scope.Container.Resolve<IGameTimeScaleController>().Scale = 0;
         var runner = new Wim029CompanionLiveRunner { combatOnly = combatOnly, careOnly = careOnly, haulOnly = haulOnly };
+        if (IsE11CreateOnly && !combatOnly && !careOnly)
+        {
+            Require(Application.isBatchMode && DungeonPersistencePaths.IsIsolatedVerification,
+                "E11 roles require the isolated batch.");
+            Require(!File.Exists(runner.OutputPath)
+                && !File.Exists(Path.ChangeExtension(runner.OutputPath, ".raw.json")),
+                "E11 role artifacts are create-only.");
+        }
         Directory.CreateDirectory(Path.GetDirectoryName(runner.OutputPath));
-        File.WriteAllText(runner.OutputPath, "result=RUNNING\n");
+        if (IsE11CreateOnly && !combatOnly && !careOnly)
+        {
+            using var stream = new FileStream(runner.OutputPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            using var writer = new StreamWriter(stream);
+            writer.Write("result=RUNNING\n");
+        }
+        else File.WriteAllText(runner.OutputPath, "result=RUNNING\n");
         running = true;
         try { host.StartCoroutine(runner.Observe()); }
         catch { running = false; throw; }
@@ -85,6 +193,23 @@ public sealed class Wim029CompanionLiveRunner
         finally
         {
             Pause();
+            if (IsE11CreateOnly && !combatOnly && !careOnly)
+                try
+                {
+                    Require(scope != null && scope.Container != null
+                        && deferredNarrativeQueue != null
+                        && object.ReferenceEquals(deferredNarrativeQueue,
+                            scope.Container.Resolve<ILocalLlmRuntimeProvider>().GetRequiredRuntime())
+                        && deferredNarrativeQueue.RunningCount == 0
+                        && !deferredNarrativeQueue.IsBundledModelStarting
+                        && !deferredNarrativeQueue.IsBundledModelRunning
+                        && !deferredNarrativeQueue.HasConfiguredEndpoint,
+                        "BACKGROUND_LLM_DEFERRED_THROUGH_RUN failed.");
+                    lines.Add($"backgroundLlmDeferredThroughRun=PASS;queued={deferredNarrativeQueue.QueuedCount};running=0;"
+                        + "no-native-host-or-endpoint;test-never-clears-or-supplies-responses;trainingEligible=false");
+                }
+                catch (Exception error)
+                { failure = failure == null ? error : new AggregateException(failure, error); }
             if (originalEnvironment != null)
                 try { environment.Restore(environment.PrepareRestore(originalEnvironment)); }
                 catch (Exception error) { failure = failure == null ? error : new AggregateException(failure, error); }
@@ -100,6 +225,29 @@ public sealed class Wim029CompanionLiveRunner
             : "scope=controlled authored initial pen/domestic birth, healthy staff and safe field; actual EventSystem owner assignment/change/clear, autonomous follow/return, current whole registry restore. Not natural capture/birth/construction, reciprocal combat, animal haul, daily balance or six-adult certification.");
         lines.Add("cleanup=paused disposable main Play, operator stops; disk persistence disabled before owner UI; original environment restored");
         File.WriteAllLines(OutputPath, lines);
+        if (IsE11CreateOnly && !combatOnly && !careOnly)
+        {
+            var raw = new JObject
+            {
+                ["schemaVersion"] = 1,
+                ["mode"] = haulOnly ? "haul" : "companion",
+                ["passed"] = failure == null,
+                ["failure"] = failure?.ToString(),
+                ["trainingEligible"] = false,
+                ["backgroundNarrativeDeferralConfigured"] = backgroundNarrativeDeferralConfigured,
+                ["naturalGameplay"] = false,
+                ["entryPath"] = "actual WildlifeInfoPanel commands; observations prove executed stages",
+                ["restoreBoundary"] = "same-process registered save restore; observations prove executed stages",
+                ["coldProcessRestore"] = false,
+                ["fixtureScope"] = "authored pen/domestic birth/healthy staff/safe field; haul ore and lethal interruption are controlled preparation",
+                ["observations"] = e11Observations,
+                ["checks"] = new JArray(lines)
+            };
+            using var stream = new FileStream(Path.ChangeExtension(OutputPath, ".raw.json"),
+                FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            using var writer = new StreamWriter(stream);
+            writer.Write(raw.ToString());
+        }
         Debug.Log("WIM029 companion witness " + (failure == null ? "PASS" : "FAIL: " + failure.Message));
         running = false;
     }
@@ -107,22 +255,51 @@ public sealed class Wim029CompanionLiveRunner
     private IEnumerator Run()
     {
         scope = FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
+        if (IsE11CreateOnly && !combatOnly && !careOnly)
+        {
+            Require(Application.isBatchMode && DungeonPersistencePaths.IsIsolatedVerification
+                && Environment.GetEnvironmentVariable(
+                    CaptivityWildlifeLifecyclePlayModeVerifier.LiveNarrativeCaptureVariable) == "1",
+                "BACKGROUND_LLM_DEFERRAL_PREPARATION requires the explicit pre-Play capture mode.");
+            deferredNarrativeQueue = scope.Container.Resolve<ILocalLlmRuntimeProvider>()
+                .GetRequiredRuntime() as LocalLlmRequestQueue;
+            Require(deferredNarrativeQueue != null && deferredNarrativeQueue.RunningCount == 0
+                && !deferredNarrativeQueue.IsBundledModelStarting
+                && !deferredNarrativeQueue.IsBundledModelRunning
+                && !deferredNarrativeQueue.HasConfiguredEndpoint
+                && deferredNarrativeQueue.CaptureReadiness().State == LocalLlmRuntimeReadinessState.Starting,
+                "BACKGROUND_LLM_DEFERRAL_PREPARATION native host/endpoint or readiness mismatch.");
+            int queuedBefore = deferredNarrativeQueue.QueuedCount;
+            deferredNarrativeQueue.ConfigureIsolatedRequestCapture(request =>
+                Require(false, "BACKGROUND_LLM_UNEXPECTED_DISPATCH: background requests must remain queued."));
+            deferredNarrativeQueue.ConfigureIsolatedAutomaticDispatch(false);
+            Require(deferredNarrativeQueue.QueuedCount == queuedBefore
+                && deferredNarrativeQueue.CaptureReadiness().State == LocalLlmRuntimeReadinessState.Ready,
+                "BACKGROUND_LLM_REQUESTS_RETAINED readiness/count mismatch.");
+            backgroundNarrativeDeferralConfigured = true;
+            lines.Add($"backgroundLlmPreparation=PASS;queued={queuedBefore}->{deferredNarrativeQueue.QueuedCount};"
+                + "clear=false;abort=false;response-provider=false;trainingEligible=false");
+        }
         clock = scope.Container.Resolve<IGameClock>();
         timeScale = scope.Container.Resolve<IGameTimeScaleController>();
         world = scope.Container.Resolve<ICharacterAiWorldRegistry>();
         capture = scope.Container.Resolve<IWildlifeCaptureRuntime>();
         roles = scope.Container.Resolve<IWildlifeCompanionRoleQuery>();
+        circus = scope.Container.Resolve<ICircusPersistence>();
+        outcomeLedger = scope.Container.Resolve<GameplayOutcomeLedger>();
         wildlife = scope.Container.Resolve<WildlifeRuntime>();
         var runOwner = FindFirstObjectByType<OwnerRunManager>();
         Require(runOwner != null, "Owner preparation missing.");
         if (runOwner.CurrentOwnerActor == null)
         {
-            Require(scope.Container.Resolve<IDungeonSpaceExpansionCommand>().TryReconcileNewRunTierZero(
-                out var expansion, out string reason) && expansion.CurrentInteriorColumns == 29, "TierZero: " + reason);
-            Click("OwnerOption_1001");
-            yield return StartPartyPlayModeTestDriver.CompleteIfVisible(30f);
+            lines.Add("startPartyPreparation="
+                + StartPartyPreparationPlayModeVerifier
+                    .RunFastCommitForDebug());
+            for (int frame = 0; frame < 8; frame++)
+                yield return null;
             Pause();
-            Require(runOwner.CurrentOwnerActor != null, "Actual owner UI did not publish party.");
+            Require(runOwner.CurrentOwnerActor != null,
+                "Controlled start-party preparation did not publish an owner.");
         }
         Require(scope.Container.Resolve<IGridSystemProvider>().TryGetGrid(out grid), "Main grid missing.");
         foreach (var actor in world.Characters.Where(x => x != null)) actor.SetAiPaused(true);
@@ -169,6 +346,8 @@ public sealed class Wim029CompanionLiveRunner
             + "; penCell=" + birthCell + "; hp=" + pet.CurrentHealth + "; actual owner alternatives=" + eligible.Length
             + "; hunger=" + pet.Hunger + "; thirst=" + pet.Thirst);
         Require(pet.Hunger < 0.45f && pet.Thirst < 0.45f, "Domestic fixture already needs care, cannot isolate follow.");
+        e11PetId = pet.WildlifeId;
+        ObserveE11("prepared");
 
         if (haulOnly)
         {
@@ -176,6 +355,9 @@ public sealed class Wim029CompanionLiveRunner
             yield break;
         }
 
+        int initialAssignmentBefore = CountWildlifeOutcome(
+            "companion-assigned",
+            pet.WildlifeId);
         scope.Container.Resolve<IGameEventBus>().ShowInfo(pet);
         yield return null;
         Click("Action_6");
@@ -183,7 +365,17 @@ public sealed class Wim029CompanionLiveRunner
         Click("Owner_0");
         Require(roles.TryGetCompanion(pet.WildlifeId, out var assigned)
             && assigned.OwnerId.Value == owner.Identity.PersistentId, "Actual UI owner0 not committed.");
-        lines.Add("PASS ownerUI=" + assigned.OwnerId.Value);
+        int initialAssignmentAfter = CountWildlifeOutcome(
+            "companion-assigned",
+            pet.WildlifeId);
+        ObserveE11("companion-assigned");
+        Require(initialAssignmentAfter == initialAssignmentBefore + 1
+            && circus.Capture().wildlifeGameplayOutcomes.Count == 0,
+            "Initial companion assignment parent result was not acknowledged exactly once.");
+        lines.Add("PASS ownerUI=" + assigned.OwnerId.Value
+            + "; parentEvent=companion-assigned; ledgerDelta="
+            + (initialAssignmentAfter - initialAssignmentBefore)
+            + "; pending=0");
         FindFirstObjectByType<WildlifeInfoPanel>().OnClose();
         if (combatOnly)
         {
@@ -228,15 +420,19 @@ public sealed class Wim029CompanionLiveRunner
 
         // Real whole-world current-format round trip, then a malformed owner
         // through the same registry so required section candidates are prepared.
-        var circus = scope.Container.Resolve<ICircusPersistence>();
         var registry = scope.Container.Resolve<IDungeonSaveSectionRegistry>();
         string petId = pet.WildlifeId;
         string ownerId = owner.Identity.PersistentId;
         string exactRole = JsonUtility.ToJson(circus.Capture().capturedWildlife.Single(x => x.wildlifeId == petId).capabilityState);
+        string exactLedger = E11LedgerIdentity();
+        ObserveE11("companion-before-restore");
         var restoreReport = new DungeonGameRestoreReport();
         Require(registry.RestoreAll(registry.CaptureAll(), restoreReport), "Whole current restore: " + string.Join(" | ", restoreReport.Errors));
         pet = wildlife.Wildlife.Single(x => x.WildlifeId == petId);
         owner = world.Characters.Single(x => x.Identity.PersistentId == ownerId);
+        ObserveE11("companion-after-restore");
+        Require(E11LedgerIdentity() == exactLedger,
+            "Companion restore changed published result identity, payload or hash.");
         Require(roles.TryGetCompanion(petId, out var restored) && restored.OwnerId.Value == ownerId
             && JsonUtility.ToJson(circus.Capture().capturedWildlife.Single(x => x.wildlifeId == petId).capabilityState) == exactRole,
             "Companion owner/cooldown/envelope changed across paused whole restore.");
@@ -254,6 +450,9 @@ public sealed class Wim029CompanionLiveRunner
         string rejection = string.Join(" | ", rejectionReport.Errors);
         pet = wildlife.Wildlife.Single(x => x.WildlifeId == petId);
         owner = world.Characters.Single(x => x.Identity.PersistentId == ownerId);
+        ObserveE11("companion-invalid-owner-restore-rejected");
+        Require(E11LedgerIdentity() == exactLedger,
+            "Rejected companion restore changed the published ledger.");
         Require(rejected && rejection.Contains("ineligible companion owner 'character:staff:wim-missing'")
             && JsonUtility.ToJson(circus.Capture()) == beforeRejectedRestore
             && pet.GridPosition == beforeRejectedCell && pet.CurrentHealth == beforeRejectedHealth
@@ -262,20 +461,44 @@ public sealed class Wim029CompanionLiveRunner
         lines.Add("expectedInvalidOwner=" + rejection);
         lines.Add("PASS invalidOwnerWholeRegistry liveCircus/HP/cell/roleUnchanged");
 
+        int reassignmentBefore = CountWildlifeOutcome(
+            "companion-assigned",
+            petId);
         scope.Container.Resolve<IGameEventBus>().ShowInfo(pet);
         yield return null;
         Click("Action_6"); yield return null; Click("Owner_1");
-        Require(roles.TryGetCompanion(petId, out var changed) && changed.OwnerId.Value != ownerId, "UI owner change failed.");
-        lines.Add("PASS ownerChangeUI=" + changed.OwnerId.Value);
+        int reassignmentAfter = CountWildlifeOutcome(
+            "companion-assigned",
+            petId);
+        ObserveE11("companion-reassigned");
+        Require(roles.TryGetCompanion(petId, out var changed)
+            && changed.OwnerId.Value != ownerId
+            && reassignmentAfter == reassignmentBefore + 1
+            && circus.Capture().wildlifeGameplayOutcomes.Count == 0,
+            "UI owner change or reassignment parent result failed.");
+        lines.Add("PASS ownerChangeUI=" + changed.OwnerId.Value
+            + "; parentEvent=companion-assigned; ledgerDelta="
+            + (reassignmentAfter - reassignmentBefore)
+            + "; pending=0");
         yield return null;
         // Selecting an owner closes only the owner subpanel, not the info window.
+        int clearBefore = CountWildlifeOutcome("companion-cleared", petId);
         Click("Action_6"); yield return null; Click("ClearRole");
-        Require(!roles.TryGetCompanion(petId, out _), "UI clear retained companion role.");
+        int clearAfter = CountWildlifeOutcome("companion-cleared", petId);
+        ObserveE11("companion-cleared");
+        Require(!roles.TryGetCompanion(petId, out _)
+            && clearAfter == clearBefore + 1
+            && circus.Capture().wildlifeGameplayOutcomes.Count == 0,
+            "UI clear retained companion role or omitted its parent result.");
         FindFirstObjectByType<WildlifeInfoPanel>().OnClose();
         Resume();
         yield return WaitFor(() => pet.GridPosition == birthCell, 40, "Unassigned return to actual pen");
         Pause();
-        lines.Add("PASS clearUI/actualPenReturn=" + pet.GridPosition);
+        lines.Add("PASS clearUI/actualPenReturn=" + pet.GridPosition
+            + "; parentEvent=companion-cleared; ledgerDelta="
+            + (clearAfter - clearBefore)
+            + "; pending=0");
+        ObserveE11("companion-returned-to-pen");
     }
 
     private IEnumerator ObserveCombat()
@@ -428,7 +651,6 @@ public sealed class Wim029CompanionLiveRunner
         var items = scope.Container.Resolve<IWorldItemStackRuntime>();
         var haul = scope.Container.Resolve<IWildlifeHaulRoleQuery>();
         var registry = scope.Container.Resolve<IDungeonSaveSectionRegistry>();
-        var circus = scope.Container.Resolve<ICircusPersistence>();
         string petId = pet.WildlifeId;
         string ownerId = owner.Identity.PersistentId;
         Require(items.MassQuery.GetDefinitionUnitMass(new ItemDefinitionId(oreId)).Value == 1200,
@@ -465,11 +687,25 @@ public sealed class Wim029CompanionLiveRunner
         int expectedOre = beforeOre + 30;
         lines.Add("haulPreparation=30 authored ore/36000g at " + sourceCell + "; existing stock forbidden=" + forbidden
             + "; actual warehouse(s)=" + stores.Length + "; human AI paused; no virtual cargo/source reservation injection");
+        ObserveE11("haul-prepared-ore");
 
+        int haulAssignedBefore = CountWildlifeOutcome(
+            "haul-assigned",
+            petId);
         scope.Container.Resolve<IGameEventBus>().ShowInfo(pet); yield return null;
         ClickText("독립 운반");
+        int haulAssignedAfter = CountWildlifeOutcome(
+            "haul-assigned",
+            petId);
+        ObserveE11("haul-assigned");
         Require(haul.TryGetHaul(petId, out var initial) && initial.Phase == CapturedWildlifeHaulPhase.Idle
-            && !roles.TryGetCompanion(petId, out _), "Actual independent-haul UI did not publish exclusive Idle role.");
+            && !roles.TryGetCompanion(petId, out _)
+            && haulAssignedAfter == haulAssignedBefore + 1
+            && circus.Capture().wildlifeGameplayOutcomes.Count == 0,
+            "Actual independent-haul UI did not publish the exclusive Idle role and parent result.");
+        lines.Add("PASS haulRoleUI=Idle; parentEvent=haul-assigned; ledgerDelta="
+            + (haulAssignedAfter - haulAssignedBefore)
+            + "; pending=0");
         FindFirstObjectByType<WildlifeInfoPanel>().OnClose();
         Resume();
         float began = clock.Time, wall = Time.realtimeSinceStartup;
@@ -481,6 +717,7 @@ public sealed class Wim029CompanionLiveRunner
             && carrying.DestinationKind == WorldItemHaulDestinationKind.Warehouse,
             "Actual goat cargo exceeded 18kg or used unexpected item/destination.");
         var physicalCargo = items.GetAllStacks().Single(x => x.StackId == carrying.CargoStackId);
+        ObserveE11("haul-picked-up");
         Require(physicalCargo.State == WorldItemStackState.InTransit && physicalCargo.Quantity == carrying.Quantity
             && physicalCargo.Position == pet.GridPosition && physicalCargo.Components.Count(x => x.componentTypeId == custodyId) == 1
             && items.GetAllStacks().Where(x => x.ItemId == oreId).Sum(x => x.Quantity) == expectedOre,
@@ -493,6 +730,8 @@ public sealed class Wim029CompanionLiveRunner
         // Circus DTO or a fixture-created hauling intent.
         string roleBefore = JsonUtility.ToJson(circus.Capture().capturedWildlife.Single(x => x.wildlifeId == petId).capabilityState);
         string physicalBefore = HaulPhysicalSignature(items, includeTransientReservations: false);
+        string exactLedger = E11LedgerIdentity();
+        ObserveE11("haul-before-carried-restore");
         var restoredReport = new DungeonGameRestoreReport();
         Require(registry.RestoreAll(registry.CaptureAll(), restoredReport),
             "Carried whole restore failed: " + string.Join(" | ", restoredReport.Errors));
@@ -502,6 +741,9 @@ public sealed class Wim029CompanionLiveRunner
             hook.OnRestoreCompleted();
         pet = wildlife.Wildlife.Single(x => x.WildlifeId == petId);
         owner = world.Characters.Single(x => x.Identity.PersistentId == ownerId);
+        ObserveE11("haul-after-carried-restore");
+        Require(E11LedgerIdentity() == exactLedger,
+            "Carried restore changed published result identity, payload or hash.");
         string physicalAfterRestore = HaulPhysicalSignature(items, includeTransientReservations: false);
         if (physicalAfterRestore != physicalBefore)
         {
@@ -593,11 +835,24 @@ public sealed class Wim029CompanionLiveRunner
 
         // Public UI clear while loaded must retain the same cargo until actual
         // delivery. The command must not return it remotely to source storage.
+        int clearRequestedBefore = CountWildlifeOutcome(
+            "haul-clear-requested",
+            petId);
         scope.Container.Resolve<IGameEventBus>().ShowInfo(pet); yield return null;
         ClickText("독립 운반");
+        int clearRequestedAfter = CountWildlifeOutcome(
+            "haul-clear-requested",
+            petId);
+        ObserveE11("haul-clear-requested-loaded");
         Require(haul.TryGetHaul(petId, out var releasing) && releasing.Phase == CapturedWildlifeHaulPhase.ReleasePending
             && releasing.CargoStackId == carrying.CargoStackId && releasing.OperationId == carrying.OperationId
-            && HaulPhysicalSignature(items) == physicalBefore, "Loaded clear released physical ownership prematurely.");
+            && HaulPhysicalSignature(items) == physicalBefore
+            && clearRequestedAfter == clearRequestedBefore + 1
+            && circus.Capture().wildlifeGameplayOutcomes.Count == 0,
+            "Loaded clear released physical ownership prematurely or omitted its parent result.");
+        lines.Add("PASS haulClearUI=ReleasePending; parentEvent=haul-clear-requested; ledgerDelta="
+            + (clearRequestedAfter - clearRequestedBefore)
+            + "; pending=0");
         FindFirstObjectByType<WildlifeInfoPanel>().OnClose();
         int destinationBefore = items.GetAllStacks().Where(x => x.ItemId == oreId && x.State == WorldItemStackState.Stored
             && x.DestinationId == carrying.DestinationId).Sum(x => x.Quantity);
@@ -610,11 +865,13 @@ public sealed class Wim029CompanionLiveRunner
             && !items.GetAllStacks().Any(x => x.StackId == carrying.CargoStackId && x.State == WorldItemStackState.InTransit)
             && !items.GetAllStacks().Any(x => x.Components.Any(c => c.componentTypeId == custodyId)),
             "Delivery failed exact quantity/destination or left transit custody orphaned.");
+        ObserveE11("haul-delivered-and-cleared");
         lines.Add("PASS actualDelivery then clear; destination delta=" + carrying.Quantity + "; remaining role/custody=0");
 
         scope.Container.Resolve<IGameEventBus>().ShowInfo(pet); yield return null;
         ClickText("독립 운반");
         Require(haul.TryGetHaul(petId, out _), "Actual UI did not reassign haul for remaining source.");
+        ObserveE11("haul-reassigned");
         FindFirstObjectByType<WildlifeInfoPanel>().OnClose();
         Resume();
         yield return WaitFor(() => haul.TryGetHaul(petId, out var value)
@@ -623,6 +880,7 @@ public sealed class Wim029CompanionLiveRunner
         Require(haul.TryGetHaul(petId, out var dyingCargo) && dyingCargo.ItemId == oreId
             && dyingCargo.OperationId != carrying.OperationId && dyingCargo.Quantity > 0,
             "Reassign reused operation identity or lacked actual cargo.");
+        ObserveE11("haul-second-pickup");
         Vector2Int interrupted = pet.GridPosition;
         Require(Distance(interrupted, dyingCargo.DropPosition) > 1,
             "Lethal interruption must be observed in transit, not after destination arrival.");
@@ -633,6 +891,7 @@ public sealed class Wim029CompanionLiveRunner
             && x.State == WorldItemStackState.Loose && x.IsTransientCarryRecoveryDrop), 15, "Physical lethal recovery drop");
         Pause();
         var dropped = items.GetAllStacks().Single(x => x.StackId == dyingCargo.CargoStackId);
+        ObserveE11("haul-controlled-death-drop");
         Require(dropped.ItemId == oreId && dropped.Quantity == dyingCargo.Quantity && dropped.Position == interrupted
             && dropped.RecoveryCarrierPersistentId == petId && dropped.RecoveryOwnerOperationId == dyingCargo.OperationId
             && dropped.RecoveryInterruptionKind == WorldItemCarryInterruptionKind.Dead
@@ -645,15 +904,54 @@ public sealed class Wim029CompanionLiveRunner
             + "; operation=" + dropped.RecoveryOwnerOperationId + "; deadline=" + dropped.RecoveryDeadlineGameTime
             + "; dead role/custody=0; ore conserved=" + expectedOre);
         string recoveryBefore = HaulPhysicalSignature(items, includeTransientReservations: false);
+        exactLedger = E11LedgerIdentity();
         var recoveryReport = new DungeonGameRestoreReport();
         Require(registry.RestoreAll(registry.CaptureAll(), recoveryReport),
             "Recovery drop whole restore failed: " + string.Join(" | ", recoveryReport.Errors));
         foreach (var hook in scope.Container.Resolve<IEnumerable<IDungeonSaveRestoreCompletedHook>>())
             hook.OnRestoreCompleted();
+        ObserveE11("haul-after-drop-restore");
+        Require(E11LedgerIdentity() == exactLedger,
+            "Recovery-drop restore changed published result identity, payload or hash.");
         Require(HaulPhysicalSignature(items, includeTransientReservations: false) == recoveryBefore && !haul.TryGetHaul(petId, out _),
             "Whole restore lost recovery provenance or resurrected the hauling role.");
         lines.Add("PASS recoveryDropWholeRegistry exact; gameSeconds=" + (clock.Time - began)
             + "; wallSeconds=" + (Time.realtimeSinceStartup - wall));
+
+        if (IsE11CreateOnly)
+        {
+            // Explicit incoming-save precision fixture, not a naturally produced
+            // clock or an extra gameplay result. All other saved fields stay exact.
+            foreach (long deadlineBits in new[]
+                     { 0x4036D3E808000000L, 0x4036D3E807FFFFFFL, 0x4036D3E808000001L })
+            {
+                var fixtureEnvelopes = registry.CaptureAll();
+                var itemEnvelope = fixtureEnvelopes.Single(value => value.sectionId == PhysicalItemsSaveSection.Id);
+                var fixturePhysical = DungeonSaveJson.Deserialize<DungeonPhysicalItemSaveData>(itemEnvelope.payloadJson);
+                var fixtureCargo = fixturePhysical.stacks.Single(value => value.stackId == dyingCargo.CargoStackId);
+                fixtureCargo.recoveryDeadlineGameTime = BitConverter.Int64BitsToDouble(deadlineBits);
+                itemEnvelope.payloadJson = JsonUtility.ToJson(fixturePhysical);
+                string ledgerBeforePrecisionRestore = E11LedgerIdentity();
+                var precisionReport = new DungeonGameRestoreReport();
+                Require(registry.RestoreAll(fixtureEnvelopes, precisionReport),
+                    "Historical recovery deadline restore failed: " + string.Join(" | ", precisionReport.Errors));
+                foreach (var hook in scope.Container.Resolve<IEnumerable<IDungeonSaveRestoreCompletedHook>>())
+                    hook.OnRestoreCompleted();
+                var preciseCargo = items.GetAllStacks().Single(value => value.StackId == dyingCargo.CargoStackId);
+                Require(BitConverter.DoubleToInt64Bits(preciseCargo.RecoveryDeadlineGameTime) == deadlineBits
+                    && preciseCargo.Quantity == dyingCargo.Quantity
+                    && preciseCargo.RecoveryOwnerOperationId == dyingCargo.OperationId
+                    && preciseCargo.RecoveryCarrierPersistentId == petId
+                    && preciseCargo.Position == interrupted
+                    && !haul.TryGetHaul(petId, out _)
+                    && E11LedgerIdentity() == ledgerBeforePrecisionRestore
+                    && items.GetAllStacks().Where(value => value.ItemId == oreId).Sum(value => value.Quantity) == expectedOre,
+                    "Historical deadline registry restore changed exact bits, cargo provenance, quantity or ledger.");
+                ObserveE11("haul-historical-deadline-restored-" + deadlineBits.ToString("X16"));
+                lines.Add("PASS historicalRecoveryDeadlineWholeRegistry exactBits=" + deadlineBits.ToString("X16")
+                    + "; explicitIncomingSaveFixture=true; trainingEligible=false");
+            }
+        }
     }
 
     private static string HaulPhysicalSignature(IWorldItemStackRuntime items, bool includeTransientReservations = true) => string.Join("\n",
@@ -664,7 +962,9 @@ public sealed class Wim029CompanionLiveRunner
             + "|" + x.HasDestinationPosition + "|" + x.DestinationPosition + "|" + x.DropDisposition
             + "|" + string.Join(";", x.Components.OrderBy(c => c.componentTypeId, StringComparer.Ordinal).Select(c => JsonUtility.ToJson(c)))
             + "|" + x.RecoveryOwnerOperationId + "|" + x.RecoveryCarrierPersistentId + "|" + x.RecoverySourceStackId
-            + "|" + x.RecoveryInterruptionKind + "|" + x.DroppedAtGameTime + "|" + x.RecoveryDeadlineGameTime));
+            + "|" + x.RecoveryInterruptionKind
+            + "|" + BitConverter.DoubleToInt64Bits(x.DroppedAtGameTime).ToString("X16")
+            + "|" + BitConverter.DoubleToInt64Bits(x.RecoveryDeadlineGameTime).ToString("X16")));
 
     private static void ClickText(string text)
     {
@@ -719,6 +1019,70 @@ public sealed class Wim029CompanionLiveRunner
         + "; hunger=" + pet?.Hunger + "; thirst=" + pet?.Thirst + "; intent=" + pet?.IntentReason
         + "; owner=" + owner?.Identity.PersistentId + "; ownerCell=" + owner?.GetNowXY() + "; gameTime=" + clock?.Time;
     private static int Distance(Vector2Int a, Vector2Int b) => Math.Abs(a.x - b.x) + Math.Abs(a.y - b.y);
+    private string E11LedgerIdentity() => string.Join("\n",
+        outcomeLedger.CaptureGameplayOutcomes().exactOutcomes
+            .Where(value => value != null
+                && value.producerId == EnvironmentOutcomeIds.WildlifeCommandProducer
+                && value.operationId.Contains(":" + e11PetId + ":", StringComparison.Ordinal))
+            .OrderBy(value => value.sequence)
+            .Select(value => JsonUtility.ToJson(value)));
+
+    private void ObserveE11(string stage)
+    {
+        if (!IsE11CreateOnly || combatOnly || careOnly) return;
+        var physical = scope.Container.Resolve<IWorldItemStackRuntime>() as WorldItemStackRuntime
+            ?? throw new InvalidOperationException("E11 roles require the real physical-item owner.");
+        var ledger = outcomeLedger.CaptureGameplayOutcomes();
+        var related = ledger.exactOutcomes.Where(value => value != null
+            && value.producerId == EnvironmentOutcomeIds.WildlifeCommandProducer
+            && value.operationId.Contains(":" + e11PetId + ":", StringComparison.Ordinal)).ToArray();
+        var physicalState = physical.Capture();
+        var row = new JObject
+        {
+            ["stage"] = stage,
+            ["wildlifeId"] = e11PetId,
+            ["actorPresent"] = pet != null,
+            ["actorAlive"] = pet != null ? new JValue(pet.IsAlive) : JValue.CreateNull(),
+            ["actorHealth"] = pet != null ? new JValue(pet.CurrentHealth) : JValue.CreateNull(),
+            ["actorPosition"] = pet != null
+                ? (JToken)new JObject { ["x"] = pet.GridPosition.x, ["y"] = pet.GridPosition.y }
+                : JValue.CreateNull(),
+            ["circus"] = JObject.Parse(JsonUtility.ToJson(circus.Capture())),
+            ["wildlife"] = JObject.Parse(JsonUtility.ToJson(wildlife.Capture())),
+            ["physical"] = JObject.Parse(JsonUtility.ToJson(physicalState)),
+            ["physicalRecoveryClockBits"] = new JArray(physicalState.stacks
+                .OrderBy(value => value.stackId, StringComparer.Ordinal)
+                .Select(value => new JObject
+                {
+                    ["stackId"] = value.stackId,
+                    ["droppedAtGameTimeBits"] = BitConverter.DoubleToInt64Bits(
+                        value.droppedAtGameTime).ToString("X16"),
+                    ["recoveryDeadlineGameTimeBits"] = BitConverter.DoubleToInt64Bits(
+                        value.recoveryDeadlineGameTime).ToString("X16")
+                })),
+            ["ledger"] = JObject.Parse(JsonUtility.ToJson(ledger))
+        };
+        e11Observations.Add(row);
+        Require(related.Select(value => value.producerId + "|" + value.operationId
+                + "|" + value.commitRevision + "|" + value.localResultIndex).Distinct().Count() == related.Length
+            && related.Select(value => value.runId + "|" + value.sequence).Distinct().Count() == related.Length,
+            "E11 role ledger contains duplicated completion identities.");
+    }
+
+    private int CountWildlifeOutcome(string eventKind, string wildlifeId)
+    {
+        string operationPrefix = $"wildlife-command:{eventKind}:{wildlifeId}:";
+        return outcomeLedger.CaptureGameplayOutcomes().exactOutcomes.Count(value =>
+            value != null
+            && string.Equals(
+                value.producerId,
+                EnvironmentOutcomeIds.WildlifeCommandProducer,
+                StringComparison.Ordinal)
+            && value.operationId.StartsWith(
+                operationPrefix,
+                StringComparison.Ordinal));
+    }
+
     private static void Click(string name)
     {
         var button = Resources.FindObjectsOfTypeAll<Button>().SingleOrDefault(x => x != null && x.name == name

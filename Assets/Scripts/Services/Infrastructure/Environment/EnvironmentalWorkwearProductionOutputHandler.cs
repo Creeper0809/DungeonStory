@@ -29,7 +29,7 @@ public sealed class EnvironmentalWorkwearProductionOutputHandler :
     private readonly ITextileMaterialCatalog materialCatalog;
     private readonly IItemInstanceRepository itemInstances;
     private readonly IPhysicalItemMassQuery massQuery;
-    private readonly IGameClock clock;
+    private readonly IGameCalendar calendar;
     private readonly IProductionFacilityHandleQuery facilities;
     private readonly IProductionOutputDestinationAuthorityRuntime destinations;
     private readonly IProductionOutputBufferCapacityProjector capacityProjector;
@@ -42,7 +42,7 @@ public sealed class EnvironmentalWorkwearProductionOutputHandler :
         ITextileMaterialCatalog materialCatalog,
         IItemInstanceRepository itemInstances,
         IPhysicalItemMassQuery massQuery,
-        IGameClock clock,
+        IGameCalendar calendar,
         IProductionFacilityHandleQuery facilities,
         IProductionOutputDestinationAuthorityRuntime destinations,
         IProductionOutputBufferCapacityProjector capacityProjector,
@@ -58,7 +58,7 @@ public sealed class EnvironmentalWorkwearProductionOutputHandler :
             ?? throw new ArgumentNullException(nameof(itemInstances));
         this.massQuery = massQuery
             ?? throw new ArgumentNullException(nameof(massQuery));
-        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
         this.destinations = destinations
@@ -237,9 +237,7 @@ public sealed class EnvironmentalWorkwearProductionOutputHandler :
 
         try
         {
-            int craftedDay = Mathf.Max(
-                0,
-                Mathf.FloorToInt(clock.Time / GameCalendarRules.SecondsPerDay));
+            int craftedDay = calendar.Day;
             List<FacilityBufferPlannedOutputSlice> slices = new(context.Amount);
 
             long exactBatchMassGrams = 0L;

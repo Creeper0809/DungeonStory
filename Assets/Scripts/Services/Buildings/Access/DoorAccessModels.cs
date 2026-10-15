@@ -45,6 +45,7 @@ public sealed class DoorAccessPolicyState
     [SerializeField] private int allowedGroups = (int)DoorAccessGroup.All;
     [SerializeField] private List<string> individuallyAllowedIds = new List<string>();
     [SerializeField] private List<string> individuallyDeniedIds = new List<string>();
+    [SerializeField] private long revision;
 
     public DoorAccessGroup AllowedGroups
     {
@@ -56,6 +57,7 @@ public sealed class DoorAccessPolicyState
         individuallyAllowedIds ??= new List<string>();
     public IReadOnlyList<string> IndividuallyDeniedIds =>
         individuallyDeniedIds ??= new List<string>();
+    public long Revision => revision;
     public bool IsRestricted => AllowedGroups != DoorAccessGroup.All
         || IndividuallyDeniedIds.Count > 0;
 
@@ -164,8 +166,11 @@ public sealed class DoorAccessPolicyState
                 .Where(id => id.Length > 0)
                 .Distinct(StringComparer.Ordinal)
                 .ToList();
+        revision = source?.Revision ?? 0L;
         Normalize();
     }
+
+    internal void SetRevision(long value) => revision = value;
 
     public DoorAccessPolicyState Clone()
     {

@@ -17,10 +17,42 @@ using VContainer;
 public static class SurgeryPlayModeVerifier
 {
     public const string RequestPath = "Temp/surgery-playmode.request";
-    public const string ReportPath = "Artifacts/QA/surgery-playmode-report.txt";
-    public const string CapturePath = "Artifacts/QA/surgery-playmode.png";
+    private const string DefaultReportPath =
+        "Artifacts/QA/surgery-playmode-report.txt";
+    private const string DefaultCapturePath = "Artifacts/QA/surgery-playmode.png";
+    private const string W05IdentityEnvironment =
+        "DUNGEONSTORY_W05_SURGERY_IDENTITY_VERIFY";
+    private const string AuditOutputEnvironment =
+        "DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
     private static bool runnerCreated;
+
+    public static bool IsW05IdentityVerification => string.Equals(
+        Environment.GetEnvironmentVariable(W05IdentityEnvironment),
+        "1",
+        StringComparison.Ordinal);
+
+    public static bool IsW01PublicationRecoveryVerification => string.Equals(
+        Environment.GetEnvironmentVariable("DUNGEONSTORY_W01_SURGERY_PUBLICATION_RECOVERY_VERIFY"),
+        "1", StringComparison.Ordinal);
+
+    public static bool IsW01ClinicalFailureVerification => string.Equals(
+        Environment.GetEnvironmentVariable("DUNGEONSTORY_W01_SURGERY_CLINICAL_FAILURE_VERIFY"),
+        "1", StringComparison.Ordinal);
+
+    public static string ReportPath => IsW05IdentityVerification
+        ? Path.Combine(
+            RequireAuditOutput(),
+            IsW01PublicationRecoveryVerification
+                ? "w01-surgery-publication-report.txt"
+                : IsW01ClinicalFailureVerification
+                    ? "w01-surgery-clinical-failure-report.txt"
+                    : "w05-surgery-identity-report.txt")
+        : DefaultReportPath;
+
+    public static string CapturePath => IsW05IdentityVerification
+        ? Path.Combine(RequireAuditOutput(), "w05-surgery-identity.png")
+        : DefaultCapturePath;
 
     static SurgeryPlayModeVerifier()
     {
@@ -34,10 +66,34 @@ public static class SurgeryPlayModeVerifier
     public static void RequestRunFromMenu()
     {
         Directory.CreateDirectory("Temp");
-        Directory.CreateDirectory("Artifacts/QA");
-        File.Delete(ReportPath);
-        File.Delete(CapturePath);
+        Directory.CreateDirectory(
+            Path.GetDirectoryName(ReportPath) ?? "Artifacts/QA");
+        if (IsW05IdentityVerification)
+        {
+            if (File.Exists(ReportPath))
+            {
+                throw new IOException(
+                    "W05 surgery identity report already exists: " + ReportPath);
+            }
+        }
+        else
+        {
+            File.Delete(ReportPath);
+            File.Delete(CapturePath);
+        }
         File.WriteAllText(RequestPath, DateTime.UtcNow.ToString("O"));
+    }
+
+    private static string RequireAuditOutput()
+    {
+        string output = Environment.GetEnvironmentVariable(
+            AuditOutputEnvironment);
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            throw new InvalidOperationException(
+                "W05 surgery identity verification requires an isolated audit output directory.");
+        }
+        return Path.GetFullPath(output);
     }
 
     private static void OnEditorUpdate()
@@ -94,8 +150,14 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
     private const string MedicalResearchId = "research:survival:medical";
     private const string AnesthesiaResearchId =
         "research:pharmacology:anesthesia";
+    private const float VerificationTimeScale = 4f;
     private const float NoProgressTimeoutSeconds = 60f;
+    private const float NoProgressSimulationSeconds = 30f;
+    private const int NoProgressFrameCount = 20;
+    private const float ActorWorldProgressDistance = 0.05f;
     private const float OverallTimeoutSeconds = 180f;
+    private const float OverallSimulationSeconds = 180f;
+    private const int OverallFrameCount = 120;
     private const float VerifierHardTimeoutSeconds = 600f;
 
     private readonly List<string> report = new();
@@ -104,6 +166,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
     private readonly List<string> capturedWarnings = new();
     private readonly List<GameObject> temporaryObjects = new();
     private readonly HashSet<SurgeryOrderState> observedStates = new();
+    private readonly List<WorkCompletedIdentityEvent> identityEvents = new();
 
     private DungeonGameSaveData gameSnapshot;
     private CharacterActor patient;
@@ -124,12 +187,33 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
     private string targetNodeId = string.Empty;
     private float verifierStartedAt;
     private bool finishing;
+    private IDisposable identitySubscription;
+    private IDisposable publicationFaultSubscription;
+    private const string PublicationFaultMarker = "W01_QA_SURGERY_AFTER_IDENTITY_COMMIT";
+    private const string CommandAckFaultMarker = "W01_QA_SURGERY_AFTER_IDENTITY_COMMAND";
+    private int publicationFaultCount;
+    private int commandAckFaultCount;
+    private IWorkCompletionIdentityDeliveryCommand originalCompletionCommand;
+    private System.Reflection.FieldInfo completionCommandField;
+    private object completionObserver;
+    private WorkCompletedIdentityEvent publicationFaultEvent;
+    private ulong clinicalFailureExpectedRandomState;
 
     public string CurrentStage { get; private set; } = "created";
     public float ElapsedRealtimeSeconds =>
         verifierStartedAt > 0f
             ? Time.realtimeSinceStartup - verifierStartedAt
             : 0f;
+
+    public void AddInitialConsoleIssues(
+        IEnumerable<string> warnings,
+        IEnumerable<string> errors)
+    {
+        if (warnings != null)
+            capturedWarnings.AddRange(warnings);
+        if (errors != null)
+            capturedErrors.AddRange(errors);
+    }
 
     private void Update()
     {
@@ -157,14 +241,37 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
         originalTimeScale = Time.timeScale;
         originalRunInBackground = Application.runInBackground;
         Application.runInBackground = true;
-        Time.timeScale = 8f;
+        Time.timeScale = VerificationTimeScale;
         EnsureEventSystem();
 
         yield return null;
         yield return null;
 
         DungeonRuntimeLifetimeScope scope = FindScope();
+        IGameEventBus gameEvents = Resolve<IGameEventBus>(scope);
+        identitySubscription = gameEvents.Subscribe<WorkCompletedIdentityEvent>(
+            identityEvents.Add);
+        if (SurgeryPlayModeVerifier.IsW01PublicationRecoveryVerification)
+            publicationFaultSubscription = gameEvents.Subscribe<WorkCompletedIdentityEvent>(
+                InjectPublicationFaultOnce);
         surgery = Resolve<ISurgeryQuery>(scope);
+        if (SurgeryPlayModeVerifier.IsW01PublicationRecoveryVerification)
+        {
+            var binding = Resolve<WorkCompletionDomainFactBinding<SurgeryWorkCompletedFact>>(scope);
+            completionObserver = binding.GetType().GetField("observer",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                ?.GetValue(binding)
+                ?? throw new InvalidOperationException("Surgery completion observer is missing.");
+            completionCommandField = completionObserver.GetType().GetField("completion",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("Surgery completion command boundary is missing.");
+            originalCompletionCommand = (IWorkCompletionIdentityDeliveryCommand)
+                completionCommandField.GetValue(completionObserver);
+            if (originalCompletionCommand == null)
+                throw new InvalidOperationException("Production surgery identity command is missing.");
+            completionCommandField.SetValue(completionObserver, new CompletionAckFaultProbe(this,
+                originalCompletionCommand));
+        }
         ISurgeryCommandService commands = Resolve<ISurgeryCommandService>(scope);
         ISurgicalProcedureCatalog procedures = Resolve<ISurgicalProcedureCatalog>(scope);
         ISurgicalFacilityQuery facilities = Resolve<ISurgicalFacilityQuery>(scope);
@@ -189,12 +296,18 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             Resolve<IRandomStreamProvider>(scope);
         IFluidInfrastructureQuery fluidQuery =
             Resolve<IFluidInfrastructureQuery>(scope);
+        IEnvironmentalFieldPersistence environmentFields =
+            Resolve<IEnvironmentalFieldPersistence>(scope);
+        IGameClock simulationClock = Resolve<IGameClock>(scope);
         ISurgeryPolicyRuntime surgeryPolicies =
             Resolve<ISurgeryPolicyRuntime>(scope);
+        IGridSystemProvider gridProvider = Resolve<IGridSystemProvider>(scope);
         randomStreams?.Get("medical:surgery-outcomes").Restore(1UL);
-        GridSystemManager gridSystem =
-            UnityEngine.Object.FindFirstObjectByType<GridSystemManager>();
-        Grid grid = gridSystem != null ? gridSystem.grid : null;
+        Grid grid = null;
+        if (gridProvider != null)
+        {
+            gridProvider.TryGetGrid(out grid);
+        }
 
         Check(scope?.Container != null, "SCOPE_READY", "gameplay LifetimeScope resolved");
         Check(surgery != null && commands != null, "SURGERY_RUNTIME_READY", "runtime and commands resolved");
@@ -205,9 +318,12 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             anatomy != null
                 && items != null
                 && gameSave != null
-                && destinationClaims != null,
+                && destinationClaims != null
+                && environmentFields != null
+                && simulationClock != null
+                && gridProvider != null,
             "SURGERY_DATA_READY",
-            "anatomy, item runtime, destination claim, and V18 save service resolved");
+            "anatomy, item runtime, destination claim, environment, clock, authoritative grid, and V18 save service resolved");
         Check(surgeryWindow != null, "SURGERY_UI_READY", "surgery planning window resolved");
         if (failures.Count > 0)
         {
@@ -216,12 +332,47 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
         }
 
         CurrentStage = "ensure-playable-run";
+        Grid preRunGrid = grid;
         yield return EnsurePlayableRun();
         CurrentStage = "baseline-surgery-live-ai";
+        bool currentGridResolved = gridProvider.TryGetGrid(out Grid currentGrid)
+            && currentGrid != null;
+        Check(
+            currentGridResolved,
+            "SURGERY_POST_RUN_GRID_READY",
+            currentGridResolved
+                ? $"changed={!ReferenceEquals(preRunGrid, currentGrid)}; size={currentGrid.width}x{currentGrid.height}"
+                : "authoritative grid missing after prepared-run commit");
+        if (!currentGridResolved)
+        {
+            Finish();
+            yield break;
+        }
+        grid = currentGrid;
+        if (SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification)
+        {
+            // Input control only: the production RNG still rolls the outcome
+            // and severity after real work. Seed1's first draw rounds to zero
+            // and would pass the production <= comparison even at chance0.
+            const ulong failureSeed = 65537UL;
+            DeterministicRandomSequence probe = new(1);
+            probe.Restore(failureSeed);
+            float successDraw = probe.NextFloat();
+            float severityDraw = probe.NextFloat();
+            clinicalFailureExpectedRandomState = probe.State;
+            if (!Check(randomStreams != null && successDraw > 0f && severityDraw < 0.6f,
+                    "W01_CLINICAL_FAILURE_INPUT_READY",
+                    $"seed={failureSeed}; chance=0; successDraw={successDraw:R}; severityDraw={severityDraw:R}; expected=Minor"))
+            {
+                Finish();
+                yield break;
+            }
+            randomStreams.Get("medical:surgery-outcomes").Restore(failureSeed);
+        }
         // Starting a prepared run restores the player's saved speed. Reapply the
         // verification speed after that transition so physical hauling and work
         // are observed without making the test depend on editor focus.
-        Time.timeScale = 8f;
+        Time.timeScale = VerificationTimeScale;
         CharacterActor[] workers = characters.Characters
             .Where(actor => actor != null
                 && !actor.IsDead
@@ -229,13 +380,44 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             .OrderByDescending(actor => actor.Stats.EvaluatePerformance(
                 "performance:medical:surgery-success").Value)
             .ToArray();
-        doctor = workers.FirstOrDefault();
-        patient = workers.Skip(1).FirstOrDefault() ?? workers.FirstOrDefault();
+        if (SurgeryPlayModeVerifier.IsW01PublicationRecoveryVerification)
+        {
+            ICharacterSettlementStandingQuery standings = Resolve<ICharacterSettlementStandingQuery>(scope);
+            doctor = workers.FirstOrDefault(actor => !actor.IsOwner
+                && standings?.IsFormalResident(actor) == true);
+            patient = workers.FirstOrDefault(actor => actor != doctor && !actor.IsOwner);
+            Check(doctor != null && patient != null, "W01_SURGERY_FORMAL_STAFF_DOCTOR",
+                "doctor=" + doctor?.Identity?.PersistentId + "; patient=" + patient?.Identity?.PersistentId
+                    + "; owner is not used as a departure substitute");
+        }
+        else
+        {
+            doctor = workers.FirstOrDefault();
+            patient = workers.Skip(1).FirstOrDefault() ?? workers.FirstOrDefault();
+        }
+        CharacterActor[] surgeryHaulers = workers
+            .Where(actor => actor != doctor
+                && actor != patient
+                && actor.GetComponent<AbilityHaul>() != null
+                && actor.GetAbility<AbilityWork>() != null)
+            .ToArray();
         Check(doctor != null && patient != null, "SURGERY_ACTORS_READY",
             doctor != null && patient != null
                 ? $"doctor={doctor.Identity?.DisplayName}; patient={patient.Identity?.DisplayName}"
                 : "doctor or patient missing");
         if (doctor == null || patient == null)
+        {
+            Finish();
+            yield break;
+        }
+        Check(
+            surgeryHaulers.Length > 0,
+            "SURGERY_INDEPENDENT_HAULER_READY",
+            surgeryHaulers.Length > 0
+                ? string.Join(",", surgeryHaulers.Select(actor =>
+                    actor.Identity?.DisplayName ?? actor.name))
+                : "a third live NPC with AbilityHaul is required");
+        if (surgeryHaulers.Length == 0)
         {
             Finish();
             yield break;
@@ -329,7 +511,13 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             }
 
             RoomLayout layout = rooms.GetLayout(grid);
-            Check(TryFindPlacement(layout, grid, tableAsset, out Vector2Int tablePosition, out Vector2Int supplyPosition),
+            Check(TryFindPlacement(
+                    layout,
+                    grid,
+                    tableAsset,
+                    patient.GetNowXY(),
+                    out Vector2Int tablePosition,
+                    out Vector2Int supplyPosition),
                 "MEDICAL_ROOM_PLACEMENT",
                 $"table={tablePosition}; supply={supplyPosition}; rooms={layout.Rooms.Count}");
             if (failures.Count > 0)
@@ -400,7 +588,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             bool injured = anatomy.TryDamageNode(
                 patient,
                 targetNodeId,
-                18f,
+                SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification ? 2f : 18f,
                 0f,
                 "수술 PlayMode 검증");
             float injuredHealth = GetNodeHealth(
@@ -442,6 +630,34 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                 requiresProcessWater
                     ? $"item={CleanWaterItemId}; amount={spawnedWater}; position={table.centerPos}; destination={processWaterDestinationId}"
                     : "facility-authored-process-water=not-required");
+
+            DungeonEnvironmentalFieldSaveData safeSurgeryEnvironment =
+                JsonUtility.FromJson<DungeonEnvironmentalFieldSaveData>(
+                    JsonUtility.ToJson(environmentFields.Capture()));
+            safeSurgeryEnvironment.cells.Clear();
+            for (int y = 0; y < safeSurgeryEnvironment.height; y++)
+            {
+                for (int x = 0; x < safeSurgeryEnvironment.width; x++)
+                {
+                    safeSurgeryEnvironment.cells.Add(
+                        new EnvironmentalCellSaveData
+                        {
+                            x = x,
+                            y = y,
+                            temperatureC = 22f,
+                            airQuality = 100f,
+                            lightLevel = 100f
+                        });
+                }
+            }
+            environmentFields.Restore(
+                environmentFields.PrepareRestore(safeSurgeryEnvironment));
+            Check(
+                safeSurgeryEnvironment.cells.Count
+                    == safeSurgeryEnvironment.width
+                        * safeSurgeryEnvironment.height,
+                "SURGERY_SAFE_ENVIRONMENT_READY",
+                $"cells={safeSurgeryEnvironment.cells.Count}; temperature=22; air=100; light=100");
 
             Canvas canvas = UnityEngine.Object.FindObjectsByType<Canvas>(
                     FindObjectsInactive.Exclude,
@@ -522,6 +738,32 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                 Finish();
                 yield break;
             }
+            // Keep the surgeon out of unrelated work until the patient and
+            // physical inputs make Surgery a legal candidate. Admission and
+            // hauling still execute through their production movement/action
+            // routes; only the test party's normal player-facing priorities are
+            // made deterministic here.
+            doctor.Brain?.StopCurrentActionForReplan(
+                "surgery-verifier-awaiting-admission-and-materials");
+            doctor.GetAbility<AbilityMove>()?.CancelActiveMovement();
+            doctor.SetAiPaused(true);
+            foreach (CharacterActor hauler in surgeryHaulers)
+            {
+                AbilityWork haulerWork = hauler.GetAbility<AbilityWork>();
+                haulerWork.SetDutyState(AbilityWork.DutyState.OnDuty);
+                haulerWork.WorkPriorities.SetPriority(
+                    BuiltInWorkTypeIds.Haul,
+                    WorkPriorityLevel.Priority1);
+                hauler.SetAiPaused(false);
+                hauler.Brain?.StopCurrentActionForReplan(
+                    "surgery-verifier-priority-haul");
+                hauler.GetAbility<AbilityMove>()?.CancelActiveMovement();
+                hauler.Brain?.PreferWorkActionOnNextDecision(
+                    BuiltInWorkTypeIds.Haul,
+                    120f);
+                hauler.Brain?.RequestImmediateReplan(clearFailures: true);
+            }
+            int identityBaseline = identityEvents.Count;
 
             Check(string.Equals(order.procedureId, SutureProcedureId, StringComparison.Ordinal),
                 "SURGERY_PROCEDURE_SELECTED", order.procedureId);
@@ -551,13 +793,14 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                 exactClaim
                     ? $"destination={materialClaim.DestinationId}; facility={materialClaim.OwnerFacilityId}; drop={materialClaim.DropPosition}"
                     : $"destination={order.materialDestinationId}; drop={table.centerPos}; claim missing or mismatched");
-            order.risk.successChance = 1f;
+            order.risk.successChance = SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification ? 0f : 1f;
             bool pipedProcessWaterRouteExists = requiresProcessWater
                 && fluidQuery != null
                 && fluidQuery.TryGetNetwork(table, out _);
 
             float startedAt = Time.realtimeSinceStartup;
             float nextActorStabilizationAt = startedAt;
+            float nextEnvironmentRefreshAt = simulationClock.Time + 5f;
             int initialMedicine = items.GetAllStacks()
                 .Where(stack => stack != null
                     && string.Equals(stack.ItemId, medicineId, StringComparison.Ordinal))
@@ -597,6 +840,11 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             float noProgressDeadline =
                 startedAt + NoProgressTimeoutSeconds;
             float overallDeadline = startedAt + OverallTimeoutSeconds;
+            float startedSimulationTime = simulationClock.Time;
+            int startedFrame = Time.frameCount;
+            float lastAuthoritativeProgressSimulationTime =
+                startedSimulationTime;
+            int lastAuthoritativeProgressFrame = startedFrame;
             SurgeryOrderState lastProgressState = order.state;
             float lastProgressWork = order.completedWork;
             bool lastCommittedMaterialObserved = false;
@@ -613,22 +861,144 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             bool restoredSurgeryWasLive = false;
             int restoredSurgeryStartCount = 0;
             long restoredActionStartBaseline = 0L;
-            while (Time.realtimeSinceStartup < overallDeadline
-                   && Time.realtimeSinceStartup < noProgressDeadline
-                   && order.IsActive)
+            Vector2Int lastPatientPosition = patient.GetNowXY();
+            Vector3 lastDoctorWorldPosition = doctor.transform.position;
+            long lastHaulHeartbeat = surgeryHaulers.Sum(actor =>
+                (long)(actor.GetComponent<AbilityHaul>()?.RoutineHeartbeat ?? 0));
+            bool surgeonPriorityIssued = false;
+            bool surgeonPriorityAccepted = false;
+            string surgeonPriorityFailure = string.Empty;
+            while (order.IsActive)
             {
+                if (SurgeryPlayModeVerifier.IsW01PublicationRecoveryVerification
+                    && commandAckFaultCount == 1)
+                {
+                    yield return VerifySurgeryPublicationRecovery(scope, order, simulationClock);
+                    Finish();
+                    yield break;
+                }
+                // Observe work that other gameplay coroutines applied after this
+                // verifier yielded. Timeout evaluation must come afterwards or a
+                // late but real clinical WU can be ignored on the expiry frame.
+                Vector2Int currentPatientPosition = patient.GetNowXY();
+                Vector3 currentDoctorWorldPosition = doctor.transform.position;
+                bool doctorWorldPositionAdvanced =
+                    (currentDoctorWorldPosition - lastDoctorWorldPosition)
+                        .sqrMagnitude
+                    >= ActorWorldProgressDistance
+                        * ActorWorldProgressDistance;
+                long currentHaulHeartbeat = surgeryHaulers.Sum(actor =>
+                    (long)(actor.GetComponent<AbilityHaul>()?.RoutineHeartbeat ?? 0));
+                bool madeAuthoritativeProgress =
+                    order.state != lastProgressState
+                    || order.completedWork > lastProgressWork + 0.0001f
+                    || currentPatientPosition != lastPatientPosition
+                    || doctorWorldPositionAdvanced
+                    || currentHaulHeartbeat > lastHaulHeartbeat
+                    || (committedMaterialObserved
+                        && !lastCommittedMaterialObserved)
+                    || (deliveredMaterialObserved
+                        && !lastDeliveredMaterialObserved)
+                    || (order.materialsConsumed && !lastMaterialsConsumed)
+                    || (order.processFluidConsumed
+                        && !lastProcessFluidConsumed);
+                if (madeAuthoritativeProgress)
+                {
+                    lastAuthoritativeProgressAt =
+                        Time.realtimeSinceStartup;
+                    noProgressDeadline = lastAuthoritativeProgressAt
+                        + NoProgressTimeoutSeconds;
+                    lastAuthoritativeProgressSimulationTime =
+                        simulationClock.Time;
+                    lastAuthoritativeProgressFrame = Time.frameCount;
+                    lastDoctorWorldPosition = currentDoctorWorldPosition;
+                }
+
+                lastProgressState = order.state;
+                lastProgressWork = Mathf.Max(
+                    lastProgressWork,
+                    order.completedWork);
+                lastCommittedMaterialObserved =
+                    committedMaterialObserved;
+                lastDeliveredMaterialObserved =
+                    deliveredMaterialObserved;
+                lastMaterialsConsumed = order.materialsConsumed;
+                lastProcessFluidConsumed = order.processFluidConsumed;
+                lastPatientPosition = currentPatientPosition;
+                lastHaulHeartbeat = Math.Max(
+                    lastHaulHeartbeat,
+                    currentHaulHeartbeat);
+
+                bool overallRealtimeExpired =
+                    Time.realtimeSinceStartup >= overallDeadline;
+                bool overallSimulationExpired =
+                    simulationClock.Time - startedSimulationTime
+                        >= OverallSimulationSeconds;
+                bool overallFramesExpired =
+                    Time.frameCount - startedFrame >= OverallFrameCount;
+                bool noProgressRealtimeExpired =
+                    Time.realtimeSinceStartup >= noProgressDeadline;
+                bool noProgressSimulationExpired =
+                    simulationClock.Time
+                        - lastAuthoritativeProgressSimulationTime
+                        >= NoProgressSimulationSeconds;
+                bool noProgressFramesExpired =
+                    Time.frameCount - lastAuthoritativeProgressFrame
+                        >= NoProgressFrameCount;
+                if ((overallRealtimeExpired
+                        && (overallSimulationExpired
+                            || overallFramesExpired))
+                    || (noProgressRealtimeExpired
+                        && (noProgressSimulationExpired
+                            || noProgressFramesExpired)))
+                {
+                    break;
+                }
+
                 if (!string.IsNullOrWhiteSpace(order.doctorId)
                     && order.risk != null)
                 {
                     // The runtime recalculates risk when the surgeon reserves the
                     // order. Pin only the final QA outcome after that reservation;
                     // movement, hauling, materials, and work remain fully real.
-                    order.risk.successChance = 1f;
+                    order.risk.successChance = SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification ? 0f : 1f;
                 }
 
                 if (Time.timeScale <= 0f)
                 {
-                    Time.timeScale = 8f;
+                    Time.timeScale = VerificationTimeScale;
+                }
+
+                // The temporary table has no authored HVAC source. Keep the
+                // fixture's environmental input neutral while production
+                // SurgeryEnvironmentRuntime continues to evaluate it. The
+                // watchdog below counts real simulation progress, so this
+                // cannot turn a stalled clinical action into a false PASS.
+                if (simulationClock.Time >= nextEnvironmentRefreshAt)
+                {
+                    environmentFields.Restore(
+                        environmentFields.PrepareRestore(
+                            safeSurgeryEnvironment));
+                    nextEnvironmentRefreshAt = simulationClock.Time + 5f;
+                }
+
+                if (!surgeonPriorityIssued
+                    && order.state is SurgeryOrderState.Anesthetizing
+                        or SurgeryOrderState.Incision
+                        or SurgeryOrderState.Procedure
+                        or SurgeryOrderState.Suturing)
+                {
+                    doctor.SetAiPaused(false);
+                    surgeonPriorityAccepted = doctorWork.TrySetPriorityWorkTarget(
+                        table,
+                        BuiltInWorkTypeIds.Surgery,
+                        null,
+                        out surgeonPriorityFailure);
+                    doctor.Brain?.PreferWorkActionOnNextDecision(
+                        BuiltInWorkTypeIds.Surgery,
+                        120f);
+                    doctor.Brain?.RequestImmediateReplan(clearFailures: true);
+                    surgeonPriorityIssued = true;
                 }
 
                 if (Time.realtimeSinceStartup >= nextActorStabilizationAt)
@@ -680,6 +1050,34 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                         + $"live={preRestoreGate.LiveActions}; patientOrders={savedPatientOrders}");
 
                     DungeonGameSaveData liveClinicalSave = gameSave.Capture();
+                    bool savedFacilityExact =
+                        DungeonSaveSectionPayload.TryRead(
+                            liveClinicalSave,
+                            ModularFacilityWorldSaveSection.Id,
+                            out ModularFacilityWorldSaveData savedFacilities)
+                        && (savedFacilities.buildings
+                            ?? new List<ModularFacilityBuildingSaveData>())
+                            .Any(candidate => candidate != null
+                                && string.Equals(
+                                    candidate.persistentInstanceId,
+                                    liveFacilityId,
+                                    StringComparison.Ordinal)
+                                && candidate.buildingId
+                                    == table.BuildingData.id
+                                && candidate.centerX == table.centerPos.x
+                                && candidate.centerY == table.centerPos.y);
+                    Check(
+                        savedFacilityExact,
+                        "SURGERY_CURRENT_SAVE_FACILITY_EXACT",
+                        savedFacilityExact
+                            ? $"facility={liveFacilityId}; definition={table.BuildingData.id}; position={table.centerPos}"
+                            : $"facility={liveFacilityId}; authoritative world.facilities row missing");
+                    if (!savedFacilityExact)
+                    {
+                        Finish();
+                        yield break;
+                    }
+
                     Time.timeScale = 0f;
                     bool restored = gameSave.TryRestore(
                         liveClinicalSave,
@@ -731,10 +1129,18 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                                 facilities.GetFacilityId(candidate),
                                 liveFacilityId,
                                 StringComparison.Ordinal));
-                    gridSystem = UnityEngine.Object.FindFirstObjectByType<
-                        GridSystemManager>();
-                    grid = gridSystem != null ? gridSystem.grid : null;
+                    grid = null;
+                    gridProvider.TryGetGrid(out grid);
                     doctorWork = doctor?.GetAbility<AbilityWork>();
+                    surgeryHaulers = characters.Characters
+                        .Where(actor => actor != null
+                            && !actor.IsDead
+                            && actor.characterType == CharacterType.NPC
+                            && actor != doctor
+                            && actor != patient
+                            && actor.GetComponent<AbilityHaul>() != null
+                            && actor.GetAbility<AbilityWork>() != null)
+                        .ToArray();
 
                     bool exactRestoredState = doctor != null
                         && patient != null
@@ -806,33 +1212,57 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                             restoredClaim.OwnerFacilityId,
                             liveFacilityId,
                             StringComparison.Ordinal);
+                    int restoredCommittedMedicine =
+                        items.GetCommittedHaulDeliveryQuantity(
+                            order.materialDestinationId,
+                            medicineId);
+                    WorldItemStackSnapshot[] restoredDestinationStacks =
+                        items.GetAllStacks()
+                        .Where(stack => stack != null
+                            && string.Equals(
+                                stack.DestinationId,
+                                order.materialDestinationId,
+                                StringComparison.Ordinal))
+                        .ToArray();
+                    int restoredDestinationQuantity = restoredDestinationStacks
+                        .Sum(stack => stack.Quantity);
                     bool materialConserved = CountPhysicalItem(medicineId)
                             == savedMedicine
                         && CountPhysicalItem(CleanWaterItemId) == savedWater
                         && restoredPatientOrders == 1
                         && order != null
-                        && items.GetCommittedHaulDeliveryQuantity(
-                            order.materialDestinationId,
-                            medicineId) == 0
-                        && !items.GetAllStacks().Any(stack => stack != null
-                            && string.Equals(
-                                stack.DestinationId,
-                                order.materialDestinationId,
-                                StringComparison.Ordinal));
+                        && restoredCommittedMedicine == 0
+                        && restoredDestinationQuantity == 0;
                     Check(
                         materialConserved && restoredClaimExact,
                         "SURGERY_CURRENT_RESTORE_MATERIAL_CONSERVATION",
                         $"medicine={savedMedicine}->{CountPhysicalItem(medicineId)}; "
                         + $"water={savedWater}->{CountPhysicalItem(CleanWaterItemId)}; "
-                        + $"patientOrders={restoredPatientOrders}; claim={restoredClaimExact}");
+                        + $"patientOrders={restoredPatientOrders}; "
+                        + $"committedMedicine={restoredCommittedMedicine}; "
+                        + $"destinationQuantity={restoredDestinationQuantity}; "
+                        + $"destinationStacks={DescribeDestinationStacks(order.materialDestinationId)}; "
+                        + $"claim={restoredClaimExact}");
 
                     restoredActionStartBaseline = restoredGate.ActionStarts;
                     currentFormatRestorePerformed = true;
+                    bool restoredPriorityAccepted = doctorWork
+                        .TrySetPriorityWorkTarget(
+                            table,
+                            BuiltInWorkTypeIds.Surgery,
+                            null,
+                            out string restoredPriorityFailure);
+                    Check(
+                        restoredPriorityAccepted,
+                        "SURGERY_CURRENT_RESTORE_PRIORITY_TARGET_REBOUND",
+                        restoredPriorityAccepted
+                            ? $"doctor={liveDoctorId}; order={liveOrderId}; facility={liveFacilityId}"
+                            : restoredPriorityFailure);
                     doctor.Brain.PreferWorkActionOnNextDecision(
                         BuiltInWorkTypeIds.Surgery,
                         120f);
                     doctor.Brain.RequestImmediateReplan(clearFailures: true);
-                    Time.timeScale = 8f;
+                    Time.timeScale = VerificationTimeScale;
                 }
 
                 if (currentFormatRestorePerformed && doctor?.Brain != null)
@@ -920,38 +1350,24 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                                 leg.DropPosition == table.centerPos));
                 }
 
-                bool madeAuthoritativeProgress =
-                    order.state != lastProgressState
-                    || order.completedWork > lastProgressWork + 0.0001f
-                    || (committedMaterialObserved
-                        && !lastCommittedMaterialObserved)
-                    || (deliveredMaterialObserved
-                        && !lastDeliveredMaterialObserved)
-                    || (order.materialsConsumed && !lastMaterialsConsumed)
-                    || (order.processFluidConsumed
-                        && !lastProcessFluidConsumed);
-                if (madeAuthoritativeProgress)
-                {
-                    lastAuthoritativeProgressAt =
-                        Time.realtimeSinceStartup;
-                    noProgressDeadline = lastAuthoritativeProgressAt
-                        + NoProgressTimeoutSeconds;
-                }
-
-                lastProgressState = order.state;
-                lastProgressWork = Mathf.Max(
-                    lastProgressWork,
-                    order.completedWork);
-                lastCommittedMaterialObserved =
-                    committedMaterialObserved;
-                lastDeliveredMaterialObserved =
-                    deliveredMaterialObserved;
-                lastMaterialsConsumed = order.materialsConsumed;
-                lastProcessFluidConsumed = order.processFluidConsumed;
                 yield return null;
             }
 
             observedStates.Add(order.state);
+            if (SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification && !order.IsActive)
+                Time.timeScale = 0f;
+            if (SurgeryPlayModeVerifier.IsW01PublicationRecoveryVerification)
+            {
+                Check(false, "W01_SURGERY_PUBLICATION_FAULT_REACHED",
+                    "expected recovery checkpoint was not observed; faults=" + publicationFaultCount
+                        + "; state=" + order.state);
+                Finish();
+                yield break;
+            }
+            Check(
+                surgeonPriorityIssued && surgeonPriorityAccepted,
+                "SURGERY_PRIORITY_TARGET_ACCEPTED",
+                $"issued={surgeonPriorityIssued}; accepted={surgeonPriorityAccepted}; failure={surgeonPriorityFailure}");
             Check(
                 currentFormatRestorePerformed,
                 "SURGERY_CURRENT_RESTORE_TRIGGERED",
@@ -1006,9 +1422,18 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                         processWaterDestinationId,
                         StringComparison.Ordinal))
                 .Sum(stack => stack.Quantity);
-            Check(!order.IsActive && order.state == SurgeryOrderState.Completed,
-                "SURGERY_COMPLETED_BY_WORK_AI",
-                $"state={order.state}; status={order.statusData?.code}; elapsed={Time.realtimeSinceStartup - startedAt:0.0}s; noProgress={Time.realtimeSinceStartup - lastAuthoritativeProgressAt:0.0}s; overallLimit={OverallTimeoutSeconds:0}s; noProgressLimit={NoProgressTimeoutSeconds:0}s");
+            SurgeryOrderState expectedTerminalState = SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification
+                ? SurgeryOrderState.Failed : SurgeryOrderState.Completed;
+            Check(!order.IsActive && order.state == expectedTerminalState,
+                SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification
+                    ? "SURGERY_CLINICAL_FAILURE_BY_WORK_AI" : "SURGERY_COMPLETED_BY_WORK_AI",
+                $"state={order.state}; status={order.statusData?.code}; elapsed={Time.realtimeSinceStartup - startedAt:0.0}s; "
+                + $"simulationElapsed={simulationClock.Time - startedSimulationTime:0.###}s; frames={Time.frameCount - startedFrame}; "
+                + $"noProgress={Time.realtimeSinceStartup - lastAuthoritativeProgressAt:0.0}s/"
+                + $"{simulationClock.Time - lastAuthoritativeProgressSimulationTime:0.###}gameSeconds/"
+                + $"{Time.frameCount - lastAuthoritativeProgressFrame}frames; "
+                + $"overallLimit={OverallTimeoutSeconds:0}s+{OverallSimulationSeconds:0}gameSeconds|{OverallFrameCount}frames; "
+                + $"noProgressLimit={NoProgressTimeoutSeconds:0}s+{NoProgressSimulationSeconds:0}gameSeconds|{NoProgressFrameCount}frames");
             Check(
                 exactHaulPlanObserved || committedMaterialObserved,
                 "SURGERY_MATERIAL_HAUL_PLAN_PREFLIGHT",
@@ -1029,7 +1454,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             Check(order.materialsRequested && order.materialsConsumed,
                 "SURGERY_MATERIAL_FLOW",
                 $"requested={order.materialsRequested}; consumed={order.materialsConsumed}; medicine={initialMedicine}->{remainingMedicine}");
-            Check(remainingMedicine < initialMedicine, "SURGERY_PHYSICAL_MEDICINE_CONSUMED",
+            Check(remainingMedicine == initialMedicine - requiredMaterials[medicineId], "SURGERY_PHYSICAL_MEDICINE_CONSUMED",
                 $"{initialMedicine}->{remainingMedicine}");
             bool manualProcessWaterConsumed = initialProcessWater == 1
                 && remainingProcessWater == 0;
@@ -1056,17 +1481,19 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                     && reachedStates.Contains(SurgeryOrderState.Suturing),
                 "SURGERY_STAGES_OBSERVED",
                 string.Join(",", reachedStates.OrderBy(state => (int)state)));
-            Check(healedHealth > injuredHealth, "SURGERY_PATIENT_RECOVERED",
-                $"{injuredHealth:0.##}->{healedHealth:0.##}");
-            bool fullyHealedForIsolation = anatomy.TryHealNode(
-                patient,
-                targetNodeId,
-                100f,
-                100f);
-            Check(
-                fullyHealedForIsolation,
-                "SURGERY_POST_COMPLETION_TEST_ISOLATION",
-                $"patient={patient.Identity?.PersistentId}; node={targetNodeId}");
+            if (SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification)
+            {
+                VerifyW01ClinicalFailureResult(scope, order, initialWater, remainingWater);
+            }
+            else
+            {
+                Check(healedHealth > injuredHealth, "SURGERY_PATIENT_RECOVERED",
+                    $"{injuredHealth:0.##}->{healedHealth:0.##}");
+                bool fullyHealedForIsolation = anatomy.TryHealNode(
+                    patient, targetNodeId, 100f, 100f);
+                Check(fullyHealedForIsolation, "SURGERY_POST_COMPLETION_TEST_ISOLATION",
+                    $"patient={patient.Identity?.PersistentId}; node={targetNodeId}");
+            }
             bool completedClaimRevoked = !destinationClaims.CaptureClaims().Any(
                 claim => claim != null
                     && string.Equals(
@@ -1077,6 +1504,60 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                 completedClaimRevoked,
                 "SURGERY_MATERIAL_DESTINATION_CLAIM_REVOKED_AFTER_COMPLETE",
                 $"destination={order.materialDestinationId}; remaining={destinationClaims.CaptureClaims().Count}");
+
+            WorkCompletedIdentityEvent[] terminalIdentities = identityEvents
+                .Skip(identityBaseline)
+                .Where(value => value.Character.Equals(
+                    CharacterPersistentIdentity.Require(doctor)))
+                .ToArray();
+            WorkCompletedIdentityEvent[] domainIdentities = terminalIdentities
+                .Where(value => string.Equals(
+                    value.WorkId,
+                    "surgery:" + order.procedureId,
+                    StringComparison.Ordinal))
+                .ToArray();
+            int genericIdentityCount = terminalIdentities.Count(value =>
+                string.Equals(
+                    value.WorkId,
+                    BuiltInWorkTypeIds.Surgery.Value,
+                    StringComparison.Ordinal));
+            Check(
+                order.completionFactDelivered
+                    && W01CompletionAcknowledged(scope, order)
+                    && W01CompletionNotificationAttempted(scope, order)
+                    && order.completionDoctorId == doctor.Identity.PersistentId
+                    && domainIdentities.Length == 1
+                    && genericIdentityCount == 0
+                    && string.Equals(
+                        domainIdentities[0].ProductId,
+                        order.resultSucceeded ? order.resultOutcomeId : "outcome:" + order.resultOutcomeId,
+                        StringComparison.Ordinal),
+                "SURGERY_W05_TERMINAL_IDENTITY_EXACTLY_ONCE",
+                "published=" + order.completionFactDelivered
+                    + "; domain=" + domainIdentities.Length
+                    + "; generic=" + genericIdentityCount
+                    + "; domainProduct="
+                    + (domainIdentities.Length == 1
+                        ? domainIdentities[0].ProductId
+                        : "-")
+                    + "; outcome=" + order.resultOutcomeId);
+
+            if (SurgeryPlayModeVerifier.IsW05IdentityVerification)
+            {
+                if (domainIdentities.Length == 1)
+                {
+                    try
+                    {
+                        VerifyW01SurgeryTerminalIdentity(scope, order, domainIdentities[0]);
+                    }
+                    catch (Exception error)
+                    {
+                        Check(false, "W01_SURGERY_TERMINAL_VERIFICATION_EXCEPTION", error.ToString());
+                    }
+                }
+                Finish();
+                yield break;
+            }
 
             UnityEngine.Object.Destroy(window);
             yield return null;
@@ -1305,7 +1786,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                 120f);
             if (Time.timeScale <= 0f)
             {
-                Time.timeScale = 8f;
+                Time.timeScale = VerificationTimeScale;
             }
             yield return null;
         }
@@ -2026,6 +2507,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
         RoomLayout layout,
         Grid grid,
         BuildingSO asset,
+        Vector2Int patientPosition,
         out Vector2Int tablePosition,
         out Vector2Int supplyPosition)
     {
@@ -2038,10 +2520,21 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
 
         foreach (RoomInstance room in layout.Rooms
                      .Where(candidate => candidate != null && candidate.IsUsable)
-                     .OrderByDescending(candidate => candidate.Cells.Count))
+                     .OrderBy(candidate => candidate.Cells.Min(position =>
+                         Mathf.Abs(position.x - patientPosition.x)
+                         + Mathf.Abs(position.y - patientPosition.y)))
+                     .ThenByDescending(candidate => candidate.Cells.Count))
         {
             HashSet<Vector2Int> roomCells = new(room.Cells);
-            foreach (Vector2Int cell in room.Cells.OrderBy(position => position.x))
+            foreach (Vector2Int cell in room.Cells
+                         .Where(position => Mathf.Abs(
+                                 position.x - patientPosition.x)
+                             + Mathf.Abs(position.y - patientPosition.y) >= 4)
+                         .OrderBy(position => Mathf.Abs(
+                                 position.x - patientPosition.x)
+                             + Mathf.Abs(position.y - patientPosition.y))
+                         .ThenBy(position => position.x)
+                         .ThenBy(position => position.y))
             {
                 IReadOnlyList<Vector2Int> footprint =
                     asset.GetGridPosList(cell);
@@ -2382,6 +2875,899 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
         }
     }
 
+    private void InjectPublicationFaultOnce(WorkCompletedIdentityEvent gameEvent)
+    {
+        if (publicationFaultCount != 0
+            || !gameEvent.WorkId.StartsWith("surgery:", StringComparison.Ordinal))
+            return;
+        publicationFaultEvent = gameEvent;
+        publicationFaultCount++;
+        Time.timeScale = 0f;
+        throw new InvalidOperationException(PublicationFaultMarker);
+    }
+
+    // QA-only transparent decorator: the real registered command commits first.
+    // This cuts only its return/owner-ACK boundary, never fabricates a result.
+    private sealed class CompletionAckFaultProbe : IWorkCompletionIdentityDeliveryCommand
+    {
+        private readonly SurgeryPlayModeVerificationRunner owner;
+        private readonly IWorkCompletionIdentityDeliveryCommand inner;
+
+        public CompletionAckFaultProbe(SurgeryPlayModeVerificationRunner owner,
+            IWorkCompletionIdentityDeliveryCommand inner)
+        {
+            this.owner = owner;
+            this.inner = inner;
+        }
+
+        public WorkCompletionIdentityDeliveryResult EnsureApplied(
+            WorkCompletionIdentityDeliveryRequest request)
+        {
+            WorkCompletionIdentityDeliveryResult result = inner.EnsureApplied(request);
+            if (result.IsApplied && owner.commandAckFaultCount == 0
+                && request.WorkId.StartsWith("surgery:", StringComparison.Ordinal))
+            {
+                owner.publicationFaultEvent = request.ToEvent();
+                owner.commandAckFaultCount++;
+                Time.timeScale = 0f;
+                throw new InvalidOperationException(CommandAckFaultMarker);
+            }
+            return result;
+        }
+
+        public bool RetireProducerStream(string producerStreamId) =>
+            inner.RetireProducerStream(producerStreamId);
+    }
+
+    private IEnumerator VerifySurgeryPublicationRecovery(
+        DungeonRuntimeLifetimeScope scope, SurgeryOrder order, IGameClock simulationClock)
+    {
+        CurrentStage = "w01-publication-pending-capture";
+        Time.timeScale = 0f;
+        WorkCompletedIdentityEvent terminal = publicationFaultEvent;
+        string orderId = order.orderId;
+        string patientId = order.subject.subjectId;
+        GameplayResultKey childKey = SurgeryOutcomeIds.ResultKey(orderId);
+        List<GameplayOutcomeSnapshot> before = W01ExactOutcomes(scope);
+        GameplayOutcomeSnapshot[] children = before.Where(value =>
+            W01ResultKey(value) == childKey.ToString()).ToArray();
+        GameplayOutcomeSnapshot[] identities = W01IdentityOutcomes(before, terminal);
+        WorkCompletionIdentityDeliveryLedger deliveries =
+            Resolve<WorkCompletionIdentityDeliveryLedger>(scope);
+        string cursorBefore = W01CursorFingerprint(deliveries);
+        string identityBefore = W01IdentityFingerprint(identities);
+        string childBefore = W01IdentityFingerprint(children);
+        float workBefore = order.completedWork;
+        int medicineBefore = CountPhysicalItem(StandardMedicineItemId);
+        int waterBefore = CountPhysicalItem(CleanWaterItemId);
+        bool pendingExact = commandAckFaultCount == 1 && publicationFaultCount == 0
+            && order.resultRolled && order.resultSucceeded && order.resolutionFactAccepted
+            && W01CompletionAcknowledged(scope, order) && !W01CompletionNotificationAttempted(scope, order)
+            && !string.IsNullOrEmpty(order.completionPublicationKey)
+            && order.completionDoctorId == terminal.Character.Value
+            && order.completionAbsoluteDay == terminal.AbsoluteDay
+            && !order.completionFactDelivered && order.completedWork >= order.requiredWork
+            && children.Length == 1 && identities.Length == 1;
+        Check(pendingExact, "W01_SURGERY_PUBLICATION_PENDING_EXACT",
+            "commandFaults=" + commandAckFaultCount + "; state=" + order.state
+                + "; committed=" + order.resolutionFactAccepted
+                + "; published=" + order.completionFactDelivered
+                + "; work=" + order.completedWork + "; doctor=" + order.doctorId
+                + "; identities=" + identities.Length + "; children=" + children.Length
+                + "; medicine=" + medicineBefore + "; water=" + waterBefore);
+        if (!pendingExact)
+            yield break;
+
+        DungeonGameSaveData pending = gameSave.Capture();
+        string pendingJson = gameSave.ToJson(pending, true);
+        W01WriteWorldEvidence("w01-surgery-publication-pending-world.json", pendingJson);
+        VerifyW01SurgeryStoredOwnerRejections(scope, pendingJson, orderId, patientId);
+        CharacterActor previousDoctor = doctor;
+        CharacterActor previousPatient = patient;
+        bool restored = gameSave.TryRestore(gameSave.FromJson(pendingJson),
+            out DungeonGameRestoreReport restoreReport);
+        Check(restored && restoreReport.Success, "W01_SURGERY_PUBLICATION_PENDING_WORLD_RESTORE",
+            restored ? "sections=" + pending.sections.Count : string.Join(" | ", restoreReport.Errors));
+        if (!restored)
+            yield break;
+        ICharacterWorldQuery characters = Resolve<ICharacterWorldQuery>(scope);
+        doctor = characters.Characters.Single(value => value != null
+            && value.Identity?.PersistentId == terminal.Character.Value);
+        patient = characters.Characters.Single(value => value != null
+            && value.Identity?.PersistentId == patientId);
+        doctorWork = doctor.GetAbility<AbilityWork>();
+        surgery.TryGetOrder(orderId, out order);
+        bool freshExact = order != null && !ReferenceEquals(previousDoctor, doctor)
+            && !ReferenceEquals(previousPatient, patient)
+            && order.resolutionFactAccepted && !order.completionFactDelivered
+            && W01CompletionAcknowledged(scope, order) && !W01CompletionNotificationAttempted(scope, order)
+            && !string.IsNullOrEmpty(order.completionPublicationKey)
+            && order.completionDoctorId == terminal.Character.Value
+            && order.completionAbsoluteDay == terminal.AbsoluteDay
+            && string.IsNullOrEmpty(order.doctorId)
+            && Mathf.Approximately(order.completedWork, workBefore)
+            && W01CursorFingerprint(deliveries) == cursorBefore;
+        Check(freshExact, "W01_SURGERY_PUBLICATION_PENDING_FRESH_OWNER",
+            "freshActors=" + (!ReferenceEquals(previousDoctor, doctor) && !ReferenceEquals(previousPatient, patient))
+                + "; state=" + order?.state + "; doctor=" + order?.doctorId
+                + "; published=" + order?.completionFactDelivered);
+        if (!freshExact)
+            yield break;
+        foreach (CharacterActor actor in characters.Characters.Where(value => value != null))
+            actor.SetAiPaused(true);
+
+        // Controlled calendar input, not evidence of a natural operating-day cycle.
+        // The completion receipt must retain its original date during ACK retry.
+        IGameCalendar recoveryCalendar = Resolve<IGameCalendar>(scope);
+        recoveryCalendar.SetDateTime(terminal.AbsoluteDay + 1, recoveryCalendar.Hour);
+        Check(recoveryCalendar.Day > terminal.AbsoluteDay,
+            "W01_SURGERY_LATER_CALENDAR_INPUT", "receiptDay=" + terminal.AbsoluteDay
+                + "; currentDay=" + recoveryCalendar.Day + "; controlled public calendar command");
+
+        CurrentStage = "w01-command-ack-natural-tick";
+        float ackWaitStarted = Time.realtimeSinceStartup;
+        Time.timeScale = VerificationTimeScale;
+        while (publicationFaultCount == 0
+            && Time.realtimeSinceStartup - ackWaitStarted < OverallTimeoutSeconds)
+            yield return null;
+        Time.timeScale = 0f;
+        surgery.TryGetOrder(orderId, out order);
+        bool acknowledgedBeforeNotification = publicationFaultCount == 1
+            && order != null && W01CompletionAcknowledged(scope, order)
+            && W01CompletionNotificationAttempted(scope, order) && !order.completionFactDelivered;
+        Check(acknowledgedBeforeNotification,
+            "W01_SURGERY_COMMAND_ACK_RECOVERED_BEFORE_NOTIFICATION_FAULT",
+            "ack=" + W01CompletionAcknowledged(scope, order)
+                + "; attempted=" + W01CompletionNotificationAttempted(scope, order)
+                + "; published=" + order?.completionFactDelivered
+                + "; commandFaults=" + commandAckFaultCount
+                + "; notificationFaults=" + publicationFaultCount);
+        if (!acknowledgedBeforeNotification)
+            yield break;
+        string notificationJson = gameSave.ToJson(gameSave.Capture(), true);
+        W01WriteWorldEvidence("w01-surgery-notification-failed-world.json", notificationJson);
+        VerifyW01SurgeryStoredOwnerRejections(scope, notificationJson, orderId, patientId, acknowledged: true);
+        bool notificationRestored = gameSave.TryRestore(gameSave.FromJson(notificationJson),
+            out DungeonGameRestoreReport notificationRestoreReport);
+        Check(notificationRestored && notificationRestoreReport.Success,
+            "W01_SURGERY_NOTIFICATION_FAILURE_WORLD_RESTORE",
+            notificationRestored ? "ack retained; notification failure not converted to success"
+                : string.Join(" | ", notificationRestoreReport.Errors));
+        if (!notificationRestored)
+            yield break;
+        doctor = characters.Characters.Single(value => value != null
+            && value.Identity?.PersistentId == terminal.Character.Value);
+        patient = characters.Characters.Single(value => value != null
+            && value.Identity?.PersistentId == patientId);
+        doctorWork = doctor.GetAbility<AbilityWork>();
+        surgery.TryGetOrder(orderId, out order);
+        foreach (CharacterActor actor in characters.Characters.Where(value => value != null))
+            actor.SetAiPaused(true);
+
+        CurrentStage = "w01-publication-natural-tick-recovery";
+        float startedSimulation = simulationClock.Time;
+        float startedRealtime = Time.realtimeSinceStartup;
+        int startedFrame = Time.frameCount;
+        float observationUntil = Mathf.Max(startedSimulation + 5f, order.recoveryUntil + 2f);
+        Time.timeScale = VerificationTimeScale;
+        while ((simulationClock.Time < observationUntil || Time.frameCount - startedFrame < 4)
+            && Time.realtimeSinceStartup - startedRealtime < OverallTimeoutSeconds)
+        {
+            yield return null;
+        }
+        Time.timeScale = 0f;
+        bool progressed = simulationClock.Time >= observationUntil && Time.frameCount - startedFrame >= 4;
+        Check(progressed, "W01_SURGERY_PUBLICATION_RECOVERY_TICK_OBSERVED",
+            "simulation=" + (simulationClock.Time - startedSimulation)
+                + "; frames=" + (Time.frameCount - startedFrame)
+                + "; realtime=" + (Time.realtimeSinceStartup - startedRealtime));
+        surgery.TryGetOrder(orderId, out order);
+        List<GameplayOutcomeSnapshot> after = W01ExactOutcomes(scope);
+        GameplayOutcomeSnapshot[] afterIdentities = W01IdentityOutcomes(after, terminal);
+        GameplayOutcomeSnapshot[] afterChildren = after.Where(value =>
+            W01ResultKey(value) == childKey.ToString()).ToArray();
+        int generic = identityEvents.Count(value => value.Character.Equals(terminal.Character)
+            && value.WorkId == BuiltInWorkTypeIds.Surgery.Value);
+        int domainAttempts = identityEvents.Count(value => value.WorkId == terminal.WorkId);
+        Check(order != null && W01CompletionAcknowledged(scope, order)
+                && W01CompletionNotificationAttempted(scope, order) && order.completionFactDelivered
+                && !string.IsNullOrEmpty(order.completionPublicationId)
+                && !string.IsNullOrEmpty(order.completionFingerprint)
+                && order.completionDoctorId == terminal.Character.Value
+                && order.completionAbsoluteDay == terminal.AbsoluteDay && domainAttempts == 1,
+            "W01_SURGERY_ACK_RETAINED_NOTIFICATION_FAILURE_NOT_REPLAYED",
+            "state=" + order?.state + "; doctor=" + order?.doctorId
+                + "; frozenDoctor=" + order?.completionDoctorId
+                + "; frozenDay=" + order?.completionAbsoluteDay
+                + "; ack=" + W01CompletionAcknowledged(scope, order)
+                + "; published=" + order?.completionFactDelivered
+                + "; domainEventAttempts=" + domainAttempts);
+        Check(order != null && order.state == SurgeryOrderState.Completed
+                && afterIdentities.Length == 1 && afterChildren.Length == 1
+                && W01IdentityFingerprint(afterIdentities) == identityBefore
+                && W01IdentityFingerprint(afterChildren) == childBefore
+                && W01CursorFingerprint(deliveries) == cursorBefore
+                && Mathf.Approximately(order.completedWork, workBefore)
+                && CountPhysicalItem(StandardMedicineItemId) == medicineBefore
+                && CountPhysicalItem(CleanWaterItemId) == waterBefore && generic == 0,
+            "W01_SURGERY_PUBLICATION_RECOVERY_NO_DUPLICATE",
+            "identities=" + afterIdentities.Length + "; children=" + afterChildren.Length
+                + "; generic=" + generic + "; state=" + order?.state
+                + "; medicine=" + medicineBefore + "->" + CountPhysicalItem(StandardMedicineItemId)
+                + "; water=" + waterBefore + "->" + CountPhysicalItem(CleanWaterItemId));
+        W01WriteWorldEvidence("w01-surgery-publication-after-wait-world.json",
+            gameSave.ToJson(gameSave.Capture(), true));
+        Check(commandAckFaultCount == 1 && publicationFaultCount == 1
+                && capturedErrors.Count == 0,
+            "W01_SURGERY_PUBLICATION_EXPECTED_FAULT_ACCOUNTED",
+            "command=" + commandAckFaultCount + "; notification=" + publicationFaultCount
+                + "; unhandledErrors=" + capturedErrors.Count
+                + "; observer recovered unknown ACK without retrying attempted notification");
+        yield return VerifySurgeryDepartedDoctorRecovery(scope, orderId, pendingJson, terminal, simulationClock);
+        SurgeryDebugScenarios.RunDoctorReferenceAvailabilityContracts();
+        Check(true, "W01_SURGERY_CURRENT_DOCTOR_REFERENCE_BOUNDARY",
+            "committed clinical history permits absent doctors; unfinished work still requires current doctors");
+        WorkTerminalIdentityOwnershipDebugScenarios.RunOrThrow();
+        Check(true, "W01_SURGERY_BOUNDED_DELIVERY_OWNER", "bounded command/defer/notification/save tests completed");
+    }
+
+    private IEnumerator VerifySurgeryDepartedDoctorRecovery(DungeonRuntimeLifetimeScope scope,
+        string orderId, string pendingJson, WorkCompletedIdentityEvent terminal, IGameClock simulationClock)
+    {
+        CurrentStage = "w01-doctor-departure-pending-rewind";
+        Time.timeScale = 0f;
+        // Independent controlled branch from the actual committed clinical/identity
+        // result. Never fabricate a historical doctor, outcome, or alive flag.
+        DungeonGameSaveData pendingWorld = gameSave.FromJson(pendingJson);
+        WorldCharacterProfile priorPopulationProfile = W01CharacterWorld(pendingWorld)
+            .populationProfiles.SingleOrDefault(value => value.persistentId == terminal.Character.Value);
+        bool rewound = gameSave.TryRestore(pendingWorld, out var rewindReport);
+        if (!Check(rewound && rewindReport.Success, "W01_SURGERY_DEPARTURE_BRANCH_REWIND",
+                rewound ? "actual pending world restored for an independent departure branch"
+                    : string.Join(" | ", rewindReport.Errors)))
+            yield break;
+        ICharacterWorldQuery characters = Resolve<ICharacterWorldQuery>(scope);
+        doctor = characters.Characters.Single(value => value != null
+            && value.Identity?.PersistentId == terminal.Character.Value);
+        doctorWork = doctor.GetAbility<AbilityWork>();
+        foreach (CharacterActor actor in characters.Characters.Where(value => value != null))
+            actor.SetAiPaused(true);
+        surgery.TryGetOrder(orderId, out SurgeryOrder order);
+        StaffDiscontentRuntime discontent = Resolve<CharacterSceneRuntimeReferences>(scope)?.StaffDiscontent;
+        ICharacterSettlementStandingQuery standings = Resolve<ICharacterSettlementStandingQuery>(scope);
+        if (!Check(order != null && discontent != null && !doctor.IsOwner && !doctor.IsDead
+                && standings?.IsFormalResident(doctor) == true
+                && order.resolutionFactAccepted && !order.completionFactDelivered
+                && W01CompletionAcknowledged(scope, order) && !W01CompletionNotificationAttempted(scope, order),
+                "W01_SURGERY_DEPARTURE_SOURCE_READY", "doctor=" + terminal.Character.Value
+                    + "; health=" + doctor.Stats.CurrentHealth + "; ack=" + W01CompletionAcknowledged(scope, order)))
+            yield break;
+        string patientId = order.subject.subjectId;
+        float healthBefore = doctor.Stats.CurrentHealth;
+        float workBefore = order.completedWork;
+        int medicineBefore = CountPhysicalItem(StandardMedicineItemId);
+        int waterBefore = CountPhysicalItem(CleanWaterItemId);
+        WorkCompletionIdentityDeliveryLedger deliveries = Resolve<WorkCompletionIdentityDeliveryLedger>(scope);
+        string cursorBefore = W01CursorFingerprint(deliveries);
+        List<GameplayOutcomeSnapshot> outcomesBefore = W01ExactOutcomes(scope);
+        string childBefore = W01IdentityFingerprint(outcomesBefore.Where(value => W01ResultKey(value) == terminal.ChildResultKey));
+        string identitiesBefore = W01IdentityFingerprint(outcomesBefore.Where(value =>
+            value.outcomeTypeId == WorkCompletionIdentityOutcomeIds.Applied.Value
+                && W01FactEquals(value, WorkCompletionIdentityOutcomeIds.WorkIdFact, terminal.WorkId)));
+
+        float departureMood = (discontent.Rules.rebellionMoodThreshold + discontent.Rules.departureMoodThreshold) / 2f;
+        if (!Check(departureMood > discontent.Rules.rebellionMoodThreshold
+                && departureMood <= discontent.Rules.departureMoodThreshold,
+                "W01_SURGERY_DEPARTURE_INPUT_RANGE", "controlled mood=" + departureMood))
+            yield break;
+        IGameCalendar calendar = Resolve<IGameCalendar>(scope);
+        int nextDay = calendar.Day + 1;
+        if (discontent.State.TryGetRecord(doctor, out StaffDiscontentRecord prior))
+            nextDay = Math.Max(nextDay, prior.LastProcessedAbsoluteDay + 1);
+        calendar.SetDateTime(nextDay, calendar.Hour);
+        // Lower the controlled base first. Its floor cannot cancel positive
+        // need factors, but the remaining pressure must fit the production
+        // interaction-factor limit instead of requesting a clamped large value.
+        doctor.Stats.SetControlledStatValue(CharacterCondition.MOOD, departureMood);
+        CharacterMoodSnapshot moodBefore = doctor.Stats.GetMoodSnapshot();
+        float departurePressure = departureMood - moodBefore.BaseValue
+            - moodBefore.Factors.Sum(value => value.Value);
+        float boundedPressure = new CharacterMoodMemory(
+            "qa:w01:departure-input-probe", "Departure input range probe",
+            departurePressure, 120f, 1, simulationClock.Time).TotalValue;
+        if (!Check(Mathf.Approximately(boundedPressure, departurePressure),
+                "W01_SURGERY_DEPARTURE_FACTOR_NOT_CLAMPED", "base=" + moodBefore.BaseValue
+                    + "; factors=" + moodBefore.Factors.Sum(value => value.Value)
+                    + "; requested=" + departurePressure + "; bounded=" + boundedPressure))
+            yield break;
+        bool pressureApplied = doctor.Stats.ApplyResolvedMoodFactor(
+            "qa:w01:departure-pressure:" + orderId, "Controlled departure pressure",
+            departurePressure, 120f, 1, absoluteDay: nextDay);
+        float observedMood = StaffDiscontentService.GetMood(doctor);
+        if (!Check(pressureApplied && Mathf.Approximately(observedMood, departureMood)
+                && StaffDiscontentService.EvaluateStage(observedMood, 0, discontent.Rules)
+                    == StaffDiscontentStage.Departure,
+                "W01_SURGERY_DEPARTURE_PROJECTED_INPUT", "base=" + moodBefore.BaseValue
+                    + "; factors=" + moodBefore.Factors.Sum(value => value.Value)
+                    + "; pressure=" + departurePressure + "; observed=" + observedMood))
+            yield break;
+        StaffDiscontentRecord departed = discontent.ProcessStaff(doctor, out StaffDiscontentOutcome departure);
+        if (!Check(departure == StaffDiscontentOutcome.PermanentDeparture
+                && departed != null && departed.IsDeparted && departed.IsPermanentLoss,
+                "W01_SURGERY_PRODUCTION_STAFF_DEPARTURE", "outcome=" + departure
+                    + "; stage=" + departed?.Stage + "; observedMood=" + departed?.LastMood
+                    + "; lifecycle=" + doctor.CurrentLifecycleState))
+            yield break;
+        // A real departure is not permission to rewrite living staff as dead.
+        // Actor.IsDead deliberately includes Despawned/unavailable actors;
+        // biological life belongs to Stats, not that composite availability flag.
+        Check(!doctor.Stats.IsDead && doctor.CurrentLifecycleState == CharacterLifecycleState.Despawned
+                && Mathf.Approximately(doctor.Stats.CurrentHealth, healthBefore),
+            "W01_SURGERY_DEPARTURE_PRESERVES_LIFE", "vitalsDead=" + doctor.Stats.IsDead
+                + "; actorDead=" + doctor.IsDead + "; health=" + healthBefore + "->" + doctor.Stats.CurrentHealth);
+        DungeonGameSaveData absentSave = null;
+        try { absentSave = gameSave.Capture(); }
+        catch (Exception error) { Check(false, "W01_SURGERY_DEPARTURE_CAPTURE", error.ToString()); }
+        if (absentSave == null)
+            yield break;
+        DungeonCharacterWorldSaveData absentWorld = W01CharacterWorld(absentSave);
+        WorldCharacterProfile history = absentWorld.populationProfiles.SingleOrDefault(value => value.persistentId == terminal.Character.Value);
+        DungeonStaffDiscontentSaveData departureOwner = DungeonSaveJson.Deserialize<DungeonStaffDiscontentSaveData>(
+            absentSave.sections.Single(value => value.sectionId == "characters.staff-discontent").payloadJson);
+        DungeonStaffDiscontentRecordSaveData savedDeparture = departureOwner.records.SingleOrDefault(value =>
+            value.staffId == terminal.Character.Value);
+        // Initial run staff need not have a visitor-population profile. Retain
+        // existing membership; do not invent a profile to witness departure.
+        bool populationUnchanged = priorPopulationProfile == null ? history == null
+            : history != null && history.isAlive == priorPopulationProfile.isAlive;
+        Check(populationUnchanged && savedDeparture?.departed == true
+                && savedDeparture.permanentLoss
+                && !absentWorld.actors.Any(value => value.persistentId == terminal.Character.Value),
+            "W01_SURGERY_DEPARTURE_OWNER_WITHOUT_ACTOR", "profileBefore=" + (priorPopulationProfile != null)
+                + "; profileAfter=" + (history != null) + "; departed=" + savedDeparture?.departed
+                + "; permanentLoss=" + savedDeparture?.permanentLoss + "; actorRecords="
+                + absentWorld.actors.Count(value => value.persistentId == terminal.Character.Value));
+        string absentJson = gameSave.ToJson(absentSave, true);
+        W01WriteWorldEvidence("w01-surgery-departed-doctor-pending-world.json", absentJson);
+        bool restored = gameSave.TryRestore(gameSave.FromJson(absentJson), out var restoreReport);
+        if (!Check(restored && restoreReport.Success, "W01_SURGERY_DEPARTURE_WORLD_RESTORE",
+                restored ? "sections=" + absentSave.sections.Count : string.Join(" | ", restoreReport.Errors)))
+            yield break;
+        doctor = null;
+        doctorWork = null;
+        patient = characters.Characters.Single(value => value != null && value.Identity?.PersistentId == patientId);
+        foreach (CharacterActor actor in characters.Characters.Where(value => value != null))
+            actor.SetAiPaused(true);
+        surgery.TryGetOrder(orderId, out order);
+        if (!Check(!characters.Characters.Any(value => value != null && value.Identity?.PersistentId == terminal.Character.Value)
+                && discontent.State.TryGetRecord(terminal.Character.Value, out StaffDiscontentRecord restoredDeparture)
+                && restoredDeparture.IsDeparted && restoredDeparture.IsPermanentLoss
+                && order != null && order.completionDoctorId == terminal.Character.Value
+                && order.completionAbsoluteDay == terminal.AbsoluteDay && !order.completionFactDelivered
+                && W01CompletionAcknowledged(scope, order) && !W01CompletionNotificationAttempted(scope, order)
+                && W01CursorFingerprint(deliveries) == cursorBefore,
+                "W01_SURGERY_DEPARTED_DOCTOR_FROZEN_OWNER", "doctor=" + order?.completionDoctorId
+                    + "; day=" + order?.completionAbsoluteDay + "; ack=" + W01CompletionAcknowledged(scope, order)))
+            yield break;
+        int attemptsBefore = identityEvents.Count(value => value.Character.Equals(terminal.Character) && value.WorkId == terminal.WorkId);
+        float startedSimulation = simulationClock.Time;
+        float startedRealtime = Time.realtimeSinceStartup;
+        int startedFrame = Time.frameCount;
+        float observationUntil = Mathf.Max(startedSimulation + 5f, order.recoveryUntil + 2f);
+        CurrentStage = "w01-departed-doctor-natural-ack";
+        Time.timeScale = VerificationTimeScale;
+        while ((simulationClock.Time < observationUntil || Time.frameCount - startedFrame < 4)
+            && Time.realtimeSinceStartup - startedRealtime < OverallTimeoutSeconds)
+            yield return null;
+        Time.timeScale = 0f;
+        surgery.TryGetOrder(orderId, out order);
+        List<GameplayOutcomeSnapshot> after = W01ExactOutcomes(scope);
+        bool exact = W01IdentityFingerprint(after.Where(value => W01ResultKey(value) == terminal.ChildResultKey)) == childBefore
+            && W01IdentityFingerprint(after.Where(value => value.outcomeTypeId == WorkCompletionIdentityOutcomeIds.Applied.Value
+                && W01FactEquals(value, WorkCompletionIdentityOutcomeIds.WorkIdFact, terminal.WorkId))) == identitiesBefore
+            && W01CursorFingerprint(deliveries) == cursorBefore;
+        Check(simulationClock.Time >= observationUntil && Time.frameCount - startedFrame >= 4
+                && order != null && order.state == SurgeryOrderState.Completed
+                && W01CompletionAcknowledged(scope, order) && W01CompletionNotificationAttempted(scope, order) && order.completionFactDelivered
+                && order.completionDoctorId == terminal.Character.Value && order.completionAbsoluteDay == terminal.AbsoluteDay
+                && Mathf.Approximately(order.completedWork, workBefore) && exact
+                && CountPhysicalItem(StandardMedicineItemId) == medicineBefore && CountPhysicalItem(CleanWaterItemId) == waterBefore
+                && identityEvents.Count(value => value.Character.Equals(terminal.Character) && value.WorkId == terminal.WorkId) == attemptsBefore + 1,
+            "W01_SURGERY_DEPARTED_DOCTOR_ACK_NO_DUPLICATE", "state=" + order?.state
+                + "; ack=" + W01CompletionAcknowledged(scope, order) + "; published=" + order?.completionFactDelivered
+                + "; exact=" + exact + "; simulation=" + (simulationClock.Time - startedSimulation)
+                + "; frames=" + (Time.frameCount - startedFrame));
+        string survivorsBefore = SurvivorEffects();
+        WorkCompletionIdentityDeliveryRequest request = WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(terminal);
+        WorkCompletionIdentityDeliveryResult replay = originalCompletionCommand.EnsureApplied(request);
+        Resolve<CharacterIdentityEventPublisher>(scope).Publish(terminal);
+        Resolve<CharacterIdentityEventPublisher>(scope).Publish(terminal);
+        Check(replay.Status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied
+                && W01CursorFingerprint(deliveries) == cursorBefore && SurvivorEffects() == survivorsBefore
+                && W01IdentityFingerprint(W01ExactOutcomes(scope).Where(value =>
+                    value.outcomeTypeId == WorkCompletionIdentityOutcomeIds.Applied.Value
+                        && W01FactEquals(value, WorkCompletionIdentityOutcomeIds.WorkIdFact, terminal.WorkId))) == identitiesBefore,
+            "W01_SURGERY_DEPARTED_DOCTOR_REDELIVERY_NO_OTHER_RECIPIENT", "status=" + replay.Status
+                + "; originalDoctor=" + terminal.Character.Value + "; surviving effects unchanged=" + (SurvivorEffects() == survivorsBefore));
+        W01WriteWorldEvidence("w01-surgery-departed-doctor-completed-world.json", gameSave.ToJson(gameSave.Capture(), true));
+
+        string SurvivorEffects() => string.Join("|", characters.Characters.Where(value => value != null)
+            .OrderBy(value => value.Identity.PersistentId, StringComparer.Ordinal)
+            .Select(value => value.Identity.PersistentId + ":" + W01WorkerIdentityFingerprint(scope, value)));
+    }
+
+    private static DungeonCharacterWorldSaveData W01CharacterWorld(DungeonGameSaveData save) =>
+        DungeonSaveJson.Deserialize<DungeonCharacterWorldSaveData>(save.sections.Single(value =>
+            value.sectionId == "characters.world").payloadJson);
+
+    private void VerifyW01SurgeryStoredOwnerRejections(
+        DungeonRuntimeLifetimeScope scope, string sourceJson, string orderId, string otherDoctorId,
+        bool acknowledged = false)
+    {
+        if (!acknowledged)
+        {
+            Reject("empty-doctor", value => value.completionDoctorId = string.Empty);
+            Reject("negative-day", value => value.completionAbsoluteDay = -1);
+            Reject("different-valid-doctor", value => value.completionDoctorId = otherDoctorId);
+            Reject("different-valid-day", value => value.completionAbsoluteDay =
+                value.completionAbsoluteDay == 0 ? 1 : value.completionAbsoluteDay - 1);
+        }
+        else
+        {
+            Reject("ack-without-cursor", null, (candidate, owner) =>
+            {
+                var narrativeSection = candidate.sections.Single(value => value.sectionId == CharacterNarrativeSaveSection.Id);
+                var narrative = DungeonSaveJson.Deserialize<CharacterNarrativeWorldSaveData>(narrativeSection.payloadJson);
+                var request = WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(
+                    SurgeryWorkCompletionFactMapping.CreateCompletionEvent(new SurgeryWorkCompletedFact(owner.resolvedFact)));
+                int removed = narrative.workCompletionDeliveries.RemoveAll(value => value.producerStreamId == request.ProducerStreamId);
+                if (removed != 1) throw new InvalidOperationException("Surgery ACK corruption requires exactly one real cursor.");
+                narrativeSection.payloadJson = JsonUtility.ToJson(narrative);
+            });
+        }
+
+        void Reject(string caseId, Action<SurgeryOrder> mutate,
+            Action<DungeonGameSaveData, SurgeryOrder> mutateOther = null)
+        {
+            DungeonGameSaveData candidate = gameSave.FromJson(sourceJson);
+            DungeonSaveSectionEnvelope section = candidate.sections.Single(value =>
+                value.sectionId == "medical.surgery");
+            DungeonSurgerySaveData medical = DungeonSaveJson.Deserialize<DungeonSurgerySaveData>(section.payloadJson);
+            SurgeryOrder owner = medical.orders.Single(value => value.orderId == orderId);
+            mutate?.Invoke(owner);
+            section.payloadJson = JsonUtility.ToJson(medical);
+            mutateOther?.Invoke(candidate, owner);
+            // Only reseal this detached QA copy: test the domain join, not checksum rejection.
+            candidate.manifest = DungeonSaveManifest.Capture(candidate.sections);
+            W01WriteWorldEvidence("w01-surgery-owner-" + caseId + "-invalid-world.json",
+                gameSave.ToJson(candidate, true));
+            DungeonRuntimeAggregateRootStore root = Resolve<DungeonRuntimeAggregateRootStore>(scope);
+            int revision = root.PublishedRestoreRevision;
+            surgery.TryGetOrder(orderId, out SurgeryOrder ownerBefore);
+            string before = SectionPayloads(gameSave.Capture());
+            bool accepted = gameSave.TryRestore(candidate, out DungeonGameRestoreReport failure);
+            bool unchanged = false;
+            string captureError = string.Empty;
+            if (!accepted)
+            {
+                try { unchanged = before == SectionPayloads(gameSave.Capture()); }
+                catch (Exception error) { captureError = error.Message; }
+            }
+            surgery.TryGetOrder(orderId, out SurgeryOrder ownerAfter);
+            bool rejectedForOwner = !accepted && failure.Errors.Any(value =>
+                value.IndexOf("surgery", StringComparison.OrdinalIgnoreCase) >= 0);
+            bool referencesExact = ReferenceEquals(ownerBefore, ownerAfter)
+                && root.PublishedRestoreRevision == revision && !root.IsRestoreStaging;
+            string detail = "accepted=" + accepted + "; sectionsUnchanged=" + unchanged
+                + "; ownerReferencesUnchanged=" + referencesExact
+                + "; errors=" + string.Join(" | ", failure.Errors) + "; captureError=" + captureError;
+            W01WriteWorldEvidence("w01-surgery-owner-" + caseId + "-witness.txt", detail);
+            Check(rejectedForOwner && unchanged && referencesExact,
+                "W01_SURGERY_STORED_OWNER_REJECT_" + caseId.ToUpperInvariant().Replace('-', '_'), detail);
+            if (accepted || !unchanged || !referencesExact)
+            {
+                // Explicit independent QA rewind after recording FAIL. Never run a
+                // corrupt accepted world forward or turn its acceptance into a PASS.
+                bool rewound = gameSave.TryRestore(gameSave.FromJson(sourceJson), out var rewind);
+                Check(rewound && rewind.Success, "W01_SURGERY_OWNER_TEST_REWIND_" + caseId,
+                    rewound ? "clean official world restored after failed rejection test"
+                        : string.Join(" | ", rewind.Errors));
+                if (!rewound)
+                    throw new InvalidOperationException("Surgery owner rejection QA rewind failed: " + caseId);
+            }
+        }
+
+        static string SectionPayloads(DungeonGameSaveData data) => string.Join("\n", data.sections
+            .OrderBy(value => value.sectionId, StringComparer.Ordinal)
+            .Select(value => value.sectionId + ":" + value.sectionVersion + ":" + value.payloadJson));
+    }
+
+    private static void W01WriteWorldEvidence(string filename, string json)
+    {
+        string output = Path.GetDirectoryName(SurgeryPlayModeVerifier.ReportPath);
+        Directory.CreateDirectory(output);
+        using FileStream stream = new(Path.Combine(output, filename),
+            FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+        using StreamWriter writer = new(stream, new System.Text.UTF8Encoding(false));
+        writer.Write(json);
+    }
+
+    private void VerifyW01ClinicalFailureResult(DungeonRuntimeLifetimeScope scope,
+        SurgeryOrder order, int initialWater, int remainingWater)
+    {
+        CurrentStage = "w01-clinical-failure-result";
+        GameplayResultKey childKey = SurgeryOutcomeIds.ResultKey(order.orderId);
+        GameplayOutcomeSnapshot[] children = W01ExactOutcomes(scope)
+            .Where(value => W01ResultKey(value) == childKey.ToString()).ToArray();
+        bool failed = order.state == SurgeryOrderState.Failed
+            && order.resultRolled && !order.resultSucceeded
+            && order.resultOutcomeId == "failure" && order.failureSeverity == SurgeryFailureSeverity.Minor
+            && order.outcomeConsequencesApplied && order.outcomeConsequenceStep == 2
+            && order.resolvedEffectCount == 0 && order.resolutionFactAccepted
+            && order.statusData.code == SurgeryStatusCode.CompletedWithMinorFailure;
+        Check(failed, "W01_CLINICAL_FAILURE_FROZEN_RESULT",
+            $"state={order.state}; result={order.resultOutcomeId}; succeeded={order.resultSucceeded}; severity={order.failureSeverity}; consequence={order.outcomeConsequenceStep}; successEffects={order.resolvedEffectCount}; status={order.statusData.code}");
+        ulong randomState = Resolve<IRandomStreamProvider>(scope).Get("medical:surgery-outcomes").State;
+        Check(randomState == clinicalFailureExpectedRandomState,
+            "W01_CLINICAL_FAILURE_PRODUCTION_RNG_TWO_DRAWS",
+            $"expected={clinicalFailureExpectedRandomState}; actual={randomState}");
+        Check(initialWater - remainingWater == 1, "W01_CLINICAL_FAILURE_WATER_CONSUMED_ONCE",
+            $"water={initialWater}->{remainingWater}");
+        bool exactChild = children.Length == 1 && children[0].status == GameplayOutcomeStatus.Failed
+            && W01FactEquals(children[0], SurgeryOutcomeIds.Result, "failure")
+            && W01FactEquals(children[0], SurgeryOutcomeIds.Severity, "Minor")
+            && children[0].absoluteDay == order.completionAbsoluteDay;
+        Check(exactChild, "W01_CLINICAL_FAILURE_FAILED_CHILD_NOT_SUCCESS",
+            $"children={children.Length}; exact={exactChild}; childStatus={(children.Length == 1 ? children[0].status.ToString() : "missing")}; frozenDoctor={order.completionDoctorId}; frozenDay={order.completionAbsoluteDay}");
+        if (children.Length != 1)
+            return;
+        string before = children[0].facts.Single(value => value.factId == SurgeryOutcomeIds.AnatomyBefore.Value).value;
+        string after = children[0].facts.Single(value => value.factId == SurgeryOutcomeIds.AnatomyAfter.Value).value;
+        float beforeHealth = W01ClinicalScalar(before, "health");
+        float afterHealth = W01ClinicalScalar(after, "health");
+        float beforeBleeding = W01ClinicalScalar(before, "bleeding");
+        float afterBleeding = W01ClinicalScalar(after, "bleeding");
+        float beforeInfection = W01ClinicalScalar(before, "infection");
+        float afterInfection = W01ClinicalScalar(after, "infection");
+        AnatomyNodeHealthState current = anatomy.GetAnatomySnapshot(patient).Nodes.Single(value => value.nodeId == targetNodeId);
+        Check(beforeHealth > 3f && Mathf.Abs(beforeHealth - afterHealth - 3f) < 0.001f
+                && Mathf.Abs(afterBleeding - beforeBleeding - 0.08f) < 0.001f
+                && Mathf.Abs(afterInfection - Mathf.Min(100f, beforeInfection + order.risk.infectionChance * 20f)) < 0.001f
+                && Mathf.Abs(current.currentHealth - afterHealth) < 0.001f
+                && !patient.Stats.IsDead && after.Split('|').Contains("life=alive"),
+            "W01_CLINICAL_FAILURE_ACTUAL_PATIENT_CONSEQUENCES",
+            $"health={beforeHealth:R}->{afterHealth:R}/live={current.currentHealth:R}; bleeding={beforeBleeding:R}->{afterBleeding:R}; infection={beforeInfection:R}->{afterInfection:R}; risk={order.risk.infectionChance:R}; alive={!patient.Stats.IsDead}");
+        Check(children[0].facts.Single(value => value.factId == SurgeryOutcomeIds.Materials.Value).value
+                    .Contains("consumed=1")
+                && children[0].facts.Single(value => value.factId == SurgeryOutcomeIds.ChildReferences.Value).value
+                    .Split('|').Contains("material-sink=" + order.materialSinkCommitId)
+                && !string.IsNullOrEmpty(order.materialSinkCommitId),
+            "W01_CLINICAL_FAILURE_MATERIAL_SINK_JOIN",
+            "sink=" + order.materialSinkCommitId + "; physical inputs are consumed even though the procedure failed");
+    }
+
+    private static float W01ClinicalScalar(string fact, string key) => float.Parse(
+        fact.Split('|').Single(value => value.StartsWith(key + "=", StringComparison.Ordinal))
+            .Substring(key.Length + 1).Split('/')[0],
+        System.Globalization.CultureInfo.InvariantCulture);
+
+    private string W01PatientClinicalFingerprint()
+    {
+        AnatomyNodeHealthState node = anatomy.GetAnatomySnapshot(patient).Nodes
+            .Single(value => value.nodeId == targetNodeId);
+        return JsonUtility.ToJson(node) + "|dead=" + patient.Stats.IsDead
+            + "|health=" + patient.Stats.CurrentHealth
+                .ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private void VerifyW01SurgeryTerminalIdentity(
+        DungeonRuntimeLifetimeScope scope,
+        SurgeryOrder order,
+        WorkCompletedIdentityEvent terminal)
+    {
+        CurrentStage = "w01-terminal-identity-join";
+        GameplayResultKey childKey = SurgeryOutcomeIds.ResultKey(order.orderId);
+        List<GameplayOutcomeSnapshot> original = W01ExactOutcomes(scope);
+        GameplayOutcomeSnapshot[] children = original.Where(value =>
+            W01ResultKey(value) == childKey.ToString()).ToArray();
+        GameplayOutcomeSnapshot[] identities = W01IdentityOutcomes(original, terminal);
+        bool childExact = order.resolutionFactAccepted && children.Length == 1
+            && children[0].outcomeTypeId == SurgeryOutcomeIds.Resolved.Value
+            && children[0].status == (order.resultSucceeded
+                ? GameplayOutcomeStatus.Succeeded : GameplayOutcomeStatus.Failed)
+            && children[0].absoluteDay == order.completionAbsoluteDay
+            && children[0].participants.Any(value => value.entityId == order.subject.subjectId
+                && value.roleId == SurgeryOutcomeIds.Patient.Value)
+            && children[0].facts.Any(value => value.factId == SurgeryOutcomeIds.Procedure.Value
+                && value.value.Split('|').Contains("doctor=" + terminal.Character.Value));
+        Check(childExact, "W01_SURGERY_COMMITTED_CHILD_EXACT",
+            "committed=" + order.resolutionFactAccepted + "; children=" + children.Length
+                + "; child=" + childKey + "; doctor=" + terminal.Character.Value
+                + "; patient=" + order.subject.subjectId);
+        bool referencesExact = terminal.Character.Value == order.completionDoctorId
+            && terminal.AbsoluteDay == order.completionAbsoluteDay
+            && terminal.OperationId == childKey.OperationId.Value
+            && terminal.TerminalOwnerId == childKey.ProducerId
+            && terminal.ChildResultKey == childKey.ToString()
+            && terminal.TargetEntityId == order.facilityId
+            && Mathf.Approximately(terminal.ContributionWorkUnits, order.completedWork);
+        bool ledgerJoined = identities.Length == 1
+            && W01FactEquals(identities[0], WorkCompletionIdentityOutcomeIds.OperationIdFact,
+                childKey.OperationId.Value)
+            && W01FactEquals(identities[0], WorkCompletionIdentityOutcomeIds.TerminalOwnerFact,
+                childKey.ProducerId)
+            && W01FactEquals(identities[0], WorkCompletionIdentityOutcomeIds.ChildResultKeyFact,
+                childKey.ToString())
+            && identities[0].subjects.Any(value =>
+                value.entityKindId == WorkCompletionIdentityOutcomeIds.BuildingKind.Value
+                && value.entityId == order.facilityId)
+            && identities[0].metrics.Any(value =>
+                value.metricId == WorkCompletionIdentityOutcomeIds.ContributionMetric.Value
+                && Math.Abs(value.value - order.completedWork) < 0.001d);
+        Check(childExact && referencesExact && ledgerJoined, "W01_SURGERY_IDENTITY_CHILD_JOIN",
+            "eventRefs=" + referencesExact + "; identityLedgerJoin=" + ledgerJoined
+                + "; identities=" + identities.Length + "; operation=" + terminal.OperationId
+                + "; owner=" + terminal.TerminalOwnerId + "; child=" + terminal.ChildResultKey
+                + "; facility=" + terminal.TargetEntityId
+                + "; work=" + terminal.ContributionWorkUnits + "/" + order.completedWork);
+
+        doctor.Brain?.StopCurrentActionForReplan("W01 completed surgery replay");
+        doctorWork?.ClearPriorityWorkTarget();
+        doctor.SetAiPaused(true);
+        patient.SetAiPaused(true);
+        Time.timeScale = 0f;
+        DungeonGameSaveData completed = gameSave.Capture();
+        string completedJson = gameSave.ToJson(completed, true);
+        string output = Path.GetDirectoryName(SurgeryPlayModeVerifier.ReportPath);
+        Directory.CreateDirectory(output);
+        using (FileStream stream = new(Path.Combine(output, SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification
+                       ? "w01-surgery-clinical-failed-world.json" : "w01-surgery-completed-world.json"),
+                   FileMode.CreateNew, FileAccess.Write, FileShare.Read))
+        using (StreamWriter writer = new(stream, new System.Text.UTF8Encoding(false)))
+            writer.Write(completedJson);
+
+        IGameEventBus events = Resolve<IGameEventBus>(scope);
+        WorkCompletionIdentityDeliveryLedger deliveries =
+            Resolve<WorkCompletionIdentityDeliveryLedger>(scope);
+        string cursorBefore = W01CursorFingerprint(deliveries);
+        string identityBefore = W01IdentityFingerprint(identities);
+        string workerBefore = W01WorkerIdentityFingerprint(scope, doctor);
+        string patientBefore = W01PatientClinicalFingerprint();
+        ulong randomBefore = Resolve<IRandomStreamProvider>(scope).Get("medical:surgery-outcomes").State;
+        string childBefore = children.Length == 1 ? children[0].immutablePayloadHash : "missing";
+        int medicineBefore = CountPhysicalItem(StandardMedicineItemId);
+        int waterBefore = CountPhysicalItem(CleanWaterItemId);
+        events.Publish(terminal);
+        events.Publish(terminal);
+        List<GameplayOutcomeSnapshot> replayed = W01ExactOutcomes(scope);
+        GameplayOutcomeSnapshot[] replayIdentities = W01IdentityOutcomes(replayed, terminal);
+        Check(replayIdentities.Length == 1
+                && W01IdentityFingerprint(replayIdentities) == identityBefore
+                && W01CursorFingerprint(deliveries) == cursorBefore
+                && W01WorkerIdentityFingerprint(scope, doctor) == workerBefore
+                && W01PatientClinicalFingerprint() == patientBefore
+                && Resolve<IRandomStreamProvider>(scope).Get("medical:surgery-outcomes").State == randomBefore
+                && replayed.Count(value => W01ResultKey(value) == childKey.ToString()) == 1
+                && CountPhysicalItem(StandardMedicineItemId) == medicineBefore
+                && CountPhysicalItem(CleanWaterItemId) == waterBefore,
+            "W01_SURGERY_SAME_EVENT_REDELIVERY_NO_DUPLICATE",
+            "identities=" + identities.Length + "->" + replayIdentities.Length
+                + "; cursorUnchanged=" + (W01CursorFingerprint(deliveries) == cursorBefore)
+                + "; workerEffectsUnchanged=" + (W01WorkerIdentityFingerprint(scope, doctor) == workerBefore)
+                + "; child=" + childKey);
+
+        WorkCompletedIdentityEvent changedPayload = new(
+            terminal.Character, terminal.WorkId, terminal.ProductId, terminal.Origin,
+            terminal.AbsoluteDay, terminal.OperationId, terminal.TerminalOwnerId,
+            terminal.ChildResultKey, terminal.TargetEntityId, terminal.ContributionWorkUnits + 1f);
+        bool changedRejected = W01TryRejectDelivery(events, changedPayload, out string changedFailure);
+        GameplayResultKey absentChild = SurgeryOutcomeIds.ResultKey("surgery:w01-absent");
+        WorkCompletedIdentityEvent absentReference = new(
+            terminal.Character, terminal.WorkId, terminal.ProductId, terminal.Origin,
+            terminal.AbsoluteDay, absentChild.OperationId.Value, absentChild.ProducerId,
+            absentChild.ToString(), terminal.TargetEntityId, terminal.ContributionWorkUnits);
+        bool absentRejected = W01TryRejectDelivery(events, absentReference, out string absentFailure);
+        Check(changedRejected && absentRejected
+                && changedFailure == "The completion delivery sequence has conflicting provenance."
+                && absentFailure == "work-identity-child-not-committed:" + absentChild
+                && W01IdentityFingerprint(W01IdentityOutcomes(W01ExactOutcomes(scope), terminal)) == identityBefore
+                && W01CursorFingerprint(deliveries) == cursorBefore
+                && W01WorkerIdentityFingerprint(scope, doctor) == workerBefore,
+            "W01_SURGERY_INVALID_REDELIVERY_REJECTED_WITHOUT_EFFECTS",
+            "changedRejected=" + changedRejected + "; changedReason=" + changedFailure
+                + "; absentRejected=" + absentRejected + "; absentReason=" + absentFailure);
+
+        // Inject an inconsistent owner snapshot without touching the committed
+        // outcome. An existing outcome must never authorize a second effect apply.
+        IReadOnlyList<WorkCompletionIdentityDeliveryCursorSaveData> savedCursors = deliveries.Capture();
+        WorkCompletionIdentityDeliveryRequest referenced =
+            WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(terminal);
+        try
+        {
+            deliveries.Restore(savedCursors.Where(value =>
+                value.producerStreamId != referenced.ProducerStreamId));
+            string missingCursorBefore = W01CursorFingerprint(deliveries);
+            bool missingCursorRejected = W01TryRejectDelivery(events, terminal, out string cursorFailure);
+            Check(missingCursorRejected
+                    && cursorFailure.Contains("outcome exists without its committed delivery cursor")
+                    && W01CursorFingerprint(deliveries) == missingCursorBefore
+                    && W01WorkerIdentityFingerprint(scope, doctor) == workerBefore
+                    && W01IdentityFingerprint(W01IdentityOutcomes(W01ExactOutcomes(scope), terminal)) == identityBefore,
+                "W01_SURGERY_MISSING_CURSOR_REJECTED_WITHOUT_EFFECTS",
+                "rejected=" + missingCursorRejected + "; reason=" + cursorFailure);
+        }
+        finally
+        {
+            deliveries.Restore(savedCursors);
+        }
+
+        CharacterActor previousDoctor = doctor;
+        CharacterActor previousPatient = patient;
+        string patientId = CharacterPersistentIdentity.Require(patient).Value;
+        bool restored = gameSave.TryRestore(gameSave.FromJson(completedJson),
+            out DungeonGameRestoreReport restoreReport);
+        Check(restored && restoreReport.Success, "W01_SURGERY_TERMINAL_WORLD_RESTORE",
+            restored ? "sections=" + completed.sections.Count
+                : string.Join(" | ", restoreReport.Errors));
+        if (!restored)
+            return;
+        ICharacterWorldQuery characters = Resolve<ICharacterWorldQuery>(scope);
+        doctor = characters.Characters.Single(value => value != null
+            && value.Identity?.PersistentId == terminal.Character.Value);
+        patient = characters.Characters.Single(value => value != null
+            && value.Identity?.PersistentId == patientId);
+        doctorWork = doctor.GetAbility<AbilityWork>();
+        bool freshActors = !ReferenceEquals(previousDoctor, doctor)
+            && !ReferenceEquals(previousPatient, patient);
+        string restoredWorkerBefore = W01WorkerIdentityFingerprint(scope, doctor);
+        string restoredPatientBefore = W01PatientClinicalFingerprint();
+        if (SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification)
+        {
+            bool found = surgery.TryGetOrder(order.orderId, out SurgeryOrder restoredOrder);
+            bool applied = Resolve<ISurgeryWorkCommand>(scope).ApplyWork(order.orderId, doctor,
+                order.requiredWork, out bool repeatedCompleted, out DomainFailure repeatedFailure);
+            Check(found && restoredOrder.state == SurgeryOrderState.Failed
+                    && restoredOrder.resultRolled && !restoredOrder.resultSucceeded
+                    && restoredOrder.outcomeConsequencesApplied && restoredOrder.outcomeConsequenceStep == 2
+                    && restoredOrder.completionDoctorId == terminal.Character.Value
+                    && restoredOrder.completionAbsoluteDay == terminal.AbsoluteDay
+                    && W01CompletionAcknowledged(scope, restoredOrder) && restoredOrder.completionFactDelivered
+                    && !applied && !repeatedCompleted && repeatedFailure.Code == FailureCode.SurgeryOrderMissing
+                    && restoredPatientBefore == patientBefore
+                    && W01PatientClinicalFingerprint() == patientBefore
+                    && Resolve<IRandomStreamProvider>(scope).Get("medical:surgery-outcomes").State == randomBefore,
+                "W01_CLINICAL_FAILURE_RESTORED_TERMINAL_NO_REROLL",
+                $"found={found}; state={restoredOrder?.state}; workRetry={applied}/{repeatedCompleted}/{repeatedFailure.Code}; patientUnchanged={restoredPatientBefore == patientBefore}");
+        }
+        events.Publish(terminal);
+        List<GameplayOutcomeSnapshot> afterRestore = W01ExactOutcomes(scope);
+        GameplayOutcomeSnapshot[] restoredIdentities = W01IdentityOutcomes(afterRestore, terminal);
+        GameplayOutcomeSnapshot[] restoredChildren = afterRestore.Where(value =>
+            W01ResultKey(value) == childKey.ToString()).ToArray();
+        Check(freshActors && restoredIdentities.Length == 1
+                && W01IdentityFingerprint(restoredIdentities) == identityBefore
+                && W01CursorFingerprint(deliveries) == cursorBefore
+                && W01WorkerIdentityFingerprint(scope, doctor) == restoredWorkerBefore
+                && W01PatientClinicalFingerprint() == restoredPatientBefore
+                && Resolve<IRandomStreamProvider>(scope).Get("medical:surgery-outcomes").State == randomBefore
+                && restoredChildren.Length == 1
+                && restoredChildren[0].immutablePayloadHash == childBefore
+                && CountPhysicalItem(StandardMedicineItemId) == medicineBefore
+                && CountPhysicalItem(CleanWaterItemId) == waterBefore,
+            "W01_SURGERY_RESTORED_REDELIVERY_NO_DUPLICATE",
+            "freshActors=" + freshActors + "; identities=" + restoredIdentities.Length
+                + "; children=" + restoredChildren.Length
+                + "; workerEffectsUnchanged=" + (W01WorkerIdentityFingerprint(scope, doctor) == restoredWorkerBefore)
+                + "; cursorUnchanged=" + (W01CursorFingerprint(deliveries) == cursorBefore));
+        if (SurgeryPlayModeVerifier.IsW01ClinicalFailureVerification)
+            W01WriteWorldEvidence("w01-surgery-clinical-failed-restored-world.json",
+                gameSave.ToJson(gameSave.Capture(), true));
+        WorkTerminalIdentityOwnershipDebugScenarios.RunOrThrow();
+        Check(WorkCompletionIdentityOutcomeDebugScenarios.RunAll(),
+            "W01_BOUNDED_TERMINAL_DELIVERY_REGRESSION",
+            "separate ownership/reference/cursor/conflict/JSON fixture; not actual AI evidence");
+    }
+
+    private static bool W01TryRejectDelivery(IGameEventBus events,
+        WorkCompletedIdentityEvent gameEvent, out string failure)
+    {
+        try
+        {
+            events.Publish(gameEvent);
+            failure = "accepted-invalid-delivery";
+            return false;
+        }
+        catch (InvalidOperationException error)
+        {
+            failure = error.Message;
+            return true;
+        }
+    }
+
+    private static string W01WorkerIdentityFingerprint(
+        DungeonRuntimeLifetimeScope scope, CharacterActor worker)
+    {
+        CanonicalSemanticDigestBuilder digest = new();
+        foreach (CharacterIdentityRuntimeStateSaveData state in
+                 Resolve<CharacterIdentityStateStore>(scope).Capture())
+            digest.Append(JsonUtility.ToJson(state));
+        digest.Append(JsonUtility.ToJson(worker.Progression.CapturePersistentState().NarrativeLedger));
+        digest.Append(JsonUtility.ToJson(worker.Lifecycle.ExpeditionRecovery));
+        CharacterMoodSnapshot mood = worker.Stats.GetMoodSnapshot();
+        digest.AppendFloat(mood.Value);
+        digest.AppendFloat(mood.BaseValue);
+        foreach (CharacterMoodFactorSnapshot factor in mood.Factors.OrderBy(value => value.Id, StringComparer.Ordinal))
+        {
+            digest.Append(factor.Id);
+            digest.AppendFloat(factor.Value);
+            digest.AppendFloat(factor.RemainingSeconds);
+        }
+        return digest.ComputeSha256();
+    }
+
+    private static List<GameplayOutcomeSnapshot> W01ExactOutcomes(
+        DungeonRuntimeLifetimeScope scope)
+    {
+        IGameplayOutcomeQuery query = Resolve<IGameplayOutcomeQuery>(scope);
+        List<GameplayOutcomeSnapshot> result = new();
+        OutcomeCursor cursor = OutcomeCursor.FirstPage(200);
+        while (true)
+        {
+            GameplayOutcomeQueryPage page = query.GetGlobal(cursor, OutcomeFilter.All);
+            if (page.Items.Count == 0)
+                return result;
+            result.AddRange(page.Items.Where(value => value.Exact != null)
+                .Select(value => value.Exact));
+            cursor = page.NextCursor;
+        }
+    }
+
+    private static GameplayOutcomeSnapshot[] W01IdentityOutcomes(
+        IEnumerable<GameplayOutcomeSnapshot> outcomes,
+        WorkCompletedIdentityEvent terminal) => outcomes.Where(value =>
+            value.outcomeTypeId == WorkCompletionIdentityOutcomeIds.Applied.Value
+            && value.participants.Any(participant =>
+                participant.entityId == terminal.Character.Value)
+            && W01FactEquals(value, WorkCompletionIdentityOutcomeIds.WorkIdFact,
+                terminal.WorkId)).ToArray();
+
+    private static bool W01FactEquals(GameplayOutcomeSnapshot outcome,
+        GameplayOutcomeFactId fact, string value) =>
+        outcome.facts.Any(entry => entry.factId == fact.Value && entry.value == value);
+
+    private static string W01ResultKey(GameplayOutcomeSnapshot value) =>
+        new GameplayResultKey(value.producerId, new GameplayOperationId(value.operationId),
+            value.commitRevision, value.localResultIndex).ToString();
+
+    private static string W01IdentityFingerprint(IEnumerable<GameplayOutcomeSnapshot> values) =>
+        string.Join("|", values.OrderBy(W01ResultKey, StringComparer.Ordinal)
+            .Select(value => W01ResultKey(value) + ":" + value.immutablePayloadHash));
+
+    private static string W01CursorFingerprint(WorkCompletionIdentityDeliveryLedger deliveries) =>
+        string.Join("|", deliveries.Capture().Select(value =>
+            value.producerStreamId + ":" + value.operationSequence + ":"
+            + value.deliveryId + ":" + value.payloadFingerprint + ":" + value.disposition));
+
+    // Observe the single delivery authority, not duplicated flags on the surgery owner.
+    private static WorkCompletionIdentityDeliveryCursorSaveData W01CompletionCursor(
+        DungeonRuntimeLifetimeScope scope, SurgeryOrder order)
+    {
+        if (order == null || !order.resolutionFactAccepted) return null;
+        var request = SurgeryWorkCompletionFactMapping.Capture(new SurgeryWorkCompletedFact(order.resolvedFact));
+        return Resolve<WorkCompletionIdentityDeliveryLedger>(scope).Capture().SingleOrDefault(value =>
+            value.producerStreamId == request.ProducerStreamId
+            && value.operationSequence == request.OperationSequence && value.deliveryId == request.DeliveryId
+            && value.payloadFingerprint == request.PayloadFingerprint);
+    }
+
+    private static bool W01CompletionAcknowledged(DungeonRuntimeLifetimeScope scope, SurgeryOrder order) =>
+        W01CompletionCursor(scope, order)?.disposition is
+            WorkCompletionIdentityDeliveryDisposition.EffectsAppliedWithOutcome
+            or WorkCompletionIdentityDeliveryDisposition.TerminalRecipientUnavailable;
+
+    private static bool W01CompletionNotificationAttempted(DungeonRuntimeLifetimeScope scope, SurgeryOrder order) =>
+        W01CompletionCursor(scope, order)?.notificationAttempted == true;
+
     private static DungeonRuntimeLifetimeScope FindScope()
     {
         return UnityEngine.Object.FindObjectsByType<DungeonRuntimeLifetimeScope>(
@@ -2432,13 +3818,31 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
         Application.logMessageReceived -= OnLogMessageReceived;
         report.Add($"capturedErrors={capturedErrors.Count}; {Compact(capturedErrors)}");
         report.Add($"capturedWarnings={capturedWarnings.Count}; {Compact(capturedWarnings)}");
+        if (SurgeryPlayModeVerifier.IsW01PublicationRecoveryVerification)
+            report.Add("injectedCommandAckFaults=" + commandAckFaultCount
+                + "; injectedNotificationFaults=" + publicationFaultCount
+                + "; unhandledErrors=" + capturedErrors.Count);
         bool passed = failures.Count == 0
             && capturedErrors.Count == 0
             && capturedWarnings.Count == 0;
         report.Add($"RESULT={(passed ? "PASS" : "FAIL")}; failures={failures.Count}; {Compact(failures)}");
-        File.WriteAllText(
-            SurgeryPlayModeVerifier.ReportPath,
-            string.Join("\n", report));
+        if (SurgeryPlayModeVerifier.IsW05IdentityVerification)
+        {
+            using FileStream stream = new(
+                SurgeryPlayModeVerifier.ReportPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.Read);
+            using StreamWriter writer = new(stream, new System.Text.UTF8Encoding(false));
+            writer.Write(string.Join("\n", report));
+            writer.Write('\n');
+        }
+        else
+        {
+            File.WriteAllText(
+                SurgeryPlayModeVerifier.ReportPath,
+                string.Join("\n", report));
+        }
         File.Delete(SurgeryPlayModeVerifier.RequestPath);
 
         if (passed)
@@ -2454,12 +3858,29 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                 + SurgeryPlayModeVerifier.ReportPath);
         }
 
-        EditorApplication.ExitPlaymode();
+        if (SurgeryPlayModeVerifier.IsW05IdentityVerification)
+        {
+            DungeonFullWorldRoundTripPlayModeFacade.CleanupTransientArtifacts();
+            EditorApplication.delayCall += () =>
+                EditorApplication.Exit(passed ? 0 : 1);
+        }
+        else
+        {
+            EditorApplication.ExitPlaymode();
+        }
         Destroy(gameObject);
     }
 
     private void Cleanup()
     {
+        identitySubscription?.Dispose();
+        identitySubscription = null;
+        publicationFaultSubscription?.Dispose();
+        publicationFaultSubscription = null;
+        if (completionCommandField != null && originalCompletionCommand != null && completionObserver != null)
+            completionCommandField.SetValue(completionObserver, originalCompletionCommand);
+        completionObserver = null;
+        originalCompletionCommand = null;
         if (patient != null)
         {
             patient.SetAiPaused(originalPatientAiPaused);

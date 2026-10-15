@@ -465,26 +465,26 @@ public sealed class MaintainSurgicalPartEffectHandler :
                 characterId.Value);
             return false;
         }
-        if (!anatomy.TryMaintainNode(
+        if (isPowerCore)
+        {
+            if (!anatomy.TryReduceNodeBurden(
+                character,
+                order.targetNodeId,
+                effect.durability,
+                0f,
+                effect.contaminationReduction,
+                out failure))
+                return false;
+            return speciesCommands.RepairIntegrity(
+                characterId,
+                effect.durability,
+                out failure);
+        }
+        return anatomy.TryMaintainNode(
             character,
             order?.targetNodeId,
             effect.durability,
             effect.contaminationReduction,
-            out failure))
-            return false;
-        if (!isPowerCore)
-            return true;
-        if (!anatomy.TryReduceNodeBurden(
-                character,
-                order.targetNodeId,
-                30f,
-                0f,
-                0f,
-                out failure))
-            return false;
-        return speciesCommands.RepairIntegrity(
-            characterId,
-            30f,
             out failure);
     }
 }

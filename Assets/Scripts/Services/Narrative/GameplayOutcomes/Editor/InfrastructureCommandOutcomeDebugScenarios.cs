@@ -2,84 +2,139 @@
 using System;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.Narrative.Korean;
 using UnityEngine;
 
 public static class InfrastructureCommandOutcomeDebugScenarios
 {
     private const string FacilityId = "building:qa-infrastructure-command";
+    private const string FacilityName = "제련소";
 
     public static bool RunAll(bool logSuccess = false)
     {
         VerifyBridgeAndQuery();
+        VerifyAutonomousBridgeAndQuery();
         VerifyOwnerTransactionAndSave();
         if (logSuccess)
             Debug.Log("[Infrastructure Command Outcome] PASS");
         return true;
     }
 
+    private static void VerifyAutonomousBridgeAndQuery()
+    {
+        using Fixture fixture = new("run:infrastructure-autonomous-editor");
+        IndustrialTransitionKind[] kinds =
+        {
+            IndustrialTransitionKind.PowerFuelConsumed,
+            IndustrialTransitionKind.PowerBreakerTripped,
+            IndustrialTransitionKind.WastewaterBatchCompleted,
+            IndustrialTransitionKind.FluidLeakEpisode,
+            IndustrialTransitionKind.WastewaterBackflow,
+            IndustrialTransitionKind.PipeFreezeLatched,
+            IndustrialTransitionKind.PipeFreezeRecovered
+        };
+        for (int index = 0; index < kinds.Length; index++)
+        {
+            IndustrialTransitionFactData draft = CreateDraft(
+                fixture.Runtime,
+                kinds[index],
+                NeutralState(),
+                NeutralState());
+            Require(
+                fixture.Runtime.TryPrepare(
+                    draft,
+                    out IDomainFactStage prepared,
+                    out string failure),
+                "infrastructure autonomous prepare failed: " + failure);
+            Require(
+                fixture.Runtime.CommitReversible(prepared).Completed,
+                "infrastructure autonomous commit failed for " + kinds[index]);
+        }
+
+        GameplayOutcomeQueryPage page = fixture.Ledger.GetGlobal(
+            OutcomeCursor.FirstPage(20),
+            OutcomeFilter.All);
+        Require(
+            page.Items.Count == kinds.Length
+            && page.Items.All(value => value.Exact?.outcomeTypeId
+                == InfrastructureAutonomousOutcomeIds.Transitioned.Value)
+            && page.Items.Select(value => value.Exact.facts.Single(fact =>
+                    fact.factId == InfrastructureAutonomousOutcomeIds
+                        .TransitionKindFact.Value).value)
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .SequenceEqual(kinds
+                    .Select(IndustrialTransitionFactObservation.MapKind)
+                    .Select(InfrastructureAutonomousOutcomeIds.StableKind)
+                    .OrderBy(value => value, StringComparer.Ordinal)),
+            "the seven autonomous infrastructure transitions were not recorded exactly once");
+        Require(
+            page.Items.All(value => value.Exact.outcomeTypeId
+                != InfrastructureCommandOutcomeIds.Applied.Value),
+            "autonomous infrastructure transitions were mislabeled as manual commands");
+
+        GameplayOutcomeSnapshot first = page.Items
+            .Select(value => value.Exact)
+            .Single(value => value.ownerRevision == 1L);
+        GameplayOutcomeId firstId = new(
+            new GameplayOutcomeRunId(first.runId),
+            first.sequence);
+        GameplayEntityId facility = new(
+            InfrastructureAutonomousOutcomeIds.FacilityKind,
+            FacilityId);
+        Require(
+            fixture.Ledger.TryProject(
+                firstId,
+                new NarrativePerspectiveContext(
+                    facility,
+                    NarrativePerspectiveKind.Facility,
+                    "ko-KR"),
+                out NarrativeView view)
+            && view.Text.Contains("연료", StringComparison.Ordinal),
+            "autonomous infrastructure narrative projection was not stable");
+    }
+
     private static void VerifyBridgeAndQuery()
     {
-        GameplayOutcomeRegistry registry = new(
-            new IGameplayOutcomeDescriptor[]
-            {
-                new InfrastructureCommandOutcomeDescriptor(
-                    new KoreanJosaFormatter())
-            },
-            new IGameplayOutcomeAdapterRegistration[]
-            {
-                new InfrastructureCommandOutcomeAdapter()
-            });
-        GameplayOutcomeLedger ledger = new(
-            registry,
-            new GameplayOutcomeBufferLimits(
-                smallPageCount: 8,
-                largePageCount: 0,
-                knownResultKeyCapacity: 128),
-            new GameplayOutcomeRunId("run:infrastructure-command-editor"),
-            1L);
-        GameplayOutcomeRecorder recorder = new(
-            ledger,
-            registry,
-            new GameEventBus());
-        InfrastructureCommandGameplayOutcomeBridge bridge = new(
-            recorder,
-            ledger,
-            new FixedDisplayNames(),
-            new FakeCalendar());
-        InfrastructureCommandOutcomeSource source = new(
-            InfrastructureCommandOutcomeKind.ConveyorFilterChanged,
-            FacilityId,
-            FacilityId,
-            11,
-            6,
-            "items=material:ore",
-            "items=material:ingot");
-
+        using Fixture fixture = new("run:infrastructure-command-editor");
+        IndustrialStateData before = NeutralState();
+        before.filter.itemIds.Add("material:ore");
+        IndustrialStateData after = NeutralState();
+        after.filter.itemIds.Add("material:ingot");
+        IndustrialTransitionFactData draft = CreateDraft(
+            fixture.Runtime,
+            IndustrialTransitionKind.ConveyorFilterChanged,
+            before,
+            after);
         Require(
-            bridge.TryPrepare(
-                source,
-                1L,
-                out IPreparedInfrastructureCommandOutcome prepared,
+            fixture.Runtime.TryPrepare(
+                draft,
+                out IDomainFactStage prepared,
                 out string prepareFailure),
             "infrastructure command prepare failed: " + prepareFailure);
+        IndustrialTransitionFactData factData = draft.Clone();
+        factData.ownerRevision = prepared.OwnerRevision;
         Require(
-            prepared.Source.Kind == source.Kind
-            && prepared.Source.TargetId == source.TargetId,
-            "prepared infrastructure command lost its source snapshot");
-        InfrastructureCommandOutcomeCommitResult committed =
-            bridge.Commit(prepared);
+            prepared.OwnerRevision == 1L
+            && prepared.OperationKey
+                == InfrastructureCommandOutcomeIds.ResultKey(1L).ToString(),
+            "prepared infrastructure command lost its typed identity");
+        DomainFactDelivery committed = fixture.Runtime.CommitReversible(prepared);
         Require(
-            committed.DurablyCommitted,
-            "infrastructure command commit failed: " + committed.DetailCode);
+            committed.Completed,
+            "infrastructure command commit failed: " + committed.Detail);
 
+        const string expectedBefore =
+            "items=material:ore;categories=;materials=;forbidden=false;quality=false:Awful:Mythic;freshness=false:0:1;contaminated=true";
+        const string expectedAfter =
+            "items=material:ingot;categories=;materials=;forbidden=false;quality=false:Awful:Mythic;freshness=false:0:1;contaminated=true";
         GameplayEntityId facility = new(
             InfrastructureCommandOutcomeIds.FacilityKind,
             FacilityId);
-        GameplayOutcomeQueryPage global = ledger.GetGlobal(
+        GameplayOutcomeQueryPage global = fixture.Ledger.GetGlobal(
             OutcomeCursor.FirstPage(10),
             OutcomeFilter.All);
-        GameplayOutcomeQueryPage facilityPage = ledger.GetForEntity(
+        GameplayOutcomeQueryPage facilityPage = fixture.Ledger.GetForEntity(
             facility,
             OutcomeCursor.FirstPage(10),
             OutcomeFilter.All);
@@ -97,7 +152,7 @@ public static class InfrastructureCommandOutcomeDebugScenarios
             && exact.locationX == 11
             && exact.locationY == 6
             && exact.participants.Count == 1
-            && exact.participants[0].displayText == "제련소"
+            && exact.participants[0].displayText == FacilityName
             && exact.facts.Any(value =>
                 value.factId
                     == InfrastructureCommandOutcomeIds.CommandKindFact.Value
@@ -108,18 +163,18 @@ public static class InfrastructureCommandOutcomeDebugScenarios
             && exact.facts.Any(value =>
                 value.factId
                     == InfrastructureCommandOutcomeIds.BeforeValueFact.Value
-                && value.value == "items=material:ore")
+                && value.value == expectedBefore)
             && exact.facts.Any(value =>
                 value.factId
                     == InfrastructureCommandOutcomeIds.AfterValueFact.Value
-                && value.value == "items=material:ingot"),
-            "infrastructure command outcome lost frozen receipt data");
+                && value.value == expectedAfter),
+            "infrastructure command outcome lost deterministic typed fact data");
 
         GameplayOutcomeId outcomeId = new(
             new GameplayOutcomeRunId(exact.runId),
             exact.sequence);
         Require(
-            ledger.TryProject(
+            fixture.Ledger.TryProject(
                 outcomeId,
                 new NarrativePerspectiveContext(
                     facility,
@@ -130,41 +185,35 @@ public static class InfrastructureCommandOutcomeDebugScenarios
             && view.Text.Contains("운송 필터 변경", StringComparison.Ordinal),
             "infrastructure command Korean projection was not stable");
 
+        DomainFactDelivery replay = fixture.Dispatcher.Replay(
+            new IndustrialTransitionFact(factData));
         Require(
-            bridge.TryPrepare(
-                source,
-                1L,
-                out IPreparedInfrastructureCommandOutcome replay,
-                out string replayFailure),
-            "infrastructure command replay prepare failed: " + replayFailure);
-        Require(
-            bridge.Commit(replay).DurablyCommitted
-            && ledger.GetGlobal(
+            replay.Completed
+            && replay.OperationKey == committed.OperationKey
+            && replay.PublicationId == committed.PublicationId
+            && replay.Fingerprint == committed.Fingerprint
+            && fixture.Ledger.GetGlobal(
                 OutcomeCursor.FirstPage(10),
                 OutcomeFilter.All).Items.Count == 1,
-            "infrastructure command replay duplicated the canonical result");
+            "infrastructure command replay changed identity/hash or duplicated the canonical result");
 
-        InfrastructureCommandOutcomeSource drifted = new(
-            InfrastructureCommandOutcomeKind.ConveyorFilterChanged,
-            FacilityId,
-            FacilityId,
-            11,
-            6,
-            "items=material:ore",
-            "items=material:ore");
+        IndustrialTransitionFactData drifted = factData.Clone();
+        drifted.after = before.Clone();
         Require(
-            !bridge.TryPrepare(drifted, 1L, out _, out _),
+            fixture.Dispatcher.Replay(new IndustrialTransitionFact(drifted)).Phase
+                == DomainFactDeliveryPhase.Rejected,
             "same infrastructure command result key accepted drifted facts");
 
-        GameplayOutcomeLedgerSaveData saved = ledger.CaptureGameplayOutcomes();
+        GameplayOutcomeLedgerSaveData saved = fixture.Ledger.CaptureGameplayOutcomes();
         GameplayOutcomeLedger restored = new(
-            registry,
+            fixture.Registry,
             new GameplayOutcomeBufferLimits(
                 smallPageCount: 8,
                 largePageCount: 0,
                 knownResultKeyCapacity: 128),
             new GameplayOutcomeRunId("run:infrastructure-command-restore"),
-            1L);
+            1L,
+            fixture.Calendar);
         restored.BeginRestoreCandidate();
         GameplayOutcomeLedgerRestoreCandidate candidate =
             restored.PrepareGameplayOutcomeRestore(saved);
@@ -182,133 +231,142 @@ public static class InfrastructureCommandOutcomeDebugScenarios
 
     private static void VerifyOwnerTransactionAndSave()
     {
-        FakeCommitter committer = new();
-        InfrastructureCommandOutcomeRuntime runtime = new(
-            new DungeonRuntimeAggregateRootStore(),
-            committer);
-        InfrastructureCommandOutcomeSource first = CreateOwnerSource(
-            InfrastructureCommandOutcomeKind.PowerPriorityChanged,
-            "Production",
-            "Critical");
+        using Fixture fixture = new("run:infrastructure-owner-editor");
+        IndustrialTransitionFactData first = CreateDraft(
+            fixture.Runtime,
+            IndustrialTransitionKind.PowerPriorityChanged,
+            StateWithPriority(PowerPriority.Production),
+            StateWithPriority(PowerPriority.Critical));
 
         Require(
-            runtime.TryPrepare(first, out IPreparedInfrastructureCommandOutcome
-                rejectedToken, out string rejectedPrepareFailure),
+            fixture.Runtime.TryPrepare(
+                first,
+                out IDomainFactStage rejectedToken,
+                out string rejectedPrepareFailure),
             "owner rejection prepare failed: " + rejectedPrepareFailure);
-        committer.RejectNextCommit = true;
-        InfrastructureCommandOutcomeCommitResult rejected =
-            runtime.CommitReversible(rejectedToken);
-        DungeonInfrastructureCommandOutcomeSaveData afterRejection =
-            runtime.Capture();
+        fixture.Faults.RejectNextCommit = true;
+        DomainFactDelivery rejected =
+            fixture.Runtime.CommitReversible(rejectedToken);
+        DungeonInfrastructureObservationSaveData afterRejection =
+            fixture.Runtime.Capture();
         Require(
-            !rejected.DurablyCommitted
+            rejected.Phase == DomainFactDeliveryPhase.Rejected
             && afterRejection.nextOwnerRevision == 1L
-            && afterRejection.pendingOutcomes.Count == 0,
-            "rejected reversible command consumed the owner revision");
+            && afterRejection.pending.Count == 0,
+            "definitively rejected reversible command consumed the owner revision");
 
         Require(
-            runtime.TryPrepare(first, out IPreparedInfrastructureCommandOutcome
-                committedToken, out string committedPrepareFailure),
+            fixture.Runtime.TryPrepare(
+                first,
+                out IDomainFactStage committedToken,
+                out string committedPrepareFailure),
             "owner commit prepare failed: " + committedPrepareFailure);
         Require(
-            runtime.CommitReversible(committedToken).DurablyCommitted
-            && runtime.Capture().nextOwnerRevision == 2L,
+            fixture.Runtime.CommitReversible(committedToken).Completed
+            && fixture.Runtime.Capture().nextOwnerRevision == 2L,
             "reversible command did not advance exactly once");
 
-        InfrastructureCommandOutcomeSource queued = CreateOwnerSource(
-            InfrastructureCommandOutcomeKind.ConveyorOverflowApproved,
-            "false",
-            "true");
+        IndustrialStateData overflowBefore = NeutralState();
+        IndustrialStateData overflowAfter = NeutralState();
+        overflowAfter.overflowApproved = true;
+        IndustrialTransitionFactData queued = CreateDraft(
+            fixture.Runtime,
+            IndustrialTransitionKind.ConveyorOverflowApproved,
+            overflowBefore,
+            overflowAfter,
+            "conveyor-payload:00000001");
         Require(
-            runtime.TryPrepare(queued, out IPreparedInfrastructureCommandOutcome
-                queuedToken, out string queuedPrepareFailure),
+            fixture.Runtime.TryPrepare(
+                queued,
+                out IDomainFactStage queuedToken,
+                out string queuedPrepareFailure),
             "queued command prepare failed: " + queuedPrepareFailure);
-        runtime.QueueCommitted(queuedToken);
-        committer.RejectNextCommit = true;
-        runtime.DeliverQueued(queuedToken.OwnerRevision, queuedToken);
-        DungeonInfrastructureCommandOutcomeSaveData pending = runtime.Capture();
+        fixture.Faults.InDoubtNextCommit = true;
+        DomainFactDelivery uncertain =
+            fixture.Runtime.CommitReversible(queuedToken);
+        DungeonInfrastructureObservationSaveData pending =
+            fixture.Runtime.Capture();
         Require(
-            pending.nextOwnerRevision == 3L
-            && pending.pendingOutcomes.Count == 1
-            && pending.pendingOutcomes[0].ownerRevision == 2L
-            && pending.pendingOutcomes[0].kind
-                == InfrastructureCommandOutcomeKind.ConveyorOverflowApproved
-            && pending.pendingOutcomes[0].facilityDisplayText == "시험 설비",
-            "queued infrastructure outcome was not frozen durably");
+            uncertain.Phase == DomainFactDeliveryPhase.InDoubt
+            && pending.nextOwnerRevision == 3L
+            && pending.pending.Count == 1
+            && pending.pending[0].fact.ownerRevision == 2L
+            && pending.pending[0].fact.kind
+                == IndustrialTransitionKind.ConveyorOverflowApproved
+            && pending.pending[0].fact.facilityDisplayName == FacilityName,
+            "unknown infrastructure acknowledgement did not retain the typed pending fact");
 
         string json = JsonUtility.ToJson(pending);
-        DungeonInfrastructureCommandOutcomeSaveData roundTrip =
-            JsonUtility.FromJson<DungeonInfrastructureCommandOutcomeSaveData>(
-                json);
-        FakeCommitter restoredCommitter = new();
-        InfrastructureCommandOutcomeRuntime restored = new(
+        DungeonInfrastructureObservationSaveData roundTrip =
+            JsonUtility.FromJson<DungeonInfrastructureObservationSaveData>(json);
+        InfrastructureObservationRuntime restored = new(
             new DungeonRuntimeAggregateRootStore(),
-            restoredCommitter);
+            fixture.Faults,
+            fixture.Faults,
+            fixture.Calendar);
         restored.Restore(restored.PrepareRestore(roundTrip));
         restored.DeliverQueued(2L);
-        DungeonInfrastructureCommandOutcomeSaveData delivered =
-            restored.Capture();
+        DungeonInfrastructureObservationSaveData delivered = restored.Capture();
         Require(
             delivered.nextOwnerRevision == 3L
-            && delivered.pendingOutcomes.Count == 0
-            && restoredCommitter.PendingPrepareCount == 1
-            && restoredCommitter.CommitCount == 1,
-            "restored infrastructure outbox did not deliver exactly once");
+            && delivered.pending.Count == 0
+            && fixture.Faults.ReplayCount == 1,
+            "restored infrastructure fact did not reconcile exactly once");
 
-        DungeonInfrastructureCommandOutcomeSaveData malformed =
-            JsonUtility.FromJson<DungeonInfrastructureCommandOutcomeSaveData>(
-                json);
-        malformed.pendingOutcomes[0].absoluteDay = 0;
+        DungeonInfrastructureObservationSaveData malformed =
+            JsonUtility.FromJson<DungeonInfrastructureObservationSaveData>(json);
+        malformed.pending[0].fact.absoluteDay = 0;
         RequireThrows(
             () => restored.PrepareRestore(malformed),
-            "invalid frozen infrastructure outbox row was accepted");
+            "invalid frozen infrastructure fact was accepted");
 
-        DungeonInfrastructureCommandOutcomeSaveData duplicate =
-            JsonUtility.FromJson<DungeonInfrastructureCommandOutcomeSaveData>(
-                json);
-        duplicate.pendingOutcomes.Add(duplicate.pendingOutcomes[0].Clone());
+        DungeonInfrastructureObservationSaveData duplicate =
+            JsonUtility.FromJson<DungeonInfrastructureObservationSaveData>(json);
+        duplicate.pending.Add(duplicate.pending[0].Clone());
         RequireThrows(
             () => restored.PrepareRestore(duplicate),
-            "duplicate infrastructure outbox revision was accepted");
+            "duplicate infrastructure fact revision was accepted");
 
-        DungeonInfrastructureCommandOutcomeSaveData stale =
-            JsonUtility.FromJson<DungeonInfrastructureCommandOutcomeSaveData>(
-                json);
-        stale.pendingOutcomes[0].ownerRevision = stale.nextOwnerRevision;
+        DungeonInfrastructureObservationSaveData stale =
+            JsonUtility.FromJson<DungeonInfrastructureObservationSaveData>(json);
+        stale.pending[0].fact.ownerRevision = stale.nextOwnerRevision;
         RequireThrows(
             () => restored.PrepareRestore(stale),
-            "stale infrastructure outbox revision was accepted");
+            "stale infrastructure fact revision was accepted");
 
-        DungeonInfrastructureCommandOutcomeSaveData missingRows =
-            JsonUtility.FromJson<DungeonInfrastructureCommandOutcomeSaveData>(
-                json);
-        missingRows.pendingOutcomes = null;
+        DungeonInfrastructureObservationSaveData missingRows =
+            JsonUtility.FromJson<DungeonInfrastructureObservationSaveData>(json);
+        missingRows.pending = null;
         RequireThrows(
             () => restored.PrepareRestore(missingRows),
-            "null infrastructure outbox collection was accepted");
-
-        InfrastructureCommandOutcomeSaveSection section = new(runtime);
-        Require(
-            section.SectionId == InfrastructureCommandOutcomeSaveSection.Id
-            && section.SectionVersion == 1
-            && section.DependsOn.Contains(GameplayOutcomeLedgerSaveSection.Id)
-            && section.DependsOn.Contains(ModularFacilityWorldSaveSection.Id),
-            "infrastructure command save section contract is incomplete");
+            "null infrastructure fact collection was accepted");
     }
 
-    private static InfrastructureCommandOutcomeSource CreateOwnerSource(
-        InfrastructureCommandOutcomeKind kind,
-        string before,
-        string after) => new(
-        kind,
-        kind == InfrastructureCommandOutcomeKind.ConveyorOverflowApproved
-            ? "conveyor-payload:00000001"
-            : FacilityId,
-        FacilityId,
-        3,
-        9,
-        before,
-        after);
+    private static IndustrialTransitionFactData CreateDraft(
+        IInfrastructureFactJournal journal,
+        IndustrialTransitionKind kind,
+        IndustrialStateData before,
+        IndustrialStateData after,
+        string targetId = FacilityId) =>
+        journal.CaptureDraft(
+            kind,
+            targetId,
+            FacilityId,
+            FacilityName,
+            11,
+            6,
+            before,
+            after,
+            new IndustrialTransitionDetails());
+
+    private static IndustrialStateData NeutralState() => new();
+
+    private static IndustrialStateData StateWithPriority(PowerPriority value)
+    {
+        IndustrialStateData state = NeutralState();
+        state.powerPriority = value;
+        return state;
+    }
 
     private static void RequireThrows(Action action, string message)
     {
@@ -331,114 +389,148 @@ public static class InfrastructureCommandOutcomeDebugScenarios
             throw new InvalidOperationException(message);
     }
 
-    private sealed class FakePrepared : IPreparedInfrastructureCommandOutcome
+    private sealed class Fixture : IDisposable
     {
-        public FakePrepared(
-            in InfrastructureCommandOutcomeSource source,
-            long ownerRevision,
-            in InfrastructureCommandOutcomeFrozenContext context)
+        private readonly IDisposable binding;
+
+        internal Fixture(string runId)
         {
-            Source = source;
-            OwnerRevision = ownerRevision;
-            FrozenContext = context;
+            Calendar = new FakeCalendar();
+            Registry = new GameplayOutcomeRegistry(
+                new IGameplayOutcomeDescriptor[]
+                {
+                    new InfrastructureCommandOutcomeDescriptor(
+                        new KoreanJosaFormatter()),
+                    new InfrastructureAutonomousOutcomeDescriptor(
+                        new KoreanJosaFormatter())
+                },
+                new IGameplayOutcomeAdapterRegistration[]
+                {
+                    new InfrastructureCommandOutcomeAdapter(),
+                    new InfrastructureAutonomousOutcomeAdapter()
+                });
+            Ledger = new GameplayOutcomeLedger(
+                Registry,
+                new GameplayOutcomeBufferLimits(
+                    smallPageCount: 32,
+                    largePageCount: 0,
+                    knownResultKeyCapacity: 128),
+                new GameplayOutcomeRunId(runId),
+                1L,
+                Calendar);
+            GameplayOutcomeRecorder recorder = new(
+                Ledger,
+                Registry,
+                new GameEventBus());
+            Dispatcher = new DomainFactDispatcher();
+            binding = new IndustrialTransitionFactObserverBinding(
+                Registry,
+                Ledger,
+                recorder,
+                new GameplayDomainFactCommitGroup(recorder, Ledger))
+                .Connect(Dispatcher);
+            Faults = new FaultingFactPorts(Dispatcher);
+            Runtime = new InfrastructureObservationRuntime(
+                new DungeonRuntimeAggregateRootStore(),
+                Faults,
+                Faults,
+                Calendar);
         }
 
-        public long OwnerRevision { get; }
-        public InfrastructureCommandOutcomeSource Source { get; }
-        public InfrastructureCommandOutcomeFrozenContext FrozenContext { get; }
+        internal FakeCalendar Calendar { get; }
+        internal GameplayOutcomeRegistry Registry { get; }
+        internal GameplayOutcomeLedger Ledger { get; }
+        internal DomainFactDispatcher Dispatcher { get; }
+        internal FaultingFactPorts Faults { get; }
+        internal InfrastructureObservationRuntime Runtime { get; }
+
+        public void Dispose()
+        {
+            binding.Dispose();
+            Dispatcher.Dispose();
+        }
     }
 
-    private sealed class FakeCommitter : IInfrastructureCommandOutcomeCommitter
+    private sealed class FaultingFactPorts :
+        IDomainFactStagingPublisher,
+        IDomainFactRecoveryPublisher
     {
-        public bool RejectNextCommit { get; set; }
-        public int CommitCount { get; private set; }
-        public int PendingPrepareCount { get; private set; }
+        private readonly DomainFactDispatcher inner;
 
-        public bool TryPrepare(
-            in InfrastructureCommandOutcomeSource source,
-            long ownerRevision,
-            out IPreparedInfrastructureCommandOutcome prepared,
-            out string failureReason)
+        internal FaultingFactPorts(DomainFactDispatcher inner) =>
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+
+        internal bool RejectNextCommit { get; set; }
+        internal bool InDoubtNextCommit { get; set; }
+        internal int ReplayCount { get; private set; }
+
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
+            out string failure)
         {
-            prepared = new FakePrepared(
-                source,
-                ownerRevision,
-                CreateContext());
-            failureReason = string.Empty;
+            if (!inner.TryStage(fact, out IDomainFactStage prepared, out failure))
+            {
+                stage = null;
+                return false;
+            }
+            stage = new FaultingStage(this, prepared);
             return true;
         }
 
-        public bool TryPreparePending(
-            InfrastructureCommandOutcomeOutboxSaveData pending,
-            out IPreparedInfrastructureCommandOutcome prepared,
-            out string failureReason)
+        public bool ReplayBatch(
+            System.Collections.Generic.IReadOnlyList<DomainFactReplay> facts,
+            DomainFactDelivery[] results,
+            out string failure)
         {
-            PendingPrepareCount++;
-            prepared = new FakePrepared(
-                pending.ToSource(),
-                pending.ownerRevision,
-                pending.ToFrozenContext());
-            failureReason = string.Empty;
-            return true;
+            ReplayCount++;
+            return inner.ReplayBatch(facts, results, out failure);
         }
 
-        public InfrastructureCommandOutcomeCommitResult Commit(
-            IPreparedInfrastructureCommandOutcome prepared)
+        private sealed class FaultingStage : IDomainFactStage
         {
-            CommitCount++;
-            if (RejectNextCommit)
+            private readonly FaultingFactPorts owner;
+            private readonly IDomainFactStage inner;
+
+            internal FaultingStage(
+                FaultingFactPorts owner,
+                IDomainFactStage inner)
             {
-                RejectNextCommit = false;
-                return new InfrastructureCommandOutcomeCommitResult(
-                    false,
-                    "injected-rejection");
+                this.owner = owner;
+                this.inner = inner;
             }
-            return new InfrastructureCommandOutcomeCommitResult(true, "committed");
-        }
 
-        public void Cancel(IPreparedInfrastructureCommandOutcome prepared)
-        {
-        }
+            public string OperationKey => inner.OperationKey;
+            public long OwnerRevision => inner.OwnerRevision;
+            public bool IsReplay => inner.IsReplay;
+            public bool IsActive => inner.IsActive;
 
-        private static InfrastructureCommandOutcomeFrozenContext CreateContext() =>
-            new(
-                "시험 설비",
-                "infrastructure-command-test-v1",
-                (int)KoreanPronunciationMode.AutoHangulDisplay,
-                string.Empty,
-                (int)KoreanFinalConsonantKind.None,
-                "infrastructure-command-test-pronunciation-v1",
-                "ko-KR",
-                17);
-    }
-
-    private sealed class FixedDisplayNames : IGameplayOutcomeDisplayNameQuery
-    {
-        public bool TryGetCurrentName(
-            GameplayEntityId entityId,
-            out KoreanNameSnapshot name)
-        {
-            if (entityId.Kind.Equals(
-                    InfrastructureCommandOutcomeIds.FacilityKind)
-                && string.Equals(
-                    entityId.Value,
-                    FacilityId,
-                    StringComparison.Ordinal))
+            public DomainFactDelivery Commit()
             {
-                name = new KoreanNameSnapshot(
-                    "제련소",
-                    "infrastructure-command-facility-v1",
-                    KoreanPronunciationHint.AutoHangulDisplay(
-                        "infrastructure-command-pronunciation-v1"),
-                    "ko-KR");
-                return true;
+                if (owner.RejectNextCommit)
+                {
+                    owner.RejectNextCommit = false;
+                    inner.Cancel();
+                    return DomainFactDelivery.Reject(
+                        "injected-definitive-rejection");
+                }
+                DomainFactDelivery result = inner.Commit();
+                if (!owner.InDoubtNextCommit)
+                    return result;
+                owner.InDoubtNextCommit = false;
+                return new DomainFactDelivery(
+                    DomainFactDeliveryPhase.InDoubt,
+                    result.OperationKey,
+                    result.PublicationId,
+                    result.Fingerprint,
+                    "injected-unknown-acknowledgement");
             }
-            name = default;
-            return false;
+
+            public void Cancel() => inner.Cancel();
         }
     }
 
-    private sealed class FakeCalendar : IGameCalendar
+    internal sealed class FakeCalendar : IGameCalendar
     {
         public int Day => 17;
         public int Hour => 8;

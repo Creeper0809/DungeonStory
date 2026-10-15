@@ -1,5 +1,6 @@
 using System;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 internal interface ICaptivityPopulationStandingTransition
@@ -72,7 +73,7 @@ internal sealed class CaptivityDefectionRuntime
     private readonly IDoorAccessSubjectRegistry doorSubjectRegistry;
     private readonly ICaptivityPopulationStandingPort population;
     private readonly IEmploymentStandingCommand employmentStanding;
-    private readonly IGameClock gameClock;
+    private readonly IGameCalendar gameCalendar;
     private readonly CaptiveEscapeOutcomeRuntime outcomes;
 
     public CaptivityDefectionRuntime(
@@ -82,7 +83,7 @@ internal sealed class CaptivityDefectionRuntime
         IDoorAccessSubjectRegistry doorSubjectRegistry,
         ICaptivityPopulationStandingPort population,
         IEmploymentStandingCommand employmentStanding,
-        IGameClock gameClock,
+        IGameCalendar gameCalendar,
         CaptiveEscapeOutcomeRuntime outcomes)
     {
         this.actors = actors ?? throw new ArgumentNullException(nameof(actors));
@@ -94,7 +95,8 @@ internal sealed class CaptivityDefectionRuntime
         this.population = population ?? throw new ArgumentNullException(nameof(population));
         this.employmentStanding = employmentStanding
             ?? throw new ArgumentNullException(nameof(employmentStanding));
-        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.gameCalendar = gameCalendar
+            ?? throw new ArgumentNullException(nameof(gameCalendar));
         this.outcomes = outcomes ?? throw new ArgumentNullException(nameof(outcomes));
     }
 
@@ -144,12 +146,12 @@ internal sealed class CaptivityDefectionRuntime
             state.retaliationPressure + 20f + state.grudge * 0.25f);
         if (!outcomes.TryPrepare(
                 state,
-                CaptiveEscapeOutcomeKind.FalseComplianceBetrayal,
+                CaptiveEscapeKind.FalseComplianceBetrayal,
                 normalizedTrigger,
                 previousStatus,
                 resultingPressure,
                 CurrentAbsoluteDay,
-                out PreparedCaptiveEscapeOutcome prepared,
+                out CaptiveEscapePublication prepared,
                 out long ownerRevision,
                 out normalizedTrigger,
                 out failureReason))
@@ -157,6 +159,7 @@ internal sealed class CaptivityDefectionRuntime
             return false;
         }
 
+        using var publication = prepared;
         string stateSnapshot =
             CaptivityStateTransitionRules.CaptureStateSnapshot(state);
         CharacterType previousActorType = actor.characterType;
@@ -192,8 +195,8 @@ internal sealed class CaptivityDefectionRuntime
             return false;
         }
 
-        OwnerOutcomeCommitResult commit = outcomes.Commit(prepared);
-        if (!commit.DurablyCommitted)
+        DomainFactDelivery commit = outcomes.Commit(prepared);
+        if (!commit.MayBeCommitted)
         {
             RestoreBetrayal(
                 state,
@@ -203,15 +206,16 @@ internal sealed class CaptivityDefectionRuntime
                 previousLifecycle,
                 previousAiPaused,
                 previousDoorCaptive);
-            failureReason = commit.DetailCode.Length == 0
+            failureReason = commit.Detail.Length == 0
                 ? "포로 배신 원장 커밋이 거절되었습니다."
-                : commit.DetailCode;
+                : commit.Detail;
             return false;
         }
 
         RequestReplan(actor, "포로 배신");
-        if (!prepared.IsReplay)
-            outcomes.NotifyCommitted(state, normalizedTrigger, betrayal: true);
+        if (state.escapeObservation.pending)
+            failureReason = "captive-escape-delivery-pending:" + commit.Detail;
+        outcomes.NotifyCommitted(prepared);
         return true;
     }
 
@@ -234,12 +238,12 @@ internal sealed class CaptivityDefectionRuntime
             : reason.Trim();
         if (!outcomes.TryPrepare(
                 state,
-                CaptiveEscapeOutcomeKind.MinionControlBreak,
+                CaptiveEscapeKind.MinionControlBreak,
                 normalizedReason,
                 state.status,
                 state.retaliationPressure,
                 CurrentAbsoluteDay,
-                out PreparedCaptiveEscapeOutcome prepared,
+                out CaptiveEscapePublication prepared,
                 out long ownerRevision,
                 out normalizedReason,
                 out failureReason))
@@ -247,6 +251,7 @@ internal sealed class CaptivityDefectionRuntime
             return false;
         }
 
+        using var publication = prepared;
         string captivityStateSnapshot =
             CaptivityStateTransitionRules.CaptureStateSnapshot(state);
         CharacterType previousActorType = actor.characterType;
@@ -296,8 +301,8 @@ internal sealed class CaptivityDefectionRuntime
             return false;
         }
 
-        OwnerOutcomeCommitResult commit = outcomes.Commit(prepared);
-        if (!commit.DurablyCommitted)
+        DomainFactDelivery commit = outcomes.Commit(prepared);
+        if (!commit.MayBeCommitted)
         {
             RestoreMinionControlBreak(
                 state,
@@ -310,16 +315,17 @@ internal sealed class CaptivityDefectionRuntime
                 previousDoorCaptive,
                 employmentSnapshot,
                 populationTransition);
-            failureReason = commit.DetailCode.Length == 0
+            failureReason = commit.Detail.Length == 0
                 ? "하수인 통제 이탈 원장 커밋이 거절되었습니다."
-                : commit.DetailCode;
+                : commit.Detail;
             return false;
         }
 
         populationTransition.Complete();
         RequestReplan(actor, "하수인 통제 이탈");
-        if (!prepared.IsReplay)
-            outcomes.NotifyCommitted(state, normalizedReason, betrayal: true);
+        if (state.escapeObservation.pending)
+            failureReason = "captive-escape-delivery-pending:" + commit.Detail;
+        outcomes.NotifyCommitted(prepared);
         return true;
     }
 
@@ -377,9 +383,7 @@ internal sealed class CaptivityDefectionRuntime
         }
     }
 
-    private int CurrentAbsoluteDay => Mathf.Max(
-        0,
-        Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
+    private int CurrentAbsoluteDay => gameCalendar.Day;
 
     private static float ClampStat(float value) => Mathf.Clamp(value, 0f, 100f);
 }

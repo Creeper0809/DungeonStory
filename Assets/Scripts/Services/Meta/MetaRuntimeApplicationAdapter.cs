@@ -94,7 +94,7 @@ public sealed class MetaRuntimeApplicationAdapter : IMetaRuntimeApplicationPort
     }
 
     private IMetaRuntimeEventSink Required => runtime ?? throw new InvalidOperationException("Meta adapter is not bound.");
-    private void OnOwnerRunEnded(OwnerRunEndedEvent e) => Required.EndRun(GetOwnerName(e.OwnerActor), e.Reason, e.Outcome);
+    private void OnOwnerRunEnded(OwnerRunEndedEvent e) => Required.EndRun(e.OwnerName, e.Reason, e.Outcome);
     private void OnSynthesis(FacilitySynthesisCompletedEvent e)
     {
         BuildingSO building = e.result.ResultBuilding != null ? e.result.ResultBuilding.BuildingData : e.result.Recipe?.resultBuilding;

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 using VContainer;
 
 /// <summary>
@@ -13,7 +14,8 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
     IProductionRecipeExecutionReceiptAuthority
 {
     private readonly IObservedCareerLifeEventCommand observedLifeEvents;
-    private readonly ProductionCompletedOutcomeBridge gameplayOutcomes;
+    private readonly ProductionCompletionObservationRuntime observations;
+    private readonly ProductionAggregateStateStore productionState;
     private readonly Dictionary<string, ProductionRecipeExecutionCorrelation>
         correlationByAction = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> actionByCycle =
@@ -37,12 +39,13 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
     [Inject]
     public ProductionRecipeExecutionReceiptAuthority(
         IObservedCareerLifeEventCommand observedLifeEvents,
-        ProductionCompletedOutcomeBridge gameplayOutcomes)
+        IDomainFactStagingPublisher completionObservations,
+        IDomainFactRecoveryPublisher completionRecovery,
+        ProductionAggregateStateStore productionState)
     {
-        this.observedLifeEvents = observedLifeEvents
-            ?? throw new ArgumentNullException(nameof(observedLifeEvents));
-        this.gameplayOutcomes = gameplayOutcomes
-            ?? throw new ArgumentNullException(nameof(gameplayOutcomes));
+        this.observedLifeEvents = observedLifeEvents ?? throw new ArgumentNullException(nameof(observedLifeEvents));
+        observations = new ProductionCompletionObservationRuntime(completionObservations, completionRecovery);
+        this.productionState = productionState ?? throw new ArgumentNullException(nameof(productionState));
     }
 
     public bool RequiresExactCapture(
@@ -291,6 +294,13 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
                     "production-declared-loss-life-event-authority-missing";
                 return false;
             }
+            ProductionBillRecord parentOwner = FindOwner(billId, cycleSequence, recipeId, facilityId);
+            if (observations == null || parentOwner == null)
+            { failureReason = "production-declared-loss-parent-fact-missing"; return false; }
+            if (!TryCompleteObservation(parentOwner, out failureReason)) return false;
+            var parentProof = parentOwner.CompletionObservation;
+            var parentPublication = new DomainFactDelivery(DomainFactDeliveryPhase.Delivered,
+                parentProof.publicationKey, parentProof.publicationId, parentProof.publicationFingerprint, "");
             try
             {
                 ProductionDeclaredLossCycleReceipt loss = new(
@@ -299,7 +309,8 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
                     recipeId,
                     facilityId,
                     workerPersistentId,
-                    completedBatch);
+                    completedBatch,
+                    parentPublication);
                 if (!observedLifeEvents.TryCaptureProductionDeclaredLoss(
                         loss,
                         out _,
@@ -491,15 +502,16 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
         BuildingInstanceId facilityId,
         string workerPersistentId,
         IReadOnlyList<ProductionResolvedOutputSaveData> completedOutputs,
+        string facilityDisplayName, string workerDisplayName, int absoluteDay,
         out string failureReason)
     {
         failureReason = string.Empty;
-        if (gameplayOutcomes == null)
+        if (observations == null)
         {
 #if UNITY_EDITOR
             // Parameterless construction is retained only for the pre-existing
             // detached receipt-authority Editor scenarios. Runtime composition
-            // always uses the injected constructor and fails if the bridge is absent.
+            // always uses the injected constructor and fails if observation is absent.
             return true;
 #else
             failureReason = "production-gameplay-outcome-bridge-missing";
@@ -516,6 +528,9 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
             return false;
         }
 
+        var owner = FindOwner(billId, cycleSequence, recipeId, facilityId);
+        if (owner == null) { failureReason = "production-exact-observation-owner-missing"; return false; }
+        if (owner.CompletionObservation != null) return TryCompleteObservation(owner, out failureReason);
         string cycleKey = CycleKey(billId, cycleSequence);
         if (!actionByCycle.TryGetValue(cycleKey, out string actionId)
             || !receiptByAction.TryGetValue(
@@ -534,20 +549,21 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
             return false;
         }
 
+        owner.BeginCompletionPublication();
+        IDomainFactStage prepared = null;
         try
         {
-            return gameplayOutcomes.TryCommitExact(
-                exactReceipt,
-                workerPersistentId,
-                out failureReason);
+            if (!observations.TryPrepare(owner,
+                    () => ProductionCycleFactCapture.Exact(exactReceipt, facilityDisplayName,
+                        workerPersistentId, workerDisplayName, absoluteDay, owner.processCleanWaterMassGrams,
+                        owner.processWastewaterMassGrams), out prepared, out failureReason)) return false;
+            var delivery = observations.Commit(owner, prepared);
+            // Exact capability output already exists. Even a rejection must retain the fact for replay.
+            failureReason = delivery.Completed ? "" : "production-exact-observation-pending:" + delivery.Detail;
+            return delivery.Completed;
         }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or InvalidOperationException
-                                           or OverflowException)
-        {
-            failureReason = "production-exact-outcome-invalid:" + exception.Message;
-            return false;
-        }
+        finally { try { prepared?.Cancel(); } finally { owner.EndCompletionPublication(); } }
+
     }
 
     private bool TryCommitPreparedGameplayOutcome(
@@ -560,7 +576,7 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
         out string failureReason)
     {
         failureReason = string.Empty;
-        if (gameplayOutcomes == null)
+        if (observations == null)
         {
 #if UNITY_EDITOR
             // See TryCommitExactCompletedOutcome: detached Editor receipt tests
@@ -579,14 +595,20 @@ public sealed class ProductionRecipeExecutionReceiptAuthority :
             failureReason = "production-prepared-outcome-state-incomplete";
             return false;
         }
-        // Prepared-output execution now prepares and commits the exact ledger
-        // receipt at the reversible physical-publication boundary.  This later
-        // Completed-before-clear callback may only prove that durable joint
-        // commit; emitting a second aggregate would lose physical provenance.
-        return gameplayOutcomes.TryRequireDurablePreparedOutcome(
-            billId,
-            cycleSequence,
-            out failureReason);
+        var owner = FindOwner(billId, cycleSequence, recipeId, facilityId);
+        if (owner == null) { failureReason = "production-completion-observation-owner-missing"; return false; }
+        return TryCompleteObservation(owner, out failureReason);
+    }
+
+    private ProductionBillRecord FindOwner(ProductionBillId billId, int cycle, string recipeId, BuildingInstanceId facilityId) =>
+        productionState?.Bills.SingleOrDefault(record => record.billId.Equals(billId) && record.cycleSequence == cycle
+            && record.recipeId == recipeId && record.buildingInstanceId.Equals(facilityId));
+
+    private bool TryCompleteObservation(ProductionBillRecord owner, out string failure)
+    {
+        owner.BeginCompletionPublication();
+        try { return observations.TryComplete(owner, out failure); }
+        finally { owner.EndCompletionPublication(); }
     }
 
     public bool TryCaptureExactCommittedUnit(

@@ -344,10 +344,16 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             "CharacterApprenticeship",
             populationCommands,
             "청소년만 개별 허용");
+        Button familyPlanningPolicy = CreateButton(
+            "FamilyPlanningPolicy",
+            populationCommands,
+            "가족계획: 계획");
         globalApprenticeship.onClick.AddListener(
             actions.Population.ToggleGlobalApprenticeship);
         characterApprenticeship.onClick.AddListener(
             actions.Population.ToggleCharacterApprenticeship);
+        familyPlanningPolicy.onClick.AddListener(
+            actions.Population.CycleFamilyPlanningPolicy);
         TMP_Text populationSummaryText = CreateScrollableText(
             "PopulationViewport",
             "PopulationSummaryText",
@@ -636,7 +642,8 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             populationContent.gameObject,
             populationTabButton,
             globalApprenticeship,
-            characterApprenticeship);
+            characterApprenticeship,
+            familyPlanningPolicy);
         viewBinding.BindGeneratedTabs(
             statusContent.gameObject,
             growthContent.gameObject,
@@ -719,7 +726,8 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             generated.Find("Content/PopulationContent")?.gameObject,
             generated.Find("TabBar/PopulationTab")?.GetComponent<Button>(),
             generated.Find("Content/PopulationContent/PopulationCommands/GlobalApprenticeship")?.GetComponent<Button>(),
-            generated.Find("Content/PopulationContent/PopulationCommands/CharacterApprenticeship")?.GetComponent<Button>());
+            generated.Find("Content/PopulationContent/PopulationCommands/CharacterApprenticeship")?.GetComponent<Button>(),
+            generated.Find("Content/PopulationContent/PopulationCommands/FamilyPlanningPolicy")?.GetComponent<Button>());
         viewBinding.BindGeneratedTabs(
             generated.Find("Content/StatusContent")?.gameObject,
             generated.Find("Content/GrowthContent")?.gameObject,

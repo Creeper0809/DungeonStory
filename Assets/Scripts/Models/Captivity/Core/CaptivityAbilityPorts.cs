@@ -69,6 +69,7 @@ public interface ICaptiveEscortAbilityPort
 
 public interface IWildlifeCaptureTransportAbilityPort
 {
+    Vector2Int Position { get; }
     bool TryBeginActionOwnership(
         string wildlifeId,
         out string failureReason);
@@ -85,8 +86,9 @@ public interface IWildlifeCaptureTransportAbilityPort
         Vector2Int destination,
         CaptivityAbilityAccessKind accessKind,
         out IEnumerator movement);
-    bool TryCreatePickupMovement(
+    CaptivityMovementResolution ResolvePickupMovement(
         Vector2Int wildlifePosition,
+        out Vector2Int pickupStand,
         out IEnumerator movement);
     bool TryCreateDeliveryMovement(
         Vector2Int destination,

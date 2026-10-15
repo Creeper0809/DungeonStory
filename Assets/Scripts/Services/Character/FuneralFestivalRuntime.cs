@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 public readonly struct FestivalCelebratedEvent
@@ -143,7 +144,7 @@ public sealed class FuneralFestivalRuntime :
     private readonly V20ContentResolutionService contentResolution;
     private readonly V20CampaignRuntime campaign;
     private readonly ICharacterNarrativePersistence narrativePersistence;
-    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private readonly ISocialRitualFactPublisher factPublisher;
     private readonly ICharacterRitualFastingCommand ritualFasting;
     private readonly IFestivalCommand festivalCommands;
 
@@ -165,7 +166,7 @@ public sealed class FuneralFestivalRuntime :
         V20ContentResolutionService contentResolution,
         V20CampaignRuntime campaign,
         ICharacterNarrativePersistence narrativePersistence,
-        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        ISocialRitualFactPublisher factPublisher,
         IFestivalCommand festivalCommands,
         ICharacterRitualFastingCommand ritualFasting = null)
     {
@@ -192,8 +193,7 @@ public sealed class FuneralFestivalRuntime :
         this.campaign = campaign ?? throw new ArgumentNullException(nameof(campaign));
         this.narrativePersistence = narrativePersistence
             ?? throw new ArgumentNullException(nameof(narrativePersistence));
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.factPublisher = factPublisher ?? throw new ArgumentNullException(nameof(factPublisher));
         this.festivalCommands = festivalCommands
             ?? throw new ArgumentNullException(nameof(festivalCommands));
         this.ritualFasting = ritualFasting;
@@ -271,6 +271,7 @@ public sealed class FuneralFestivalRuntime :
         string facilityInstanceId,
         out DomainFailure failure)
     {
+        factPublisher.AssertIdle();
         failure = DomainFailure.None;
         if (string.IsNullOrWhiteSpace(actionId) || !deceasedId.IsValid)
         {
@@ -350,11 +351,9 @@ public sealed class FuneralFestivalRuntime :
             throw;
         }
 
-        var observedOutcomes = new ObservedLifeEventOutcomeCoordinator(
-            outcomeTransactions);
-        if (!observedOutcomes.TryReserveFuneral(
+        if (!factPublisher.TryReserve(
                 observedReceipt,
-                out PreparedMigratedProducerOutcome prepared,
+                out DomainFactLease prepared,
                 out string outcomeFailure))
         {
             failure = new DomainFailure(
@@ -380,7 +379,7 @@ public sealed class FuneralFestivalRuntime :
         }
         catch
         {
-            outcomeTransactions.Cancel(prepared);
+            factPublisher.Cancel(prepared);
             throw;
         }
 
@@ -400,7 +399,7 @@ public sealed class FuneralFestivalRuntime :
                     out reserved,
                     out failure))
             {
-                outcomeTransactions.Cancel(prepared);
+                factPublisher.Cancel(prepared);
                 return false;
             }
 
@@ -408,7 +407,7 @@ public sealed class FuneralFestivalRuntime :
             if (!atomicItems.TryConsumeReserved(reserved, owner, out failure))
             {
                 rollbackAttempted = true;
-                outcomeTransactions.Cancel(prepared);
+                factPublisher.Cancel(prepared);
                 RollbackFuneral(
                     reserved,
                     owner,
@@ -422,36 +421,14 @@ public sealed class FuneralFestivalRuntime :
             psychosocial.PublishRestore(candidate);
             CompleteParticipantFasts(participants);
             resolutions = contentResolution.CommitObservedFuneralLifeEvent(
-                observedReceipt);
-
-            MigratedProducerOutcomeCommitResult committed =
-                observedOutcomes.CommitFuneral(
-                    prepared,
-                    observedReceipt);
-            if (!committed.DurablyCommitted)
-            {
-                rollbackAttempted = true;
-                outcomeTransactions.Cancel(prepared);
-                RollbackFuneral(
-                    reserved,
-                    owner,
-                    physicalBefore,
-                    psychosocialBefore,
-                    narrativeBefore,
-                    moodsBefore,
-                    campaignBefore);
-                failure = new DomainFailure(
-                    FailureCode.ExternalInfluenceUnavailable,
-                    committed.DetailCode);
-                return false;
-            }
+                observedReceipt, prepared);
             outcomeDurable = true;
         }
-        catch
+        catch (Exception exception)
         {
             if (!outcomeDurable)
             {
-                outcomeTransactions.Cancel(prepared);
+                factPublisher.Cancel(prepared);
                 if (mutationStarted && !rollbackAttempted)
                 {
                     RollbackFuneral(
@@ -464,12 +441,17 @@ public sealed class FuneralFestivalRuntime :
                         campaignBefore);
                 }
             }
+            if (exception is ContentResolutionFactRejectedException)
+            {
+                failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable, exception.Message);
+                return false;
+            }
             throw;
         }
 
         foreach (V20ResolvedEventResult resolved in resolutions)
         {
-            PublishFuneralObserver(resolved);
+            PublishFuneralCompletion(resolved);
         }
         return true;
     }
@@ -680,24 +662,6 @@ public sealed class FuneralFestivalRuntime :
         RestoreCampaign(campaignBefore);
     }
 
-    private static MigratedProducerOutcomeSubject CreateFuneralSubject(
-        in ObservedFuneralLifeEventReceipt receipt) => new(
-        MigratedProducerOutcomeIds.CharacterKind,
-        receipt.DeceasedCharacterId.Value,
-        receipt.DeceasedCharacterId.Value,
-        MigratedProducerOutcomeIds.ActorRole);
-
-    private static string BuildFuneralSummary(
-        in ObservedFuneralLifeEventReceipt receipt) =>
-        "장례 목격: deceased=" + receipt.DeceasedCharacterId.Value
-        + "; operation=" + receipt.SourceOperationId
-        + "; facility=" + receipt.FacilityInstanceId
-        + "; day=" + receipt.AbsoluteDay
-        + "; generation=" + receipt.Generation
-        + "; participants=" + string.Join(
-            ",",
-            receipt.ParticipantCharacterIds.Select(value => value.Value));
-
     private CampaignMutationSnapshot CaptureCampaign() => new(
         campaign.CaptureSeasonal(),
         campaign.CaptureSociety(),
@@ -711,14 +675,12 @@ public sealed class FuneralFestivalRuntime :
             campaign.PrepareFactions(snapshot.Factions),
             campaign.PrepareMilestones(snapshot.Milestones));
 
-    private void PublishFuneralObserver(V20ResolvedEventResult resolution)
+    private void PublishFuneralCompletion(V20ResolvedEventResult resolution)
     {
         try
         {
-            V20SocietyEventAlertProjection.PublishResolved(
-                events,
-                resolution,
-                physicalEffectsApplied: true);
+            events.Publish(new V20ContentEffectsResolvedEvent(resolution,
+                physicalEffectsApplied: true));
         }
         catch (Exception exception) when (
             exception is not OutOfMemoryException

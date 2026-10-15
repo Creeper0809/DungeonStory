@@ -167,10 +167,8 @@ public sealed class Wim039SocietyNoticeLiveRunner
             "Controlled observed incident preparation failed: " + captured.Failure);
         var occurrence = campaign.ActiveSocietyEvents.Single(x => x.instanceId == captured.OccurrenceInstanceId);
         scope.Container.Resolve<IGameCalendar>().SetDateTime(2, 8);
-        var adapter = (V20CampaignApplicationAdapter)scope.Container.Resolve<IV20DailyEvaluationDiagnostic>();
-        var publish = typeof(V20CampaignApplicationAdapter).GetMethod("PublishActionableAlerts", BindingFlags.Instance | BindingFlags.NonPublic);
-        Require(publish != null, "Existing alert producer method missing.");
-        publish.Invoke(adapter, null);
+        var events = scope.Container.Resolve<IGameEventBus>();
+        events.Publish(new CampaignIncidentCapturedFact(captured, 2));
         var notices = FindFirstObjectByType<EventAlertRuntime>();
         EventAlertRecord Notice() => notices.EventLog.Single(x => x.SourceId == occurrence.instanceId);
         var initialNotice = Notice();
@@ -275,7 +273,8 @@ public sealed class Wim039SocietyNoticeLiveRunner
         var guestOccurrence = CreateOccurrence(campaign, guest.StableId, 2, guest);
         current.activeEvents.Add(guestOccurrence);
         campaign.PublishSociety(campaign.PrepareSociety(current));
-        publish.Invoke(adapter, null);
+        // Controlled presentation stimulus after the fixture state is restored.
+        events.Publish(new CampaignDailyEvaluatedFact(2, true));
         var guestNotice = notices.EventLog.Single(x => x.SourceId == guestOccurrence.instanceId);
         int fulfillIndex = guestNotice.Choices.ToList().FindIndex(x => x.ActionId ==
             V21ContentAlertActionIds.Society(guestOccurrence.instanceId, "fulfill"));

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Narrative.Korean;
 using UnityEngine;
@@ -17,7 +18,8 @@ public readonly struct PreparedMigratedProducerOutcome
         int participantCount,
         int metricCount,
         int subjectCount,
-        int factCount)
+        int factCount,
+        int provenanceCount)
     {
         Reservation = reservation;
         Definition = definition;
@@ -30,6 +32,7 @@ public readonly struct PreparedMigratedProducerOutcome
         MetricCount = metricCount;
         SubjectCount = subjectCount;
         FactCount = factCount;
+        ProvenanceCount = provenanceCount;
     }
 
     internal PreparedOutcomeReservation Reservation { get; }
@@ -40,6 +43,7 @@ public readonly struct PreparedMigratedProducerOutcome
     internal int MetricCount { get; }
     internal int SubjectCount { get; }
     internal int FactCount { get; }
+    internal int ProvenanceCount { get; }
     public GameplayResultKey ResultKey => Reservation.ResultKey;
     public GameplayOutcomeTypeId OutcomeTypeId =>
         Definition?.OutcomeTypeId ?? default;
@@ -90,7 +94,8 @@ public interface IMigratedProducerOutcomeTransaction
         int subjectCount,
         int additionalFactCount,
         out PreparedMigratedProducerOutcome prepared,
-        out string failureReason);
+        out string failureReason,
+        int additionalProvenanceCount = 0);
     MigratedProducerOutcomePayloadBuilder CreatePayloadBuilder(
         in PreparedMigratedProducerOutcome prepared);
     MigratedProducerOutcomeCommitResult Commit(
@@ -109,6 +114,14 @@ public interface IMigratedProducerOutcomeExternalBatchTransaction
     bool CommitWithExternalPrepared(
         in PreparedOutcomeToken externalPrepared,
         long expectedExternalOwnerRevision,
+        PreparedMigratedProducerOutcome[] prepared,
+        MigratedProducerOutcomeReceipt[] receipts,
+        MigratedProducerOutcomeCommitResult[] results,
+        out string failureReason);
+
+    bool CommitWithExternalPreparedBatch(
+        PreparedOwnerOutcome[] externalPrepared,
+        long[] expectedExternalOwnerRevisions,
         PreparedMigratedProducerOutcome[] prepared,
         MigratedProducerOutcomeReceipt[] receipts,
         MigratedProducerOutcomeCommitResult[] results,
@@ -133,8 +146,249 @@ public readonly struct MigratedProducerOutcomeSubject
     public GameplayRoleId Role { get; }
 }
 
+public readonly struct MigratedProducerOutcomeDetails
+{
+    public MigratedProducerOutcomeDetails(
+        MigratedProducerOutcomeSubject[] subjects,
+        GameplayOutcomeMetric[] metrics,
+        GameplayOutcomeFact[] facts,
+        string summary,
+        GameplayOutcomeCausation causation = default,
+        bool summaryFirst = false,
+        GameplayOutcomeProvenanceReference[] provenance = null)
+    {
+        Subjects = subjects ?? Array.Empty<MigratedProducerOutcomeSubject>();
+        Metrics = metrics ?? Array.Empty<GameplayOutcomeMetric>();
+        Facts = facts ?? Array.Empty<GameplayOutcomeFact>();
+        Provenance = provenance
+            ?? Array.Empty<GameplayOutcomeProvenanceReference>();
+        Summary = summary?.Trim() ?? string.Empty;
+        Causation = causation;
+        SummaryFirst = summaryFirst;
+    }
+
+    public MigratedProducerOutcomeSubject[] Subjects { get; }
+    public GameplayOutcomeMetric[] Metrics { get; }
+    public GameplayOutcomeFact[] Facts { get; }
+    public GameplayOutcomeProvenanceReference[] Provenance { get; }
+    public string Summary { get; }
+    public GameplayOutcomeCausation Causation { get; }
+    public bool SummaryFirst { get; }
+    public bool IsValid => Subjects != null
+        && Subjects.Length > 0
+        && Subjects.Length <= 16
+        && Metrics != null
+        && Metrics.Length <= 16
+        && Facts != null
+        && Facts.Length <= 14
+        && Provenance != null
+        && Provenance.Length <= 15
+        && Provenance.All(reference => reference.IsValid)
+        && !string.IsNullOrWhiteSpace(Summary);
+}
+
 public static class MigratedProducerOutcomeTransactionExtensions
 {
+    public static bool TryReserveDetailed(
+        this IMigratedProducerOutcomeTransaction transaction,
+        MigratedProducerOutcomeKind kind,
+        string ownerIdentity,
+        int absoluteDay,
+        GameplayOutcomeStatus status,
+        in MigratedProducerOutcomeDetails details,
+        out PreparedMigratedProducerOutcome prepared,
+        out string failureReason)
+    {
+        if (transaction == null)
+            throw new ArgumentNullException(nameof(transaction));
+        if (!details.IsValid)
+        {
+            prepared = default;
+            failureReason = "migrated-producer-detailed-shape-invalid";
+            return false;
+        }
+        return transaction.TryReserve(
+            kind,
+            ownerIdentity,
+            absoluteDay,
+            status,
+            details.Subjects.Length,
+            details.Metrics.Length,
+            details.Subjects.Length,
+            details.Facts.Length,
+            out prepared,
+            out failureReason,
+            details.Provenance.Length);
+    }
+
+    public static MigratedProducerOutcomeCommitResult CommitDetailed(
+        this IMigratedProducerOutcomeTransaction transaction,
+        in PreparedMigratedProducerOutcome prepared,
+        in MigratedProducerOutcomeDetails details)
+    {
+        if (transaction == null)
+            throw new ArgumentNullException(nameof(transaction));
+        if (!details.IsValid)
+        {
+            transaction.Cancel(prepared);
+            return new MigratedProducerOutcomeCommitResult(
+                false,
+                prepared.ResultKey,
+                default,
+                string.Empty,
+                "migrated-producer-detailed-shape-invalid");
+        }
+
+        if (!transaction.TryCreateDetailedReceipt(
+                prepared,
+                details,
+                out MigratedProducerOutcomeReceipt receipt))
+        {
+            transaction.Cancel(prepared);
+            return new MigratedProducerOutcomeCommitResult(
+                false,
+                prepared.ResultKey,
+                default,
+                string.Empty,
+                "migrated-producer-detailed-capacity-invalid");
+        }
+        return transaction.Commit(prepared, receipt);
+    }
+
+    public static bool TryCreateDetailedReceipt(
+        this IMigratedProducerOutcomeTransaction transaction,
+        in PreparedMigratedProducerOutcome prepared,
+        in MigratedProducerOutcomeDetails details,
+        out MigratedProducerOutcomeReceipt receipt)
+    {
+        if (transaction == null)
+            throw new ArgumentNullException(nameof(transaction));
+        receipt = default;
+        if (!details.IsValid)
+            return false;
+        MigratedProducerOutcomePayloadBuilder builder =
+            transaction.CreatePayloadBuilder(prepared);
+        if (!TryBuildDetailed(ref builder, prepared, details))
+            return false;
+        receipt = builder.Build();
+        return true;
+    }
+
+    public static bool CommitDetailedBatch(
+        this IMigratedProducerOutcomeTransaction transaction,
+        PreparedMigratedProducerOutcome[] prepared,
+        MigratedProducerOutcomeDetails[] details,
+        MigratedProducerOutcomeCommitResult[] results,
+        out string failureReason)
+    {
+        if (transaction == null)
+            throw new ArgumentNullException(nameof(transaction));
+        if (prepared == null
+            || details == null
+            || results == null
+            || prepared.Length == 0
+            || details.Length != prepared.Length
+            || results.Length != prepared.Length)
+        {
+            failureReason = "migrated-producer-detailed-batch-shape-invalid";
+            return false;
+        }
+
+        var receipts = new MigratedProducerOutcomeReceipt[prepared.Length];
+        for (int index = 0; index < prepared.Length; index++)
+        {
+            MigratedProducerOutcomePayloadBuilder builder =
+                transaction.CreatePayloadBuilder(prepared[index]);
+            if (!details[index].IsValid
+                || !TryBuildDetailed(
+                    ref builder,
+                    prepared[index],
+                    details[index]))
+            {
+                for (int cancelIndex = 0;
+                     cancelIndex < prepared.Length;
+                     cancelIndex++)
+                {
+                    transaction.Cancel(prepared[cancelIndex]);
+                }
+                failureReason =
+                    "migrated-producer-detailed-batch-capacity-invalid";
+                return false;
+            }
+            receipts[index] = builder.Build();
+        }
+        return transaction.CommitBatch(
+            prepared,
+            receipts,
+            results,
+            out failureReason);
+    }
+
+    private static bool TryBuildDetailed(
+        ref MigratedProducerOutcomePayloadBuilder builder,
+        in PreparedMigratedProducerOutcome prepared,
+        in MigratedProducerOutcomeDetails details)
+        => TryBuildDetailed(ref builder, prepared.Salience, prepared.Tier, details);
+
+    internal static bool TryBuildDetailed(
+        ref MigratedProducerOutcomePayloadBuilder builder,
+        float salience,
+        NarrativeMemoryTier tier,
+        in MigratedProducerOutcomeDetails details)
+    {
+        for (int index = 0; index < details.Subjects.Length; index++)
+        {
+            MigratedProducerOutcomeSubject subject = details.Subjects[index];
+            if (!builder.AddParticipant(new GameplayOutcomeParticipant(
+                    subject.EntityId,
+                    subject.Role,
+                    GameplayParticipationKind.Direct,
+                    true,
+                    subject.DisplayName))
+                || !builder.AddSubject(new GameplayOutcomeSubjectLink(
+                    subject.EntityId,
+                    salience,
+                    tier,
+                    tier == NarrativeMemoryTier.Core,
+                    false,
+                    0)))
+            {
+                return false;
+            }
+        }
+        for (int index = 0; index < details.Metrics.Length; index++)
+        {
+            if (!builder.AddMetric(details.Metrics[index]))
+                return false;
+        }
+        for (int index = 0; index < details.Provenance.Length; index++)
+        {
+            if (!builder.AddProvenance(details.Provenance[index]))
+                return false;
+        }
+        if (details.SummaryFirst && !builder.AddFact(new GameplayOutcomeFact(
+                MigratedProducerOutcomeIds.SummaryFact, details.Summary)))
+            return false;
+        for (int index = 0; index < details.Facts.Length; index++)
+        {
+            if (!builder.AddFact(details.Facts[index]))
+                return false;
+        }
+        if (!details.SummaryFirst && !builder.AddFact(new GameplayOutcomeFact(
+                MigratedProducerOutcomeIds.SummaryFact,
+                details.Summary)))
+        {
+            return false;
+        }
+        if (details.Causation.HasParent
+            || details.Causation.RootOperationId.IsValid
+            || !string.IsNullOrEmpty(details.Causation.RelationId))
+        {
+            builder.SetCausation(details.Causation);
+        }
+        return true;
+    }
+
     public static MigratedProducerOutcomeCommitResult CommitRequiredSingleSubject(
         this IMigratedProducerOutcomeTransaction transaction,
         MigratedProducerOutcomeKind kind,
@@ -393,7 +647,8 @@ public sealed class MigratedProducerOutcomeRuntime :
         int subjectCount,
         int additionalFactCount,
         out PreparedMigratedProducerOutcome prepared,
-        out string failureReason)
+        out string failureReason,
+        int additionalProvenanceCount = 0)
     {
         prepared = default;
         string identity = ownerIdentity?.Trim() ?? string.Empty;
@@ -404,7 +659,8 @@ public sealed class MigratedProducerOutcomeRuntime :
             || participantCount <= 0 || participantCount > 16
             || metricCount < 0 || metricCount > 16
             || subjectCount <= 0 || subjectCount > participantCount
-            || additionalFactCount < 0 || additionalFactCount > 14)
+            || additionalFactCount < 0 || additionalFactCount > 14
+            || additionalProvenanceCount < 0 || additionalProvenanceCount > 15)
         {
             failureReason = "migrated-producer-reservation-shape-invalid";
             return false;
@@ -433,17 +689,10 @@ public sealed class MigratedProducerOutcomeRuntime :
             return false;
         }
         long revision = previousRevision + 1L;
-        string operationHash = NarrativeInferenceHash.ComputeSha256Utf8(ownerKey)
-            .Substring(0, 32);
         GameplayResultKey resultKey;
         try
         {
-            resultKey = new GameplayResultKey(
-                definition.ProducerId,
-                new GameplayOperationId(
-                    "migrated:" + ((int)kind) + ":" + operationHash + ":" + revision),
-                revision,
-                0);
+            resultKey = MigratedProducerOutcomeCatalog.ResultKey(kind, identity, revision);
         }
         catch (Exception exception) when (exception is ArgumentException
                                            or InvalidOperationException
@@ -466,7 +715,7 @@ public sealed class MigratedProducerOutcomeRuntime :
             subjectCount,
             tagCount: 1,
             anchorCount: 0,
-            provenanceCount: 1,
+            provenanceCount: additionalProvenanceCount + 1,
             factCount: additionalFactCount + 2);
         OutcomePrepareResult reserve = recorder.TryReserve(
             requirements,
@@ -488,7 +737,8 @@ public sealed class MigratedProducerOutcomeRuntime :
             participantCount,
             metricCount,
             subjectCount,
-            additionalFactCount + 2);
+            additionalFactCount + 2,
+            additionalProvenanceCount + 1);
         failureReason = string.Empty;
         return true;
     }
@@ -515,6 +765,146 @@ public sealed class MigratedProducerOutcomeRuntime :
                 "The migrated producer payload defaults exceeded their fixed capacity.");
         }
         return builder;
+    }
+
+    internal bool TryReserveObserved(in MigratedDomainFactCapture fact,
+        out PreparedMigratedProducerOutcome prepared, out string failure)
+    {
+        prepared = default;
+        string identity = fact.OwnerIdentity?.Trim() ?? string.Empty;
+        if (identity.Length == 0 || identity.Length > MaximumOwnerIdentityLength)
+        { failure = "fact-observer-owner-identity-invalid"; return false; }
+        var definition = MigratedProducerOutcomeCatalog.Get(fact.Kind);
+        string ownerKey = definition.ProducerId + "|" + identity;
+        long before = Current.OwnerRevisions.TryGetValue(ownerKey, out long observed) ? observed : 0L;
+        if (before == long.MaxValue)
+        { failure = "fact-observer-owner-revision-exhausted"; return false; }
+        var key = MigratedProducerOutcomeCatalog.ResultKey(fact.Kind, identity, before + 1L);
+        // Observer-only binding: generated operation subjects never escape
+        // into a gameplay fact or become a second domain identity authority.
+        var details = fact.ResolveDetails(key);
+        return this.TryReserveDetailed(fact.Kind, identity, fact.AbsoluteDay, fact.Status,
+            details, out prepared, out failure);
+    }
+
+    internal bool TryPrepareObserved(
+        in PreparedMigratedProducerOutcome prepared,
+        in MigratedProducerOutcomeDetails details,
+        GameplayDomainFactCommitGroup group,
+        out GameplayDomainFactPublication publication,
+        out string failure)
+    {
+        publication = null;
+        if (!this.TryCreateDetailedReceipt(prepared, details, out var receipt)
+            || !ReceiptMatches(prepared, receipt))
+        { failure = "fact-observer-migrated-receipt-mismatch"; return false; }
+        var revision = new ObservedRevision(this, prepared);
+        if (!revision.Validate())
+        { failure = "fact-observer-migrated-owner-revision-stale"; return false; }
+        var written = recorder.TryWriteReserved(receipt, prepared.Reservation, out var token);
+        if (!written.Success)
+        { failure = "fact-observer-migrated-write:" + written.Code + ":" + written.DetailCode; return false; }
+        publication = new GameplayDomainFactPublication(group, recorder,
+            new PreparedOwnerOutcome(token), prepared.OwnerRevision) { Revision = revision };
+        failure = string.Empty;
+        return true;
+    }
+
+    private sealed class ObservedRevision : IGameplayDomainFactRevision
+    {
+        private readonly MigratedProducerOutcomeRuntime owner;
+        private readonly PreparedMigratedProducerOutcome prepared;
+        public ObservedRevision(MigratedProducerOutcomeRuntime owner, PreparedMigratedProducerOutcome prepared)
+        { this.owner = owner; this.prepared = prepared; }
+        public string ConflictKey => prepared.OwnerKey;
+        public bool Validate()
+        {
+            long current = owner.Current.OwnerRevisions.TryGetValue(prepared.OwnerKey, out long value) ? value : 0L;
+            return current == prepared.PreviousOwnerRevision && prepared.OwnerRevision == current + 1L;
+        }
+        public void Apply() => owner.Writable.OwnerRevisions[prepared.OwnerKey] = prepared.OwnerRevision;
+        public void Rollback() => owner.RestoreOwnerRevision(prepared);
+    }
+
+    internal bool TryPrepareObservedRecovery(
+        in MigratedDomainFactCapture fact,
+        string publicationKey,
+        GameplayDomainFactCommitGroup group,
+        out GameplayDomainFactPublication publication,
+        out string failure)
+    {
+        publication = null;
+        failure = "fact-observer-recovery-identity-invalid";
+        if (fact.ReservationOnly)
+        { failure = "fact-observer-proposal-cannot-be-replayed"; return false; }
+        string[] parts = publicationKey?.Split('|');
+        if (parts == null || parts.Length != 4
+            || !long.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out long revision)
+            || revision < 1L || parts[3] != "0")
+            return false;
+        var key = MigratedProducerOutcomeCatalog.ResultKey(fact.Kind, fact.OwnerIdentity, revision);
+        if (key.ToString() != publicationKey) return false;
+        var details = fact.ResolveDetails(key);
+        if (!details.IsValid)
+        { failure = "fact-observer-recovery-payload-invalid"; return false; }
+        var definition = MigratedProducerOutcomeCatalog.Get(fact.Kind);
+        string ownerKey = definition.ProducerId + "|" + fact.OwnerIdentity.Trim();
+        long current = Current.OwnerRevisions.TryGetValue(ownerKey, out long value) ? value : 0L;
+        var builder = new MigratedProducerOutcomePayloadBuilder(key, definition.OutcomeTypeId,
+            fact.AbsoluteDay, fact.Status, revision);
+        if (!builder.AddTag(definition.DomainTag)
+            || !builder.AddProvenance(MigratedProducerOutcomeIds.ProducerMigrationProvenance)
+            || !builder.AddFact(new GameplayOutcomeFact(
+                MigratedProducerOutcomeIds.SourceTypeFact, definition.SourceTypeName))
+            || !MigratedProducerOutcomeTransactionExtensions.TryBuildDetailed(
+                ref builder, definition.Salience, definition.Tier, details))
+        { failure = "fact-observer-recovery-payload-invalid"; return false; }
+
+        // The complete payload is compared even if this exact key already exists.
+        var prepared = recorder.TryPrepare(builder.Build(), out var token);
+        if (prepared.Code is OutcomePrepareCode.AlreadyCommitted or OutcomePrepareCode.AlreadyPublished
+            or OutcomePrepareCode.AlreadyTerminal)
+        {
+            if (current < revision)
+            { failure = "fact-observer-recovery-canonical-owner-revision-missing"; return false; }
+            publication = new GameplayDomainFactPublication(group, recorder, key, revision);
+        }
+        else if (prepared.Success)
+        {
+            // Commit may have advanced the observer counter before its durable
+            // boundary threw. Recover the saved key, never allocate the next key.
+            if (current != revision - 1L && current != revision)
+            {
+                recorder.CancelPrepared(token);
+                failure = "fact-observer-recovery-owner-revision-conflict";
+                return false;
+            }
+            publication = new GameplayDomainFactPublication(group, recorder,
+                new PreparedOwnerOutcome(token), revision)
+            { Revision = new RecoveryRevision(this, ownerKey, current, revision) };
+        }
+        else
+        { failure = "fact-observer-recovery-prepare:" + prepared.Code + ":" + prepared.DetailCode; return false; }
+        failure = string.Empty;
+        return true;
+    }
+
+    private sealed class RecoveryRevision : IGameplayDomainFactRevision
+    {
+        private readonly MigratedProducerOutcomeRuntime owner;
+        private readonly long before;
+        private readonly long after;
+        public RecoveryRevision(MigratedProducerOutcomeRuntime owner, string ownerKey, long before, long after)
+        { this.owner = owner; ConflictKey = ownerKey; this.before = before; this.after = after; }
+        public string ConflictKey { get; }
+        public bool Validate() => (owner.Current.OwnerRevisions.TryGetValue(ConflictKey, out long value)
+            ? value : 0L) == before;
+        public void Apply() => owner.Writable.OwnerRevisions[ConflictKey] = after;
+        public void Rollback()
+        {
+            if (before == 0L) owner.Writable.OwnerRevisions.Remove(ConflictKey);
+            else owner.Writable.OwnerRevisions[ConflictKey] = before;
+        }
     }
 
     public MigratedProducerOutcomeCommitResult Commit(
@@ -699,33 +1089,66 @@ public sealed class MigratedProducerOutcomeRuntime :
         MigratedProducerOutcomeCommitResult[] results,
         out string failureReason)
     {
-        if (!externalPrepared.IsValid
-            || expectedExternalOwnerRevision < 0L
+        return CommitWithExternalPreparedBatch(
+            new[] { new PreparedOwnerOutcome(externalPrepared) },
+            new[] { expectedExternalOwnerRevision },
+            prepared,
+            receipts,
+            results,
+            out failureReason);
+    }
+
+    public bool CommitWithExternalPreparedBatch(
+        PreparedOwnerOutcome[] externalPrepared,
+        long[] expectedExternalOwnerRevisions,
+        PreparedMigratedProducerOutcome[] prepared,
+        MigratedProducerOutcomeReceipt[] receipts,
+        MigratedProducerOutcomeCommitResult[] results,
+        out string failureReason)
+    {
+        if (externalPrepared == null
+            || expectedExternalOwnerRevisions == null
+            || externalPrepared.Length == 0
+            || expectedExternalOwnerRevisions.Length
+                != externalPrepared.Length
             || prepared == null
             || receipts == null
             || results == null
             || prepared.Length == 0
-            || prepared.Length + 1
+            || prepared.Length + externalPrepared.Length
                 > GameplayOutcomeTransactionLimits.MaximumAtomicCommitBatchCount
             || receipts.Length != prepared.Length
             || results.Length != prepared.Length)
         {
-            if (externalPrepared.IsValid)
-                transactions.Cancel(new PreparedOwnerOutcome(externalPrepared));
+            CancelExternalBatch(externalPrepared);
             CancelBatch(prepared);
             failureReason = "migrated-producer-external-batch-shape-invalid";
             return false;
         }
 
         var ownerKeys = new HashSet<string>(StringComparer.Ordinal);
+        var externalKeys = new HashSet<GameplayResultKey>();
+        for (int index = 0; index < externalPrepared.Length; index++)
+        {
+            if (!externalPrepared[index].IsValid
+                || expectedExternalOwnerRevisions[index] < 0L
+                || !externalKeys.Add(externalPrepared[index].ResultKey))
+            {
+                CancelExternalBatch(externalPrepared);
+                CancelBatch(prepared);
+                failureReason =
+                    "migrated-producer-external-batch-token-invalid:" + index;
+                return false;
+            }
+        }
         for (int index = 0; index < prepared.Length; index++)
         {
             PreparedMigratedProducerOutcome item = prepared[index];
             if (!ReceiptMatches(item, receipts[index])
                 || !ownerKeys.Add(item.OwnerKey)
-                || item.ResultKey == externalPrepared.ResultKey)
+                || externalKeys.Contains(item.ResultKey))
             {
-                transactions.Cancel(new PreparedOwnerOutcome(externalPrepared));
+                CancelExternalBatch(externalPrepared);
                 CancelBatch(prepared);
                 failureReason =
                     "migrated-producer-external-batch-receipt-mismatch:" + index;
@@ -739,7 +1162,7 @@ public sealed class MigratedProducerOutcomeRuntime :
             if (currentRevision != item.PreviousOwnerRevision
                 || item.OwnerRevision != currentRevision + 1L)
             {
-                transactions.Cancel(new PreparedOwnerOutcome(externalPrepared));
+                CancelExternalBatch(externalPrepared);
                 CancelBatch(prepared);
                 failureReason =
                     "migrated-producer-external-batch-owner-revision-stale:"
@@ -748,11 +1171,15 @@ public sealed class MigratedProducerOutcomeRuntime :
             }
         }
 
-        var tokens = new PreparedOwnerOutcome[prepared.Length + 1];
-        var expectedRevisions = new long[prepared.Length + 1];
-        var ownerResults = new OwnerOutcomeCommitResult[prepared.Length + 1];
-        tokens[0] = new PreparedOwnerOutcome(externalPrepared);
-        expectedRevisions[0] = expectedExternalOwnerRevision;
+        int externalCount = externalPrepared.Length;
+        var tokens = new PreparedOwnerOutcome[prepared.Length + externalCount];
+        var expectedRevisions = new long[prepared.Length + externalCount];
+        var ownerResults = new OwnerOutcomeCommitResult[prepared.Length + externalCount];
+        for (int index = 0; index < externalCount; index++)
+        {
+            tokens[index] = externalPrepared[index];
+            expectedRevisions[index] = expectedExternalOwnerRevisions[index];
+        }
         for (int index = 0; index < prepared.Length; index++)
         {
             OutcomePrepareResult written = recorder.TryWriteReserved(
@@ -765,7 +1192,7 @@ public sealed class MigratedProducerOutcomeRuntime :
                      preparedIndex < index;
                      preparedIndex++)
                 {
-                    transactions.Cancel(tokens[preparedIndex + 1]);
+                    transactions.Cancel(tokens[preparedIndex + externalCount]);
                 }
                 for (int reservationIndex = index;
                      reservationIndex < prepared.Length;
@@ -774,13 +1201,13 @@ public sealed class MigratedProducerOutcomeRuntime :
                     recorder.CancelReservation(
                         prepared[reservationIndex].Reservation);
                 }
-                transactions.Cancel(tokens[0]);
+                CancelExternalBatch(externalPrepared);
                 failureReason = "migrated-producer-external-batch-write-"
                     + written.Code + ":" + written.DetailCode + ":" + index;
                 return false;
             }
-            tokens[index + 1] = new PreparedOwnerOutcome(token);
-            expectedRevisions[index + 1] = prepared[index].OwnerRevision;
+            tokens[index + externalCount] = new PreparedOwnerOutcome(token);
+            expectedRevisions[index + externalCount] = prepared[index].OwnerRevision;
         }
 
         MigratedProducerOutcomeAggregateState writable = Writable;
@@ -804,7 +1231,8 @@ public sealed class MigratedProducerOutcomeRuntime :
 
         for (int index = 0; index < prepared.Length; index++)
         {
-            OwnerOutcomeCommitResult ownerResult = ownerResults[index + 1];
+            OwnerOutcomeCommitResult ownerResult =
+                ownerResults[index + externalCount];
             results[index] = new MigratedProducerOutcomeCommitResult(
                 ownerResult.DurablyCommitted,
                 ownerResult.ResultKey,
@@ -814,6 +1242,14 @@ public sealed class MigratedProducerOutcomeRuntime :
         }
         failureReason = string.Empty;
         return true;
+    }
+
+    private void CancelExternalBatch(PreparedOwnerOutcome[] prepared)
+    {
+        if (prepared == null)
+            return;
+        for (int index = 0; index < prepared.Length; index++)
+            transactions.Cancel(prepared[index]);
     }
 
     public void Cancel(in PreparedMigratedProducerOutcome prepared)
@@ -839,7 +1275,8 @@ public sealed class MigratedProducerOutcomeRuntime :
         && receipt.Payload.Participants.Count == prepared.ParticipantCount
         && receipt.Payload.Metrics.Count == prepared.MetricCount
         && receipt.Payload.Subjects.Count == prepared.SubjectCount
-        && receipt.Payload.Facts.Count == prepared.FactCount;
+        && receipt.Payload.Facts.Count == prepared.FactCount
+        && receipt.Payload.Provenance.Count == prepared.ProvenanceCount;
 
     public DungeonMigratedProducerOutcomeSaveData Capture() => new()
     {

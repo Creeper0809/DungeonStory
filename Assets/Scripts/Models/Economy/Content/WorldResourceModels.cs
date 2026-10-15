@@ -58,6 +58,13 @@ public interface IWorldResourceRuntime
         float amount,
         out bool cycleCompleted);
 
+    bool ApplyWork(
+        WorldResourceNode node,
+        WorkTypeId workTypeId,
+        float amount,
+        string contributorCharacterId,
+        out bool cycleCompleted);
+
     bool TryFinalizePendingOutput(
         WorldResourceNode node,
         WorkTypeId workTypeId,
@@ -74,6 +81,7 @@ public sealed class WorldResourceSourceSaveData
     public float completedWork;
     public int remainingCycles;
     public int completedCycleSequence;
+    public List<CraftContributionSaveData> workContributions = new();
     public WorldResourcePendingOutputSaveData pendingOutput = new();
 }
 
@@ -92,7 +100,7 @@ public sealed class WorldResourceNodeSaveData
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonWorldResourceSaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 6;
 
     public int version = CurrentVersion;
     public List<WorldResourceNodeSaveData> nodes =

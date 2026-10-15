@@ -35,24 +35,24 @@ public static class ProductionCommandOutcomeIds
         ownerRevision,
         0);
 
-    public static string StableKind(ProductionCommandOutcomeKind kind) => kind switch
+    public static string StableKind(ProductionCommandKind kind) => kind switch
     {
-        ProductionCommandOutcomeKind.BillAdded => "bill-added",
-        ProductionCommandOutcomeKind.BillRemoved => "bill-removed",
-        ProductionCommandOutcomeKind.BillPriorityChanged => "bill-priority-changed",
-        ProductionCommandOutcomeKind.MinimumCraftQualityChanged =>
+        ProductionCommandKind.BillAdded => "bill-added",
+        ProductionCommandKind.BillRemoved => "bill-removed",
+        ProductionCommandKind.BillPriorityChanged => "bill-priority-changed",
+        ProductionCommandKind.MinimumCraftQualityChanged =>
             "minimum-craft-quality-changed",
-        ProductionCommandOutcomeKind.SuspensionChanged => "suspension-changed",
-        ProductionCommandOutcomeKind.StockPolicyChanged => "stock-policy-changed",
-        ProductionCommandOutcomeKind.OrderModeChanged => "order-mode-changed",
-        ProductionCommandOutcomeKind.DistributionPolicyChanged =>
+        ProductionCommandKind.SuspensionChanged => "suspension-changed",
+        ProductionCommandKind.StockPolicyChanged => "stock-policy-changed",
+        ProductionCommandKind.OrderModeChanged => "order-mode-changed",
+        ProductionCommandKind.DistributionPolicyChanged =>
             "distribution-policy-changed",
-        ProductionCommandOutcomeKind.WorkerPolicyChanged => "worker-policy-changed",
-        ProductionCommandOutcomeKind.EmergencyWorkerChanged =>
+        ProductionCommandKind.WorkerPolicyChanged => "worker-policy-changed",
+        ProductionCommandKind.EmergencyWorkerChanged =>
             "emergency-worker-changed",
-        ProductionCommandOutcomeKind.StockSensorInstalled => "stock-sensor-installed",
-        ProductionCommandOutcomeKind.StockSensorRemoved => "stock-sensor-removed",
-        ProductionCommandOutcomeKind.StockSensorUnlockAcknowledged =>
+        ProductionCommandKind.StockSensorInstalled => "stock-sensor-installed",
+        ProductionCommandKind.StockSensorRemoved => "stock-sensor-removed",
+        ProductionCommandKind.StockSensorUnlockAcknowledged =>
             "stock-sensor-unlock-acknowledged",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
     };
@@ -61,17 +61,19 @@ public static class ProductionCommandOutcomeIds
 public readonly struct ProductionCommandOutcomeReceipt
 {
     public ProductionCommandOutcomeReceipt(
-        in ProductionCommandOutcomeSource source,
+        ProductionCommandAppliedFact fact,
         KoreanNameSnapshot facilityDisplayName,
-        long ownerRevision,
-        int absoluteDay)
+        string beforeValue,
+        string afterValue)
     {
-        if (!Enum.IsDefined(typeof(ProductionCommandOutcomeKind), source.Kind))
-            throw new ArgumentOutOfRangeException(nameof(source));
-        if (!GameplayOutcomeStableIdSyntax.IsValid(source.FacilityId))
+        if (fact == null)
+            throw new ArgumentNullException(nameof(fact));
+        if (!Enum.IsDefined(typeof(ProductionCommandKind), fact.Kind))
+            throw new ArgumentOutOfRangeException(nameof(fact));
+        if (!GameplayOutcomeStableIdSyntax.IsValid(fact.FacilityId))
             throw new ArgumentException(
                 "A canonical production facility ID is required.",
-                nameof(source));
+                nameof(fact));
         if (string.IsNullOrWhiteSpace(facilityDisplayName.DisplayText)
             || string.IsNullOrWhiteSpace(
                 facilityDisplayName.DisplaySnapshotRevision))
@@ -80,26 +82,34 @@ public readonly struct ProductionCommandOutcomeReceipt
                 "A frozen facility display snapshot is required.",
                 nameof(facilityDisplayName));
         }
-        if (ownerRevision <= 0L)
-            throw new ArgumentOutOfRangeException(nameof(ownerRevision));
-        if (absoluteDay <= 0)
-            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        if (fact.OwnerRevision <= 0L)
+            throw new ArgumentOutOfRangeException(nameof(fact));
+        if (fact.AbsoluteDay <= 0)
+            throw new ArgumentOutOfRangeException(nameof(fact));
+        if (string.IsNullOrWhiteSpace(beforeValue))
+            throw new ArgumentException(
+                "A production command before-value snapshot is required.",
+                nameof(beforeValue));
+        if (string.IsNullOrWhiteSpace(afterValue))
+            throw new ArgumentException(
+                "A production command after-value snapshot is required.",
+                nameof(afterValue));
 
-        Kind = source.Kind;
-        BillId = source.BillId;
-        RecipeId = source.RecipeId;
-        RecipeDisplayName = source.RecipeDisplayName;
-        FacilityId = source.FacilityId;
+        Kind = fact.Kind;
+        BillId = fact.BillId;
+        RecipeId = fact.RecipeId;
+        RecipeDisplayName = fact.RecipeDisplayName;
+        FacilityId = fact.FacilityId;
         FacilityDisplayName = facilityDisplayName;
-        FacilityX = source.FacilityX;
-        FacilityY = source.FacilityY;
-        BeforeValue = source.BeforeValue;
-        AfterValue = source.AfterValue;
-        OwnerRevision = ownerRevision;
-        AbsoluteDay = absoluteDay;
+        FacilityX = fact.FacilityX;
+        FacilityY = fact.FacilityY;
+        BeforeValue = beforeValue;
+        AfterValue = afterValue;
+        OwnerRevision = fact.OwnerRevision;
+        AbsoluteDay = fact.AbsoluteDay;
     }
 
-    public ProductionCommandOutcomeKind Kind { get; }
+    public ProductionCommandKind Kind { get; }
     public string BillId { get; }
     public string RecipeId { get; }
     public string RecipeDisplayName { get; }
@@ -129,7 +139,7 @@ public sealed class ProductionCommandOutcomeAdapter :
         requirements = default;
         if (!receipt.ResultKey.IsValid
             || !Enum.IsDefined(
-                typeof(ProductionCommandOutcomeKind),
+                typeof(ProductionCommandKind),
                 receipt.Kind)
             || !GameplayOutcomeStableIdSyntax.IsValid(receipt.FacilityId)
             || receipt.OwnerRevision <= 0L
@@ -225,227 +235,6 @@ public sealed class ProductionCommandOutcomeAdapter :
 
     private static string OptionalFact(string value) =>
         string.IsNullOrWhiteSpace(value) ? "none" : value;
-}
-
-internal sealed class PreparedProductionCommandOutcome :
-    IPreparedProductionCommandOutcome
-{
-    internal PreparedProductionCommandOutcome(
-        PreparedOwnerOutcome prepared,
-        GameplayResultKey resultKey,
-        long ownerRevision,
-        in ProductionCommandOutcomeFrozenContext frozenContext,
-        bool replay)
-    {
-        Prepared = prepared;
-        ResultKey = resultKey;
-        OwnerRevision = ownerRevision;
-        FrozenContext = frozenContext;
-        IsReplay = replay;
-    }
-
-    internal PreparedOwnerOutcome Prepared { get; }
-    public GameplayResultKey ResultKey { get; }
-    public long OwnerRevision { get; }
-    public ProductionCommandOutcomeFrozenContext FrozenContext { get; }
-    public bool IsReplay { get; }
-    internal bool IsValid => IsReplay ? ResultKey.IsValid : Prepared.IsValid;
-}
-
-public sealed class ProductionCommandGameplayOutcomeBridge :
-    IProductionCommandOutcomeCommitter
-{
-    private readonly IGameCalendar calendar;
-    private readonly IGameplayOutcomeDisplayNameQuery displayNames;
-    private readonly PreparedOutcomeOwnerTransaction transactions;
-
-    public ProductionCommandGameplayOutcomeBridge(
-        IGameplayOutcomeRecorder recorder,
-        IGameplayOutcomeDiagnosticsQuery diagnostics,
-        IGameplayOutcomeDisplayNameQuery displayNames,
-        IGameCalendar calendar)
-    {
-        transactions = new PreparedOutcomeOwnerTransaction(
-            recorder ?? throw new ArgumentNullException(nameof(recorder)),
-            diagnostics ?? throw new ArgumentNullException(nameof(diagnostics)));
-        this.displayNames = displayNames
-            ?? throw new ArgumentNullException(nameof(displayNames));
-        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
-    }
-
-    public bool TryPrepare(
-        in ProductionCommandOutcomeSource source,
-        long ownerRevision,
-        out IPreparedProductionCommandOutcome prepared,
-        out string failureReason)
-    {
-        prepared = null;
-        GameplayEntityId facility = new(
-            ProductionCommandOutcomeIds.FacilityKind,
-            source.FacilityId);
-        if (!displayNames.TryGetCurrentName(
-                facility,
-                out KoreanNameSnapshot facilityName))
-        {
-            failureReason = "production-command-facility-name-missing";
-            return false;
-        }
-
-        ProductionCommandOutcomeFrozenContext context;
-        try
-        {
-            context = new ProductionCommandOutcomeFrozenContext(
-                facilityName.DisplayText,
-                facilityName.DisplaySnapshotRevision,
-                (int)facilityName.PronunciationHint.Mode,
-                facilityName.PronunciationHint.Value,
-                (int)facilityName.PronunciationHint.ExplicitFinalConsonant,
-                facilityName.PronunciationHint.Revision,
-                string.IsNullOrWhiteSpace(facilityName.Locale)
-                    ? "ko-KR"
-                    : facilityName.Locale,
-                Math.Max(1, calendar.Day));
-        }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or InvalidOperationException
-                                           or OverflowException)
-        {
-            failureReason = "production-command-context-invalid:"
-                + exception.Message;
-            return false;
-        }
-        return TryPrepareFrozen(
-            source,
-            ownerRevision,
-            context,
-            out prepared,
-            out failureReason);
-    }
-
-    public bool TryPreparePending(
-        ProductionCommandOutcomeOutboxSaveData pending,
-        out IPreparedProductionCommandOutcome prepared,
-        out string failureReason)
-    {
-        prepared = null;
-        if (pending == null)
-        {
-            failureReason = "production-command-pending-null";
-            return false;
-        }
-        try
-        {
-            ProductionCommandOutcomeSource source = pending.ToSource();
-            ProductionCommandOutcomeFrozenContext context =
-                pending.ToFrozenContext();
-            return TryPrepareFrozen(
-                source,
-                pending.ownerRevision,
-                context,
-                out prepared,
-                out failureReason);
-        }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or InvalidOperationException
-                                           or OverflowException)
-        {
-            failureReason = "production-command-pending-invalid:"
-                + exception.Message;
-            return false;
-        }
-    }
-
-    private bool TryPrepareFrozen(
-        in ProductionCommandOutcomeSource source,
-        long ownerRevision,
-        in ProductionCommandOutcomeFrozenContext context,
-        out IPreparedProductionCommandOutcome prepared,
-        out string failureReason)
-    {
-        prepared = null;
-        if (!Enum.IsDefined(
-                typeof(KoreanPronunciationMode),
-                context.PronunciationMode)
-            || !Enum.IsDefined(
-                typeof(KoreanFinalConsonantKind),
-                context.PronunciationFinalConsonant))
-        {
-            failureReason = "production-command-pronunciation-invalid";
-            return false;
-        }
-        KoreanNameSnapshot facilityName = new(
-            context.FacilityDisplayText,
-            context.FacilityDisplayRevision,
-            new KoreanPronunciationHint(
-                (KoreanPronunciationMode)context.PronunciationMode,
-                context.PronunciationValue,
-                (KoreanFinalConsonantKind)
-                    context.PronunciationFinalConsonant,
-                context.PronunciationRevision),
-            context.Locale);
-
-        ProductionCommandOutcomeReceipt receipt;
-        try
-        {
-            receipt = new ProductionCommandOutcomeReceipt(
-                source,
-                facilityName,
-                ownerRevision,
-                context.AbsoluteDay);
-        }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or InvalidOperationException
-                                           or OverflowException)
-        {
-            failureReason = "production-command-receipt-invalid:"
-                + exception.Message;
-            return false;
-        }
-
-        if (!transactions.TryPrepare(
-                receipt,
-                out PreparedOwnerOutcome token,
-                out OwnerOutcomeCommitResult replay,
-                out _,
-                out failureReason))
-        {
-            return false;
-        }
-        prepared = new PreparedProductionCommandOutcome(
-            token,
-            receipt.ResultKey,
-            receipt.OwnerRevision,
-            context,
-            replay.DurablyCommitted);
-        return true;
-    }
-
-    public ProductionCommandOutcomeCommitResult Commit(
-        IPreparedProductionCommandOutcome prepared)
-    {
-        if (prepared is not PreparedProductionCommandOutcome exact
-            || !exact.IsValid)
-        {
-            return new ProductionCommandOutcomeCommitResult(
-                false,
-                "production-command-outcome-token-invalid");
-        }
-        OwnerOutcomeCommitResult result = exact.IsReplay
-            ? transactions.Reconcile(exact.ResultKey)
-            : transactions.Commit(exact.Prepared, exact.OwnerRevision);
-        return new ProductionCommandOutcomeCommitResult(
-            result.DurablyCommitted,
-            result.DetailCode);
-    }
-
-    public void Cancel(IPreparedProductionCommandOutcome prepared)
-    {
-        if (prepared is PreparedProductionCommandOutcome exact
-            && !exact.IsReplay)
-        {
-            transactions.Cancel(exact.Prepared);
-        }
-    }
 }
 
 internal sealed class ProductionCommandMemoryPolicy : IOutcomeMemoryPolicy
@@ -636,11 +425,14 @@ public static class ProductionCommandOutcomeRegistration
     public static void RegisterProductionCommandGameplayOutcomes(
         this IContainerBuilder builder)
     {
-        builder.Register<ProductionCommandGameplayOutcomeBridge>(Lifetime.Singleton)
-            .As<IProductionCommandOutcomeCommitter>();
-        builder.Register<ProductionCommandOutcomeAdapter>(Lifetime.Singleton)
-            .As<IGameplayOutcomeAdapterRegistration>();
-        builder.Register<ProductionCommandOutcomeDescriptor>(Lifetime.Singleton)
-            .As<IGameplayOutcomeDescriptor>();
+        builder.RegisterGameplayDomainFact<
+            ProductionCommandAppliedFact,
+            ProductionCommandOutcomeReceipt>(
+                "production.command-observer",
+                ProductionCommandFactObservation.Capture);
+        builder.Register<ProductionCommandFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>()
+            .As<IDungeonCapturedSavePreflightValidator>();
+        builder.RegisterGameplayActionLogs(nameof(ProductionCommandOutcomeAdapter));
     }
 }

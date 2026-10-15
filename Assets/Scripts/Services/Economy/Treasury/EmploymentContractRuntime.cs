@@ -6,6 +6,7 @@ using UnityEngine;
 
 public interface IEmploymentContractRuntime
 {
+    IEmploymentSettlementScope BeginSettlement();
     IReadOnlyList<EmployeeWageState> WageStates { get; }
     IReadOnlyList<MercenaryContract> MercenaryContracts { get; }
     int ForecastCost(int days);
@@ -25,6 +26,13 @@ public interface IEmploymentContractRuntime
         int premium,
         out string failureReason);
     EmploymentContractSaveData Capture();
+}
+
+// The caller owns the financial transaction; this scope owns reversible mood
+// changes and delays irreversible departure/observation until that caller commits.
+public interface IEmploymentSettlementScope : IDisposable
+{
+    void Commit();
 }
 
 public readonly struct EmploymentStandingState
@@ -67,6 +75,10 @@ public sealed class EmploymentContractRuntime :
     private readonly IGameEventBus eventBus;
     private readonly TreasuryEconomyAggregateStateStore stateStore;
     private readonly ICharacterSettlementStandingQuery settlementStandings;
+    private SettlementScope activeSettlement;
+    private bool settlingDay;
+
+    public string LastSettlementEffectFailure { get; private set; } = string.Empty;
 
     private Dictionary<string, EmployeeWageState> wageByCharacterId =>
         stateStore.Current.Wages;
@@ -173,12 +185,61 @@ public sealed class EmploymentContractRuntime :
 
     public EmploymentDailySettlement SettleDay(int day)
     {
+        if (settlingDay)
+            throw new InvalidOperationException("Employment day settlement is already active.");
+        settlingDay = true;
+        try
+        {
+            if (activeSettlement != null)
+            {
+                activeSettlement.RequirePreparing();
+                return SettleDayCore(day);
+            }
+            using var settlement = BeginSettlement();
+            EmploymentDailySettlement result = SettleDayCore(day);
+            settlement.Commit();
+            return result;
+        }
+        finally { settlingDay = false; }
+    }
+
+    public IEmploymentSettlementScope BeginSettlement()
+    {
+        if (activeSettlement != null)
+            throw new InvalidOperationException("An employment settlement is already active.");
+        LastSettlementEffectFailure = string.Empty;
+        return activeSettlement = new SettlementScope(this);
+    }
+
+    private EmploymentDailySettlement SettleDayCore(int day)
+    {
         EnsureCurrentStaff();
         int settlementDay = Mathf.Max(1, day);
         EmploymentDailySettlement result = new EmploymentDailySettlement
         {
             day = settlementDay
         };
+
+        foreach (EmployeeWageState state in wageByCharacterId.Values
+                     .Where(candidate => candidate.departurePending)
+                     .OrderBy(
+                         candidate => candidate.characterId,
+                         StringComparer.Ordinal))
+        {
+            EmploymentSettlementLine line = new EmploymentSettlementLine
+            {
+                day = settlementDay,
+                characterId = state.characterId,
+                contractKind = EmploymentContractKind.Mercenary,
+                contractEnded = true,
+                financeSourceId = state.departureFinanceSourceId,
+                financeTransactionId =
+                    state.departureFinanceTransactionId,
+                financeSucceeded = false
+            };
+            PrepareMercenaryDeparture(state, line, result);
+            result.lines.Add(line);
+        }
 
         foreach (EmployeeWageState state in wageByCharacterId.Values
                      .Where(candidate => candidate.active
@@ -194,16 +255,24 @@ public sealed class EmploymentContractRuntime :
             }
 
             int dailyCost = GetDailyCost(state.characterId);
-            int due = dailyCost + Mathf.Max(0, state.unpaidWages);
+            int debtBefore = Mathf.Max(0, state.unpaidWages);
+            int due = dailyCost + debtBefore;
             result.employeeWagesDue += due;
-            if (money.TrySpend(
-                    due,
-                    new EconomyTransactionContext(
-                        EconomyTransactionKind.EmployeeWage,
-                        "employment",
-                        state.characterId,
-                        "직원 임금"),
-                    out _))
+            EconomyTransactionContext context = new EconomyTransactionContext(
+                EconomyTransactionKind.EmployeeWage,
+                CreateSettlementSourceId(
+                    "wage",
+                    settlementDay,
+                    state.characterId),
+                state.characterId,
+                "직원 임금");
+            bool paid = TrySpendSettlement(
+                due,
+                context,
+                out EconomyTransactionRecord finance,
+                out _);
+            bool moodPenaltyApplied = false;
+            if (paid)
             {
                 result.employeeWagesPaid += due;
                 state.unpaidWages = 0;
@@ -212,10 +281,24 @@ public sealed class EmploymentContractRuntime :
             {
                 state.unpaidWages = due;
                 result.unpaidEmployeeWages += due;
-                ApplyUnpaidWageMood(state.characterId);
+                moodPenaltyApplied = ApplyUnpaidWageMood(state.characterId);
             }
 
             state.lastSettledDay = settlementDay;
+            result.lines.Add(new EmploymentSettlementLine
+            {
+                day = settlementDay,
+                characterId = state.characterId,
+                contractKind = EmploymentContractKind.Employee,
+                due = due,
+                paid = paid ? due : 0,
+                unpaidDebtBefore = debtBefore,
+                unpaidDebtAfter = state.unpaidWages,
+                moodPenaltyApplied = moodPenaltyApplied,
+                financeSourceId = context.sourceId,
+                financeTransactionId = finance.transactionId,
+                financeSucceeded = finance.succeeded
+            });
         }
 
         foreach (MercenaryContract contract in mercenaryByCharacterId.Values
@@ -231,14 +314,31 @@ public sealed class EmploymentContractRuntime :
 
             int due = GetDailyCost(contract.characterId);
             result.mercenaryFeesDue += due;
-            if (money.TrySpend(
-                    due,
-                    new EconomyTransactionContext(
-                        EconomyTransactionKind.MercenaryRenewal,
-                        "mercenary-contract",
-                        contract.characterId,
-                        "용병 계약 갱신"),
-                    out _))
+            EconomyTransactionContext context = new EconomyTransactionContext(
+                EconomyTransactionKind.MercenaryRenewal,
+                CreateSettlementSourceId(
+                    "mercenary-renewal",
+                    settlementDay,
+                    contract.characterId),
+                contract.characterId,
+                "용병 계약 갱신");
+            bool paid = TrySpendSettlement(
+                due,
+                context,
+                out EconomyTransactionRecord finance,
+                out _);
+            EmploymentSettlementLine line = new EmploymentSettlementLine
+            {
+                day = settlementDay,
+                characterId = contract.characterId,
+                contractKind = EmploymentContractKind.Mercenary,
+                due = due,
+                paid = paid ? due : 0,
+                financeSourceId = context.sourceId,
+                financeTransactionId = finance.transactionId,
+                financeSucceeded = finance.succeeded
+            };
+            if (paid)
             {
                 result.mercenaryFeesPaid += due;
                 contract.lastRenewedDay = settlementDay;
@@ -251,8 +351,15 @@ public sealed class EmploymentContractRuntime :
             }
             else
             {
-                EndMercenaryContract(contract, result);
+                result.unpaidMercenaryFees += due;
+                EndMercenaryContract(
+                    contract,
+                    settlementDay,
+                    finance,
+                    line,
+                    result);
             }
+            result.lines.Add(line);
         }
 
         return result;
@@ -306,6 +413,11 @@ public sealed class EmploymentContractRuntime :
         state.lastSettledDay = hiredDay;
         state.active = true;
         state.departed = false;
+        state.departurePending = false;
+        state.departureContractDay = 0;
+        state.departureFinanceSourceId = string.Empty;
+        state.departureFinanceTransactionId = string.Empty;
+        state.departureFailureReason = string.Empty;
         failureReason = string.Empty;
         return true;
     }
@@ -332,6 +444,8 @@ public sealed class EmploymentContractRuntime :
 
     public EmploymentContractSaveData Capture()
     {
+        if (activeSettlement != null)
+            throw new InvalidOperationException("Cannot save during an employment settlement.");
         EnsureCurrentStaff();
         return new EmploymentContractSaveData
         {
@@ -543,48 +657,279 @@ public sealed class EmploymentContractRuntime :
             .Sum(instance => Mathf.Max(0, (int)instance.quality) * 4);
     }
 
-    private void ApplyUnpaidWageMood(string characterId)
+    private bool ApplyUnpaidWageMood(string characterId)
     {
         CharacterActor actor = FindActor(characterId);
-        actor?.Stats?.ApplyMoodFactor(
+        if (actor?.Stats == null) return false;
+        activeSettlement.CaptureMood(actor.Stats);
+        float resolved = actor.ApplyMoodFactorBeforeOutcomeCommit(
             "economy:unpaid-wages",
             "밀린 임금",
             -6f,
             300f,
-            3);
+            3,
+            out bool applied);
+        if (applied)
+            activeSettlement.MoodPublications.Add(() => actor.Stats.PublishCommittedMoodFactor(
+                "economy:unpaid-wages", resolved, 0));
+        return applied;
     }
 
     private void EndMercenaryContract(
         MercenaryContract contract,
+        int settlementDay,
+        EconomyTransactionRecord finance,
+        EmploymentSettlementLine line,
         EmploymentDailySettlement result)
     {
         contract.active = false;
-        result.departedMercenaryIds.Add(contract.characterId);
         if (wageByCharacterId.TryGetValue(
                 contract.characterId,
                 out EmployeeWageState state))
         {
             state.active = false;
-            state.departed = true;
+            state.departed = false;
+            state.departurePending = true;
+            state.departureContractDay = settlementDay;
+            state.departureFinanceSourceId = finance.sourceId;
+            state.departureFinanceTransactionId = finance.transactionId;
+            state.departureFailureReason = string.Empty;
+            line.contractEnded = true;
+            PrepareMercenaryDeparture(state, line, result);
         }
 
-        CharacterActor actor = FindActor(contract.characterId);
-        if (actor?.AbilityCache != null
-            && actor.AbilityCache.TryGetAbility(out AbilityMove move))
+        activeSettlement.ContractEvents.Add(new MercenaryContractEndedEvent(
+            contract.characterId,
+            FindActor(contract.characterId)?.Identity?.DisplayName ?? contract.characterId,
+            settlementDay,
+            finance.transactionId));
+    }
+
+    private void PrepareMercenaryDeparture(EmployeeWageState state,
+        EmploymentSettlementLine line, EmploymentDailySettlement result)
+    {
+        // Admission is a real attempt, but starting exit releases AI ownership and
+        // cannot be undone. Reports honestly retain pending until the outer commit.
+        TryResumeMercenaryDeparture(state, line, result, start: false);
+        if (state.departureFailureReason == "employment-departure-awaiting-settlement")
+            activeSettlement.Departures.TryAdd(state.characterId,
+                () => TryResumeMercenaryDeparture(state, line, result, start: true));
+    }
+
+    private void TryResumeMercenaryDeparture(
+        EmployeeWageState state,
+        EmploymentSettlementLine line,
+        EmploymentDailySettlement result,
+        bool start)
+    {
+        line.departureAttempted = true;
+        CharacterActor actor = FindActor(state.characterId);
+        string failureReason = string.Empty;
+        bool started = false;
+        if (actor == null)
         {
-            move.StartSystemExitDungeon();
+            failureReason = "employment-departure-actor-missing";
+        }
+        else if (actor.CurrentLifecycleState == CharacterLifecycleState.ExitingDungeon
+                 || actor.CurrentLifecycleState == CharacterLifecycleState.Despawned)
+        {
+            started = true;
+        }
+        else if (actor.AbilityCache != null
+                 && actor.AbilityCache.TryGetAbility(out AbilityMove move))
+        {
+            if (!move.CanStartExitDungeon(out AIActionFailure failure))
+            {
+                failureReason = string.IsNullOrWhiteSpace(failure.Reason)
+                    ? "employment-departure-admission-rejected"
+                    : failure.Reason;
+            }
+            else if (!start)
+            {
+                failureReason = "employment-departure-awaiting-settlement";
+            }
+            else
+            {
+                move.StartSystemExitDungeon();
+                started = actor.CurrentLifecycleState
+                    == CharacterLifecycleState.ExitingDungeon
+                    || actor.CurrentLifecycleState
+                    == CharacterLifecycleState.Despawned;
+                if (!started)
+                {
+                    failureReason =
+                        "employment-departure-did-not-start";
+                }
+            }
+        }
+        else if (actor.Lifecycle == null)
+        {
+            failureReason = "employment-departure-lifecycle-missing";
+        }
+        else if (!start)
+        {
+            failureReason = "employment-departure-awaiting-settlement";
         }
         else
         {
-            actor?.SetLifecycleState(CharacterLifecycleState.ExitingDungeon);
+            actor.SetLifecycleState(CharacterLifecycleState.ExitingDungeon);
+            started = actor.CurrentLifecycleState
+                == CharacterLifecycleState.ExitingDungeon;
+            if (!started)
+            {
+                failureReason = "employment-departure-did-not-start";
+            }
         }
 
-        eventBus.RaiseAlert(
-            "용병 계약 종료",
-            $"{actor?.Identity?.DisplayName ?? contract.characterId}에게 일급을 지급하지 못해 용병이 떠납니다.",
-            EventAlertImportance.Medium,
-            "경영");
+        state.departurePending = !started;
+        state.departed = started;
+        state.departureFailureReason = started
+            ? string.Empty
+            : failureReason;
+        line.departureStarted = started;
+        line.departurePending = !started;
+        line.departureFailureReason = state.departureFailureReason;
+        line.financeSourceId = state.departureFinanceSourceId;
+        line.financeTransactionId = state.departureFinanceTransactionId;
+        if (started
+            && !result.departedMercenaryIds.Contains(
+                state.characterId,
+                StringComparer.Ordinal))
+        {
+            result.departedMercenaryIds.Add(state.characterId);
+        }
     }
+
+    private sealed class SettlementScope : IEmploymentSettlementScope
+    {
+        private readonly EmploymentContractRuntime owner;
+        private readonly Dictionary<CharacterStats, CharacterMoodDeliveryTransactionSnapshot> moodBefore = new();
+        internal readonly List<Action> MoodPublications = new();
+        internal readonly Dictionary<string, Action> Departures = new(StringComparer.Ordinal);
+        internal readonly List<MercenaryContractEndedEvent> ContractEvents = new();
+        private bool committed;
+        private bool disposed;
+
+        internal SettlementScope(EmploymentContractRuntime owner) => this.owner = owner;
+
+        internal void RequirePreparing()
+        {
+            if (disposed || committed)
+                throw new InvalidOperationException("Employment settlement is no longer preparing.");
+        }
+
+        internal void CaptureMood(CharacterStats stats)
+        {
+            RequirePreparing();
+            if (!moodBefore.ContainsKey(stats))
+                moodBefore.Add(stats, stats.CaptureMoodDeliveryTransactionState());
+        }
+
+        public void Commit()
+        {
+            if (disposed) throw new ObjectDisposedException(nameof(SettlementScope));
+            if (committed) return;
+            committed = true;
+            foreach (var departure in Departures)
+            {
+                RunCommitted(() =>
+                {
+                    try { departure.Value(); }
+                    finally
+                    {
+                        // A listener may throw after the actual transition. Never
+                        // repeat an already-started exit because its ACK was lost.
+                        var state = owner.wageByCharacterId[departure.Key];
+                        var actor = owner.FindActor(departure.Key);
+                        bool started = actor != null && (actor.CurrentLifecycleState == CharacterLifecycleState.ExitingDungeon
+                            || actor.CurrentLifecycleState == CharacterLifecycleState.Despawned);
+                        if (started)
+                        {
+                            state.departed = true;
+                            state.departurePending = false;
+                            state.departureFailureReason = string.Empty;
+                        }
+                        else if (state.departureFailureReason == "employment-departure-awaiting-settlement")
+                            state.departureFailureReason = "employment-departure-execution-failed";
+                    }
+                }, "employment-departure:" + departure.Key);
+            }
+            foreach (Action publish in MoodPublications)
+                RunCommitted(publish, "employment-mood-observation");
+            foreach (MercenaryContractEndedEvent fact in ContractEvents)
+                RunCommitted(() => owner.eventBus.Publish(fact), "employment-contract-observation");
+        }
+
+        private void RunCommitted(Action effect, string label)
+        {
+            try { effect(); }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                && exception is not StackOverflowException && exception is not AccessViolationException)
+            {
+                string failure = label + ":" + exception.GetType().Name + ":" + exception.Message;
+                owner.LastSettlementEffectFailure = string.IsNullOrEmpty(owner.LastSettlementEffectFailure)
+                    ? failure : owner.LastSettlementEffectFailure + " | " + failure;
+                Debug.LogWarning(failure);
+            }
+        }
+
+        public void Dispose()
+        {
+            if (disposed) return;
+            disposed = true;
+            try
+            {
+                if (!committed)
+                    foreach (var mood in moodBefore)
+                        mood.Key.RestoreMoodDeliveryTransactionState(mood.Value, publish: false);
+            }
+            finally { owner.activeSettlement = null; }
+        }
+    }
+
+    private bool TrySpendSettlement(
+        int amount,
+        EconomyTransactionContext context,
+        out EconomyTransactionRecord finance,
+        out string failureReason)
+    {
+        if (money is not IIdempotentGameMoneyAccount idempotent
+            || money is not IGameMoneyTransactionAttemptQuery attempts)
+        {
+            throw new InvalidOperationException(
+                "Employment settlement requires idempotent money and exact transaction-attempt query authorities.");
+        }
+
+        bool paid = idempotent.TrySpendOnce(
+            amount,
+            context,
+            out EconomyTransactionRecord receipt,
+            out failureReason);
+        if (!attempts.TryGetLatestTransaction(
+                context.kind,
+                context.sourceId,
+                context.targetId,
+                out finance)
+            || finance.succeeded != paid
+            || (paid && (receipt == null
+                || !string.Equals(
+                    receipt.transactionId,
+                    finance.transactionId,
+                    StringComparison.Ordinal))))
+        {
+            throw new InvalidOperationException(
+                "Employment settlement did not retain its exact finance child transaction.");
+        }
+        return paid;
+    }
+
+    private static string CreateSettlementSourceId(
+        string kind,
+        int day,
+        string characterId) =>
+        "employment:" + kind
+        + ":day=" + Mathf.Max(1, day)
+        + ":character=" + NormalizeId(characterId);
 
     private CharacterActor FindActor(string characterId)
     {

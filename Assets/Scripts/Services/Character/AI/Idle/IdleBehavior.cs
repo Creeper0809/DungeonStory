@@ -172,55 +172,54 @@ public sealed class ShortChatIdleBehavior : IIdleBehavior
 
         if (reconcile)
         {
-            actor.SocialMemory?.RememberCharacterExperience(
-                target,
-                0.3f,
-                "자율 화해 대화");
-            target.SocialMemory?.RememberCharacterExperience(
-                actor,
-                0.3f,
-                "자율 화해 대화");
-            actor.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Social,
-                CharacterActivityOutcomes.Responded,
-                $"{target.Identity?.DisplayName ?? target.name}에게 화해를 제안했다.",
-                actionId: "social:reconcile",
-                sentiment: 0.45f,
-                bubbleEligible: true));
+            if (!TryRunInteraction(
+                    actor,
+                    target,
+                    "social:reconcile",
+                    out failureReason))
+                return false;
         }
         else if (encourage)
         {
-            target.ApplyMoodFactor(
-                "social:encouraged",
-                $"{actor.Identity?.DisplayName ?? actor.name}의 격려",
-                1f,
-                GameCalendarRules.SecondsPerDay,
-                1);
-            actor.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Social,
-                CharacterActivityOutcomes.Responded,
-                $"{target.Identity?.DisplayName ?? target.name}을 격려했다.",
-                actionId: "social:encourage",
-                sentiment: 0.4f,
-                bubbleEligible: true));
+            if (!TryRunInteraction(
+                    actor,
+                    target,
+                    "social:encourage",
+                    out failureReason))
+                return false;
         }
         else if (formal)
         {
-            target.SocialMemory?.RememberCharacterExperience(
-                actor,
-                0.1f,
-                "공식 예절을 갖춘 대화");
-            actor.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Social,
-                CharacterActivityOutcomes.Responded,
-                $"{target.Identity?.DisplayName ?? target.name}에게 공식 예절을 갖춰 인사했다.",
-                actionId: "social:formal-etiquette",
-                sentiment: 0.25f,
-                bubbleEligible: true));
+            if (!TryRunInteraction(
+                    actor,
+                    target,
+                    "social:formal-etiquette",
+                    out failureReason))
+                return false;
         }
 
         actor.GetAbility<AbilityMove>().StartWait(Mathf.Clamp(duration, 0.7f, 1.8f));
         return true;
+    }
+
+    internal static bool TryRunInteraction(
+        CharacterActor actor,
+        CharacterActor target,
+        string behaviorId,
+        out string failureReason)
+    {
+        IIdleSocialInteractionCommand command =
+            actor?.IdleSocialInteractionCommand;
+        if (command == null)
+        {
+            failureReason = "자율 사회 행동 원장 서비스가 없습니다.";
+            return false;
+        }
+        return command.TryExecute(
+            actor,
+            target,
+            behaviorId,
+            out failureReason);
     }
 
     private static CharacterActor SelectTarget(CharacterActor actor)

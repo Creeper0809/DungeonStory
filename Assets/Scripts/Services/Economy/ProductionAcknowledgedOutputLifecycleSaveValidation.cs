@@ -12,6 +12,7 @@ using UnityEngine;
 /// </summary>
 public sealed class ProductionAcknowledgedOutputLifecycleSaveValidation :
     IDungeonSavePreflightValidator,
+    IDungeonCapturedSavePreflightValidator,
     IDungeonSaveRegistryPreflightValidator
 {
     private const string PreparedBatchPrefix = "production-output-batch:";
@@ -240,6 +241,21 @@ public sealed class ProductionAcknowledgedOutputLifecycleSaveValidation :
                 .ThenBy(value => value.Stack.stackId, StringComparer.Ordinal)
                 .ToArray();
             PlannedOutputPublicationMetadata header = records[0].Metadata;
+            PlannedOutputProvenanceValidation.ValidateFrozenBatch(
+                records.Select(value => value.Metadata).ToArray());
+            if (records.Any(value => !string.Equals(
+                    value.Metadata.ItemId, value.Stack.itemId, StringComparison.Ordinal)))
+                throw new InvalidOperationException(
+                    "Planned-output provenance item mismatch: " + group.Key);
+
+            if (!PlannedOutputProvenanceValidation.RequiresExactCustody(header))
+            {
+                // Released provenance is a historical receipt. Its stack vector
+                // can be split, merged and consumed. Retained domain owners must
+                // still join an intact exact candidate during staged restore.
+                result.Add(new MarkerBatch(group.Key, acknowledged: true));
+                continue;
+            }
             bool consistent = records.All(value =>
                     value.Metadata.Acknowledged == header.Acknowledged
                     && string.Equals(
@@ -404,6 +420,7 @@ public static class ProductionAcknowledgedOutputLifecycleSaveValidationScenarios
         "DungeonStory/Debug/Economy/Run Acknowledged Output Lifecycle Save Validation")]
     public static void RunAll()
     {
+        VerifyReleasedProvenanceLifecycle();
         RequirePass("generic-ownerless-terminal", CreateFixture(
             CreateMarkerStack(GenericCommitId, acknowledged: true),
             Array.Empty<ProductionPreparedOutputRoutingBatchSaveData>(),
@@ -438,7 +455,7 @@ public static class ProductionAcknowledgedOutputLifecycleSaveValidationScenarios
         RequireFail("partial-marker", CreateFixture(
             CreateMarkerStack(
                 GenericCommitId,
-                acknowledged: true,
+                acknowledged: false,
                 declaredStackCount: 2),
             Array.Empty<ProductionPreparedOutputRoutingBatchSaveData>(),
             Array.Empty<FacilityOutputExactRouteOutboxSaveData>()));
@@ -464,6 +481,87 @@ public static class ProductionAcknowledgedOutputLifecycleSaveValidationScenarios
         Debug.Log(
             "[PASS] Acknowledged output lifecycle save/registry preflight: "
             + "ownerless generic, delegated domains, prepared routing, malformed/partial, dual custody, orphan routing, mutation=0.");
+    }
+
+    private static void VerifyReleasedProvenanceLifecycle()
+    {
+        WorldItemStackSaveData original = CreateMarkerStack(GenericCommitId, acknowledged: true);
+        foreach (ItemStateValueSaveData field in original.components[0].values)
+        {
+            if (field.key is "quantity" or "line-quantity" or "batch-quantity")
+                field.integerValue = 5;
+            if (field.key is "mass-grams" or "line-mass-grams" or "batch-mass-grams")
+                field.integerValue = 500;
+        }
+        original.quantity = 5;
+        WorldItemStackSaveData left = Clone(original);
+        WorldItemStackSaveData right = Clone(original);
+        left.quantity = 2;
+        right.stackId = "stack:qa:split";
+        right.quantity = 3;
+        RequirePass("terminal-split-5-to-2-plus-3", Fixture(left, right));
+        RequirePass("terminal-fragment-consumed", Fixture(left));
+        RequirePass("terminal-completely-consumed", Fixture());
+
+        WorldItemStackSaveData partialOriginalVector = Clone(original);
+        foreach (ItemStateValueSaveData field in partialOriginalVector.components[0].values)
+        {
+            if (field.key is "line-stack-count" or "batch-stack-count")
+                field.integerValue = 2;
+            if (field.key is "line-quantity" or "batch-quantity")
+                field.integerValue = 6;
+            if (field.key is "line-mass-grams" or "batch-mass-grams")
+                field.integerValue = 600;
+        }
+        RequirePass("terminal-original-ordinal-consumed", Fixture(partialOriginalVector));
+
+        WorldItemStackSaveData merged = Clone(original);
+        merged.quantity = 8;
+        RequirePass("terminal-merged-history-is-not-live-quantity", Fixture(merged));
+
+        WorldItemStackSaveData conflicting = Clone(right);
+        conflicting.components[0].values.Single(value => value.key == "outcome-fingerprint")
+            .stringValue = new string('d', 64);
+        RequireFail("terminal-conflicting-frozen-header", Fixture(left, conflicting));
+        conflicting = Clone(right);
+        conflicting.components[0].values.Single(value => value.key == "prepared-component-fingerprint")
+            .stringValue = new string('e', 64);
+        RequireFail("terminal-conflicting-split-copy", Fixture(left, conflicting));
+        conflicting = Clone(right);
+        conflicting.itemId = "item:qa:wrong";
+        RequireFail("terminal-item-mismatch", Fixture(conflicting));
+        conflicting = Clone(right);
+        conflicting.components[0].values.Single(value => value.key == "stack-ordinal")
+            .integerValue = 1;
+        RequireFail("terminal-impossible-ordinal", Fixture(conflicting));
+
+        WorldItemStackSaveData pending = Clone(left);
+        pending.components[0].componentTypeId = PlannedOutputPublicationComponentCodec.PublicationComponentTypeId;
+        pending.components[0].affectsStacking = true;
+        pending.state = WorldItemStackState.FacilityOutputBuffer;
+        RequireFail("pending-quantity-drift", Fixture(pending));
+        WorldItemStackSaveData prepared = Clone(left);
+        prepared.components[0].values.Single(value => value.key == "batch-commit-id")
+            .stringValue = PreparedCommitId;
+        RequireFail("prepared-quantity-drift", CreateFixture(
+            prepared, new[] { CreateRoutingOwner(PreparedCommitId) },
+            Array.Empty<FacilityOutputExactRouteOutboxSaveData>()));
+
+        static WorldItemStackSaveData Clone(WorldItemStackSaveData value) =>
+            JsonUtility.FromJson<WorldItemStackSaveData>(JsonUtility.ToJson(value));
+
+        static DungeonGameSaveData Fixture(params WorldItemStackSaveData[] stacks)
+        {
+            DungeonGameSaveData save = CreateFixture(null,
+                Array.Empty<ProductionPreparedOutputRoutingBatchSaveData>(),
+                Array.Empty<FacilityOutputExactRouteOutboxSaveData>());
+            DungeonSaveSectionEnvelope envelope = save.sections.Single(value =>
+                value.sectionId == PhysicalItemsSaveSection.Id);
+            DungeonPhysicalItemSaveData physical = JsonUtility.FromJson<DungeonPhysicalItemSaveData>(envelope.payloadJson);
+            physical.stacks = stacks.ToList();
+            envelope.payloadJson = JsonUtility.ToJson(physical);
+            return save;
+        }
     }
 
     private static void RequirePass(string label, DungeonGameSaveData save)
@@ -499,6 +597,12 @@ public static class ProductionAcknowledgedOutputLifecycleSaveValidationScenarios
             registryReport.Success == expectedSuccess,
             label + " registry result mismatch: "
             + string.Join(" | ", registryReport.Errors));
+        DungeonGameRestoreReport captureReport = new();
+        ((IDungeonCapturedSavePreflightValidator)validator).Validate(save, captureReport);
+        Require(
+            captureReport.Success == expectedSuccess,
+            label + " captured-save result mismatch: "
+            + string.Join(" | ", captureReport.Errors));
         Require(
             string.Equals(before, JsonUtility.ToJson(save), StringComparison.Ordinal),
             label + " mutated its input save payload.");

@@ -85,7 +85,9 @@ public static class Wim023EmergencyCauseDebugScenarios
             resources.DestinationClaims, resources.DestinationClaimCommands, resources.MaterialDestinations,
             resources.MaterialTerminal, resources.BatchDispositions, resources.PhysicalMass,
             resources.PlannedOutputAdmission, resources.PlannedOutputPublication, resources.TareDispositions);
-        var controlledExecution = new SurgeryExecutionServices(clock,
+        var controlledExecution = new SurgeryExecutionServices(
+            clock,
+            execution.Calendar,
             scope.Container.Resolve<IRandomStreamProvider>(), execution.EnvironmentStatus, risk);
         var environment = new EnvironmentProbe(content, world, controlledResources, controlledExecution);
         var normal = Order(prosthetic, SurgeryEmergencyCause.None);

@@ -28,6 +28,7 @@ public sealed class WildlifeActor :
     private float headHealth;
     private float torsoHealth;
     private float limbHealth;
+    private PreparedCombatDamage preparedCombatDamage;
     private string lastCaptiveFeedCommitId = string.Empty;
     private IGridPathSearchBroker pathSearchBroker;
     private ICharacterAiWorldRegistry worldRegistry;
@@ -207,6 +208,7 @@ public sealed class WildlifeActor :
 
     public void Tick(float deltaTime)
     {
+        if (preparedCombatDamage != null) return;
         if (!IsAlive)
         {
             return;
@@ -396,6 +398,8 @@ public sealed class WildlifeActor :
 
     public int ApplyDamage(int damage, CharacterActor hunter)
     {
+        if (preparedCombatDamage != null)
+            throw new System.InvalidOperationException("wildlife-combat-mutation-in-progress");
         bool wasCaptured = IsAlive && State == WildlifeState.Captured;
         int applied = Mathf.Clamp(damage, 0, CurrentHealth);
         bool isLethal = applied > 0 && applied >= CurrentHealth;
@@ -439,6 +443,8 @@ public sealed class WildlifeActor :
 
     public int ApplyCombatDamage(CombatAttackResult result, CharacterActor hunter)
     {
+        if (preparedCombatDamage != null)
+            throw new System.InvalidOperationException("wildlife-combat-mutation-in-progress");
         if (!result.Executed || !result.Hit || result.AppliedDamage <= 0f || !IsAlive)
         {
             return 0;
@@ -465,6 +471,107 @@ public sealed class WildlifeActor :
         }
 
         return applied;
+    }
+
+    /// <summary>Health is the owned reversible effect. Haul/grid/visual notifications wait for acceptance.</summary>
+    public sealed class PreparedCombatDamage
+    {
+        internal WildlifeActor Owner;
+        internal int Health;
+        internal float Head, Torso, Limb;
+        internal WildlifeState State;
+        internal CharacterActor Hunter;
+        internal int FirstDamage, FatalPartDamage;
+        public int HealthBefore => Health;
+        public int HealthAfter { get; internal set; }
+    }
+
+    public PreparedCombatDamage ApplyPreparedCombatDamage(CombatAttackResult result, CharacterActor hunter)
+    {
+        if (preparedCombatDamage != null || !IsAlive)
+            throw new System.InvalidOperationException("wildlife-combat-mutation-unavailable");
+        var value = new PreparedCombatDamage { Owner = this, Health = CurrentHealth, Head = headHealth,
+            Torso = torsoHealth, Limb = limbHealth, State = State, Hunter = hunter };
+        preparedCombatDamage = value;
+        if (result.Executed && result.Hit && !result.CoverBlocked && result.AppliedDamage > 0f)
+        {
+            switch (result.BodyPart)
+            {
+                case CombatBodyPart.Head: headHealth = Mathf.Max(0, headHealth - result.AppliedDamage); break;
+                case CombatBodyPart.Torso: torsoHealth = Mathf.Max(0, torsoHealth - result.AppliedDamage); break;
+                default: limbHealth = Mathf.Max(0, limbHealth - result.AppliedDamage); break;
+            }
+            value.FirstDamage = Mathf.Min(CurrentHealth, Mathf.Max(1, Mathf.RoundToInt(result.AppliedDamage)));
+            CurrentHealth -= value.FirstDamage;
+            if (CurrentHealth > 0 && (headHealth <= 0 || torsoHealth <= 0))
+            { value.FatalPartDamage = CurrentHealth; CurrentHealth = 0; }
+            State = CurrentHealth <= 0 ? WildlifeState.Dead : value.State == WildlifeState.Captured
+                ? WildlifeState.Captured : Aggression > .65f && hunter != null ? WildlifeState.Retaliating : WildlifeState.Fleeing;
+        }
+        value.HealthAfter = CurrentHealth;
+        return value;
+    }
+
+    public void RollbackPreparedCombatDamage(PreparedCombatDamage value)
+    {
+        RequirePreparedCombatDamage(value);
+        CurrentHealth = value.Health; headHealth = value.Head; torsoHealth = value.Torso; limbHealth = value.Limb; State = value.State;
+        preparedCombatDamage = null;
+    }
+
+    public void CompletePreparedCombatDamage(PreparedCombatDamage value)
+    {
+        RequirePreparedCombatDamage(value);
+        preparedCombatDamage = null;
+        if (value.FirstDamage == 0) return;
+        ApplyResponse(value.FirstDamage);
+        if (value.FatalPartDamage > 0) ApplyResponse(value.FatalPartDamage);
+        if (CurrentHealth <= 0)
+        {
+            // The domain effect has been accepted. A notification failure cannot
+            // turn it into an unperformed attack or put a dead actor back on-grid.
+            try { haulLifecycle?.OnWildlifeUnavailable(this, WorldItemCarryInterruptionKind.Dead); }
+            finally { worldRegistry?.UnregisterWildlife(this); Unregister(); }
+        }
+        Visual.UpdateMarker(); Visual.UpdateHealthBar(force: true);
+        void ApplyResponse(int damage)
+        {
+            NaturalCondition.AddFear(Mathf.Max(1f, damage) * FearSensitivity); nextPathRebuildAt = Now;
+            if (value.Hunter != null) RegisterThreat(value.Hunter.GetNowXY(), Mathf.Max(.2f, damage / Mathf.Max(1f, MaxHealth)));
+        }
+    }
+
+    private void RequirePreparedCombatDamage(PreparedCombatDamage value)
+    {
+        if (value == null || value.Owner != this || !ReferenceEquals(value, preparedCombatDamage)
+            || value.HealthAfter != CurrentHealth)
+            throw new System.InvalidOperationException("wildlife-combat-mutation-token-invalid");
+    }
+
+    public bool WouldCombatDamageKill(CombatAttackResult result)
+    {
+        if (!result.Executed
+            || !result.Hit
+            || result.AppliedDamage <= 0f
+            || !IsAlive)
+        {
+            return false;
+        }
+
+        int directDamage = Mathf.Max(
+            1,
+            Mathf.RoundToInt(result.AppliedDamage));
+        if (directDamage >= CurrentHealth)
+        {
+            return true;
+        }
+
+        return result.BodyPart switch
+        {
+            CombatBodyPart.Head => headHealth - result.AppliedDamage <= 0f,
+            CombatBodyPart.Torso => torsoHealth - result.AppliedDamage <= 0f,
+            _ => false
+        };
     }
 
     public int DebugHeal(int amount)
@@ -798,6 +905,8 @@ public sealed class WildlifeActor :
 
     public WildlifeSaveData Capture()
     {
+        if (preparedCombatDamage != null)
+            throw new System.InvalidOperationException("wildlife-capture-during-combat-mutation");
         WildlifeSaveData saveData = new WildlifeSaveData
         {
             wildlifeId = WildlifeId,

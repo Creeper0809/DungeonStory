@@ -27,6 +27,7 @@ public sealed class CertifiedSeedOrderSaveData
     public SeedLotState certifiedSeedLot;
     public ProductionOutputCapabilitySaveData outputCapability = new();
     public ProductionDomainOutputPublicationSaveData outputPublication = new();
+    public CertifiedSeedCompletionFactData completionFact = new();
 
     public CertifiedSeedOrderSaveData DeepClone() => new()
     {
@@ -44,14 +45,15 @@ public sealed class CertifiedSeedOrderSaveData
         outputCapability = outputCapability?.Clone()
             ?? new ProductionOutputCapabilitySaveData(),
         outputPublication = outputPublication?.Clone()
-            ?? new ProductionDomainOutputPublicationSaveData()
+            ?? new ProductionDomainOutputPublicationSaveData(),
+        completionFact = completionFact?.Clone()
     };
 }
 
 [Serializable]
 public sealed class CertifiedSeedWorldSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
 
     public int version = CurrentVersion;
     public int nextOrderSequence;

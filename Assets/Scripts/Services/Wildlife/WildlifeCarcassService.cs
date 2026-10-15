@@ -2,16 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
 public interface IWildlifeCarcassService
 {
     IReadOnlyList<WildlifeCarcassFreshnessSaveData> CaptureFreshness();
+    IReadOnlyList<WildlifeCarcassProcessingSaveData> CaptureProcessing();
     void ReplaceFreshnessValidated(
         IReadOnlyList<WildlifeCarcassFreshnessSaveData> entries);
     WildlifeCarcassFreshnessRestoreTransaction ApplyFreshnessRestoreCandidate(
-        IReadOnlyList<WildlifeCarcassFreshnessSaveData> entries);
+        IReadOnlyList<WildlifeCarcassFreshnessSaveData> entries,
+        IReadOnlyList<WildlifeCarcassProcessingSaveData> processing = null);
     void RollbackFreshnessRestore(
         WildlifeCarcassFreshnessRestoreTransaction transaction);
     void CompleteFreshnessRestore(
@@ -20,6 +23,7 @@ public interface IWildlifeCarcassService
         string stackId,
         out float remainingFreshnessSeconds);
     void SpawnCarcass(WildlifeActor target);
+    bool TrySpawnCarcass(WildlifeActor target, out string stackId);
     void TickFreshness(float deltaTime);
     bool TryButcherNextCarcass(
         IBuildingVisitorPort butcher,
@@ -85,7 +89,12 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
     private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
     private readonly IGameEventBus gameEventBus;
     private IGameCalendar calendar;
-    private IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private IDomainFactPublisher facts;
+    private Dictionary<string, WildlifeCarcassProcessingSaveData> processingByOperation = new(StringComparer.Ordinal);
+    private HashSet<string> processedStacks = new(StringComparer.Ordinal);
+    private readonly Queue<string> pendingPublications = new();
+    private readonly HashSet<string> queuedPublications = new(StringComparer.Ordinal);
+    public string LastProcessingRecoveryFailure { get; private set; } = string.Empty;
     private Dictionary<string, WildlifeCarcassFreshnessSaveData> freshnessByStackId =
         new Dictionary<string, WildlifeCarcassFreshnessSaveData>(StringComparer.Ordinal);
 
@@ -109,14 +118,17 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
     }
 
     [Inject]
-    public void ConstructOutcomeTransaction(
+    public void ConstructFactPublisher(
         IGameCalendar calendar,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        IDomainFactPublisher facts)
     {
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
     }
+
+    public IReadOnlyList<WildlifeCarcassProcessingSaveData> CaptureProcessing() =>
+        processingByOperation.Values.OrderBy(row => row.fact.operationId, StringComparer.Ordinal)
+            .Select(row => row.Clone()).ToArray();
 
     public IReadOnlyList<WildlifeCarcassFreshnessSaveData> CaptureFreshness()
     {
@@ -150,12 +162,13 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
         IReadOnlyList<WildlifeCarcassFreshnessSaveData> entries)
     {
         WildlifeCarcassFreshnessRestoreTransaction transaction =
-            ApplyFreshnessRestoreCandidate(entries);
+            ApplyFreshnessRestoreCandidate(entries, CaptureProcessing());
         CompleteFreshnessRestore(transaction);
     }
 
     public WildlifeCarcassFreshnessRestoreTransaction ApplyFreshnessRestoreCandidate(
-        IReadOnlyList<WildlifeCarcassFreshnessSaveData> entries)
+        IReadOnlyList<WildlifeCarcassFreshnessSaveData> entries,
+        IReadOnlyList<WildlifeCarcassProcessingSaveData> processing = null)
     {
         if (entries == null)
         {
@@ -166,6 +179,9 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
             BuildFreshnessState(entries);
         Dictionary<string, WildlifeCarcassFreshnessSaveData> previous =
             freshnessByStackId;
+        var restoredProcessing = BuildProcessingState(processing ?? Array.Empty<WildlifeCarcassProcessingSaveData>());
+        var previousProcessing = processingByOperation;
+        var previousProcessedStacks = processedStacks;
         WorldItemStackSnapshot previousCachedBest = cachedBestButcherCarcass;
         int previousCachedVersion = cachedBestButcherCarcassVersion;
         WildlifeCarcassFreshnessRestoreTransaction transaction =
@@ -175,12 +191,18 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
                 {
                     RequireAppliedFreshness(restored);
                     freshnessByStackId = previous;
+                    processingByOperation = previousProcessing;
+                    processedStacks = previousProcessedStacks;
+                    RebuildRecoveryQueue();
                     cachedBestButcherCarcass = previousCachedBest;
                     cachedBestButcherCarcassVersion = previousCachedVersion;
                 },
                 complete: () => RequireAppliedFreshness(restored));
 
         freshnessByStackId = restored;
+        processingByOperation = restoredProcessing;
+        processedStacks = restoredProcessing.Values.Select(row => row.fact.carcassStackId).ToHashSet(StringComparer.Ordinal);
+        RebuildRecoveryQueue();
         InvalidateButcherCache();
         return transaction;
     }
@@ -257,9 +279,15 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
 
     public void SpawnCarcass(WildlifeActor target)
     {
+        _ = TrySpawnCarcass(target, out _);
+    }
+
+    public bool TrySpawnCarcass(WildlifeActor target, out string stackId)
+    {
+        stackId = string.Empty;
         if (target == null || target.Species == null)
         {
-            return;
+            return false;
         }
 
         Vector2Int position = target.GridPosition;
@@ -282,7 +310,7 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
                 out int spawned)
             || spawned <= 0)
         {
-            return;
+            return false;
         }
 
         WorldItemStackSnapshot stack = itemStackRuntime
@@ -292,7 +320,7 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
                 && !freshnessByStackId.ContainsKey(candidate.StackId));
         if (stack == null)
         {
-            return;
+            return false;
         }
 
         freshnessByStackId[stack.StackId] = new WildlifeCarcassFreshnessSaveData
@@ -302,10 +330,13 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
             remainingFreshnessSeconds = DefaultFreshnessSeconds
         };
         InvalidateButcherCache();
+        stackId = stack.StackId;
+        return true;
     }
 
     public void TickFreshness(float deltaTime)
     {
+        if (deltaTime > 0f) RecoverPendingProcessing();
         if (freshnessByStackId.Count == 0 || deltaTime <= 0f)
         {
             return;
@@ -411,37 +442,83 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
             message = "도축 산출물 권위가 없습니다.";
             return false;
         }
-        if (!physicalTransforms.TryTransformWholeStack(
+        RequireFactDependencies();
+        if (physicalTransforms is not IPhysicalItemTransformBatchService
+            batchTransforms)
+        {
+            throw new InvalidOperationException(
+                "Wildlife butchery requires atomic physical/outcome batch support.");
+        }
+        int outcomeDay = Math.Max(1, calendar.Day);
+        string parentOperation =
+            $"wildlife-carcass-butcher-parent:{carcass.StackId}";
+        CharacterBuildingVisitorAdapter.TryGetActor(butcher, out CharacterActor butcherActor);
+        var parentFact = new WildlifeCarcassProcessedFact(new WildlifeCarcassProcessingData
+        {
+            operationId = parentOperation,
+            transformOperationId = $"wildlife-carcass-butcher:{carcass.StackId}",
+            absoluteDay = outcomeDay,
+            actorId = butcherActor != null ? CharacterPersistentIdentity.Require(butcherActor).Value : string.Empty,
+            actorDisplayName = butcherActor != null ? butcherActor.Identity.DisplayName : string.Empty,
+            speciesId = species.SpeciesId, speciesDisplayName = species.DisplayName,
+            carcassStackId = carcass.StackId,
+            facilityId = building != null ? building.RequirePersistentInstanceId().Value : string.Empty,
+            inputQuantity = carcass.Quantity, outputQuantity = outputs.Sum(output => output.Quantity)
+        });
+        if (!TryReserveProcessing(parentFact, out var parentLease, out var parentJournal,
+                out string reservationFailure))
+        {
+            message = "사체 처리 사실을 예약하지 못했습니다: " + reservationFailure;
+            return false;
+        }
+
+        PhysicalItemTransformReceipt receipt = default;
+        Exception physicalObserverFailure = null;
+        bool transformed;
+        string transformFailure;
+        try
+        {
+            transformed = batchTransforms.TryTransformWholeStackWithCompanion(
                 carcass.StackId,
                 outputs,
                 $"wildlife-carcass-butcher:{carcass.StackId}",
                 "wildlife-carcass-butcher-loss",
-                out PhysicalItemTransformReceipt receipt,
+                DomainFactEmission.Create(parentLease, parentFact), outcomeDay,
+                out receipt,
                 out _,
-                out string transformFailure))
+                out transformFailure);
+        }
+        catch (Exception exception)
         {
+            if (!receipt.IsCommitted)
+            {
+                CancelProcessing(parentLease, parentJournal);
+                throw;
+            }
+            physicalObserverFailure = exception;
+            transformed = true;
+            transformFailure = string.Empty;
+        }
+        if (!transformed)
+        {
+            CancelProcessing(parentLease, parentJournal);
             message = transformFailure;
             return false;
         }
+        ConfirmProcessing(parentJournal, receipt);
         produced = receipt.OutputQuantity;
         freshnessByStackId.Remove(carcass.StackId);
         InvalidateButcherCache();
 
-        butcher?.RecordActivity(
-            building,
-            new BuildingActivitySnapshot(
-                BuildingActivityKinds.Work,
-                produced > 0 ? BuildingActivityOutcomes.Completed : BuildingActivityOutcomes.Failed,
-                produced > 0
-                    ? $"{species.DisplayName} 사체 손질을 마쳤다."
-                    : $"{species.DisplayName} 사체 손질에 실패했다.",
-                BuiltInWorkTypeIds.Butcher.Value,
-                string.Empty,
-                "wildlife-butchered",
-                0f,
-                produced,
-                produced <= 0));
+        if (!receipt.WasReplayed)
+            gameEventBus.Publish(new WildlifeCarcassProcessedEvent(butcher, building, butcherActor, parentFact));
         message = produced > 0 ? "손질 완료" : "손질 산출물 없음";
+        if (physicalObserverFailure != null)
+        {
+            throw new AggregateException(
+                "Wildlife butchery committed; observer publication failed.",
+                physicalObserverFailure);
+        }
         return produced > 0;
     }
 
@@ -481,150 +558,150 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
         bool hasButcherActor = CharacterBuildingVisitorAdapter.TryGetActor(
             butcher,
             out butcherActor);
-        PreparedMigratedProducerOutcome preparedTaboo = default;
-        DungeonPhysicalItemSaveData physicalBefore = null;
+        DomainFactLease tabooLease = default;
+        WildlifeCarcassProcessedFact tabooFact = null;
+        WildlifeCarcassProcessingSaveData tabooJournal = null;
         Dictionary<string, WildlifeCarcassFreshnessSaveData> freshnessBefore = null;
         CharacterMoodDeliveryTransactionSnapshot statsBefore = null;
-        CharacterProgressionSnapshot progressionBefore = null;
+        float resolvedMood = 0f;
+        float hygieneBefore = 0f;
+        float hygieneAfter = 0f;
+        bool moodApplied = false;
+        int outcomeDay = 0;
+        bool sameSpecies = hasButcherActor && string.Equals(
+            butcherActor.SpeciesTag, carcass.SourceSpeciesTag, StringComparison.OrdinalIgnoreCase);
+        IPhysicalItemTransformBatchService batchTransforms = physicalTransforms as IPhysicalItemTransformBatchService;
         if (hasButcherActor)
         {
-            RequireOutcomeDependencies();
-            CharacterId butcherId = CharacterPersistentIdentity.Require(butcherActor);
-            if (!outcomeTransactions.TryReserveSingleSubject(
-                    MigratedProducerOutcomeKind.CharacterTabooIncidentEvent,
-                    "taboo-butchery:" + carcass.StackId,
-                    Math.Max(1, calendar.Day),
-                    GameplayOutcomeStatus.Succeeded,
-                    out preparedTaboo,
-                    out string reservationFailure))
+            RequireFactDependencies();
+            outcomeDay = Math.Max(1, calendar.Day);
+            if (batchTransforms == null)
+                throw new InvalidOperationException("Humanoid butchery requires atomic physical/outcome batch support.");
+            _ = CharacterPersistentIdentity.Require(butcherActor);
+            tabooFact = new WildlifeCarcassProcessedFact(new WildlifeCarcassProcessingData
             {
-                throw new InvalidOperationException(
-                    "Required taboo-butchery outcome reservation failed: "
-                    + reservationFailure);
-            }
-            physicalBefore = itemStackRuntime.Capture();
-            freshnessBefore = freshnessByStackId.ToDictionary(
-                pair => pair.Key,
-                pair => Clone(pair.Value),
-                StringComparer.Ordinal);
-            statsBefore = butcherActor.Stats?
-                .CaptureMoodDeliveryTransactionState();
-            progressionBefore = butcherActor.Progression?
-                .CapturePersistentState();
+                operationId = "taboo-butchery:" + carcass.StackId,
+                transformOperationId = $"humanoid-corpse-butcher:{carcass.StackId}",
+                absoluteDay = outcomeDay, taboo = true,
+                actorId = CharacterPersistentIdentity.Require(butcherActor).Value,
+                actorDisplayName = butcherActor.Identity.DisplayName,
+                carcassStackId = carcass.StackId,
+                facilityId = building != null ? building.RequirePersistentInstanceId().Value : string.Empty,
+                inputQuantity = carcass.Quantity, outputQuantity = 6,
+                sourceCharacterId = carcass.SourceCharacterId ?? string.Empty,
+                sourceDisplayName = string.IsNullOrWhiteSpace(carcass.SourceDisplayName)
+                    ? "이름 모를 자" : carcass.SourceDisplayName,
+                sameSpecies = sameSpecies
+            });
+            if (!TryReserveProcessing(tabooFact, out tabooLease, out tabooJournal, out string reservationFailure))
+                throw new InvalidOperationException("Required taboo-butchery fact reservation failed: " + reservationFailure);
         }
 
         Vector2Int outputPosition = building != null ? building.centerPos : carcass.Position;
-        if (!physicalTransforms.TryTransformWholeStack(
-                carcass.StackId,
-                new[]
-                {
-                    new PhysicalItemTransformOutput(
-                        DarkSurvivalItemDefinitions.HumanoidMeatItemId,
-                        4,
-                        outputPosition),
-                    new PhysicalItemTransformOutput(
-                        DarkSurvivalItemDefinitions.BoneItemId,
-                        2,
-                        outputPosition)
-                },
-                $"humanoid-corpse-butcher:{carcass.StackId}",
-                "humanoid-corpse-butcher-loss",
-                out PhysicalItemTransformReceipt receipt,
-                out _,
-                out string transformFailure))
+        var outputs = new[]
+        {
+            new PhysicalItemTransformOutput(DarkSurvivalItemDefinitions.HumanoidMeatItemId, 4, outputPosition),
+            new PhysicalItemTransformOutput(DarkSurvivalItemDefinitions.BoneItemId, 2, outputPosition)
+        };
+        PhysicalItemTransformReceipt receipt = default;
+        Exception physicalObserverFailure = null;
+        bool transformed;
+        string transformFailure;
+        try
         {
             if (hasButcherActor)
-                outcomeTransactions.Cancel(preparedTaboo);
+            {
+                freshnessBefore = freshnessByStackId.ToDictionary(
+                    pair => pair.Key, pair => Clone(pair.Value), StringComparer.Ordinal);
+                statsBefore = butcherActor.Stats.CaptureMoodDeliveryTransactionState();
+                resolvedMood = butcherActor.ApplyMoodFactorBeforeOutcomeCommit(
+                    "mood:butchery-guilt",
+                    sameSpecies ? "동족의 사체를 손질함" : "인간형 사체를 손질함",
+                    sameSpecies ? -16f : -9f, 900f, 1, out moodApplied);
+                hygieneBefore = butcherActor.Stats.ChangeConditionBeforeOutcomeCommit(
+                    CharacterCondition.HYGIENE, -18f);
+                hygieneAfter = butcherActor.Stats.GetConditionValue(CharacterCondition.HYGIENE, 0f);
+                freshnessByStackId.Remove(carcass.StackId);
+                InvalidateButcherCache();
+                transformed = batchTransforms.TryTransformWholeStackWithCompanion(
+                    carcass.StackId, outputs, $"humanoid-corpse-butcher:{carcass.StackId}",
+                    "humanoid-corpse-butcher-loss", DomainFactEmission.Create(tabooLease, tabooFact), outcomeDay,
+                    out receipt, out _, out transformFailure);
+            }
+            else
+                transformed = physicalTransforms.TryTransformWholeStack(
+                    carcass.StackId, outputs, $"humanoid-corpse-butcher:{carcass.StackId}",
+                    "humanoid-corpse-butcher-loss", out receipt, out _, out transformFailure);
+        }
+        catch (Exception exception)
+        {
+            if (!receipt.IsCommitted)
+            {
+                Rollback(exception);
+                throw;
+            }
+            // The transform exposes its committed receipt before post-commit marker callbacks.
+            physicalObserverFailure = exception;
+            transformed = true;
+            transformFailure = string.Empty;
+        }
+        if (!transformed)
+        {
+            Rollback(new InvalidOperationException(transformFailure));
             message = transformFailure;
             return false;
         }
-
+        // Applied effects survive pending delivery; recovery never repeats body or inventory mutations.
+        if (hasButcherActor) ConfirmProcessing(tabooJournal, receipt);
         produced = receipt.OutputQuantity;
         freshnessByStackId.Remove(carcass.StackId);
         InvalidateButcherCache();
-
-        ApplyHumanoidButcheryConsequences(
-            butcherActor,
-            carcass,
-            produced);
-        if (hasButcherActor
-            && !CommitHumanoidButcheryOutcome(
-                preparedTaboo,
-                butcherActor,
-                carcass,
-                produced))
+        var failures = new List<Exception>();
+        if (physicalObserverFailure != null) failures.Add(physicalObserverFailure);
+        if (hasButcherActor && !receipt.WasReplayed)
         {
-            itemStackRuntime.Restore(physicalBefore);
-            freshnessByStackId = freshnessBefore;
-            InvalidateButcherCache();
-            if (statsBefore != null)
-                butcherActor.Stats?.RestoreMoodDeliveryTransactionState(statsBefore);
-            if (progressionBefore != null)
-                butcherActor.Progression?.RestorePersistentState(progressionBefore);
-            throw new InvalidOperationException(
-                "Required taboo-butchery outcome commit was definitely rejected.");
+            void Publish(Action action)
+            {
+                try { action(); }
+                catch (Exception exception) when (exception is not OutOfMemoryException
+                    && exception is not StackOverflowException && exception is not AccessViolationException)
+                { failures.Add(exception); }
+            }
+            if (moodApplied)
+                Publish(() => butcherActor.Stats.PublishCommittedMoodFactor(
+                    "mood:butchery-guilt", resolvedMood, outcomeDay));
+            Publish(() => butcherActor.Stats.PublishCommittedConditionChange(
+                CharacterCondition.HYGIENE, hygieneBefore, hygieneAfter, outcomeDay));
+            Publish(() => gameEventBus.Publish(
+                new WildlifeCarcassProcessedEvent(butcher, building, butcherActor, tabooFact)));
+            Publish(() => PublishHumanoidButcheryObserver(butcherActor, carcass, outputPosition));
         }
-        if (hasButcherActor)
-            PublishHumanoidButcheryObserver(
-                butcherActor,
-                carcass,
-                outputPosition);
+        if (failures.Count > 0)
+            throw new AggregateException("Humanoid butchery committed; observer publication failed.", failures);
         message = produced > 0 ? "비상 도축 완료" : "도축 산출물 없음";
         return produced > 0;
-    }
 
-    private void ApplyHumanoidButcheryConsequences(
-        CharacterActor butcher,
-        WorldItemStackSnapshot carcass,
-        int produced)
-    {
-        if (butcher == null)
-            return;
-
-        bool sameSpecies = string.Equals(
-            butcher.SpeciesTag,
-            carcass.SourceSpeciesTag,
-            StringComparison.OrdinalIgnoreCase);
-        butcher.ApplyMoodFactor(
-            "mood:butchery-guilt",
-            sameSpecies ? "동족의 사체를 손질함" : "인간형 사체를 손질함",
-            sameSpecies ? -16f : -9f,
-            900f,
-            1);
-        butcher.ChangesStat(CharacterCondition.HYGIENE, -18f);
-        butcher.Progression?.RecordNarrative(
-            CharacterNarrativeDomain.Survival,
-            "survival/taboo-butchery",
-            carcass.SourceCharacterId,
-            sameSpecies ? "same-species" : "humanoid",
-            produced,
-            0);
-    }
-
-    private bool CommitHumanoidButcheryOutcome(
-        in PreparedMigratedProducerOutcome prepared,
-        CharacterActor butcher,
-        WorldItemStackSnapshot carcass,
-        int produced)
-    {
-        bool sameSpecies = string.Equals(
-            butcher.SpeciesTag,
-            carcass.SourceSpeciesTag,
-            StringComparison.OrdinalIgnoreCase);
-        string sourceName = string.IsNullOrWhiteSpace(carcass.SourceDisplayName)
-            ? "이름 모를 자"
-            : carcass.SourceDisplayName;
-        CharacterId butcherId = CharacterPersistentIdentity.Require(butcher);
-        MigratedProducerOutcomeCommitResult committed =
-            outcomeTransactions.CommitSingleSubject(
-                prepared,
-                new MigratedProducerOutcomeSubject(
-                    MigratedProducerOutcomeIds.CharacterKind,
-                    butcherId.Value,
-                    butcher.BuildingDisplayName,
-                    MigratedProducerOutcomeIds.ActorRole),
-                $"sourceCharacter={carcass.SourceCharacterId}; sourceName={sourceName}; sameSpecies={sameSpecies}; produced={produced}");
-        return committed.DurablyCommitted;
+        void Rollback(Exception original)
+        {
+            if (!hasButcherActor)
+                return;
+            var failures = new List<Exception>();
+            void Restore(Action action)
+            {
+                try { action(); }
+                catch (Exception exception) { failures.Add(exception); }
+            }
+            Restore(() => CancelProcessing(tabooLease, tabooJournal));
+            if (freshnessBefore != null) freshnessByStackId = freshnessBefore;
+            InvalidateButcherCache();
+            if (statsBefore != null)
+                Restore(() => butcherActor.Stats.RestoreMoodDeliveryTransactionState(statsBefore, publish: false));
+            if (failures.Count > 0)
+            {
+                failures.Insert(0, original);
+                throw new AggregateException("Humanoid butchery failed and rollback also failed.", failures);
+            }
+        }
     }
 
     private void PublishHumanoidButcheryObserver(
@@ -647,13 +724,106 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
             sameSpecies ? -10f : -7f));
     }
 
-    private void RequireOutcomeDependencies()
+    private void RequireFactDependencies()
     {
-        if (calendar == null || outcomeTransactions == null)
+        if (calendar == null || facts == null || physicalTransforms is not IPhysicalItemTransformRecoveryService)
         {
             throw new InvalidOperationException(
-                "Wildlife carcass taboo outcomes require calendar and outcome transaction injection.");
+                "Wildlife carcass processing requires calendar, fact publication and physical recovery.");
         }
+    }
+
+    private bool TryReserveProcessing(WildlifeCarcassProcessedFact fact,
+        out DomainFactLease lease, out WildlifeCarcassProcessingSaveData journal, out string failure)
+    {
+        lease = default;
+        journal = null;
+        var data = fact.Snapshot();
+        if (processingByOperation.Count >= WildlifeSaveValidation.MaxCarcassProcessing
+            || processingByOperation.ContainsKey(data.operationId) || processedStacks.Contains(data.carcassStackId))
+        { failure = "Carcass processing identity is already present or capacity is exhausted."; return false; }
+        if (!facts.TryReserve(fact, out lease, out failure)) return false;
+        journal = new WildlifeCarcassProcessingSaveData { fact = data, publicationKey = lease.PublicationKey };
+        try
+        {
+            journal.Validate();
+            processingByOperation.Add(data.operationId, journal);
+            processedStacks.Add(data.carcassStackId);
+            InvalidateButcherCache();
+        }
+        catch { facts.Cancel(lease); throw; }
+        return true;
+    }
+
+    private void CancelProcessing(DomainFactLease lease, WildlifeCarcassProcessingSaveData journal)
+    {
+        facts.Cancel(lease);
+        if (journal == null) return;
+        // Never erase a blocked child rollback or an ambiguously committed cohort.
+        if (physicalTransforms is IPhysicalItemTransformRecoveryService recovery
+            && recovery.HasTransformation(journal.fact.transformOperationId))
+        { QueueProcessing(journal.fact.operationId); return; }
+        processingByOperation.Remove(journal.fact.operationId);
+        processedStacks.Remove(journal.fact.carcassStackId);
+        InvalidateButcherCache();
+    }
+
+    private void ConfirmProcessing(WildlifeCarcassProcessingSaveData journal, PhysicalItemTransformReceipt receipt)
+    {
+        journal.publicationConfirmed = !receipt.PublicationPending;
+        if (!journal.publicationConfirmed) QueueProcessing(journal.fact.operationId);
+    }
+
+    private void QueueProcessing(string operation)
+    { if (queuedPublications.Add(operation)) pendingPublications.Enqueue(operation); }
+
+    private void RebuildRecoveryQueue()
+    {
+        pendingPublications.Clear();
+        queuedPublications.Clear();
+        LastProcessingRecoveryFailure = string.Empty;
+        foreach (var row in processingByOperation.Values)
+            if (!row.publicationConfirmed) QueueProcessing(row.fact.operationId);
+    }
+
+    public void RecoverPendingProcessing()
+    {
+        if (pendingPublications.Count == 0) return;
+        RequireFactDependencies();
+        var recovery = (IPhysicalItemTransformRecoveryService)physicalTransforms;
+        int count = Math.Min(8, pendingPublications.Count);
+        string failure = string.Empty;
+        for (int index = 0; index < count; index++)
+        {
+            string operation = pendingPublications.Dequeue();
+            queuedPublications.Remove(operation);
+            if (!processingByOperation.TryGetValue(operation, out var row) || row.publicationConfirmed) continue;
+            bool applied = recovery.TryRecoverTransformation(row.fact.transformOperationId,
+                DomainFactReplay.Create(row.publicationKey, new WildlifeCarcassProcessedFact(row.fact)),
+                out var receipt, out string detail);
+            if (applied && !receipt.PublicationPending) row.publicationConfirmed = true;
+            else { QueueProcessing(operation); failure = detail; }
+        }
+        if (!string.IsNullOrEmpty(failure) && failure != LastProcessingRecoveryFailure)
+            Debug.LogWarning("Carcass processing fact recovery pending: " + failure);
+        LastProcessingRecoveryFailure = failure;
+    }
+
+    private static Dictionary<string, WildlifeCarcassProcessingSaveData> BuildProcessingState(
+        IReadOnlyList<WildlifeCarcassProcessingSaveData> rows)
+    {
+        if (rows.Count > WildlifeSaveValidation.MaxCarcassProcessing)
+            throw new InvalidOperationException("Carcass processing journal exceeds capacity.");
+        var restored = new Dictionary<string, WildlifeCarcassProcessingSaveData>(StringComparer.Ordinal);
+        var stacks = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var row in rows)
+        {
+            if (row == null) throw new InvalidOperationException("Missing carcass processing journal.");
+            row.Validate();
+            if (!restored.TryAdd(row.fact.operationId, row.Clone()) || !stacks.Add(row.fact.carcassStackId))
+                throw new InvalidOperationException("Duplicate carcass processing journal.");
+        }
+        return restored;
     }
 
     private WorldItemStackSnapshot FindBestButcherCarcass()
@@ -666,6 +836,7 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
         cachedBestButcherCarcassVersion = itemStackRuntime.ItemStackVersion;
         cachedBestButcherCarcass = itemStackRuntime.GetAllStacks()
             .Where(stack => stack != null
+                && !processedStacks.Contains(stack.StackId)
                 && !stack.Forbidden
                 && stack.AvailableQuantity > 0
                 && (WildlifeItemDefinitions.TryGetSpeciesIdFromCarcass(stack.ItemId, out _)

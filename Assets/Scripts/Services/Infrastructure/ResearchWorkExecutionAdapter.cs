@@ -195,29 +195,29 @@ public sealed class ResearchWorkExecutionHandler :
                     yield return new WaitForSeconds(0.2f);
                     yield break;
                 }
-                context.Actor?.AddActivity(CharacterActivityEvent.Work(
-                    FacilityWorkType.Research,
-                    CharacterActivityOutcomes.Failed,
-                    $"연구 실패: {work.FailureCode}",
-                    context.Target,
-                    reasonCode: work.FailureCode,
-                    bubbleEligible: true));
+                PublishResearchProgress(context, work, WorkExecutionTransition.ResearchRejected);
                 yield return new WaitForSeconds(0.2f);
                 yield break;
             }
 
-            context.Actor?.AddActivity(CharacterActivityEvent.Work(
-                FacilityWorkType.Research,
-                work.Completed
-                    ? CharacterActivityOutcomes.Completed
-                    : CharacterActivityOutcomes.Progress,
-                work.Completed
-                    ? $"연구 완료: {work.Label}"
-                    : $"연구 진행: {work.Label}",
-                context.Target,
-                reasonCode: work.Completed ? "blueprint-completed" : "research-progress",
-                value: work.ProgressRatio));
+            PublishResearchProgress(context, work, work.Completed
+                ? WorkExecutionTransition.ResearchCompleted : WorkExecutionTransition.ResearchProgressed);
         }
+    }
+
+    private static void PublishResearchProgress(WorkExecutionContext context,
+        ResearchWorkProgressResult work, WorkExecutionTransition transition)
+    {
+        if (context.Actor == null) return;
+        BuildableObject target = context.Target;
+        context.Actor.PublishDomainEvent(new WorkExecutionChangedEvent(
+            transition, CharacterPersistentIdentity.Require(context.Actor), BuiltInWorkTypeIds.Research,
+            target == null ? string.Empty : target.RequirePersistentInstanceId().Value,
+            target == null ? string.Empty : target.BuildingData != null && !string.IsNullOrWhiteSpace(target.BuildingData.objectName)
+                ? target.BuildingData.objectName : target.name,
+            target == null ? -1 : target.id, workLabel: work.Label ?? string.Empty,
+            detail: work.FailureCode ?? string.Empty, progress: work.ProgressRatio,
+            origin: context.CommandOrigin));
     }
 
     private static ProjectScale ResolveResearchScale(int maximumResearchers) =>

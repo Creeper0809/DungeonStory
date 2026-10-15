@@ -148,7 +148,7 @@ public static class DungeonGameSaveDebugScenarios
             scope.Container.Resolve<DungeonRuntimeAggregateRootStore>();
         GameplayOutcomeLedger outcomeLedger =
             scope.Container.Resolve<GameplayOutcomeLedger>();
-        IGameClock gameClock = scope.Container.Resolve<IGameClock>();
+        IGameCalendar calendar = scope.Container.Resolve<IGameCalendar>();
 
         Require(gameDataProvider.TryGetSessionState(out GameSessionState gameData), "GameSessionState runtime is missing.");
         BlueprintResearchRuntime research = progressionRuntimes.BlueprintResearch;
@@ -189,8 +189,8 @@ public static class DungeonGameSaveDebugScenarios
         Require(invasionDirector != null, "Invasion director runtime is missing.");
         Require(knowledgeProcessing != null,
             "Knowledge residue runtime is missing.");
-        Require(physicalSinks is IOutcomeAwarePhysicalFacilityItemSinkGateway,
-            "Knowledge residue save QA requires the outcome-aware physical sink gateway.");
+        Require(physicalSinks is IJointPhysicalFacilityItemSinkGateway,
+            "Knowledge residue save QA requires the joint physical sink gateway.");
 
         DungeonGameSaveData baseline = saveService.Capture();
         try
@@ -284,6 +284,12 @@ public static class DungeonGameSaveDebugScenarios
                 totalRevenue: 777,
                 totalVisits: 8,
                 averageSatisfaction: 73f,
+                facilityRevenues: new[]
+                {
+                    new FacilityRevenueSummary(
+                        "Save QA Report Facility",
+                        777)
+                },
                 incidents: new[] { "Save QA incident" },
                 maintenanceCost: 44,
                 payrollCost: 66,
@@ -291,13 +297,52 @@ public static class DungeonGameSaveDebugScenarios
                 paidOperatingCost: 100,
                 unpaidOperatingCost: 98,
                 closingBalance: 500,
-                consecutiveShortfallDays: 3);
+                consecutiveShortfallDays: 3,
+                // Storage marker only, not a real payroll action or training event.
+                // Preserve nonzero totals AND their required employee-level join.
+                employmentSettlements: new[]
+                {
+                    new OperatingDayEmploymentSettlementLine
+                    {
+                        day = 11,
+                        characterId = owner.BuildingCharacterId.Value,
+                        contractKind = OperatingDayEmploymentContractKind.Employee,
+                        due = 154,
+                        paid = 56,
+                        unpaidDebtBefore = 88,
+                        unpaidDebtAfter = 98,
+                        financeSourceId = "qa:full-world-storage-marker",
+                        financeTransactionId = "qa:full-world-storage-marker:payroll:11",
+                        financeSucceeded = false
+                    }
+                },
+                facilityDetails: new[]
+                {
+                    new OperatingDayFacilityLedgerEntry(
+                        "facility:save-qa-report",
+                        "Save QA Report Facility",
+                        777,
+                        8,
+                        44,
+                        new Dictionary<int, int>(),
+                        new[] { 73f })
+                });
             settlement.RestorePersistentState(new OperatingDaySettlementPersistenceState(
                 12,
                 321,
                 4,
                 2,
-                new Dictionary<string, int> { ["Save QA Facility"] = 321 },
+                new[]
+                {
+                    new OperatingDayFacilityLedgerEntry(
+                        "facility:save-qa",
+                        "Save QA Facility",
+                        321,
+                        4,
+                        0,
+                        new Dictionary<int, int> { [(int)StockCategory.Food] = 7 },
+                        new[] { 60f, 80f })
+                },
                 new Dictionary<string, int> { ["Slime"] = 4 },
                 new Dictionary<StockCategory, int> { [StockCategory.Food] = 7 },
                 new[] { 60f, 80f },
@@ -651,9 +696,7 @@ public static class DungeonGameSaveDebugScenarios
                     out string knowledgeDestinationFailure),
                 "Knowledge residue destination setup failed: "
                 + knowledgeDestinationFailure);
-            int knowledgeDay = Math.Max(
-                0,
-                (int)(gameClock.Time / GameCalendarRules.SecondsPerDay));
+            int knowledgeDay = calendar.Day;
             Require(researchOutcomes.TryApplyKnowledgeProgress(
                     aggregateRoots,
                     knowledgeTask.requiredWork,
@@ -690,8 +733,8 @@ public static class DungeonGameSaveDebugScenarios
                     out int spawnedKnowledgeResidue)
                 && spawnedKnowledgeResidue == 1,
                 "The memory-residue input could not be materialized at its live facility destination.");
-            IOutcomeAwarePhysicalFacilityItemSinkGateway jointPhysicalSinks =
-                (IOutcomeAwarePhysicalFacilityItemSinkGateway)physicalSinks;
+            IJointPhysicalFacilityItemSinkGateway jointPhysicalSinks =
+                (IJointPhysicalFacilityItemSinkGateway)physicalSinks;
             KnowledgeResidueCompletionTransaction.Participant
                 knowledgeParticipant = knowledgeCompletion.Prepare(
                     aggregateRoots,
@@ -727,7 +770,7 @@ public static class DungeonGameSaveDebugScenarios
                 knowledgeProcessing.TaskIdentityGeneration;
             Require(knowledgeTask != null
                     && knowledgeTask.dispositionPhase ==
-                        KnowledgeResidueDispositionPhase.OutcomePublished
+                        KnowledgeResidueDispositionPhase.RewardsApplied
                     && knowledgeOwnerRevision == knowledgeReceipt.OwnerRevision
                     && knowledgeOwnerRevision > 0
                     && codex.State.HasInfo(
@@ -751,7 +794,17 @@ public static class DungeonGameSaveDebugScenarios
                 321,
                 4,
                 2,
-                new Dictionary<string, int> { ["Save QA Facility"] = 321 },
+                new[]
+                {
+                    new OperatingDayFacilityLedgerEntry(
+                        "facility:save-qa",
+                        "Save QA Facility",
+                        321,
+                        4,
+                        0,
+                        new Dictionary<int, int> { [(int)StockCategory.Food] = 7 },
+                        new[] { 60f, 80f })
+                },
                 new Dictionary<string, int> { ["Slime"] = 4 },
                 new Dictionary<StockCategory, int> { [StockCategory.Food] = 7 },
                 new[] { 60f, 80f },
@@ -847,15 +900,16 @@ public static class DungeonGameSaveDebugScenarios
                         && value.completionOwnerRevision
                             == knowledgeOwnerRevision
                         && value.dispositionPhase ==
-                            KnowledgeResidueDispositionPhase.OutcomePublished)
+                            KnowledgeResidueDispositionPhase.RewardsApplied)
                     == 1
                 && parsedPhysicalItems.pendingBatchDispositions.Count(value =>
                         value != null
                         && value.operationId == knowledgeOperationId
-                        && value.outcomeOwnerRevision
-                            == knowledgeOwnerRevision
-                        && value.gameplayOutcomeExpected
-                        && value.gameplayOutcome != null) == 1
+                        && HasExactKnowledgePhysicalPublication(
+                            value,
+                            parsedOutcomeLedger,
+                            knowledgeOperationId,
+                            knowledgeOwnerRevision)) == 1
                 && parsedOutcomeLedger.outbox.Count(value => value != null
                         && value.producerId ==
                             KnowledgeCompletionOutcomeIds.ProducerId
@@ -911,7 +965,7 @@ public static class DungeonGameSaveDebugScenarios
                 0,
                 0,
                 0,
-                new Dictionary<string, int>(),
+                Array.Empty<OperatingDayFacilityLedgerEntry>(),
                 new Dictionary<string, int>(),
                 new Dictionary<StockCategory, int>(),
                 Array.Empty<float>(),
@@ -984,14 +1038,17 @@ public static class DungeonGameSaveDebugScenarios
                 outcomeLedger.CaptureGameplayOutcomes();
             Require(restoredKnowledgeTask != null
                     && restoredKnowledgeTask.dispositionPhase ==
-                        KnowledgeResidueDispositionPhase.OutcomePublished
+                        KnowledgeResidueDispositionPhase.RewardsApplied
                     && restoredKnowledgeTask.completionOwnerRevision
                         == knowledgeOwnerRevision
                     && restoredKnowledgePhysical.pendingBatchDispositions
                         .Count(value => value != null
                             && value.operationId == knowledgeOperationId
-                            && value.outcomeOwnerRevision
-                                == knowledgeOwnerRevision) == 1
+                            && HasExactKnowledgePhysicalPublication(
+                                value,
+                                restoredKnowledgeLedger,
+                                knowledgeOperationId,
+                                knowledgeOwnerRevision)) == 1
                     && restoredKnowledgeLedger.outbox.Count(value =>
                         value != null
                         && value.producerId ==
@@ -1072,6 +1129,17 @@ public static class DungeonGameSaveDebugScenarios
                 && settlement.LatestReport.closingBalance == 500
                 && settlement.LatestReport.consecutiveShortfallDays == 3,
                 "Operating-day report history did not round-trip.");
+            OperatingDayEmploymentSettlementLine savedPayrollMarker =
+                settlement.LatestReport.employmentSettlements.Single();
+            Require(savedPayrollMarker.characterId == owner.BuildingCharacterId.Value
+                    && savedPayrollMarker.day == 11
+                    && savedPayrollMarker.due == 154 && savedPayrollMarker.paid == 56
+                    && savedPayrollMarker.unpaidDebtBefore == 88
+                    && savedPayrollMarker.unpaidDebtAfter == 98
+                    && savedPayrollMarker.financeTransactionId
+                        == "qa:full-world-storage-marker:payroll:11"
+                    && !savedPayrollMarker.financeSucceeded,
+                "Operating-day storage marker lost its exact employment detail.");
             Require(alerts.EventLog.Any(record => record.Title == "Save QA Alert"
                 && record.Count == 2
                 && record.Detail == "Alert history round trip marker"),
@@ -1451,6 +1519,62 @@ public static class DungeonGameSaveDebugScenarios
         {
             gameData.holdingMoney.Value = originalMoney;
             slots.Delete(SlotId);
+        }
+    }
+
+    private static bool HasExactKnowledgePhysicalPublication(
+        PhysicalItemBatchDispositionSaveData pending,
+        GameplayOutcomeLedgerSaveData ledger,
+        string operationId,
+        long ownerRevision)
+    {
+        if (pending == null
+            || ledger == null
+            || ownerRevision <= 0L
+            || pending.ownerRevision != ownerRevision
+            || !pending.publicationExpected
+            || pending.publicationDelivered
+            || !string.Equals(
+                pending.publicationKey,
+                new GameplayResultKey(
+                    KnowledgeCompletionOutcomeIds.ProducerId,
+                    new GameplayOperationId(operationId),
+                    ownerRevision,
+                    0).ToString(),
+                StringComparison.Ordinal))
+            return false;
+
+        GameplayOutcomeSnapshot[] matches = (ledger.outbox
+                ?? new List<GameplayOutcomeSnapshot>())
+            .Where(value => value != null
+                && string.Equals(value.producerId,
+                    KnowledgeCompletionOutcomeIds.ProducerId,
+                    StringComparison.Ordinal)
+                && string.Equals(value.operationId, operationId,
+                    StringComparison.Ordinal)
+                && value.commitRevision == ownerRevision
+                && value.ownerRevision == ownerRevision
+                && value.localResultIndex == 0)
+            .ToArray();
+        if (matches.Length != 1) return false;
+
+        GameplayOutcomeSnapshot outcome = matches[0];
+        try
+        {
+            return string.Equals(
+                    pending.publicationId,
+                    new GameplayOutcomeId(
+                        new GameplayOutcomeRunId(outcome.runId),
+                        outcome.sequence).ToString(),
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    pending.publicationFingerprint,
+                    outcome.immutablePayloadHash,
+                    StringComparison.Ordinal);
+        }
+        catch (ArgumentException)
+        {
+            return false;
         }
     }
 

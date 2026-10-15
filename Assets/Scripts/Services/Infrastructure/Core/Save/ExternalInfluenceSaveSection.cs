@@ -93,10 +93,11 @@ public static class ExternalInfluenceSaveValidation
     {
         if (payload == null
             || payload.intelUnlockedSiteIds == null
-            || payload.dreadAffectedIntruderIds == null)
+            || payload.dreadAffectedIntruderIds == null
+            || payload.operations == null)
         {
             report.AddError(
-                "External-influence payload or ID collection is null.");
+                "External-influence payload, ID collection, or operation history is null.");
             return;
         }
         if (payload.version != DungeonExternalInfluenceSaveData.CurrentVersion)
@@ -153,8 +154,10 @@ public static class ExternalInfluenceSaveValidation
             || (payload.ecologyRaidScheduled
                     || payload.ecologyRaidInProgress
                     || payload.ecologyResolutionReported)
-                && (payload.ecologyRaidSequence <= 0
-                    || !payload.ecologyWarningIssued))
+                && payload.ecologyRaidSequence <= 0
+            || (payload.ecologyRaidScheduled
+                    || payload.ecologyRaidInProgress)
+                && !payload.ecologyWarningIssued)
         {
             report.AddError(
                 "External-influence ecology-raid hierarchy is invalid.");
@@ -168,6 +171,7 @@ public static class ExternalInfluenceSaveValidation
             payload.dreadAffectedIntruderIds,
             "dread intruder",
             report);
+        ValidateOperations(payload, report);
 
         bool trailCharmValid = payload.trailCharmCommitPhase
             == ExternalInfluenceTrailCharmCommitPhase.None
@@ -186,6 +190,116 @@ public static class ExternalInfluenceSaveValidation
         {
             report.AddError(
                 "External-influence trail-charm pending receipt is invalid.");
+        }
+    }
+
+    private static void ValidateOperations(
+        DungeonExternalInfluenceSaveData payload,
+        DungeonGameRestoreReport report)
+    {
+        if (payload.nextOperationRevision <= 0L)
+        {
+            report.AddError(
+                "External-influence next operation revision is invalid.");
+            return;
+        }
+
+        long previousRevision = 0L;
+        var operationIds = new HashSet<string>(StringComparer.Ordinal);
+        for (int index = 0; index < payload.operations.Count; index++)
+        {
+            ExternalInfluenceOperationSaveData operation =
+                payload.operations[index];
+            if (operation == null
+                || operation.schemaVersion
+                    != ExternalInfluenceOperationSaveData.CurrentSchemaVersion
+                || operation.revision <= previousRevision
+                || operation.revision >= payload.nextOperationRevision
+                || !IsCanonicalRequired(operation.operationId)
+                || !operationIds.Add(operation.operationId)
+                || !Enum.IsDefined(
+                    typeof(ExternalInfluenceOperationKind),
+                    operation.kind)
+                || !Enum.IsDefined(
+                    typeof(ExternalInfluenceOperationPhase),
+                    operation.phase)
+                || !Enum.IsDefined(
+                    typeof(ExternalInfluenceCostKind),
+                    operation.costKind)
+                || !IsCanonicalRequired(operation.sourceId)
+                || !IsCanonicalOptional(operation.targetId)
+                || !IsCanonicalOptional(operation.financeTransactionId)
+                || !IsCanonicalOptional(operation.physicalCommitId)
+                || !IsCanonicalOptional(operation.failureReason)
+                || !IsFinite(operation.costAmount)
+                || operation.costAmount < 0f
+                || !IsFinite(operation.requestedAmount)
+                || !IsFinite(operation.appliedAmount)
+                || !IsFinite(operation.valueBefore)
+                || !IsFinite(operation.valueAfter)
+                || operation.newlyRevealed < 0
+                || operation.resultCount < 0
+                || operation.recordedDay < -1)
+            {
+                report.AddError(
+                    $"External-influence operation at index {index} is invalid.");
+                return;
+            }
+
+            bool requiresTarget = operation.kind is
+                ExternalInfluenceOperationKind.ReconUpgrade
+                or ExternalInfluenceOperationKind.RumorMitigation
+                or ExternalInfluenceOperationKind.IntelUnlock
+                or ExternalInfluenceOperationKind.DreadDefense
+                or ExternalInfluenceOperationKind.EcologyRaid;
+            if (requiresTarget && operation.targetId.Length == 0
+                || operation.costKind == ExternalInfluenceCostKind.Gold
+                    && operation.financeTransactionId.Length == 0
+                || operation.costKind == ExternalInfluenceCostKind.TrailCharm
+                    && operation.physicalCommitId.Length == 0
+                || operation.phase == ExternalInfluenceOperationPhase.Failed
+                    && operation.failureReason.Length == 0)
+            {
+                report.AddError(
+                    $"External-influence operation '{operation.operationId}' lacks required provenance.");
+                return;
+            }
+
+            previousRevision = operation.revision;
+        }
+
+        if (payload.operations.Count > 0
+            && payload.nextOperationRevision <= previousRevision)
+        {
+            report.AddError(
+                "External-influence next operation revision does not advance history.");
+        }
+
+        if (payload.trailCharmCommitPhase
+                != ExternalInfluenceTrailCharmCommitPhase.None)
+        {
+            string operationId =
+                $"external-influence:intel:{payload.pendingTrailCharmSiteId}";
+            ExternalInfluenceOperationSaveData pending = payload.operations
+                .FirstOrDefault(candidate => candidate != null
+                    && string.Equals(
+                        candidate.operationId,
+                        operationId,
+                        StringComparison.Ordinal));
+            if (pending == null
+                || pending.kind != ExternalInfluenceOperationKind.IntelUnlock
+                || pending.costKind != ExternalInfluenceCostKind.TrailCharm
+                || !string.Equals(
+                    pending.physicalCommitId,
+                    payload.pendingTrailCharmCommitId,
+                    StringComparison.Ordinal)
+                || pending.phase is not (
+                    ExternalInfluenceOperationPhase.CostCommitted
+                    or ExternalInfluenceOperationPhase.ResultPublished))
+            {
+                report.AddError(
+                    "External-influence pending trail-charm operation provenance is missing.");
+            }
         }
     }
 
@@ -213,6 +327,17 @@ public static class ExternalInfluenceSaveValidation
 
     private static bool IsFiniteNonNegative(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0f;
+
+    private static bool IsFinite(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value);
+
+    private static bool IsCanonicalRequired(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool IsCanonicalOptional(string value) =>
+        value != null
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     private static bool InRange(float value, float minimum, float maximum) =>
         IsFiniteNonNegative(value) && value >= minimum && value <= maximum;

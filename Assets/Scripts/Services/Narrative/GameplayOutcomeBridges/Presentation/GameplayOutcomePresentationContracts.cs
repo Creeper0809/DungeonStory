@@ -108,6 +108,7 @@ public readonly struct GameplayOutcomeNarrativeEvidenceSource
         GameplayOutcomeId exactOutcomeId,
         NarrativeMemoryId compactedMemoryId,
         GameplayEntityId subjectId,
+        NarrativePerspectiveKind perspectiveKind,
         IReadOnlyList<GameplayOutcomeNarrativeEvidenceParticipant> participants,
         IReadOnlyList<GameplayOutcomeNarrativeEvidenceMetric> metrics,
         IReadOnlyList<GameplayOutcomeNarrativeEvidenceFact> facts,
@@ -131,6 +132,7 @@ public readonly struct GameplayOutcomeNarrativeEvidenceSource
         ExactOutcomeId = exactOutcomeId;
         CompactedMemoryId = compactedMemoryId;
         SubjectId = subjectId;
+        PerspectiveKind = perspectiveKind;
         Participants = participants
             ?? Array.Empty<GameplayOutcomeNarrativeEvidenceParticipant>();
         Metrics = metrics ?? Array.Empty<GameplayOutcomeNarrativeEvidenceMetric>();
@@ -157,6 +159,7 @@ public readonly struct GameplayOutcomeNarrativeEvidenceSource
     public GameplayOutcomeId ExactOutcomeId { get; }
     public NarrativeMemoryId CompactedMemoryId { get; }
     public GameplayEntityId SubjectId { get; }
+    public NarrativePerspectiveKind PerspectiveKind { get; }
     public bool HasExactOutcome => ExactOutcomeId.IsValid;
     public IReadOnlyList<GameplayOutcomeNarrativeEvidenceParticipant> Participants { get; }
     public IReadOnlyList<GameplayOutcomeNarrativeEvidenceMetric> Metrics { get; }

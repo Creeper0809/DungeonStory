@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 public enum ApparelWorkOrderKind
@@ -33,6 +34,16 @@ public enum ApparelRepairCommitPhase
     None = 0,
     MaterialCommitted = 1,
     RepairApplied = 2
+}
+
+[Serializable]
+public sealed class ApparelWorkOrderOutcomeItemStateSaveData
+{
+    public string itemInstanceId = string.Empty;
+    public string stackId = string.Empty;
+    public string apparelDisplayName = string.Empty;
+    public string beforeStatePayload = string.Empty;
+    public string afterStatePayload = string.Empty;
 }
 
 [Serializable]
@@ -144,6 +155,17 @@ public sealed class ApparelWorkOrderSaveData
     public string repairTargetStackId = string.Empty;
     public string repairOriginalStatePayload = string.Empty;
     public string repairResolvedStatePayload = string.Empty;
+    public bool terminalOutcomeReady;
+    public int terminalAbsoluteDay;
+    public string terminalPublicationKey = string.Empty;
+    public bool terminalPublicationConfirmed;
+    public string terminalMaterialOperationId = string.Empty;
+    public string terminalMaterialCommitId = string.Empty;
+    public List<string> terminalMaterialSourceStackIds = new();
+    public int terminalMaterialQuantity;
+    public long terminalMaterialMassGrams;
+    public List<ApparelWorkOrderOutcomeItemStateSaveData>
+        terminalOutcomeItemStates = new();
 }
 
 [Serializable]
@@ -309,14 +331,12 @@ public sealed class ApparelWorkOrderRuntime :
         internal List<ApparelWorkOrderSaveData> Orders { get; } = new();
         internal Dictionary<string, ApparelWorkOrderTerminalStateSaveData>
             TerminalStates { get; } = new(StringComparer.Ordinal);
-        internal int NextSequence = 1;
         internal int Version;
 
         internal AuthorityState Clone()
         {
             AuthorityState clone = new()
             {
-                NextSequence = NextSequence,
                 Version = Version
             };
             clone.Orders.AddRange(Orders.Select(ApparelWorkOrderRuntime.Clone));
@@ -348,6 +368,7 @@ public sealed class ApparelWorkOrderRuntime :
     private readonly ILeasedItemReservationService leases;
     private readonly IFacilityCapabilityQuery facilities;
     private readonly IGameClock clock;
+    private readonly IGameCalendar calendar;
     private readonly IBalanceWorkCalculator balanceWorkCalculator;
     private readonly ICraftQualityResolver qualityResolver;
     private readonly IRunSeedProvider runSeedProvider;
@@ -357,6 +378,8 @@ public sealed class ApparelWorkOrderRuntime :
     private readonly CharacterIdentityEventPublisher identityEvents;
     private readonly ICharacterPerformanceQuery performance;
     private readonly CharacterWorkPerformanceContextResolver performanceContext;
+    private readonly IDomainFactPublisher facts;
+    private readonly IDomainFactRecoveryPublisher factRecovery;
     private AuthorityState authority = new();
     private ApparelWorkOrderRestoreCandidate stagedRestoreState;
     private AuthorityState previousRestoreState;
@@ -371,6 +394,7 @@ public sealed class ApparelWorkOrderRuntime :
         ILeasedItemReservationService leases,
         IFacilityCapabilityQuery facilities,
         IGameClock clock,
+        IGameCalendar calendar,
         IPhysicalItemBatchDispositionService batchDispositions,
         IApparelPhysicalTransaction physicalTransactions,
         IProductionOutputMaximumMassRegistry outputMaximumMass,
@@ -383,7 +407,8 @@ public sealed class ApparelWorkOrderRuntime :
         ExtremeCraftInspirationRuntime inspirationRuntime = null,
         CharacterIdentityEventPublisher identityEvents = null,
         ICharacterPerformanceQuery performance = null,
-        CharacterWorkPerformanceContextResolver performanceContext = null)
+        CharacterWorkPerformanceContextResolver performanceContext = null,
+        IDomainFactPublisher facts = null)
     {
         this.apparel = apparel ?? throw new ArgumentNullException(nameof(apparel));
         this.materials = materials ?? throw new ArgumentNullException(nameof(materials));
@@ -399,6 +424,7 @@ public sealed class ApparelWorkOrderRuntime :
         this.leases = leases ?? throw new ArgumentNullException(nameof(leases));
         this.facilities = facilities ?? throw new ArgumentNullException(nameof(facilities));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.balanceWorkCalculator = balanceWorkCalculator;
         this.qualityResolver = qualityResolver
             ?? new DeterministicCraftQualityResolver();
@@ -410,16 +436,15 @@ public sealed class ApparelWorkOrderRuntime :
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
         this.performanceContext = performanceContext;
+        this.facts = facts;
+        factRecovery = facts as IDomainFactRecoveryPublisher;
+        if (facts != null && factRecovery == null)
+            throw new ArgumentException("apparel-fact-recovery-unavailable", nameof(facts));
     }
 
     private List<ApparelWorkOrderSaveData> orders => authority.Orders;
     private Dictionary<string, ApparelWorkOrderTerminalStateSaveData>
         terminalStates => authority.TerminalStates;
-    private int nextSequence
-    {
-        get => authority.NextSequence;
-        set => authority.NextSequence = value;
-    }
 
     public int Version
     {
@@ -708,13 +733,27 @@ public sealed class ApparelWorkOrderRuntime :
             failure = new DomainFailure(FailureCode.ApparelMaterialUnavailable, order.orderId);
             return false;
         }
+        if (order.terminalOutcomeReady)
+        {
+            if (!TryCommitTerminalOutcome(order, out failure))
+            {
+                order.state = ApparelWorkOrderState
+                    .WaitingForDispositionFinalization;
+                return false;
+            }
+            order.state = ApparelWorkOrderState.Completed;
+            leases.Release(order.orderId);
+            Version++;
+            return true;
+        }
         if (order.state == ApparelWorkOrderState.WaitingForDispositionFinalization)
         {
             if (!Resolve(order, out failure))
             {
                 return false;
             }
-            if (order.state == ApparelWorkOrderState.WaitingForDispositionFinalization)
+            if (order.state == ApparelWorkOrderState.WaitingForDispositionFinalization
+                || order.terminalOutcomeReady && order.terminalPublicationConfirmed)
             {
                 order.state = ApparelWorkOrderState.Completed;
                 leases.Release(order.orderId);
@@ -850,14 +889,19 @@ public sealed class ApparelWorkOrderRuntime :
         // receipt and its exact mass. Cancellation is legal only after the
         // physical obligation has reached its terminal acknowledgement.
         if (order.dismantlingRejectedOutput
-            || order.repairCommitPhase != ApparelRepairCommitPhase.None)
+            || order.repairCommitPhase != ApparelRepairCommitPhase.None
+            || order.terminalOutcomeReady)
         {
             string operationId = order.dismantlingRejectedOutput
                 ? order.rejectedDismantleOperationId
-                : order.repairOperationId;
+                : order.repairCommitPhase != ApparelRepairCommitPhase.None
+                    ? order.repairOperationId
+                    : order.terminalMaterialOperationId;
             string commitId = order.dismantlingRejectedOutput
                 ? order.rejectedDismantleCommitId
-                : order.repairCommitId;
+                : order.repairCommitPhase != ApparelRepairCommitPhase.None
+                    ? order.repairCommitId
+                    : order.terminalMaterialCommitId;
             failure = new DomainFailure(
                 FailureCode.ApparelRecoveryDeferred,
                 order.orderId ?? string.Empty,
@@ -925,8 +969,10 @@ public sealed class ApparelWorkOrderRuntime :
     public IReadOnlyList<ApparelWorkOrderSaveData> PrepareRestoreOrders(
         IEnumerable<ApparelWorkOrderSaveData> source)
     {
-        List<ApparelWorkOrderSaveData> restored = (source
-                ?? Enumerable.Empty<ApparelWorkOrderSaveData>())
+        ApparelWorkOrderSaveData[] rawOrders = (source ?? Enumerable.Empty<ApparelWorkOrderSaveData>()).ToArray();
+        foreach (ApparelWorkOrderSaveData raw in rawOrders)
+            ApparelWorkCompletedData.ValidateOwner(raw);
+        List<ApparelWorkOrderSaveData> restored = rawOrders
             .Select(Clone)
             .OrderBy(value => value.orderId, StringComparer.Ordinal)
             .ToList();
@@ -966,7 +1012,8 @@ public sealed class ApparelWorkOrderRuntime :
                     && (value.qualityRoll == null
                         || value.qualityRoll.attemptIndex
                             != value.qualityAttemptIndex))
-                || !ValidateRepairPendingShape(value))
+                || !ValidateRepairPendingShape(value)
+                || !ValidateTerminalOutcomeShape(value, out _))
             || restored.Select(value => value.orderId)
                 .Distinct(StringComparer.Ordinal).Count() != restored.Count)
         {
@@ -995,9 +1042,10 @@ public sealed class ApparelWorkOrderRuntime :
                         + capabilityFailure.ToString());
                 }
             }
-            order.state = order.repairCommitPhase == ApparelRepairCommitPhase.None
-                ? ApparelWorkOrderState.NeedsRevalidation
-                : ApparelWorkOrderState.WaitingForDispositionFinalization;
+            order.state = order.terminalOutcomeReady
+                || order.repairCommitPhase != ApparelRepairCommitPhase.None
+                ? ApparelWorkOrderState.WaitingForDispositionFinalization
+                : ApparelWorkOrderState.NeedsRevalidation;
             order.nextRetryGameHour = 0f;
         }
         return restored;
@@ -1634,7 +1682,7 @@ public sealed class ApparelWorkOrderRuntime :
                     sourceTraitId = MythicCraftInspirationRules.SourceTraitId,
                     originalQuality = quality.Tier,
                     fixedRollHash = fixedRollHash,
-                    createdDay = Mathf.FloorToInt(clock.Time / GameCalendarRules.SecondsPerDay),
+                    createdDay = calendar.Day,
                     createdFacilityId = facility.RequirePersistentInstanceId().Value
                 };
             }
@@ -1649,8 +1697,7 @@ public sealed class ApparelWorkOrderRuntime :
             size = order.targetSize,
             modifications = order.targetModifications,
             durability = 100f,
-            craftedAbsoluteDay = Mathf.FloorToInt(
-                clock.Time / GameCalendarRules.SecondsPerDay),
+            craftedAbsoluteDay = calendar.Day,
             deterministicBatchHash = Hash(order.orderId),
             mythicProvenance = mythicProvenance
         };
@@ -1722,8 +1769,7 @@ public sealed class ApparelWorkOrderRuntime :
                     completedQuality,
                     order.qualityRoll?.attemptIndex
                         ?? order.qualityAttemptIndex,
-                    Mathf.FloorToInt(
-                        clock.Time / GameCalendarRules.SecondsPerDay),
+                    calendar.Day,
                     rejectedBelowMinimum: (int)completedQuality
                         < (int)order.minimumCraftsmanshipQuality));
             }
@@ -1920,6 +1966,8 @@ public sealed class ApparelWorkOrderRuntime :
             }
             targets.Add((stack, state));
         }
+        List<ApparelWorkOrderOutcomeItemStateSaveData> outcomeStates =
+            new(targets.Count);
         foreach ((WorldItemStackSnapshot stack, ApparelInstanceState original) in targets)
         {
             ApparelInstanceState changed = CloneState(original);
@@ -1948,8 +1996,17 @@ public sealed class ApparelWorkOrderRuntime :
                 failure = new DomainFailure(FailureCode.ApparelTransferFailed, stack.StackId);
                 return false;
             }
+            outcomeStates.Add(OutcomeItemState(stack, original, changed));
         }
-        return true;
+        return StageAndCommitTerminalOutcome(
+            order,
+            outcomeStates,
+            string.Empty,
+            string.Empty,
+            Array.Empty<string>(),
+            0,
+            0L,
+            out failure);
     }
 
     private bool ResolveRepair(ApparelWorkOrderSaveData order, out DomainFailure failure)
@@ -1987,7 +2044,15 @@ public sealed class ApparelWorkOrderRuntime :
                     stack.StackId);
                 return false;
             }
-            return true;
+            return StageAndCommitTerminalOutcome(
+                order,
+                new[] { OutcomeItemState(stack, state, changed) },
+                string.Empty,
+                string.Empty,
+                Array.Empty<string>(),
+                0,
+                0L,
+                out failure);
         }
         string operationId = RepairOperationId(order.orderId);
         // The order lease protects selection while work is in progress. The
@@ -2064,6 +2129,8 @@ public sealed class ApparelWorkOrderRuntime :
                 "apparel-repair-resolved-state-mismatch");
             return false;
         }
+        ApparelWorkOrderOutcomeItemStateSaveData terminalState = OutcomeItemState(
+            stack, JsonUtility.FromJson<ApparelInstanceState>(order.repairOriginalStatePayload), resolved);
         if (!batchDispositions.Acknowledge(
                 order.repairCommitId,
                 out string acknowledgementFailure))
@@ -2073,9 +2140,21 @@ public sealed class ApparelWorkOrderRuntime :
                 acknowledgementFailure);
             return false;
         }
-
+        string operationId = order.repairOperationId;
+        string commitId = order.repairCommitId;
+        string[] sourceStackIds = order.repairSourceStackIds.ToArray();
+        int quantity = order.repairInputQuantity;
+        long massGrams = order.repairInputMassGrams;
         ClearRepairPending(order);
-        return true;
+        return StageAndCommitTerminalOutcome(
+            order,
+            new[] { terminalState },
+            operationId,
+            commitId,
+            sourceStackIds,
+            quantity,
+            massGrams,
+            out failure);
     }
 
     private bool ResolveAlteration(ApparelWorkOrderSaveData order, out DomainFailure failure)
@@ -2112,7 +2191,179 @@ public sealed class ApparelWorkOrderRuntime :
             failure = new DomainFailure(FailureCode.ApparelTransferFailed, stack.StackId);
             return false;
         }
+        return StageAndCommitTerminalOutcome(
+            order,
+            new[] { OutcomeItemState(stack, state, changed) },
+            string.Empty,
+            string.Empty,
+            Array.Empty<string>(),
+            0,
+            0L,
+            out failure);
+    }
+
+    private bool StageAndCommitTerminalOutcome(
+        ApparelWorkOrderSaveData order,
+        IReadOnlyList<ApparelWorkOrderOutcomeItemStateSaveData> itemStates,
+        string materialOperationId,
+        string materialCommitId,
+        IReadOnlyList<string> materialSourceStackIds,
+        int materialQuantity,
+        long materialMassGrams,
+        out DomainFailure failure)
+    {
+        if (order == null
+            || order.kind is ApparelWorkOrderKind.Craft
+            || order.terminalOutcomeReady
+            || itemStates == null
+            || itemStates.Count == 0
+            || itemStates.Count > MaximumBatch)
+        {
+            failure = new DomainFailure(
+                FailureCode.ApparelWorkOrderInvalid,
+                order?.orderId ?? string.Empty);
+            return false;
+        }
+        order.terminalOutcomeReady = true;
+        order.terminalAbsoluteDay = Math.Max(1, calendar.Day);
+        order.terminalPublicationKey = string.Empty;
+        order.terminalPublicationConfirmed = false;
+        order.terminalMaterialOperationId =
+            materialOperationId?.Trim() ?? string.Empty;
+        order.terminalMaterialCommitId =
+            materialCommitId?.Trim() ?? string.Empty;
+        order.terminalMaterialSourceStackIds =
+            (materialSourceStackIds ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToList();
+        order.terminalMaterialQuantity = Math.Max(0, materialQuantity);
+        order.terminalMaterialMassGrams = Math.Max(0L, materialMassGrams);
+        order.terminalOutcomeItemStates = itemStates
+            .Select(CloneOutcomeItemState)
+            .OrderBy(value => value.itemInstanceId, StringComparer.Ordinal)
+            .ToList();
+        order.state = ApparelWorkOrderState.WaitingForDispositionFinalization;
+        Version++;
+        bool committed = TryCommitTerminalOutcome(order, out failure);
+        if (committed)
+            order.state = ApparelWorkOrderState.InProgress;
+        return committed;
+    }
+
+    private bool TryCommitTerminalOutcome(
+        ApparelWorkOrderSaveData order,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (!ValidateTerminalOutcomeShape(order, out string shapeFailure))
+        {
+            failure = new DomainFailure(FailureCode.ApparelTransferFailed,
+                order?.orderId ?? string.Empty, shapeFailure);
+            return false;
+        }
+        if (order.terminalPublicationConfirmed) return true;
+        if (facts == null || factRecovery == null)
+        {
+            failure = new DomainFailure(FailureCode.ApparelTransferFailed,
+                order.orderId, "apparel-terminal-fact-publisher-unavailable");
+            return false;
+        }
+        var fact = new ApparelWorkCompletedFact(ApparelWorkCompletedData.FromOwner(order));
+        DomainFactDelivery delivery;
+        if (order.terminalPublicationKey.Length == 0)
+        {
+            if (!facts.TryReserve(fact, out DomainFactLease lease, out string reserveFailure))
+            {
+                failure = new DomainFailure(FailureCode.ApparelTransferFailed,
+                    order.orderId, "apparel-terminal-reservation-failed:" + reserveFailure);
+                return false;
+            }
+            order.terminalPublicationKey = lease.PublicationKey;
+            Version++;
+            if (order.terminalPublicationKey.Length == 0)
+            {
+                facts.Cancel(lease);
+                failure = new DomainFailure(FailureCode.ApparelTransferFailed,
+                    order.orderId, "apparel-terminal-publication-key-missing");
+                return false;
+            }
+            try { delivery = facts.Publish(lease, fact); }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                facts.Cancel(lease);
+                order.terminalPublicationKey = string.Empty;
+                Version++;
+                failure = new DomainFailure(FailureCode.ApparelTransferFailed,
+                    order.orderId, "apparel-terminal-publication-failed:" + exception.Message);
+                return false;
+            }
+            // Effects already happened; only discard a definitively rejected reservation.
+            if (!delivery.MayBeCommitted)
+            {
+                order.terminalPublicationKey = string.Empty;
+                Version++;
+            }
+        }
+        else
+        {
+            var results = new DomainFactDelivery[1];
+            if (!factRecovery.ReplayBatch(new[] { DomainFactReplay.Create(order.terminalPublicationKey, fact) },
+                    results, out string replayFailure))
+            {
+                // This saved identity may already be committed; never replace it on replay rejection.
+                failure = new DomainFailure(FailureCode.ApparelTransferFailed,
+                    order.orderId, "apparel-terminal-replay-failed:" + replayFailure);
+                return false;
+            }
+            delivery = results[0];
+        }
+        if (!delivery.Completed || delivery.OperationKey != order.terminalPublicationKey
+            || string.IsNullOrWhiteSpace(delivery.PublicationId)
+            || delivery.Fingerprint.Length != 64)
+        {
+            failure = new DomainFailure(FailureCode.ApparelTransferFailed,
+                order.orderId, "apparel-terminal-delivery-pending:" + delivery.Detail);
+            return false;
+        }
+        order.terminalPublicationConfirmed = true;
+        Version++;
         return true;
+    }
+
+    private ApparelWorkOrderOutcomeItemStateSaveData OutcomeItemState(
+        WorldItemStackSnapshot stack,
+        ApparelInstanceState before,
+        ApparelInstanceState after) => new()
+    {
+        itemInstanceId = stack?.ItemInstanceId?.Trim() ?? string.Empty,
+        stackId = stack?.StackId?.Trim() ?? string.Empty,
+        apparelDisplayName = apparel.TryGet(before.apparelDefinitionId, out ApparelDefinitionSO definition)
+            ? definition.DisplayName : throw new InvalidOperationException("apparel-terminal-definition-missing"),
+        beforeStatePayload = CaptureApparelState(before),
+        afterStatePayload = CaptureApparelState(after)
+    };
+
+    private static ApparelWorkOrderOutcomeItemStateSaveData CloneOutcomeItemState(
+        ApparelWorkOrderOutcomeItemStateSaveData value) => ApparelWorkCompletedData.CloneItem(value);
+
+    private static bool ValidateTerminalOutcomeShape(
+        ApparelWorkOrderSaveData order,
+        out string failureReason)
+    {
+        try
+        {
+            ApparelWorkCompletedData.ValidateOwner(order);
+            failureReason = string.Empty;
+            return true;
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            failureReason = exception.Message;
+            return false;
+        }
     }
 
     private bool TrySelectMaterial(
@@ -2692,10 +2943,6 @@ public sealed class ApparelWorkOrderRuntime :
         }
         AuthorityState next = new()
         {
-            NextSequence = Math.Max(
-                1,
-                candidate.Orders.Select(ParseSequence).DefaultIfEmpty(0).Max()
-                    + 1),
             Version = checked(Version + 1)
         };
         next.Orders.AddRange(candidate.Orders.Select(Clone));
@@ -2737,6 +2984,7 @@ public sealed class ApparelWorkOrderRuntime :
                  terminalsToValidate)
         {
             ApparelWorkOrderSaveData frozen = terminal.sourceOrder;
+            ApparelWorkCompletedData.ValidateOwner(frozen);
             bool frozenCapabilityValid = frozen.kind != ApparelWorkOrderKind.Craft;
             if (!frozenCapabilityValid
                 && frozen.craftOutputCapability is { IsEmpty: false }
@@ -2954,14 +3202,18 @@ public sealed class ApparelWorkOrderRuntime :
         state = null;
         return stack != null
             && apparel.TryGetByItemId(stack.ItemId, out _)
-            && ApparelItemStateCodec.TryRead(stack.Components, out state);
+            && ApparelItemStateCodec.TryRead(stack.Components, out state)
+            && apparel.TryGet(state.apparelDefinitionId, out ApparelDefinitionSO definition)
+            && DomainFactValueSyntax.IsText(definition.DisplayName, 256, false);
     }
 
     private ApparelWorkOrderSaveData NewOrder(ApparelWorkOrderKind kind)
     {
         ApparelWorkOrderSaveData order = new()
         {
-            orderId = $"apparel-order:{nextSequence++:D8}",
+            // Completed orders are omitted from saves; a reconstructed local counter
+            // must never reuse their identity after reload.
+            orderId = "apparel-order:" + Guid.NewGuid().ToString("N"),
             kind = kind,
             state = ApparelWorkOrderState.NeedsRevalidation,
             requiredWork = 1f
@@ -3454,7 +3706,31 @@ public sealed class ApparelWorkOrderRuntime :
         repairOriginalStatePayload = value?.repairOriginalStatePayload
             ?? string.Empty,
         repairResolvedStatePayload = value?.repairResolvedStatePayload
-            ?? string.Empty
+            ?? string.Empty,
+        terminalOutcomeReady = value?.terminalOutcomeReady ?? false,
+        terminalAbsoluteDay = value?.terminalAbsoluteDay ?? 0,
+        terminalPublicationKey = value?.terminalPublicationKey,
+        terminalPublicationConfirmed = value?.terminalPublicationConfirmed ?? false,
+        terminalMaterialOperationId = value?.terminalMaterialOperationId?.Trim()
+            ?? string.Empty,
+        terminalMaterialCommitId = value?.terminalMaterialCommitId?.Trim()
+            ?? string.Empty,
+        terminalMaterialSourceStackIds = value?.terminalMaterialSourceStackIds?
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToList() ?? new List<string>(),
+        terminalMaterialQuantity = Math.Max(
+            0,
+            value?.terminalMaterialQuantity ?? 0),
+        terminalMaterialMassGrams = Math.Max(
+            0L,
+            value?.terminalMaterialMassGrams ?? 0L),
+        terminalOutcomeItemStates = value?.terminalOutcomeItemStates?
+            .Select(CloneOutcomeItemState)
+            .OrderBy(state => state.itemInstanceId, StringComparer.Ordinal)
+            .ToList() ?? new List<ApparelWorkOrderOutcomeItemStateSaveData>()
     };
 
     private static bool TerminalStateMatchesProducer(
@@ -3524,15 +3800,6 @@ public sealed class ApparelWorkOrderRuntime :
             { get; }
         internal bool Published { get; set; }
         internal int PublishedVersion { get; set; }
-    }
-
-    private static int ParseSequence(ApparelWorkOrderSaveData order)
-    {
-        string id = order?.orderId ?? string.Empty;
-        int colon = id.LastIndexOf(':');
-        return colon >= 0 && int.TryParse(id.Substring(colon + 1), out int value)
-            ? value
-            : 0;
     }
 
     private float GameHour => Mathf.Max(0f, clock.Time / GameSecondsPerHour);

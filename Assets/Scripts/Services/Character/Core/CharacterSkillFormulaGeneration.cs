@@ -32,11 +32,12 @@ public static class CharacterSkillFormulaGeneration
     public static string BuildEvidenceId(CharacterNarrativeFact fact)
     {
         if (fact == null) throw new ArgumentNullException(nameof(fact));
-        return "skill-evidence:" + NarrativeInferenceHash.ComputeSha256Utf8(string.Join("\n",
-            fact.domain.ToString(),
-            fact.factId?.Trim() ?? string.Empty,
-            fact.subjectId?.Trim() ?? string.Empty));
+        return BuildEvidenceId(fact.domain.ToString(), fact.factId, fact.subjectId);
     }
+
+    internal static string BuildEvidenceId(string domain, string factId, string subjectId) =>
+        "skill-evidence:" + NarrativeInferenceHash.ComputeSha256Utf8(string.Join("\n",
+            domain, factId?.Trim() ?? string.Empty, subjectId?.Trim() ?? string.Empty));
 
     internal static int CalculateNarrativeBudget(
         CharacterProgression progression,
@@ -92,6 +93,10 @@ public static class CharacterSkillFormulaGeneration
         draft.moduleSelectionOffers = new List<CharacterSkillModuleOfferState>();
         string[] evidenceIds = evidence.Select(value => value.EvidenceId)
             .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+        string[] evidenceBindingHashes = draft.outcomeEvidenceBindings
+            .Select(GameplayOutcomeEvidenceBindingAuthority.ComputeCanonicalHash)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
         CharacterNarrativeFact[] negativeFacts = facts.Where(value =>
                 NarrativeFormulaNegativeEvidence.Matches(value.outcome, value.factId))
             .ToArray();
@@ -133,6 +138,7 @@ public static class CharacterSkillFormulaGeneration
                 draft.requestKey, rule.ruleId, policy.FormulaVersion.ToString(CultureInfo.InvariantCulture),
                 draft.formulaCatalogSha256, string.Join(",", positiveIds),
                 string.Join(",", drawbackIds), string.Join(",", evidenceIds),
+                string.Join(",", evidenceBindingHashes),
                 string.Join(",", qualifiedNegativeIds)))
                 .Substring("sha256:".Length);
             draft.moduleSelectionOffers.Add(new CharacterSkillModuleOfferState
@@ -240,7 +246,8 @@ public static class CharacterSkillFormulaGeneration
             drawbackPolicy: drawback?.Option == null
                 ? null
                 : settings.formulaPolicy.RequireDrawbackPolicy(),
-            drawbackOption: drawback?.Option);
+            drawbackOption: drawback?.Option,
+            primaryCapabilityId: selected.PositiveModules[0].Capability.Descriptor.CapabilityId);
         if (candidates.Count == 0)
             throw new InvalidOperationException("The selected module set has no legal numeric allocation within budget.");
         string ownerId = draft.requestKey?.Trim() ?? string.Empty;
@@ -578,7 +585,12 @@ public static class CharacterSkillFormulaGeneration
         CharacterSkillSystemSettingsSO settings)
     {
         if (skill == null) throw new ArgumentNullException(nameof(skill));
-        if (skill.formulaVersion == 0) return;
+        if (skill.formulaVersion == 0)
+        {
+            if (skill.prominencePolicyVersion != 0 || !string.IsNullOrEmpty(skill.primaryCapabilityId))
+                throw new InvalidOperationException("A legacy non-formula skill cannot declare a formula primary policy.");
+            return;
+        }
         CharacterSkillFormulaAuthority authority =
             CharacterSkillFormulaCompatibility.RequireAuthority(skill, settings);
         if (skill.calculatedCost < 0
@@ -666,6 +678,14 @@ public static class CharacterSkillFormulaGeneration
             skill.targetingMode, skill.effectArea, skill.areaSize);
         NarrativeFormulaGenerationCostContext authoredContext =
             authority.RequireGenerationCostContext(skill.trigger, skill.target);
+        NarrativeFormulaCore.RequirePrimaryProminence(skill.prominencePolicyVersion,
+            skill.primaryCapabilityId, allocations);
+        if (skill.prominencePolicyVersion != 0
+            && (!string.Equals(skill.combinationId, selections[0].moduleId, StringComparison.Ordinal)
+                || !string.Equals(CharacterSkillModuleCapabilityRegistry.Require(
+                    settings.FindModule(selections[0].moduleId)).CapabilityId,
+                    skill.primaryCapabilityId, StringComparison.Ordinal)))
+            throw new InvalidOperationException("Formula skill primary identity differs from its frozen module order.");
         int recomputedCost = NarrativeFormulaCore.CalculateCost(
             allocations,
             new NarrativeFormulaGenerationCostContext(
@@ -713,18 +733,26 @@ public static class CharacterSkillFormulaGeneration
         NarrativeFormulaStrengthPolicy policy = null)
     {
         CharacterNarrativeFact[] facts = MeaningfulFacts(ledger);
-        IEnumerable<NarrativeFormulaEvidence> legacy = facts.Select(fact => new NarrativeFormulaEvidence(
-            BuildEvidenceId(fact),
-            RequireFactKey(fact.eventGroupKey, fact, "eventGroupKey"),
-            RequireFactKey(fact.actionKey, fact, "actionKey"),
-            fact.relationshipKey?.Trim() ?? string.Empty,
-            fact.domain.ToString(),
-            fact.milestoneCount,
-            fact.importancePoints,
-            fact.influenceUseCount));
-        IEnumerable<NarrativeFormulaEvidence> exact = (outcomeEvidence
+        GameplayOutcomeEvidenceBindingSnapshot[] exactBindings = (outcomeEvidence
                 ?? Array.Empty<GameplayOutcomeEvidenceBindingSnapshot>())
             .Where(value => value != null)
+            .ToArray();
+        IEnumerable<NarrativeFormulaEvidence> legacy = GameplayOutcomeEvidenceFormulaProjection
+            .GetRemainingLegacyMilestoneCounts(facts, exactBindings)
+            .Select(pair =>
+            {
+                CharacterNarrativeFact fact = pair.Key;
+                return new NarrativeFormulaEvidence(
+                    BuildEvidenceId(fact),
+                    RequireFactKey(fact.eventGroupKey, fact, "eventGroupKey"),
+                    RequireFactKey(fact.actionKey, fact, "actionKey"),
+                    fact.relationshipKey?.Trim() ?? string.Empty,
+                    fact.domain.ToString(),
+                    pair.Value,
+                    fact.importancePoints,
+                    fact.influenceUseCount);
+            });
+        IEnumerable<NarrativeFormulaEvidence> exact = exactBindings
             .Select(value => GameplayOutcomeEvidenceFormulaProjection.ToFormulaEvidence(
                 value,
                 policy ?? throw new InvalidOperationException(
@@ -920,6 +948,8 @@ public static class CharacterSkillFormulaGeneration
             modules = modules,
             requestKey = draft.requestKey,
             formulaVersion = formulaVersion,
+            prominencePolicyVersion = option.Formula.ProminencePolicyVersion,
+            primaryCapabilityId = option.Formula.PrimaryCapabilityId,
             formulaCatalogSha256 = catalogSha256,
             calculatedCost = option.Formula.CalculatedCost,
             positiveCost = option.Formula.PositiveCost,
@@ -1111,7 +1141,9 @@ public static class CharacterSkillFormulaPresentation
                 throw new InvalidOperationException("CharacterSkill formula formatter is not registered for its capability.");
             string parameters = string.Join(", ", allocation.Parameters.Select(value =>
                 value.ParameterId + "=" + allocation.Descriptor.RequireRange(value.ParameterId).Format(value.Units)));
-            effects.Add(modules[index].displayName + ": " + parameters);
+            string role = candidate.ProminencePolicyVersion == 0 ? string.Empty
+                : index == 0 ? "주효과 " : "보조효과 ";
+            effects.Add(role + modules[index].displayName + ": " + parameters);
         }
         string drawback = candidate.DrawbackId.Length == 0
             ? string.Empty

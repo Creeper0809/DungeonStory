@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Newtonsoft.Json.Linq;
 
 public static class ModularFacilityWorldSaveCodec
 {
@@ -33,8 +34,26 @@ public static class ModularFacilityWorldSaveCodec
                 + $"V{ModularFacilityWorldSaveService.CurrentVersion} is required by the V18 save generation.");
         }
 
+        ValidateSpatialPublicationJson(json);
         return JsonUtility.FromJson<ModularFacilityWorldSaveData>(json)
             ?? throw new InvalidOperationException(
                 "Modular facility save payload could not be deserialized.");
+    }
+
+    internal static void ValidateSpatialPublicationJson(string json)
+    {
+        JObject root = JObject.Parse(json);
+        if (root["spaceExpansionPublication"] is not JObject pending
+            || pending["active"]?.Type != JTokenType.Boolean
+            || pending["publicationKey"]?.Type != JTokenType.String)
+            throw new InvalidOperationException("Spatial publication fields are missing or malformed.");
+        if (!(bool)pending["active"]) return;
+        foreach (var field in typeof(DungeonSpaceExpansionPublicationData).GetFields())
+        {
+            JTokenType expected = field.FieldType == typeof(string) ? JTokenType.String
+                : field.FieldType == typeof(bool) ? JTokenType.Boolean : JTokenType.Integer;
+            if (pending[field.Name]?.Type != expected)
+                throw new InvalidOperationException("Spatial publication field is missing or malformed: " + field.Name);
+        }
     }
 }

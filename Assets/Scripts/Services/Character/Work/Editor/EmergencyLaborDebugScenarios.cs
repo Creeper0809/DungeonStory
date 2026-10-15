@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 
@@ -17,7 +18,9 @@ public static class EmergencyLaborDebugScenarios
         ValidateAutomaticWorkAccounting();
         ValidateDisasterShadowSimulation();
         ValidateWorkClassificationAndAccounting();
+        ValidateIdleReserveProjection();
         ValidateAlertHysteresisAndPersistence();
+        ValidateRestoreTransactionIsolation();
         Debug.Log(
             $"PHASE157_EMERGENCY_LABOR=PASS; schedule=180s/99WU-historical-envelope; actual={SettlementLaborAuthority.ActualWuPerAdultDay:0.##}WU; effective={SettlementLaborAuthority.EffectiveOutputWuPerAdultDay:0.##}WU; workTypes=31; "
             + "landmark8=5.00; research4=2.40; redToGreen=4h; save=stable");
@@ -364,6 +367,7 @@ public static class EmergencyLaborDebugScenarios
         GameEventBus eventBus = new GameEventBus();
         EmergencyWorkAccountingRuntime accounting = new EmergencyWorkAccountingRuntime(eventBus);
         accounting.Start();
+        IEmergencyWorkAccountingService accountingService = accounting;
         EmergencyAccountingResult registered = accounting.Register(
             new EmergencyWorkLedgerEntry(
                 "work:character:test:1:work:haul",
@@ -375,6 +379,28 @@ public static class EmergencyLaborDebugScenarios
                 0,
                 0L));
         Require(registered.Success, registered.Code + ": " + registered.Message);
+        EmergencyReserveSnapshot registeredLookupBefore = accounting.CaptureSnapshot();
+        Require(accountingService.TryGetWorkerOperation(
+                "character:test",
+                out EmergencyWorkLedgerEntry registeredEntry)
+            && registeredEntry.OperationId == "work:character:test:1:work:haul"
+            && registeredEntry.WorkerId == "character:test"
+            && registeredEntry.WorkTypeId == BuiltInWorkTypeIds.Haul
+            && registeredEntry.Flags == (EmergencyWorkFlags.ReserveEligible
+                | EmergencyWorkFlags.InterruptImmediately)
+            && registeredEntry.RemainingMilliWu == 40_000L
+            && registeredEntry.ReserveContributionMilliWu == 30_000L
+            && registeredEntry.ClassificationRevision == 0
+            && registeredEntry.MutationSequence == 0L,
+            "Worker operation lookup did not return the exact registered operation.");
+        Require(!accountingService.TryGetWorkerOperation("character:other", out _)
+            && !accountingService.TryGetWorkerOperation(string.Empty, out _),
+            "Worker operation lookup accepted a missing or empty worker ID.");
+        EmergencyReserveSnapshot registeredLookupAfter = accounting.CaptureSnapshot();
+        Require(EmergencySnapshotsEqual(
+                in registeredLookupBefore,
+                in registeredLookupAfter),
+            "Registered worker operation lookup mutated emergency accounting state.");
         EmergencyAccountingResult progressed = accounting.ApplyProgress(
             new EmergencyWorkProgress(
                 "work:character:test:1:work:haul",
@@ -382,6 +408,21 @@ public static class EmergencyLaborDebugScenarios
                 20_000L,
                 1L));
         Require(progressed.Success, progressed.Code + ": " + progressed.Message);
+        EmergencyReserveSnapshot progressedLookupBefore = accounting.CaptureSnapshot();
+        Require(accountingService.TryGetWorkerOperation(
+                "character:test",
+                out EmergencyWorkLedgerEntry progressedEntry)
+            && progressedEntry.OperationId == "work:character:test:1:work:haul"
+            && progressedEntry.WorkerId == "character:test"
+            && progressedEntry.RemainingMilliWu == 20_000L
+            && progressedEntry.ReserveContributionMilliWu == 20_000L
+            && progressedEntry.MutationSequence == 1L,
+            "Worker operation lookup did not return the exact progressed operation.");
+        EmergencyReserveSnapshot progressedLookupAfter = accounting.CaptureSnapshot();
+        Require(EmergencySnapshotsEqual(
+                in progressedLookupBefore,
+                in progressedLookupAfter),
+            "Progressed worker operation lookup mutated emergency accounting state.");
         EmergencyReserveSnapshot snapshot = accounting.CaptureSnapshot();
         Require(snapshot.ReserveEligibleMilliWu == 20_000L
             && snapshot.InterruptImmediatelyMilliWu == 20_000L
@@ -401,22 +442,89 @@ public static class EmergencyLaborDebugScenarios
             "complete:test:1",
             2L)).Success,
             "Accounting completion failed.");
-        Require(accounting.CaptureSnapshot().ActiveOperationCount == 0,
+        EmergencyReserveSnapshot removedLookupBefore = accounting.CaptureSnapshot();
+        Require(!accountingService.TryGetWorkerOperation("character:test", out _),
+            "Completed worker operation remained queryable.");
+        EmergencyReserveSnapshot removedLookupAfter = accounting.CaptureSnapshot();
+        Require(EmergencySnapshotsEqual(
+                in removedLookupBefore,
+                in removedLookupAfter),
+            "Missing worker operation lookup mutated emergency accounting state.");
+        Require(removedLookupAfter.ActiveOperationCount == 0,
             "Completed operation remained in the ledger.");
         accounting.Dispose();
     }
+
+    private static void ValidateIdleReserveProjection()
+    {
+        Require(SettlementEmergencyReservePlanner.CalculateAvailableReserveMilliWu(
+                0L,
+                3) == 90_000L,
+            "Three idle residents did not project three 30-WU reserve windows.");
+        Require(SettlementEmergencyReservePlanner.CalculateAvailableReserveMilliWu(
+                20_000L,
+                2) == 80_000L,
+            "Active and idle reserve projections did not add exactly once.");
+        Require(SettlementEmergencyReservePlanner.CalculateAvailableReserveMilliWu(
+                20_000L,
+                0) == 20_000L,
+            "Active reserve changed when there were no idle residents.");
+        Require(SettlementEmergencyReservePlanner.CalculateAvailableReserveMilliWu(
+                0L,
+                0) == 0L,
+            "Empty reserve inputs did not project zero.");
+
+        bool negativeActiveRejected = false;
+        try
+        {
+            SettlementEmergencyReservePlanner.CalculateAvailableReserveMilliWu(-1L, 0);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            negativeActiveRejected = true;
+        }
+        bool negativeIdleRejected = false;
+        try
+        {
+            SettlementEmergencyReservePlanner.CalculateAvailableReserveMilliWu(0L, -1);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            negativeIdleRejected = true;
+        }
+        Require(negativeActiveRejected && negativeIdleRejected,
+            "Idle reserve projection accepted a negative active reserve or resident count.");
+    }
+
+    private static bool EmergencySnapshotsEqual(
+        in EmergencyReserveSnapshot left,
+        in EmergencyReserveSnapshot right) =>
+        left.ReserveEligibleMilliWu == right.ReserveEligibleMilliWu
+        && left.InterruptImmediatelyMilliWu == right.InterruptImmediatelyMilliWu
+        && left.InterruptAtCheckpointMilliWu == right.InterruptAtCheckpointMilliWu
+        && left.CriticalNonInterruptibleMilliWu == right.CriticalNonInterruptibleMilliWu
+        && left.EmergencyResponseMilliWu == right.EmergencyResponseMilliWu
+        && left.ReserveEligibleWorkers == right.ReserveEligibleWorkers
+        && left.ProtectedRecoveryWorkers == right.ProtectedRecoveryWorkers
+        && left.ActiveOperationCount == right.ActiveOperationCount
+        && left.AccountingRevision == right.AccountingRevision
+        && left.GroundTruthHash == right.GroundTruthHash
+        && left.Healthy == right.Healthy
+        && left.CorrectionCount == right.CorrectionCount;
 
     private static void ValidateAlertHysteresisAndPersistence()
     {
         GameEventBus eventBus = new GameEventBus();
         FakeCalendar calendar = new FakeCalendar();
         EmergencyWorkAccountingRuntime accounting = new EmergencyWorkAccountingRuntime(eventBus);
+        var suspensionFacts = new ForcedNoOpSuspensionFacts();
         SettlementAlertRuntime alert = new SettlementAlertRuntime(
             calendar,
             eventBus,
             accounting,
             accounting,
-            new AcceptingSuspensionOutcomeCommitter());
+            suspensionFacts,
+            suspensionFacts);
 
         Require(alert.PublishIncidentSignal(new SettlementIncidentSignal(
             "incident:test-fire",
@@ -445,7 +553,9 @@ public static class EmergencyLaborDebugScenarios
                     epoch,
                     calendar.AbsoluteHour,
                     progressExternallyPersisted: true,
-                    outcomeOwnerRevision: 1L)).Success,
+                    outcomeOwnerRevision: 1L,
+                    workerDisplayName: "비상 작업자",
+                    targetDisplayName: "비상 작업장")).Success,
             "Externally persisted work could not enter the suspended-work journal.");
         Require(alert.ResolveIncident("incident:test-fire", 2L).Success,
             "Incident resolution failed.");
@@ -490,7 +600,8 @@ public static class EmergencyLaborDebugScenarios
             eventBus,
             accounting,
             accounting,
-            new AcceptingSuspensionOutcomeCommitter());
+            suspensionFacts,
+            suspensionFacts);
         restored.RestoreAlertSaveData(saved);
         SettlementAlertSnapshot before = alert.Capture();
         SettlementAlertSnapshot after = restored.Capture();
@@ -507,6 +618,179 @@ public static class EmergencyLaborDebugScenarios
                 epoch).Success
             && restored.Capture().SuspendedWork.Count == 0,
             "Resumed work remained in the saved suspension journal.");
+    }
+
+    private static void ValidateRestoreTransactionIsolation()
+    {
+        GameEventBus eventBus = new GameEventBus();
+        FakeCalendar calendar = new FakeCalendar();
+        FixedReserveTargetQuery reserve = new FixedReserveTargetQuery(
+            productiveAdults: 3,
+            targetMilliWu: 12_000L);
+        EmergencyWorkAccountingRuntime accounting = new EmergencyWorkAccountingRuntime(eventBus);
+        SettlementLaborAccountingRuntime labor =
+            new SettlementLaborAccountingRuntime(eventBus, reserve);
+        SettlementLaborAccountingRuntime emptyLabor =
+            new SettlementLaborAccountingRuntime(eventBus, reserve);
+        var suspensionFacts = new ForcedNoOpSuspensionFacts();
+        SettlementAlertRuntime alert = new SettlementAlertRuntime(
+            calendar,
+            eventBus,
+            accounting,
+            accounting,
+            suspensionFacts,
+            suspensionFacts);
+        SettlementAlertRuntime emptyAlert = new SettlementAlertRuntime(
+            calendar,
+            eventBus,
+            accounting,
+            accounting,
+            suspensionFacts,
+            suspensionFacts);
+        accounting.Start();
+        labor.Start();
+        try
+        {
+            const string operationId = "work:restore-transaction:reception";
+            SettlementLaborContribution first = new SettlementLaborContribution(
+                operationId,
+                3L,
+                SettlementLaborContributionChannel.ActualLabor,
+                1_000L,
+                BuiltInWorkTypeIds.Reception.Value);
+            SettlementLaborContribution last = new SettlementLaborContribution(
+                operationId,
+                4L,
+                SettlementLaborContributionChannel.ActualLabor,
+                340L,
+                BuiltInWorkTypeIds.Reception.Value);
+            Require(labor.Record(first).Success && labor.Record(last).Success,
+                "Restore-transaction labor fixture did not record cumulative sequenced work.");
+            Require(alert.PublishIncidentSignal(new SettlementIncidentSignal(
+                    "incident:restore-transaction:red",
+                    SettlementThreatAlertLevel.Red,
+                    1L,
+                    "test",
+                    "restore transaction red incident")).Success,
+                "Restore-transaction red incident signal failed.");
+            Require(alert.UpdateReserveCoverage(15L, 100L).Success,
+                "Restore-transaction reserve coverage fixture failed.");
+            SettlementAlertSnapshot originalAlert = alert.Capture();
+            long epoch = originalAlert.AlertEpochId;
+            Require(alert.RecordSuspendedWork(new SettlementSuspendedWorkSnapshot(
+                    "character:restore-transaction",
+                    BuiltInWorkTypeIds.Reception,
+                    "building:restore-transaction",
+                    epoch,
+                    calendar.AbsoluteHour,
+                    progressExternallyPersisted: true,
+                    outcomeOwnerRevision: 1L,
+                    workerDisplayName: "복원 작업자",
+                    targetDisplayName: "복원 작업장")).Success,
+                "Restore-transaction suspended-work fixture failed.");
+            Require(alert.TryClaimContextTransition(
+                    "character:restore-transaction",
+                    epoch,
+                    toEmergency: true),
+                "Restore-transaction context claim was not accepted.");
+
+            SettlementLaborAccountingSnapshot originalLabor = labor.Capture();
+            originalAlert = alert.Capture();
+            object originalIncidents = originalAlert.ActiveIncidentIds;
+            object originalSuspendedWork = originalAlert.SuspendedWork;
+            string originalLaborJson = JsonUtility.ToJson(labor.CaptureLaborSaveData());
+            string originalAlertJson = JsonUtility.ToJson(alert.CaptureAlertSaveData());
+            Require(originalLabor.ActualLaborMilliWu == 1_340L
+                && originalAlert.CommittedLevel == SettlementThreatAlertLevel.Red
+                && originalAlert.ReserveCoverageBand == EmergencyReserveCoverageBand.CollapseRisk
+                && originalAlert.SuspendedWork.Count == 1,
+                "Restore-transaction fixture did not retain labor, red alert, coverage and suspension state.");
+
+            DungeonStory.Infrastructure.SettlementLaborSaveData emptyLaborSave =
+                emptyLabor.CaptureLaborSaveData();
+            DungeonStory.Infrastructure.SettlementThreatAlertSaveData emptyAlertSave =
+                emptyAlert.CaptureAlertSaveData();
+            string emptyLaborJson = JsonUtility.ToJson(emptyLaborSave);
+            string emptyAlertJson = JsonUtility.ToJson(emptyAlertSave);
+
+            labor.BeginRestoreCandidate();
+            alert.BeginRestoreCandidate();
+            labor.RestoreLaborSaveData(emptyLaborSave);
+            alert.RestoreAlertSaveData(emptyAlertSave);
+            Require(JsonUtility.ToJson(labor.CaptureLaborSaveData()) == originalLaborJson
+                && JsonUtility.ToJson(alert.CaptureAlertSaveData()) == originalAlertJson
+                && labor.Capture().Revision == originalLabor.Revision
+                && ReferenceEquals(alert.Capture().ActiveIncidentIds, originalIncidents)
+                && ReferenceEquals(alert.Capture().SuspendedWork, originalSuspendedWork),
+                "Staged restore changed live labor or alert authority before publication.");
+
+            labor.PublishRestoreCandidate();
+            alert.PublishRestoreCandidate();
+            Require(JsonUtility.ToJson(labor.CaptureLaborSaveData()) == emptyLaborJson
+                && JsonUtility.ToJson(alert.CaptureAlertSaveData()) == emptyAlertJson
+                && labor.Capture().ActualLaborMilliWu == 0L
+                && alert.Capture().CommittedLevel == SettlementThreatAlertLevel.Green,
+                "Published empty candidate did not replace the intended live projections.");
+
+            labor.RollbackPublishedRestoreCandidate();
+            alert.RollbackPublishedRestoreCandidate();
+            SettlementAlertSnapshot rolledBackAlert = alert.Capture();
+            Require(JsonUtility.ToJson(labor.CaptureLaborSaveData()) == originalLaborJson
+                && JsonUtility.ToJson(alert.CaptureAlertSaveData()) == originalAlertJson
+                && labor.Capture().Revision == originalLabor.Revision
+                && ReferenceEquals(rolledBackAlert.ActiveIncidentIds, originalIncidents)
+                && ReferenceEquals(rolledBackAlert.SuspendedWork, originalSuspendedWork)
+                && !alert.TryClaimContextTransition(
+                    "character:restore-transaction",
+                    epoch,
+                    toEmergency: true),
+                "Rollback did not restore alert cache/context-claim state exactly.");
+            Require(labor.Record(last).Success
+                && labor.Capture().Revision == originalLabor.Revision,
+                "Rollback did not restore labor contribution sequence idempotency.");
+
+            labor.BeginRestoreCandidate();
+            alert.BeginRestoreCandidate();
+            labor.RestoreLaborSaveData(emptyLaborSave);
+            alert.RestoreAlertSaveData(emptyAlertSave);
+            labor.DiscardRestoreCandidate();
+            alert.DiscardRestoreCandidate();
+            SettlementAlertSnapshot discardedAlert = alert.Capture();
+            Require(JsonUtility.ToJson(labor.CaptureLaborSaveData()) == originalLaborJson
+                && JsonUtility.ToJson(alert.CaptureAlertSaveData()) == originalAlertJson
+                && labor.Capture().Revision == originalLabor.Revision
+                && ReferenceEquals(discardedAlert.ActiveIncidentIds, originalIncidents)
+                && ReferenceEquals(discardedAlert.SuspendedWork, originalSuspendedWork),
+                "Discarded restore candidate changed live labor or alert authority.");
+
+            labor.BeginRestoreCandidate();
+            alert.BeginRestoreCandidate();
+            labor.RestoreLaborSaveData(emptyLaborSave);
+            alert.RestoreAlertSaveData(emptyAlertSave);
+            labor.PublishRestoreCandidate();
+            alert.PublishRestoreCandidate();
+            labor.CompleteRestoreCandidate();
+            alert.CompleteRestoreCandidate();
+            Require(JsonUtility.ToJson(labor.CaptureLaborSaveData()) == emptyLaborJson
+                && JsonUtility.ToJson(alert.CaptureAlertSaveData()) == emptyAlertJson,
+                "Completed restore transaction did not retain its published candidate.");
+
+            labor.BeginRestoreCandidate();
+            alert.BeginRestoreCandidate();
+            labor.RestoreLaborSaveData(emptyLaborSave);
+            alert.RestoreAlertSaveData(emptyAlertSave);
+            labor.DiscardRestoreCandidate();
+            alert.DiscardRestoreCandidate();
+            Require(JsonUtility.ToJson(labor.CaptureLaborSaveData()) == emptyLaborJson
+                && JsonUtility.ToJson(alert.CaptureAlertSaveData()) == emptyAlertJson,
+                "Completed transaction left a staged-candidate barrier for the next transaction.");
+        }
+        finally
+        {
+            emptyLabor.Dispose();
+            labor.Dispose();
+            accounting.Dispose();
+        }
     }
 
     private static void Require(bool condition, string message)
@@ -562,40 +846,107 @@ public static class EmergencyLaborDebugScenarios
         public SettlementEmergencyReserveTargetSnapshot CaptureTarget() => snapshot;
     }
 
-    private sealed class AcceptingSuspensionOutcomeCommitter :
-        IEmergencyWorkSuspensionOutcomeCommitter
+    private sealed class ForcedNoOpSuspensionFacts :
+        IDomainFactStagingPublisher,
+        IDomainFactRecoveryPublisher
     {
-        public bool TryPrepare(
-            in SettlementSuspendedWorkSnapshot snapshot,
-            int absoluteDay,
-            out PreparedEmergencyWorkSuspensionOutcome prepared,
-            out string failureReason)
+        private readonly HashSet<string> committed = new(StringComparer.Ordinal);
+
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
+            out string failure)
         {
-            GameplayResultKey key = EmergencyWorkSuspensionOutcomeIds.ResultKey(
-                snapshot.CharacterId,
-                snapshot.AlertEpochId,
-                snapshot.OutcomeOwnerRevision);
-            prepared = new PreparedEmergencyWorkSuspensionOutcome(
-                default,
+            if (fact is not EmergencyWorkSuspensionFact suspension)
+            {
+                stage = null;
+                failure = "emergency-labor-fixture-unexpected-fact";
+                return false;
+            }
+            DungeonStory.Infrastructure.EmergencyWorkSuspensionFactSaveData value =
+                suspension.Snapshot();
+            string key = "qa:emergency-labor:" + suspension.DomainId;
+            stage = new NoOpStage(
+                this,
                 key,
-                snapshot.OutcomeOwnerRevision,
-                false);
-            failureReason = string.Empty;
+                value.ownerRevision,
+                committed.Contains(key));
+            failure = string.Empty;
             return true;
         }
 
-        public OwnerOutcomeCommitResult Commit(
-            in PreparedEmergencyWorkSuspensionOutcome prepared) => new(
-            OwnerOutcomeCommitPhase.PublishedAcknowledged,
-            prepared.ResultKey,
-            new GameplayOutcomeId(
-                new GameplayOutcomeRunId("run:emergency-labor-test"),
-                prepared.OwnerRevision),
+        public bool ReplayBatch(
+            IReadOnlyList<DomainFactReplay> facts,
+            DomainFactDelivery[] results,
+            out string failure)
+        {
+            if (facts == null || results == null
+                || facts.Count != results.Length)
+            {
+                throw new ArgumentException(
+                    "Emergency labor fixture replay shape is invalid.");
+            }
+            for (int index = 0; index < facts.Count; index++)
+            {
+                string key = facts[index]?.PublicationKey ?? string.Empty;
+                if (!committed.Contains(key))
+                {
+                    results[index] = DomainFactDelivery.Reject(
+                        "emergency-labor-fixture-publication-missing");
+                    failure = "emergency-labor-fixture-publication-missing";
+                    return false;
+                }
+                results[index] = Delivered(key);
+            }
+            failure = string.Empty;
+            return true;
+        }
+
+        private DomainFactDelivery Commit(string key)
+        {
+            committed.Add(key);
+            return Delivered(key);
+        }
+
+        private static DomainFactDelivery Delivered(string key) => new(
+            DomainFactDeliveryPhase.Delivered,
+            key,
+            "qa:emergency-labor-publication",
             new string('a', 64),
             string.Empty);
 
-        public void Cancel(in PreparedEmergencyWorkSuspensionOutcome prepared)
+        private sealed class NoOpStage : IDomainFactStage
         {
+            private readonly ForcedNoOpSuspensionFacts owner;
+            private bool active = true;
+
+            internal NoOpStage(
+                ForcedNoOpSuspensionFacts owner,
+                string operationKey,
+                long ownerRevision,
+                bool replay)
+            {
+                this.owner = owner;
+                OperationKey = operationKey;
+                OwnerRevision = ownerRevision;
+                IsReplay = replay;
+            }
+
+            public string OperationKey { get; }
+            public long OwnerRevision { get; }
+            public bool IsReplay { get; }
+            public bool IsActive => active;
+
+            public DomainFactDelivery Commit()
+            {
+                if (!active)
+                    throw new InvalidOperationException(
+                        "Emergency labor fixture stage is inactive.");
+                active = false;
+                return owner.Commit(OperationKey);
+            }
+
+            public void Cancel() => active = false;
         }
     }
 }

@@ -14,6 +14,7 @@ public static class InvasionSaveValidation
     public const int MaximumExpectedPathCells = 4096;
     public const int MaximumResidentEvacuees = 2048;
     public const int MaximumResidentEvacuationRoomSpans = 4096;
+    public const int MaximumPendingResidentEvacuationOutcomes = 4096;
 
     private const string CustomPolicyPrefix = DefenseResponsePolicyIds.CustomPrefix;
     private const string EngagementPrefix = "defense-engagement:";
@@ -80,12 +81,19 @@ public static class InvasionSaveValidation
             payload.threat,
             payload.activeIntruders,
             report);
-        HashSet<string> intruderIds = ValidateIntruders(
+        HashSet<string> intruderRuntimeIds = ValidateIntruders(
             payload.activeIntruders,
             patterns,
             report);
+        // Engagements persist actor identity, as does the restore candidate
+        // lookup. Runtime identity remains the active-intruder aggregate key.
+        HashSet<string> intruderCharacterIds = new HashSet<string>(
+            payload.activeIntruders.Where(value => value?.enemyIndividual != null
+                && intruderRuntimeIds.Contains(value.runtimeId))
+                .Select(value => value.enemyIndividual.characterId),
+            StringComparer.Ordinal);
         ValidatePolicies(payload.responsePolicies, report);
-        ValidateEngagements(payload.engagements, intruderIds, report);
+        ValidateEngagements(payload.engagements, intruderCharacterIds, report);
         ValidateOwnerEvacuation(
             payload.ownerEvacuation,
             payload.activeIntruders.Count > 0,
@@ -561,8 +569,12 @@ public static class InvasionSaveValidation
                     $"Defense engagement '{engagementId}' has an invalid or duplicate guard.");
             }
         }
-        if (engagement.hasReserveCell != !string.IsNullOrEmpty(
-                engagement.reserveGuardId))
+        // A planned reserve position may be vacant while the runtime recruits
+        // a reserve. An assigned guard still requires a distinct planned cell.
+        if ((!string.IsNullOrEmpty(engagement.reserveGuardId) && !engagement.hasReserveCell)
+            || (engagement.hasReserveCell
+                && ((engagement.reserveX == engagement.guardX && engagement.reserveY == engagement.guardY)
+                    || (engagement.reserveX == engagement.intruderStopX && engagement.reserveY == engagement.intruderStopY))))
         {
             report.AddError(
                 $"Defense engagement '{engagementId}' has inconsistent reserve state.");
@@ -589,10 +601,25 @@ public static class InvasionSaveValidation
         DungeonGameRestoreReport report)
     {
         ResidentEvacuationZoneSaveData zone = evacuation.residentZone;
-        if (zone == null || evacuation.residentParticipants == null)
+        if (zone == null
+            || evacuation.residentParticipants == null
+            || evacuation.pendingResidentOutcomes == null)
         {
             report.AddError("Resident evacuation snapshot is missing required state.");
             return;
+        }
+        bool legacy = evacuation.residentContractVersion == 0;
+        if (!legacy
+            && evacuation.residentContractVersion
+                != OwnerEvacuationSaveSnapshot.ResidentContractVersion)
+        {
+            report.AddError(
+                "Resident evacuation snapshot has an unsupported contract version.");
+        }
+        if (!legacy && evacuation.nextResidentEvacuationRequestSequence <= 0L)
+        {
+            report.AddError(
+                "Resident evacuation snapshot has an invalid next request sequence.");
         }
         if (!Enum.IsDefined(typeof(ResidentEvacuationZoneStatus), zone.status))
         {
@@ -601,7 +628,9 @@ public static class InvasionSaveValidation
         }
         if (zone.cellSpans == null
             || zone.cellSpans.Count > MaximumResidentEvacuationRoomSpans
-            || evacuation.residentParticipants.Count > MaximumResidentEvacuees)
+            || evacuation.residentParticipants.Count > MaximumResidentEvacuees
+            || evacuation.pendingResidentOutcomes.Count
+                > MaximumPendingResidentEvacuationOutcomes)
         {
             report.AddError("Resident evacuation snapshot exceeds its collection limits.");
             return;
@@ -613,11 +642,6 @@ public static class InvasionSaveValidation
                 && evacuation.residentParticipants.Count > 0)
         {
             report.AddError("Resident evacuation zone and participant state are inconsistent.");
-        }
-        if (!hasActiveIntruders && evacuation.residentParticipants.Count > 0)
-        {
-            report.AddError(
-                "Resident evacuation participants require an active invasion.");
         }
         if (!hasZone && (zone.anchorX != 0 || zone.anchorY != 0))
         {
@@ -656,6 +680,7 @@ public static class InvasionSaveValidation
         }
 
         HashSet<string> characterIds = new HashSet<string>(StringComparer.Ordinal);
+        HashSet<string> operationIds = new HashSet<string>(StringComparer.Ordinal);
         HashSet<(int x, int y)> targetCells = new HashSet<(int x, int y)>();
         foreach (ResidentEvacuationParticipantSaveData participant in
                  evacuation.residentParticipants)
@@ -671,6 +696,19 @@ public static class InvasionSaveValidation
                 report.AddError(
                     $"Resident evacuation contains invalid participant '{characterId}'.");
                 continue;
+            }
+
+            if (!legacy
+                && (!ValidateParticipantOutcomeMetadata(
+                        participant,
+                        operationIds,
+                        report)
+                    || !hasActiveIntruders
+                        && participant.threatKind
+                            == ResidentEvacuationThreatKind.Invasion))
+            {
+                report.AddError(
+                    $"Resident evacuation participant '{characterId}' has invalid cause ownership.");
             }
 
             bool hasTarget = participant.status is
@@ -692,6 +730,151 @@ public static class InvasionSaveValidation
                     $"Resident evacuation participant '{characterId}' has a target without a routable status.");
             }
         }
+
+
+        if (legacy && evacuation.residentParticipants.Count > 0)
+        {
+            report.AddError(
+                "Legacy resident evacuation participants cannot be restored without exact operation and cause metadata.");
+        }
+
+        HashSet<string> pendingOperationIds = new(StringComparer.Ordinal);
+        foreach (ResidentEvacuationTerminalSaveData pending in
+                 evacuation.pendingResidentOutcomes)
+        {
+            ValidatePendingResidentOutcome(
+                pending,
+                pendingOperationIds,
+                report);
+        }
+    }
+
+    private static bool ValidateParticipantOutcomeMetadata(
+        ResidentEvacuationParticipantSaveData participant,
+        HashSet<string> operationIds,
+        DungeonGameRestoreReport report)
+    {
+        bool valid = IsCanonicalId(participant.operationId)
+            && operationIds.Add(participant.operationId)
+            && IsCanonicalId(participant.requestGroupId)
+            && !string.IsNullOrWhiteSpace(participant.characterDisplayName)
+            && Enum.IsDefined(
+                typeof(ResidentEvacuationInitiationKind),
+                participant.initiationKind)
+            && Enum.IsDefined(
+                typeof(ResidentEvacuationThreatKind),
+                participant.threatKind)
+            && participant.requestedAbsoluteDay >= 1
+            && ValidateCanonicalStableIds(participant.intruderRuntimeIds)
+            && ValidateCanonicalFireCells(participant.fireCells)
+            && ThreatSourcesMatch(
+                participant.threatKind,
+                participant.intruderRuntimeIds,
+                participant.fireCells);
+        if (!valid)
+        {
+            report.AddError(
+                $"Resident evacuation participant '{participant?.characterId}' has invalid operation metadata.");
+        }
+        return valid;
+    }
+
+    private static void ValidatePendingResidentOutcome(
+        ResidentEvacuationTerminalSaveData pending,
+        HashSet<string> pendingOperationIds,
+        DungeonGameRestoreReport report)
+    {
+        bool valid = pending != null
+            && IsCanonicalId(pending.operationId)
+            && pendingOperationIds.Add(pending.operationId)
+            && IsCanonicalId(pending.requestGroupId)
+            && pending.ownerRevision > 0L
+            && IsCanonicalId(pending.characterId)
+            && !string.IsNullOrWhiteSpace(pending.characterDisplayName)
+            && Enum.IsDefined(
+                typeof(ResidentEvacuationInitiationKind),
+                pending.initiationKind)
+            && Enum.IsDefined(
+                typeof(ResidentEvacuationThreatKind),
+                pending.threatKind)
+            && Enum.IsDefined(
+                typeof(ResidentEvacuationTerminalKind),
+                pending.terminalKind)
+            && pending.terminalKind != ResidentEvacuationTerminalKind.None
+            && pending.requestedAbsoluteDay >= 1
+            && pending.terminalAbsoluteDay >= pending.requestedAbsoluteDay
+            && ValidateCanonicalStableIds(pending.intruderRuntimeIds)
+            && ValidateCanonicalFireCells(pending.fireCells)
+            && ThreatSourcesMatch(
+                pending.threatKind,
+                pending.intruderRuntimeIds,
+                pending.fireCells)
+            && (pending.hasTarget
+                || pending.targetX == 0 && pending.targetY == 0);
+        if (!valid)
+        {
+            report.AddError(
+                $"Resident evacuation pending outcome '{pending?.operationId}' is invalid.");
+        }
+    }
+
+    private static bool ThreatSourcesMatch(
+        ResidentEvacuationThreatKind kind,
+        IReadOnlyList<string> intruders,
+        IReadOnlyList<string> fireCells)
+    {
+        bool invasion = intruders?.Count > 0;
+        bool fire = fireCells?.Count > 0;
+        return kind switch
+        {
+            ResidentEvacuationThreatKind.Invasion => invasion && !fire,
+            ResidentEvacuationThreatKind.Fire => !invasion && fire,
+            ResidentEvacuationThreatKind.InvasionAndFire => invasion && fire,
+            _ => false
+        };
+    }
+
+    private static bool ValidateCanonicalStableIds(IReadOnlyList<string> values)
+    {
+        if (values == null)
+        {
+            return false;
+        }
+        string previous = null;
+        foreach (string value in values)
+        {
+            if (!IsCanonicalId(value)
+                || previous != null
+                    && string.CompareOrdinal(previous, value) >= 0)
+            {
+                return false;
+            }
+            previous = value;
+        }
+        return true;
+    }
+
+    private static bool ValidateCanonicalFireCells(IReadOnlyList<string> values)
+    {
+        if (values == null)
+        {
+            return false;
+        }
+        string previous = null;
+        foreach (string value in values)
+        {
+            string[] parts = value?.Split(',');
+            if (parts?.Length != 2
+                || !int.TryParse(parts[0], out _)
+                || !int.TryParse(parts[1], out _)
+                || previous != null
+                    && string.CompareOrdinal(previous, value) >= 0)
+            {
+                return false;
+            }
+            previous = value;
+        }
+        return true;
     }
 
     private static bool Contains(
@@ -803,7 +986,8 @@ public static class InvasionSaveValidation
                 || !IsCanonicalId(operation.objectiveId)
                 || operation.scheduledDay < 1
                 || operation.scheduledDay > campaign.currentDay
-                || !IsFiniteRange(operation.intelligenceConfidence, 0f, 1f))
+                || !IsFiniteRange(operation.intelligenceConfidence, 0f, 1f)
+                || !IsValidOperationLineage(operation))
             {
                 report.AddError(
                     $"Invasion campaign operation '{id}' contains invalid data.");
@@ -814,6 +998,27 @@ public static class InvasionSaveValidation
             report.AddError(
                 "Invasion campaign sequence is below a saved operation sequence.");
         }
+    }
+
+    private static bool IsValidOperationLineage(
+        DungeonInvasionOperationSaveData operation)
+    {
+        string sourceOwnerId = operation.sourceOwnerId?.Trim() ?? string.Empty;
+        string runtimeId = operation.startedInvasionRuntimeId?.Trim()
+            ?? string.Empty;
+        string publicationKey = operation.startedPublicationKey;
+        bool hasSource = sourceOwnerId.Length > 0;
+        bool hasRuntime = runtimeId.Length > 0;
+        bool hasPublication = !string.IsNullOrEmpty(publicationKey);
+        return (!hasSource
+                ? operation.sourceAbsoluteDay == 0
+                : IsCanonicalId(sourceOwnerId)
+                    && operation.sourceAbsoluteDay == operation.scheduledDay)
+            && (!hasRuntime
+                ? publicationKey == string.Empty
+                : IsCanonicalId(runtimeId)
+                    && hasPublication
+                    && DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(publicationKey, 2048, false));
     }
 
     private static bool TryParsePositiveSequence(

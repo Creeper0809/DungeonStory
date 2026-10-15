@@ -10,11 +10,17 @@ public static class WorkCompletionIdentityOutcomeIds
         new("character.work-identity-applied");
     public static readonly GameplayEntityKindId CharacterKind =
         new("character");
+    public static readonly GameplayEntityKindId BuildingKind =
+        new("building");
     public static readonly GameplayRoleId WorkerRole = new("worker");
     public static readonly GameplayMetricId OwnerRevisionMetric =
         new("work-identity.owner-revision");
+    public static readonly GameplayMetricId ContributionMetric =
+        new("work-identity.contribution-work-units");
     public static readonly GameplayMetricUnitId RevisionUnit =
         new("revision");
+    public static readonly GameplayMetricUnitId WorkUnit =
+        new("work-unit");
     public static readonly GameplayOutcomeTagId WorkIdentityTag =
         new("work-identity");
     public static readonly GameplayOutcomeFactId WorkIdFact =
@@ -27,6 +33,14 @@ public static class WorkCompletionIdentityOutcomeIds
         new("work-identity.reaction");
     public static readonly GameplayOutcomeFactId ProducerStreamFact =
         new("work-identity.producer-stream");
+    public static readonly GameplayOutcomeFactId OperationIdFact =
+        new("work-identity.operation-id");
+    public static readonly GameplayOutcomeFactId TerminalOwnerFact =
+        new("work-identity.terminal-owner");
+    public static readonly GameplayOutcomeFactId ChildResultKeyFact =
+        new("work-identity.child-result-key");
+    public static readonly GameplayOutcomeFactId SkillModifierProvenanceFact =
+        new("work-identity.skill-modifier-provenance");
 
     public static GameplayResultKey ResultKey(
         WorkCompletionIdentityDeliveryRequest request) => new(
@@ -60,6 +74,18 @@ public readonly struct WorkCompletionIdentityOutcomeReceipt
             || request.OperationSequence < 0
             || request.AbsoluteDay < 0
             || !Enum.IsDefined(typeof(CharacterCommandOrigin), request.Origin)
+            || !GameplayOutcomeStableIdSyntax.IsValid(request.OperationId)
+            || !GameplayOutcomeStableIdSyntax.IsValid(
+                request.TerminalOwnerId)
+            || string.IsNullOrWhiteSpace(request.ChildResultKey)
+            || !GameplayOutcomeStableIdSyntax.IsValid(
+                request.TargetEntityId)
+            || !GameplayOutcomeLedger.IsValidBoundedUtf16(
+                request.SkillModifierProvenance,
+                GameplayOutcomeBufferLimits.MaximumFactValueUtf16Length,
+                allowEmpty: false)
+            || !float.IsFinite(request.ContributionWorkUnits)
+            || request.ContributionWorkUnits < 0f
             || request.PayloadFingerprint?.Length != 64
             || string.IsNullOrWhiteSpace(characterDisplayName.DisplayText)
             || string.IsNullOrWhiteSpace(
@@ -111,12 +137,13 @@ public sealed class WorkCompletionIdentityOutcomeAdapter :
             currentWorldEpoch,
             receipt.OwnerRevision,
             participantCount: 1,
-            metricCount: 1,
-            subjectCount: 1,
+            metricCount: 2,
+            subjectCount: receipt.Request.TargetEntityId ==
+                WorkCompletionIdentityReferenceDefaults.None ? 1 : 2,
             tagCount: 1,
             anchorCount: 0,
             provenanceCount: 2,
-            factCount: 5);
+            factCount: 9);
         return OutcomePrepareResult.Prepared();
     }
 
@@ -130,6 +157,15 @@ public sealed class WorkCompletionIdentityOutcomeAdapter :
         GameplayEntityId character = new(
             WorkCompletionIdentityOutcomeIds.CharacterKind,
             receipt.Request.Character.Value);
+        bool hasTarget = !string.Equals(
+            receipt.Request.TargetEntityId,
+            WorkCompletionIdentityReferenceDefaults.None,
+            StringComparison.Ordinal);
+        GameplayEntityId target = hasTarget
+            ? new GameplayEntityId(
+                WorkCompletionIdentityOutcomeIds.BuildingKind,
+                receipt.Request.TargetEntityId)
+            : default;
         if (!builder.AddParticipant(new GameplayOutcomeParticipant(
                 character,
                 WorkCompletionIdentityOutcomeIds.WorkerRole,
@@ -143,10 +179,23 @@ public sealed class WorkCompletionIdentityOutcomeAdapter :
                 false,
                 false,
                 0))
+            || (hasTarget && !builder.AddSubject(
+                new GameplayOutcomeSubjectLink(
+                    target,
+                    receipt.IsFailedWork ? 0.35f : 0.28f,
+                    NarrativeMemoryTier.Recent,
+                    false,
+                    false,
+                    0)))
             || !builder.AddMetric(new GameplayOutcomeMetric(
                 WorkCompletionIdentityOutcomeIds.OwnerRevisionMetric,
                 receipt.OwnerRevision,
                 WorkCompletionIdentityOutcomeIds.RevisionUnit,
+                character))
+            || !builder.AddMetric(new GameplayOutcomeMetric(
+                WorkCompletionIdentityOutcomeIds.ContributionMetric,
+                receipt.Request.ContributionWorkUnits,
+                WorkCompletionIdentityOutcomeIds.WorkUnit,
                 character))
             || !builder.AddTag(
                 WorkCompletionIdentityOutcomeIds.WorkIdentityTag)
@@ -175,7 +224,19 @@ public sealed class WorkCompletionIdentityOutcomeAdapter :
                 receipt.IsFailedWork ? "failed-work" : "completed-work"))
             || !builder.AddFact(new GameplayOutcomeFact(
                 WorkCompletionIdentityOutcomeIds.ProducerStreamFact,
-                receipt.Request.ProducerStreamId)))
+                receipt.Request.ProducerStreamId))
+            || !builder.AddFact(new GameplayOutcomeFact(
+                WorkCompletionIdentityOutcomeIds.OperationIdFact,
+                receipt.Request.OperationId))
+            || !builder.AddFact(new GameplayOutcomeFact(
+                WorkCompletionIdentityOutcomeIds.TerminalOwnerFact,
+                receipt.Request.TerminalOwnerId))
+            || !builder.AddFact(new GameplayOutcomeFact(
+                WorkCompletionIdentityOutcomeIds.ChildResultKeyFact,
+                receipt.Request.ChildResultKey))
+            || !builder.AddFact(new GameplayOutcomeFact(
+                WorkCompletionIdentityOutcomeIds.SkillModifierProvenanceFact,
+                receipt.Request.SkillModifierProvenance)))
         {
             return Failed("work-identity-write-failed");
         }
@@ -211,18 +272,23 @@ public readonly struct PreparedWorkCompletionIdentityOutcome
 public sealed class WorkCompletionIdentityGameplayOutcomeBridge
 {
     private readonly IGameplayOutcomeDisplayNameQuery displayNames;
+    private readonly IGameplayOutcomeDiagnosticsQuery diagnostics;
+    private readonly IGameplayOutcomeQuery query;
     private readonly PreparedOutcomeOwnerTransaction transactions;
 
     public WorkCompletionIdentityGameplayOutcomeBridge(
         IGameplayOutcomeRecorder recorder,
         IGameplayOutcomeDiagnosticsQuery diagnostics,
-        IGameplayOutcomeDisplayNameQuery displayNames)
+        IGameplayOutcomeDisplayNameQuery displayNames,
+        IGameplayOutcomeQuery query)
     {
         transactions = new PreparedOutcomeOwnerTransaction(
             recorder ?? throw new ArgumentNullException(nameof(recorder)),
             diagnostics ?? throw new ArgumentNullException(nameof(diagnostics)));
         this.displayNames = displayNames
             ?? throw new ArgumentNullException(nameof(displayNames));
+        this.diagnostics = diagnostics;
+        this.query = query ?? throw new ArgumentNullException(nameof(query));
     }
 
     public bool TryPrepare(
@@ -232,6 +298,12 @@ public sealed class WorkCompletionIdentityGameplayOutcomeBridge
         out string failureReason)
     {
         prepared = default;
+        if (request.ChildResultKey != WorkCompletionIdentityReferenceDefaults.None
+            && !TryValidateCommittedChild(request, out failureReason))
+        {
+            capacityDeferred = false;
+            return false;
+        }
         GameplayEntityId character = new(
             WorkCompletionIdentityOutcomeIds.CharacterKind,
             request.Character.Value);
@@ -278,6 +350,69 @@ public sealed class WorkCompletionIdentityGameplayOutcomeBridge
         return true;
     }
 
+    public bool TryValidateCommittedChild(
+        WorkCompletionIdentityDeliveryRequest request, out string failureReason)
+    {
+        GameplayResultKey child;
+        try
+        {
+            child = request.WorkId == BuiltInWorkTypeIds.Repair.Value
+                ? RepairWorkCompletionObservation.RequireCompletionChild(request)
+                : request.WorkId == BuiltInWorkTypeIds.ThreatMitigation.Value
+                    ? EnvironmentalFireCompletionIdentity.RequireCompletionChild(request)
+                : WorkCompletionChildReference.Require(
+                    request.OperationId, request.TerminalOwnerId, request.ChildResultKey);
+        }
+        catch (ArgumentException error)
+        {
+            failureReason = "work-identity-child-invalid:" + error.Message;
+            return false;
+        }
+        if (!diagnostics.TryGetResultIdentity(child, out GameplayOutcomeReplayIdentity identity)
+            || identity.State is not (GameplayOutcomeReplayState.Committed
+                or GameplayOutcomeReplayState.DeliveryFaultPending
+                or GameplayOutcomeReplayState.PublishedAwaitingAcknowledgement
+                or GameplayOutcomeReplayState.PublishedAcknowledged
+                or GameplayOutcomeReplayState.Compacted
+                or GameplayOutcomeReplayState.Forgotten))
+        {
+            failureReason = "work-identity-child-not-committed:" + child;
+            return false;
+        }
+        if (request.WorkId == BuiltInWorkTypeIds.Repair.Value
+            && query.TryGetExact(identity.OutcomeId, out GameplayOutcomeSnapshot exact)
+            && !RepairWorkCompletionObservation.MatchesCompletionChild(request, exact))
+        {
+            failureReason = "work-identity-repair-child-payload-conflict:" + child;
+            return false;
+        }
+        if (request.WorkId == BuiltInWorkTypeIds.ThreatMitigation.Value
+            && query.TryGetExact(identity.OutcomeId, out GameplayOutcomeSnapshot fireChild)
+            && !EnvironmentalFireCompletionIdentity.MatchesCompletionChild(request, fireChild))
+        {
+            failureReason = "work-identity-fire-child-payload-conflict:" + child;
+            return false;
+        }
+        if (request.WorkId == BuiltInWorkTypeIds.AnimalCare.Value)
+        {
+            if (request.TerminalOwnerId != MigratedProducerOutcomeCatalog.Get(
+                    MigratedProducerOutcomeKind.AnimalHusbandryWorkResult).ProducerId
+                || child.ProducerId != request.TerminalOwnerId)
+            {
+                failureReason = "work-identity-husbandry-child-owner-conflict:" + child;
+                return false;
+            }
+            if (query.TryGetExact(identity.OutcomeId, out GameplayOutcomeSnapshot husbandryChild)
+                && !AnimalHusbandryCompletionObservation.MatchesCompletionChild(request, husbandryChild))
+            {
+                failureReason = "work-identity-husbandry-child-payload-conflict:" + child;
+                return false;
+            }
+        }
+        failureReason = string.Empty;
+        return true;
+    }
+
     public OwnerOutcomeCommitResult Commit(
         in PreparedWorkCompletionIdentityOutcome prepared) =>
         prepared.IsReplay
@@ -320,6 +455,18 @@ internal static class WorkCompletionIdentityOutcomeValidation
             && GameplayOutcomeStableIdSyntax.IsValid(request.ProducerStreamId)
             && request.OperationSequence >= 0
             && request.AbsoluteDay >= 0
+            && GameplayOutcomeStableIdSyntax.IsValid(request.OperationId)
+            && GameplayOutcomeStableIdSyntax.IsValid(
+                request.TerminalOwnerId)
+            && !string.IsNullOrWhiteSpace(request.ChildResultKey)
+            && GameplayOutcomeStableIdSyntax.IsValid(
+                request.TargetEntityId)
+            && GameplayOutcomeLedger.IsValidBoundedUtf16(
+                request.SkillModifierProvenance,
+                GameplayOutcomeBufferLimits.MaximumFactValueUtf16Length,
+                allowEmpty: false)
+            && float.IsFinite(request.ContributionWorkUnits)
+            && request.ContributionWorkUnits >= 0f
             && request.PayloadFingerprint?.Length == 64
             && !string.IsNullOrWhiteSpace(
                 receipt.CharacterDisplayName.DisplayText)
@@ -328,6 +475,11 @@ internal static class WorkCompletionIdentityOutcomeValidation
     }
 
     public static bool IsValidOutcome(in GameplayOutcomeReadView outcome)
+        => TryValidateOutcome(outcome, out _);
+
+    public static bool TryValidateOutcome(
+        in GameplayOutcomeReadView outcome,
+        out string failureReason)
     {
         if (outcome.OutcomeTypeId
                 != WorkCompletionIdentityOutcomeIds.Applied
@@ -340,39 +492,138 @@ internal static class WorkCompletionIdentityOutcomeValidation
             || outcome.OwnerRevision != outcome.ResultKey.CommitRevision
             || outcome.ResultKey.LocalResultIndex != 0
             || outcome.ParticipantCount != 1
-            || outcome.SubjectCount != 1
-            || outcome.MetricCount != 1
+            || outcome.SubjectCount is < 1 or > 2
+            || outcome.MetricCount != 2
             || outcome.TagCount != 1
-            || outcome.AnchorCount != 0
+            // The producer has no initial anchors. Later evidence-use anchors
+            // are ledger-owned mutable retention metadata, validated by the
+            // ledger independently of this immutable work receipt.
+            || outcome.InitialAnchorCount != 0
             || outcome.ProvenanceCount != 2
-            || outcome.FactCount != 5)
+            || outcome.FactCount != 9)
         {
+            failureReason = "work-identity-header-shape-invalid";
             return false;
         }
 
         GameplayOutcomeParticipant participant = outcome.GetParticipant(0);
-        GameplayOutcomeSubjectLink subject = outcome.GetSubject(0);
         GameplayOutcomeMetric metric = outcome.GetMetric(0);
-        return participant.RoleId.Equals(
+        GameplayOutcomeMetric contribution = outcome.GetMetric(1);
+        bool hasTarget = outcome.SubjectCount == 2;
+        bool hasWorkerSubject = TryFindSubject(
+            outcome,
+            participant.EntityId,
+            out _);
+        bool hasBuildingSubject = TryFindSubjectByKind(
+            outcome,
+            WorkCompletionIdentityOutcomeIds.BuildingKind,
+            out GameplayOutcomeSubjectLink targetSubject);
+        if (!participant.RoleId.Equals(
                 WorkCompletionIdentityOutcomeIds.WorkerRole)
-            && participant.EntityId.Kind.Equals(
+            || !participant.EntityId.Kind.Equals(
                 WorkCompletionIdentityOutcomeIds.CharacterKind)
-            && subject.SubjectId.Equals(participant.EntityId)
-            && metric.MetricId.Equals(
+            || !hasWorkerSubject)
+        {
+            failureReason = "work-identity-worker-shape-invalid";
+            return false;
+        }
+        if (!metric.MetricId.Equals(
                 WorkCompletionIdentityOutcomeIds.OwnerRevisionMetric)
-            && metric.UnitId.Equals(
+            || !metric.UnitId.Equals(
                 WorkCompletionIdentityOutcomeIds.RevisionUnit)
-            && metric.DefinitionOrInstanceId.Equals(participant.EntityId)
-            && Math.Abs(metric.Value - outcome.OwnerRevision) < 0.00001d
-            && outcome.GetTag(0).Equals(
+            || !metric.DefinitionOrInstanceId.Equals(participant.EntityId)
+            || Math.Abs(metric.Value - outcome.OwnerRevision) >= 0.00001d)
+        {
+            failureReason = "work-identity-owner-revision-metric-invalid";
+            return false;
+        }
+        if (!contribution.MetricId.Equals(
+                WorkCompletionIdentityOutcomeIds.ContributionMetric)
+            || !contribution.UnitId.Equals(
+                WorkCompletionIdentityOutcomeIds.WorkUnit)
+            || !contribution.DefinitionOrInstanceId.Equals(
+                participant.EntityId)
+            || contribution.Value < 0d)
+        {
+            failureReason = "work-identity-contribution-metric-invalid";
+            return false;
+        }
+        if (outcome.SubjectCount != (hasTarget ? 2 : 1)
+            || hasTarget != hasBuildingSubject
+            || hasTarget
+            && !targetSubject.SubjectId.Kind.Equals(
+                WorkCompletionIdentityOutcomeIds.BuildingKind))
+        {
+            failureReason = "work-identity-target-subject-invalid";
+            return false;
+        }
+        if (!outcome.GetTag(0).Equals(
                 WorkCompletionIdentityOutcomeIds.WorkIdentityTag)
-            && HasFact(outcome, WorkCompletionIdentityOutcomeIds.WorkIdFact)
-            && HasFact(outcome, WorkCompletionIdentityOutcomeIds.ProductIdFact)
-            && HasFact(outcome, WorkCompletionIdentityOutcomeIds.OriginFact)
-            && HasFact(outcome, WorkCompletionIdentityOutcomeIds.ReactionFact)
-            && HasFact(
+            || !HasFact(outcome, WorkCompletionIdentityOutcomeIds.WorkIdFact)
+            || !HasFact(
                 outcome,
-                WorkCompletionIdentityOutcomeIds.ProducerStreamFact);
+                WorkCompletionIdentityOutcomeIds.ProductIdFact)
+            || !HasFact(outcome, WorkCompletionIdentityOutcomeIds.OriginFact)
+            || !HasFact(
+                outcome,
+                WorkCompletionIdentityOutcomeIds.ReactionFact)
+            || !HasFact(
+                outcome,
+                WorkCompletionIdentityOutcomeIds.ProducerStreamFact)
+            || !HasFact(
+                outcome,
+                WorkCompletionIdentityOutcomeIds.OperationIdFact)
+            || !HasFact(
+                outcome,
+                WorkCompletionIdentityOutcomeIds.TerminalOwnerFact)
+            || !HasFact(
+                outcome,
+                WorkCompletionIdentityOutcomeIds.ChildResultKeyFact)
+            || !HasFact(
+                outcome,
+                WorkCompletionIdentityOutcomeIds.SkillModifierProvenanceFact))
+        {
+            failureReason = "work-identity-tag-or-fact-invalid";
+            return false;
+        }
+        failureReason = string.Empty;
+        return true;
+    }
+
+    public static bool TryFindSubject(
+        in GameplayOutcomeReadView outcome,
+        GameplayEntityId subjectId,
+        out GameplayOutcomeSubjectLink subject)
+    {
+        for (int index = 0; index < outcome.SubjectCount; index++)
+        {
+            GameplayOutcomeSubjectLink candidate = outcome.GetSubject(index);
+            if (candidate.SubjectId.Equals(subjectId))
+            {
+                subject = candidate;
+                return true;
+            }
+        }
+        subject = default;
+        return false;
+    }
+
+    private static bool TryFindSubjectByKind(
+        in GameplayOutcomeReadView outcome,
+        GameplayEntityKindId kind,
+        out GameplayOutcomeSubjectLink subject)
+    {
+        for (int index = 0; index < outcome.SubjectCount; index++)
+        {
+            GameplayOutcomeSubjectLink candidate = outcome.GetSubject(index);
+            if (candidate.SubjectId.Kind.Equals(kind))
+            {
+                subject = candidate;
+                return true;
+            }
+        }
+        subject = default;
+        return false;
     }
 
     public static string Fact(
@@ -416,7 +667,13 @@ internal sealed class WorkCompletionIdentityMemoryPolicy :
         int priorMatchingCount,
         int evaluationDay)
     {
-        GameplayOutcomeSubjectLink subject = outcome.GetSubject(0);
+        GameplayOutcomeSubjectLink subject =
+            WorkCompletionIdentityOutcomeValidation.TryFindSubject(
+                outcome,
+                subjectId,
+                out GameplayOutcomeSubjectLink matched)
+                ? matched
+                : outcome.GetSubject(0);
         int age = Math.Max(0, evaluationDay - outcome.AbsoluteDay);
         float salience = Math.Clamp(
             subject.Salience
@@ -515,16 +772,22 @@ public sealed class WorkCompletionIdentityOutcomeDescriptor :
     public bool IsKnownMetric(
         GameplayMetricId metricId,
         GameplayMetricUnitId unitId) =>
-        metricId.Equals(
-            WorkCompletionIdentityOutcomeIds.OwnerRevisionMetric)
-        && unitId.Equals(WorkCompletionIdentityOutcomeIds.RevisionUnit);
+        (metricId.Equals(
+                WorkCompletionIdentityOutcomeIds.OwnerRevisionMetric)
+            && unitId.Equals(
+                WorkCompletionIdentityOutcomeIds.RevisionUnit))
+        || (metricId.Equals(
+                WorkCompletionIdentityOutcomeIds.ContributionMetric)
+            && unitId.Equals(
+                WorkCompletionIdentityOutcomeIds.WorkUnit));
 
     public OutcomeValidationResult Validate(
         in GameplayOutcomeReadView outcome) =>
-        WorkCompletionIdentityOutcomeValidation.IsValidOutcome(outcome)
+        WorkCompletionIdentityOutcomeValidation.TryValidateOutcome(
+            outcome,
+            out string failureReason)
             ? OutcomeValidationResult.Accepted
-            : OutcomeValidationResult.Reject(
-                "work-identity-shape-invalid");
+            : OutcomeValidationResult.Reject(failureReason);
 }
 
 public static class WorkCompletionIdentityOutcomeRegistration
@@ -534,13 +797,15 @@ public static class WorkCompletionIdentityOutcomeRegistration
     {
         if (builder == null)
             throw new ArgumentNullException(nameof(builder));
-        builder.Register<WorkCompletionIdentityGameplayOutcomeBridge>(
-            Lifetime.Singleton);
-        builder.Register<WorkCompletionIdentityOutcomeAdapter>(
-                Lifetime.Singleton)
-            .As<IGameplayOutcomeAdapterRegistration>();
-        builder.Register<WorkCompletionIdentityOutcomeDescriptor>(
-                Lifetime.Singleton)
-            .As<IGameplayOutcomeDescriptor>();
+        builder.Register<WorkIdentityAppliedFactMapping>(Lifetime.Singleton);
+        builder.Register(resolver => new GameplayDomainFactObserverBinding<WorkIdentityAppliedFact, WorkCompletionIdentityOutcomeReceipt>(
+            WorkIdentityAppliedFactMapping.ObserverId, resolver.Resolve<WorkIdentityAppliedFactMapping>().Capture,
+            resolver.Resolve<IGameplayOutcomeRegistry>(), resolver.Resolve<GameplayOutcomeLedger>(),
+            resolver.Resolve<IGameplayOutcomeRecorder>(), resolver.Resolve<GameplayDomainFactCommitGroup>()), Lifetime.Singleton)
+            .As<DungeonStory.Foundation.Facts.IDomainFactObserverBinding>();
+        builder.Register<WorkIdentityObservationPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>()
+            .As<IDungeonCapturedSavePreflightValidator>();
+        builder.RegisterGameplayActionLogs(nameof(WorkCompletionIdentityOutcomeAdapter));
     }
 }

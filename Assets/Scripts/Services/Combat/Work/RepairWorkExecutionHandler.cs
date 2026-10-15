@@ -19,6 +19,7 @@ public sealed class RepairWorkExecutionHandler :
     private readonly IBuildingStructuralIntegrityRuntime structuralIntegrity;
     private readonly IDefenseFacilityRuntime defenseFacilities;
     private readonly IDefenseFacilityNetworkRuntime defenseNetwork;
+    private readonly IRepairWorkOutcomeRuntime repairOutcomes;
 
     public RepairWorkExecutionHandler(
         ICombatEquipmentMaintenanceRuntime maintenanceRuntime,
@@ -28,7 +29,8 @@ public sealed class RepairWorkExecutionHandler :
         IAutomationInfrastructureCommand automationCommands,
         IBuildingStructuralIntegrityRuntime structuralIntegrity,
         IDefenseFacilityRuntime defenseFacilities,
-        IDefenseFacilityNetworkRuntime defenseNetwork)
+        IDefenseFacilityNetworkRuntime defenseNetwork,
+        IRepairWorkOutcomeRuntime repairOutcomes)
     {
         this.maintenanceRuntime = maintenanceRuntime
             ?? throw new ArgumentNullException(nameof(maintenanceRuntime));
@@ -43,6 +45,8 @@ public sealed class RepairWorkExecutionHandler :
         this.structuralIntegrity = structuralIntegrity;
         this.defenseFacilities = defenseFacilities;
         this.defenseNetwork = defenseNetwork;
+        this.repairOutcomes = repairOutcomes
+            ?? throw new ArgumentNullException(nameof(repairOutcomes));
     }
 
     public IReadOnlyCollection<WorkTypeId> WorkTypeIds => Ids;
@@ -166,6 +170,20 @@ public sealed class RepairWorkExecutionHandler :
         float repairMultiplier =
             CharacterSkillRuntimeEffects.GetRepairSpeedMultiplier(
                 context.Actor);
+        if (!TryBeginOutcome(
+                context,
+                result,
+                RepairWorkOutcomeKind.GeneralDamage,
+                context.Target.PersistentInstanceId.Value,
+                boundsKnown: true,
+                RepairWorkPrimaryUnit.Flag,
+                1f,
+                0f,
+                out RepairWorkOutcomeHandle outcome,
+                out CharacterId worker))
+        {
+            yield break;
+        }
         yield return context.ExecuteWorkAmount(
             requiredWork,
             "수리",
@@ -177,11 +195,30 @@ public sealed class RepairWorkExecutionHandler :
         }
 
         context.Target.SetDamaged(false);
-        context.Actor?.AddActivity(CharacterActivityEvent.Work(
-            FacilityWorkType.Repair,
-            CharacterActivityOutcomes.Completed,
-            $"수리 완료: {context.Target.name}",
-            context.Target));
+        repairOutcomes.RecordProgress(
+            outcome,
+            worker,
+            requiredWork,
+            boundsKnown: true,
+            primaryAfter: 0f,
+            secondaryAfter: 0f);
+        if (!TryCompleteOutcome(
+                context,
+                result,
+                outcome,
+                context.Target.PersistentInstanceId.Value,
+                RepairWorkPrimaryUnit.Flag,
+                1f,
+                0f,
+                0f,
+                0f,
+                RepairWorkMaterialReceipt.None,
+                requiredWork))
+        {
+            yield break;
+        }
+        WorkControlChangedEvent.Publish(context.Work, context.Actor,
+            WorkControlTransition.RepairCompleted, BuiltInWorkTypeIds.Repair, context.Target);
     }
 
     private IEnumerator ExecuteStructuralRepair(
@@ -189,6 +226,25 @@ public sealed class RepairWorkExecutionHandler :
         WorkExecutionResult result)
     {
         float lastReportAt = -10f;
+        float contributedWork = 0f;
+        if (!structuralIntegrity.TryGet(
+                context.Target,
+                out BuildingStructuralIntegritySnapshot initial)
+            || !TryBeginOutcome(
+                context,
+                result,
+                RepairWorkOutcomeKind.StructuralIntegrity,
+                context.Target.PersistentInstanceId.Value,
+                boundsKnown: true,
+                RepairWorkPrimaryUnit.Point,
+                initial.CurrentHitPoints,
+                0f,
+                out RepairWorkOutcomeHandle outcome,
+                out CharacterId worker))
+        {
+            result.CompletedSuccessfully = false;
+            yield break;
+        }
         while (context.CanContinue
                && NeedsStructuralRepair(context.Target))
         {
@@ -219,6 +275,14 @@ public sealed class RepairWorkExecutionHandler :
             context.RecordApprovedWork(
                 deltaWork,
                 Mathf.Max(0f, remainingBefore - deltaWork));
+            contributedWork += deltaWork;
+            repairOutcomes.RecordProgress(
+                outcome,
+                worker,
+                deltaWork,
+                boundsKnown: true,
+                snapshot.CurrentHitPoints,
+                0f);
 
             if (gameClock.Time - lastReportAt >= 0.75f)
             {
@@ -231,13 +295,24 @@ public sealed class RepairWorkExecutionHandler :
             if (completed)
             {
                 context.Target.SetDamaged(false);
-                context.Actor?.AddActivity(CharacterActivityEvent.Work(
-                    FacilityWorkType.Repair,
-                    CharacterActivityOutcomes.Completed,
-                    $"구조 수리 완료: {context.Target.name}",
-                    context.Target,
-                    reasonCode: "structural-repair-completed",
-                    bubbleEligible: true));
+                if (!TryCompleteOutcome(
+                        context,
+                        result,
+                        outcome,
+                        context.Target.PersistentInstanceId.Value,
+                        RepairWorkPrimaryUnit.Point,
+                        initial.CurrentHitPoints,
+                        snapshot.CurrentHitPoints,
+                        0f,
+                        0f,
+                        RepairWorkMaterialReceipt.None,
+                        contributedWork))
+                {
+                    yield break;
+                }
+                WorkControlChangedEvent.Publish(context.Work, context.Actor,
+                    WorkControlTransition.StructuralRepairCompleted,
+                    BuiltInWorkTypeIds.Repair, context.Target);
                 yield break;
             }
 
@@ -265,6 +340,22 @@ public sealed class RepairWorkExecutionHandler :
 
         DefenseFacilitySnapshot snapshot =
             defenseFacilities.GetSnapshot(facility);
+        DefenseFacilitySnapshot initial = snapshot;
+        float contributedWork = 0f;
+        if (!TryBeginOutcome(
+                context,
+                result,
+                RepairWorkOutcomeKind.DefenseFacility,
+                context.Target.PersistentInstanceId.Value,
+                boundsKnown: true,
+                RepairWorkPrimaryUnit.Percent,
+                initial.Condition,
+                DefenseStateValue(initial.OperationalState),
+                out RepairWorkOutcomeHandle outcome,
+                out CharacterId worker))
+        {
+            yield break;
+        }
         if (snapshot.OperationalState
             == DefenseFacilityOperationalState.Jammed
             && !defenseFacilities.TryClearJam(
@@ -278,6 +369,17 @@ public sealed class RepairWorkExecutionHandler :
             result.Failure = jamFailure;
             yield break;
         }
+        if (snapshot.OperationalState == DefenseFacilityOperationalState.Jammed)
+        {
+            snapshot = defenseFacilities.GetSnapshot(facility);
+            repairOutcomes.RecordProgress(
+                outcome,
+                worker,
+                0f,
+                boundsKnown: true,
+                snapshot.Condition,
+                DefenseStateValue(snapshot.OperationalState));
+        }
 
         while (context.CanContinue)
         {
@@ -285,6 +387,18 @@ public sealed class RepairWorkExecutionHandler :
             if (snapshot.Condition >= 100f)
             {
                 context.Target.SetDamaged(false);
+                TryCompleteOutcome(
+                    context,
+                    result,
+                    outcome,
+                    context.Target.PersistentInstanceId.Value,
+                    RepairWorkPrimaryUnit.Percent,
+                    initial.Condition,
+                    snapshot.Condition,
+                    DefenseStateValue(initial.OperationalState),
+                    DefenseStateValue(snapshot.OperationalState),
+                    RepairWorkMaterialReceipt.None,
+                    contributedWork);
                 yield break;
             }
 
@@ -308,9 +422,19 @@ public sealed class RepairWorkExecutionHandler :
             }
 
 
+            float approvedWork = repair * 0.5f;
             context.RecordApprovedWork(
-                repair * 0.5f,
+                approvedWork,
                 Mathf.Max(0f, (100f - conditionBefore - repair) * 0.5f));
+            contributedWork += approvedWork;
+            snapshot = defenseFacilities.GetSnapshot(facility);
+            repairOutcomes.RecordProgress(
+                outcome,
+                worker,
+                approvedWork,
+                boundsKnown: true,
+                snapshot.Condition,
+                DefenseStateValue(snapshot.OperationalState));
 
             if (conditionBefore + repair < 100f
                 && context.TrySuspendAtCheckpoint())
@@ -348,6 +472,9 @@ public sealed class RepairWorkExecutionHandler :
         WorkExecutionResult result)
     {
         float lastReportAt = -10f;
+        float contributedWork = 0f;
+        RepairWorkOutcomeHandle outcome = default;
+        CharacterId worker = default;
         while (context.CanContinue
                && maintenanceRuntime.HasRepairWorkFor(context.Target))
         {
@@ -359,6 +486,28 @@ public sealed class RepairWorkExecutionHandler :
                         or CombatEquipmentRepairOrderState.InProgress)
                 .OrderBy(candidate => candidate.orderId, StringComparer.Ordinal)
                 .FirstOrDefault();
+            if (order == null)
+            {
+                result.CompletedSuccessfully = false;
+                yield break;
+            }
+            if (!outcome.IsValid)
+            {
+                if (!TryBeginOutcome(
+                        context,
+                        result,
+                        RepairWorkOutcomeKind.EquipmentDurability,
+                        order.equipmentInstanceId,
+                        boundsKnown: false,
+                        RepairWorkPrimaryUnit.Ratio,
+                        0f,
+                        0f,
+                        out outcome,
+                        out worker))
+                {
+                    yield break;
+                }
+            }
             float multiplier = Mathf.Max(
                 0.1f,
                 context.Target.BuildingData
@@ -372,28 +521,48 @@ public sealed class RepairWorkExecutionHandler :
             float deltaWork = Mathf.Min(
                 CalculateRepairWork(context),
                 remainingBefore);
-            if (!maintenanceRuntime.TryApplyRepairWork(
+            float completedBefore = order.completedWork;
+            bool applied = maintenanceRuntime.TryApplyRepairWork(
                     context.Actor,
                     context.Target,
                     deltaWork,
                     out bool completed,
-                    out string message))
+                    out string message);
+            if (!maintenanceRuntime.TryGetOrder(
+                    order.orderId,
+                    out CombatEquipmentRepairOrder updatedOrder))
             {
                 result.CompletedSuccessfully = false;
-                context.Actor?.AddActivity(CharacterActivityEvent.Work(
-                    FacilityWorkType.Repair,
-                    CharacterActivityOutcomes.Blocked,
-                    $"장비 수리 중단: {message}",
-                    context.Target,
-                    reasonCode: "equipment-repair-blocked",
-                    bubbleEligible: true));
+                context.Actor?.Brain?.SetActionPhase(
+                    "equipment.repair.order_state_missing",
+                    context.Target);
                 yield break;
             }
-
-
-            context.RecordApprovedWork(
-                deltaWork,
-                Mathf.Max(0f, remainingBefore - deltaWork));
+            float acceptedWork = Mathf.Max(
+                0f,
+                (updatedOrder.completedWork - completedBefore) / multiplier);
+            if (acceptedWork > 0f)
+            {
+                context.RecordApprovedWork(
+                    acceptedWork,
+                    Mathf.Max(0f, remainingBefore - acceptedWork));
+                repairOutcomes.RecordProgress(
+                    outcome,
+                    worker,
+                    acceptedWork,
+                    boundsKnown: false,
+                    0f,
+                    0f);
+                contributedWork += acceptedWork;
+            }
+            if (!applied)
+            {
+                result.CompletedSuccessfully = false;
+                WorkControlChangedEvent.Publish(context.Work, context.Actor,
+                    WorkControlTransition.EquipmentRepairRejected,
+                    BuiltInWorkTypeIds.Repair, context.Target, detail: message);
+                yield break;
+            }
 
             if (gameClock.Time - lastReportAt >= 0.75f)
             {
@@ -405,13 +574,26 @@ public sealed class RepairWorkExecutionHandler :
 
             if (completed)
             {
-                context.Actor?.AddActivity(CharacterActivityEvent.Work(
-                    FacilityWorkType.Repair,
-                    CharacterActivityOutcomes.Completed,
-                    message,
-                    context.Target,
-                    reasonCode: "equipment-repair-completed",
-                    bubbleEligible: true));
+                RepairWorkMaterialReceipt material =
+                    CreateEquipmentMaterialReceipt(updatedOrder);
+                if (!TryCompleteOutcome(
+                        context,
+                        result,
+                        outcome,
+                        updatedOrder.equipmentInstanceId,
+                        RepairWorkPrimaryUnit.Ratio,
+                        updatedOrder.repairDurabilityBefore,
+                        updatedOrder.repairDurabilityAfter,
+                        0f,
+                        0f,
+                        material,
+                        contributedWork))
+                {
+                    yield break;
+                }
+                WorkControlChangedEvent.Publish(context.Work, context.Actor,
+                    WorkControlTransition.EquipmentRepairCompleted,
+                    BuiltInWorkTypeIds.Repair, context.Target, detail: message);
                 yield break;
             }
 
@@ -431,6 +613,25 @@ public sealed class RepairWorkExecutionHandler :
         WorkExecutionResult result)
     {
         float lastReportAt = -10f;
+        float contributedWork = 0f;
+        if (!automationQuery.TryGetFacility(
+                context.Target,
+                out AutomationFacilitySnapshot initial)
+            || !TryBeginOutcome(
+                context,
+                result,
+                RepairWorkOutcomeKind.AutomationMaintenance,
+                context.Target.PersistentInstanceId.Value,
+                boundsKnown: true,
+                RepairWorkPrimaryUnit.Percent,
+                initial.Maintenance,
+                initial.Fault,
+                out RepairWorkOutcomeHandle outcome,
+                out CharacterId worker))
+        {
+            result.CompletedSuccessfully = false;
+            yield break;
+        }
         while (context.CanContinue
                && NeedsAutomationMaintenance(context.Target))
         {
@@ -451,13 +652,9 @@ public sealed class RepairWorkExecutionHandler :
                 result.CompletedSuccessfully = false;
                 result.Failure = command.Failure;
                 result.ObserveFailureSource(() => automationQuery.Version);
-                context.Actor?.AddActivity(CharacterActivityEvent.Work(
-                    FacilityWorkType.Repair,
-                    CharacterActivityOutcomes.Blocked,
-                    $"자동화 정비 중단: {command.Failure.Code}",
-                    context.Target,
-                    reasonCode: "automation-maintenance-blocked",
-                    bubbleEligible: true));
+                WorkControlChangedEvent.Publish(context.Work, context.Actor,
+                    WorkControlTransition.AutomationMaintenanceRejected,
+                    BuiltInWorkTypeIds.Repair, context.Target, detail: command.Failure.Code.ToString());
                 yield break;
             }
 
@@ -465,6 +662,21 @@ public sealed class RepairWorkExecutionHandler :
             context.RecordApprovedWork(
                 deltaWork,
                 Mathf.Max(0f, remainingBefore - deltaWork));
+            contributedWork += deltaWork;
+            if (!automationQuery.TryGetFacility(
+                    context.Target,
+                    out AutomationFacilitySnapshot after))
+            {
+                result.CompletedSuccessfully = false;
+                yield break;
+            }
+            repairOutcomes.RecordProgress(
+                outcome,
+                worker,
+                deltaWork,
+                boundsKnown: true,
+                after.Maintenance,
+                after.Fault);
 
             if (NeedsAutomationMaintenance(context.Target)
                 && context.TrySuspendAtCheckpoint())
@@ -489,13 +701,29 @@ public sealed class RepairWorkExecutionHandler :
             yield break;
         }
 
-        context.Actor?.AddActivity(CharacterActivityEvent.Work(
-            FacilityWorkType.Repair,
-            CharacterActivityOutcomes.Completed,
-            $"자동화 정비 완료: {context.Target.name}",
-            context.Target,
-            reasonCode: "automation-maintenance-completed",
-            bubbleEligible: true));
+        if (!automationQuery.TryGetFacility(
+                context.Target,
+                out AutomationFacilitySnapshot terminal)
+            || !TryCompleteOutcome(
+                context,
+                result,
+                outcome,
+                context.Target.PersistentInstanceId.Value,
+                RepairWorkPrimaryUnit.Percent,
+                initial.Maintenance,
+                terminal.Maintenance,
+                initial.Fault,
+                terminal.Fault,
+                RepairWorkMaterialReceipt.None,
+                contributedWork))
+        {
+            result.CompletedSuccessfully = false;
+            yield break;
+        }
+
+        WorkControlChangedEvent.Publish(context.Work, context.Actor,
+            WorkControlTransition.AutomationMaintenanceCompleted,
+            BuiltInWorkTypeIds.Repair, context.Target);
     }
 
     private float CalculateRepairWork(WorkExecutionContext context)
@@ -536,4 +764,130 @@ public sealed class RepairWorkExecutionHandler :
         return automationQuery.TryGetFacility(target, out snapshot)
             && snapshot.Mode != AutomationMode.Manual;
     }
+
+    private bool TryBeginOutcome(
+        WorkExecutionContext context,
+        WorkExecutionResult result,
+        RepairWorkOutcomeKind kind,
+        string targetEntityId,
+        bool boundsKnown,
+        RepairWorkPrimaryUnit primaryUnit,
+        float primaryBefore,
+        float secondaryBefore,
+        out RepairWorkOutcomeHandle handle,
+        out CharacterId worker)
+    {
+        handle = default;
+        worker = default;
+        if (context.Target == null
+            || !context.Target.PersistentInstanceId.IsValid
+            || !CharacterPersistentIdentity.TryGet(context.Actor, out worker))
+        {
+            result.CompletedSuccessfully = false;
+            return false;
+        }
+        handle = repairOutcomes.BeginOrResume(
+            kind,
+            context.Target.PersistentInstanceId.Value,
+            targetEntityId,
+            kind == RepairWorkOutcomeKind.EquipmentDurability
+                ? string.Empty
+                : BuildingDefinitionId(context.Target),
+            worker,
+            AbsoluteDay(context),
+            boundsKnown,
+            primaryUnit,
+            primaryBefore,
+            secondaryBefore);
+        return handle.IsValid;
+    }
+
+    private bool TryCompleteOutcome(
+        WorkExecutionContext context,
+        WorkExecutionResult result,
+        RepairWorkOutcomeHandle handle,
+        string targetEntityId,
+        RepairWorkPrimaryUnit primaryUnit,
+        float primaryBefore,
+        float primaryAfter,
+        float secondaryBefore,
+        float secondaryAfter,
+        in RepairWorkMaterialReceipt material,
+        float contributionWork)
+    {
+        if (!CharacterPersistentIdentity.TryGet(context.Actor, out CharacterId completionWorker))
+        {
+            result.CompletedSuccessfully = false;
+            return false;
+        }
+        bool committed = repairOutcomes.TryComplete(
+            handle,
+            completionWorker,
+            context.CommandOrigin,
+            contributionWork,
+            AbsoluteDay(context),
+            boundsKnown: true,
+            primaryUnit,
+            primaryBefore,
+            primaryAfter,
+            secondaryBefore,
+            secondaryAfter,
+            material,
+            out string resultKey,
+            out string failureReason);
+        // The saved repair owner is authoritative even when the ledger commit
+        // is temporarily pending. Never emit a conflicting generic identity.
+        result.CompletionIdentityAlreadyPublished = true;
+        if (!committed)
+        {
+            result.CompletedSuccessfully = false;
+            context.Actor?.Brain?.SetActionPhase(
+                failureReason,
+                context.Target);
+            return false;
+        }
+        result.SetTerminalReference(
+            "repair-work-outcome",
+            resultKey,
+            targetEntityId,
+            Mathf.Max(0f, contributionWork));
+        return true;
+    }
+
+    private static RepairWorkMaterialReceipt CreateEquipmentMaterialReceipt(
+        CombatEquipmentRepairOrder order)
+    {
+        if (order == null || string.IsNullOrEmpty(order.materialTransferOperationId))
+            return RepairWorkMaterialReceipt.None;
+        RepairWorkMaterialSourceSaveData[] sources =
+            (order.materialTransferInputs
+                ?? new List<EquipmentRepairMaterialTransferInput>())
+            .Where(value => value != null)
+            .Select(value => new RepairWorkMaterialSourceSaveData
+            {
+                stackId = value.sourceStackId,
+                itemId = value.itemId,
+                quantity = value.quantity
+            })
+            .OrderBy(value => value.stackId, StringComparer.Ordinal)
+            .ToArray();
+        return new RepairWorkMaterialReceipt(
+            order.materialTransferOperationId,
+            order.materialTransferCommitId,
+            order.materialTransferMassGrams,
+            sources);
+    }
+
+    private static float DefenseStateValue(
+        DefenseFacilityOperationalState state) => (float)(int)state;
+
+    private static string BuildingDefinitionId(BuildableObject target) =>
+        target?.BuildingData == null
+            ? string.Empty
+            : "building-definition:"
+                + target.BuildingData.id.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture);
+
+    private static int AbsoluteDay(WorkExecutionContext context) =>
+        Mathf.Max(1, context.Work?.GameCalendar?.Day ?? 1);
 }

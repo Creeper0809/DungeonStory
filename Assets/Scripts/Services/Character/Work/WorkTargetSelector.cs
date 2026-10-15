@@ -129,13 +129,8 @@ public sealed class WorkTargetSelector
                 out urgentScanDeferred))
         {
             work.AssignWork(null, FacilityWorkType.None);
-            work.WorkerActor?.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Duty,
-                CharacterActivityOutcomes.Blocked,
-                work.IsOffDuty ? "작업 보류: 비번" : "작업 보류: 피로/기분 보호",
-                reasonCode: work.IsOffDuty ? "off-duty" : "wellbeing-protection",
-                sentiment: -0.2f,
-                bubbleEligible: true));
+            WorkControlChangedEvent.Publish(work, work.WorkerActor,
+                WorkControlTransition.SelectionDutyBlocked, state: work.IsOffDuty);
             return false;
         }
 
@@ -150,11 +145,8 @@ public sealed class WorkTargetSelector
             }
 
             work.SetDutyState(AbilityWork.DutyState.OnDuty);
-            work.WorkerActor?.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Duty,
-                CharacterActivityOutcomes.Responded,
-                "비번 중 긴급 작업 합류",
-                reasonCode: "urgent-work"));
+            WorkControlChangedEvent.Publish(work, work.WorkerActor,
+                WorkControlTransition.SelectionUrgentDutyResumed);
         }
 
         if (work.PriorityWorkTarget != null)
@@ -186,13 +178,12 @@ public sealed class WorkTargetSelector
                     return false;
                 }
 
-                work.WorkerActor?.AddActivity(CharacterActivityEvent.Work(
-                    work.PriorityWorkType,
-                    CharacterActivityOutcomes.Cancelled,
-                    "우선 작업 취소: 대상 사용 불가",
-                    work.PriorityWorkTarget,
-                    reasonCode: "target-unavailable",
-                    bubbleEligible: true));
+                WorkControlChangedEvent.Publish(work, work.WorkerActor,
+                    WorkControlTransition.SelectionPriorityTargetCancelled,
+                    FacilityWorkTypeMap.TryGet(work.PriorityWorkType, out WorkTypeDefinition cancelledDefinition)
+                        ? cancelledDefinition.WorkTypeId
+                        : new WorkTypeId($"work:{(int)work.PriorityWorkType}"),
+                    work.PriorityWorkTarget);
                 work.ClearPriorityWorkTarget();
             }
         }

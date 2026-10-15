@@ -8,12 +8,15 @@ using UnityEngine;
 [Serializable]
 public sealed class DungeonOffenseAggregateSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 11;
 
     public int version = CurrentVersion;
     public DungeonOffenseCampaignSaveData campaign =
         new DungeonOffenseCampaignSaveData();
     public DungeonOffenseSaveData expedition = new DungeonOffenseSaveData();
+    public OffenseExpeditionResultPublicationSaveData resultPublications = new();
+    public OffenseNodePublicationSaveData nodePublications = new();
+    public OffenseBattleCommandPublicationSaveData battleCommandPublications = new();
     public OffenseWorldSaveData world = new OffenseWorldSaveData();
     public DungeonOffenseRegionSaveData regions =
         new DungeonOffenseRegionSaveData();
@@ -274,25 +277,31 @@ public static class OffenseAggregateSaveValidation
             ReferenceEqualityComparer.Instance));
         ValidateCampaign(source.campaign);
         ValidateExpedition(source.expedition);
+        _ = OffenseExpeditionResultPublicationRuntime.ValidateAndClone(source.resultPublications);
+        _ = OffenseNodePublicationRuntime.ValidateAndClone(source.nodePublications);
+        _ = OffenseBattleCommandPublicationRuntime.ValidateAndClone(source.battleCommandPublications);
         ValidateWorld(source.world);
         ValidateRegions(source.regions);
         ValidateReturnArrivals(source.returnArrivals);
         ValidateCrossModuleLinks(source);
 
-        // JSON cloning detaches every mutable DTO/list from the caller.  Validate the
-        // clone too so Unity serialization omissions can never become an implicit
-        // defaulting path.
+        // Detach mutable DTOs with the same exact numeric reader as save sections.
+        // JsonUtility's native double reader can shift enemy age by one ULP.
+        // Validate the clone too; detachment must not default or repair state.
         string json = JsonUtility.ToJson(source);
         Require(!string.IsNullOrWhiteSpace(json),
             "Offense aggregate payload could not be serialized.");
         DungeonOffenseAggregateSaveData detached =
-            JsonUtility.FromJson<DungeonOffenseAggregateSaveData>(json);
+            DungeonSaveJson.Deserialize<DungeonOffenseAggregateSaveData>(json);
         Require(detached != null,
             "Offense aggregate payload could not be detached.");
         ValidateObjectGraph(detached, "offense", new HashSet<object>(
             ReferenceEqualityComparer.Instance));
         ValidateCampaign(detached.campaign);
         ValidateExpedition(detached.expedition);
+        _ = OffenseExpeditionResultPublicationRuntime.ValidateAndClone(detached.resultPublications);
+        _ = OffenseNodePublicationRuntime.ValidateAndClone(detached.nodePublications);
+        _ = OffenseBattleCommandPublicationRuntime.ValidateAndClone(detached.battleCommandPublications);
         ValidateWorld(detached.world);
         ValidateRegions(detached.regions);
         ValidateReturnArrivals(detached.returnArrivals);
@@ -315,6 +324,8 @@ public static class OffenseAggregateSaveValidation
 
     private static void ValidateCampaign(DungeonOffenseCampaignSaveData data)
     {
+        Require(data.truthObservation != null, "Offense truth observation is missing.");
+        data.truthObservation.Validate(data.revealedTruthTargetId, data.completedTargetIds.Count);
         Require(data.reconLevel >= 0,
             "Offense reconnaissance level cannot be negative.");
         RequireUniqueNonEmpty(data.knownTargetIds, "known target");
@@ -364,115 +375,8 @@ public static class OffenseAggregateSaveValidation
 
         RequireUnique(data.resultHistory, value => value.expeditionId,
             "expedition result");
-        foreach (DungeonOffenseExpeditionResultSaveData result in
-                 data.resultHistory)
-        {
-            RequireId(result.expeditionId, "expedition result ID");
-            RequireId(result.targetId, "expedition result target ID");
-            Require(result.totalPower >= 0f
-                    && result.requiredPower >= 0f
-                    && result.danger >= 0f
-                    && result.elapsedSeconds >= 0f,
-                $"Expedition result '{result.expeditionId}' has negative values.");
-            Require(result.members.All(value =>
-                    value.power >= 0f && value.damageTaken >= 0f),
-                $"Expedition result '{result.expeditionId}' has invalid member values.");
-            Require(result.grantedRewards != null
-                    && result.itemReceipts != null
-                    && result.treatmentReceipts != null
-                    && result.arrivalReceipts != null
-                    && result.currencyReceipts != null,
-                $"Expedition result '{result.expeditionId}' is missing current settlement lists.");
-            foreach (DungeonOffenseRewardGrantSaveData reward in result.grantedRewards)
-            {
-                Require(reward != null
-                        && Enum.IsDefined(typeof(OffenseRewardCategory), reward.category)
-                        && reward.requestedAmount >= 0
-                        && reward.grantedAmount >= 0
-                        && reward.grantedAmount <= reward.requestedAmount
-                        && reward.label != null
-                        && reward.detail != null
-                        && reward.physicalItems != null,
-                    $"Expedition result '{result.expeditionId}' has an invalid reward grant receipt.");
-                RequireUnique(reward.physicalItems, value => value.itemId,
-                    $"expedition result '{result.expeditionId}' reward physical item");
-                Require(reward.physicalItems.All(value => value != null
-                        && !string.IsNullOrWhiteSpace(value.itemId)
-                        && value.quantity > 0)
-                    && (reward.success || reward.physicalItems.Count == 0),
-                    $"Expedition result '{result.expeditionId}' has an invalid physical reward receipt.");
-            }
-            foreach (DungeonOffenseItemReceiptSaveData receipt in result.itemReceipts)
-            {
-                ValidateItemReceipt(receipt, result.expeditionId);
-            }
-            RequireUnique(result.itemReceipts, ItemReceiptCompositeKey,
-                $"expedition result '{result.expeditionId}' item receipt");
-            Dictionary<string, int> expectedRewardItems = result.grantedRewards
-                .Where(value => value.success)
-                .SelectMany(value => value.physicalItems)
-                .GroupBy(value => value.itemId, StringComparer.Ordinal)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group.Sum(value => value.quantity),
-                    StringComparer.Ordinal);
-            Dictionary<string, int> actualRewardItems = result.itemReceipts
-                .Where(value => value.kind
-                    == OffenseExpeditionItemReceiptKind.RewardGranted)
-                .ToDictionary(
-                    value => value.itemId,
-                    value => value.quantity,
-                    StringComparer.Ordinal);
-            Require(expectedRewardItems.Count == actualRewardItems.Count
-                    && expectedRewardItems.All(pair =>
-                        actualRewardItems.TryGetValue(pair.Key, out int amount)
-                        && amount == pair.Value),
-                $"Expedition result '{result.expeditionId}' physical rewards do not match their successful grants.");
-            ValidateTreatments(result.treatmentReceipts, result.expeditionId);
-            RequireUnique(result.arrivalReceipts, value => value.arrivalId,
-                $"expedition result '{result.expeditionId}' arrival receipt");
-            foreach (DungeonOffenseArrivalReceiptSaveData arrival in result.arrivalReceipts)
-            {
-                Require(arrival != null
-                        && !string.IsNullOrWhiteSpace(arrival.arrivalId)
-                        && !string.IsNullOrWhiteSpace(arrival.kind)
-                        && Enum.IsDefined(
-                            typeof(OffenseExpeditionArrivalResolution),
-                            arrival.resolution)
-                        && arrival.requestedAmount > 0
-                        && arrival.materializedAmount >= 0
-                        && arrival.materializedAmount <= arrival.requestedAmount
-                        && arrival.securedAmount >= 0
-                        && arrival.escapedAmount >= 0
-                        && arrival.securedAmount + arrival.escapedAmount
-                            <= arrival.materializedAmount,
-                    $"Expedition result '{result.expeditionId}' has an invalid return-arrival receipt.");
-                Require(arrival.resolution switch
-                    {
-                        OffenseExpeditionArrivalResolution.Pending => true,
-                        OffenseExpeditionArrivalResolution.Secured =>
-                            arrival.securedAmount == arrival.requestedAmount
-                            && arrival.escapedAmount == 0,
-                        OffenseExpeditionArrivalResolution.Escaped =>
-                            arrival.escapedAmount > 0
-                            && arrival.securedAmount + arrival.escapedAmount
-                                == arrival.requestedAmount,
-                        _ => false
-                    },
-                    $"Expedition result '{result.expeditionId}' has inconsistent arrival resolution counts.");
-            }
-            RequireUnique(result.currencyReceipts, value => value.operationId,
-                $"expedition result '{result.expeditionId}' currency receipt");
-            Require(result.currencyReceipts.All(value => value != null
-                    && string.Equals(
-                        value.currencyId,
-                        OffenseSettlementCurrencyIds.Gold,
-                        StringComparison.Ordinal)
-                    && value.amount > 0
-                    && !string.IsNullOrWhiteSpace(value.operationId)),
-                $"Expedition result '{result.expeditionId}' has an invalid currency receipt.");
-        }
-
+        foreach (DungeonOffenseExpeditionResultSaveData result in data.resultHistory)
+            ValidateHistoricalResult(result);
         if (!data.hasActiveBattle)
         {
             Require(!HasBattlePayload(data.activeBattle),
@@ -496,6 +400,125 @@ public static class OffenseAggregateSaveValidation
                     StringComparison.Ordinal),
                 $"Offense battle '{data.activeBattle.battleId}' target does not match its expedition.");
         }
+    }
+
+    internal static void ValidateHistoricalResult(DungeonOffenseExpeditionResultSaveData result)
+    {
+        ValidateObjectGraph(result, "offense.result", new HashSet<object>(ReferenceEqualityComparer.Instance));
+        RequireId(result.expeditionId, "expedition result ID");
+        RequireId(result.targetId, "expedition result target ID");
+        Require(result.totalPower >= 0f
+                && result.requiredPower >= 0f
+                && result.danger >= 0f
+                && result.elapsedSeconds >= 0f,
+            $"Expedition result '{result.expeditionId}' has negative values.");
+        Require(result.members.All(value =>
+                value.power >= 0f && value.damageTaken >= 0f),
+            $"Expedition result '{result.expeditionId}' has invalid member values.");
+        Require(result.grantedRewards != null
+                && result.itemReceipts != null
+                && result.treatmentReceipts != null
+                && result.arrivalReceipts != null
+                && result.currencyReceipts != null,
+            $"Expedition result '{result.expeditionId}' is missing current settlement lists.");
+        foreach (DungeonOffenseRewardGrantSaveData reward in result.grantedRewards)
+        {
+            Require(reward != null
+                    && Enum.IsDefined(typeof(OffenseRewardCategory), reward.category)
+                    && reward.requestedAmount >= 0
+                    && reward.grantedAmount >= 0
+                    && reward.grantedAmount <= reward.requestedAmount
+                    && reward.label != null
+                    && reward.detail != null
+                    && reward.physicalItems != null,
+                $"Expedition result '{result.expeditionId}' has an invalid reward grant receipt.");
+            RequireUnique(reward.physicalItems, value => value.itemId,
+                $"expedition result '{result.expeditionId}' reward physical item");
+            Require(reward.physicalItems.All(value => value != null
+                    && !string.IsNullOrWhiteSpace(value.itemId)
+                    && value.quantity > 0)
+                && (reward.success || reward.physicalItems.Count == 0 || reward.hasStockSupply),
+                $"Expedition result '{result.expeditionId}' has an invalid physical reward receipt.");
+            if (reward.hasStockSupply)
+            {
+                var delivery = new OffenseStockRewardReceipt(reward.stockSupply).Snapshot();
+                Require(reward.category == OffenseRewardCategory.Stock && reward.requestedAmount == delivery.requestedAmount
+                    && reward.grantedAmount == delivery.deliveredAmount && reward.success == delivery.success
+                    && reward.physicalItems.Count == (delivery.deliveredAmount > 0 ? 1 : 0)
+                    && reward.physicalItems.All(value => value.itemId == delivery.itemId && value.quantity == delivery.deliveredAmount),
+                    $"Expedition result '{result.expeditionId}' stock grant evidence conflicts with physical receipts.");
+            }
+            else Require(reward.stockSupply != null && !(reward.category == OffenseRewardCategory.Stock && reward.requestedAmount > 0),
+                $"Expedition result '{result.expeditionId}' is missing its stock grant evidence.");
+        }
+        foreach (DungeonOffenseItemReceiptSaveData receipt in result.itemReceipts)
+        {
+            ValidateItemReceipt(receipt, result.expeditionId);
+        }
+        RequireUnique(result.itemReceipts, ItemReceiptCompositeKey,
+            $"expedition result '{result.expeditionId}' item receipt");
+        Dictionary<string, int> expectedRewardItems = result.grantedRewards
+            .SelectMany(value => value.physicalItems)
+            .GroupBy(value => value.itemId, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(value => value.quantity),
+                StringComparer.Ordinal);
+        Dictionary<string, int> actualRewardItems = result.itemReceipts
+            .Where(value => value.kind
+                == OffenseExpeditionItemReceiptKind.RewardGranted)
+            .ToDictionary(
+                value => value.itemId,
+                value => value.quantity,
+                StringComparer.Ordinal);
+        Require(expectedRewardItems.Count == actualRewardItems.Count
+                && expectedRewardItems.All(pair =>
+                    actualRewardItems.TryGetValue(pair.Key, out int amount)
+                    && amount == pair.Value),
+            $"Expedition result '{result.expeditionId}' physical rewards do not match their actual grants.");
+        ValidateTreatments(result.treatmentReceipts, result.expeditionId);
+        RequireUnique(result.arrivalReceipts, value => value.arrivalId,
+            $"expedition result '{result.expeditionId}' arrival receipt");
+        foreach (DungeonOffenseArrivalReceiptSaveData arrival in result.arrivalReceipts)
+        {
+            Require(arrival != null
+                    && !string.IsNullOrWhiteSpace(arrival.arrivalId)
+                    && !string.IsNullOrWhiteSpace(arrival.kind)
+                    && Enum.IsDefined(
+                        typeof(OffenseExpeditionArrivalResolution),
+                        arrival.resolution)
+                    && arrival.requestedAmount > 0
+                    && arrival.materializedAmount >= 0
+                    && arrival.materializedAmount <= arrival.requestedAmount
+                    && arrival.securedAmount >= 0
+                    && arrival.escapedAmount >= 0
+                    && arrival.securedAmount + arrival.escapedAmount
+                        <= arrival.materializedAmount,
+                $"Expedition result '{result.expeditionId}' has an invalid return-arrival receipt.");
+            Require(arrival.resolution switch
+                {
+                    OffenseExpeditionArrivalResolution.Pending => true,
+                    OffenseExpeditionArrivalResolution.Secured =>
+                        arrival.securedAmount == arrival.requestedAmount
+                        && arrival.escapedAmount == 0,
+                    OffenseExpeditionArrivalResolution.Escaped =>
+                        arrival.escapedAmount > 0
+                        && arrival.securedAmount + arrival.escapedAmount
+                            == arrival.requestedAmount,
+                    _ => false
+                },
+                $"Expedition result '{result.expeditionId}' has inconsistent arrival resolution counts.");
+        }
+        RequireUnique(result.currencyReceipts, value => value.operationId,
+            $"expedition result '{result.expeditionId}' currency receipt");
+        Require(result.currencyReceipts.All(value => value != null
+                && string.Equals(
+                    value.currencyId,
+                    OffenseSettlementCurrencyIds.Gold,
+                    StringComparison.Ordinal)
+                && value.amount > 0
+                && !string.IsNullOrWhiteSpace(value.operationId)),
+            $"Expedition result '{result.expeditionId}' has an invalid currency receipt.");
     }
 
     private static void ValidateActiveExpedition(
@@ -829,11 +852,14 @@ public static class OffenseAggregateSaveValidation
             $"offense battle '{battle.battleId}' initiative combatant");
         RequireUnique(battle.combatants, value => value.persistentId,
             $"offense battle '{battle.battleId}' combatant");
-        Require(battle.initiativeOrder.Count == battle.combatants.Count
-                && battle.initiativeOrder.All(id => battle.combatants.Any(value =>
-                    string.Equals(value.persistentId, id,
+        // This is the current round's schedule, not the complete eligible roster.
+        // BuildInitiativeOrder excludes dead/downed actors at the round boundary;
+        // a subsequent death or cleanse does not rebuild that schedule mid-round.
+        // Present health/status cannot reconstruct historical round membership.
+        Require(battle.initiativeOrder.All(id => battle.combatants.Any(value =>
+                    value.participatesInInitiative && string.Equals(value.persistentId, id,
                         StringComparison.Ordinal))),
-            $"Offense battle '{battle.battleId}' initiative does not exactly match its combatants.");
+            $"Offense battle '{battle.battleId}' initiative references an unknown or non-participating combatant.");
         RequireUnique(battle.thrownEquipment, value => value.instanceId,
             $"offense battle '{battle.battleId}' thrown equipment");
         foreach (OffenseThrownEquipmentPersistenceState thrown in

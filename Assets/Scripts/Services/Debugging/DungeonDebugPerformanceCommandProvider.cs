@@ -58,7 +58,7 @@ public sealed class DungeonDebugPerformanceCommandProvider : IDungeonDebugComman
     private DungeonDebugCommandResult ExportReport()
     {
         CharacterAiPerformanceReport report = Capture();
-        string directory = Path.Combine(Application.persistentDataPath, "AiPerformanceReports");
+        string directory = Path.Combine(DungeonPersistencePaths.Root, "AiPerformanceReports");
         Directory.CreateDirectory(directory);
         string fileName = $"ai-performance-{DateTime.Now:yyyyMMdd-HHmmss}.json";
         string path = Path.Combine(directory, fileName);

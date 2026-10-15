@@ -163,14 +163,11 @@ public class AIWait : AIActionSet
             return;
         }
 
-        actor?.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Wait,
-            CharacterActivityOutcomes.Blocked,
-            $"대기 이동 불가: {failureReason}",
-            actionId: "wait:idle-behavior",
-            reasonCode: "idle-movement-unavailable",
-            sentiment: -0.35f,
-            bubbleEligible: true));
+        PublishDiagnostic(
+            actor,
+            CharacterAiDiagnosticTransition.IdleMovementUnavailable,
+            "idle-movement-unavailable",
+            failureReason);
         if (IdleBehaviorRunner.TryRunStatic(
             actor,
             duration,
@@ -181,14 +178,11 @@ public class AIWait : AIActionSet
             return;
         }
 
-        actor?.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Wait,
-            CharacterActivityOutcomes.Failed,
-            $"대기 실패: {failureReason}",
-            actionId: "wait:idle-behavior",
-            reasonCode: "idle-behavior-failed",
-            sentiment: -0.5f,
-            bubbleEligible: true));
+        PublishDiagnostic(
+            actor,
+            CharacterAiDiagnosticTransition.IdleBehaviorFailed,
+            "idle-behavior-failed",
+            failureReason);
 
         if (actor != null && actor.Brain != null)
         {
@@ -205,6 +199,24 @@ public class AIWait : AIActionSet
                 CharacterAiActionTerminalKind.Failed,
                 clearFailures: false);
         }
+    }
+
+    private static void PublishDiagnostic(
+        CharacterActor actor,
+        CharacterAiDiagnosticTransition transition,
+        string reasonCode,
+        string detail)
+    {
+        if (actor == null)
+        {
+            return;
+        }
+
+        actor.PublishAiDiagnostic(new CharacterAiDiagnosticEvent(
+            actor,
+            transition,
+            reasonCode,
+            detail));
     }
 
     private static bool HasOffDutyVisitCandidate(CharacterActor actor, GridPathSearchResult searchResult)

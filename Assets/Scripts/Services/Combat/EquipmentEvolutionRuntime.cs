@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using static EquipmentEvolutionRules;
 
@@ -22,6 +23,8 @@ public sealed class EquipmentEvolutionRuntime :
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery;
     private readonly IGameplayOutcomeEvidenceUseTransaction evidenceUseTransaction;
+    private readonly EquipmentModuleSelectionPublicationRuntime moduleSelections;
+    private readonly IGameSessionStateProvider sessionStateProvider;
     private string lastAttunementNodeGenerationFailureFingerprint = string.Empty;
 
     private EquipmentEvolutionAggregateState CurrentState =>
@@ -46,7 +49,9 @@ public sealed class EquipmentEvolutionRuntime :
         IFacilityEvolutionStateComponentFactory facilityStates,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery,
-        IGameplayOutcomeEvidenceUseTransaction evidenceUseTransaction)
+        IGameplayOutcomeEvidenceUseTransaction evidenceUseTransaction,
+        EquipmentModuleSelectionPublicationRuntime moduleSelections = null,
+        IGameSessionStateProvider sessionStateProvider = null)
     {
         this.equipment = equipment
             ?? throw new ArgumentNullException(nameof(equipment));
@@ -69,6 +74,8 @@ public sealed class EquipmentEvolutionRuntime :
             ?? throw new ArgumentNullException(nameof(outcomeEvidenceQuery));
         this.evidenceUseTransaction = evidenceUseTransaction
             ?? throw new ArgumentNullException(nameof(evidenceUseTransaction));
+        this.moduleSelections = moduleSelections;
+        this.sessionStateProvider = sessionStateProvider;
     }
 
     public IReadOnlyList<EvolutionReforgeOrder> ReforgeOrders =>
@@ -97,6 +104,7 @@ public sealed class EquipmentEvolutionRuntime :
         int repeatCount = 1,
         GameplayNarrativeEventContext narrativeContext = null)
     {
+        moduleSelections?.RequireIdleMutation();
         LastAttunementNodeGenerationFailureForDiagnostics = string.Empty;
         CombatEquipmentInstance instance = RequireInstance(equipmentInstanceId);
         EquipmentEvolutionState state = instance.evolution?.Clone()
@@ -191,6 +199,7 @@ public sealed class EquipmentEvolutionRuntime :
         string narrativeFlavor,
         out string failureReason)
     {
+        moduleSelections?.RequireIdleMutation();
         failureReason = string.Empty;
         if (!equipment.TryGetInstance(equipmentInstanceId, out CombatEquipmentInstance instance))
         {
@@ -385,6 +394,18 @@ public sealed class EquipmentEvolutionRuntime :
         EquipmentEvolutionModuleSelectionResponseDto response,
         out string failureReason)
     {
+        if (moduleSelections == null)
+        { failureReason = "장비 모듈 선택의 관찰 전달 구성이 없습니다."; return false; }
+        if (!moduleSelections.TryBegin(equipmentInstanceId, out failureReason)) return false;
+        try { return TryCommitModuleSelectionCore(equipmentInstanceId, response, out failureReason); }
+        finally { moduleSelections.End(equipmentInstanceId); }
+    }
+
+    private bool TryCommitModuleSelectionCore(
+        string equipmentInstanceId,
+        EquipmentEvolutionModuleSelectionResponseDto response,
+        out string failureReason)
+    {
         failureReason = string.Empty;
         if (response == null || !response.Validate(out failureReason)
             || !equipment.TryGetInstance(equipmentInstanceId, out CombatEquipmentInstance instance))
@@ -410,6 +431,11 @@ public sealed class EquipmentEvolutionRuntime :
             || !string.Equals(pending.moduleSelectionId, response.selectionId, StringComparison.Ordinal))
         {
             failureReason = "장비 모듈 선택 요청이 없거나 이미 종료되었습니다.";
+            return false;
+        }
+        if (previousState.moduleSelectionRevision == long.MaxValue)
+        {
+            failureReason = "장비 모듈 선택 원장 리비전이 소진되었습니다.";
             return false;
         }
         EquipmentEvolutionFormulaCatalogSO catalog;
@@ -519,48 +545,90 @@ public sealed class EquipmentEvolutionRuntime :
             failureReason = error.Message;
             return false;
         }
+        long beforeSelectionRevision = previousState.moduleSelectionRevision;
+        long afterSelectionRevision = beforeSelectionRevision + 1L;
+        state.moduleSelectionRevision = afterSelectionRevision;
         PreparedGameplayOutcomeEvidenceUse prepared = null;
-        if (exactBindings.Length > 0
-            && (!evidenceUseTransaction.TryPrepareBindings(
-                    "equipment-evolution",
-                    request.presentationId,
-                    exactBindings,
-                    out prepared,
-                    out failureReason)
-                || !prepared.TryCommitAnchors(out failureReason)))
+        DomainFactLease lease = default;
+        bool ownerMayBeChanged = false;
+        bool retained = false;
+        bool Rollback()
         {
-            prepared?.Cancel();
-            return false;
-        }
-        bool statePublished;
-        try
-        {
-            statePublished = equipment.TryUpdateEvolutionState(instance.instanceId, state);
-        }
-        catch
-        {
-            if (prepared != null)
-                prepared.TryRollbackAnchors(out _);
-            throw;
-        }
-        if (!statePublished)
-        {
-            if (prepared != null && !prepared.TryRollbackAnchors(out string rollbackFailure))
-                Debug.LogError("Equipment evidence rollback failed: " + rollbackFailure);
-            failureReason = "장비 모듈 선택 확정 상태를 물리 장비에 게시할 수 없습니다.";
-            return false;
+            try
+            {
+                prepared?.Cancel();
+                if (ownerMayBeChanged && !equipment.TryUpdateEvolutionState(instance.instanceId, previousState))
+                    return false;
+                ownerMayBeChanged = false;
+                return true;
+            }
+            catch (Exception error) when (error is not OutOfMemoryException
+                and not StackOverflowException and not AccessViolationException) { return false; }
         }
         try
         {
-            prepared?.CompleteOwnerCommit();
+            var fact = new EquipmentModuleSelectedFact(new EquipmentModuleSelectedFactData
+            {
+                operationId = "equipment-module:" + instance.instanceId + ":"
+                    + afterSelectionRevision.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                selectionId = response.selectionId,
+                beforeRevision = beforeSelectionRevision, afterRevision = afterSelectionRevision,
+                nodeId = node.nodeId, nodeDisplayName = response.displayName,
+                equipmentInstanceId = instance.instanceId, equipmentDefinitionId = instance.definitionId,
+                currentOwnerId = instance.ownerCharacterId ?? string.Empty,
+                attunementOwnerId = request.attunementOwnerPersistentId ?? string.Empty,
+                reforgeOrderId = request.reforgeOrderId ?? string.Empty, historical = node.historical,
+                generationBefore = previousState.generation, generationAfter = state.generation,
+                masteryBefore = previousState.mastery, masteryAfter = state.mastery,
+                positiveModuleIds = response.positiveModuleIds.ToArray(),
+                drawbackModuleIds = response.drawbackModuleIds.ToArray(),
+                selectedModuleIds = response.positiveModuleIds.Concat(response.drawbackModuleIds)
+                    .Distinct(StringComparer.Ordinal).OrderBy(value => value, StringComparer.Ordinal).ToArray(),
+                capabilityIds = (node.formulaCapabilities ?? new List<EquipmentEvolutionFormulaCapabilityEnvelope>())
+                    .Where(value => value != null).Select(value => value.capabilityId)
+                    .Distinct(StringComparer.Ordinal).OrderBy(value => value, StringComparer.Ordinal).ToArray(),
+                effectIds = new[] { node.effectId, node.burdenEffectId }.Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Distinct(StringComparer.Ordinal).OrderBy(value => value, StringComparer.Ordinal).ToArray(),
+                evidenceFactIds = node.evidenceIds.ToArray(), absoluteDay = CurrentAbsoluteDay()
+            });
+            if (!moduleSelections.TryReserve(fact, out lease, out failureReason)) return false;
+            if (exactBindings.Length > 0
+                && (!evidenceUseTransaction.TryPrepareBindings("equipment-evolution", request.presentationId,
+                        exactBindings, out prepared, out failureReason)
+                    || !prepared.TryCommitAnchors(out failureReason))) return false;
+
+            // A false return promises no publication. An escaped exception may have changed the owner.
+            ownerMayBeChanged = true;
+            if (!equipment.TryUpdateEvolutionState(instance.instanceId, state))
+            {
+                ownerMayBeChanged = false;
+                failureReason = "장비 모듈 선택 확정 상태를 물리 장비에 게시할 수 없습니다.";
+                return false;
+            }
+            if (prepared != null && !prepared.TrySealOwnerCommitForJointOutcome(out failureReason)) return false;
+            DomainFactDelivery delivery = moduleSelections.PublishApplied(fact, lease);
+            retained = delivery.MayBeCommitted;
+            if (!retained) { failureReason = delivery.Detail; return false; }
+            // No fallible external completion is allowed after observation may have committed.
+            prepared?.CompleteJointOutcomeCommit();
         }
-        catch
+        catch (Exception error) when (error is not OutOfMemoryException
+            and not StackOverflowException and not AccessViolationException)
         {
-            if (!equipment.TryUpdateEvolutionState(instance.instanceId, previousState))
-                Debug.LogError("Equipment module-selection rollback could not restore owner state.");
-            if (prepared != null)
-                prepared.TryRollbackAnchors(out _);
-            throw;
+            failureReason = "장비 모듈 선택 확정 실패: " + error.Message;
+            return false;
+        }
+        finally
+        {
+            try
+            {
+                if (!retained && !Rollback())
+                {
+                    moduleSelections.RetainRollback(instance.instanceId, Rollback);
+                    failureReason = "equipment-module-selection-rollback-pending";
+                }
+            }
+            finally { moduleSelections.Cancel(lease); }
         }
         if (!string.IsNullOrWhiteSpace(request.reforgeOrderId))
         {
@@ -575,12 +643,59 @@ public sealed class EquipmentEvolutionRuntime :
         return true;
     }
 
+    public bool TryFreezePresentationContext(
+        string equipmentInstanceId,
+        string presentationId,
+        NarrativePublicContextMaterial material,
+        out EquipmentEvolutionPresentationRequest frozenRequest,
+        out string failureReason)
+    {
+        moduleSelections?.RequireIdleMutation();
+        frozenRequest = null;
+        failureReason = string.Empty;
+        if (!equipment.TryGetInstance(equipmentInstanceId, out CombatEquipmentInstance instance))
+        {
+            failureReason = "Equipment public context owner is unavailable.";
+            return false;
+        }
+        EquipmentEvolutionState state = instance.evolution?.Clone() ?? new EquipmentEvolutionState();
+        EquipmentEvolutionPresentationRequest request = state.presentationRequests.SingleOrDefault(value =>
+            value != null && string.Equals(value.presentationId, presentationId, StringComparison.Ordinal));
+        if (request == null || request.targetPersistentId != instance.instanceId
+            || request.state is not EquipmentEvolutionPresentationState.ModuleSelectionPending
+                and not EquipmentEvolutionPresentationState.PresentationPending)
+        {
+            failureReason = "Equipment public context request is not pending for this owner.";
+            return false;
+        }
+        bool alreadyCaptured;
+        try
+        {
+            alreadyCaptured = request.RestorePublicContext() != null;
+            request.BindPublicContext(material);
+            ValidateFormulaState(state);
+        }
+        catch (Exception error) when (error is ArgumentException or InvalidOperationException)
+        {
+            failureReason = error.Message;
+            return false;
+        }
+        if (!alreadyCaptured && !equipment.TryUpdateEvolutionState(instance.instanceId, state))
+        {
+            failureReason = "Equipment public context could not be persisted; request was not dispatched.";
+            return false;
+        }
+        frozenRequest = request.Clone();
+        return true;
+    }
+
     public bool TryRegisterPresentationFailure(
         string equipmentInstanceId,
         string presentationId,
         string reason,
         out bool awaitingNarrativeRetry)
     {
+        moduleSelections?.RequireIdleMutation();
         awaitingNarrativeRetry = false;
         if (!equipment.TryGetInstance(equipmentInstanceId, out CombatEquipmentInstance instance))
             return false;
@@ -612,6 +727,7 @@ public sealed class EquipmentEvolutionRuntime :
         string equipmentInstanceId,
         string presentationId)
     {
+        moduleSelections?.RequireIdleMutation();
         if (!equipment.TryGetInstance(equipmentInstanceId, out CombatEquipmentInstance instance))
             return false;
         EquipmentEvolutionState state = instance.evolution?.Clone()
@@ -688,6 +804,7 @@ public sealed class EquipmentEvolutionRuntime :
         out EvolutionReforgeOrder order,
         out string failureReason)
     {
+        moduleSelections?.RequireIdleMutation();
         order = null;
         failureReason = string.Empty;
         if (craftingFacility == null
@@ -843,6 +960,7 @@ public sealed class EquipmentEvolutionRuntime :
         out EvolutionNode completedNode,
         out string failureReason)
     {
+        moduleSelections?.RequireIdleMutation();
         completedNode = null;
         failureReason = string.Empty;
         EvolutionReforgeOrder order = orders.FirstOrDefault(entry =>
@@ -972,6 +1090,7 @@ public sealed class EquipmentEvolutionRuntime :
         int goldCost,
         out string failureReason)
     {
+        moduleSelections?.RequireIdleMutation();
         EvolutionReforgeOrder order = orders.FirstOrDefault(entry =>
             entry != null
             && string.Equals(
@@ -1015,6 +1134,7 @@ public sealed class EquipmentEvolutionRuntime :
         string orderId,
         out string failureReason)
     {
+        moduleSelections?.RequireIdleMutation();
         failureReason = string.Empty;
         EvolutionReforgeOrder order = orders.FirstOrDefault(entry =>
             entry != null
@@ -1098,6 +1218,7 @@ public sealed class EquipmentEvolutionRuntime :
         out EquipmentReattunementOrder order,
         out string failureReason)
     {
+        moduleSelections?.RequireIdleMutation();
         order = null;
         failureReason = string.Empty;
         if (craftingFacility == null
@@ -1246,6 +1367,7 @@ public sealed class EquipmentEvolutionRuntime :
         out bool completed,
         out string failureReason)
     {
+        moduleSelections?.RequireIdleMutation();
         completed = false;
         failureReason = string.Empty;
         EquipmentReattunementOrder order = reattunementOrders.FirstOrDefault(
@@ -1358,6 +1480,7 @@ public sealed class EquipmentEvolutionRuntime :
         string orderId,
         out string failureReason)
     {
+        moduleSelections?.RequireIdleMutation();
         failureReason = string.Empty;
         EquipmentReattunementOrder order = reattunementOrders.FirstOrDefault(
             entry => entry != null
@@ -1399,6 +1522,7 @@ public sealed class EquipmentEvolutionRuntime :
 
     public EquipmentEvolutionSaveData Capture()
     {
+        moduleSelections?.RequireIdleMutation();
         ValidateInputOwnersBeforeCapture();
         return new EquipmentEvolutionSaveData
         {
@@ -2053,14 +2177,14 @@ public sealed class EquipmentEvolutionRuntime :
             order.targetGeneration,
             historical: false,
             manifestationPosition: $"reforge:{order.targetGeneration}",
-            outcomeBindings: GameplayOutcomeEvidenceFormulaProjection.CaptureExact(
+            outcomeBindings: GameplayOutcomeEvidenceFormulaProjection.Capture(
                 outcomeEvidenceQuery.GetForEntity(
                     new GameplayEntityId(
                         new GameplayEntityKindId("item-instance"),
                         instance.instanceId),
                     maximumCount: 32,
                     minimumSalience: 0f,
-                    includeCompacted: false)));
+                    includeCompacted: true)));
     }
 
     private string ResolvePrimaryMaterialItemId(
@@ -2198,5 +2322,12 @@ public sealed class EquipmentEvolutionRuntime :
         }
         return true;
     }
+
+    private int CurrentAbsoluteDay() =>
+        sessionStateProvider != null
+        && sessionStateProvider.TryGetSessionState(out GameSessionState state)
+        && state?.day != null
+            ? Mathf.Max(0, state.day.Value)
+            : 0;
 
 }

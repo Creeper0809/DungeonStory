@@ -583,6 +583,23 @@ public sealed class SurgeryOrder
     public bool outcomeConsequencesApplied;
     public int outcomeConsequenceStep;
     public string resultOutcomeId = string.Empty;
+    public bool outcomeAnatomyBeforeCaptured;
+    public SurgeryAnatomyFactData outcomeAnatomyBefore = new();
+    public SurgeryResolvedFactData resolvedFact = new();
+    // Observer-owned opaque proofs; gameplay never constructs or parses them.
+    public string resolutionPublicationKey = string.Empty;
+    public string resolutionPublicationId = string.Empty;
+    public string resolutionFingerprint = string.Empty;
+    public bool resolutionFactAccepted;
+    public bool resolutionFactDelivered;
+    public CharacterCommandOrigin completionOrigin;
+    // Historical completion receipt, not transient AI/doctor ownership.
+    public string completionDoctorId = string.Empty;
+    public int completionAbsoluteDay = -1;
+    public string completionPublicationKey = string.Empty;
+    public string completionPublicationId = string.Empty;
+    public string completionFingerprint = string.Empty;
+    public bool completionFactDelivered;
     public int resolvedEffectCount;
     public SurgicalPartReplacementPhase replacementPhase;
     public string replacementOperationId = string.Empty;
@@ -628,6 +645,11 @@ public sealed class SurgeryOrder
     public bool IsActive => state is not SurgeryOrderState.Completed
         and not SurgeryOrderState.Failed
         and not SurgeryOrderState.Cancelled;
+
+    public bool IsClinicalTerminal => state is SurgeryOrderState.Recovering
+        or SurgeryOrderState.Completed or SurgeryOrderState.Failed
+        || state == SurgeryOrderState.TerminalDraining
+            && materialTerminalTargetState is SurgeryOrderState.Completed or SurgeryOrderState.Failed;
 
     public bool OwnsMaterialAuthority =>
         !string.IsNullOrWhiteSpace(materialDestinationId)
@@ -802,7 +824,7 @@ public static class SurgicalPartReplacementIdentity
 [Serializable]
 public sealed class DungeonSurgerySaveData
 {
-    public const int CurrentVersion = 13;
+    public const int CurrentVersion = 17;
 
     public int version = CurrentVersion;
     public List<SurgeryOrder> orders = new();

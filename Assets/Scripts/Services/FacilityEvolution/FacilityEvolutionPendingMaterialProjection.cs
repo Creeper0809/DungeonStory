@@ -6,7 +6,7 @@ using VContainer.Unity;
 
 /// <summary>
 /// Resumes the exact facility-evolution result that was persisted after its
-/// physical material debit. The projection never rebuilds proposals, mutation
+/// optional physical material debit. The projection never rebuilds proposals, mutation
 /// choices, record-token outcomes, or material selections.
 /// </summary>
 public sealed class FacilityEvolutionPendingMaterialProjection :
@@ -22,6 +22,7 @@ public sealed class FacilityEvolutionPendingMaterialProjection :
     private int observedBuildingVersion = -1;
     private int observedFacilityStateVersion = -1;
     private bool reconciling;
+    private float nextPendingRetryAt = float.PositiveInfinity;
 
     public FacilityEvolutionPendingMaterialProjection(
         IBuildingWorldQuery buildings,
@@ -51,7 +52,8 @@ public sealed class FacilityEvolutionPendingMaterialProjection :
         int facilityStateVersion = facilityStateVersions.DynamicStateVersion;
         if (!force
             && observedBuildingVersion == buildingVersion
-            && observedFacilityStateVersion == facilityStateVersion)
+            && observedFacilityStateVersion == facilityStateVersion
+            && Time.unscaledTime < nextPendingRetryAt)
         {
             return;
         }
@@ -65,6 +67,7 @@ public sealed class FacilityEvolutionPendingMaterialProjection :
         }
 
         reconciling = true;
+        bool retryPending = false;
         try
         {
             foreach (BuildableObject building in pass)
@@ -102,6 +105,7 @@ public sealed class FacilityEvolutionPendingMaterialProjection :
                             ? "scene FacilityEvolutionRuntime is missing"
                             : failureReason));
                 }
+                retryPending = true;
             }
         }
         finally
@@ -110,6 +114,9 @@ public sealed class FacilityEvolutionPendingMaterialProjection :
             observedBuildingVersion = buildings.BuildingVersion;
             observedFacilityStateVersion =
                 facilityStateVersions.DynamicStateVersion;
+            // A delivery acknowledgement may recover without any building revision.
+            // Retry only while an owner remains pending, at a bounded cadence.
+            nextPendingRetryAt = retryPending ? Time.unscaledTime + 1f : float.PositiveInfinity;
         }
     }
 }
@@ -255,14 +262,14 @@ public sealed class FacilityEvolutionPendingMaterialRestoreGuard :
                     + "'.");
             }
 
-            if (!resources.TryGetPendingMaterialCommit(
+            bool physicalPending = resources.TryGetPendingMaterialCommit(
                     pending.operationId,
                     pending.reasonCode,
                     out FacilityEvolutionMaterialCommitReceipt receipt,
-                    out string failureReason)
-                || !FacilityEvolutionMaterialCommitAuthority.Matches(
-                    pending,
-                    receipt))
+                    out string failureReason);
+            if (pending.completedFact.HasMaterialCommit
+                ? !physicalPending || !FacilityEvolutionMaterialCommitAuthority.Matches(pending, receipt)
+                : physicalPending)
             {
                 throw new InvalidOperationException(
                     "Facility evolution pending material restore join failed for '"

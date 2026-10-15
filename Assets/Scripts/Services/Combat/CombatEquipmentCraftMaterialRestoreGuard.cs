@@ -177,7 +177,7 @@ public sealed class CombatEquipmentCraftMaterialRestoreGuard :
             CombatEquipmentCraftOrderSaveData frozen;
             try
             {
-                frozen = UnityEngine.JsonUtility.FromJson<
+                frozen = DungeonSaveJson.Deserialize<
                     CombatEquipmentCraftOrderSaveData>(
                     terminal.frozenSourcePayload);
             }
@@ -312,7 +312,7 @@ public sealed class CombatEquipmentCraftMaterialRestoreGuard :
                 CombatEquipmentCraftTerminalEffectPhase.SourceRemoved;
             if (removed == (live != null)
                 || live != null && !string.Equals(
-                    UnityEngine.JsonUtility.ToJson(live),
+                    CombatEquipmentSaveJson.SerializeOrder(live),
                     terminal.frozenSourcePayload,
                     StringComparison.Ordinal))
             {

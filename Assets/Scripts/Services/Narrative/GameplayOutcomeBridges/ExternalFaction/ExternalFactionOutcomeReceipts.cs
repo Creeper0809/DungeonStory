@@ -83,21 +83,3 @@ public readonly struct OffenseTruthRevealOutcomeReceipt
         OwnerRevision,
         0);
 }
-
-public readonly struct PreparedExternalFactionOutcome
-{
-    internal PreparedExternalFactionOutcome(
-        PreparedOutcomeToken token,
-        GameplayResultKey resultKey,
-        bool alreadyCommitted)
-    {
-        Token = token;
-        ResultKey = resultKey;
-        AlreadyCommitted = alreadyCommitted;
-    }
-
-    internal PreparedOutcomeToken Token { get; }
-    public GameplayResultKey ResultKey { get; }
-    public bool AlreadyCommitted { get; }
-    public bool IsValid => AlreadyCommitted && ResultKey.IsValid || Token.IsValid;
-}

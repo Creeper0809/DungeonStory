@@ -34,7 +34,8 @@ public sealed class RegionalSupplyContractSessionDependencies
 {
     public RegionalSupplyContractSessionDependencies(
         IGameSessionStateProvider gameDataProvider,
-        IGameMoneyAccount money,
+        IIdempotentGameMoneyAccount money,
+        IEconomyTransactionLedger transactionLedger,
         IGameEventBus gameEventBus,
         IGameClock gameClock,
         IWorkforceReplanService workforce)
@@ -42,6 +43,8 @@ public sealed class RegionalSupplyContractSessionDependencies
         GameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
         Money = money ?? throw new ArgumentNullException(nameof(money));
+        TransactionLedger = transactionLedger
+            ?? throw new ArgumentNullException(nameof(transactionLedger));
         GameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         GameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
@@ -49,7 +52,8 @@ public sealed class RegionalSupplyContractSessionDependencies
     }
 
     public IGameSessionStateProvider GameDataProvider { get; }
-    public IGameMoneyAccount Money { get; }
+    public IIdempotentGameMoneyAccount Money { get; }
+    public IEconomyTransactionLedger TransactionLedger { get; }
     public IGameEventBus GameEventBus { get; }
     public IGameClock GameClock { get; }
     public IWorkforceReplanService Workforce { get; }
@@ -66,7 +70,8 @@ public sealed class RegionalSupplyContractApplicationAdapter :
     private readonly IWorldDropZoneQuery dropZones;
     private readonly ICharacterWorldQuery characterWorld;
     private readonly IGameSessionStateProvider gameDataProvider;
-    private readonly IGameMoneyAccount money;
+    private readonly IIdempotentGameMoneyAccount money;
+    private readonly IEconomyTransactionLedger transactionLedger;
     private readonly IGameEventBus gameEventBus;
     private readonly IGameClock gameClock;
     private readonly IWorkforceReplanService workforce;
@@ -86,6 +91,7 @@ public sealed class RegionalSupplyContractApplicationAdapter :
         characterWorld = logistics.CharacterWorld;
         gameDataProvider = session.GameDataProvider;
         money = session.Money;
+        transactionLedger = session.TransactionLedger;
         gameEventBus = session.GameEventBus;
         gameClock = session.GameClock;
         workforce = session.Workforce;
@@ -232,8 +238,10 @@ public sealed class RegionalSupplyContractApplicationAdapter :
     public bool TryAddContractIncome(
         int amount,
         string operationId,
+        out RegionalSupplyRewardReceipt receipt,
         out string failureReason)
     {
+        receipt = null;
         failureReason = string.Empty;
         if (amount <= 0
             || string.IsNullOrWhiteSpace(operationId)
@@ -246,29 +254,42 @@ public sealed class RegionalSupplyContractApplicationAdapter :
             return false;
         }
 
-        int balanceBefore = money.Balance;
-        int expectedBalance;
-        try
-        {
-            expectedBalance = checked(balanceBefore + amount);
-        }
-        catch (OverflowException)
-        {
-            failureReason = "regional-supply-income-overflow";
-            return false;
-        }
-        money.Add(
+        EconomyTransactionContext context = new(
+            EconomyTransactionKind.ContractIncome,
+            operationId,
+            "regional-supply",
+            description: "지역 공급 계약");
+        if (!money.TryCreditOnce(
             amount,
-            new EconomyTransactionContext(
-                EconomyTransactionKind.ContractIncome,
-                "regional-supply",
-                operationId,
-                description: "지역 공급 계약"));
-        if (money.Balance != expectedBalance)
+            context,
+            out failureReason))
         {
-            failureReason = "regional-supply-income-not-published";
             return false;
         }
+        if (!transactionLedger.TryGetSuccessfulBySource(
+                EconomyTransactionKind.ContractIncome,
+                operationId,
+                out EconomyTransactionRecord published)
+            || published.amount != amount
+            || !string.Equals(
+                published.targetId,
+                "regional-supply",
+                StringComparison.Ordinal)
+            || published.balanceAfter - published.balanceBefore != amount
+            || published.balanceAfter != money.Balance
+            || string.IsNullOrWhiteSpace(published.transactionId))
+        {
+            failureReason = "regional-supply-income-receipt-mismatch";
+            return false;
+        }
+        receipt = new RegionalSupplyRewardReceipt
+        {
+            operationId = operationId,
+            transactionId = published.transactionId,
+            amount = published.amount,
+            balanceBefore = published.balanceBefore,
+            balanceAfter = published.balanceAfter
+        };
         return true;
     }
 

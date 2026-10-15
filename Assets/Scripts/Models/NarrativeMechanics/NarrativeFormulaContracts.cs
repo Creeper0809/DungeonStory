@@ -561,7 +561,8 @@ public sealed class NarrativeFormulaCandidate
         NarrativeFormulaDrawbackResolution drawback,
         double affinityScore,
         double noveltyScore,
-        IEnumerable<string> evidenceIds)
+        IEnumerable<string> evidenceIds,
+        string primaryCapabilityId = null)
     {
         NarrativeFormulaCapabilityAllocation[] allocationArray =
             (allocations ?? throw new ArgumentNullException(nameof(allocations))).ToArray();
@@ -594,6 +595,9 @@ public sealed class NarrativeFormulaCandidate
         AffinityScore = affinityScore;
         NoveltyScore = noveltyScore;
         EvidenceIds = Array.AsReadOnly(canonicalEvidence.OrderBy(value => value, StringComparer.Ordinal).ToArray());
+        ProminencePolicyVersion = primaryCapabilityId == null ? 0 : NarrativeFormulaCore.CurrentProminencePolicyVersion;
+        PrimaryCapabilityId = primaryCapabilityId ?? string.Empty;
+        NarrativeFormulaCore.RequirePrimaryProminence(ProminencePolicyVersion, PrimaryCapabilityId, allocationArray);
         CanonicalSignature = string.Join("|", allocationArray.Select((allocation, index) =>
             (index == 0 ? "primary:" : string.Empty) + allocation.Descriptor.CapabilityId + ";"
             + string.Join(";", allocation.Parameters.Select(value =>
@@ -601,6 +605,9 @@ public sealed class NarrativeFormulaCandidate
             + "|drawback=" + DrawbackId
             + ";requested=" + DrawbackRequestedCredit.ToString(CultureInfo.InvariantCulture)
             + ";accepted=" + DrawbackCredit.ToString(CultureInfo.InvariantCulture));
+        if (ProminencePolicyVersion != 0)
+            CanonicalSignature += "|prominence=" + ProminencePolicyVersion.ToString(CultureInfo.InvariantCulture)
+                + ";primary=" + PrimaryCapabilityId;
     }
 
     public IReadOnlyList<NarrativeFormulaCapabilityAllocation> Allocations { get; }
@@ -615,6 +622,8 @@ public sealed class NarrativeFormulaCandidate
     public double NoveltyScore { get; }
     public IReadOnlyList<string> EvidenceIds { get; }
     public string CanonicalSignature { get; }
+    public int ProminencePolicyVersion { get; }
+    public string PrimaryCapabilityId { get; }
     public double BudgetUtilization(int budget)
     {
         int localBudget = checked(budget + DrawbackCredit);

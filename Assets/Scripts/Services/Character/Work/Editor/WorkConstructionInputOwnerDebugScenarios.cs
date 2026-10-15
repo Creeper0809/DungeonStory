@@ -38,7 +38,7 @@ public static class WorkConstructionInputOwnerDebugScenarios
         Require(record.materialBufferCapacityGrams == 2000L
             && record.materialMassAuthorityRevision == 1L
             && record.materialCapacityFingerprint == "fixture-fingerprint"
-            && DungeonWorkOrderSaveData.CurrentVersion == 8);
+            && DungeonWorkOrderSaveData.CurrentVersion == 10);
         Debug.Log("V27 work.construction exact input-owner scenarios passed.");
     }
 

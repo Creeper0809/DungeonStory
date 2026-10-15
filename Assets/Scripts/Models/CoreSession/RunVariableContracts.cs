@@ -286,6 +286,7 @@ public sealed class RunVariableAggregateState
     public int CurrentDay { get; set; }
     public long NextOperationSequence { get; set; } = 1L;
     public int LastOperationAdvanceDay { get; set; }
+    public List<RunVariablePendingFactData> PendingObservations { get; } = new();
 
     public RunVariableAggregateState DeepClone()
     {
@@ -303,6 +304,7 @@ public sealed class RunVariableAggregateState
                     active.RemainingDays,
                     active.InstanceSequence)),
             Variables.CurrentInvasionVariable);
+        clone.PendingObservations.AddRange(PendingObservations.Select(value => value.Clone()));
         return clone;
     }
 }
@@ -310,7 +312,7 @@ public sealed class RunVariableAggregateState
 [Serializable]
 public sealed class DungeonRunVariableSaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     public int version = CurrentVersion;
     public int runSeed;
@@ -322,6 +324,7 @@ public sealed class DungeonRunVariableSaveData
     public List<DungeonActiveRunVariableSaveData> activeOperationVariables =
         new();
     public string invasionVariableId = string.Empty;
+    public List<RunVariablePendingFactData> pendingObservations = new();
 }
 
 [Serializable]
@@ -353,7 +356,7 @@ public sealed class DungeonActiveRunVariableSaveData
 [Serializable]
 public sealed class DungeonRunFlowSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public int version = CurrentVersion;
     public DungeonRunPhase phase = DungeonRunPhase.Preparation;
@@ -362,6 +365,7 @@ public sealed class DungeonRunFlowSaveData
     public bool bossArmed;
     public bool bossActive;
     public int bossCycle;
+    public OwnerRunCompletionPendingData pendingCompletion;
 }
 
 public interface IRunVariableRuntime

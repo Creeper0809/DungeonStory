@@ -31,6 +31,8 @@ internal sealed class EvolutionOutcomeMemoryPolicy : IOutcomeMemoryPolicy
             || outcome.OutcomeTypeId == EvolutionOutcomeIds.MemoryErasureTerminal
                 && outcome.Status == GameplayOutcomeStatus.Succeeded
             || outcome.OutcomeTypeId == EvolutionOutcomeIds.TraitInferenceCompleted
+            || outcome.OutcomeTypeId
+                == HeritableTraitAnalysisOutcomeIds.Completed
             || outcome.OutcomeTypeId == EvolutionOutcomeIds.MemoryErasureBossAwarded;
         NarrativeMemoryTier tier = permanent
             ? NarrativeMemoryTier.Core
@@ -173,6 +175,7 @@ internal sealed class TraitReactionPerspectiveProjector :
             "trait-reaction-v1",
             true);
     }
+
 }
 
 internal sealed class FacilityEvolutionPerspectiveProjector :
@@ -314,11 +317,11 @@ public sealed class ApparelPhysicalOutcomeDescriptor : IGameplayOutcomeDescripto
         outcome.OutcomeTypeId == OutcomeTypeId
         && (outcome.ParticipantCount == 1
                 && outcome.MetricCount == 2
-                && outcome.SubjectCount == 1
+                && outcome.SubjectCount == 2
                 && outcome.TagCount == 1
             || outcome.ParticipantCount == 2
                 && outcome.MetricCount == 5
-                && outcome.SubjectCount == 2
+                && outcome.SubjectCount == 3
                 && outcome.TagCount == 2)
         && outcome.AnchorCount == 3
             ? OutcomeValidationResult.Accepted
@@ -503,7 +506,7 @@ public sealed class FacilityEvolutionOutcomeDescriptor : IGameplayOutcomeDescrip
         && outcome.MetricCount == 4
         && outcome.SubjectCount == 1
         && outcome.TagCount == 1
-        && outcome.AnchorCount is 0 or 2
+        && outcome.InitialAnchorCount is 0 or 2
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject("facility-evolution-shape-invalid");
 }

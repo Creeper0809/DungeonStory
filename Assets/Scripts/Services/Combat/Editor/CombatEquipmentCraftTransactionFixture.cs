@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 public static class CombatEquipmentCraftTransactionFixture
 {
     public static string LastFailureReason { get; private set; } = string.Empty;
+    public static string LastEec06Summary { get; private set; } = string.Empty;
 
     private static readonly IReadOnlyDictionary<string, int> Requirements =
         new Dictionary<string, int>(StringComparer.Ordinal)
@@ -156,6 +158,508 @@ public static class CombatEquipmentCraftTransactionFixture
         return Reject(new[] { restored }, candidate)
             || Fail("terminal owner accepted stale incoming receipt");
     }
+
+    public static bool RunEec06()
+    {
+        LastFailureReason = string.Empty;
+        LastEec06Summary = string.Empty;
+        GameObject facilityObject = new("EEC06 Combat Craft Facility");
+        GameObject workerObject = new("EEC06 Combat Craft Worker");
+        try
+        {
+            ResourceGameContentCatalog rootCatalog = new(
+                new UnityGameContentRootLoader());
+            ResourceCombatEquipmentCatalog equipmentCatalog = new(rootCatalog);
+            ResourceEconomyContentCatalog materialCatalog = new(
+                Resources.LoadAll<ResourceItemDefinitionSO>(
+                    ResourceItemDefinitionSO.ResourcePath),
+                Resources.LoadAll<ProductionRecipeSO>(
+                    ProductionRecipeSO.ResourcePath),
+                Resources.LoadAll<CropDefinitionSO>(
+                    CropDefinitionSO.ResourcePath),
+                Resources.LoadAll<CraftMaterialDefinitionSO>(
+                    CraftMaterialDefinitionSO.ResourcePath));
+            BuildingSO facilityData = Resources.LoadAll<BuildingSO>(string.Empty)
+                .Where(value => value != null
+                    && value.GetAbility<BuildingEquipmentCraftingAbility>()?
+                        .CraftableEquipmentIds.Contains(
+                            "weapon:longsword",
+                            StringComparer.Ordinal) == true)
+                .First();
+            BuildableObject facility = facilityObject
+                .AddComponent<BuildableObject>();
+            CharacterAiEditorTestDependencies.Inject(facility);
+            facility.Initialization(facilityData, new Vector2Int(9, 4));
+
+            CharacterActor worker = workerObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(workerObject);
+            worker.EnsureRuntimeState();
+            worker.Initialize(Resources.LoadAll<CharacterSO>(string.Empty)
+                .First(value => value != null
+                    && value.id > 0
+                    && value.species != null));
+            const string WorkerId = "character:qa:eec06-smith";
+            worker.Identity.SetPersistentId(WorkerId);
+
+            IDungeonItemCatalogProvider itemCatalog =
+                EditorItemCatalogFactory.Create();
+            ProductionDomainOutputPublicationDebugScenarios.DomainFixture domain =
+                new(runtimeObject: facility, itemCatalog: itemCatalog);
+            FixtureGateway physical = new(itemCatalog, domain.Repository);
+            AcceptingCraftInputDestinations destinations = new();
+            EvolutionGameplayOutcomeEditorFixture qualityOutcomes = new(
+                "run:eec06-combat-craft-quality");
+            using DomainFactDispatcher qualityFacts = new();
+            var qualityCommits = new GameplayDomainFactCommitGroup(
+                qualityOutcomes.Recorder,
+                qualityOutcomes.Ledger);
+            using IDisposable qualityObservation = qualityFacts.Subscribe(
+                "test:combat.craft-quality",
+                new GameplayDomainFactObserver<
+                    CombatEquipmentQualityResolvedFact,
+                    ProductQualityOutcomeReceipt>(
+                        CombatEquipmentQualityFactMapping.Capture,
+                        qualityOutcomes.Registry,
+                        qualityOutcomes.Ledger,
+                        qualityOutcomes.Recorder,
+                        qualityCommits));
+            MigratedProducerOutcomeEditorFixture completionOutcomes = new(
+                "run:eec06-combat-craft-completion");
+            MigratedProducerOutcomeProbeTransaction completionProbe = new(
+                completionOutcomes.Transaction,
+                completionOutcomes.Recorder)
+            {
+                TargetKind = MigratedProducerOutcomeKind
+                    .CombatEquipmentCraftCompletionResult
+            };
+            using DomainFactDispatcher completionFacts = new();
+            var completionCommits = new GameplayDomainFactCommitGroup(
+                completionOutcomes.Recorder,
+                completionOutcomes.Ledger);
+            var completionObserver =
+                new CombatEquipmentCraftCompletionFactObserver(
+                    completionOutcomes.Transaction,
+                    completionCommits);
+            using IDisposable completionObservation = completionFacts.Subscribe(
+                "test:combat.craft-completion",
+                new CombatCraftCompletionFactProbeObserver(
+                    completionObserver,
+                    completionProbe));
+            IProductionDomainOutputPublicationService outputPublication =
+                CreateObservedPublication(
+                    domain,
+                    completionFacts,
+                    completionOutcomes);
+            FixedExcellentCraftQualityResolver qualityResolver = new();
+
+            CombatEquipmentRuntime runtime = CreateEec06Runtime(
+                equipmentCatalog,
+                materialCatalog,
+                domain,
+                facility,
+                physical,
+                destinations,
+                qualityFacts,
+                outputPublication,
+                qualityResolver);
+            string allowFailure = string.Empty;
+            string priorityFailure = string.Empty;
+            if (!runtime.SetCraftMaterialAllowed(
+                    "weapon:longsword",
+                    "material:blacksteel",
+                    facility,
+                    true,
+                    out allowFailure)
+                || !runtime.SetCraftMaterialAllowed(
+                    "weapon:longsword",
+                    "material:blacksteel",
+                    facility,
+                    true,
+                    out _)
+                || !runtime.MoveCraftMaterialPriority(
+                    "weapon:longsword",
+                    "material:blacksteel",
+                    facility,
+                    -1,
+                    out priorityFailure))
+            {
+                return Fail("EEC06 public material commands: "
+                    + allowFailure + ":" + priorityFailure);
+            }
+            if (runtime.SetCraftMaterialAllowed(
+                    "weapon:longsword",
+                    "material:not-authored",
+                    facility,
+                    true,
+                    out _))
+            {
+                return Fail("EEC06 accepted an unauthored material command");
+            }
+            CombatEquipmentCraftMaterialPolicySaveData policy =
+                runtime.GetCraftMaterialPolicy("weapon:longsword", facility);
+            if (policy.commandRevision != 2L
+                || !policy.commandReceipts.Select(value => value.commandKind)
+                    .SequenceEqual(new[]
+                    {
+                        "material-allowed",
+                        "material-priority"
+                    }))
+            {
+                return Fail("EEC06 material policy receipts");
+            }
+            if (!runtime.TryQueueCraft(
+                    "weapon:longsword",
+                    "material:blacksteel",
+                    facility,
+                    out string queueFailure))
+            {
+                return Fail("EEC06 public queue: " + queueFailure);
+            }
+            CombatEquipmentCraftOrderSaveData queued = runtime.CraftQueue.Single();
+            WorkerSelectionPolicySaveData workerPolicy =
+                WorkerSelectionPolicySaveData.Anyone(
+                    WorkerCandidateSortMode.Fastest);
+            string workerFailure = string.Empty;
+            string qualityFailure = string.Empty;
+            if (!runtime.SetCraftWorkerPolicy(
+                    queued.orderId,
+                    workerPolicy,
+                    out workerFailure)
+                || !runtime.SetCraftWorkerPolicy(
+                    queued.orderId,
+                    workerPolicy,
+                    out _)
+                || !runtime.SetCraftQualityTarget(
+                    queued.orderId,
+                    CraftsmanshipQualityTier.Good,
+                    RejectedOutputDisposition.MarkForSale,
+                    QualityRepeatLimitMode.SafeLimits,
+                    3,
+                    144f,
+                    1,
+                    out qualityFailure)
+                || !runtime.SetCraftQualityTarget(
+                    queued.orderId,
+                    CraftsmanshipQualityTier.Good,
+                    RejectedOutputDisposition.MarkForSale,
+                    QualityRepeatLimitMode.SafeLimits,
+                    3,
+                    144f,
+                    1,
+                    out _)
+                || runtime.SetCraftWorkerPolicy(
+                    "combat-craft:missing",
+                    workerPolicy,
+                    out _))
+            {
+                return Fail("EEC06 public order commands: "
+                    + workerFailure + ":" + qualityFailure);
+            }
+            queued = runtime.CraftQueue.Single();
+            string[] commandKinds = queued.commandReceipts
+                .Select(value => value.commandKind)
+                .ToArray();
+            if (queued.commandRevision != 5L
+                || !commandKinds.SequenceEqual(new[]
+                {
+                    "material-allowed",
+                    "material-priority",
+                    "order-queued",
+                    "worker-policy",
+                    "quality-target"
+                })
+                || completionOutcomes.Ledger.CaptureGameplayOutcomes()
+                    .exactOutcomes.Count != 0)
+            {
+                return Fail("EEC06 command context was duplicated or became a terminal");
+            }
+
+            string blacksteelStack = physical.Add(
+                "material:blacksteel-ingot",
+                2,
+                queued.materialDestinationId);
+            string frameStack = physical.Add(
+                "component:growth-frame",
+                1,
+                queued.materialDestinationId);
+
+            int firstWorkCompleted = runtime.ApplyCraftWork(
+                new[] { "weapon:longsword" },
+                1f,
+                worker,
+                80f,
+                out _,
+                out _,
+                out _);
+            CombatEquipmentCraftOrderSaveData partial = runtime.CraftQueue.Single();
+            CombatEquipmentSaveSection partialSection = new(
+                runtime,
+                ProductionOutputLifecycleRestoreCandidatePublisher.IsolatedSectionFixtureOnly);
+            string partialJson = partialSection.Capture();
+            var partialTokens = Newtonsoft.Json.Linq.JObject.Parse(partialJson);
+            var partialOrderTokens = partialTokens["craftOrders"][0];
+            if (firstWorkCompleted != 0
+                || partial.completedWork != 1f
+                || !partial.materialsReady
+                || partial.attemptOutcomeResolved
+                || partial.outputPreparedComponent != null
+                || partial.resolvedMythicProvenance != null
+                || partialOrderTokens["outputPreparedComponent"].Type
+                    != Newtonsoft.Json.Linq.JTokenType.Null
+                || partialOrderTokens["resolvedMythicProvenance"].Type
+                    != Newtonsoft.Json.Linq.JTokenType.Null
+                || physical.Quantity(blacksteelStack) != 0
+                || physical.Quantity(frameStack) != 0
+                || qualityOutcomes.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count != 0
+                || completionOutcomes.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count != 0)
+            {
+                return Fail("EEC06 partial owner capture lost absent output or WIP consumption");
+            }
+            // Neither the former JsonUtility encoding nor a non-null empty
+            // optional is accepted. Reject before publication, leaving the owner intact.
+            for (int malformedCase = 0; malformedCase < 3; malformedCase++)
+            {
+                DungeonCombatEquipmentSaveData malformed = DungeonSaveJson.Deserialize<
+                    DungeonCombatEquipmentSaveData>(malformedCase == 0
+                        ? JsonUtility.ToJson(runtime.Capture())
+                        : partialJson);
+                if (malformedCase == 1)
+                    malformed.craftOrders[0].outputPreparedComponent = new ItemInstanceComponentSaveData();
+                if (malformedCase == 2)
+                    malformed.craftOrders[0].resolvedMythicProvenance = new MythicProvenanceSaveData();
+                bool rejected = false;
+                try
+                {
+                    _ = runtime.BuildRestoreCandidate(malformed);
+                }
+                catch (InvalidOperationException)
+                {
+                    rejected = true;
+                }
+                if (!rejected || partialSection.Capture() != partialJson)
+                    return Fail("EEC06 invalid non-null optional was accepted or changed owner");
+            }
+            CombatEquipmentRuntime partialRestored = CreateEec06Runtime(
+                equipmentCatalog, materialCatalog, domain, facility, physical,
+                destinations, qualityFacts, outputPublication,
+                qualityResolver);
+            partialRestored.PublishRestoreCandidate(partialRestored.BuildRestoreCandidate(
+                DungeonSaveJson.Deserialize<DungeonCombatEquipmentSaveData>(partialJson)));
+            CombatEquipmentCraftOrderSaveData resumedPartial = partialRestored.CraftQueue.Single();
+            if (resumedPartial.completedWork != partial.completedWork
+                || resumedPartial.materialTransferCommitId != partial.materialTransferCommitId
+                || resumedPartial.outputPreparedComponent != null
+                || resumedPartial.resolvedMythicProvenance != null)
+                return Fail("EEC06 unresolved first-attempt WIP changed across fresh JSON restore");
+            runtime = partialRestored;
+            completionProbe.FaultMode = MigratedProducerOutcomeFaultMode.RejectCommit;
+            int interrupted = runtime.ApplyCraftWork(
+                new[] { "weapon:longsword" },
+                queued.requiredWork,
+                worker,
+                80f,
+                out _,
+                out _,
+                out _);
+            CombatEquipmentCraftOrderSaveData pending = runtime.CraftQueue.Single();
+            int blacksteelRemaining = physical.Quantity(blacksteelStack);
+            int frameRemaining = physical.Quantity(frameStack);
+            int completionExactAfterInterrupt = completionOutcomes.Ledger
+                .CaptureGameplayOutcomes().exactOutcomes.Count;
+            int qualityExactAfterInterrupt = qualityOutcomes.Ledger
+                .CaptureGameplayOutcomes().exactOutcomes.Count;
+            if (interrupted != 0
+                || !pending.attemptOutcomeResolved
+                || !pending.qualityOutcomeCommitted
+                || string.IsNullOrWhiteSpace(pending.qualityOutcomeResultKey)
+                || pending.completionFact?.IsEmpty != true
+                || pending.outputPublication == null
+                || pending.outputPublication.outputPublished
+                || pending.outputPublication.observationExpected
+                || pending.outputPublication.stacks.Count != 0
+                || pending.materialTransferInputs.Count != 2
+                || pending.materialTransferCommitId != partial.materialTransferCommitId
+                || blacksteelRemaining != 0
+                || frameRemaining != 0
+                || completionExactAfterInterrupt != 0
+                || qualityExactAfterInterrupt != 1)
+            {
+                return Fail("EEC06 completion interruption did not preserve one durable child"
+                    + $":completed={interrupted}"
+                    + $",resolved={pending.attemptOutcomeResolved}"
+                    + $",qualityCommitted={pending.qualityOutcomeCommitted}"
+                    + $",qualityKey={!string.IsNullOrWhiteSpace(pending.qualityOutcomeResultKey)}"
+                    + $",completionFactEmpty={pending.completionFact?.IsEmpty}"
+                    + $",outputEnvelope={pending.outputPublication != null}"
+                    + $",outputPublished={pending.outputPublication?.outputPublished}"
+                    + $",outputStacks={pending.outputPublication?.stacks?.Count ?? -1}"
+                    + $",inputRecords={pending.materialTransferInputs.Count}"
+                    + $",blacksteelRemaining={blacksteelRemaining}"
+                    + $",frameRemaining={frameRemaining}"
+                    + $",completionExact={completionExactAfterInterrupt}"
+                    + $",qualityExact={qualityExactAfterInterrupt}");
+            }
+            string qualityResultKey = pending.qualityOutcomeResultKey;
+            int physicalCountAfterInterrupted = physical.GetAllStacks().Count;
+
+            DungeonCombatEquipmentSaveData saved = DungeonSaveJson.Deserialize<
+                DungeonCombatEquipmentSaveData>(
+                CombatEquipmentSaveJson.Serialize(runtime.Capture()));
+            CombatEquipmentRuntime restored = CreateEec06Runtime(
+                equipmentCatalog,
+                materialCatalog,
+                domain,
+                facility,
+                physical,
+                destinations,
+                qualityFacts,
+                outputPublication,
+                qualityResolver);
+            restored.PublishRestoreCandidate(restored.BuildRestoreCandidate(saved));
+            CombatEquipmentCraftOrderSaveData restoredPending =
+                restored.CraftQueue.Single();
+            if (restoredPending.commandRevision != 5L
+                || !restoredPending.commandReceipts
+                    .Select(value => value.commandKind)
+                    .SequenceEqual(commandKinds)
+                || !string.Equals(
+                    restoredPending.qualityOutcomeResultKey,
+                    qualityResultKey,
+                    StringComparison.Ordinal)
+                || restoredPending.completionFact?.IsEmpty != true
+                || restoredPending.outputPublication.outputPublished
+                || restoredPending.outputPublication.observationExpected
+                || restoredPending.outputPublication.stacks.Count != 0)
+            {
+                return Fail("EEC06 fresh runtime restore changed frozen evidence");
+            }
+
+            completionProbe.FaultMode = MigratedProducerOutcomeFaultMode.None;
+            int completed = restored.ApplyCraftWork(
+                new[] { "weapon:longsword" },
+                1f,
+                worker,
+                80f,
+                out string completedDefinition,
+                out string completedMaterial,
+                out CombatEquipmentQuality completedQuality);
+            GameplayOutcomeLedgerSaveData completionLedger =
+                completionOutcomes.Ledger.CaptureGameplayOutcomes();
+            if (completed != 1
+                || completedDefinition != "weapon:longsword"
+                || completedMaterial != "material:blacksteel"
+                || completedQuality != CombatEquipmentQuality.Excellent
+                || restored.CraftQueue.Count != 0
+                || completionLedger.exactOutcomes.Count != 1
+                || restoredPending.completionFact?.IsEmpty != false
+                || !restoredPending.outputPublication.observationDelivered
+                || physical.GetAllStacks().Count != physicalCountAfterInterrupted + 1)
+            {
+                return Fail("EEC06 restored production order did not complete exactly once");
+            }
+            string outputStackId = restoredPending.outputPublication.stacks
+                .Single().stackId;
+            string outputInstanceId = restoredPending.outputPublication.stacks
+                .Single().itemInstanceId;
+            GameplayOutcomeSnapshot exact = completionLedger.exactOutcomes.Single();
+            string commandContext = SnapshotFact(exact, "craft-command-context");
+            string inputSources = SnapshotFact(exact, "input-source-stacks");
+            string outputStacks = SnapshotFact(exact, "output-stacks");
+            string contributors = SnapshotFact(exact, "contributors-and-work");
+            string qualityFact = SnapshotFact(exact, "quality-result-key");
+            string completionResultKey = completionProbe.LatestCommittedKey(
+                MigratedProducerOutcomeKind.CombatEquipmentCraftCompletionResult)
+                .ToString();
+            if (!commandKinds.All(kind => commandContext.Contains(
+                    kind,
+                    StringComparison.Ordinal))
+                || !inputSources.Contains(blacksteelStack, StringComparison.Ordinal)
+                || !inputSources.Contains(frameStack, StringComparison.Ordinal)
+                || !outputStacks.Contains(outputStackId, StringComparison.Ordinal)
+                || !outputStacks.Contains(outputInstanceId, StringComparison.Ordinal)
+                || !contributors.Contains(WorkerId + "=", StringComparison.Ordinal)
+                || qualityFact != qualityResultKey
+                || qualityFact == completionResultKey
+                || restoredPending.outputPublication.observationKey
+                    != completionResultKey
+                || !exact.subjects.Any(value => value.entityId == WorkerId)
+                || !exact.subjects.Any(value => value.entityId == outputInstanceId))
+            {
+                return Fail("EEC06 terminal omitted command/material/product/contributor/quality identity");
+            }
+            int exactBeforeReplay = completionLedger.exactOutcomes.Count;
+            int physicalBeforeReplay = physical.GetAllStacks().Count;
+            int replayed = restored.ApplyCraftWork(
+                new[] { "weapon:longsword" },
+                1f,
+                worker,
+                80f,
+                out _,
+                out _,
+                out _);
+            if (replayed != 0
+                || completionOutcomes.Ledger.CaptureGameplayOutcomes()
+                    .exactOutcomes.Count != exactBeforeReplay
+                || physical.GetAllStacks().Count != physicalBeforeReplay)
+            {
+                return Fail("EEC06 terminal replay duplicated output or parent");
+            }
+
+            LastEec06Summary = "commands=5; inputStacks=2; outputStacks=1; "
+                + "contributors=1; qualityChild=1; completionParent=1; "
+                + "unresolvedWipJsonRestore=pass; absentOutputFields=2; "
+                + "malformedOptionalRejects=3; rejectOwnerMutation=0; "
+                + "freshRestore=pass; replayDuplicate=0";
+            return true;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(workerObject);
+            UnityEngine.Object.DestroyImmediate(facilityObject);
+        }
+    }
+
+    private static CombatEquipmentRuntime CreateEec06Runtime(
+        ResourceCombatEquipmentCatalog equipmentCatalog,
+        ResourceEconomyContentCatalog materialCatalog,
+        ProductionDomainOutputPublicationDebugScenarios.DomainFixture domain,
+        BuildableObject facility,
+        FixtureGateway physical,
+        ICombatEquipmentCraftInputDestinationRuntime inputDestinations,
+        IDomainFactStagingPublisher qualityFacts,
+        IProductionDomainOutputPublicationService outputPublication,
+        ICraftQualityResolver qualityResolver) =>
+        CombatEquipmentEditorTestFactory.Create(
+            equipmentCatalog,
+            domain.Repository,
+            new CharacterCarryInventoryRegistry(),
+            materialCatalog,
+            EmptyEvolutionModuleRegistry.Instance,
+            EditorAllResearchRuntimeProvider.Instance,
+            EmptyEquipmentModuleCatalog.Instance,
+            physical,
+            new EditorFixedGameCalendar(137, 9),
+            qualityResolver: qualityResolver,
+            inputDestinations: inputDestinations,
+            craftOutputTransactionFactory: stateStore =>
+                new CombatEquipmentCraftOutputTransaction(
+                    stateStore,
+                    new FixedBuildingWorld(facility),
+                    outputPublication,
+                    new FixedRejectedSaleDestination(
+                        new Vector2Int(14, 6),
+                        domain.Claims),
+                    physical,
+                    qualityFacts,
+                    (IObservedProductionDomainOutputPublicationService)
+                        outputPublication));
+
+    private static string SnapshotFact(
+        GameplayOutcomeSnapshot snapshot,
+        string factId) => snapshot.facts.Single(value => string.Equals(
+        value.factId,
+        factId,
+        StringComparison.Ordinal)).value;
 
     private static bool Fail(string reason)
     {
@@ -330,20 +834,63 @@ public static class CombatEquipmentCraftTransactionFixture
             string facilityId = facility.RequirePersistentInstanceId().Value;
             EvolutionGameplayOutcomeEditorFixture outcomes = new(
                 "run:combat-craft-quality-editor");
+            using DomainFactDispatcher qualityFacts = new();
+            var qualityCommits = new GameplayDomainFactCommitGroup(
+                outcomes.Recorder,
+                outcomes.Ledger);
+            using IDisposable qualityObservation = qualityFacts.Subscribe(
+                "test:combat.craft-quality",
+                new GameplayDomainFactObserver<
+                    CombatEquipmentQualityResolvedFact,
+                    ProductQualityOutcomeReceipt>(
+                        CombatEquipmentQualityFactMapping.Capture,
+                        outcomes.Registry,
+                        outcomes.Ledger,
+                        outcomes.Recorder,
+                        qualityCommits));
+            MigratedProducerOutcomeEditorFixture completionOutcomes = new(
+                "run:combat-craft-completion-editor");
+            MigratedProducerOutcomeProbeTransaction completionProbe = new(
+                completionOutcomes.Transaction,
+                completionOutcomes.Recorder)
+            {
+                TargetKind = MigratedProducerOutcomeKind
+                    .CombatEquipmentCraftCompletionResult
+            };
+            using DomainFactDispatcher completionFacts = new();
+            var completionCommits = new GameplayDomainFactCommitGroup(
+                completionOutcomes.Recorder,
+                completionOutcomes.Ledger);
+            var completionObserver =
+                new CombatEquipmentCraftCompletionFactObserver(
+                    completionOutcomes.Transaction,
+                    completionCommits);
+            using IDisposable completionObservation = completionFacts.Subscribe(
+                "test:combat.craft-completion",
+                new CombatCraftCompletionFactProbeObserver(
+                    completionObserver,
+                    completionProbe));
 
             ProductionDomainOutputPublicationDebugScenarios.DomainFixture unique =
                 new(runtimeObject: facility);
+            IProductionDomainOutputPublicationService uniquePublication =
+                CreateObservedPublication(
+                    unique,
+                    completionFacts,
+                    completionOutcomes);
             DeferringProductQualityOutcomeCommitter deferredQuality = new();
             CombatEquipmentCraftOutputTransaction deferredTransaction = new(
                 new CombatEquipmentRuntimeStateStore(
                     new DungeonRuntimeAggregateRootStore()),
                 new FixedBuildingWorld(facility),
-                ProductionDomainOutputPublicationDebugScenarios.Service(unique),
+                uniquePublication,
                 new FixedRejectedSaleDestination(
                     new Vector2Int(14, 6),
                     unique.Claims),
                 UnavailableEquipmentPhysicalItemGateway.Instance,
-                deferredQuality);
+                deferredQuality,
+                (IObservedProductionDomainOutputPublicationService)
+                    uniquePublication);
             CombatEquipmentCraftOrderSaveData deferredOrder = new()
             {
                 orderId = "combat-craft:quality-deferred",
@@ -376,12 +923,14 @@ public static class CombatEquipmentCraftTransactionFixture
                 new CombatEquipmentRuntimeStateStore(
                     new DungeonRuntimeAggregateRootStore()),
                 new FixedBuildingWorld(facility),
-                ProductionDomainOutputPublicationDebugScenarios.Service(unique),
+                uniquePublication,
                 new FixedRejectedSaleDestination(
                     new Vector2Int(14, 6),
                     unique.Claims),
                 UnavailableEquipmentPhysicalItemGateway.Instance,
-                outcomes.Bridge);
+                qualityFacts,
+                (IObservedProductionDomainOutputPublicationService)
+                    uniquePublication);
             const string InstanceId =
                 "item-instance:combat-common-output:dagger:001";
             CombatEquipmentInstance prepared = new()
@@ -430,9 +979,45 @@ public static class CombatEquipmentCraftTransactionFixture
                 outputPhase = CombatEquipmentCraftOutputPhase
                     .ResolvedWaitingForPublication
             };
-            ProductionDomainOutputPublicationResult equipmentCommit =
+            StampCompletionContext(
+                equipmentOrder,
+                "world-item-stack:qa:combat-input:iron");
+            completionProbe.FaultMode =
+                MigratedProducerOutcomeFaultMode.RejectReservation;
+            ProductionDomainOutputPublicationResult rejectedEquipmentCommit =
                 uniqueTransaction.EnsureCommitted(equipmentOrder);
+            int equipmentOutputCountAfterRejection =
+                unique.Query.GetAllStacks().Count;
+            bool rejectedEquipmentOwnerClean =
+                equipmentOrder.outputPublication != null
+                && !equipmentOrder.outputPublication.outputPublished
+                && !equipmentOrder.outputPublication.observationExpected
+                && equipmentOrder.outputPublication.stacks.Count == 0
+                && equipmentOrder.completionFact?.IsEmpty == true
+                && unique.Repository.EquipmentInstances.Count == 0;
+            CombatEquipmentCraftOrderSaveData restoredEquipment =
+                JsonUtility.FromJson<CombatEquipmentCraftOrderSaveData>(
+                    JsonUtility.ToJson(equipmentOrder));
+            completionProbe.FaultMode = MigratedProducerOutcomeFaultMode.None;
+            ProductionDomainOutputPublicationResult equipmentCommit =
+                uniqueTransaction.EnsureCommitted(restoredEquipment);
+            bool equipmentObservation =
+                uniqueTransaction.TryEnsureObservationDelivered(
+                restoredEquipment,
+                out _);
+            equipmentOrder = restoredEquipment;
+            if (rejectedEquipmentCommit.IsCommitted
+                || equipmentOutputCountAfterRejection != 0
+                || !rejectedEquipmentOwnerClean)
+            {
+                return false;
+            }
             if (!equipmentCommit.IsCommitted
+                || !equipmentObservation
+                || string.IsNullOrWhiteSpace(
+                    equipmentOrder.outputPublication.observationKey)
+                || !equipmentOrder.outputPublication.observationDelivered
+                || equipmentOrder.completionFact?.IsEmpty != false
                 || equipmentOrder.outputPhase != CombatEquipmentCraftOutputPhase
                     .PublishedAwaitingInputAcknowledgement
                 || equipmentOrder.outputPublication.stacks.Count != 1
@@ -443,6 +1028,7 @@ public static class CombatEquipmentCraftTransactionFixture
                     != QualityRejectedOutputRules.MarketDestinationId
                 || equipmentOrder.outputPublication.releaseDestinationX != 14
                 || equipmentOrder.outputPublication.releaseDestinationY != 6
+                || unique.Query.GetAllStacks().Count != 1
                 || unique.Repository.EquipmentInstances.Count != 1
                 || !uniqueTransaction.TryAcknowledgeAndRoute(
                     equipmentOrder,
@@ -467,16 +1053,23 @@ public static class CombatEquipmentCraftTransactionFixture
 
             ProductionDomainOutputPublicationDebugScenarios.DomainFixture ammo =
                 new(runtimeObject: facility);
+            IProductionDomainOutputPublicationService ammoPublication =
+                CreateObservedPublication(
+                    ammo,
+                    completionFacts,
+                    completionOutcomes);
             CombatEquipmentCraftOutputTransaction ammoTransaction = new(
                 new CombatEquipmentRuntimeStateStore(
                     new DungeonRuntimeAggregateRootStore()),
                 new FixedBuildingWorld(facility),
-                ProductionDomainOutputPublicationDebugScenarios.Service(ammo),
+                ammoPublication,
                 new FixedRejectedSaleDestination(
                     new Vector2Int(14, 6),
                     ammo.Claims),
                 UnavailableEquipmentPhysicalItemGateway.Instance,
-                outcomes.Bridge);
+                qualityFacts,
+                (IObservedProductionDomainOutputPublicationService)
+                    ammoPublication);
             CombatEquipmentCraftOrderSaveData ammoOrder = new()
             {
                 orderId = "combat-craft:common-ammunition",
@@ -506,9 +1099,39 @@ public static class CombatEquipmentCraftTransactionFixture
                 outputPhase = CombatEquipmentCraftOutputPhase
                     .ResolvedWaitingForPublication
             };
-            ProductionDomainOutputPublicationResult ammoCommit =
+            StampCompletionContext(
+                ammoOrder,
+                "world-item-stack:qa:combat-input:wood");
+            completionProbe.FaultMode = MigratedProducerOutcomeFaultMode.RejectCommit;
+            ProductionDomainOutputPublicationResult rejectedAmmoCommit =
                 ammoTransaction.EnsureCommitted(ammoOrder);
-            return ammoCommit.IsCommitted
+            int ammoOutputCountAfterRejection = ammo.Query.GetAllStacks().Count;
+            bool rejectedAmmoOwnerClean = ammoOrder.outputPublication != null
+                && !ammoOrder.outputPublication.outputPublished
+                && !ammoOrder.outputPublication.observationExpected
+                && ammoOrder.outputPublication.stacks.Count == 0
+                && ammoOrder.completionFact?.IsEmpty == true;
+            CombatEquipmentCraftOrderSaveData restoredAmmo =
+                JsonUtility.FromJson<CombatEquipmentCraftOrderSaveData>(
+                    JsonUtility.ToJson(ammoOrder));
+            string beforeParent = JsonUtility.ToJson(restoredAmmo);
+            completionProbe.FaultMode = MigratedProducerOutcomeFaultMode.None;
+            ProductionDomainOutputPublicationResult ammoCommit =
+                ammoTransaction.EnsureCommitted(restoredAmmo);
+            bool ammoObservation =
+                ammoTransaction.TryEnsureObservationDelivered(
+                    restoredAmmo,
+                    out _);
+            ammoOrder = restoredAmmo;
+            bool valid = ammoCommit.IsCommitted
+                && !rejectedAmmoCommit.IsCommitted
+                && ammoOutputCountAfterRejection == 0
+                && rejectedAmmoOwnerClean
+                && ammoObservation
+                && string.IsNullOrWhiteSpace(
+                    ammoOrder.outputPublication.observationKey) == false
+                && ammoOrder.outputPublication.observationDelivered
+                && ammoOrder.completionFact?.IsEmpty == false
                 && equipmentOrder.qualityOutcomeCommitted
                 && ammoOrder.qualityOutcomeCommitted
                 && ammoOrder.outputPublication.stacks.Count == 3
@@ -526,6 +1149,37 @@ public static class CombatEquipmentCraftTransactionFixture
                     stack.State == WorldItemStackState.Loose
                     && string.IsNullOrEmpty(stack.DestinationId)
                     && !stack.HasDestinationPosition);
+            if (!valid
+                || completionProbe.CommitCount(MigratedProducerOutcomeKind
+                    .CombatEquipmentCraftCompletionResult) != 2)
+            {
+                return false;
+            }
+
+            GameplayOutcomeReplayIdentity identity =
+                MigratedProducerOutcomeE2EAssertions.RequireExact(
+                    completionOutcomes,
+                    MigratedProducerOutcomeKind
+                        .CombatEquipmentCraftCompletionResult,
+                    completionProbe,
+                    beforeParent,
+                    JsonUtility.ToJson(ammoOrder));
+            return completionOutcomes.Ledger.TryGetExact(
+                    identity.OutcomeId,
+                    out GameplayOutcomeSnapshot exact)
+                && exact.facts.Any(value =>
+                    value.factId == "craft-command-context"
+                    && value.value.Contains("material-allowed", StringComparison.Ordinal)
+                    && value.value.Contains("material-priority", StringComparison.Ordinal)
+                    && value.value.Contains("order-queued", StringComparison.Ordinal)
+                    && value.value.Contains("worker-policy", StringComparison.Ordinal)
+                    && value.value.Contains("quality-target", StringComparison.Ordinal))
+                && exact.facts.Any(value =>
+                    value.factId == "input-source-stacks"
+                    && value.value != "none")
+                && exact.facts.Any(value =>
+                    value.factId == "output-stacks"
+                    && value.value != "none");
         }
         finally
         {
@@ -644,30 +1298,325 @@ public static class CombatEquipmentCraftTransactionFixture
         }
     }
 
+    private static void StampCompletionContext(
+        CombatEquipmentCraftOrderSaveData order,
+        string sourceStackId)
+    {
+        order.materialId = "material:iron";
+        order.requiredWork = 12f;
+        order.completedWork = 12f;
+        order.materialsReady = true;
+        order.materialTransferCommitId = "batch-commit:qa:" + order.orderId;
+        order.materialTransferMassGrams = 2500L;
+        order.materialTransferInputs = new List<
+            CombatEquipmentCraftMaterialTransferInput>
+        {
+            new()
+            {
+                itemId = "material:iron-ingot",
+                sourceStackId = sourceStackId,
+                quantity = 2
+            }
+        };
+        order.contributions = new List<CraftContributionSaveData>
+        {
+            new()
+            {
+                characterId = order.resolvedMakerCharacterId,
+                contributedWork = 12f,
+                relevantSkill = 7f
+            }
+        };
+        order.commandRevision = 5L;
+        order.commandReceipts = new List<CombatCraftCommandReceiptSaveData>
+        {
+            Command("material-allowed", 1L, "false", "true"),
+            Command("material-priority", 2L, "4", "1"),
+            Command("order-queued", 3L, "none", order.orderId),
+            Command("worker-policy", 4L, "anyone", "best-quality"),
+            Command("quality-target", 5L, "awful", "good")
+        };
+    }
+
+    private static CombatCraftCommandReceiptSaveData Command(
+        string kind,
+        long revision,
+        string before,
+        string after) => new()
+    {
+        commandKind = kind,
+        revision = revision,
+        beforeValue = before,
+        afterValue = after,
+        absoluteDay = 4
+    };
+
+    private static IProductionDomainOutputPublicationService
+        CreateObservedPublication(
+            ProductionDomainOutputPublicationDebugScenarios.DomainFixture domain,
+            DomainFactDispatcher facts,
+            MigratedProducerOutcomeEditorFixture outcomes) =>
+        ProductionDomainOutputPublicationDebugScenarios.Service(
+            domain,
+            facts: facts,
+            recovery: facts,
+            deliveries: new GameplayDomainFactDeliveryQuery(
+                outcomes.Recorder,
+                outcomes.Ledger));
+
+    private sealed class CombatCraftCompletionFactProbeObserver :
+        IDurableDomainFactObserver<CombatEquipmentCraftCompletedFact>,
+        IDurableDomainFactStagingObserver<CombatEquipmentCraftCompletedFact>,
+        IDurableDomainFactRecoveryObserver<CombatEquipmentCraftCompletedFact>
+    {
+        private static readonly MigratedProducerOutcomeKind Kind =
+            MigratedProducerOutcomeKind.CombatEquipmentCraftCompletionResult;
+
+        private readonly CombatEquipmentCraftCompletionFactObserver inner;
+        private readonly MigratedProducerOutcomeProbeTransaction probe;
+        private ProbeCommitGroup commits;
+
+        internal CombatCraftCompletionFactProbeObserver(
+            CombatEquipmentCraftCompletionFactObserver inner,
+            MigratedProducerOutcomeProbeTransaction probe)
+        {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            this.probe = probe ?? throw new ArgumentNullException(nameof(probe));
+        }
+
+        public bool TryReserve(
+            in CombatEquipmentCraftCompletedFact fact,
+            out object reservation,
+            out string failure)
+        {
+            reservation = null;
+            if (!probe.TryObserveDomainFactReservation(Kind, out failure))
+                return false;
+            return inner.TryReserve(fact, out reservation, out failure);
+        }
+
+        public bool TryPrepare(
+            in CombatEquipmentCraftCompletedFact fact,
+            object reservation,
+            out IDomainFactPreparedPublication prepared,
+            out string failure)
+        {
+            prepared = null;
+            if (!inner.TryPrepare(
+                    fact,
+                    reservation,
+                    out IDomainFactPreparedPublication innerPrepared,
+                    out failure))
+            {
+                return false;
+            }
+            prepared = Wrap(
+                innerPrepared,
+                ResultKey(fact));
+            return true;
+        }
+
+        public bool TryStage(
+            in CombatEquipmentCraftCompletedFact fact,
+            out object reservation,
+            out IDomainFactPreparedPublication prepared,
+            out string failure)
+        {
+            reservation = null;
+            prepared = null;
+            if (!probe.TryObserveDomainFactReservation(Kind, out failure))
+                return false;
+            if (!inner.TryStage(
+                    fact,
+                    out reservation,
+                    out IDomainFactPreparedPublication innerPrepared,
+                    out failure))
+            {
+                return false;
+            }
+            prepared = Wrap(
+                innerPrepared,
+                ResultKey(fact));
+            return true;
+        }
+
+        public bool TryPrepareReplay(
+            string publicationKey,
+            in CombatEquipmentCraftCompletedFact fact,
+            out IDomainFactPreparedPublication prepared,
+            out string failure)
+        {
+            prepared = null;
+            if (!inner.TryPrepareReplay(
+                    publicationKey,
+                    fact,
+                    out IDomainFactPreparedPublication innerPrepared,
+                    out failure))
+            {
+                return false;
+            }
+            prepared = Wrap(
+                innerPrepared,
+                ResultKey(fact));
+            return true;
+        }
+
+        public DomainFactDelivery Replay(
+            in CombatEquipmentCraftCompletedFact fact) => inner.Replay(fact);
+
+        public void Cancel(object reservation) => inner.Cancel(reservation);
+
+        private static GameplayResultKey ResultKey(
+            CombatEquipmentCraftCompletedFact fact) =>
+            MigratedProducerOutcomeCatalog.ResultKey(
+                Kind,
+                fact.OwnerIdentity,
+                1L);
+
+        private IDomainFactPreparedPublication Wrap(
+            IDomainFactPreparedPublication prepared,
+            GameplayResultKey resultKey)
+        {
+            if (prepared?.CommitGroup == null)
+                throw new InvalidOperationException(
+                    "Combat craft probe received no commit authority.");
+            commits ??= new ProbeCommitGroup(prepared.CommitGroup, probe);
+            commits.Require(prepared.CommitGroup);
+            return new ProbePublication(commits, prepared, resultKey);
+        }
+
+        private sealed class ProbePublication :
+            IDomainFactPreparedPublication,
+            IDomainFactPreparedIdentity
+        {
+            internal ProbePublication(
+                ProbeCommitGroup commits,
+                IDomainFactPreparedPublication inner,
+                GameplayResultKey resultKey)
+            {
+                CommitGroup = commits;
+                Inner = inner;
+                ResultKey = resultKey;
+                Identity = inner as IDomainFactPreparedIdentity
+                    ?? throw new InvalidOperationException(
+                        "Combat craft probe publication has no exact identity.");
+            }
+
+            public IDomainFactCommitGroup CommitGroup { get; }
+            internal IDomainFactPreparedPublication Inner { get; }
+            internal GameplayResultKey ResultKey { get; }
+            private IDomainFactPreparedIdentity Identity { get; }
+            public string OperationKey => Identity.OperationKey;
+            public long OwnerRevision => Identity.OwnerRevision;
+            public bool IsReplay => Identity.IsReplay;
+            public void Cancel() => Inner.Cancel();
+        }
+
+        private sealed class ProbeCommitGroup : IDomainFactCommitGroup
+        {
+            private readonly IDomainFactCommitGroup inner;
+            private readonly MigratedProducerOutcomeProbeTransaction probe;
+
+            internal ProbeCommitGroup(
+                IDomainFactCommitGroup inner,
+                MigratedProducerOutcomeProbeTransaction probe)
+            {
+                this.inner = inner
+                    ?? throw new ArgumentNullException(nameof(inner));
+                this.probe = probe
+                    ?? throw new ArgumentNullException(nameof(probe));
+            }
+
+            internal void Require(IDomainFactCommitGroup value)
+            {
+                if (!ReferenceEquals(inner, value))
+                {
+                    throw new InvalidOperationException(
+                        "Combat craft probe commit authority changed.");
+                }
+            }
+
+            public bool Commit(
+                IReadOnlyList<IDomainFactPreparedPublication> publications,
+                DomainFactDelivery[] results,
+                out string failure)
+            {
+                if (publications == null
+                    || results == null
+                    || publications.Count == 0
+                    || publications.Count != results.Length)
+                {
+                    throw new ArgumentException(
+                        "Invalid combat craft probe publication cohort.");
+                }
+
+                var values = new ProbePublication[publications.Count];
+                bool reject = false;
+                for (int index = 0; index < publications.Count; index++)
+                {
+                    if (publications[index] is not ProbePublication value
+                        || !ReferenceEquals(value.CommitGroup, this))
+                    {
+                        throw new ArgumentException(
+                            "Mismatched combat craft probe commit group.");
+                    }
+                    values[index] = value;
+                    if (!value.IsReplay)
+                    {
+                        reject |= probe.ObserveDomainFactCommitAttempt(Kind);
+                    }
+                }
+
+                if (reject)
+                {
+                    failure =
+                        "migrated-producer-e2e-injected-batch-commit-rejection";
+                    for (int index = 0; index < values.Length; index++)
+                    {
+                        values[index].Cancel();
+                        results[index] = DomainFactDelivery.Reject(failure);
+                    }
+                    return false;
+                }
+
+                IDomainFactPreparedPublication[] innerPublications = values
+                    .Select(value => value.Inner)
+                    .ToArray();
+                bool committed = inner.Commit(
+                    innerPublications,
+                    results,
+                    out failure);
+                if (committed)
+                {
+                    for (int index = 0; index < values.Length; index++)
+                    {
+                        if (!values[index].IsReplay
+                            && results[index].MayBeCommitted)
+                        {
+                            probe.ObserveDomainFactCommitted(
+                                Kind,
+                                values[index].ResultKey);
+                        }
+                    }
+                }
+                return committed;
+            }
+        }
+    }
+
     private sealed class DeferringProductQualityOutcomeCommitter :
-        IProductQualityOutcomeCommitter
+        IDomainFactStagingPublisher
     {
         public int PrepareCalls { get; private set; }
 
-        public bool TryPrepare(
-            in ProductQualityOutcomeReceipt receipt,
-            out PreparedEvolutionOutcome prepared,
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
             out string failureReason)
         {
             PrepareCalls++;
-            prepared = default;
+            stage = null;
             failureReason = "injected-product-quality-capacity-deferral";
-            return false;
-        }
-
-        public void Cancel(in PreparedEvolutionOutcome prepared) { }
-
-        public bool TryCommit(
-            in PreparedEvolutionOutcome prepared,
-            long expectedOwnerRevision,
-            out string failureReason)
-        {
-            failureReason = "unexpected-product-quality-commit";
             return false;
         }
     }
@@ -785,9 +1734,11 @@ public static class CombatEquipmentCraftTransactionFixture
         private readonly WorldItemQueryService query;
         private readonly IPhysicalItemBatchDispositionService dispositions;
 
-        internal FixtureGateway(IDungeonItemCatalogProvider catalog)
+        internal FixtureGateway(
+            IDungeonItemCatalogProvider catalog,
+            WorldItemRepository sharedRepository = null)
         {
-            repository = new WorldItemRepository(
+            repository = sharedRepository ?? new WorldItemRepository(
                 new GuidPersistentIdGenerator(),
                 new DungeonRuntimeAggregateRootStore());
             PhysicalItemMassQuery mass = new(catalog);
@@ -916,5 +1867,94 @@ public static class CombatEquipmentCraftTransactionFixture
         public bool TryRemoveInstanceComponent(string stackId, string componentTypeId) => false;
         public int ReleaseStacksByDestination(string destinationId,
             Vector2Int releasePosition) => 0;
+    }
+
+    private sealed class AcceptingCraftInputDestinations :
+        ICombatEquipmentCraftInputDestinationRuntime
+    {
+        public bool TryOpen(
+            CombatEquipmentCraftOrderSaveData order,
+            BuildableObject facility,
+            IReadOnlyDictionary<string, int> requirements,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryRequest(
+            CombatEquipmentCraftOrderSaveData order,
+            IReadOnlyDictionary<string, int> requirements,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryClear(
+            CombatEquipmentCraftOrderSaveData order,
+            string reasonCode,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryClose(
+            CombatEquipmentCraftOrderSaveData order,
+            string reasonCode,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryValidateProjection(
+            CombatEquipmentCraftOrderSaveData order,
+            IReadOnlyDictionary<string, int> requirements,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryValidateAuthority(
+            CombatEquipmentCraftOrderSaveData order,
+            IReadOnlyDictionary<string, int> requirements,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryReplace(
+            IReadOnlyList<CombatEquipmentCraftInputDestinationProjection> desired,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+    }
+
+    private sealed class FixedExcellentCraftQualityResolver :
+        ICraftQualityResolver
+    {
+        public CraftQualityRollSaveData Roll(
+            ulong runSeed,
+            string pipelineId,
+            string definitionId,
+            int attemptIndex) => new()
+        {
+            attemptIndex = Math.Max(0, attemptIndex)
+        };
+
+        public CraftQualityResolution Resolve(
+            CraftQualityRollSaveData roll,
+            float weightedSkill,
+            float facilityBonus,
+            float toolBonus,
+            float complexityPenalty) => new(
+            75f,
+            CraftsmanshipQualityTier.Excellent);
     }
 }

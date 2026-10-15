@@ -36,7 +36,7 @@ public enum MealServingRole
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonSurvivalSaveData
 {
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 8;
 
     public int version = CurrentVersion;
     public int lastProcessedDay;
@@ -58,6 +58,7 @@ public sealed class DungeonSurvivalSaveData
     public List<SurvivalTreatmentPlanSaveData> activeTreatmentPlans =
         new List<SurvivalTreatmentPlanSaveData>();
     public List<string> completedTreatmentOperationIds = new List<string>();
+    public List<SurvivalMealMissedCohortSaveData> missedMealCohorts = new();
 }
 
 public enum SurvivalTreatmentPlanPhase
@@ -525,6 +526,54 @@ public sealed class CharacterBreakdownState
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class PrimitiveSurvivalPendingSaveData
+{
+    public const int CurrentVersion = 2;
+
+    public int version = CurrentVersion;
+    public string actionId = string.Empty;
+    public string operationId = string.Empty;
+    public string characterId = string.Empty;
+    public string characterName = string.Empty;
+    public string publicationKey = string.Empty;
+    public string waterStackId = string.Empty;
+    public string restPublicationKey = string.Empty;
+    // Zero or one child. Inline nullable classes become fabricated empty objects
+    // in Unity's JSON writer, so absence is represented by an empty collection.
+    public List<CharacterRestObservationSaveData> restObservations = new();
+    public bool rollbackBlocked;
+    public string rollbackFailure = string.Empty;
+    public int absoluteDay;
+    public float recovery;
+    public int physicalItemCount;
+    public float sleepAfter;
+    public float hygieneAfter;
+    public float excretionAfter;
+    public int targetGridX;
+    public int targetGridY;
+    public string wasteFilthId = string.Empty;
+    public float wasteAmountAfter;
+    public string stainFilthId = string.Empty;
+    public float stainAmountAfter;
+
+    public bool IsPending => !string.IsNullOrEmpty(actionId);
+    public PrimitiveSurvivalPendingSaveData Clone()
+    {
+        var copy = (PrimitiveSurvivalPendingSaveData)MemberwiseClone();
+        copy.restObservations = restObservations?.ConvertAll(row => row?.Clone());
+        return copy;
+    }
+    public CharacterRestObservationSaveData GetRestObservation()
+    {
+        if (restObservations == null || restObservations.Count > 1
+            || restObservations.Count == 1 && restObservations[0] == null)
+            throw new InvalidOperationException("primitive-survival-rest-collection-invalid");
+        return restObservations.Count == 0 ? null : restObservations[0];
+    }
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CharacterDeprivationState
 {
     public string characterId = string.Empty;
@@ -537,6 +586,8 @@ public sealed class CharacterDeprivationState
     public float nextSafeReliefAttemptAt;
     public int breakdownGeneration;
     public int dispatchedBreakdownGeneration;
+    public PrimitiveSurvivalPendingSaveData primitiveSurvivalPending =
+        new PrimitiveSurvivalPendingSaveData();
 }
 
 [Serializable]
@@ -572,13 +623,16 @@ public sealed class WorldWaterSourceSaveData
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonDarkSurvivalSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 7;
 
     public int version = CurrentVersion;
     public int nextFilthSequence = 1;
     public int nextWaterSequence = 1;
     public List<CharacterDeprivationState> characters =
         new List<CharacterDeprivationState>();
+    public List<CharacterCorpseConsumptionPublicationData> pendingCorpsePublications = new();
+    public List<CharacterWaterPublicationData> pendingWaterPublications = new();
+    public List<PrimitiveSurvivalPendingSaveData> pendingPrimitivePublications = new();
     public List<WorldFilthSaveData> filth = new List<WorldFilthSaveData>();
     public List<WorldWaterSourceSaveData> waterSources =
         new List<WorldWaterSourceSaveData>();

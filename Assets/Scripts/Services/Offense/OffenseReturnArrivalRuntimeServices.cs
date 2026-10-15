@@ -55,7 +55,7 @@ public sealed class OffenseReturnArrivalDomainServices
         IGameClock clock,
         IGameCalendar calendar,
         IGameEventBus eventBus,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        OffenseArrivalSettlementRuntime settlements)
     {
         BodyHealthQuery = bodyHealthQuery
             ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
@@ -79,8 +79,8 @@ public sealed class OffenseReturnArrivalDomainServices
         Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         EventBus = eventBus
             ?? throw new ArgumentNullException(nameof(eventBus));
-        OutcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        Settlements = settlements
+            ?? throw new ArgumentNullException(nameof(settlements));
     }
 
     public ICharacterBodyHealthQuery BodyHealthQuery { get; }
@@ -95,5 +95,5 @@ public sealed class OffenseReturnArrivalDomainServices
     public IGameClock Clock { get; }
     public IGameCalendar Calendar { get; }
     public IGameEventBus EventBus { get; }
-    public IMigratedProducerOutcomeTransaction OutcomeTransactions { get; }
+    public OffenseArrivalSettlementRuntime Settlements { get; }
 }

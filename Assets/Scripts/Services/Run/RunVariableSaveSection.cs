@@ -12,8 +12,7 @@ public sealed class RunVariableSaveSection :
     DungeonStrictJsonSaveSection<
         DungeonRunVariableSaveData,
         RunVariableAggregateState>,
-    IDungeonRollbackFreeSaveSection,
-    IDungeonSaveSectionVersionCompatibility
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = DungeonSaveSectionIds.RunVariables;
 
@@ -44,32 +43,38 @@ public sealed class RunVariableSaveSection :
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.Foundation;
 
-    public bool CanRestoreVersion(int sectionVersion) => sectionVersion == 3;
-
     protected override DungeonRunVariableSaveData CapturePayload() =>
         runtime.CaptureForSave();
 
-    protected override void NormalizeRestorePayload(
-        DungeonRunVariableSaveData payload,
-        DungeonGameRestoreReport report)
-    {
-        if (payload == null || payload.version != 3)
-            return;
+    protected override void ValidateRawPayload(string payloadJson) => ValidateObservationJson(payloadJson);
 
-        DungeonActiveRunVariableSaveData[] active =
-            (payload.activeOperationVariables
-                ?? new List<DungeonActiveRunVariableSaveData>())
-            .Where(value => value != null)
-            .OrderBy(value => value.definitionId, StringComparer.Ordinal)
-            .ThenBy(value => value.startDay)
-            .ToArray();
-        for (int index = 0; index < active.Length; index++)
-            active[index].instanceSequence = index + 1L;
-        payload.nextOperationSequence = active.Length + 1L;
-        payload.lastOperationAdvanceDay = 0;
-        payload.version = DungeonRunVariableSaveData.CurrentVersion;
-        report?.AddWarning(
-            "RunVariableV3Migrated: active operation variables received deterministic future outcome identities; no historical outcomes were invented.");
+    public static void ValidateObservationJson(string json)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(json, new Newtonsoft.Json.Linq.JsonLoadSettings
+        { DuplicatePropertyNameHandling = Newtonsoft.Json.Linq.DuplicatePropertyNameHandling.Error });
+        if (root["pendingObservations"] is not Newtonsoft.Json.Linq.JArray rows || rows.Count > 1)
+            throw new InvalidOperationException("run-variable-pending-field-invalid");
+        foreach (var row in rows)
+        {
+            if (row is not Newtonsoft.Json.Linq.JObject || row["publicationKey"]?.Type != Newtonsoft.Json.Linq.JTokenType.String
+                || row["fact"] is not Newtonsoft.Json.Linq.JObject fact
+                || fact["entries"] is not Newtonsoft.Json.Linq.JArray entries)
+                throw new InvalidOperationException("run-variable-pending-shape-invalid");
+            foreach (string key in new[] { "kind", "runSeed", "absoluteDay" })
+                if (fact[key]?.Type != Newtonsoft.Json.Linq.JTokenType.Integer)
+                    throw new InvalidOperationException("run-variable-fact-field-invalid:" + key);
+            foreach (var entry in entries)
+            {
+                if (entry is not Newtonsoft.Json.Linq.JObject)
+                    throw new InvalidOperationException("run-variable-fact-entry-shape-invalid");
+                foreach (string key in new[] { "instanceSequence", "startDay", "remainingDays" })
+                    if (entry[key]?.Type != Newtonsoft.Json.Linq.JTokenType.Integer)
+                        throw new InvalidOperationException("run-variable-entry-field-invalid:" + key);
+                foreach (string key in new[] { "definitionId", "title" })
+                    if (entry[key]?.Type != Newtonsoft.Json.Linq.JTokenType.String)
+                        throw new InvalidOperationException("run-variable-entry-field-invalid:" + key);
+            }
+        }
     }
 
     protected override RunVariableAggregateState BuildRestoreCandidate(
@@ -121,6 +126,7 @@ public sealed class RunVariableSaveSection :
             LastOperationAdvanceDay = payload.lastOperationAdvanceDay
         };
         candidate.Variables.Restore(start, operations, invasion);
+        candidate.PendingObservations.AddRange(payload.pendingObservations.Select(value => value.Clone()));
         return candidate;
     }
 
@@ -143,6 +149,8 @@ public sealed class RunVariableSaveSection :
             report.AddError(
                 $"Run-variable payload version {payload.version} is unsupported.");
         }
+        try { ValidateObservationOwners(payload); }
+        catch (InvalidOperationException error) { report.AddError(error.Message); }
         if (payload.runSeed == 0
             || payload.currentDay < 1
             || payload.nextOperationSequence < 1L
@@ -203,6 +211,30 @@ public sealed class RunVariableSaveSection :
             {
                 report.AddError(
                     "Run-variable invasion definition is missing or has the wrong category.");
+            }
+        }
+    }
+
+    public static void ValidateObservationOwners(DungeonRunVariableSaveData source)
+    {
+        if (source?.pendingObservations == null || source.pendingObservations.Count > 1 || source.activeOperationVariables == null)
+            throw new InvalidOperationException("run-variable-pending-owner-invalid");
+        foreach (var pending in source.pendingObservations)
+        {
+            if (pending == null) throw new InvalidOperationException("run-variable-pending-null");
+            pending.Validate();
+            var fact = pending.fact;
+            if (!source.hasStartVariables || fact.runSeed != source.runSeed || fact.absoluteDay > source.currentDay)
+                throw new InvalidOperationException("run-variable-pending-run-conflict");
+            foreach (var row in fact.entries)
+            {
+                var active = source.activeOperationVariables.SingleOrDefault(value => value?.instanceSequence == row.instanceSequence);
+                if (row.instanceSequence >= source.nextOperationSequence
+                    || (fact.kind == RunVariableFactKind.Activated
+                        ? active == null || active.definitionId != row.definitionId || active.startDay != row.startDay
+                            || active.remainingDays != row.remainingDays || row.instanceSequence + 1 != source.nextOperationSequence
+                        : active != null || source.lastOperationAdvanceDay != fact.absoluteDay))
+                    throw new InvalidOperationException("run-variable-pending-state-conflict");
             }
         }
     }

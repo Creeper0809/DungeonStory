@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Profiling;
 
 public interface ICharacterPerformanceQuery
 {
@@ -128,6 +129,8 @@ public sealed class CharacterPerformanceQuery :
     ICharacterGameplayEffectValueQuery
 {
     private const float DefaultRequiredThreshold = 0.10f;
+    private static readonly ProfilerMarker FunctionalCapacitiesMarker =
+        new("CharacterPerformance.FunctionalCapacities");
 
     private readonly IAnatomyHealthRuntime anatomy;
     private readonly IAnatomyProfileCatalog anatomyProfiles;
@@ -158,6 +161,7 @@ public sealed class CharacterPerformanceQuery :
     public CharacterFunctionalCapacitySnapshot GetFunctionalCapacities(
         CharacterActor actor)
     {
+        using var sample = FunctionalCapacitiesMarker.Auto();
         if (actor == null) throw new ArgumentNullException(nameof(actor));
         AnatomyHealthSnapshot anatomySnapshot = anatomy.GetAnatomySnapshot(actor);
         if (!anatomyProfiles.TryGet(
@@ -173,6 +177,9 @@ public sealed class CharacterPerformanceQuery :
             .Where(value => value != null && !string.IsNullOrWhiteSpace(value.nodeId))
             .ToDictionary(value => value.nodeId, StringComparer.Ordinal);
         List<CharacterFunctionalCapacityValue> values = new();
+        Dictionary<string, float> baseValues = new(StringComparer.Ordinal);
+        List<(int Index, CharacterFunctionalCapacityId Id,
+            List<CharacterPerformanceContributionTrace> Trace)> pending = new();
         foreach (CharacterFunctionalCapacityId capacityId in Enum
                      .GetValues(typeof(CharacterFunctionalCapacityId))
                      .Cast<CharacterFunctionalCapacityId>())
@@ -242,16 +249,26 @@ public sealed class CharacterPerformanceQuery :
                 });
             }
             string targetId = CharacterFunctionalCapacityIds.GetStableId(capacityId);
-            GameplayEffectProjectionResult projection = gameplayEffects.ProjectValue(
-                actor,
-                targetId,
-                value);
-            value = projection.Value;
+            baseValues.Add(targetId, value);
+            pending.Add((values.Count, capacityId, trace));
+            values.Add(default);
+        }
+
+        // All capacities share one immutable source/context snapshot for this
+        // query. Recollecting it per target repeats anatomy/equipment/trait
+        // projections without observing any intervening owner command.
+        CharacterDerivedStatsSnapshot projection = gameplayEffects.Project(actor, baseValues);
+        foreach (var capacity in pending)
+        {
+            string targetId = CharacterFunctionalCapacityIds.GetStableId(capacity.Id);
+            float value = projection.Values[targetId];
             if (float.IsNaN(value) || float.IsInfinity(value) || value < 0f)
                 throw new InvalidOperationException(
                     $"Capacity projection '{targetId}' produced invalid value {value} "
                     + $"for character '{actor.Identity?.PersistentId}'.");
-            trace.AddRange(projection.Contributions.Select(contribution =>
+            capacity.Trace.AddRange(projection.Contributions.Where(contribution =>
+                string.Equals(contribution.Definition?.TargetId, targetId, StringComparison.Ordinal))
+                .Select(contribution =>
                 new CharacterPerformanceContributionTrace
                 {
                     SourceKind = contribution.Source.Kind.ToString(),
@@ -263,12 +280,12 @@ public sealed class CharacterPerformanceQuery :
                         ? $"suppressed: {contribution.SuppressionReason}"
                         : contribution.EffectId
                 }));
-            values.Add(new CharacterFunctionalCapacityValue(
-                capacityId,
+            values[capacity.Index] = new CharacterFunctionalCapacityValue(
+                capacity.Id,
                 true,
                 value,
                 string.Empty,
-                trace));
+                capacity.Trace);
         }
         return new CharacterFunctionalCapacitySnapshot(values);
     }

@@ -21,6 +21,10 @@ public interface IRestoreWorldCandidatePublisher
     void SetCharacterCandidate(
         IReadOnlyList<CharacterActor> characters,
         IReadOnlyList<HaulDeliveryIntentSaveData> haulDeliveryIntents);
+    void SetCharacterCandidate(
+        IReadOnlyList<CharacterActor> characters,
+        IReadOnlyList<HaulDeliveryIntentSaveData> haulDeliveryIntents,
+        IReadOnlyList<CharacterId> visitingPopulationIds);
     void ClearCharacterCandidate();
     void SetWildlifeCandidate(IReadOnlyList<WildlifeActor> wildlife);
     void ClearWildlifeCandidate();
@@ -35,6 +39,11 @@ public interface IRestoreHaulDeliveryIntentCandidateQuery
         out IReadOnlyList<HaulDeliveryIntentSaveData> intents);
 }
 
+public interface IRestoreVisitingPopulationCandidateQuery
+{
+    bool TryGetVisitingPopulationIds(out IReadOnlyList<CharacterId> ids);
+}
+
 /// <summary>
 /// Holds read-only views of detached Unity-object candidates while a V18 save
 /// transaction is being committed. The ordinary scene registries remain the
@@ -43,12 +52,14 @@ public interface IRestoreHaulDeliveryIntentCandidateQuery
 public sealed class RestoreWorldCandidateIndex :
     IRestoreWorldCandidateQuery,
     IRestoreWorldCandidatePublisher,
-    IRestoreHaulDeliveryIntentCandidateQuery
+    IRestoreHaulDeliveryIntentCandidateQuery,
+    IRestoreVisitingPopulationCandidateQuery
 {
     private Grid facilityGrid;
     private IReadOnlyList<BuildableObject> facilityBuildings;
     private IReadOnlyList<CharacterActor> characters;
     private IReadOnlyList<HaulDeliveryIntentSaveData> haulDeliveryIntents;
+    private IReadOnlyList<CharacterId> visitingPopulationIds;
     private IReadOnlyList<WildlifeActor> wildlife;
     private IReadOnlyList<ExteriorZoneMarker> exteriorZones;
 
@@ -77,6 +88,12 @@ public sealed class RestoreWorldCandidateIndex :
     {
         intents = haulDeliveryIntents;
         return intents != null;
+    }
+
+    public bool TryGetVisitingPopulationIds(out IReadOnlyList<CharacterId> ids)
+    {
+        ids = visitingPopulationIds;
+        return ids != null;
     }
 
     public bool TryGetWildlife(
@@ -132,16 +149,34 @@ public sealed class RestoreWorldCandidateIndex :
         IReadOnlyList<CharacterActor> candidateCharacters,
         IReadOnlyList<HaulDeliveryIntentSaveData> candidateHaulDeliveryIntents)
     {
+        SetCharacterCandidate(candidateCharacters, candidateHaulDeliveryIntents, Array.Empty<CharacterId>());
+    }
+
+    public void SetCharacterCandidate(
+        IReadOnlyList<CharacterActor> candidateCharacters,
+        IReadOnlyList<HaulDeliveryIntentSaveData> candidateHaulDeliveryIntents,
+        IReadOnlyList<CharacterId> candidateVisitingPopulationIds)
+    {
         if (characters != null || haulDeliveryIntents != null)
         {
             throw new InvalidOperationException(
                 "A character-world restore candidate is already indexed.");
         }
 
-        characters = candidateCharacters
-            ?? throw new ArgumentNullException(nameof(candidateCharacters));
-        haulDeliveryIntents = candidateHaulDeliveryIntents
-            ?? throw new ArgumentNullException(nameof(candidateHaulDeliveryIntents));
+        if (candidateCharacters == null) throw new ArgumentNullException(nameof(candidateCharacters));
+        if (candidateHaulDeliveryIntents == null) throw new ArgumentNullException(nameof(candidateHaulDeliveryIntents));
+        if (candidateVisitingPopulationIds == null) throw new ArgumentNullException(nameof(candidateVisitingPopulationIds));
+        var ids = new List<CharacterId>(candidateVisitingPopulationIds.Count);
+        var unique = new HashSet<CharacterId>();
+        foreach (CharacterId id in candidateVisitingPopulationIds)
+        {
+            if (!id.IsValid || !unique.Add(id))
+                throw new InvalidOperationException("Invalid or duplicate visiting population candidate identity.");
+            ids.Add(id);
+        }
+        characters = candidateCharacters;
+        haulDeliveryIntents = candidateHaulDeliveryIntents;
+        visitingPopulationIds = ids.AsReadOnly();
         AdvanceRevision();
     }
 
@@ -154,6 +189,7 @@ public sealed class RestoreWorldCandidateIndex :
 
         characters = null;
         haulDeliveryIntents = null;
+        visitingPopulationIds = null;
         AdvanceRevision();
     }
 

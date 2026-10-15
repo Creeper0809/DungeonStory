@@ -42,7 +42,17 @@ public enum CropWaterRefillPhase
     ReadyForWork = 2,
     Working = 3,
     InputCommitted = 4,
-    OutcomePublished = 5
+    // Kept at value 5 for save compatibility. The physical water has been
+    // applied to the plot and the durable gameplay outcome is the next step.
+    OutcomePublished = 5,
+    LedgerCommitted = 6
+}
+
+public enum CropCommandOutcomePhase
+{
+    None = 0,
+    MutationApplied = 1,
+    LedgerCommitted = 2
 }
 
 public static class CropWaterRules
@@ -119,7 +129,9 @@ public readonly struct CropPlotWorkSnapshot
         float requiredWork,
         float completedWork,
         bool available,
-        string unavailableReason)
+        string unavailableReason,
+        int harvestOperationSequence = -1,
+        bool harvestCompletionPending = false)
     {
         PlotId = plotId ?? string.Empty;
         WorkTypeId = workTypeId;
@@ -128,6 +140,8 @@ public readonly struct CropPlotWorkSnapshot
         CompletedWork = Mathf.Clamp(completedWork, 0f, RequiredWork);
         Available = available;
         UnavailableReason = unavailableReason ?? string.Empty;
+        HarvestOperationSequence = harvestOperationSequence;
+        HarvestCompletionPending = harvestCompletionPending;
     }
 
     public string PlotId { get; }
@@ -137,6 +151,8 @@ public readonly struct CropPlotWorkSnapshot
     public float CompletedWork { get; }
     public bool Available { get; }
     public string UnavailableReason { get; }
+    public int HarvestOperationSequence { get; }
+    public bool HarvestCompletionPending { get; }
 }
 
 public sealed class CropPlotSnapshot
@@ -243,9 +259,13 @@ public readonly struct CropPlotVisualState
 public sealed class CropPlotSaveData
 {
     public string buildingInstanceId = string.Empty;
+    public string retirementPublicationKey = string.Empty;
+    public string plotDisplayName = string.Empty;
     public int lastKnownGridX;
     public int lastKnownGridY;
     public string cropId = string.Empty;
+    public int nextCropSelectionOperationSequence;
+    public CropSelectionCommandSaveData cropSelectionOutcome = new();
     public CropPlotPhase phase;
     public float sowWork;
     public float growthHours;
@@ -260,13 +280,16 @@ public sealed class CropPlotSaveData
     public List<CropCycleInputRequirementSaveData> frozenSowInputs = new();
     public string goldenHarvestHarvesterId = string.Empty;
     public int goldenHarvestAttemptSequence;
+    public CropGoldenHarvestScheduleSaveData goldenHarvestScheduleOutcome = new();
     public int nextSowOperationSequence;
     public CropPhysicalCommitSaveData pendingSow = new();
     public string pendingCycleCorrelationId = string.Empty;
     public CropCycleExecutionReceiptSaveData cycleExecutionReceipt = new();
+    public CropFailedOutcomeSaveData failedOutcome = new();
     public float currentWater;
     public float waterCapacity = CropWaterRules.WaterCapacity;
     public int nextWaterRefillOperationSequence;
+    public CropIrrigationPublicationSaveData irrigationPublication = new();
     public CropWaterRefillSaveData waterRefill = new();
     public int nextTreatmentOperationSequence;
     public int pestLureNextAllowedDay;
@@ -276,6 +299,40 @@ public sealed class CropPlotSaveData
     public int nextHarvestOperationSequence;
     public CropHarvestOutputSaveData pendingHarvest = new();
     public CropSeasonalYieldDamageSaveData seasonalYieldDamage = new();
+}
+
+[Serializable]
+public sealed class CropFailedOutcomeSaveData
+{
+    public string publicationKey = string.Empty;
+    public string publicationId = string.Empty;
+    public string publicationFingerprint = string.Empty;
+    public string receiptDigest = string.Empty;
+    public string plotDisplayName = string.Empty;
+    public string cropDisplayName = string.Empty;
+    public int absoluteDay;
+    public long ownerRevision;
+
+    public bool IsEmpty => string.IsNullOrEmpty(publicationKey)
+        && string.IsNullOrEmpty(publicationId)
+        && string.IsNullOrEmpty(publicationFingerprint)
+        && string.IsNullOrEmpty(receiptDigest)
+        && string.IsNullOrEmpty(plotDisplayName)
+        && string.IsNullOrEmpty(cropDisplayName)
+        && absoluteDay == 0
+        && ownerRevision == 0L;
+
+    public CropFailedOutcomeSaveData DeepClone() => new()
+    {
+        publicationKey = publicationKey,
+        publicationId = publicationId,
+        publicationFingerprint = publicationFingerprint,
+        receiptDigest = receiptDigest ?? string.Empty,
+        plotDisplayName = plotDisplayName ?? string.Empty,
+        cropDisplayName = cropDisplayName ?? string.Empty,
+        absoluteDay = absoluteDay,
+        ownerRevision = ownerRevision
+    };
 }
 
 [Serializable]
@@ -309,9 +366,17 @@ public sealed class CropSeasonalYieldDamageSaveData
 [Serializable]
 public sealed class CropWaterRefillSaveData
 {
+    public const int CurrentOutcomeSchemaVersion = 2;
+
     public CropWaterRefillPhase phase;
+    public int outcomeSchemaVersion;
     public int operationSequence;
     public string operationId = string.Empty;
+    public string publicationKey = string.Empty;
+    public string plotDisplayName = string.Empty;
+    public string itemDisplayName = string.Empty;
+    public int locationX;
+    public int locationY;
     public string reasonCode = string.Empty;
     public string destinationId = string.Empty;
     public string itemId = string.Empty;
@@ -323,14 +388,29 @@ public sealed class CropWaterRefillSaveData
     public long inputMassGrams;
     public string requestFingerprint = string.Empty;
     public string physicalRequestFingerprint = string.Empty;
+    public long physicalOutcomeOwnerRevision;
     public List<string> sourceStackIds = new();
+    public string responsibleWorkerId = string.Empty;
+    public string responsibleWorkerDisplayName = string.Empty;
+    public List<CraftContributionSaveData> workContributions = new();
+    public float waterBefore;
+    public float waterAfter;
+    public int completedAbsoluteDay;
+    public string gameplayOutcomeId = string.Empty;
+    public string gameplayOutcomeDigest = string.Empty;
     public string failureReason = string.Empty;
 
     public CropWaterRefillSaveData DeepClone() => new()
     {
         phase = phase,
+        outcomeSchemaVersion = outcomeSchemaVersion,
         operationSequence = operationSequence,
         operationId = operationId ?? string.Empty,
+        publicationKey = publicationKey,
+        plotDisplayName = plotDisplayName,
+        itemDisplayName = itemDisplayName,
+        locationX = locationX,
+        locationY = locationY,
         reasonCode = reasonCode ?? string.Empty,
         destinationId = destinationId ?? string.Empty,
         itemId = itemId ?? string.Empty,
@@ -342,8 +422,143 @@ public sealed class CropWaterRefillSaveData
         inputMassGrams = inputMassGrams,
         requestFingerprint = requestFingerprint ?? string.Empty,
         physicalRequestFingerprint = physicalRequestFingerprint ?? string.Empty,
+        physicalOutcomeOwnerRevision = physicalOutcomeOwnerRevision,
         sourceStackIds = new List<string>(
             sourceStackIds ?? new List<string>()),
+        responsibleWorkerId = responsibleWorkerId ?? string.Empty,
+        responsibleWorkerDisplayName = responsibleWorkerDisplayName
+            ?? string.Empty,
+        workContributions = (workContributions
+                ?? new List<CraftContributionSaveData>())
+            .ConvertAll(value => value?.Clone()),
+        waterBefore = waterBefore,
+        waterAfter = waterAfter,
+        completedAbsoluteDay = completedAbsoluteDay,
+        gameplayOutcomeId = gameplayOutcomeId ?? string.Empty,
+        gameplayOutcomeDigest = gameplayOutcomeDigest ?? string.Empty,
+        failureReason = failureReason ?? string.Empty
+    };
+}
+
+[Serializable]
+public sealed class CropSelectionCommandSaveData
+{
+    public CropCommandOutcomePhase phase;
+    public int operationSequence;
+    public string operationId = string.Empty;
+    public string publicationKey = string.Empty;
+    public string plotDisplayName = string.Empty;
+    public string cropDisplayName = string.Empty;
+    public int locationX;
+    public int locationY;
+    public string cropBefore = string.Empty;
+    public string cropAfter = string.Empty;
+    public float waterBefore;
+    public float waterAfter;
+    public int completedAbsoluteDay;
+    public string gameplayOutcomeId = string.Empty;
+    public string gameplayOutcomeDigest = string.Empty;
+    public string failureReason = string.Empty;
+
+    public bool IsEmpty => phase == CropCommandOutcomePhase.None
+        && operationSequence == 0
+        && string.IsNullOrEmpty(operationId)
+        && string.IsNullOrEmpty(publicationKey)
+        && string.IsNullOrEmpty(plotDisplayName)
+        && string.IsNullOrEmpty(cropDisplayName)
+        && locationX == 0 && locationY == 0
+        && string.IsNullOrEmpty(cropBefore)
+        && string.IsNullOrEmpty(cropAfter)
+        && Mathf.Approximately(waterBefore, 0f)
+        && Mathf.Approximately(waterAfter, 0f)
+        && completedAbsoluteDay == 0
+        && string.IsNullOrEmpty(gameplayOutcomeId)
+        && string.IsNullOrEmpty(gameplayOutcomeDigest)
+        && string.IsNullOrEmpty(failureReason);
+
+    public CropSelectionCommandSaveData DeepClone() => new()
+    {
+        phase = phase,
+        operationSequence = operationSequence,
+        operationId = operationId ?? string.Empty,
+        publicationKey = publicationKey,
+        plotDisplayName = plotDisplayName,
+        cropDisplayName = cropDisplayName,
+        locationX = locationX,
+        locationY = locationY,
+        cropBefore = cropBefore ?? string.Empty,
+        cropAfter = cropAfter ?? string.Empty,
+        waterBefore = waterBefore,
+        waterAfter = waterAfter,
+        completedAbsoluteDay = completedAbsoluteDay,
+        gameplayOutcomeId = gameplayOutcomeId ?? string.Empty,
+        gameplayOutcomeDigest = gameplayOutcomeDigest ?? string.Empty,
+        failureReason = failureReason ?? string.Empty
+    };
+}
+
+[Serializable]
+public sealed class CropGoldenHarvestScheduleSaveData
+{
+    public CropCommandOutcomePhase phase;
+    public int operationSequence;
+    public string operationId = string.Empty;
+    public string publicationKey = string.Empty;
+    public string plotDisplayName = string.Empty;
+    public string cropDisplayName = string.Empty;
+    public int locationX;
+    public int locationY;
+    public string cropId = string.Empty;
+    public string harvesterId = string.Empty;
+    public string harvesterDisplayName = string.Empty;
+    public string harvesterBefore = string.Empty;
+    public string harvesterAfter = string.Empty;
+    public int attemptBefore;
+    public int attemptAfter;
+    public int completedAbsoluteDay;
+    public string gameplayOutcomeId = string.Empty;
+    public string gameplayOutcomeDigest = string.Empty;
+    public string failureReason = string.Empty;
+
+    public bool IsEmpty => phase == CropCommandOutcomePhase.None
+        && operationSequence == 0
+        && string.IsNullOrEmpty(operationId)
+        && string.IsNullOrEmpty(publicationKey)
+        && string.IsNullOrEmpty(plotDisplayName)
+        && string.IsNullOrEmpty(cropDisplayName)
+        && locationX == 0 && locationY == 0
+        && string.IsNullOrEmpty(cropId)
+        && string.IsNullOrEmpty(harvesterId)
+        && string.IsNullOrEmpty(harvesterDisplayName)
+        && string.IsNullOrEmpty(harvesterBefore)
+        && string.IsNullOrEmpty(harvesterAfter)
+        && attemptBefore == 0
+        && attemptAfter == 0
+        && completedAbsoluteDay == 0
+        && string.IsNullOrEmpty(gameplayOutcomeId)
+        && string.IsNullOrEmpty(gameplayOutcomeDigest)
+        && string.IsNullOrEmpty(failureReason);
+
+    public CropGoldenHarvestScheduleSaveData DeepClone() => new()
+    {
+        phase = phase,
+        operationSequence = operationSequence,
+        operationId = operationId ?? string.Empty,
+        publicationKey = publicationKey,
+        plotDisplayName = plotDisplayName,
+        cropDisplayName = cropDisplayName,
+        locationX = locationX,
+        locationY = locationY,
+        cropId = cropId ?? string.Empty,
+        harvesterId = harvesterId ?? string.Empty,
+        harvesterDisplayName = harvesterDisplayName ?? string.Empty,
+        harvesterBefore = harvesterBefore ?? string.Empty,
+        harvesterAfter = harvesterAfter ?? string.Empty,
+        attemptBefore = attemptBefore,
+        attemptAfter = attemptAfter,
+        completedAbsoluteDay = completedAbsoluteDay,
+        gameplayOutcomeId = gameplayOutcomeId ?? string.Empty,
+        gameplayOutcomeDigest = gameplayOutcomeDigest ?? string.Empty,
         failureReason = failureReason ?? string.Empty
     };
 }
@@ -374,7 +589,7 @@ public enum CropCycleExecutionReceiptStatus
 [Serializable]
 public sealed class CropCycleExecutionReceiptSaveData
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 4;
 
     public int schemaVersion = CurrentSchemaVersion;
     public string plotId = string.Empty;
@@ -393,6 +608,10 @@ public sealed class CropCycleExecutionReceiptSaveData
     public string inputVectorDigest = string.Empty;
     public SeedLotState inputSeedLot;
     public List<CropPhysicalInputSaveData> inputs = new();
+    public List<CraftContributionSaveData> sowContributions = new();
+    public float waterBefore;
+    public float waterAfter;
+    public List<string> irrigationChildResultKeys = new();
     public int harvestOperationSequence;
     public string harvestOperationId = string.Empty;
     public string outputBatchCommitId = string.Empty;
@@ -404,6 +623,17 @@ public sealed class CropCycleExecutionReceiptSaveData
     public string outputVectorDigest = string.Empty;
     public SeedLotState returnedSeedLot;
     public List<ProductionDomainPublishedStackSaveData> outputs = new();
+    public List<CraftContributionSaveData> harvestContributions = new();
+    public string harvesterId = string.Empty;
+    public string ecologyBeforeFingerprint = string.Empty;
+    public string ecologyAfterFingerprint = string.Empty;
+    public bool goldenPrepared;
+    public string goldenTraitDefinitionId = string.Empty;
+    public string goldenOutcomeFingerprint = string.Empty;
+    public ExtremeRiskOutcome goldenOutcome;
+    public float goldenPrimaryMultiplier;
+    public float goldenSecondaryMultiplier;
+    public ulong goldenRollHash;
     public bool completed;
     public string sourceDigest = string.Empty;
 
@@ -424,6 +654,11 @@ public sealed class CropCycleExecutionReceiptSaveData
         && IsSemanticEmptySeedLot(inputSeedLot)
         && string.IsNullOrEmpty(sourceDigest)
         && (inputs == null || inputs.Count == 0)
+        && (sowContributions == null || sowContributions.Count == 0)
+        && Mathf.Approximately(waterBefore, 0f)
+        && Mathf.Approximately(waterAfter, 0f)
+        && (irrigationChildResultKeys == null
+            || irrigationChildResultKeys.Count == 0)
         && harvestOperationSequence == 0
         && string.IsNullOrEmpty(harvestOperationId)
         && string.IsNullOrEmpty(outputBatchCommitId)
@@ -435,6 +670,17 @@ public sealed class CropCycleExecutionReceiptSaveData
         && string.IsNullOrEmpty(outputVectorDigest)
         && IsSemanticEmptySeedLot(returnedSeedLot)
         && (outputs == null || outputs.Count == 0)
+        && (harvestContributions == null || harvestContributions.Count == 0)
+        && string.IsNullOrEmpty(harvesterId)
+        && string.IsNullOrEmpty(ecologyBeforeFingerprint)
+        && string.IsNullOrEmpty(ecologyAfterFingerprint)
+        && !goldenPrepared
+        && string.IsNullOrEmpty(goldenTraitDefinitionId)
+        && string.IsNullOrEmpty(goldenOutcomeFingerprint)
+        && goldenOutcome == default
+        && Mathf.Approximately(goldenPrimaryMultiplier, 0f)
+        && Mathf.Approximately(goldenSecondaryMultiplier, 0f)
+        && goldenRollHash == 0UL
         && !completed;
 
     public CropCycleExecutionReceiptSaveData DeepClone() => new()
@@ -457,6 +703,13 @@ public sealed class CropCycleExecutionReceiptSaveData
         inputSeedLot = inputSeedLot?.Clone(),
         inputs = (inputs ?? new List<CropPhysicalInputSaveData>())
             .ConvertAll(value => value?.DeepClone()),
+        sowContributions = (sowContributions
+                ?? new List<CraftContributionSaveData>())
+            .ConvertAll(value => value?.Clone()),
+        waterBefore = waterBefore,
+        waterAfter = waterAfter,
+        irrigationChildResultKeys = new List<string>(
+            irrigationChildResultKeys ?? new List<string>()),
         harvestOperationSequence = harvestOperationSequence,
         harvestOperationId = harvestOperationId ?? string.Empty,
         outputBatchCommitId = outputBatchCommitId ?? string.Empty,
@@ -471,6 +724,19 @@ public sealed class CropCycleExecutionReceiptSaveData
         returnedSeedLot = returnedSeedLot?.Clone(),
         outputs = (outputs ?? new List<ProductionDomainPublishedStackSaveData>())
             .ConvertAll(value => value?.Clone()),
+        harvestContributions = (harvestContributions
+                ?? new List<CraftContributionSaveData>())
+            .ConvertAll(value => value?.Clone()),
+        harvesterId = harvesterId ?? string.Empty,
+        ecologyBeforeFingerprint = ecologyBeforeFingerprint ?? string.Empty,
+        ecologyAfterFingerprint = ecologyAfterFingerprint ?? string.Empty,
+        goldenPrepared = goldenPrepared,
+        goldenTraitDefinitionId = goldenTraitDefinitionId ?? string.Empty,
+        goldenOutcomeFingerprint = goldenOutcomeFingerprint ?? string.Empty,
+        goldenOutcome = goldenOutcome,
+        goldenPrimaryMultiplier = goldenPrimaryMultiplier,
+        goldenSecondaryMultiplier = goldenSecondaryMultiplier,
+        goldenRollHash = goldenRollHash,
         completed = completed,
         sourceDigest = sourceDigest ?? string.Empty
     };
@@ -502,6 +768,8 @@ public sealed class CropHarvestOutputSaveData
     public string harvesterId = string.Empty;
     public string outcomeId = string.Empty;
     public string ecologyOutcomeFingerprint = string.Empty;
+    public string ecologyBeforeFingerprint = string.Empty;
+    public string ecologyAfterFingerprint = string.Empty;
     public bool ecologyCommitted;
     public bool ecologyAcknowledged;
     public bool goldenPrepared;
@@ -513,7 +781,15 @@ public sealed class CropHarvestOutputSaveData
     public ulong goldenRollHash;
     public bool goldenCommitted;
     public bool goldenAcknowledged;
+    public bool cropOutcomeAcknowledged;
+    public CropCycleExecutionReceiptSaveData terminalReceipt = new();
+    public string terminalPlotDisplayName = string.Empty;
+    public string terminalCropDisplayName = string.Empty;
+    public string terminalPublicationKey = string.Empty;
+    public string terminalPublicationId = string.Empty;
+    public string terminalPublicationFingerprint = string.Empty;
     public bool completionEventPublished;
+    public string completionPublicationKey = string.Empty;
     public string completionDeliveryId = string.Empty;
     public string completionDeliveryFingerprint = string.Empty;
     public int completionAbsoluteDay;
@@ -543,6 +819,8 @@ public sealed class CropHarvestOutputSaveData
         harvesterId = harvesterId ?? string.Empty,
         outcomeId = outcomeId ?? string.Empty,
         ecologyOutcomeFingerprint = ecologyOutcomeFingerprint ?? string.Empty,
+        ecologyBeforeFingerprint = ecologyBeforeFingerprint ?? string.Empty,
+        ecologyAfterFingerprint = ecologyAfterFingerprint ?? string.Empty,
         ecologyCommitted = ecologyCommitted,
         ecologyAcknowledged = ecologyAcknowledged,
         goldenPrepared = goldenPrepared,
@@ -554,7 +832,15 @@ public sealed class CropHarvestOutputSaveData
         goldenRollHash = goldenRollHash,
         goldenCommitted = goldenCommitted,
         goldenAcknowledged = goldenAcknowledged,
+        cropOutcomeAcknowledged = cropOutcomeAcknowledged,
+        terminalReceipt = terminalReceipt?.DeepClone(),
+        terminalPlotDisplayName = terminalPlotDisplayName,
+        terminalCropDisplayName = terminalCropDisplayName,
+        terminalPublicationKey = terminalPublicationKey,
+        terminalPublicationId = terminalPublicationId,
+        terminalPublicationFingerprint = terminalPublicationFingerprint,
         completionEventPublished = completionEventPublished,
+        completionPublicationKey = completionPublicationKey,
         completionDeliveryId = completionDeliveryId ?? string.Empty,
         completionDeliveryFingerprint = completionDeliveryFingerprint
             ?? string.Empty,
@@ -590,8 +876,11 @@ public enum CropTreatmentOrderPhase
     ReadyForWork = 2,
     Working = 3,
     InputCommitted = 4,
+    // Kept at value 5 for save compatibility. This phase means that the
+    // ecology/cooldown mutation is frozen and the gameplay ledger row is next.
     OutcomePublished = 5,
-    PlotDestroyedLossPending = 6
+    PlotDestroyedLossPending = 6,
+    LedgerCommitted = 7
 }
 
 public enum CropTreatmentTerminalDisposition
@@ -603,9 +892,17 @@ public enum CropTreatmentTerminalDisposition
 [Serializable]
 public sealed class CropTreatmentOrderSaveData
 {
+    public const int CurrentOutcomeSchemaVersion = 2;
+
     public CropTreatmentOrderPhase phase;
+    public int outcomeSchemaVersion;
     public int operationSequence;
     public string operationId = string.Empty;
+    public string publicationKey = string.Empty;
+    public string plotDisplayName = string.Empty;
+    public string itemDisplayName = string.Empty;
+    public int locationX;
+    public int locationY;
     public string reasonCode = string.Empty;
     public string destinationId = string.Empty;
     public string itemId = string.Empty;
@@ -627,6 +924,18 @@ public sealed class CropTreatmentOrderSaveData
     public List<string> tareOutputCommitIds = new();
     public string ecologyBeforeFingerprint = string.Empty;
     public string ecologyAfterFingerprint = string.Empty;
+    public string responsibleWorkerId = string.Empty;
+    public string responsibleWorkerDisplayName = string.Empty;
+    public List<CraftContributionSaveData> workContributions = new();
+    public float pestPressureBefore;
+    public float pestPressureAfter;
+    public float diseasePressureBefore;
+    public float diseasePressureAfter;
+    public int cooldownBeforeDay;
+    public int cooldownAfterDay;
+    public int completedAbsoluteDay;
+    public string gameplayOutcomeId = string.Empty;
+    public string gameplayOutcomeDigest = string.Empty;
     public CropTreatmentTerminalDisposition terminalDisposition;
     public string terminalReasonCode = string.Empty;
     public int terminalLossQuantity;
@@ -635,8 +944,14 @@ public sealed class CropTreatmentOrderSaveData
     public CropTreatmentOrderSaveData DeepClone() => new()
     {
         phase = phase,
+        outcomeSchemaVersion = outcomeSchemaVersion,
         operationSequence = operationSequence,
         operationId = operationId ?? string.Empty,
+        publicationKey = publicationKey,
+        plotDisplayName = plotDisplayName,
+        itemDisplayName = itemDisplayName,
+        locationX = locationX,
+        locationY = locationY,
         reasonCode = reasonCode ?? string.Empty,
         destinationId = destinationId ?? string.Empty,
         itemId = itemId ?? string.Empty,
@@ -659,6 +974,21 @@ public sealed class CropTreatmentOrderSaveData
             tareOutputCommitIds ?? new List<string>()),
         ecologyBeforeFingerprint = ecologyBeforeFingerprint ?? string.Empty,
         ecologyAfterFingerprint = ecologyAfterFingerprint ?? string.Empty,
+        responsibleWorkerId = responsibleWorkerId ?? string.Empty,
+        responsibleWorkerDisplayName = responsibleWorkerDisplayName
+            ?? string.Empty,
+        workContributions = (workContributions
+                ?? new List<CraftContributionSaveData>())
+            .ConvertAll(value => value?.Clone()),
+        pestPressureBefore = pestPressureBefore,
+        pestPressureAfter = pestPressureAfter,
+        diseasePressureBefore = diseasePressureBefore,
+        diseasePressureAfter = diseasePressureAfter,
+        cooldownBeforeDay = cooldownBeforeDay,
+        cooldownAfterDay = cooldownAfterDay,
+        completedAbsoluteDay = completedAbsoluteDay,
+        gameplayOutcomeId = gameplayOutcomeId ?? string.Empty,
+        gameplayOutcomeDigest = gameplayOutcomeDigest ?? string.Empty,
         terminalDisposition = terminalDisposition,
         terminalReasonCode = terminalReasonCode ?? string.Empty,
         terminalLossQuantity = terminalLossQuantity,
@@ -756,7 +1086,7 @@ public sealed class CropPhysicalCommitSaveData
 [Serializable]
 public sealed class DungeonCropPlotSaveData
 {
-    public const int CurrentVersion = 13;
+    public const int CurrentVersion = 21;
 
     public int version = CurrentVersion;
     public List<CropPlotSaveData> plots = new List<CropPlotSaveData>();

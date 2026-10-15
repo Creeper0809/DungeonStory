@@ -416,7 +416,8 @@ namespace DungeonStory.Environment
             float approvedWork,
             string waterLeaseId = "",
             int waterQuantity = 0,
-            string workerDisplayName = "")
+            string workerDisplayName = "",
+            CharacterCommandOrigin commandOrigin = CharacterCommandOrigin.Autonomous)
         {
             OperationId = operationId?.Trim() ?? string.Empty;
             FireId = fireId?.Trim() ?? string.Empty;
@@ -427,6 +428,7 @@ namespace DungeonStory.Environment
             WaterLeaseId = waterLeaseId?.Trim() ?? string.Empty;
             WaterQuantity = waterQuantity;
             WorkerDisplayName = workerDisplayName?.Trim() ?? string.Empty;
+            CommandOrigin = commandOrigin;
         }
 
         public string OperationId { get; }
@@ -438,10 +440,12 @@ namespace DungeonStory.Environment
         public string WaterLeaseId { get; }
         public int WaterQuantity { get; }
         public string WorkerDisplayName { get; }
+        public CharacterCommandOrigin CommandOrigin { get; }
         public bool IsValid => !string.IsNullOrWhiteSpace(OperationId)
             && !string.IsNullOrWhiteSpace(FireId)
             && !string.IsNullOrWhiteSpace(WorkerId)
             && Enum.IsDefined(typeof(EnvironmentalFireSuppressionMode), Mode)
+            && Enum.IsDefined(typeof(CharacterCommandOrigin), CommandOrigin)
             && IsFinite(ApprovedWork)
             && ApprovedWork > 0f
             && !string.IsNullOrWhiteSpace(WorkerDisplayName)
@@ -458,6 +462,7 @@ namespace DungeonStory.Environment
             (int)Mode,
             ApprovedWork.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
             WorkerDisplayName,
+            (int)CommandOrigin,
             WaterLeaseId,
             WaterQuantity);
 
@@ -485,7 +490,8 @@ namespace DungeonStory.Environment
             float intensityAfter,
             int waterConsumed,
             string waterCommitId,
-            string reason)
+            string reason,
+            string outcomeResultKey = "")
         {
             Disposition = disposition;
             IntensityBefore = intensityBefore;
@@ -493,6 +499,7 @@ namespace DungeonStory.Environment
             WaterConsumed = Math.Max(0, waterConsumed);
             WaterCommitId = waterCommitId?.Trim() ?? string.Empty;
             Reason = reason?.Trim() ?? string.Empty;
+            OutcomeResultKey = outcomeResultKey?.Trim() ?? string.Empty;
         }
 
         public EnvironmentalFireSuppressionDisposition Disposition { get; }
@@ -501,11 +508,23 @@ namespace DungeonStory.Environment
         public int WaterConsumed { get; }
         public string WaterCommitId { get; }
         public string Reason { get; }
+        public string OutcomeResultKey { get; }
         public bool Applied => Disposition is
             EnvironmentalFireSuppressionDisposition.Applied
             or EnvironmentalFireSuppressionDisposition.Extinguished
             or EnvironmentalFireSuppressionDisposition.AppliedAwaitingWaterAcknowledgement
             or EnvironmentalFireSuppressionDisposition.PreviouslyApplied;
+
+        public EnvironmentalFireSuppressionResult WithOutcomeResultKey(
+            string outcomeResultKey) =>
+            new(
+                Disposition,
+                IntensityBefore,
+                IntensityAfter,
+                WaterConsumed,
+                WaterCommitId,
+                Reason,
+                outcomeResultKey);
     }
 
     public readonly struct EnvironmentalFireWaterReceipt
@@ -526,10 +545,10 @@ namespace DungeonStory.Environment
         public string LeaseId { get; }
         public int Quantity { get; }
         public string CommitId { get; }
-        public bool IsCommitted => OperationId.Length > 0
-            && LeaseId.Length > 0
+        public bool IsCommitted => !string.IsNullOrEmpty(OperationId)
+            && !string.IsNullOrEmpty(LeaseId)
             && Quantity > 0
-            && CommitId.Length > 0;
+            && !string.IsNullOrEmpty(CommitId);
     }
 
     public readonly struct EnvironmentalFireDamageCommand
@@ -645,7 +664,7 @@ namespace DungeonStory.Environment
     [Serializable]
     public sealed class DungeonEnvironmentalFireSaveData
     {
-        public const int CurrentVersion = 4;
+        public const int CurrentVersion = 8;
         public int version = CurrentVersion;
         public long nextFireSequence = 1;
         public long nextOutcomeSequence = 1;
@@ -654,91 +673,21 @@ namespace DungeonStory.Environment
         public List<EnvironmentalFireHistorySaveRecord> history = new();
         public List<EnvironmentalFireCauseSaveRecord> processedCauses = new();
         public List<EnvironmentalFireSuppressionSaveRecord> suppressionOperations = new();
-        public List<EnvironmentalFireDamageOutcomeSaveRecord> damageOperations = new();
+        public List<EnvironmentalFireDamageRecord> damageOperations = new();
+        public List<EnvironmentalFireResourceRecord> resourceOperations = new();
     }
 
-    public enum EnvironmentalFireDamageOutcomePhase
+    public static class EnvironmentalFireDamageIdentity
     {
-        Prepared = 1,
-        AwaitingWorldRemoval = 2,
-        OutcomeCommitted = 3
-    }
-
-    [Serializable]
-    public sealed class EnvironmentalFireDamageOutcomeSaveRecord
-    {
-        public string operationId = string.Empty;
-        public string requestFingerprint = string.Empty;
-        public string fireId = string.Empty;
-        public int targetKind;
-        public string targetId = string.Empty;
-        public string targetDisplayName = string.Empty;
-        public int positionX;
-        public int positionY;
-        public float intensity;
-        public float requestedDamage;
-        public float appliedDamage;
-        public bool targetRemainsCombustible;
-        public int absoluteDay;
-        public long ownerRevision;
-        public EnvironmentalFireDamageOutcomePhase phase;
-        public string outcomeDigest = string.Empty;
-
-        public EnvironmentalFireDamageOutcomeSaveRecord Clone() => new()
-        {
-            operationId = operationId,
-            requestFingerprint = requestFingerprint,
-            fireId = fireId,
-            targetKind = targetKind,
-            targetId = targetId,
-            targetDisplayName = targetDisplayName,
-            positionX = positionX,
-            positionY = positionY,
-            intensity = intensity,
-            requestedDamage = requestedDamage,
-            appliedDamage = appliedDamage,
-            targetRemainsCombustible = targetRemainsCombustible,
-            absoluteDay = absoluteDay,
-            ownerRevision = ownerRevision,
-            phase = phase,
-            outcomeDigest = outcomeDigest
-        };
-    }
-
-    public static class EnvironmentalFireDamageOutcomeIdentity
-    {
-        public static string BuildRequestFingerprint(
-            in EnvironmentalFireDamageCommand command,
-            string targetDisplayName,
-            int absoluteDay)
-        {
-            CanonicalSemanticDigestBuilder digest = new();
-            digest.Append("environmental-fire-damage-request@1");
-            digest.Append(command.OperationId);
-            digest.Append(command.FireId);
-            digest.Append((int)command.Target.Kind);
-            digest.Append(command.Target.TargetId);
-            digest.Append(command.Position.x);
-            digest.Append(command.Position.y);
-            digest.Append(command.Intensity.ToString("R", CultureInfo.InvariantCulture));
-            digest.Append(command.RequestedDamage.ToString("R", CultureInfo.InvariantCulture));
-            digest.Append(targetDisplayName?.Trim() ?? string.Empty);
-            digest.Append(absoluteDay);
-            return digest.ComputeSha256();
-        }
-
-        public static long BuildOwnerRevision(string operationId)
-        {
-            CanonicalSemanticDigestBuilder digest = new();
-            digest.Append("environmental-fire-damage-owner-revision@1");
-            digest.Append(operationId?.Trim() ?? string.Empty);
-            string value = digest.ComputeSha256();
-            long revision = long.Parse(
-                value.Substring(0, 15),
-                NumberStyles.HexNumber,
-                CultureInfo.InvariantCulture);
-            return Math.Max(1L, revision);
-        }
+        public static string BuildRequestFingerprint(in EnvironmentalFireDamageCommand command, string targetDisplayName, int absoluteDay) =>
+            EnvironmentalFireDamageFactIdentity.RequestFingerprint(new EnvironmentalFireDamageRecord
+            {
+                operationId = command.OperationId, fireId = command.FireId, targetKind = (int)command.Target.Kind,
+                targetId = command.Target.TargetId, positionX = command.Position.x, positionY = command.Position.y,
+                intensity = command.Intensity, requestedDamage = command.RequestedDamage,
+                targetDisplayName = targetDisplayName, absoluteDay = absoluteDay
+            });
+        public static long BuildOwnerRevision(string operationId) => EnvironmentalFireDamageFactIdentity.OwnerRevision(operationId);
     }
 
     [Serializable]
@@ -780,6 +729,16 @@ namespace DungeonStory.Environment
     [Serializable]
     public sealed class EnvironmentalFireCauseSaveRecord
     {
+        public int ignitionKind;
+        public string producerId = string.Empty;
+        public string evidenceId = string.Empty;
+        public int targetKind;
+        public string targetId = string.Empty;
+        public float requestedIntensity;
+        public int fuelTargetKind;
+        public string fuelTargetId = string.Empty;
+        public int fuelQuantity;
+        public string publicationKey = string.Empty;
         public string causeId = string.Empty;
         public string fingerprint = string.Empty;
         public int disposition;
@@ -794,16 +753,24 @@ namespace DungeonStory.Environment
         public float appliedIntensity;
         public bool legacyPreOutcome;
         public bool outcomePending;
+
+        public EnvironmentalFireCauseSaveRecord Clone() => (EnvironmentalFireCauseSaveRecord)MemberwiseClone();
     }
 
     [Serializable]
     public sealed class EnvironmentalFireSuppressionSaveRecord
     {
+        public int positionX, positionY;
+        public string publicationKey = string.Empty;
+        public string completionPublicationKey = string.Empty;
         public string operationId = string.Empty;
         public string fingerprint = string.Empty;
         public string fireId = string.Empty;
         public string workerId = string.Empty;
         public string workerDisplayName = string.Empty;
+        public string targetId = string.Empty;
+        public int commandOrigin;
+        public bool completionIdentityAcknowledged;
         public long outcomeRevision;
         public int absoluteDay;
         public bool legacyPreOutcome;
@@ -822,6 +789,8 @@ namespace DungeonStory.Environment
         public int waterCommittedQuantity;
         public bool waterAcknowledged;
         public string resultReason = string.Empty;
+
+        public EnvironmentalFireSuppressionSaveRecord Clone() => (EnvironmentalFireSuppressionSaveRecord)MemberwiseClone();
     }
 
     public sealed class EnvironmentalFireRestoreCandidate
@@ -851,16 +820,12 @@ namespace DungeonStory.Environment
                     "Environmental-fire payload is null.");
             if (!IsFinite(tickInterval) || tickInterval <= 0f)
                 throw new ArgumentOutOfRangeException(nameof(tickInterval));
-            if (data.version == 2)
-                data = MigrateV2(data);
-            if (data.version == 3)
-                data = MigrateV3(data);
             if (data.version != DungeonEnvironmentalFireSaveData.CurrentVersion
                 || data.activeFires == null
                 || data.history == null
                 || data.processedCauses == null
                 || data.suppressionOperations == null
-                || data.damageOperations == null)
+                || data.damageOperations == null || data.resourceOperations == null)
             {
                 throw new InvalidOperationException(
                     "Environmental-fire payload is incomplete or has an unsupported version.");
@@ -990,7 +955,7 @@ namespace DungeonStory.Environment
                 }
             }
 
-            foreach (EnvironmentalFireDamageOutcomeSaveRecord operation
+            foreach (EnvironmentalFireDamageRecord operation
                      in data.damageOperations)
             {
                 ValidateDamage(operation, fireIds);
@@ -1005,61 +970,12 @@ namespace DungeonStory.Environment
                 throw new InvalidOperationException(
                     "Environmental-fire outcome sequence would reuse an existing revision.");
 
+            var resourceIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var value in data.resourceOperations)
+                if (value?.physical == null || !IsCanonical(value.physical.operationId)
+                    || !resourceIds.Add(value.physical.operationId))
+                    throw new InvalidOperationException("Invalid or duplicate fire resource operation.");
             return new EnvironmentalFireRestoreCandidate(Clone(data));
-        }
-
-        private static DungeonEnvironmentalFireSaveData MigrateV2(
-            DungeonEnvironmentalFireSaveData source)
-        {
-            if (source.activeFires == null
-                || source.history == null
-                || source.processedCauses == null
-                || source.suppressionOperations == null)
-                throw new InvalidOperationException(
-                    "Environmental-fire V2 payload is incomplete.");
-            DungeonEnvironmentalFireSaveData migrated = Clone(source);
-            migrated.version = DungeonEnvironmentalFireSaveData.CurrentVersion;
-            migrated.nextOutcomeSequence = 1L;
-            foreach (EnvironmentalFireCauseSaveRecord cause in migrated.processedCauses)
-            {
-                cause.legacyPreOutcome = true;
-                cause.outcomePending = false;
-                cause.outcomeRevision = 0L;
-                cause.absoluteDay = 0;
-                cause.targetDisplayName = string.Empty;
-                cause.positionX = 0;
-                cause.positionY = 0;
-                cause.hasLocation = false;
-                cause.appliedIntensity = 0f;
-            }
-            foreach (EnvironmentalFireSuppressionSaveRecord operation
-                     in migrated.suppressionOperations)
-            {
-                operation.legacyPreOutcome = true;
-                operation.outcomePending = false;
-                operation.outcomeRevision = 0L;
-                operation.absoluteDay = 0;
-                operation.workerDisplayName = string.Empty;
-            }
-            return migrated;
-        }
-
-        private static DungeonEnvironmentalFireSaveData MigrateV3(
-            DungeonEnvironmentalFireSaveData source)
-        {
-            if (source.activeFires == null
-                || source.history == null
-                || source.processedCauses == null
-                || source.suppressionOperations == null)
-            {
-                throw new InvalidOperationException(
-                    "Environmental-fire V3 payload is incomplete.");
-            }
-            DungeonEnvironmentalFireSaveData migrated = Clone(source);
-            migrated.version = DungeonEnvironmentalFireSaveData.CurrentVersion;
-            migrated.damageOperations = new List<
-                EnvironmentalFireDamageOutcomeSaveRecord>();
-            return migrated;
         }
 
         internal static DungeonEnvironmentalFireSaveData Clone(
@@ -1085,23 +1001,7 @@ namespace DungeonStory.Environment
             foreach (EnvironmentalFireCauseSaveRecord cause
                      in source.processedCauses)
             {
-                result.processedCauses.Add(new EnvironmentalFireCauseSaveRecord
-                {
-                    causeId = cause.causeId,
-                    fingerprint = cause.fingerprint,
-                    disposition = cause.disposition,
-                    fireId = cause.fireId,
-                    reason = cause.reason,
-                    outcomeRevision = cause.outcomeRevision,
-                    targetDisplayName = cause.targetDisplayName,
-                    positionX = cause.positionX,
-                    positionY = cause.positionY,
-                    hasLocation = cause.hasLocation,
-                    absoluteDay = cause.absoluteDay,
-                    appliedIntensity = cause.appliedIntensity,
-                    legacyPreOutcome = cause.legacyPreOutcome,
-                    outcomePending = cause.outcomePending
-                });
+                result.processedCauses.Add(cause.Clone());
             }
             foreach (EnvironmentalFireSuppressionSaveRecord operation
                      in source.suppressionOperations)
@@ -1109,12 +1009,14 @@ namespace DungeonStory.Environment
                 result.suppressionOperations.Add(
                     CloneSuppression(operation));
             }
-            foreach (EnvironmentalFireDamageOutcomeSaveRecord operation
+            foreach (EnvironmentalFireDamageRecord operation
                      in source.damageOperations
-                        ?? new List<EnvironmentalFireDamageOutcomeSaveRecord>())
+                        ?? new List<EnvironmentalFireDamageRecord>())
             {
                 result.damageOperations.Add(operation?.Clone());
             }
+            foreach (var operation in source.resourceOperations)
+                result.resourceOperations.Add(operation?.Clone());
 
             return result;
         }
@@ -1204,6 +1106,9 @@ namespace DungeonStory.Environment
                     "Environmental-fire payload contains an invalid ignition cause.");
             }
 
+            _ = new EnvironmentalFireIgnitedFact(cause);
+            if (!DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(cause.publicationKey, 2048, false))
+                throw new InvalidOperationException("Fire ignition publication binding is missing.");
             var disposition =
                 (EnvironmentalFireIgnitionDisposition)cause.disposition;
             bool requiresFire = disposition
@@ -1217,9 +1122,7 @@ namespace DungeonStory.Environment
                 || (requiresFire
                     && (!IsCanonical(cause.fireId)
                         || !fireIds.Contains(cause.fireId)))
-                || (noFire && !string.IsNullOrEmpty(cause.fireId))
-                || (cause.outcomePending
-                    && disposition != EnvironmentalFireIgnitionDisposition.Ignited))
+                || (noFire && !string.IsNullOrEmpty(cause.fireId)))
             {
                 throw new InvalidOperationException(
                     "Environmental-fire ignition outcome is inconsistent.");
@@ -1237,6 +1140,9 @@ namespace DungeonStory.Environment
                 || !IsCanonical(operation.fireId)
                 || !fireIds.Contains(operation.fireId)
                 || !IsCanonical(operation.workerId)
+                || !IsCanonical(operation.targetId)
+                || !Enum.IsDefined(typeof(CharacterCommandOrigin), operation.commandOrigin)
+                || legacy
                 || (legacy
                     ? !string.IsNullOrEmpty(operation.workerDisplayName)
                         || operation.outcomeRevision != 0L
@@ -1277,7 +1183,8 @@ namespace DungeonStory.Environment
                 operation.approvedWork,
                 operation.waterLeaseId,
                 operation.waterQuantity,
-                operation.workerDisplayName);
+                operation.workerDisplayName,
+                (CharacterCommandOrigin)operation.commandOrigin);
             if ((!legacy && !command.IsValid)
                 || !string.Equals(
                     legacy ? command.LegacyFingerprint : command.Fingerprint,
@@ -1288,12 +1195,27 @@ namespace DungeonStory.Environment
                     "Environmental-fire suppression fingerprint is inconsistent.");
             }
 
+            if (!DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(operation.publicationKey, 2048, false)
+                || !DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(operation.completionPublicationKey, 2048, true)
+                || operation.completionIdentityAcknowledged && string.IsNullOrEmpty(operation.completionPublicationKey))
+                throw new InvalidOperationException("Fire suppression publication binding is invalid.");
+            if (operation.phase == (int)EnvironmentalFireSuppressionPhase.Applied) _ = new EnvironmentalFireSuppressedFact(operation);
+            if (!string.IsNullOrEmpty(operation.completionPublicationKey)) _ = new EnvironmentalFireSuppressionCompletedFact(operation);
             var phase = (EnvironmentalFireSuppressionPhase)operation.phase;
+            if ((phase == EnvironmentalFireSuppressionPhase.Prepared || phase == EnvironmentalFireSuppressionPhase.WaterCommitted)
+                && !operation.outcomePending)
+                throw new InvalidOperationException("Unapplied fire suppression must retain its pending publication.");
             var result =
                 (EnvironmentalFireSuppressionDisposition)operation.resultDisposition;
             bool hasCommittedWater = operation.waterCommittedQuantity > 0
                 && IsCanonical(operation.waterCommitId)
                 && operation.waterCommittedQuantity == operation.waterQuantity;
+            if (operation.completionIdentityAcknowledged
+                && (phase != EnvironmentalFireSuppressionPhase.Applied
+                    || operation.outcomePending
+                    || ((EnvironmentalFireSuppressionMode)operation.mode != EnvironmentalFireSuppressionMode.Water
+                        && operation.intensityAfter > 0.0001f)))
+                throw new InvalidOperationException("Environmental-fire completion acknowledgement has no terminal committed child.");
             if ((!legacy && operation.outcomePending
                     && phase != EnvironmentalFireSuppressionPhase.Prepared
                     && phase != EnvironmentalFireSuppressionPhase.Applied
@@ -1333,80 +1255,11 @@ namespace DungeonStory.Environment
             }
         }
 
-        private static void ValidateDamage(
-            EnvironmentalFireDamageOutcomeSaveRecord operation,
-            HashSet<string> fireIds)
+        private static void ValidateDamage(EnvironmentalFireDamageRecord operation, HashSet<string> fireIds)
         {
-            EnvironmentalFireDamageCommand command = operation == null
-                ? default
-                : new EnvironmentalFireDamageCommand(
-                    operation.operationId,
-                    operation.fireId,
-                    new EnvironmentalFireTargetRef(
-                        (EnvironmentalFireTargetKind)operation.targetKind,
-                        operation.targetId),
-                    new Vector2Int(operation.positionX, operation.positionY),
-                    operation.intensity,
-                    operation.requestedDamage);
-            if (operation == null
-                || !IsCanonical(operation.operationId)
-                || !IsCanonical(operation.requestFingerprint)
-                || operation.requestFingerprint.Length != 64
-                || !IsCanonical(operation.fireId)
-                || !fireIds.Contains(operation.fireId)
-                || !Enum.IsDefined(
-                    typeof(EnvironmentalFireTargetKind),
-                    operation.targetKind)
-                || (EnvironmentalFireTargetKind)operation.targetKind is not
-                    EnvironmentalFireTargetKind.Building
-                    and not EnvironmentalFireTargetKind.Character
-                || !IsCanonical(operation.targetId)
-                || !IsCanonical(operation.targetDisplayName)
-                || !IsFinite(operation.intensity)
-                || operation.intensity <= 0f
-                || operation.intensity > 1f
-                || !IsFinite(operation.requestedDamage)
-                || operation.requestedDamage <= 0f
-                || !IsFinite(operation.appliedDamage)
-                || operation.appliedDamage < 0f
-                || operation.appliedDamage
-                    > operation.requestedDamage * 2f + 0.001f
-                || operation.absoluteDay < 0
-                || operation.ownerRevision !=
-                    EnvironmentalFireDamageOutcomeIdentity.BuildOwnerRevision(
-                        operation.operationId)
-                || !string.Equals(
-                    operation.requestFingerprint,
-                    EnvironmentalFireDamageOutcomeIdentity
-                        .BuildRequestFingerprint(
-                            command,
-                            operation.targetDisplayName,
-                            operation.absoluteDay),
-                    StringComparison.Ordinal)
-                || !Enum.IsDefined(
-                    typeof(EnvironmentalFireDamageOutcomePhase),
-                    operation.phase)
-                || (operation.phase ==
-                        EnvironmentalFireDamageOutcomePhase.Prepared
-                    && (operation.appliedDamage != 0f
-                        || !string.IsNullOrEmpty(operation.outcomeDigest)))
-                || (operation.phase !=
-                        EnvironmentalFireDamageOutcomePhase.Prepared
-                    && operation.appliedDamage <= 0f)
-                || (operation.phase ==
-                        EnvironmentalFireDamageOutcomePhase.AwaitingWorldRemoval
-                    && (operation.targetKind !=
-                            (int)EnvironmentalFireTargetKind.Building
-                        || operation.targetRemainsCombustible))
-                || (operation.phase ==
-                        EnvironmentalFireDamageOutcomePhase.OutcomeCommitted
-                    ? operation.outcomeDigest.Length != 0
-                        && operation.outcomeDigest.Length != 64
-                    : !string.IsNullOrEmpty(operation.outcomeDigest)))
-            {
-                throw new InvalidOperationException(
-                    "Environmental-fire payload contains an invalid damage outcome owner.");
-            }
+            EnvironmentalFireDamageFact.ValidateRecord(operation);
+            if (!fireIds.Contains(operation.fireId))
+                throw new InvalidOperationException("Environmental fire damage owner refers to an unknown fire.");
         }
 
         private static EnvironmentalFireTargetRef ToTarget(
@@ -1460,34 +1313,7 @@ namespace DungeonStory.Environment
                 fuelLossPending = fire.fuelLossPending
             };
 
-        private static EnvironmentalFireSuppressionSaveRecord CloneSuppression(
-            EnvironmentalFireSuppressionSaveRecord operation) =>
-            new()
-            {
-                operationId = operation.operationId,
-                fingerprint = operation.fingerprint,
-                fireId = operation.fireId,
-                workerId = operation.workerId,
-                workerDisplayName = operation.workerDisplayName,
-                outcomeRevision = operation.outcomeRevision,
-                absoluteDay = operation.absoluteDay,
-                legacyPreOutcome = operation.legacyPreOutcome,
-                outcomePending = operation.outcomePending,
-                standX = operation.standX,
-                standY = operation.standY,
-                mode = operation.mode,
-                approvedWork = operation.approvedWork,
-                waterLeaseId = operation.waterLeaseId,
-                waterQuantity = operation.waterQuantity,
-                phase = operation.phase,
-                resultDisposition = operation.resultDisposition,
-                intensityBefore = operation.intensityBefore,
-                intensityAfter = operation.intensityAfter,
-                waterCommitId = operation.waterCommitId,
-                waterCommittedQuantity = operation.waterCommittedQuantity,
-                waterAcknowledged = operation.waterAcknowledged,
-                resultReason = operation.resultReason
-            };
+        private static EnvironmentalFireSuppressionSaveRecord CloneSuppression(EnvironmentalFireSuppressionSaveRecord operation) => operation.Clone();
 
         private static bool IsCanonical(string value) =>
             !string.IsNullOrWhiteSpace(value)

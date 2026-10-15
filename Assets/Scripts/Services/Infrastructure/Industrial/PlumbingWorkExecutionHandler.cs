@@ -94,17 +94,51 @@ public sealed class PlumbingWorkExecutionHandler :
             yield break;
         }
 
+        bool completionEffectsAlreadyApplied = false;
         if (blockage > 0.01f)
         {
-            commands.ClearBlockage(context.Target);
+            InfrastructureCommandResult blockageResult =
+                commands.ClearBlockage(context.Target);
+            if (!blockageResult.Succeeded)
+            {
+                SetCommandFailure(result, blockageResult.Failure, false);
+                yield break;
+            }
+
+            completionEffectsAlreadyApplied = true;
         }
 
         if (leak > 0.01f)
         {
-            commands.RepairLeak(context.Target);
+            InfrastructureCommandResult leakResult =
+                commands.RepairLeak(context.Target);
+            if (!leakResult.Succeeded)
+            {
+                SetCommandFailure(
+                    result,
+                    leakResult.Failure,
+                    completionEffectsAlreadyApplied);
+                yield break;
+            }
+
+            completionEffectsAlreadyApplied = true;
         }
 
         result.CompletedSuccessfully = true;
-        result.CompletionEffectsAlreadyApplied = true;
+        result.CompletionEffectsAlreadyApplied =
+            completionEffectsAlreadyApplied;
+    }
+
+    private void SetCommandFailure(
+        WorkExecutionResult result,
+        DomainFailure failure,
+        bool completionEffectsAlreadyApplied)
+    {
+        result.CompletedSuccessfully = false;
+        result.CompletionEffectsAlreadyApplied =
+            completionEffectsAlreadyApplied;
+        result.Failure = failure;
+        result.FailureAxis = CharacterOperationBlockAxis.Water;
+        result.ObserveFailureSource(() => query.Version);
     }
 }

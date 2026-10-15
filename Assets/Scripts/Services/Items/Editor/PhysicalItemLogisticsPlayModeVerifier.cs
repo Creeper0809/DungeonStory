@@ -1581,8 +1581,14 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
         string applyFailure = "expansion-runtime-missing";
         bool applied = expansion != null
             && researchAligned
+            && progression.BlueprintResearch.State
+                .TryGetCompletedProjectResultKey(
+                    target.ResearchProjectId,
+                    out string committedResearchKey)
             && expansion.TryApply(
                 target,
+                DungeonSpaceExpansionTrigger.ResearchCompletion,
+                committedResearchKey,
                 out result,
                 out applyFailure);
         grid = gridSystem != null ? gridSystem.grid : null;

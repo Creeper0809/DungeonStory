@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DungeonStory.Foundation;
 using UnityEngine;
-using VContainer;
 
 public static class OffenseRewardGrantHandlers
 {
@@ -15,19 +13,23 @@ public static class OffenseRewardGrantHandlers
             itemStackRuntime != null && dropZoneQuery != null
                 ? new WorldExpeditionRewardItemSink(itemStackRuntime, dropZoneQuery)
                 : MissingExpeditionRewardItemSink.Instance;
-        return CreateDefaults(rewardItems);
+        return CreateDefaultsCore(rewardItems, itemStackRuntime);
     }
 
     public static IReadOnlyList<IOffenseRewardGrantHandler> CreateDefaults(
         IExpeditionRewardItemSink rewardItems)
+        => CreateDefaultsCore(rewardItems, null);
+
+    private static IReadOnlyList<IOffenseRewardGrantHandler> CreateDefaultsCore(
+        IExpeditionRewardItemSink rewardItems, IWorldItemStackRuntime itemStackRuntime)
     {
         return Array.AsReadOnly<IOffenseRewardGrantHandler>(new IOffenseRewardGrantHandler[]
         {
             new OffenseMoneyRewardGrantHandler(rewardItems),
-            new OffenseStockRewardGrantHandler(rewardItems, null),
+            new OffenseStockRewardGrantHandler(rewardItems, itemStackRuntime),
             new OffensePhysicalItemRewardGrantHandler(rewardItems),
             new OffenseRareFacilityRewardGrantHandler(),
-            new OffenseBlueprintRewardGrantHandler(null, null, null),
+            new OffenseBlueprintRewardGrantHandler(null, null),
             new OffenseRegionalPressureRewardGrantHandler(),
             new OffenseRecruitCandidateRewardGrantHandler(),
             new OffensePrisonerRewardGrantHandler(),
@@ -277,199 +279,49 @@ public sealed class OffenseMoneyRewardGrantHandler : OffenseRewardGrantHandler<O
 public sealed class OffenseStockRewardGrantHandler : OffenseRewardGrantHandler<OffenseStockRewardSpec>
 {
     private readonly IExpeditionRewardItemSink rewardItems;
-    private readonly IGameEventBus gameEventBus;
     private readonly IWorldItemStackRuntime itemStackRuntime;
-    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
 
-    public OffenseStockRewardGrantHandler(
-        IExpeditionRewardItemSink rewardItems,
-        IGameEventBus gameEventBus)
-        : this(
-            rewardItems,
-            gameEventBus,
-            itemStackRuntime: null,
-            outcomeTransactions: null)
+    public OffenseStockRewardGrantHandler(IExpeditionRewardItemSink rewardItems, IWorldItemStackRuntime itemStackRuntime)
     {
-    }
-
-    [Inject]
-    public OffenseStockRewardGrantHandler(
-        IExpeditionRewardItemSink rewardItems,
-        IGameEventBus gameEventBus,
-        IWorldItemStackRuntime itemStackRuntime,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
-    {
-        this.rewardItems = rewardItems
-            ?? throw new ArgumentNullException(nameof(rewardItems));
-        this.gameEventBus = gameEventBus;
+        this.rewardItems = rewardItems ?? throw new ArgumentNullException(nameof(rewardItems));
         this.itemStackRuntime = itemStackRuntime;
-        this.outcomeTransactions = outcomeTransactions;
     }
 
     public override string RewardTypeId => OffenseRewardTypeIds.Stock;
 
-    protected override OffenseRewardGrantResult GrantTyped(
-        OffenseRewardPreview reward,
-        OffenseStockRewardSpec spec,
-        OffenseRewardContext context,
-        IOffenseRewardSelector selector)
+    protected override OffenseRewardGrantResult GrantTyped(OffenseRewardPreview reward, OffenseStockRewardSpec spec,
+        OffenseRewardContext context, IOffenseRewardSelector selector)
     {
         int amount = Mathf.Max(0, reward.amount);
-        if (amount <= 0)
-        {
-            return OffenseRewardGrantResultFactory.Fail(reward, "보상 수량이 없습니다");
-        }
-        if (itemStackRuntime == null || outcomeTransactions == null)
-        {
-            throw new InvalidOperationException(
-                "Offense stock-supply outcome transaction is unavailable.");
-        }
-        if (context.gameData?.day == null)
-        {
-            throw new InvalidOperationException(
-                "Offense stock-supply outcome current day is unavailable.");
-        }
-
-        string sourceLabel = string.IsNullOrWhiteSpace(reward.label)
-            ? "offense reward"
-            : reward.label;
-        int absoluteDay = Mathf.Max(0, context.gameData.day.Value);
-        string identity = CreateSupplyOutcomeIdentity(
-            context,
-            spec.StockCategory,
-            amount,
-            sourceLabel);
-        if (!outcomeTransactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.StockSupplyResult,
-                identity,
-                absoluteDay,
-                GameplayOutcomeStatus.Succeeded,
-                out PreparedMigratedProducerOutcome prepared,
-                out string reserveFailure))
-        {
-            throw new InvalidOperationException(
-                "Offense stock-supply outcome reservation failed: "
-                + reserveFailure);
-        }
-
-        DungeonPhysicalItemSaveData physicalBefore;
+        if (amount <= 0) return OffenseRewardGrantResultFactory.Fail(reward, "보상 수량이 없습니다");
+        if (itemStackRuntime == null)
+            throw new InvalidOperationException("Offense stock-reward physical rollback authority is unavailable.");
+        string sourceLabel = string.IsNullOrWhiteSpace(reward.label) ? "offense reward" : reward.label;
+        DungeonPhysicalItemSaveData physicalBefore = itemStackRuntime.Capture();
         try
         {
-            physicalBefore = itemStackRuntime.Capture();
-        }
-        catch
-        {
-            outcomeTransactions.Cancel(prepared);
-            throw;
-        }
-        bool success;
-        string itemId;
-        int delivered;
-        StockSupplyResult result;
-        bool rollbackAttempted = false;
-        try
-        {
-            success = rewardItems.SpawnStock(
-                spec.StockCategory,
-                amount,
-                sourceLabel,
-                out itemId,
-                out delivered);
-            result = new StockSupplyResult(
-                success && delivered == amount,
-                spec.StockCategory,
-                amount,
-                delivered,
-                0,
-                sourceLabel,
-                success && delivered == amount
-                    ? string.Empty
-                    : "physical reward spawn failed");
-            MigratedProducerOutcomeCommitResult committed =
-                outcomeTransactions.CommitSingleSubject(
-                    prepared,
-                    new MigratedProducerOutcomeSubject(
-                        MigratedProducerOutcomeIds.OperationKind,
-                        prepared.ResultKey.OperationId.Value,
-                        sourceLabel,
-                        MigratedProducerOutcomeIds.OperationRole),
-                    CreateSupplyOutcomeSummary(result));
-            if (!committed.DurablyCommitted)
+            bool spawned = rewardItems.SpawnStock(spec.StockCategory, amount, sourceLabel, out string itemId, out int delivered);
+            var receipt = new OffenseStockRewardReceipt(new OffenseStockRewardReceiptData
             {
-                rollbackAttempted = true;
-                itemStackRuntime.Restore(physicalBefore);
-                throw new InvalidOperationException(
-                    "Offense stock-supply outcome commit failed: "
-                    + committed.DetailCode);
-            }
-        }
-        catch
-        {
-            outcomeTransactions.Cancel(prepared);
-            if (!rollbackAttempted)
-            {
-                itemStackRuntime.Restore(physicalBefore);
-            }
-            throw;
-        }
-
-        PublishSupplyResultPostCommit(result);
-        if (!success || !result.success)
-        {
-            return OffenseRewardGrantResultFactory.Fail(
-                reward,
-                string.IsNullOrWhiteSpace(result.reason) ? "재고 입고 실패" : result.reason);
-        }
-
-        context.rewardState?.RecordStock(spec.StockCategory, result.deliveredAmount);
-        return OffenseRewardGrantResultFactory.Success(
-            reward,
-            result.deliveredAmount,
-            $"{spec.StockCategory} 입고",
-            new[]
-            {
-                new OffenseRewardPhysicalItemGrant(
-                    itemId,
-                    result.deliveredAmount)
+                category = spec.StockCategory, itemId = itemId ?? string.Empty, sourceLabel = sourceLabel,
+                requestedAmount = amount, deliveredAmount = delivered, success = spawned && delivered == amount,
+                reason = spawned && delivered == amount ? string.Empty : "physical reward spawn failed"
             });
-    }
-
-    private void PublishSupplyResultPostCommit(StockSupplyResult result)
-    {
-        try
-        {
-            gameEventBus?.Publish(new StockSupplyEvent(result));
+            var applied = receipt.Snapshot();
+            // Partial physical delivery is still an actual grant. Its parent result retains
+            // the quantity and receipt even though the requested grant was not fully successful.
+            context.rewardState?.RecordStock(spec.StockCategory, delivered);
+            return new OffenseRewardGrantResult(reward.category, reward.label, amount, delivered, applied.success,
+                applied.success ? $"{spec.StockCategory} 입고" : applied.reason,
+                delivered > 0 ? new[] { new OffenseRewardPhysicalItemGrant(itemId, delivered) }
+                    : Array.Empty<OffenseRewardPhysicalItemGrant>(), receipt);
         }
-        catch (Exception exception) when (
-            exception is not OutOfMemoryException
-            && exception is not StackOverflowException
-            && exception is not AccessViolationException)
+        catch
         {
-            Debug.LogError(
-                "offense-stock-supply-post-commit-event:"
-                + exception.GetType().Name);
+            itemStackRuntime.Restore(physicalBefore);
+            throw;
         }
     }
-
-    private static string CreateSupplyOutcomeIdentity(
-        OffenseRewardContext context,
-        StockCategory category,
-        int amount,
-        string sourceLabel) =>
-        "stock-supply:offense:expedition="
-        + (context?.expeditionId?.Trim() ?? string.Empty)
-        + ":target=" + (context?.target?.id?.Trim() ?? string.Empty)
-        + ":category=" + category
-        + ":amount=" + Mathf.Max(0, amount)
-        + ":source=" + (sourceLabel?.Trim() ?? string.Empty);
-
-    private static string CreateSupplyOutcomeSummary(StockSupplyResult result) =>
-        "원정 재고 결과: success=" + (result.success ? "true" : "false")
-        + "; category=" + result.category
-        + "; requested=" + result.requestedAmount
-        + "; delivered=" + result.deliveredAmount
-        + "; source=" + result.sourceLabel
-        + "; reason=" + result.reason;
 }
 
 public sealed class OffensePhysicalItemRewardGrantHandler :
@@ -561,16 +413,13 @@ public sealed class OffenseBlueprintRewardGrantHandler :
 {
     private readonly IWorldItemStackRuntime itemStackRuntime;
     private readonly IWorldDropZoneQuery dropZoneQuery;
-    private readonly IGameEventBus gameEventBus;
 
     public OffenseBlueprintRewardGrantHandler(
         IWorldItemStackRuntime itemStackRuntime,
-        IWorldDropZoneQuery dropZoneQuery,
-        IGameEventBus gameEventBus)
+        IWorldDropZoneQuery dropZoneQuery)
     {
         this.itemStackRuntime = itemStackRuntime;
         this.dropZoneQuery = dropZoneQuery;
-        this.gameEventBus = gameEventBus;
     }
 
     public override string RewardTypeId => OffenseRewardTypeIds.Blueprint;
@@ -623,11 +472,6 @@ public sealed class OffenseBlueprintRewardGrantHandler :
 
         if (grantedNames.Count > 0)
         {
-            gameEventBus?.RaiseAlert(
-                "원정 설계도 도착",
-                string.Join(", ", grantedNames),
-                EventAlertImportance.Low,
-                "연구");
             return OffenseRewardGrantResultFactory.Success(
                 reward,
                 grantedNames.Count,

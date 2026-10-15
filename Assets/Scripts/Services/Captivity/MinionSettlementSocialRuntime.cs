@@ -21,6 +21,8 @@ public sealed class MinionSettlementSocialRuntime :
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly ICharacterPerformanceQuery performance;
     private readonly ICombatEquipmentRuntime equipment;
+    private readonly CharacterCombatTransactionFacade combatTransactions;
+    private readonly SocialInteractionPublicationRuntime socialOutcomes;
     private IDisposable dayStartedSubscription;
 
     public MinionSettlementSocialRuntime(
@@ -35,7 +37,9 @@ public sealed class MinionSettlementSocialRuntime :
         ICharacterBodyHealthQuery bodyHealth,
         ICharacterBodyHealthCommand bodyHealthCommands,
         ICharacterPerformanceQuery performance,
-        ICombatEquipmentRuntime equipment)
+        ICombatEquipmentRuntime equipment,
+        CharacterCombatTransactionFacade combatTransactions,
+        SocialInteractionPublicationRuntime socialOutcomes)
     {
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.characters = characters
@@ -59,11 +63,15 @@ public sealed class MinionSettlementSocialRuntime :
             ?? throw new ArgumentNullException(nameof(performance));
         this.equipment = equipment
             ?? throw new ArgumentNullException(nameof(equipment));
+        this.combatTransactions = combatTransactions
+            ?? throw new ArgumentNullException(nameof(combatTransactions));
+        this.socialOutcomes = socialOutcomes
+            ?? throw new ArgumentNullException(nameof(socialOutcomes));
     }
 
     public void Initialize()
     {
-        dayStartedSubscription = events.Subscribe<OperatingDayStartedEvent>(
+        dayStartedSubscription ??= events.Subscribe<OperatingDayStartedEvent>(
             OnDayStarted);
     }
 
@@ -171,12 +179,57 @@ public sealed class MinionSettlementSocialRuntime :
             minion.Mood.Value,
             resident.Mood.Value);
         bool brawl = random.Chance(brawlChance / 100f);
+        string conflictOperationId =
+            $"minion-social:{day}:{state.captiveId}";
         if (brawl)
         {
-            ApplyUnarmedAttack(day, minion, resident, "minion");
+            var parent = new CombatOutcomeParentContext(new CombatConflictFactData
+            {
+                operationId = conflictOperationId,
+                instigator = new CombatFactParticipantData { kind = CombatFactParticipantKind.Character,
+                    id = CharacterPersistentIdentity.Require(minion).Value, name = minion.Identity?.DisplayName ?? minion.name },
+                target = new CombatFactParticipantData { kind = CombatFactParticipantKind.Character,
+                    id = CharacterPersistentIdentity.Require(resident).Value, name = resident.Identity?.DisplayName ?? resident.name },
+                conflictId = "minion-brawl", severity = 5f, committedMoodDelta = 0f,
+                origin = CharacterCommandOrigin.Autonomous, absoluteDay = Mathf.Max(1, day)
+            });
+            if (!ApplyUnarmedAttack(
+                conflictOperationId,
+                0L,
+                minion,
+                resident,
+                parent))
+            {
+                return;
+            }
             if (!minion.IsDead && !resident.IsDead)
             {
-                ApplyUnarmedAttack(day, resident, minion, "resident");
+                ApplyUnarmedAttack(
+                    conflictOperationId,
+                    1L,
+                    resident,
+                    minion,
+                    parent.AsCommitted());
+            }
+        }
+        else
+        {
+            var fact = new SocialInteractionFact(new SocialInteractionFactData
+            {
+                kind = SocialInteractionKind.MinionArgument, operationId = conflictOperationId,
+                actorId = CharacterPersistentIdentity.Require(minion).Value,
+                actorName = minion.Identity?.DisplayName ?? minion.name,
+                targetId = CharacterPersistentIdentity.Require(resident).Value,
+                targetName = resident.Identity?.DisplayName ?? resident.name,
+                conflictId = "minion-argument", severity = 2f,
+                origin = CharacterCommandOrigin.Autonomous, absoluteDay = day
+            }, true);
+            if (!socialOutcomes.TryPrepare(fact, out var prepared, out string failure))
+            { Debug.LogWarning("Minion social conflict preparation failed: " + failure); return; }
+            using (prepared)
+            {
+                if (!prepared.PublishApplied().MayBeCommitted)
+                { Debug.LogWarning("Minion social conflict publication failed: " + socialOutcomes.LastFailure); return; }
             }
         }
 
@@ -184,34 +237,27 @@ public sealed class MinionSettlementSocialRuntime :
             ? $"{resident.Identity?.DisplayName ?? resident.name}와 몸싸움"
             : $"{resident.Identity?.DisplayName ?? resident.name}와 말다툼";
         commands.RecordSocialConflict(state.captiveId, result);
-        minion.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Social,
-            CharacterActivityOutcomes.Changed,
-            result,
-            actionId: "minion-social-conflict",
-            reasonCode: brawl ? "brawl" : "argument",
-            sentiment: -0.6f,
-            bubbleEligible: true));
-        resident.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Social,
-            CharacterActivityOutcomes.Changed,
-            result,
-            actionId: "minion-social-conflict",
-            reasonCode: brawl ? "brawl" : "argument",
-            sentiment: -0.6f,
-            bubbleEligible: true));
+        try
+        {
+            events.Publish(new MinionSocialConflictAppliedEvent(
+                CharacterPersistentIdentity.Require(minion).Value,
+                CharacterPersistentIdentity.Require(resident).Value,
+                resident.Identity?.DisplayName ?? resident.name, brawl));
+        }
+        catch (Exception exception) { Debug.LogError("Minion conflict presentation failed: " + exception.Message); }
     }
 
-    private void ApplyUnarmedAttack(
-        int day,
+    private bool ApplyUnarmedAttack(
+        string conflictOperationId,
+        long attackRevision,
         CharacterActor attacker,
         CharacterActor defender,
-        string suffix)
+        CombatOutcomeParentContext parent)
     {
         string attackerId = CharacterPersistentIdentity.Require(attacker).Value;
         string defenderId = CharacterPersistentIdentity.Require(defender).Value;
-        CombatAttackResult result = combat.Resolve(new CombatAttackRequest(
-            $"minion-social:{day}:{attackerId}:{defenderId}:{suffix}",
+        var request = new CombatAttackRequest(
+            conflictOperationId,
             attackerId,
             defenderId,
             CombatRuntimeStatFactory.Create(
@@ -229,14 +275,24 @@ public sealed class MinionSettlementSocialRuntime :
             defenderDowned: bodyHealth.GetSnapshot(defender).Downed,
             attackPowerMultiplier: attacker.GetCombatPowerMultiplier(),
             defenderArmor: equipment.GetArmor(defenderId),
-            defenderShield: equipment.GetShield(defenderId)));
-        if (result.Executed)
+            defenderShield: equipment.GetShield(defenderId));
+        CharacterCombatTransactionResult transaction =
+            combatTransactions.ResolveAndApply(
+            request,
+            new CombatParticipantRef(attacker),
+            defender,
+            CombatDamageType.Blunt,
+            "하수인 사회 충돌",
+            CharacterCommandOrigin.Autonomous,
+            attackRevision,
+            parent);
+        if (!transaction.Succeeded)
         {
-            bodyHealthCommands.ApplyCombatResult(
-                defender,
-                result,
-                "하수인 사회 충돌");
+            Debug.LogWarning(
+                "Minion social combat transaction failed: "
+                + transaction.FailureReason);
         }
+        return transaction.Succeeded;
     }
 
     private CharacterActor FindActor(string persistentId) =>

@@ -159,7 +159,11 @@ public sealed class RoomProfile
 
     public void AddFixture(BuildableObject fixture)
     {
-        if (fixture != null && !fixtures.Contains(fixture))
+        // A ConstructionSite intentionally exposes its target BuildingData for
+        // construction work, but it is not an installed room fixture yet.
+        if (fixture != null
+            && fixture is not ConstructionSite
+            && !fixtures.Contains(fixture))
         {
             fixtures.Add(fixture);
         }
@@ -232,7 +236,10 @@ public sealed class RoomProfileBuilder : IRoomProfileProvider
 
         if (facility.Grid == null || room == null)
         {
-            yield return facility;
+            if (facility is not ConstructionSite)
+            {
+                yield return facility;
+            }
             yield break;
         }
 
@@ -240,6 +247,7 @@ public sealed class RoomProfileBuilder : IRoomProfileProvider
         {
             if (occupant is not BuildableObject building
                 || building == null
+                || building is ConstructionSite
                 || building.isDestroy
                 || building.buildPoses == null
                 || !building.buildPoses.Any(room.ContainsCell))
@@ -253,7 +261,10 @@ public sealed class RoomProfileBuilder : IRoomProfileProvider
 
     private static void AddFixtureContribution(RoomProfile profile, BuildableObject fixture)
     {
-        if (profile == null || fixture == null || fixture.BuildingData == null)
+        if (profile == null
+            || fixture == null
+            || fixture is ConstructionSite
+            || fixture.BuildingData == null)
         {
             return;
         }

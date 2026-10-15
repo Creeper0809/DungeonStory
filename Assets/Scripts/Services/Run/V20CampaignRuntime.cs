@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using DungeonStory.Foundation.Facts;
 
 public enum RunProgressionPhase
 {
@@ -622,7 +623,7 @@ public sealed class V20EventCooldownSaveData
 [Serializable]
 public sealed class SeasonalEventWorldSaveData
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
     public int version = CurrentVersion;
     public List<V20ActiveEventSaveData> activeEvents = new();
     public List<string> completedEventIds = new();
@@ -740,7 +741,7 @@ public sealed class EndlessCrisisAxisSaveData
 [Serializable]
 public sealed class RunMilestoneWorldSaveData
 {
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 10;
     public int version = CurrentVersion;
     public RunProgressionPhase phase;
     public int endlessCycle;
@@ -770,6 +771,95 @@ public sealed class RunMilestoneWorldSaveData
     public long pendingAccordSignalMassGrams;
     public List<V20CommittedRunChoiceSaveData> committedChoices = new();
     public long nextCommittedChoiceOrdinal;
+    public List<V20ContentResolutionRecoverySaveData>
+        pendingContentResolutions = new();
+}
+
+public enum V20ContentResolutionRecoveryPhase
+{
+    Prepared = 0,
+    ItemCostsCommitted = 1,
+    ItemGrantsCommitted = 2,
+    TypedEffectsApplied = 3,
+    OutcomesCommitted = 4
+}
+
+[Serializable]
+public sealed class V20ResolvedEventRecoverySaveData
+{
+    public string definitionId = string.Empty;
+    public string resolutionId = string.Empty;
+    public List<V20ContentEffect> effects = new();
+    public List<string> participantCharacterIds = new();
+    public string contextFactionId = string.Empty;
+    public string instanceId = string.Empty;
+    public string displayName = string.Empty;
+    public ExperienceEventRiskTier riskTier;
+    public string riskReason = string.Empty;
+    public string terminalActionLabel = string.Empty;
+    public string terminalOutcomeNarrative = string.Empty;
+    public List<V20ContentEffectKind> terminalEffectKinds = new();
+    public string observedCause = string.Empty;
+    public string occurrenceInstanceId = string.Empty;
+    public List<V20EffectApplicationEvidence> applications = new();
+}
+
+public enum V20EffectApplicationStatus
+{
+    Applied = 0,
+    Skipped = 1,
+    Clamped = 2,
+    NoOp = 3
+}
+
+[Serializable]
+public sealed class V20EffectApplicationEvidence
+{
+    public int effectIndex;
+    public string targetId = string.Empty;
+    public V20EffectApplicationStatus status;
+    public float requestedAmount;
+    public float appliedAmount;
+    public string beforeValue = string.Empty;
+    public string afterValue = string.Empty;
+    public string semantic = string.Empty;
+    public string childCommitId = string.Empty;
+
+    public V20EffectApplicationEvidence Clone() => new()
+    {
+        effectIndex = effectIndex,
+        targetId = targetId ?? string.Empty,
+        status = status,
+        requestedAmount = requestedAmount,
+        appliedAmount = appliedAmount,
+        beforeValue = beforeValue ?? string.Empty,
+        afterValue = afterValue ?? string.Empty,
+        semantic = semantic ?? string.Empty,
+        childCommitId = childCommitId ?? string.Empty
+    };
+}
+
+[Serializable]
+public sealed class V20ContentResolutionRecoverySaveData
+{
+    public string actionId = string.Empty;
+    public int absoluteDay;
+    public ContentResolutionRequestKind requestKind;
+    public V20ContentResolutionRecoveryPhase phase;
+    public int grantDropoffX;
+    public int grantDropoffY;
+    public int childCommitEvidenceVersion;
+    public string moneyTransactionId = string.Empty;
+    public string itemConsumptionOperationId = string.Empty;
+    public string itemGrantBatchCommitId = string.Empty;
+    public int durableEquipmentEvidenceVersion;
+    public string durableEquipmentStackId = string.Empty;
+    public string durableEquipmentItemId = string.Empty;
+    public string durableEquipmentContext = string.Empty;
+    public int outcomeEvidenceVersion;
+    public string stateBeforeFingerprint = string.Empty;
+    public string stateAfterFingerprint = string.Empty;
+    public List<V20ResolvedEventRecoverySaveData> resolutions = new();
 }
 
 public interface ISocietyEventCatalog
@@ -1298,6 +1388,10 @@ public sealed class V20DailyEventContext
     public List<string> ParticipantCharacterIds { get; } = new();
     public HashSet<string> RetirementEligibleParticipantIds { get; } =
         new(StringComparer.Ordinal);
+    // Active Exterior incidents retain their own actors. Observing the action
+    // must not create a second actionable Society owner for that same actor.
+    public HashSet<string> ActiveExteriorIncidentCharacterIds { get; } =
+        new(StringComparer.Ordinal);
     public Dictionary<string, Dictionary<string, float>> ParticipantContentWeights
     {
         get;
@@ -1321,7 +1415,8 @@ public readonly struct V20ResolvedEventResult
         string terminalOutcomeNarrative = "",
         IReadOnlyList<V20ContentEffectKind> terminalEffectKinds = null,
         string observedCause = "",
-        string occurrenceInstanceId = "")
+        string occurrenceInstanceId = "",
+        IReadOnlyList<V20EffectApplicationEvidence> applications = null)
     {
         DefinitionId = definitionId ?? string.Empty;
         ResolutionId = resolutionId ?? string.Empty;
@@ -1339,6 +1434,12 @@ public readonly struct V20ResolvedEventResult
         ObservedCause = observedCause?.Trim() ?? string.Empty;
         OccurrenceInstanceId = occurrenceInstanceId?.Trim()
             ?? string.Empty;
+        Applications = applications == null
+            ? Array.Empty<V20EffectApplicationEvidence>()
+            : Array.AsReadOnly(applications
+                .Where(value => value != null)
+                .Select(value => value.Clone())
+                .ToArray());
         TerminalEffectKinds = terminalEffectKinds == null
             ? Array.Empty<V20ContentEffectKind>()
             : Array.AsReadOnly(terminalEffectKinds.ToArray());
@@ -1398,7 +1499,26 @@ public readonly struct V20ResolvedEventResult
     public IReadOnlyList<V20ContentEffectKind> TerminalEffectKinds { get; }
     public string ObservedCause { get; }
     public string OccurrenceInstanceId { get; }
+    public IReadOnlyList<V20EffectApplicationEvidence> Applications { get; }
     public bool IsSocietyTerminal => InstanceId.Length > 0;
+
+    public V20ResolvedEventResult WithApplications(
+        IReadOnlyList<V20EffectApplicationEvidence> applications) => new(
+        DefinitionId,
+        ResolutionId,
+        Effects,
+        ParticipantCharacterIds,
+        ContextFactionId,
+        InstanceId,
+        DisplayName,
+        RiskTier,
+        RiskReason,
+        TerminalActionLabel,
+        TerminalOutcomeNarrative,
+        TerminalEffectKinds,
+        ObservedCause,
+        OccurrenceInstanceId,
+        applications);
 }
 
 public interface ISeasonalEventQuery
@@ -1809,7 +1929,11 @@ public sealed class V20CampaignRuntime :
     private readonly IPhysicalItemBatchDispositionService physicalDispositions;
     private readonly ISeasonalFeedSelfHeatingTargetQuery
         seasonalFeedSelfHeatingTargets;
-    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private readonly ISocialRitualFactPublisher incidentFacts;
+    private readonly IDomainFactPublisher terminalObservations;
+    private readonly IDomainFactRecoveryPublisher terminalRecovery;
+    private bool capturingIncident;
+    private bool publishingSeasonalObservation;
     private SeasonalEventAggregateState preparedSeasonalRestore;
     public V20CampaignRuntime(DungeonRuntimeAggregateRootStore rootStore, V20StoryContentCatalog catalog)
         : this(rootStore, catalog, null, null, null) { }
@@ -1835,14 +1959,18 @@ public sealed class V20CampaignRuntime :
         V20StoryContentCatalog catalog,
         IPhysicalItemBatchDispositionService physicalDispositions,
         ISeasonalFeedSelfHeatingTargetQuery seasonalFeedSelfHeatingTargets,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        ISocialRitualFactPublisher incidentFacts,
+        IDomainFactPublisher terminalObservations = null,
+        IDomainFactRecoveryPublisher terminalRecovery = null)
     {
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.physicalDispositions = physicalDispositions;
         this.seasonalFeedSelfHeatingTargets =
             seasonalFeedSelfHeatingTargets;
-        this.outcomeTransactions = outcomeTransactions;
+        this.incidentFacts = incidentFacts;
+        this.terminalObservations = terminalObservations;
+        this.terminalRecovery = terminalRecovery;
         EnsureFactionStates();
     }
 
@@ -2079,7 +2207,8 @@ public sealed class V20CampaignRuntime :
             requiredHabitatId = arrival.requiredHabitatId,
             qualification = arrival.qualification,
             members = proposed.ToList(),
-            lastFailureReason = string.Empty
+            lastFailureReason = string.Empty,
+            outcomeResultKey = string.Empty
         };
         SeasonalWorldEventDefinitionSO authored =
             ((IWorldEventCatalog)catalog).Require(occurrence.definitionId);
@@ -2123,8 +2252,71 @@ public sealed class V20CampaignRuntime :
         {
             return false;
         }
+        if (!string.IsNullOrEmpty(
+                occurrence.seasonalWildlifeArrival.outcomeResultKey))
+        {
+            return false;
+        }
         occurrence.seasonalWildlifeArrival.lastFailureReason = normalized;
         return true;
+    }
+
+    [GameplayInternalOnly(
+        "Observes already materialized seasonal visitors; retries publish only the frozen fact.",
+        "SeasonalWildlifeVisitorApplicationAdapter only")]
+    public bool TryObserveSeasonalWildlifeArrival(
+        string occurrenceInstanceId,
+        string speciesDisplayName,
+        int absoluteDay,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        V20ActiveEventSaveData occurrence = WritableSeasonal.Data.activeEvents
+            .SingleOrDefault(value => value != null
+                && string.Equals(
+                    value.instanceId,
+                    occurrenceInstanceId,
+                    StringComparison.Ordinal));
+        SeasonalWildlifeArrivalSaveData arrival =
+            occurrence?.seasonalWildlifeArrival;
+        if (arrival?.configured != true)
+        {
+            failureReason = "활성 계절 방문 occurrence를 찾지 못했습니다.";
+            return false;
+        }
+        if (arrival.members.Count != arrival.exactCount
+            || arrival.members.Any(value => value?.spawned != true))
+        {
+            failureReason = "모든 고정 방문 개체가 생성되기 전에는 결과를 확정할 수 없습니다.";
+            return false;
+        }
+
+        SeasonalTerminalObservation.ValidateWildlife(occurrence);
+        if (!string.IsNullOrEmpty(arrival.outcomeResultKey)) return true;
+        if (arrival.observation.IsEmpty)
+        {
+            var fact = new SeasonalWildlifeArrivalFact(new SeasonalWildlifeArrivalFactData
+            {
+                occurrenceId = occurrence.instanceId, speciesId = arrival.speciesId,
+                speciesDisplayName = speciesDisplayName, habitatId = arrival.requiredHabitatId,
+                absoluteDay = absoluteDay,
+                wildlifeIds = arrival.members.Select(member => member.wildlifeId)
+                    .OrderBy(id => id, StringComparer.Ordinal).ToArray()
+            });
+            if (absoluteDay < occurrence.startedAbsoluteDay)
+            { failureReason = "seasonal-arrival-observation-before-start"; return false; }
+            arrival.observation = fact.Snapshot();
+        }
+        publishingSeasonalObservation = true;
+        try
+        {
+            if (!SeasonalTerminalObservation.TryPublish(new SeasonalWildlifeArrivalFact(arrival.observation),
+                    arrival.publication, terminalObservations, terminalRecovery, out failureReason)) return false;
+            arrival.outcomeResultKey = arrival.publication.key;
+            arrival.lastFailureReason = string.Empty;
+            return true;
+        }
+        finally { publishingSeasonalObservation = false; }
     }
 
     [GameplayInternalOnly(
@@ -2360,10 +2552,66 @@ public sealed class V20CampaignRuntime :
         string normalized = failureReason?.Trim() ?? string.Empty;
         SeasonalDriftCargoSaveData cargo = FindSeasonalDriftCargo(
             occurrenceInstanceId);
-        if (cargo == null || normalized.Length is < 1 or > 256)
+        if (cargo == null
+            || normalized.Length is < 1 or > 256
+            || !string.IsNullOrEmpty(cargo.outcomeResultKey))
             return false;
         cargo.lastFailureReason = normalized;
         return true;
+    }
+
+    [GameplayInternalOnly(
+        "Observes settled seasonal cargo; retries publish only the frozen fact.",
+        "SeasonalWildlifeVisitorApplicationAdapter only")]
+    public bool TryObserveSeasonalDriftCargo(
+        string occurrenceInstanceId,
+        string itemDisplayName,
+        long unitMassGrams,
+        int absoluteDay,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        V20ActiveEventSaveData occurrence = WritableSeasonal.Data.activeEvents
+            .SingleOrDefault(value => value != null && value.instanceId == occurrenceInstanceId);
+        SeasonalDriftCargoSaveData cargo = occurrence?.seasonalDriftCargo;
+        if (cargo?.configured != true)
+        {
+            failureReason = "활성 표류 화물 occurrence를 찾지 못했습니다.";
+            return false;
+        }
+        if (!cargo.spawned || !cargo.expirationCompleted)
+        {
+            failureReason = "생성된 표류 화물의 만료 정산 전에는 결과를 확정할 수 없습니다.";
+            return false;
+        }
+
+        SeasonalTerminalObservation.ValidateCargo(occurrence);
+        if (!string.IsNullOrEmpty(cargo.outcomeResultKey)) return true;
+        if (cargo.observation.IsEmpty)
+        {
+            var fact = new SeasonalDriftCargoFact(new SeasonalDriftCargoFactData
+            {
+                occurrenceId = occurrence.instanceId, itemId = cargo.itemId, itemDisplayName = itemDisplayName,
+                absoluteDay = absoluteDay, unitMassGrams = unitMassGrams, exactQuantity = cargo.exactQuantity,
+                securedQuantity = cargo.securedQuantity, expiredQuantity = cargo.expiredQuantity,
+                expiredMassGrams = cargo.expiredMassGrams, dispositionCommitId = cargo.dispositionCommitId,
+                positionX = cargo.positionX, positionY = cargo.positionY,
+                sourceStackIds = cargo.sourceStackIds.OrderBy(id => id, StringComparer.Ordinal).ToArray()
+            });
+            if (absoluteDay < occurrence.startedAbsoluteDay)
+            { failureReason = "seasonal-cargo-observation-before-start"; return false; }
+            cargo.observation = fact.Snapshot();
+        }
+        publishingSeasonalObservation = true;
+        try
+        {
+            if (!SeasonalTerminalObservation.TryPublish(new SeasonalDriftCargoFact(cargo.observation),
+                    cargo.publication, terminalObservations, terminalRecovery, out failureReason)) return false;
+            cargo.outcomeResultKey = cargo.publication.key;
+            cargo.lastFailureReason = string.Empty;
+            return true;
+        }
+        finally { publishingSeasonalObservation = false; }
     }
 
     private SeasonalDriftCargoSaveData FindSeasonalDriftCargo(
@@ -2819,6 +3067,15 @@ public sealed class V20CampaignRuntime :
         CharacterId targetCharacterId,
         V20DailyEventContext context)
     {
+        AssertIncidentIdle();
+        if (context.ActiveExteriorIncidentCharacterIds.Contains(targetCharacterId.Value))
+        {
+            return new ObservedMealIncidentCaptureResult(
+                ObservedMealIncidentCaptureDisposition.NotEligible,
+                proposed.incidentKind, string.Empty,
+                new DomainFailure(FailureCode.ExternalInfluenceUnavailable, proposed.operationId,
+                    "observed-service-incident-target-owned-by-active-exterior"));
+        }
         ServiceIncidentKind incidentKind = proposed.incidentKind;
         SocietyEventWorldSaveData societyBefore = CaptureSociety();
         SocietyEventAggregateState candidate = PrepareSociety(societyBefore);
@@ -2903,51 +3160,32 @@ public sealed class V20CampaignRuntime :
         state.successfulIncidentOperations.Add(JsonClone(frozen));
         candidate.Data = ValidateSociety(Clone(state));
 
-        if (outcomeTransactions == null)
-        {
-            throw new InvalidOperationException(
-                "Observed service-incident outcome transaction is unavailable.");
-        }
-        if (!outcomeTransactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.ObservedMealIncidentCaptureResult,
-                frozen.operationId,
-                frozen.absoluteDay,
-                GameplayOutcomeStatus.Succeeded,
-                out PreparedMigratedProducerOutcome prepared,
-                out string reserveFailure))
-        {
-            return RejectedObservedIncidentOutcome(
-                incidentKind,
-                frozen.operationId,
-                "reservation-failed:" + reserveFailure);
-        }
-
+        if (incidentFacts == null)
+            throw new InvalidOperationException("Observed service-incident fact publisher is unavailable.");
+        var fact = new ObservedServiceIncidentFact(frozen);
+        var rollback = PrepareSociety(societyBefore);
+        DomainFactLease lease = default;
         bool mutationPublished = false;
+        bool accepted = false;
+        capturingIncident = true;
         try
         {
-            PublishSociety(candidate);
+            if (!incidentFacts.TryReserve(fact, out lease, out string reserveFailure))
+                return RejectedObservedIncidentOutcome(incidentKind, frozen.operationId, "reservation-failed:" + reserveFailure);
+            rootStore.Replace(candidate);
             mutationPublished = true;
-            MigratedProducerOutcomeCommitResult committed =
-                outcomeTransactions.CommitSingleSubject(
-                    prepared,
-                    CreateObservedIncidentSubject(targetCharacterId),
-                    BuildObservedIncidentSummary(frozen));
-            if (!committed.DurablyCommitted)
-            {
-                PublishSociety(PrepareSociety(societyBefore));
-                mutationPublished = false;
-                return RejectedObservedIncidentOutcome(
-                    incidentKind,
-                    frozen.operationId,
-                    "commit-rejected:" + committed.DetailCode);
-            }
+            DomainFactDelivery delivery = incidentFacts.Publish(lease, fact);
+            if (!delivery.MayBeCommitted)
+                return RejectedObservedIncidentOutcome(incidentKind, frozen.operationId, "publication-rejected:" + delivery.Detail);
+            // An uncertain acknowledgement retains the real occurrence/history.
+            // The journal owns only delivery of this frozen fact, not its effects.
+            accepted = true;
         }
-        catch
+        finally
         {
-            outcomeTransactions.Cancel(prepared);
-            if (mutationPublished)
-                PublishSociety(PrepareSociety(societyBefore));
-            throw;
+            if (!accepted && mutationPublished) rootStore.Replace(rollback);
+            try { if (lease.IsValid) incidentFacts.Cancel(lease); }
+            finally { capturingIncident = false; }
         }
         return new ObservedMealIncidentCaptureResult(
             ObservedMealIncidentCaptureDisposition.Created,
@@ -2956,23 +3194,10 @@ public sealed class V20CampaignRuntime :
             DomainFailure.None);
     }
 
-    private static MigratedProducerOutcomeSubject CreateObservedIncidentSubject(
-        CharacterId targetCharacterId) => new(
-        MigratedProducerOutcomeIds.CharacterKind,
-        targetCharacterId.Value,
-        targetCharacterId.Value,
-        MigratedProducerOutcomeIds.ActorRole);
-
-    private static string BuildObservedIncidentSummary(
-        ObservedMealIncidentEvidenceSaveData evidence) =>
-        "서비스 사건 목격: source=" + evidence.sourceKind
-        + "; incident=" + evidence.incidentKind
-        + "; operation=" + evidence.operationId
-        + "; occurrence=" + evidence.occurrenceInstanceId
-        + "; target=" + evidence.targetCharacterId
-        + "; facility=" + evidence.facilityInstanceId
-        + "; location=(" + evidence.locationX + "," + evidence.locationY + ")"
-        + "; day=" + evidence.absoluteDay;
+    private void AssertIncidentIdle()
+    {
+        if (capturingIncident) throw new InvalidOperationException("observed-service-incident-publication-active");
+    }
 
     private static ObservedMealIncidentCaptureResult
         RejectedObservedIncidentOutcome(
@@ -4936,11 +5161,14 @@ public sealed class V20CampaignRuntime :
         EndlessCrisisAxis axis) =>
         $"{instanceId}:axis:{(int)axis}";
 
-    public SeasonalEventWorldSaveData CaptureSeasonal() => Clone(Seasonal.Data);
-    public SocietyEventWorldSaveData CaptureSociety() => Clone(Society.Data);
+    public SeasonalEventWorldSaveData CaptureSeasonal()
+    { AssertSeasonalObservationIdle(); return Clone(Seasonal.Data); }
+    public SocietyEventWorldSaveData CaptureSociety()
+    { AssertIncidentIdle(); return Clone(Society.Data); }
     public FactionCampaignWorldSaveData CaptureFactions() => Clone(Factions.Data);
     public RunMilestoneWorldSaveData CaptureMilestones() => Clone(Milestones.Data);
-    public SeasonalEventAggregateState PrepareSeasonal(SeasonalEventWorldSaveData data) => new() { Data = ValidateSeasonal(Clone(data)) };
+    public SeasonalEventAggregateState PrepareSeasonal(SeasonalEventWorldSaveData data)
+    { AssertSeasonalObservationIdle(); return new() { Data = ValidateSeasonal(Clone(data)) }; }
     public SeasonalEventAggregateState PrepareSeasonalRestore(
         SeasonalEventWorldSaveData data)
     {
@@ -4973,9 +5201,11 @@ public sealed class V20CampaignRuntime :
         };
     }
     public RunMilestoneAggregateState PrepareMilestones(RunMilestoneWorldSaveData data) => new() { Data = ValidateMilestones(Clone(data)) };
-    public void PublishSeasonal(SeasonalEventAggregateState state) => rootStore.Replace(state ?? throw new ArgumentNullException(nameof(state)));
+    public void PublishSeasonal(SeasonalEventAggregateState state)
+    { AssertSeasonalObservationIdle(); rootStore.Replace(state ?? throw new ArgumentNullException(nameof(state))); }
     public void PublishSeasonalRestore(SeasonalEventAggregateState state)
     {
+        AssertSeasonalObservationIdle();
         if (!ReferenceEquals(preparedSeasonalRestore, state))
             throw new InvalidOperationException(
                 "Seasonal restore candidate does not match the staged candidate.");
@@ -4989,32 +5219,41 @@ public sealed class V20CampaignRuntime :
         if (ReferenceEquals(preparedSeasonalRestore, state))
             preparedSeasonalRestore = null;
     }
-    public void PublishSociety(SocietyEventAggregateState state) => rootStore.Replace(state ?? throw new ArgumentNullException(nameof(state)));
+    public void PublishSociety(SocietyEventAggregateState state)
+    { AssertIncidentIdle(); rootStore.Replace(state ?? throw new ArgumentNullException(nameof(state))); }
     public void PublishFactions(FactionCampaignAggregateState state) => rootStore.Replace(state ?? throw new ArgumentNullException(nameof(state)));
     public void PublishMilestones(RunMilestoneAggregateState state) => rootStore.Replace(state ?? throw new ArgumentNullException(nameof(state)));
     public void PublishContentResolution(
         SeasonalEventAggregateState seasonal,
         SocietyEventAggregateState society,
         FactionCampaignAggregateState factions,
-        RunMilestoneAggregateState milestones) =>
+        RunMilestoneAggregateState milestones)
+    {
+        AssertIncidentIdle();
+        AssertSeasonalObservationIdle();
         rootStore.PublishPreparedReplacements(
             seasonal ?? throw new ArgumentNullException(nameof(seasonal)),
             society ?? throw new ArgumentNullException(nameof(society)),
             factions ?? throw new ArgumentNullException(nameof(factions)),
             milestones ?? throw new ArgumentNullException(nameof(milestones)));
+    }
 
     public void PublishContentResolution(
         SeasonalEventAggregateState seasonal,
         SocietyEventAggregateState society,
         FactionCampaignAggregateState factions,
         RunMilestoneAggregateState milestones,
-        CharacterCareerAggregate careers) =>
+        CharacterCareerAggregate careers)
+    {
+        AssertIncidentIdle();
+        AssertSeasonalObservationIdle();
         rootStore.PublishPreparedReplacements(
             seasonal ?? throw new ArgumentNullException(nameof(seasonal)),
             society ?? throw new ArgumentNullException(nameof(society)),
             factions ?? throw new ArgumentNullException(nameof(factions)),
             milestones ?? throw new ArgumentNullException(nameof(milestones)),
             careers ?? throw new ArgumentNullException(nameof(careers)));
+    }
 
     private SeasonalEventAggregateState Seasonal => rootStore.GetOrCreate(() => new SeasonalEventAggregateState());
     private SocietyEventAggregateState Society => rootStore.GetOrCreate(() => new SocietyEventAggregateState());
@@ -5022,12 +5261,29 @@ public sealed class V20CampaignRuntime :
     private RunMilestoneAggregateState Milestones => rootStore.GetOrCreate(() => new RunMilestoneAggregateState());
     private RunMilestoneAggregateState WritableMilestones => rootStore.GetOrCreateWritable(
         () => new RunMilestoneAggregateState(), value => new RunMilestoneAggregateState { Data = Clone(value.Data) });
-    private SeasonalEventAggregateState WritableSeasonal => rootStore.GetOrCreateWritable(
-        () => new SeasonalEventAggregateState(),
-        value => new SeasonalEventAggregateState { Data = Clone(value.Data) });
-    private SocietyEventAggregateState WritableSociety => rootStore.GetOrCreateWritable(
-        () => new SocietyEventAggregateState(),
-        value => new SocietyEventAggregateState { Data = Clone(value.Data) });
+    private SeasonalEventAggregateState WritableSeasonal
+    {
+        get
+        {
+            AssertSeasonalObservationIdle();
+            return rootStore.GetOrCreateWritable(() => new SeasonalEventAggregateState(),
+                value => new SeasonalEventAggregateState { Data = Clone(value.Data) });
+        }
+    }
+    private void AssertSeasonalObservationIdle()
+    {
+        if (publishingSeasonalObservation)
+            throw new InvalidOperationException("seasonal-terminal-observation-in-progress");
+    }
+    private SocietyEventAggregateState WritableSociety
+    {
+        get
+        {
+            AssertIncidentIdle();
+            return rootStore.GetOrCreateWritable(() => new SocietyEventAggregateState(),
+                value => new SocietyEventAggregateState { Data = Clone(value.Data) });
+        }
+    }
     private FactionCampaignAggregateState WritableFactions => rootStore.GetOrCreateWritable(
         () => new FactionCampaignAggregateState(),
         value => new FactionCampaignAggregateState { Data = Clone(value.Data) });
@@ -5092,8 +5348,20 @@ public sealed class V20CampaignRuntime :
                      .Where(value => value.deadlineAbsoluteDay < context.AbsoluteDay)
                      .ToArray())
         {
+            SeasonalWildlifeArrivalSaveData wildlifeArrival =
+                active.seasonalWildlifeArrival;
+            if (wildlifeArrival?.configured == true
+                && wildlifeArrival.members.Count == wildlifeArrival.exactCount
+                && wildlifeArrival.members.All(value => value?.spawned == true)
+                && string.IsNullOrEmpty(wildlifeArrival.outcomeResultKey))
+            {
+                continue;
+            }
             if (active.seasonalDriftCargo?.configured == true
-                && !active.seasonalDriftCargo.expirationCompleted)
+                && (!active.seasonalDriftCargo.expirationCompleted
+                    || active.seasonalDriftCargo.spawned
+                        && string.IsNullOrEmpty(
+                            active.seasonalDriftCargo.outcomeResultKey)))
             {
                 continue;
             }
@@ -7313,7 +7581,7 @@ public sealed class V20CampaignRuntime :
     }
     private RunMilestoneWorldSaveData ValidateMilestones(RunMilestoneWorldSaveData data)
     {
-        if (data == null || data.version != RunMilestoneWorldSaveData.CurrentVersion || data.completedMilestoneIds == null || data.grantedRewardIds == null || data.unlockedLandmarkIds == null || data.activePressureIds == null || data.endlessCrisisAxes == null || data.worldFlags == null || data.committedChoices == null || data.nextCommittedChoiceOrdinal < 0 || data.endlessCycle < 0 || data.selfSufficiencyStreakDays < 0 || data.productivityCoverageStreakDays < 0 || data.lastMilestoneEvaluationAbsoluteDay < -1 || data.lastAccordSignalSupportAbsoluteDay < -1 || data.lastEndlessCrisisEvaluationAbsoluteDay < -1 || data.endlessCrisisInstanceId == null || data.endlessCrisisPendingInvasionSourceOwnerId == null || data.endlessCrisisDirectResponseOwnerId == null
+        if (data == null || data.version != RunMilestoneWorldSaveData.CurrentVersion || data.completedMilestoneIds == null || data.grantedRewardIds == null || data.unlockedLandmarkIds == null || data.activePressureIds == null || data.endlessCrisisAxes == null || data.worldFlags == null || data.committedChoices == null || data.pendingContentResolutions == null || data.nextCommittedChoiceOrdinal < 0 || data.endlessCycle < 0 || data.selfSufficiencyStreakDays < 0 || data.productivityCoverageStreakDays < 0 || data.lastMilestoneEvaluationAbsoluteDay < -1 || data.lastAccordSignalSupportAbsoluteDay < -1 || data.lastEndlessCrisisEvaluationAbsoluteDay < -1 || data.endlessCrisisInstanceId == null || data.endlessCrisisPendingInvasionSourceOwnerId == null || data.endlessCrisisDirectResponseOwnerId == null
             || (data.pendingAccordSignalOperationId.Length == 0) != (data.pendingAccordSignalCommitId.Length == 0)
             || data.pendingAccordSignalOperationId.Length > 0 && (data.pendingAccordSignalSourceStackId.Length == 0 || data.pendingAccordSignalMassGrams <= 0 || data.lastAccordSignalSupportAbsoluteDay < 1))
             throw new InvalidOperationException("Milestone save payload is invalid.");
@@ -7345,8 +7613,129 @@ public sealed class V20CampaignRuntime :
             throw new InvalidOperationException(
                 "Committed run choice sequence does not match its immutable history.");
         }
+        ValidateContentResolutionRecoveries(data.pendingContentResolutions);
         return data;
     }
+
+    private static void ValidateContentResolutionRecoveries(
+        IReadOnlyList<V20ContentResolutionRecoverySaveData> pending)
+    {
+        HashSet<string> operations = new(StringComparer.Ordinal);
+        foreach (V20ContentResolutionRecoverySaveData row in pending)
+        {
+            if (row == null
+                || string.IsNullOrWhiteSpace(row.actionId)
+                || !string.Equals(
+                    row.actionId,
+                    row.actionId.Trim(),
+                    StringComparison.Ordinal)
+                || !operations.Add(row.actionId)
+                || row.absoluteDay < 1
+                || !Enum.IsDefined(typeof(ContentResolutionRequestKind), row.requestKind)
+                || !Enum.IsDefined(typeof(V20ContentResolutionRecoveryPhase), row.phase)
+                || row.phase == V20ContentResolutionRecoveryPhase.Prepared
+                || row.resolutions == null
+                || row.resolutions.Count == 0
+                || row.childCommitEvidenceVersion != 1
+                || row.moneyTransactionId == null
+                || row.itemConsumptionOperationId == null
+                || row.itemGrantBatchCommitId == null
+                || row.durableEquipmentEvidenceVersion is < 0 or > 1
+                || row.durableEquipmentStackId == null
+                || row.durableEquipmentItemId == null
+                || row.durableEquipmentContext == null
+                || row.durableEquipmentEvidenceVersion == 0
+                    && (row.durableEquipmentStackId.Length != 0
+                        || row.durableEquipmentItemId.Length != 0
+                        || row.durableEquipmentContext.Length != 0)
+                || row.durableEquipmentEvidenceVersion == 1
+                    && (!GameplayOutcomeStableIdSyntax.IsValid(
+                            row.durableEquipmentStackId)
+                        || !GameplayOutcomeStableIdSyntax.IsValid(
+                            row.durableEquipmentItemId)
+                        || !GameplayOutcomeLedger.IsValidBoundedUtf16(
+                            row.durableEquipmentContext,
+                            GameplayOutcomeBufferLimits
+                                .MaximumFactValueUtf16Length,
+                            allowEmpty: false)
+                        || !row.durableEquipmentContext.StartsWith(
+                            "semantics=wear;",
+                            StringComparison.Ordinal))
+                || row.outcomeEvidenceVersion is < 0 or > 1
+                || row.stateBeforeFingerprint == null
+                || row.stateAfterFingerprint == null
+                || row.outcomeEvidenceVersion == 1
+                    && (!IsSha256(row.stateBeforeFingerprint)
+                        || row.phase
+                                >= V20ContentResolutionRecoveryPhase
+                                    .TypedEffectsApplied
+                            && !IsSha256(row.stateAfterFingerprint)
+                        || row.phase
+                                < V20ContentResolutionRecoveryPhase
+                                    .TypedEffectsApplied
+                            && row.stateAfterFingerprint.Length > 0)
+                || row.resolutions.Any(value => value == null
+                    || string.IsNullOrWhiteSpace(value.definitionId)
+                    || string.IsNullOrWhiteSpace(value.resolutionId)
+                    || value.effects == null
+                    || value.effects.Any(effect => effect == null || !effect.IsValid)
+                    || value.participantCharacterIds == null
+                    || value.terminalEffectKinds == null
+                    || value.applications == null
+                    || value.applications.Any(application =>
+                        application == null
+                        || application.effectIndex < 0
+                        || application.effectIndex >= value.effects.Count
+                        || string.IsNullOrWhiteSpace(application.targetId)
+                        || !Enum.IsDefined(
+                            typeof(V20EffectApplicationStatus),
+                            application.status)
+                        || application.beforeValue == null
+                        || application.afterValue == null
+                        || string.IsNullOrWhiteSpace(application.semantic)
+                        || application.childCommitId == null)))
+            {
+                throw new InvalidOperationException(
+                    "Pending content-resolution recovery is invalid or duplicated.");
+            }
+
+            V20ContentEffect[] effects = row.resolutions
+                .SelectMany(value => value.effects)
+                .Where(value => value != null && value.IsValid)
+                .ToArray();
+            int moneyDelta = effects
+                .Where(value => value.kind == V20ContentEffectKind.Money)
+                .Sum(value => (int)Math.Round(value.amount));
+            bool consumesItems = effects.Any(value =>
+                value.kind == V20ContentEffectKind.ItemConsume);
+            bool grantsItems = effects.Any(value =>
+                value.kind == V20ContentEffectKind.ItemGrant
+                && (int)Math.Round(value.amount) > 0);
+            if ((moneyDelta != 0) != IsCanonicalRequiredId(
+                    row.moneyTransactionId)
+                || consumesItems != string.Equals(
+                    row.itemConsumptionOperationId,
+                    "content-resolution:" + row.actionId,
+                    StringComparison.Ordinal)
+                || grantsItems != string.Equals(
+                    row.itemGrantBatchCommitId,
+                    "physical-source-batch:run.v20-grant:content-resolution:"
+                        + row.actionId,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Pending content-resolution child commit evidence is missing or inconsistent.");
+            }
+        }
+    }
+
+    private static bool IsSha256(string value) =>
+        value != null
+        && value.Length == 71
+        && value.StartsWith("sha256:", StringComparison.Ordinal)
+        && value.Skip("sha256:".Length).All(character =>
+            character is >= '0' and <= '9'
+                or >= 'a' and <= 'f');
 
     private void ValidateEndlessCrisis(RunMilestoneWorldSaveData data)
     {
@@ -7889,6 +8278,8 @@ public sealed class V20CampaignRuntime :
                     value.seasonalDriftCargo,
                     seasonalDefinition.driftCargoProfile,
                     value.instanceId);
+                SeasonalTerminalObservation.ValidateWildlife(value);
+                SeasonalTerminalObservation.ValidateCargo(value);
                 SeasonalArcaneEventRules.RequireValidFrozenState(
                     value.seasonalManaLightning,
                     seasonalDefinition.manaLightningProfile,
@@ -7908,6 +8299,8 @@ public sealed class V20CampaignRuntime :
                 value.seasonalDriftCargo,
                 authored: null,
                 occurrenceInstanceId: value.instanceId);
+            SeasonalTerminalObservation.ValidateWildlife(value);
+            SeasonalTerminalObservation.ValidateCargo(value);
             SeasonalArcaneEventRules.RequireValidFrozenState(
                 value.seasonalManaLightning,
                 authored: null,

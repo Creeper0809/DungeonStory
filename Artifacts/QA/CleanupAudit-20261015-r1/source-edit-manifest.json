@@ -1,0 +1,99 @@
+{
+  "changed": [
+    "Assets/Scripts/Views/UI/CharacterSummaryCombatPresenter.cs",
+    "Assets/Scripts/Views/UI/CharacterSummaryTextFormatter.cs",
+    "Assets/Scripts/Views/Character/UI/StartPartyPreparationPresentation.cs",
+    "Assets/Scripts/Services/Codex/CodexRuntimeApplicationAdapter.cs",
+    "Assets/Scripts/Services/Combat/CharacterBodyHealthStateRules.cs",
+    "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionIdentity.cs",
+    "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecord.cs",
+    "Assets/Scripts/Services/Items/PhysicalItemGameplayOutcomeTransaction.cs",
+    "Assets/Scripts/Services/Offense/OffenseExpeditionPanel.cs",
+    "Assets/Scripts/Services/Offense/Editor/OffenseRewardDebugScenarios.cs",
+    "Assets/Scripts/Services/Infrastructure/Exterior/Editor/ExteriorActivityDebugScenarios.cs",
+    "Assets/Scripts/Services/Economy/Diagnostics/ProductionOutputDestinationLifecycleDebugScenarios.cs",
+    "Assets/Scripts/Services/Character/AI/NarrativeRequestContext.cs",
+    "Assets/Scripts/Services/Character/AI/Editor/V25NarrativeInferenceDebugScenarios.cs"
+  ],
+  "missing": [
+    "Assets/Scripts/Services/AI.meta",
+    "Assets/Scripts/Services/Environment.meta",
+    "Assets/Scripts/Services/Exterior.meta",
+    "Assets/Scripts/Services/MetaIdentityRefresh.meta",
+    "Assets/Scripts/Services/UI.meta",
+    "Assets/Scripts/Services/Buildings/Work.meta",
+    "Assets/Scripts/Services/Effects/Core.meta",
+    "Assets/Scripts/Services/Environment/Editor.meta",
+    "Assets/Scripts/Services/Exterior/Editor.meta",
+    "Assets/Scripts/Services/Items/WarehousePhysicalStockOperations.cs",
+    "Assets/Scripts/Services/Items/WarehousePhysicalStockOperations.cs.meta",
+    "Assets/Scripts/Services/Research/Work.meta",
+    "Assets/Scripts/Services/Character/Core/Shopkeeper.cs",
+    "Assets/Scripts/Services/Character/Core/Shopkeeper.cs.meta",
+    "Assets/Scripts/Services/Character/Identity/Core.meta",
+    "Assets/Scripts/Models/Economy/Treasury.meta",
+    "Assets/Scripts/Models/Survival/Core/Save.meta",
+    "Tools/Verification/Phase76FinalReviewEntry.cs",
+    "Tools/Verification/Phase77CompletionEntry.cs",
+    "Tools/Verification/Phase79EvidenceQualityEntry.cs",
+    "Tools/Verification/Phase79TraitPendingEntry.cs"
+  ],
+  "frozenPins": [
+    {
+      "path": "Assets/Scripts/Views/UI/CharacterSummaryCombatPresenter.cs",
+      "sha256": "04fc0e441507a7b5718f00313e3b376a7507849c49ca6c6a6d3da5c302976323"
+    },
+    {
+      "path": "Assets/Scripts/Views/UI/CharacterSummaryTextFormatter.cs",
+      "sha256": "36d35b27a49125e84b2820a38b730c9cb484426ae06fd251b1c4ab185ef97678"
+    },
+    {
+      "path": "Assets/Scripts/Views/Character/UI/StartPartyPreparationPresentation.cs",
+      "sha256": "e31f880c5744fb792931ef83c9b130f3c4627f900b79e151c84d98a4f6423f36"
+    },
+    {
+      "path": "Assets/Scripts/Services/Codex/CodexRuntimeApplicationAdapter.cs",
+      "sha256": "80b5f06e25a7350b93cb3996d8e89a399d6649ea80af3775f183f72b6d7b2c68"
+    },
+    {
+      "path": "Assets/Scripts/Services/Combat/CharacterBodyHealthStateRules.cs",
+      "sha256": "4f01cb07a4c9860acd03a48efc193a4b108db62d4f76da7c8b028773f0f261fe"
+    },
+    {
+      "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionIdentity.cs",
+      "sha256": "cf8f1de48d5fbe8c719f1204c0649da1b13085036e80ab556ed191ab6555bd2d"
+    },
+    {
+      "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecord.cs",
+      "sha256": "5069ffd31ae67a6e5d0cef31f788e0c1e7075983034410ab22b51e5562e96788"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/PhysicalItemGameplayOutcomeTransaction.cs",
+      "sha256": "96e86eda808565bd0c0980ba0bc9ff992208c502b7d549cb5d2abc78bfca96ee"
+    },
+    {
+      "path": "Assets/Scripts/Services/Offense/OffenseExpeditionPanel.cs",
+      "sha256": "ddad2207157226150e2d15f064e9ddf7505b8685b640f5b5d3431a94230f9ad6"
+    },
+    {
+      "path": "Assets/Scripts/Services/Offense/Editor/OffenseRewardDebugScenarios.cs",
+      "sha256": "f9761beb066558af1a664a02638908152258361e9420207fdd2ed5a75adc24c4"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Exterior/Editor/ExteriorActivityDebugScenarios.cs",
+      "sha256": "07446f613fd1287e396f9c2a4dc7d8229a641d68e6b792994285c95c567b06f7"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/Diagnostics/ProductionOutputDestinationLifecycleDebugScenarios.cs",
+      "sha256": "3be266a38ce89b1653f66b7e6efa721eecd2159f0124017c05b902579b2b6a24"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/AI/NarrativeRequestContext.cs",
+      "sha256": "61f6cf92a49e56a6276ca7459bcf178070e72fe1c8b566b18691d4505b2b2ac9"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/AI/Editor/V25NarrativeInferenceDebugScenarios.cs",
+      "sha256": "00dcfefe539f40d1e29f2fb10c5eeca1b2144736a9817dca44a56409c98a9657"
+    }
+  ]
+}

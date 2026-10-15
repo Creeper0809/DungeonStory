@@ -1,50 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DungeonStory.Narrative.Korean;
 using UnityEngine;
-
-/// <summary>
-/// Immutable, pre-mutation snapshot of one exact source slice participating in
-/// a physical disposition.  This is receipt data, not a second inventory
-/// authority.
-/// </summary>
-public readonly struct PhysicalItemDispositionSourceFact
-{
-    public PhysicalItemDispositionSourceFact(
-        string stackId,
-        string itemDefinitionId,
-        string itemInstanceId,
-        int quantity,
-        long massGrams,
-        Vector2Int sourcePosition,
-        KoreanNameSnapshot displayName)
-    {
-        StackId = stackId?.Trim() ?? string.Empty;
-        ItemDefinitionId = itemDefinitionId?.Trim() ?? string.Empty;
-        ItemInstanceId = itemInstanceId?.Trim() ?? string.Empty;
-        Quantity = quantity;
-        MassGrams = massGrams;
-        SourcePosition = sourcePosition;
-        DisplayName = displayName;
-    }
-
-    public string StackId { get; }
-    public string ItemDefinitionId { get; }
-    public string ItemInstanceId { get; }
-    public int Quantity { get; }
-    public long MassGrams { get; }
-    public Vector2Int SourcePosition { get; }
-    public KoreanNameSnapshot DisplayName { get; }
-
-    public bool IsValid => GameplayOutcomeStableIdSyntax.IsValid(StackId)
-        && GameplayOutcomeStableIdSyntax.IsValid(ItemDefinitionId)
-        && (ItemInstanceId.Length == 0
-            || GameplayOutcomeStableIdSyntax.IsValid(ItemInstanceId))
-        && Quantity > 0
-        && MassGrams > 0L
-        && GameplayOutcomeLedger.IsValidDisplayNameSnapshot(DisplayName);
-}
 
 /// <summary>
 /// Save-compatible join between a physical-domain outbox row and the
@@ -110,6 +67,14 @@ public interface IPreparedPhysicalItemGameplayOutcome
     void Cancel();
 }
 
+// A prepared (not replayed) standard physical outcome may join an existing
+// owner atomic batch. This does not expose a second item mutation authority.
+internal interface IPreparedPhysicalItemGameplayOutcomeToken :
+    IPreparedPhysicalItemGameplayOutcome
+{
+    PreparedOutcomeToken Token { get; }
+}
+
 public interface IPhysicalItemBatchDispositionOutcomeParticipant
 {
     bool TryPrepare(
@@ -141,6 +106,13 @@ public interface IOutcomeAwarePhysicalItemBatchDispositionService
         out string failureReason);
 }
 
+public interface IOutcomeAwareReservedPhysicalItemBatchDispositionService
+{
+    bool TryCommitReservedSinkPending(string leaseId, int quantity, string operationId, string reasonCode,
+        IPhysicalItemBatchDispositionOutcomeParticipant outcomeParticipant,
+        out PhysicalItemBatchDispositionReceipt receipt, out string failureReason);
+}
+
 /// <summary>Callback-free owner publication joined to exact pending-receipt removal.</summary>
 public interface IPhysicalItemDispositionAcknowledgementParticipant
 {
@@ -152,101 +124,4 @@ public interface IOutcomeAwarePhysicalItemDispositionAcknowledgementService
 {
     bool Acknowledge(string commitId, IPhysicalItemDispositionAcknowledgementParticipant participant,
         out string failureReason);
-}
-
-internal static class PhysicalGameplayOutcomeSaveCodec
-{
-    internal static PhysicalItemDispositionSourceFactSaveData ToSave(
-        in PhysicalItemDispositionSourceFact fact) => new()
-    {
-        stackId = fact.StackId,
-        itemDefinitionId = fact.ItemDefinitionId,
-        itemInstanceId = fact.ItemInstanceId,
-        quantity = fact.Quantity,
-        massGrams = fact.MassGrams,
-        sourceX = fact.SourcePosition.x,
-        sourceY = fact.SourcePosition.y,
-        displayText = fact.DisplayName.DisplayText,
-        displaySnapshotRevision = fact.DisplayName.DisplaySnapshotRevision,
-        pronunciationMode = (int)fact.DisplayName.PronunciationHint.Mode,
-        pronunciationValue = fact.DisplayName.PronunciationHint.Value,
-        explicitFinalConsonant =
-            (int)fact.DisplayName.PronunciationHint.ExplicitFinalConsonant,
-        pronunciationRevision = fact.DisplayName.PronunciationHint.Revision,
-        locale = fact.DisplayName.Locale
-    };
-
-    internal static PhysicalItemDispositionSourceFact FromSave(
-        PhysicalItemDispositionSourceFactSaveData fact)
-    {
-        if (fact == null)
-            return default;
-        return new PhysicalItemDispositionSourceFact(
-            fact.stackId,
-            fact.itemDefinitionId,
-            fact.itemInstanceId,
-            fact.quantity,
-            fact.massGrams,
-            new Vector2Int(fact.sourceX, fact.sourceY),
-            new KoreanNameSnapshot(
-                fact.displayText,
-                fact.displaySnapshotRevision,
-                new KoreanPronunciationHint(
-                    (KoreanPronunciationMode)fact.pronunciationMode,
-                    fact.pronunciationValue,
-                    (KoreanFinalConsonantKind)fact.explicitFinalConsonant,
-                    fact.pronunciationRevision),
-                fact.locale));
-    }
-
-    internal static PhysicalGameplayOutcomeAttachmentSaveData ToSave(
-        in PhysicalGameplayOutcomeAttachment attachment) => new()
-    {
-        producerId = attachment.ResultKey.ProducerId,
-        operationId = attachment.ResultKey.OperationId.Value,
-        commitRevision = attachment.ResultKey.CommitRevision,
-        localResultIndex = attachment.ResultKey.LocalResultIndex,
-        outcomeRunId = attachment.OutcomeId.RunId.Value,
-        outcomeSequence = attachment.OutcomeId.Sequence,
-        replayState = (int)attachment.State,
-        canonicalPayloadHash = attachment.CanonicalPayloadHash
-    };
-
-    internal static PhysicalGameplayOutcomeAttachment FromSave(
-        PhysicalGameplayOutcomeAttachmentSaveData attachment)
-    {
-        if (attachment == null)
-            return default;
-        return new PhysicalGameplayOutcomeAttachment(
-            new GameplayResultKey(
-                attachment.producerId,
-                new GameplayOperationId(attachment.operationId),
-                attachment.commitRevision,
-                attachment.localResultIndex),
-            new GameplayOutcomeId(
-                new GameplayOutcomeRunId(attachment.outcomeRunId),
-                attachment.outcomeSequence),
-            (GameplayOutcomeReplayState)attachment.replayState,
-            attachment.canonicalPayloadHash);
-    }
-
-    internal static bool Equals(
-        PhysicalGameplayOutcomeAttachmentSaveData left,
-        PhysicalGameplayOutcomeAttachmentSaveData right) =>
-        left != null
-        && right != null
-        && string.Equals(left.producerId, right.producerId, StringComparison.Ordinal)
-        && string.Equals(left.operationId, right.operationId, StringComparison.Ordinal)
-        && left.commitRevision == right.commitRevision
-        && left.localResultIndex == right.localResultIndex
-        && string.Equals(
-            left.outcomeRunId,
-            right.outcomeRunId,
-            StringComparison.Ordinal)
-        && left.outcomeSequence == right.outcomeSequence
-        && left.replayState == right.replayState
-        && string.Equals(
-            left.canonicalPayloadHash,
-            right.canonicalPayloadHash,
-            StringComparison.Ordinal);
 }

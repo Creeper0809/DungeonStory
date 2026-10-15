@@ -573,7 +573,11 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
                 participatingBranchIds = operation.participatingBranchIds.ToList(),
                 objectiveId = operation.objectiveId,
                 scheduledDay = operation.scheduledDay,
-                intelligenceConfidence = operation.intelligenceConfidence
+                intelligenceConfidence = operation.intelligenceConfidence,
+                sourceOwnerId = operation.sourceOwnerId,
+                sourceAbsoluteDay = operation.sourceAbsoluteDay,
+                startedInvasionRuntimeId = operation.startedInvasionRuntimeId,
+                startedPublicationKey = operation.startedPublicationKey
             }));
         restored.Campaign = campaign;
         return restored;
@@ -617,12 +621,16 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
                     participatingBranchIds = operation.participatingBranchIds.ToList(),
                     objectiveId = operation.objectiveId,
                     scheduledDay = operation.scheduledDay,
-                    intelligenceConfidence = operation.intelligenceConfidence
+                    intelligenceConfidence = operation.intelligenceConfidence,
+                    sourceOwnerId = operation.sourceOwnerId,
+                    sourceAbsoluteDay = operation.sourceAbsoluteDay,
+                    startedInvasionRuntimeId = operation.startedInvasionRuntimeId,
+                    startedPublicationKey = operation.startedPublicationKey
                 }).ToList()
         };
     }
 
-    private static DungeonInvasionIntruderSaveData ToIntruderSaveData(
+    internal static DungeonInvasionIntruderSaveData ToIntruderSaveData(
         InvasionIntruderPersistenceState source)
     {
         InvasionIntruderSettings settings = source.Settings
@@ -658,6 +666,9 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
             currentHealth = source.CurrentHealth,
             injurySeverity = source.InjurySeverity,
             baseMood = source.BaseMood,
+            invasionStartPublicationKey = source.InvasionStartPublicationKey,
+            lastInvasionStagePublicationKey =
+                source.LastInvasionStagePublicationKey,
             settings = new DungeonInvasionIntruderSettingsSaveData
             {
                 patternId = settings.patternId,
@@ -725,7 +736,7 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
         };
     }
 
-    private static InvasionIntruderPersistenceState ToRuntimeState(
+    internal static InvasionIntruderPersistenceState ToRuntimeState(
         DungeonInvasionIntruderSaveData source)
     {
         DungeonInvasionIntruderSettingsSaveData settings = source.settings;
@@ -779,7 +790,9 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
             ToRuntimeData(source.raidAwareness),
             source.damagedFacilityBuildingInstanceIds.Select(
                 value => new BuildingInstanceId(value)),
-            source.enemyIndividual?.Clone());
+            source.enemyIndividual?.Clone(),
+            source.invasionStartPublicationKey,
+            source.lastInvasionStagePublicationKey);
     }
 
     private static DefenseRaidAwarenessSaveData ToRuntimeData(

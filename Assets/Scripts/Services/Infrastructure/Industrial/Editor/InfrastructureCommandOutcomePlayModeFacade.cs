@@ -28,9 +28,9 @@ public static class InfrastructureCommandOutcomePlayModeFacade
         "DungeonStory/QA/Request Phase80 Infrastructure Command Outcomes")]
     public static void RequestRunFromMenu()
     {
-        if (File.Exists(
-                IndustrialInfrastructurePlayModeVerifier
-                    .CommandOutcomeEvidencePath))
+        string evidencePath = IndustrialInfrastructurePlayModeVerifier
+            .ResolveCommandOutcomeEvidencePath();
+        if (File.Exists(evidencePath))
         {
             throw new InvalidOperationException(
                 "The immutable infrastructure-command r4 evidence already exists.");
@@ -106,10 +106,10 @@ public static class InfrastructureCommandOutcomePlayModeFacade
 
         bool passed = File.Exists(
                 IndustrialInfrastructurePlayModeVerifier
-                    .CommandOutcomeEvidencePath)
+                    .ResolveCommandOutcomeEvidencePath())
             && File.ReadAllLines(
                     IndustrialInfrastructurePlayModeVerifier
-                        .CommandOutcomeEvidencePath)
+                        .ResolveCommandOutcomeEvidencePath())
                 .Any(line => string.Equals(
                     line,
                     "result=PASS",
@@ -125,7 +125,7 @@ public static class InfrastructureCommandOutcomePlayModeFacade
     private static void WriteSetupFailure(Exception exception)
     {
         string path = IndustrialInfrastructurePlayModeVerifier
-            .CommandOutcomeEvidencePath;
+            .ResolveCommandOutcomeEvidencePath();
         string directory = Path.GetDirectoryName(path);
         if (!string.IsNullOrWhiteSpace(directory))
             Directory.CreateDirectory(directory);

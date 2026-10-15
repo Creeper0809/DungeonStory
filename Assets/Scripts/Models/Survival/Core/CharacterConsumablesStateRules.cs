@@ -64,6 +64,8 @@ internal sealed class CharacterConsumablesAggregateState
         DeliveryByRoute = new();
     internal readonly Dictionary<ConsumableOperationId, CharacterConsumableOperationState>
         CompletedOperations = new();
+    internal readonly Dictionary<ConsumableOperationId, CharacterMealOperationFailureState>
+        MealFailures = new();
     internal readonly Dictionary<CharacterId, float> MealFollowupCooldownUntil = new();
     internal readonly Dictionary<ConsumableOperationId, CharacterMealPlan>
         ActiveMealPlans = new();
@@ -73,7 +75,49 @@ internal sealed class CharacterConsumablesAggregateState
         ActiveDetoxTreatmentPlans = new();
     internal long NextOperationSequence = 1;
     internal long NextDeliverySequence = 1;
+    internal long PolicyRevision;
+    internal CharacterConsumablesPolicyChangedFact PendingPolicyFact;
     internal float NextDeliveryPruneAt;
+    internal float TimelineTime;
+    internal bool ClockNeedsBinding;
+    private float runtimeClockAnchor;
+    private float timelineClockAnchor;
+    private bool clockBound;
+
+    // Kept on the aggregate root: a failed restore rolls back the epoch with
+    // its data, without rewriting operation timestamps or extending deadlines.
+    internal void BindRuntimeClock(float runtimeNow)
+    {
+        RequireClock(runtimeNow);
+        if (!ClockNeedsBinding || clockBound)
+            throw new InvalidOperationException("Consumables clock can only bind once on a restored root.");
+        runtimeClockAnchor = runtimeNow;
+        timelineClockAnchor = TimelineTime;
+        clockBound = true;
+        ClockNeedsBinding = false;
+    }
+
+    internal float GetTimelineTime(float runtimeNow)
+    {
+        RequireClock(runtimeNow);
+        if (ClockNeedsBinding)
+            throw new InvalidOperationException("Restored consumables clock has not been bound.");
+        if (clockBound && runtimeNow < runtimeClockAnchor)
+            throw new InvalidOperationException("Consumables source clock moved before its restore anchor.");
+        float now = clockBound
+            ? (float)((double)timelineClockAnchor + ((double)runtimeNow - runtimeClockAnchor))
+            : runtimeNow;
+        RequireClock(now);
+        if (now < TimelineTime)
+            throw new InvalidOperationException("Consumables clock moved before its captured timeline.");
+        return now;
+    }
+
+    private static void RequireClock(float value)
+    {
+        if (float.IsNaN(value) || float.IsInfinity(value) || value < 0f)
+            throw new InvalidOperationException("Consumables clock must be finite and nonnegative.");
+    }
 
     internal CharacterConsumablesAggregateState Clone()
     {
@@ -81,7 +125,14 @@ internal sealed class CharacterConsumablesAggregateState
         {
             NextOperationSequence = NextOperationSequence,
             NextDeliverySequence = NextDeliverySequence,
-            NextDeliveryPruneAt = NextDeliveryPruneAt
+            PolicyRevision = PolicyRevision,
+            PendingPolicyFact = PendingPolicyFact,
+            NextDeliveryPruneAt = NextDeliveryPruneAt,
+            TimelineTime = TimelineTime,
+            ClockNeedsBinding = ClockNeedsBinding,
+            runtimeClockAnchor = runtimeClockAnchor,
+            timelineClockAnchor = timelineClockAnchor,
+            clockBound = clockBound
         };
         foreach (KeyValuePair<CharacterId, CharacterDietPolicyState> pair in DietPolicies)
         {
@@ -118,6 +169,8 @@ internal sealed class CharacterConsumablesAggregateState
         {
             clone.CompletedOperations.Add(pair.Key, CharacterConsumablesStateRules.Clone(pair.Value));
         }
+        foreach (var pair in MealFailures)
+            clone.MealFailures.Add(pair.Key, CharacterConsumablesStateRules.Clone(pair.Value));
         foreach (KeyValuePair<CharacterId, float> pair in MealFollowupCooldownUntil)
             clone.MealFollowupCooldownUntil.Add(pair.Key, pair.Value);
         foreach (KeyValuePair<ConsumableOperationId, CharacterMealPlan> pair in
@@ -147,6 +200,12 @@ internal sealed class CharacterConsumablesAggregateState
 
 internal static class CharacterConsumablesStateRules
 {
+    internal static CharacterMealOperationFailureState Clone(CharacterMealOperationFailureState source) => new()
+    {
+        operationId = source.operationId, characterId = source.characterId,
+        facilityInstanceId = source.facilityInstanceId, failureCode = source.failureCode,
+        detail = source.detail, recoveryPending = source.recoveryPending
+    };
     internal static CharacterDetoxTreatmentPlan Clone(
         CharacterDetoxTreatmentPlan source) => new()
     {
@@ -156,6 +215,9 @@ internal static class CharacterConsumablesStateRules
         itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
         sourceStackId = source?.sourceStackId ?? string.Empty,
         phase = source?.phase ?? CharacterDetoxTreatmentPlanPhase.ItemCommitted,
+        factAbsoluteDay = source?.factAbsoluteDay ?? 0,
+        publicationKey = source?.publicationKey ?? string.Empty,
+        publicationPending = source?.publicationPending ?? false,
         detoxReduction = source?.detoxReduction ?? 0f,
         appliedReduction = source?.appliedReduction ?? 0f,
         physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
@@ -176,6 +238,9 @@ internal static class CharacterConsumablesStateRules
         itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
         sourceStackId = source?.sourceStackId ?? string.Empty,
         phase = source?.phase ?? CharacterDetoxTreatmentPlanPhase.ItemCommitted,
+        factAbsoluteDay = source?.factAbsoluteDay ?? 0,
+        publicationKey = source?.publicationKey ?? string.Empty,
+        publicationPending = source?.publicationPending ?? false,
         detoxReduction = source?.detoxReduction ?? 0f,
         appliedReduction = source?.appliedReduction ?? 0f,
         physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
@@ -196,6 +261,9 @@ internal static class CharacterConsumablesStateRules
         itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
         sourceStackId = source?.sourceStackId ?? string.Empty,
         phase = source?.phase ?? CharacterDetoxTreatmentPlanPhase.ItemCommitted,
+        factAbsoluteDay = source?.factAbsoluteDay ?? 0,
+        publicationKey = source?.publicationKey ?? string.Empty,
+        publicationPending = source?.publicationPending ?? false,
         detoxReduction = source?.detoxReduction ?? 0f,
         appliedReduction = source?.appliedReduction ?? 0f,
         physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
@@ -215,6 +283,9 @@ internal static class CharacterConsumablesStateRules
         itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
         sourceStackId = source?.sourceStackId ?? string.Empty,
         phase = source?.phase ?? CharacterSubstanceUsePlanPhase.ItemCommitted,
+        factAbsoluteDay = source?.factAbsoluteDay ?? 0,
+        publicationKey = source?.publicationKey ?? string.Empty,
+        publicationPending = source?.publicationPending ?? false,
         automaticOperation = source?.automaticOperation ?? false,
         physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
         physicalCommitReasonCode = source?.physicalCommitReasonCode ?? string.Empty,
@@ -233,7 +304,9 @@ internal static class CharacterConsumablesStateRules
         effectToleranceRatio = source?.effectToleranceRatio ?? 0f,
         resolvedAddicted = source?.resolvedAddicted ?? false,
         resolvedOverdosed = source?.resolvedOverdosed ?? false,
-        becameAddicted = source?.becameAddicted ?? false
+        becameAddicted = source?.becameAddicted ?? false,
+        resolvedEffectMood = source?.resolvedEffectMood ?? 0f,
+        resolvedOverdoseDamage = source?.resolvedOverdoseDamage ?? 0f
     };
 
     internal static CharacterSubstanceUsePlanSaveData ToSaveData(
@@ -244,6 +317,9 @@ internal static class CharacterConsumablesStateRules
         itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
         sourceStackId = source?.sourceStackId ?? string.Empty,
         phase = source?.phase ?? CharacterSubstanceUsePlanPhase.ItemCommitted,
+        factAbsoluteDay = source?.factAbsoluteDay ?? 0,
+        publicationKey = source?.publicationKey ?? string.Empty,
+        publicationPending = source?.publicationPending ?? false,
         automaticOperation = source?.automaticOperation ?? false,
         physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
         physicalCommitReasonCode = source?.physicalCommitReasonCode ?? string.Empty,
@@ -262,7 +338,9 @@ internal static class CharacterConsumablesStateRules
         effectToleranceRatio = source?.effectToleranceRatio ?? 0f,
         resolvedAddicted = source?.resolvedAddicted ?? false,
         resolvedOverdosed = source?.resolvedOverdosed ?? false,
-        becameAddicted = source?.becameAddicted ?? false
+        becameAddicted = source?.becameAddicted ?? false,
+        resolvedEffectMood = source?.resolvedEffectMood ?? 0f,
+        resolvedOverdoseDamage = source?.resolvedOverdoseDamage ?? 0f
     };
 
     internal static CharacterSubstanceUsePlan FromSaveData(
@@ -273,6 +351,9 @@ internal static class CharacterConsumablesStateRules
         itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
         sourceStackId = source?.sourceStackId ?? string.Empty,
         phase = source?.phase ?? CharacterSubstanceUsePlanPhase.ItemCommitted,
+        factAbsoluteDay = source?.factAbsoluteDay ?? 0,
+        publicationKey = source?.publicationKey ?? string.Empty,
+        publicationPending = source?.publicationPending ?? false,
         automaticOperation = source?.automaticOperation ?? false,
         physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
         physicalCommitReasonCode = source?.physicalCommitReasonCode ?? string.Empty,
@@ -291,11 +372,17 @@ internal static class CharacterConsumablesStateRules
         effectToleranceRatio = source?.effectToleranceRatio ?? 0f,
         resolvedAddicted = source?.resolvedAddicted ?? false,
         resolvedOverdosed = source?.resolvedOverdosed ?? false,
-        becameAddicted = source?.becameAddicted ?? false
+        becameAddicted = source?.becameAddicted ?? false,
+        resolvedEffectMood = source?.resolvedEffectMood ?? 0f,
+        resolvedOverdoseDamage = source?.resolvedOverdoseDamage ?? 0f
     };
 
     internal static CharacterMealPlan Clone(CharacterMealPlan source) => new()
     {
+        ritualFastingConsequenceDelivered = source?.ritualFastingConsequenceDelivered ?? false,
+        physicalContextFrozen = source?.physicalContextFrozen ?? false,
+        consumptionPosition = source?.consumptionPosition ?? default,
+        effectsSkippedReason = source?.effectsSkippedReason ?? string.Empty,
         planId = source?.planId ?? string.Empty,
         characterId = source?.characterId ?? string.Empty,
         facilityInstanceId = source?.facilityInstanceId ?? string.Empty,
@@ -304,6 +391,9 @@ internal static class CharacterConsumablesStateRules
         itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
         mealQuantityLeaseId = source?.mealQuantityLeaseId ?? string.Empty,
         phase = source?.phase ?? CharacterMealPlanPhase.Aborted,
+        factAbsoluteDay = source?.factAbsoluteDay ?? 0,
+        publicationKey = source?.publicationKey ?? string.Empty,
+        publicationPending = source?.publicationPending ?? false,
         createdAt = source?.createdAt ?? 0d,
         leaseExpiresAt = source?.leaseExpiresAt ?? 0d,
         expectedCompletionEta = source?.expectedCompletionEta ?? 0f,
@@ -320,19 +410,40 @@ internal static class CharacterConsumablesStateRules
         physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L,
         committedPolicyViolation = source?.committedPolicyViolation ?? false,
         committedContaminated = source?.committedContaminated ?? false,
+        contaminationRollFrozen = source?.contaminationRollFrozen ?? false,
+        resolvedContaminationDamage =
+            source?.resolvedContaminationDamage ?? false,
         primitiveSurvivalOutcomeRequired =
-            source?.primitiveSurvivalOutcomeRequired ?? false
+            source?.primitiveSurvivalOutcomeRequired ?? false,
+        primitivePublicationKey = source?.primitivePublicationKey ?? string.Empty,
+        primitiveNutrition = source?.primitiveNutrition ?? 0f,
+        recipientActiveAtCompletion = source?.recipientActiveAtCompletion ?? false,
+        postCommitEventDelivered = source?.postCommitEventDelivered ?? false,
+        effectEvidenceFrozen = source?.effectEvidenceFrozen ?? false,
+        hungerBefore = source?.hungerBefore ?? 0f,
+        hungerAfter = source?.hungerAfter ?? 0f,
+        healthBefore = source?.healthBefore ?? 0f,
+        healthAfter = source?.healthAfter ?? 0f,
+        moodBefore = source?.moodBefore ?? 0f,
+        moodAfter = source?.moodAfter ?? 0f
     };
 
     internal static CharacterMealPlanSaveData ToSaveData(
         CharacterMealPlan source) => new()
     {
+        ritualFastingConsequenceDelivered = source?.ritualFastingConsequenceDelivered ?? false,
+        physicalContextFrozen = source?.physicalContextFrozen ?? false,
+        consumptionPosition = source?.consumptionPosition ?? default,
+        effectsSkippedReason = source?.effectsSkippedReason ?? string.Empty,
         planId = source?.planId ?? string.Empty,
         characterId = source?.characterId ?? string.Empty,
         facilityInstanceId = source?.facilityInstanceId ?? string.Empty,
         sourceStackId = source?.sourceStackId ?? string.Empty,
         itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
         phase = source?.phase ?? CharacterMealPlanPhase.Aborted,
+        factAbsoluteDay = source?.factAbsoluteDay ?? 0,
+        publicationKey = source?.publicationKey ?? string.Empty,
+        publicationPending = source?.publicationPending ?? false,
         createdAt = source?.createdAt ?? 0d,
         leaseExpiresAt = source?.leaseExpiresAt ?? 0d,
         expectedCompletionEta = source?.expectedCompletionEta ?? 0f,
@@ -347,13 +458,31 @@ internal static class CharacterConsumablesStateRules
         physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L,
         committedPolicyViolation = source?.committedPolicyViolation ?? false,
         committedContaminated = source?.committedContaminated ?? false,
+        contaminationRollFrozen = source?.contaminationRollFrozen ?? false,
+        resolvedContaminationDamage =
+            source?.resolvedContaminationDamage ?? false,
         primitiveSurvivalOutcomeRequired =
-            source?.primitiveSurvivalOutcomeRequired ?? false
+            source?.primitiveSurvivalOutcomeRequired ?? false,
+        primitivePublicationKey = source?.primitivePublicationKey ?? string.Empty,
+        primitiveNutrition = source?.primitiveNutrition ?? 0f,
+        recipientActiveAtCompletion = source?.recipientActiveAtCompletion ?? false,
+        postCommitEventDelivered = source?.postCommitEventDelivered ?? false,
+        effectEvidenceFrozen = source?.effectEvidenceFrozen ?? false,
+        hungerBefore = source?.hungerBefore ?? 0f,
+        hungerAfter = source?.hungerAfter ?? 0f,
+        healthBefore = source?.healthBefore ?? 0f,
+        healthAfter = source?.healthAfter ?? 0f,
+        moodBefore = source?.moodBefore ?? 0f,
+        moodAfter = source?.moodAfter ?? 0f
     };
 
     internal static CharacterMealPlan FromSaveData(
         CharacterMealPlanSaveData source) => new()
     {
+        ritualFastingConsequenceDelivered = source?.ritualFastingConsequenceDelivered ?? false,
+        physicalContextFrozen = source?.physicalContextFrozen ?? false,
+        consumptionPosition = source?.consumptionPosition ?? default,
+        effectsSkippedReason = source?.effectsSkippedReason ?? string.Empty,
         planId = source?.planId ?? string.Empty,
         characterId = source?.characterId ?? string.Empty,
         facilityInstanceId = source?.facilityInstanceId ?? string.Empty,
@@ -361,6 +490,9 @@ internal static class CharacterConsumablesStateRules
         itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
         mealQuantityLeaseId = string.Empty,
         phase = source?.phase ?? CharacterMealPlanPhase.Aborted,
+        factAbsoluteDay = source?.factAbsoluteDay ?? 0,
+        publicationKey = source?.publicationKey ?? string.Empty,
+        publicationPending = source?.publicationPending ?? false,
         createdAt = source?.createdAt ?? 0d,
         leaseExpiresAt = source?.leaseExpiresAt ?? 0d,
         expectedCompletionEta = source?.expectedCompletionEta ?? 0f,
@@ -368,7 +500,9 @@ internal static class CharacterConsumablesStateRules
         beginContamination = source?.beginContamination ?? 0f,
         facilitySlotReserved = false,
         physicalConsumptionCommitted = source?.phase is
-            CharacterMealPlanPhase.ItemCommitted or CharacterMealPlanPhase.EffectsPublished,
+            CharacterMealPlanPhase.ItemCommitted
+            or CharacterMealPlanPhase.EffectsApplied
+            or CharacterMealPlanPhase.EffectsPublished,
         physicalCommitOperationId = source?.physicalCommitOperationId ?? string.Empty,
         physicalCommitReasonCode = source?.physicalCommitReasonCode ?? string.Empty,
         physicalCommitId = source?.physicalCommitId ?? string.Empty,
@@ -378,8 +512,22 @@ internal static class CharacterConsumablesStateRules
         physicalCommitInputMassGrams = source?.physicalCommitInputMassGrams ?? 0L,
         committedPolicyViolation = source?.committedPolicyViolation ?? false,
         committedContaminated = source?.committedContaminated ?? false,
+        contaminationRollFrozen = source?.contaminationRollFrozen ?? false,
+        resolvedContaminationDamage =
+            source?.resolvedContaminationDamage ?? false,
         primitiveSurvivalOutcomeRequired =
-            source?.primitiveSurvivalOutcomeRequired ?? false
+            source?.primitiveSurvivalOutcomeRequired ?? false,
+        primitivePublicationKey = source?.primitivePublicationKey ?? string.Empty,
+        primitiveNutrition = source?.primitiveNutrition ?? 0f,
+        recipientActiveAtCompletion = source?.recipientActiveAtCompletion ?? false,
+        postCommitEventDelivered = source?.postCommitEventDelivered ?? false,
+        effectEvidenceFrozen = source?.effectEvidenceFrozen ?? false,
+        hungerBefore = source?.hungerBefore ?? 0f,
+        hungerAfter = source?.hungerAfter ?? 0f,
+        healthBefore = source?.healthBefore ?? 0f,
+        healthAfter = source?.healthAfter ?? 0f,
+        moodBefore = source?.moodBefore ?? 0f,
+        moodAfter = source?.moodAfter ?? 0f
     };
 
     internal static CharacterDietPolicyState Clone(CharacterDietPolicyState source) =>
@@ -448,6 +596,7 @@ internal static class CharacterConsumablesStateRules
         CharacterConsumableOperationState source) =>
         new()
         {
+            mealEffectsSkippedReason = source?.mealEffectsSkippedReason ?? string.Empty,
             operationId = source?.operationId ?? string.Empty,
             characterId = source?.characterId ?? string.Empty,
             itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
@@ -458,14 +607,16 @@ internal static class CharacterConsumablesStateRules
             policyViolation = source?.policyViolation ?? false,
             contaminated = source?.contaminated ?? false,
             completedAt = source?.completedAt ?? 0f,
-            appliedEffect = source?.appliedEffect ?? 0f
+            appliedEffect = source?.appliedEffect ?? 0f,
+            outcomeResultKey = source?.outcomeResultKey ?? string.Empty
         };
 
     internal static MealDeliveryRoute Route(CharacterMealDeliveryState delivery) =>
         new(delivery.CharacterId, delivery.BuildingInstanceId, delivery.ItemDefinitionId);
 
     internal static DungeonCharacterConsumablesSaveData Capture(
-        CharacterConsumablesAggregateState state)
+        CharacterConsumablesAggregateState state,
+        float timelineTime)
     {
         if (state == null)
         {
@@ -474,8 +625,12 @@ internal static class CharacterConsumablesStateRules
         DungeonCharacterConsumablesSaveData payload = new()
         {
             version = DungeonCharacterConsumablesSaveData.CurrentVersion,
+            timelineTime = timelineTime,
             nextOperationSequence = state.NextOperationSequence,
             nextDeliverySequence = state.NextDeliverySequence,
+            policyRevision = state.PolicyRevision,
+            pendingPolicyFacts = state.PendingPolicyFact == null
+                ? new() : new() { state.PendingPolicyFact.Capture() },
             dietPolicies = state.DietPolicies.Values.Select(Clone)
                 .OrderBy(value => value.characterId, StringComparer.Ordinal).ToList(),
             mealQualityPolicies = state.MealQualityPolicies.Values.Select(Clone)
@@ -491,6 +646,8 @@ internal static class CharacterConsumablesStateRules
             pendingMealDeliveries = state.PendingDeliveries.Values.Select(Clone)
                 .OrderBy(value => value.deliveryId, StringComparer.Ordinal).ToList(),
             completedOperations = state.CompletedOperations.Values.Select(Clone)
+                .OrderBy(value => value.operationId, StringComparer.Ordinal).ToList(),
+            failedMealOperations = state.MealFailures.Values.Select(Clone)
                 .OrderBy(value => value.operationId, StringComparer.Ordinal).ToList(),
             activeMealPlans = state.ActiveMealPlans.Values
                 .Select(ToSaveData)
@@ -543,14 +700,18 @@ internal static class CharacterConsumablesStateRules
         {
             report.AddError($"Character consumables payload V{payload.version} is unsupported; expected V{DungeonCharacterConsumablesSaveData.CurrentVersion}.");
         }
+        if (!IsFiniteNonNegative(payload.timelineTime))
+            report.AddError("Character consumables timeline must be finite and nonnegative.");
         if (payload.nextOperationSequence < 1 || payload.nextDeliverySequence < 1)
         {
             report.AddError("Character consumables sequences must be positive.");
         }
         if (payload.dietPolicies == null || payload.substancePolicies == null
+            || payload.pendingPolicyFacts == null
             || payload.substanceStates == null || payload.pendingMealDeliveries == null
             || payload.toxicityStates == null
             || payload.completedOperations == null
+            || payload.failedMealOperations == null
             || payload.mealFollowupCooldowns == null
             || payload.mealQualityPolicies == null
             || payload.activeMealPlans == null
@@ -658,6 +819,11 @@ internal static class CharacterConsumablesStateRules
             }
             previous = orderKey;
         }
+        if (payload.policyRevision < 0L)
+        {
+            report.AddError("Character consumables policy revision cannot be negative.");
+        }
+        ValidatePendingPolicyFact(payload, report);
 
         previous = null;
         foreach (CharacterToxicityState state in payload.toxicityStates)
@@ -711,7 +877,8 @@ internal static class CharacterConsumablesStateRules
                 && deliveryIds.Add(delivery.DeliveryId);
             bool uniqueRoute = delivery != null && deliveryRoutes.Add(route);
             bool requestedAtValid = delivery != null
-                && IsFiniteNonNegative(delivery.requestedAt);
+                && IsFiniteNonNegative(delivery.requestedAt)
+                && delivery.requestedAt <= payload.timelineTime;
             bool retryAfterValid = delivery != null
                 && IsFiniteNonNegative(delivery.retryAfter)
                 && delivery.retryAfter >= delivery.requestedAt;
@@ -789,10 +956,20 @@ internal static class CharacterConsumablesStateRules
                 || !IsExactValue(operation.itemStackId, operation.ItemStackId.Value)
                 || requireWorldReferences
                     && !characters.Contains(operation.CharacterId)
+                    && !payload.activeMealPlans.Any(plan => CanRecoverWithoutActor(plan)
+                        && plan.phase == CharacterMealPlanPhase.EffectsPublished
+                        && plan.planId == operation.operationId
+                        && plan.characterId == operation.characterId
+                        && plan.itemDefinitionId == operation.itemDefinitionId
+                        && plan.facilityInstanceId == operation.facilityInstanceId)
                 || !validItem || !completedOperationIds.Add(operation.OperationId)
                 || !validFacility
                 || !validAppliedEffect
+                || !string.IsNullOrEmpty(operation.mealEffectsSkippedReason)
+                    && (!operation.meal || string.IsNullOrWhiteSpace(operation.mealEffectsSkippedReason)
+                        || operation.mealEffectsSkippedReason != operation.mealEffectsSkippedReason.Trim())
                 || !IsFiniteNonNegative(operation.completedAt)
+                || operation.completedAt > payload.timelineTime
                 || !IsAfter(previous, operation.operationId))
             {
                 report.AddError("Character consumables operation ledger contains an invalid, unknown, duplicate, or unordered operation/reference.");
@@ -811,11 +988,19 @@ internal static class CharacterConsumablesStateRules
             bool completedOperationMatchesPhase = plan != null
                 && completedOperationIds.Contains(plan.OperationId)
                 == phaseAllowsCompletedOperation;
+            bool completedReceiptMatches = !phaseAllowsCompletedOperation
+                || payload.completedOperations.Any(operation => operation != null && operation.meal
+                    && operation.operationId == plan.planId && operation.characterId == plan.characterId
+                    && operation.facilityInstanceId == plan.facilityInstanceId
+                    && operation.itemDefinitionId == plan.itemDefinitionId
+                    && operation.itemStackId == plan.physicalCommitSourceStackIds?.FirstOrDefault()
+                    && operation.mealEffectsSkippedReason == plan.effectsSkippedReason);
             if (plan == null
                 || !plan.OperationId.IsValid
                 || !IsExactValue(plan.planId, plan.OperationId.Value)
                 || !IsExactCharacterId(plan.characterId, plan.CharacterId)
                 || requireWorldReferences && !characters.Contains(plan.CharacterId)
+                    && !CanRecoverWithoutActor(plan)
                 || !plan.FacilityId.IsValid
                 || !IsExactValue(
                     plan.facilityInstanceId,
@@ -826,6 +1011,7 @@ internal static class CharacterConsumablesStateRules
                         CharacterConsumablesRuntime.FieldMealFacilityId,
                         StringComparison.Ordinal)
                     && !facilities.Contains(plan.FacilityId)
+                    && !CanRecoverWithoutActor(plan)
                 || !plan.SourceStackId.IsValid
                 || !IsExactValue(plan.sourceStackId, plan.SourceStackId.Value)
                 || !plan.ItemDefinitionId.IsValid
@@ -835,16 +1021,26 @@ internal static class CharacterConsumablesStateRules
                 || !validMeal
                 || plan.phase is not (CharacterMealPlanPhase.Eating
                     or CharacterMealPlanPhase.ItemCommitted
+                    or CharacterMealPlanPhase.EffectsApplied
                     or CharacterMealPlanPhase.EffectsPublished)
                 || !activePlanIds.Add(plan.OperationId)
                 || !completedOperationMatchesPhase
+                || !completedReceiptMatches
+                || !ValidFactPublication(payload, plan.planId, plan.factAbsoluteDay, plan.publicationKey,
+                    plan.publicationPending, phaseAllowsCompletedOperation)
+                || !ValidMealFactPublication(plan, phaseAllowsCompletedOperation)
                 || !ValidPhysicalCommit(plan, inventory, requireWorldReferences)
+                || !ValidMealEffectDecision(plan)
                 || !IsFiniteNonNegative(plan.createdAt)
+                || plan.createdAt > payload.timelineTime
                 || !IsFiniteNonNegative(plan.leaseExpiresAt)
                 || plan.leaseExpiresAt < plan.createdAt
                 || !IsFiniteNonNegative(plan.expectedCompletionEta)
                 || plan.expectedCompletionEta <= 0f
                 || !IsFiniteNonNegative(plan.beginContamination)
+                || plan.resolvedContaminationDamage
+                    && (!plan.contaminationRollFrozen
+                        || !plan.committedContaminated)
                 || !IsAfter(previous, plan.planId))
             {
                 report.AddError(
@@ -871,7 +1067,12 @@ internal static class CharacterConsumablesStateRules
                 && IsFiniteNonNegative(plan.resolvedActiveSeconds)
                 && IsFiniteNonNegative(plan.resolvedSecondsSinceLastDose)
                 && IsFiniteNonNegative(plan.resolvedScheduledCooldownSeconds)
-                && IsFiniteRange(plan.effectToleranceRatio, 0f, 1f);
+                && IsFiniteRange(plan.effectToleranceRatio, 0f, 1f)
+                && IsFinite(plan.resolvedEffectMood)
+                && IsFiniteNonNegative(plan.resolvedOverdoseDamage)
+                && (plan.resolvedOverdosed
+                    ? plan.resolvedOverdoseDamage > 0f
+                    : plan.resolvedOverdoseDamage == 0f);
             if (plan == null
                 || !plan.OperationId.IsValid
                 || !IsExactValue(plan.operationId, plan.OperationId.Value)
@@ -885,11 +1086,14 @@ internal static class CharacterConsumablesStateRules
                 || !IsExactValue(plan.sourceStackId, plan.SourceStackId.Value)
                 || !validSubstance
                 || plan.phase is not (CharacterSubstanceUsePlanPhase.ItemCommitted
+                    or CharacterSubstanceUsePlanPhase.EffectsApplied
                     or CharacterSubstanceUsePlanPhase.EffectsPublished)
                 || !activeSubstancePlanIds.Add(plan.OperationId)
                 || activePlanIds.Contains(plan.OperationId)
                 || !completedMatches
                 || !finiteTargets
+                || !ValidFactPublication(payload, plan.operationId, plan.factAbsoluteDay, plan.publicationKey,
+                    plan.publicationPending, effectsPublished)
                 || plan.becameAddicted
                     && !plan.resolvedAddicted
                 || !ValidSubstancePhysicalCommit(
@@ -956,6 +1160,9 @@ internal static class CharacterConsumablesStateRules
                     plan,
                     inventory,
                     requireWorldReferences)
+                || !ValidFactPublication(payload, plan.operationId, plan.factAbsoluteDay, plan.publicationKey,
+                    plan.publicationPending, effectsPublished)
+                || plan.publicationPending && plan.phase == CharacterDetoxTreatmentPlanPhase.PhysicalAcknowledged
                 || !IsAfter(previous, plan.operationId))
             {
                 report.AddError(
@@ -966,6 +1173,7 @@ internal static class CharacterConsumablesStateRules
         }
 
         previous = null;
+        ValidateMealFailures(payload, report, characters, requireWorldReferences);
         foreach (CharacterMealFollowupCooldownSaveData cooldown in
                  payload.mealFollowupCooldowns)
         {
@@ -985,13 +1193,93 @@ internal static class CharacterConsumablesStateRules
         }
     }
 
+    private static void ValidateMealFailures(DungeonCharacterConsumablesSaveData payload,
+        DungeonGameRestoreReport report, HashSet<CharacterId> characters, bool requireWorldReferences)
+    {
+        string previous = null;
+        foreach (CharacterMealOperationFailureState failure in payload.failedMealOperations)
+        {
+            if (failure == null || !failure.OperationId.IsValid
+                || !IsExactValue(failure.operationId, failure.OperationId.Value)
+                || !IsExactCharacterId(failure.characterId, failure.CharacterId)
+                || !failure.FacilityId.IsValid
+                || !IsExactValue(failure.facilityInstanceId, failure.FacilityId.Value)
+                || requireWorldReferences && !characters.Contains(failure.CharacterId)
+                    && !payload.activeMealPlans.Any(plan => CanRecoverWithoutActor(plan)
+                        && plan.planId == failure.operationId && plan.characterId == failure.characterId
+                        && plan.facilityInstanceId == failure.facilityInstanceId)
+                || !Enum.IsDefined(typeof(CharacterConsumablesFailureCode), failure.failureCode)
+                || failure.failureCode is CharacterConsumablesFailureCode.None
+                    or CharacterConsumablesFailureCode.DeliveryPending
+                || string.IsNullOrWhiteSpace(failure.detail) || failure.detail != failure.detail.Trim()
+                || !IsAfter(previous, failure.operationId))
+            {
+                report.AddError("Character meal failure has invalid, duplicate, unordered identity or reason.");
+                continue;
+            }
+            previous = failure.operationId;
+            CharacterMealPlanSaveData plan = payload.activeMealPlans.FirstOrDefault(value =>
+                value != null && value.planId == failure.operationId);
+            CharacterConsumableOperationState completed = payload.completedOperations.FirstOrDefault(value =>
+                value != null && value.operationId == failure.operationId);
+            bool validPhase = failure.recoveryPending
+                ? plan != null && (plan.phase is CharacterMealPlanPhase.ItemCommitted
+                    or CharacterMealPlanPhase.EffectsApplied or CharacterMealPlanPhase.EffectsPublished)
+                    && plan.characterId == failure.characterId
+                    && plan.facilityInstanceId == failure.facilityInstanceId
+                : plan == null && completed == null;
+            if (!validPhase
+                || payload.activeSubstanceUsePlans.Any(value => value != null && value.operationId == failure.operationId)
+                || payload.activeDetoxTreatmentPlans.Any(value => value != null && value.operationId == failure.operationId))
+                report.AddError("Character meal failure conflicts with its active/completed operation owner.");
+        }
+    }
+
+    private static void ValidatePendingPolicyFact(
+        DungeonCharacterConsumablesSaveData payload, DungeonGameRestoreReport report)
+    {
+        if (payload.pendingPolicyFacts.Count > 1)
+        { report.AddError("Consumables policy has more than one unresolved transition."); return; }
+        if (payload.pendingPolicyFacts.Count == 0) return;
+        try
+        {
+            CharacterConsumablesPolicyChangedFact fact =
+                CharacterConsumablesPolicyChangedFact.Restore(payload.pendingPolicyFacts[0]);
+            string actual = fact.PolicyId switch
+            {
+                "character-diet" => payload.dietPolicies.FirstOrDefault(value =>
+                    value?.characterId == fact.CharacterId.Value)?.policy.ToString().ToLowerInvariant(),
+                "character-meal-quality" => payload.mealQualityPolicies.FirstOrDefault(value =>
+                    value?.characterId == fact.CharacterId.Value)?.maximumQuality.ToString().ToLowerInvariant(),
+                "character-substance" => SubstanceValue(),
+                _ => null
+            };
+            if (fact.AfterRevision != payload.policyRevision || actual != fact.AfterValue)
+                report.AddError("Pending consumables policy fact disagrees with the authoritative policy/revision.");
+
+            string SubstanceValue()
+            {
+                CharacterSubstancePolicyState policy = payload.substancePolicies.FirstOrDefault(value =>
+                    value?.characterId == fact.CharacterId.Value && value.itemDefinitionId == fact.ScopeId);
+                return policy == null ? null : CharacterConsumablesPolicyChangedFact.CanonicalSubstanceValue(policy);
+            }
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or OverflowException)
+        { report.AddError("Invalid pending consumables policy fact: " + exception.Message); }
+    }
+
     internal static CharacterConsumablesAggregateState Build(
         DungeonCharacterConsumablesSaveData payload)
     {
         CharacterConsumablesAggregateState state = new()
         {
+            TimelineTime = payload.timelineTime,
+            ClockNeedsBinding = true,
             NextOperationSequence = payload.nextOperationSequence,
-            NextDeliverySequence = payload.nextDeliverySequence
+            NextDeliverySequence = payload.nextDeliverySequence,
+            PolicyRevision = payload.policyRevision,
+            PendingPolicyFact = payload.pendingPolicyFacts.Count == 0 ? null
+                : CharacterConsumablesPolicyChangedFact.Restore(payload.pendingPolicyFacts[0])
         };
         foreach (CharacterDietPolicyState source in payload.dietPolicies)
         {
@@ -1029,6 +1317,8 @@ internal static class CharacterConsumablesStateRules
             CharacterConsumableOperationState clone = Clone(source);
             state.CompletedOperations.Add(clone.OperationId, clone);
         }
+        foreach (CharacterMealOperationFailureState source in payload.failedMealOperations)
+            state.MealFailures.Add(source.OperationId, Clone(source));
         foreach (CharacterMealPlanSaveData source in payload.activeMealPlans)
         {
             CharacterMealPlan plan = FromSaveData(source);
@@ -1204,12 +1494,62 @@ internal static class CharacterConsumablesStateRules
             && sourceIds.SequenceEqual(pending.SourceStackIds ?? Array.Empty<string>());
     }
 
+    private static bool CanRecoverWithoutActor(CharacterMealPlanSaveData plan) =>
+        plan != null && plan.physicalContextFrozen && plan.effectEvidenceFrozen
+        && plan.phase is CharacterMealPlanPhase.EffectsApplied or CharacterMealPlanPhase.EffectsPublished;
+
+    private static bool ValidFactPublication(DungeonCharacterConsumablesSaveData payload,
+        string operationId, int day, string key, bool pending, bool published)
+    {
+        if (!published) return day == 0 && string.IsNullOrEmpty(key) && !pending;
+        if (day < 1 || !ValidOpaquePublicationKey(key)) return false;
+        var completed = payload.completedOperations.FirstOrDefault(value => value?.operationId == operationId);
+        return completed != null && (pending ? string.IsNullOrEmpty(completed.outcomeResultKey)
+            : completed.outcomeResultKey == key);
+    }
+
+    private static bool ValidOpaquePublicationKey(string key) => !string.IsNullOrWhiteSpace(key)
+        && key.Length <= 1024 && key == key.Trim() && key.IndexOfAny(new[] { '\r', '\n', '\0' }) < 0;
+
+    private static bool ValidMealFactPublication(CharacterMealPlanSaveData plan, bool published)
+    {
+        if (!published) return string.IsNullOrEmpty(plan.primitivePublicationKey)
+            && plan.primitiveNutrition == 0f && !plan.recipientActiveAtCompletion
+            && !plan.postCommitEventDelivered;
+        bool primitive = plan.primitiveSurvivalOutcomeRequired && string.IsNullOrEmpty(plan.effectsSkippedReason);
+        return (primitive ? ValidOpaquePublicationKey(plan.primitivePublicationKey)
+                && plan.primitivePublicationKey != plan.publicationKey && IsFiniteNonNegative(plan.primitiveNutrition)
+                : string.IsNullOrEmpty(plan.primitivePublicationKey) && plan.primitiveNutrition == 0f)
+            && (!plan.publicationPending || !plan.postCommitEventDelivered && !plan.ritualFastingConsequenceDelivered);
+    }
+
+    private static bool ValidMealEffectDecision(CharacterMealPlanSaveData plan)
+    {
+        bool committed = plan.phase != CharacterMealPlanPhase.Eating;
+        bool decided = plan.phase is CharacterMealPlanPhase.EffectsApplied or CharacterMealPlanPhase.EffectsPublished;
+        bool skipped = !string.IsNullOrEmpty(plan.effectsSkippedReason);
+        return (!plan.ritualFastingConsequenceDelivered || plan.phase == CharacterMealPlanPhase.EffectsPublished)
+            && plan.physicalContextFrozen == committed
+            && plan.effectEvidenceFrozen == decided
+            && IsFiniteNonNegative(plan.hungerBefore) && IsFiniteNonNegative(plan.hungerAfter)
+            && IsFiniteNonNegative(plan.healthBefore) && IsFiniteNonNegative(plan.healthAfter)
+            && !float.IsNaN(plan.moodBefore) && !float.IsInfinity(plan.moodBefore)
+            && !float.IsNaN(plan.moodAfter) && !float.IsInfinity(plan.moodAfter)
+            && (!skipped || decided
+                && !string.IsNullOrWhiteSpace(plan.effectsSkippedReason)
+                && plan.effectsSkippedReason == plan.effectsSkippedReason.Trim()
+                && plan.hungerBefore == plan.hungerAfter
+                && plan.healthBefore == plan.healthAfter
+                && plan.moodBefore == plan.moodAfter);
+    }
+
     private static bool ValidPhysicalCommit(
         CharacterMealPlanSaveData plan,
         ICharacterConsumablesInventoryPort inventory,
         bool requirePhysicalJoin)
     {
         bool committed = plan.phase is CharacterMealPlanPhase.ItemCommitted
+            or CharacterMealPlanPhase.EffectsApplied
             or CharacterMealPlanPhase.EffectsPublished;
         IReadOnlyList<string> sourceIds = plan.physicalCommitSourceStackIds != null
             ? plan.physicalCommitSourceStackIds
@@ -1321,6 +1661,9 @@ internal static class CharacterConsumablesStateRules
                 CharacterConsumableIdContract.ClassifyOperation,
                 "active detox operation",
                 report));
+        highestOperation = Math.Max(highestOperation, ValidateGeneratedIds(
+            payload.failedMealOperations, value => value?.operationId,
+            CharacterConsumableIdContract.ClassifyOperation, "failed meal operation", report));
         long highestDelivery = ValidateGeneratedIds(
             payload.pendingMealDeliveries,
             value => value?.deliveryId,
@@ -1400,6 +1743,8 @@ internal static class CharacterConsumablesStateRules
     private delegate ConsumableGeneratedIdKind TryClassifyGeneratedId(
         string id,
         out long sequence);
+    private static bool IsFinite(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value);
     private static bool IsFiniteNonNegative(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0f;
     private static bool IsFiniteNonNegative(double value) =>

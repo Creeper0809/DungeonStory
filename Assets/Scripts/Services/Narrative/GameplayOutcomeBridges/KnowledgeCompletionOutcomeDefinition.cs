@@ -133,10 +133,7 @@ public static class KnowledgeCompletionOutcomeRegistration
         if (builder == null)
             throw new ArgumentNullException(nameof(builder));
 
-        builder.Register<KnowledgeCompletionOutcomeAdapter>(Lifetime.Singleton)
-            .As<IGameplayOutcomeAdapterRegistration>();
-        builder.Register<KnowledgeCompletionOutcomeDescriptor>(Lifetime.Singleton)
-            .As<IGameplayOutcomeDescriptor>();
+        builder.RegisterGameplayActionLogs(nameof(KnowledgeCompletionOutcomeAdapter));
     }
 }
 
@@ -232,7 +229,9 @@ public sealed class KnowledgeCompletionOutcomeAdapter :
                 KnowledgeCompletionOutcomeIds.ConsumedMaterialRole,
                 GameplayParticipationKind.Direct,
                 true,
-                source.DisplayName))
+                PhysicalItemFactDisplayName.Snapshot(
+                    source.ItemDefinitionId,
+                    source.DisplayName)))
             || !builder.AddMetric(new GameplayOutcomeMetric(
                 KnowledgeCompletionOutcomeIds.RewardBeforeMetric,
                 receipt.RewardBefore,
@@ -417,7 +416,8 @@ public static class KnowledgeCompletionOutcomeValidation
             || outcome.MetricCount != 7
             || outcome.SubjectCount != 4
             || outcome.TagCount != 2
-            || outcome.AnchorCount != 0
+            // Only producer anchors belong to this immutable receipt shape.
+            || outcome.InitialAnchorCount != 0
             || outcome.ProvenanceCount != 0
             || !outcome.GetTag(0).Equals(KnowledgeCompletionOutcomeIds.ResearchTag)
             || !outcome.GetTag(1).Equals(KnowledgeCompletionOutcomeIds.KnowledgeResidueTag)

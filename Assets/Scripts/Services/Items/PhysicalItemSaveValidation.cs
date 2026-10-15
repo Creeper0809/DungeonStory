@@ -8,6 +8,7 @@ internal static class PhysicalItemSaveValidation
     internal const int MaxSavedUniqueItems = 65_536;
     internal const int MaxPendingBatchDispositions = 16_384;
     internal const int MaxPhysicalItemRelocations = 16_384;
+    internal const int MaxPhysicalItemTransformations = 16_384;
     internal const int MaxPendingExactOutputRoutes = 16_384;
     internal const int MaxPendingProductionCustodyDrains = 4_096;
     internal const int MaxPendingProductionInputDestinationDrains = 4_096;
@@ -55,6 +56,29 @@ internal static class PhysicalItemSaveValidation
         }
 
         ValidateHaulingSettings(snapshot.haulingSettings, report);
+        if (snapshot.physicalItemTransformations == null
+            || snapshot.physicalItemTransformations.Count > MaxPhysicalItemTransformations)
+        {
+            report.AddError("Physical transform journal collection is missing or full.");
+            return;
+        }
+        var transformIds = new HashSet<string>(StringComparer.Ordinal);
+        string previousTransform = null;
+        foreach (var transform in snapshot.physicalItemTransformations)
+        {
+            try
+            {
+                if (transform == null) throw new InvalidOperationException("physical-transform-null");
+                transform.Validate();
+                string operation = transform.fact.operationId;
+                if (!transformIds.Add(operation) || previousTransform != null
+                    && string.CompareOrdinal(previousTransform, operation) >= 0)
+                    throw new InvalidOperationException("physical-transform-order-invalid");
+                previousTransform = operation;
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or OverflowException)
+            { report.AddError("Physical transform journal: " + exception.Message); }
+        }
         if (snapshot.stacks == null)
         {
             report.AddError("Physical item payload has no stack list.");
@@ -1614,96 +1638,10 @@ internal static class PhysicalItemSaveValidation
                  values ?? Array.Empty<PhysicalItemRelocationSaveData>())
         {
             string operation = value?.operationId ?? string.Empty;
-            bool valid = value != null
-                && IsCanonicalNonEmpty(operation)
-                && IsCanonicalNonEmpty(value.reasonCode)
-                && IsLowerSha256(value.requestFingerprint)
-                && value.phase >= (int)PhysicalItemRelocationJournalPhase
-                    .DomainCommitted
-                && value.phase <= (int)PhysicalItemRelocationJournalPhase
-                    .PublishedAcknowledged
-                && IsCanonicalNonEmpty(value.sourceStackId)
-                && IsCanonicalNonEmpty(value.destinationStackId)
-                && IsCanonicalNonEmpty(value.itemDefinitionId)
-                && (string.IsNullOrEmpty(value.itemInstanceId)
-                    || IsCanonicalNonEmpty(value.itemInstanceId))
-                && value.quantity > 0
-                && value.massGrams > 0L
-                && Enum.IsDefined(
-                    typeof(WorldItemStackState),
-                    value.destinationState)
-                && (WorldItemStackState)value.destinationState
-                    is not (WorldItemStackState.Carried
-                        or WorldItemStackState.InTransit)
-                && IsCanonicalText(value.destinationId)
-                && value.outcomeOwnerRevision > 0L
-                && operations.Add(operation);
-            if (valid)
-            {
-                try
-                {
-                    PhysicalItemDispositionSourceFact displayFact =
-                        PhysicalGameplayOutcomeSaveCodec.FromSave(new
-                            PhysicalItemDispositionSourceFactSaveData
-                            {
-                                stackId = value.sourceStackId,
-                                itemDefinitionId = value.itemDefinitionId,
-                                itemInstanceId = value.itemInstanceId,
-                                quantity = value.quantity,
-                                massGrams = value.massGrams,
-                                sourceX = value.sourceX,
-                                sourceY = value.sourceY,
-                                displayText = value.displayText,
-                                displaySnapshotRevision =
-                                    value.displaySnapshotRevision,
-                                pronunciationMode = value.pronunciationMode,
-                                pronunciationValue = value.pronunciationValue,
-                                explicitFinalConsonant =
-                                    value.explicitFinalConsonant,
-                                pronunciationRevision =
-                                    value.pronunciationRevision,
-                                locale = value.locale
-                            });
-                    GameplayResultKey expected = new(
-                        value.expectedOutcomeProducerId,
-                        new GameplayOperationId(
-                            value.expectedOutcomeOperationId),
-                        value.expectedOutcomeCommitRevision,
-                        value.expectedOutcomeLocalResultIndex);
-                    valid = displayFact.IsValid
-                        && expected.IsValid
-                        && string.Equals(
-                            expected.OperationId.Value,
-                            operation,
-                            StringComparison.Ordinal)
-                        && expected.CommitRevision == 0L
-                        && expected.LocalResultIndex == 0;
-                    if (value.gameplayOutcome != null)
-                    {
-                        PhysicalGameplayOutcomeAttachment attachment =
-                            PhysicalGameplayOutcomeSaveCodec.FromSave(
-                                value.gameplayOutcome);
-                        valid &= attachment.IsValid
-                            && attachment.ResultKey.Equals(expected);
-                        if (value.phase == (int)
-                                PhysicalItemRelocationJournalPhase
-                                    .PublishedAcknowledged)
-                        {
-                            valid &= attachment.HasAcknowledgementProof;
-                        }
-                    }
-                    else if (value.phase == (int)
-                             PhysicalItemRelocationJournalPhase
-                                 .PublishedAcknowledged)
-                    {
-                        valid = false;
-                    }
-                }
-                catch (Exception)
-                {
-                    valid = false;
-                }
-            }
+            bool valid = operations.Add(operation);
+            try { PhysicalItemRelocationService.ValidateJournal(value); }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or OverflowException)
+            { valid = false; }
             if (!valid)
             {
                 report.AddError(
@@ -1769,72 +1707,44 @@ internal static class PhysicalItemSaveValidation
                     "Pending physical batch dispositions are not in canonical operation order.");
             }
             previousOperation = operation;
-            bool hasExtendedOutcome = value.outcomeOwnerRevision > 0L
-                || value.gameplayOutcomeExpected
-                || (value.sourceFacts?.Count ?? 0) > 0
-                || value.gameplayOutcome != null;
             List<PhysicalItemDispositionSourceFact> sourceFacts = new();
-            if (hasExtendedOutcome)
+            try
             {
-                try
+                sourceFacts = (value.sourceFacts ?? new List<PhysicalItemDispositionSourceFactSaveData>())
+                    .Select(PhysicalItemSourceFactSaveCodec.FromSave).ToList();
+                bool observed = value.publicationExpected;
+                bool valid = value.ownerRevision >= 0 && value.defaultObservationDay >= 0
+                    && (!observed || value.ownerRevision > 0 && IsCanonicalNonEmpty(value.publicationKey))
+                    && (observed || string.IsNullOrEmpty(value.publicationKey)
+                        && string.IsNullOrEmpty(value.publicationId)
+                        && string.IsNullOrEmpty(value.publicationFingerprint)
+                        && !value.publicationDelivered && value.defaultObservationDay == 0);
+                bool hasProof = !string.IsNullOrEmpty(value.publicationId)
+                    || !string.IsNullOrEmpty(value.publicationFingerprint) || value.publicationDelivered;
+                valid &= !hasProof || observed && IsCanonicalNonEmpty(value.publicationId)
+                    && IsLowerSha256(value.publicationFingerprint);
+                if (observed || sourceFacts.Count > 0)
                 {
-                    sourceFacts = (value.sourceFacts
-                            ?? new List<PhysicalItemDispositionSourceFactSaveData>())
-                        .Select(PhysicalGameplayOutcomeSaveCodec.FromSave)
-                        .ToList();
-                    long factMass = 0L;
+                    long factMass = 0;
                     int factQuantity = 0;
-                    bool expectsOutcome = value.gameplayOutcomeExpected
-                        || value.gameplayOutcome != null;
-                    bool factsValid = value.outcomeOwnerRevision > 0L
-                        && expectsOutcome
-                        && sourceFacts.Count == value.sourceStackIds.Count;
+                    valid &= sourceFacts.Count == value.sourceStackIds.Count;
                     for (int index = 0; index < sourceFacts.Count; index++)
                     {
-                        PhysicalItemDispositionSourceFact fact = sourceFacts[index];
-                        factsValid &= fact.IsValid
-                            && string.Equals(
-                                fact.StackId,
-                                value.sourceStackIds[index],
-                                StringComparison.Ordinal);
+                        var fact = sourceFacts[index];
+                        valid &= fact.IsValid && index < value.sourceStackIds.Count
+                            && string.Equals(fact.StackId, value.sourceStackIds[index], StringComparison.Ordinal);
                         factQuantity = checked(factQuantity + fact.Quantity);
                         factMass = checked(factMass + fact.MassGrams);
                     }
-                    GameplayResultKey expectedKey = value.gameplayOutcomeExpected
-                        ? new GameplayResultKey(
-                            value.expectedOutcomeProducerId,
-                            new GameplayOperationId(
-                                value.expectedOutcomeOperationId),
-                            value.expectedOutcomeCommitRevision,
-                            value.expectedOutcomeLocalResultIndex)
-                        : PhysicalGameplayOutcomeSaveCodec.FromSave(
-                            value.gameplayOutcome).ResultKey;
-                    factsValid &= factQuantity == value.quantity
-                        && factMass == value.inputMassGrams
-                        && expectedKey.IsValid
-                        && string.Equals(
-                            expectedKey.OperationId.Value,
-                            value.operationId,
-                            StringComparison.Ordinal)
-                        && expectedKey.CommitRevision
-                            == value.outcomeOwnerRevision;
-                    if (value.gameplayOutcome != null)
-                    {
-                        PhysicalGameplayOutcomeAttachment attachment =
-                            PhysicalGameplayOutcomeSaveCodec.FromSave(
-                                value.gameplayOutcome);
-                        factsValid &= attachment.IsValid
-                            && attachment.ResultKey.Equals(expectedKey);
-                    }
-                    if (!factsValid)
-                        report.AddError(
-                            $"Pending physical batch disposition '{operation}' has an invalid exact outcome attachment.");
+                    valid &= factQuantity == value.quantity && factMass == value.inputMassGrams;
                 }
-                catch (Exception)
-                {
-                    report.AddError(
-                        $"Pending physical batch disposition '{operation}' has an unreadable exact outcome attachment.");
-                }
+                if (!valid)
+                    report.AddError($"Pending physical batch disposition '{operation}' has invalid frozen facts or publication proof.");
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                and not StackOverflowException and not AccessViolationException)
+            {
+                report.AddError($"Pending physical batch disposition '{operation}' has unreadable frozen facts.");
             }
             PhysicalItemBatchDispositionReceipt reconstructed = new(
                 (PhysicalItemDispositionKind)value.kind,
@@ -1844,7 +1754,7 @@ internal static class PhysicalItemSaveValidation
                 value.sourceStackIds,
                 value.quantity,
                 value.inputMassGrams,
-                value.outcomeOwnerRevision,
+                value.ownerRevision,
                 sourceFacts);
             if (!reconstructed.IsCommitted
                 || !string.Equals(
@@ -1854,6 +1764,12 @@ internal static class PhysicalItemSaveValidation
             {
                 report.AddError(
                     $"Pending physical batch disposition '{operation}' has a mismatched receipt identity.");
+            }
+            if (value.defaultObservationDay > 0)
+            {
+                try { _ = new PhysicalItemDisposedFact(reconstructed, value.defaultObservationDay); }
+                catch (Exception exception) when (exception is ArgumentException or OverflowException)
+                { report.AddError($"Pending physical batch disposition '{operation}' has an invalid default fact: {exception.Message}"); }
             }
         }
     }

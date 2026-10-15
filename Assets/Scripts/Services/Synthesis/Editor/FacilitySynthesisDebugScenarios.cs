@@ -9,7 +9,7 @@ using VContainer;
 using VContainer.Diagnostics;
 using Object = UnityEngine.Object;
 
-public static class FacilitySynthesisDebugScenarios
+public static partial class FacilitySynthesisDebugScenarios
 {
     [MenuItem("DungeonStory/Debug/Synthesis/Run Modular Facility Synthesis Scenarios")]
     public static void RunFromMenu()
@@ -472,11 +472,13 @@ public static class FacilitySynthesisDebugScenarios
             typeof(GridSystemManager).GetField("<grid>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
 
         private readonly GridSystemManager previousGridSystem;
+        private readonly GridSystemManager gridSystemManager;
         private readonly List<GameObject> objects = new List<GameObject>();
         private readonly BlueprintResearchState fallbackResearchState = new BlueprintResearchState();
         private readonly ScenarioObjectResolver objectResolver;
         private readonly bool rejectOutcomeCommit;
         private BlueprintResearchRuntime researchRuntime;
+        private SynthesisObservationFixture defaultObservations;
 
         public SynthesisScenarioWorld(
             bool failRetargetCommit = false,
@@ -485,8 +487,10 @@ public static class FacilitySynthesisDebugScenarios
             this.rejectOutcomeCommit = rejectOutcomeCommit;
             objectResolver = new ScenarioObjectResolver(failRetargetCommit);
             previousGridSystem = GridSystemInstanceField?.GetValue(null) as GridSystemManager;
-            Grid = new Grid(24, 1);
-            for (int x = 0; x < Grid.width; x++)
+            Grid = CreateScenarioGrid();
+            for (int x = 0;
+                 x < DungeonSpaceExpansionCatalog.InitialInteriorColumns;
+                 x++)
             {
                 Grid.RegisterOccupant(
                     new TestHallwayOccupant(),
@@ -498,19 +502,26 @@ public static class FacilitySynthesisDebugScenarios
             GameObject gridObject = new GameObject("Synthesis Scenario GridSystemManager");
             objects.Add(gridObject);
             GridSystemInstanceField?.SetValue(null, null);
-            GridSystemManager manager = gridObject.AddComponent<GridSystemManager>();
-            GridField?.SetValue(manager, Grid);
-            GridSystemInstanceField?.SetValue(null, manager);
+            gridSystemManager = gridObject.AddComponent<GridSystemManager>();
+            GridField?.SetValue(gridSystemManager, Grid);
+            GridSystemInstanceField?.SetValue(null, gridSystemManager);
         }
 
-        public Grid Grid { get; }
+        public Grid Grid { get; private set; }
         public GameEventBus Events { get; } = new();
 
         public bool IsMutationFrozen(BuildingInstanceId facilityId) =>
             objectResolver.IsMutationFrozen(facilityId);
 
-        public FacilitySynthesisRuntime CreateRuntime()
+        public FacilitySynthesisRuntime CreateRuntime(
+            FacilitySynthesisFactOutbox exactFacts = null)
         {
+            if (exactFacts == null)
+            {
+                defaultObservations ??= new SynthesisObservationFixture(events: Events)
+                { RejectCommit = rejectOutcomeCommit };
+                exactFacts = defaultObservations.Outbox;
+            }
             GameObject obj = new GameObject("FacilitySynthesisRuntime_Test");
             objects.Add(obj);
             FacilitySynthesisRuntime runtime = obj.AddComponent<FacilitySynthesisRuntime>();
@@ -522,9 +533,25 @@ public static class FacilitySynthesisDebugScenarios
                 new GridBuildingObjectFactory(),
                 Events,
                 EditorFixedGameCalendar.Instance,
-                new ScenarioFacilitySynthesisOutcomeCommitter(
-                    rejectOutcomeCommit));
+                exactFacts);
             return runtime;
+        }
+
+        internal bool TryPublishGrid(
+            Grid expectedCurrent,
+            Grid replacement,
+            out string failureReason)
+        {
+            if (!ReferenceEquals(Grid, expectedCurrent)
+                || replacement == null)
+            {
+                failureReason = "Synthesis scenario Grid publication expectation changed.";
+                return false;
+            }
+            Grid = replacement;
+            GridField?.SetValue(gridSystemManager, replacement);
+            failureReason = string.Empty;
+            return true;
         }
 
         public BlueprintResearchRuntime CreateResearchRuntime()
@@ -585,6 +612,7 @@ public static class FacilitySynthesisDebugScenarios
 
             GridSystemInstanceField?.SetValue(null, previousGridSystem);
             objectResolver.Dispose();
+            defaultObservations?.Dispose();
         }
 
         private BlueprintResearchState GetResearchState()
@@ -825,50 +853,27 @@ public static class FacilitySynthesisDebugScenarios
             }
         }
 
-        private sealed class ScenarioFacilitySynthesisOutcomeCommitter :
-            IFacilitySynthesisOutcomeCommitter
+        private static Grid CreateScenarioGrid()
         {
-            private readonly bool rejectCommit;
-
-            internal ScenarioFacilitySynthesisOutcomeCommitter(bool rejectCommit) =>
-                this.rejectCommit = rejectCommit;
-
-            public bool TryPrepare(
-                in FacilitySynthesisOutcomeReceipt receipt,
-                out PreparedFacilitySynthesisOutcome prepared,
-                out string failureReason)
+            Grid grid = new Grid(
+                DungeonSpaceExpansionCatalog.InitialInteriorColumns + 1,
+                DungeonSpaceExpansionCatalog.SupportedGridHeight);
+            for (int x = 0; x < grid.width; x++)
+            for (int y = 0; y < grid.height; y++)
             {
-                prepared = new PreparedFacilitySynthesisOutcome(
-                    default,
-                    receipt.ResultKey,
-                    receipt.OwnerRevision,
-                    isReplay: true);
-                failureReason = string.Empty;
-                return prepared.IsValid;
+                Vector2Int position = new Vector2Int(x, y);
+                grid.SetAreaType(
+                    position,
+                    x < DungeonSpaceExpansionCatalog.InitialInteriorColumns
+                        ? x == 0 && y == 0
+                            ? GridCellAreaType.Entrance
+                            : GridCellAreaType.DungeonInterior
+                        : GridCellAreaType.BlockedExterior);
+                grid.SetTerrainType(position, GridCellTerrainType.Dry);
             }
-
-            public OwnerOutcomeCommitResult Commit(
-                in PreparedFacilitySynthesisOutcome prepared) =>
-                rejectCommit
-                    ? new OwnerOutcomeCommitResult(
-                        OwnerOutcomeCommitPhase.Rejected,
-                        prepared.ResultKey,
-                        default,
-                        string.Empty,
-                        "fixture-forced-outcome-rejection")
-                    : new OwnerOutcomeCommitResult(
-                        OwnerOutcomeCommitPhase.PublishedAcknowledged,
-                        prepared.ResultKey,
-                        new GameplayOutcomeId(
-                            new GameplayOutcomeRunId("fixture-run"),
-                            1L),
-                        "fixture-canonical-payload",
-                        string.Empty);
-
-            public void Cancel(in PreparedFacilitySynthesisOutcome prepared)
-            {
-            }
+            return grid;
         }
+
     }
 
     private sealed class TestHallwayOccupant : IGridOccupant

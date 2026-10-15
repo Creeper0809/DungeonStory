@@ -811,7 +811,7 @@ public static class V18WorldEconomyCharacterReferenceRestoreNormalizer
                              StringComparison.Ordinal))
                 {
                     FacilityEvolutionStateSnapshot evolution =
-                        JsonUtility.FromJson<FacilityEvolutionStateSnapshot>(
+                        DungeonSaveJson.Deserialize<FacilityEvolutionStateSnapshot>(
                             module.payload);
                     if (evolution != null)
                     {
@@ -1372,8 +1372,11 @@ public static class V18CombatOffenseCharacterReferenceRestoreNormalizer
                 battle.combatants[index];
             if (combatant != null)
             {
-                combatant.persistentId = rewrite(
+                // Combatant IDs are a character/runtime-object union. Existing
+                // character rules still apply; authored objectives stay runtime IDs.
+                combatant.persistentId = V18TypedCharacterReferenceRestoreNormalizer.RewriteRecognizedCharacterReference(
                     combatant.persistentId,
+                    rewrite,
                     $"expedition.activeBattle.combatants[{index}].persistentId");
             }
         }

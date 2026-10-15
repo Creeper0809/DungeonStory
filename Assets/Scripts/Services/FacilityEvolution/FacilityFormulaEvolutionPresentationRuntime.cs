@@ -99,6 +99,31 @@ public sealed class FacilityFormulaEvolutionPresentationRuntime : IStartable, IT
 
     public void Start() { }
 
+    // Read-only dispatch observation. Reconstruct only from the pending's frozen
+    // input and require this runtime to own its live in-flight request.
+    public bool TryCapturePendingModuleDispatch(string correlationId,
+        out BuildableObject facility, out FacilityEvolutionFormulaPresentationPendingSnapshot pending,
+        out string prompt)
+    {
+        facility = null;
+        pending = null;
+        prompt = string.Empty;
+        if (string.IsNullOrWhiteSpace(correlationId) || !inFlight.Contains(correlationId)) return false;
+        foreach (BuildableObject candidate in buildings.Buildings.Where(value => value != null && !value.isDestroy))
+        {
+            var candidatePending = candidate.GetComponent<FacilityEvolutionStateComponent>()?.PendingFormulaPresentation;
+            if (candidatePending?.presentationId != correlationId
+                || candidatePending.node?.presentationState != EquipmentEvolutionPresentationState.ModuleSelectionPending)
+                continue;
+            if (facility != null) throw new InvalidOperationException("Facility dispatch has multiple live pending owners.");
+            facility = candidate;
+            pending = candidatePending;
+        }
+        if (facility == null) return false;
+        prompt = BuildPrompt(facility, pending);
+        return true;
+    }
+
     public void Tick()
     {
         FacilityEvolutionRuntime runtime = scene.Evolution;
@@ -192,8 +217,15 @@ public sealed class FacilityFormulaEvolutionPresentationRuntime : IStartable, IT
         }
         if (!accepted)
         {
+            string failure = result.IsSuccess ? error : result.Status + ": " + result.Error;
+            string diagnostic = "Facility formula response rejected for "
+                + presentationId + ": " + failure;
+            if (result.IsCancelled)
+                Debug.Log(diagnostic);
+            else
+                Debug.LogError(diagnostic);
             RegisterFailure(runtime, facility, pending,
-                result.IsSuccess ? error : result.Status + ": " + result.Error);
+                failure);
             return;
         }
         retryAt.Remove(presentationId);
@@ -215,7 +247,7 @@ public sealed class FacilityFormulaEvolutionPresentationRuntime : IStartable, IT
             2f * Mathf.Pow(2f, Mathf.Min(6, pending.failureCount + 1)));
     }
 
-    private static string BuildPrompt(
+    internal static string BuildPrompt(
         BuildableObject facility,
         FacilityEvolutionFormulaPresentationPendingSnapshot pending)
     {
@@ -227,33 +259,8 @@ public sealed class FacilityFormulaEvolutionPresentationRuntime : IStartable, IT
         if (pending.node.presentationState
             == EquipmentEvolutionPresentationState.ModuleSelectionPending)
         {
-            StringBuilder selection = new(2400);
-            selection.AppendLine("C# has supplied every legal authored facility module. Select the module that best follows from the actual ledger facts. C# will allocate all numeric values only after this selection.");
-            selection.AppendLine("Select exactly one positive module and no independent drawback module. Each positive facility module already carries its inseparable authored burden.");
-            selection.AppendLine("Return exactly one JSON object with only selectionId, positiveModuleIds, drawbackModuleIds, evidenceFactIds, displayName, narrativeFlavor.");
-            selection.AppendLine("{\"selectionId\":\"provided value unchanged\",\"positiveModuleIds\":[\"one offered ID\"],\"drawbackModuleIds\":[],\"evidenceFactIds\":[\"provided fact IDs\"],\"displayName\":\"Korean name within 32 chars\",\"narrativeFlavor\":\"Korean origin within 180 chars\"}");
-            selection.Append("profile=").AppendLine(
-                LocalLlmRequestProfiles.FacilityEvolutionModuleSelection.Id);
-            selection.Append("selectionId=").AppendLine(pending.node.moduleSelectionId);
-            foreach (EquipmentEvolutionModuleOfferState offer in pending.node.moduleSelectionOffers
-                         .Where(value => value != null)
-                         .OrderBy(value => value.moduleId, StringComparer.Ordinal))
-                selection.Append("module=").Append(offer.moduleId).Append(" | ")
-                    .AppendLine(offer.semanticDescription);
-            foreach (string evidenceId in pending.node.evidenceIds
-                         .OrderBy(value => value, StringComparer.Ordinal))
-            {
-                GameplayOutcomeEvidenceBindingSnapshot exact =
-                    pending.node.gameplayOutcomeEvidence?.SingleOrDefault(value =>
-                        value != null && string.Equals(
-                            value.publicFactId, evidenceId, StringComparison.Ordinal));
-                selection.Append("evidence=").Append(evidenceId);
-                if (exact != null)
-                    selection.Append(" | authoritativeFact=")
-                        .Append(exact.canonicalFactText);
-                selection.AppendLine();
-            }
-            return selection.ToString();
+            return BuildModuleSelectionPrompt(pending.node,
+                facility.GetComponent<FacilityEvolutionStateComponent>()?.InstanceEvolution);
         }
         StringBuilder builder = new(1600);
         builder.AppendLine("C# rules have frozen this facility evolution's effect, potency, cost, evidence and legal recipe.");
@@ -263,18 +270,58 @@ public sealed class FacilityFormulaEvolutionPresentationRuntime : IStartable, IT
         builder.Append("profile=").AppendLine(LocalLlmRequestProfiles.FacilityEvolution.Id);
         builder.Append("presentationId=").AppendLine(pending.presentationId);
         builder.Append("mechanicalDescription=").AppendLine(pending.node.mechanicalDescription);
-        foreach (string evidenceId in pending.node.evidenceIds.OrderBy(value => value, StringComparer.Ordinal))
-        {
-            GameplayOutcomeEvidenceBindingSnapshot exact =
-                pending.node.gameplayOutcomeEvidence?.SingleOrDefault(value =>
-                    value != null && string.Equals(
-                        value.publicFactId, evidenceId, StringComparison.Ordinal));
-            builder.Append("evidence=").Append(evidenceId);
-            if (exact != null)
-                builder.Append(" | authoritativeFact=")
-                    .Append(exact.canonicalFactText);
-            builder.AppendLine();
-        }
+        AppendEvidence(builder, pending.node,
+            facility.GetComponent<FacilityEvolutionStateComponent>()?.InstanceEvolution);
         return builder.ToString();
+    }
+
+    internal static string BuildModuleSelectionPrompt(EvolutionNode node, FacilityEvolutionState state = null)
+    {
+        if (node == null || node.presentationState
+                != EquipmentEvolutionPresentationState.ModuleSelectionPending)
+            throw new InvalidOperationException("Facility module selection is not pending.");
+        bool hasDrawback = node.moduleSelectionOffers.Any(
+            value => value.polarity == EvolutionModuleOfferPolarity.Drawback);
+        if (hasDrawback && node.formulaVersion
+                < FacilityFormulaEvolutionAuthority.DrawbackModuleSelectionFormulaVersion)
+            throw new InvalidOperationException("Legacy facility selection cannot contain independent drawbacks.");
+        StringBuilder selection = new(2400);
+        selection.AppendLine("C# has supplied every legal authored facility module. Select the module that best follows from the actual ledger facts. C# will allocate all numeric values only after this selection.");
+        selection.AppendLine(hasDrawback
+            ? "Select exactly one Positive module and zero or one optional Drawback module. Respect the offered conflicts and cite the actual ledger evidence supporting the selection. Inseparable authored burdens remain separate from this optional choice."
+            : "Select exactly one Positive module. No independent Drawback module is offered, so drawbackModuleIds must be an empty array.");
+        selection.AppendLine("Return exactly one JSON object with only selectionId, positiveModuleIds, drawbackModuleIds, evidenceFactIds, displayName, narrativeFlavor.");
+        selection.AppendLine("Copy the exact selectionId header below. Do not output an example or placeholder. Use offered module and evidence IDs only, a Korean displayName within 32 chars and narrativeFlavor within 180 chars.");
+        selection.AppendLine("maximumPositiveModules=1");
+        selection.Append("maximumDrawbackModules=").AppendLine(hasDrawback ? "1" : "0");
+        selection.Append("profile=").AppendLine(LocalLlmRequestProfiles.FacilityEvolutionModuleSelection.Id);
+        selection.Append("selectionId=").AppendLine(node.moduleSelectionId);
+        foreach (EquipmentEvolutionModuleOfferState offer in node.moduleSelectionOffers
+                     .OrderBy(value => value.moduleId, StringComparer.Ordinal))
+            selection.Append("module=").Append(offer.moduleId)
+                .Append(" | polarity=").Append(EvolutionModuleFormulaDescriptor.ToNarrativePolarity(offer.polarity))
+                .Append(" | ").AppendLine(offer.semanticDescription);
+        AppendEvidence(selection, node, state);
+        return selection.ToString();
+    }
+
+    private static void AppendEvidence(StringBuilder selection, EvolutionNode node, FacilityEvolutionState state)
+    {
+        string usageDocument = FacilityUsagePublicProjection.BuildJson(node, state);
+        foreach (string evidenceId in node.evidenceIds.OrderBy(value => value, StringComparer.Ordinal))
+        {
+            GameplayOutcomeEvidenceBindingSnapshot exact = node.gameplayOutcomeEvidence?
+                .SingleOrDefault(value => value != null && string.Equals(
+                    value.publicFactId, evidenceId, StringComparison.Ordinal));
+            selection.Append("evidence=").Append(evidenceId);
+            if (exact != null)
+                selection.Append(" | authoritativeFact=").Append(exact.canonicalFactText);
+            selection.AppendLine();
+        }
+        if (usageDocument != null)
+        {
+            selection.AppendLine("The facility-usage facts below describe saved facility history, not exact outcome bindings or intense character memories. Use only their recorded actors, actions and results; do not invent an emotional experience.");
+            selection.AppendLine(usageDocument);
+        }
     }
 }

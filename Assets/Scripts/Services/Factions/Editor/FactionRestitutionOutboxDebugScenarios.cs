@@ -142,6 +142,7 @@ public static class FactionRestitutionOutboxDebugScenarios
             sequence: 1,
             firstReceipt,
             transferredPhysicalValue: 50,
+            campaignRapportBefore: 0,
             campaignRapportTarget: 5);
 
         DungeonFactionState roundTrip =
@@ -207,6 +208,7 @@ public static class FactionRestitutionOutboxDebugScenarios
             sequence: 2,
             secondReceipt,
             transferredPhysicalValue: 50,
+            campaignRapportBefore: 5,
             campaignRapportTarget: 10);
         int applyCountBefore = campaign.ApplyCount;
         campaign.ApplyFactionChange(

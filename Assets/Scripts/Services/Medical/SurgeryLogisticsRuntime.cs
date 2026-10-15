@@ -281,7 +281,7 @@ internal sealed class SurgeryLogisticsRuntime
         SurgeryOrder order,
         BuildableObject facility)
     {
-        if (order == null || facility == null)
+        if (order == null || facility == null || order.materialsConsumed)
         {
             return;
         }

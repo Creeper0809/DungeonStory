@@ -399,7 +399,8 @@ public static class DefenseFacilityDebugScenarios
             automationCommands: NoAutomationInfrastructure.Instance,
             structuralIntegrity: null,
             defenseFacilities: null,
-            defenseNetwork: null);
+            defenseNetwork: null,
+            repairOutcomes: new AcceptingRepairWorkOutcomeRuntime());
         WorkExecutionResult result = new WorkExecutionResult();
         WorkExecutionContext context = new WorkExecutionContext(
             1,
@@ -443,6 +444,54 @@ public static class DefenseFacilityDebugScenarios
         }
     }
 
+    private sealed class AcceptingRepairWorkOutcomeRuntime :
+        IRepairWorkOutcomeRuntime
+    {
+        public RepairWorkOutcomeHandle BeginOrResume(
+            RepairWorkOutcomeKind kind,
+            string facilityId,
+            string targetEntityId,
+            string targetDefinitionId,
+            CharacterId initiator,
+            int absoluteDay,
+            bool boundsKnown,
+            RepairWorkPrimaryUnit primaryUnit,
+            float primaryBefore,
+            float secondaryBefore) =>
+            new RepairWorkOutcomeHandle("repair-work:00000001");
+
+        public void RecordProgress(
+            RepairWorkOutcomeHandle handle,
+            CharacterId contributor,
+            float contributedWork,
+            bool boundsKnown,
+            float primaryAfter,
+            float secondaryAfter)
+        {
+        }
+
+        public bool TryComplete(
+            RepairWorkOutcomeHandle handle,
+            CharacterId completionWorker,
+            CharacterCommandOrigin completionOrigin,
+            float contributionWork,
+            int absoluteDay,
+            bool boundsKnown,
+            RepairWorkPrimaryUnit primaryUnit,
+            float primaryBefore,
+            float primaryAfter,
+            float secondaryBefore,
+            float secondaryAfter,
+            in RepairWorkMaterialReceipt material,
+            out string resultKey,
+            out string failureReason)
+        {
+            resultKey = "repair-work-result:test";
+            failureReason = string.Empty;
+            return true;
+        }
+    }
+
     private sealed class NoopEquipmentMaintenanceRuntime :
         ICombatEquipmentMaintenanceRuntime
     {
@@ -450,6 +499,13 @@ public static class DefenseFacilityDebugScenarios
             Array.Empty<EquipmentMaintenancePolicyData>();
         public IReadOnlyList<CombatEquipmentRepairOrder> Orders =>
             Array.Empty<CombatEquipmentRepairOrder>();
+        public bool TryGetOrder(
+            string orderId,
+            out CombatEquipmentRepairOrder order)
+        {
+            order = null;
+            return false;
+        }
 
         public EquipmentMaintenancePolicyData GetPolicy(CharacterActor actor) => null;
         public string GetAssignedPolicyId(CharacterActor actor) => string.Empty;
@@ -638,7 +694,7 @@ public static class DefenseFacilityDebugScenarios
         }
     }
 
-    private sealed class DefenseScenarioWorld : IDisposable
+    internal sealed class DefenseScenarioWorld : IDisposable
     {
         private static readonly FieldInfo GridSystemInstanceField =
             typeof(GridSystemManager).GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);

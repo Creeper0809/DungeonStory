@@ -11,7 +11,7 @@ CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:c
 CharacterTraitSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Identity/Runtime/CharacterPersistentNeedClock.cs
 CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Identity/Runtime/CharacterRitualFastingRuntime.cs
 CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntime.cs
-CharacterTraitSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/ReproductionApplicationAdapter.cs
+CharacterTraitSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/ReproductionBirthTransactionRuntime.cs
 CharacterTraitSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/SO/CharacterModelData.cs
 CharacterTraitSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/SO/CharacterRuntimeProfileFactory.cs
 CharacterTraitSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/SO/CharacterSO.cs

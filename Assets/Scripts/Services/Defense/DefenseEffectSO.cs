@@ -14,18 +14,43 @@ public static class DefenseEffectIds
 
 public sealed class DefenseEffectContext
 {
+    private readonly ICharacterBodyHealthMutationTransaction bodyHealthMutation;
+    private readonly List<CharacterPreparedAggregateDamageReceipt>
+        preparedDamageReceipts;
+
     public DefenseEffectContext(
         CharacterActor target,
         DefenseStatusRuntime statusRuntime,
         DefenseActivationReport report,
         DefenseFacilityData defense,
         float effectMultiplier = 1f)
+        : this(
+            target,
+            statusRuntime,
+            report,
+            defense,
+            effectMultiplier,
+            null,
+            null)
+    {
+    }
+
+    internal DefenseEffectContext(
+        CharacterActor target,
+        DefenseStatusRuntime statusRuntime,
+        DefenseActivationReport report,
+        DefenseFacilityData defense,
+        float effectMultiplier,
+        ICharacterBodyHealthMutationTransaction bodyHealthMutation,
+        List<CharacterPreparedAggregateDamageReceipt> preparedDamageReceipts)
     {
         Target = target ?? throw new ArgumentNullException(nameof(target));
         StatusRuntime = statusRuntime ?? throw new ArgumentNullException(nameof(statusRuntime));
         Report = report ?? throw new ArgumentNullException(nameof(report));
         Defense = defense ?? throw new ArgumentNullException(nameof(defense));
-        EffectMultiplier = Mathf.Clamp(effectMultiplier, 0.1f, 2f);
+        EffectMultiplier = Mathf.Clamp(effectMultiplier, 0f, 2f);
+        this.bodyHealthMutation = bodyHealthMutation;
+        this.preparedDamageReceipts = preparedDamageReceipts;
     }
 
     public CharacterActor Target { get; }
@@ -44,6 +69,26 @@ public sealed class DefenseEffectContext
         float finalDamage = amount
             * EffectMultiplier
             * StatusRuntime.GetIncomingDamageMultiplier();
+        if (finalDamage <= 0f)
+        {
+            return;
+        }
+        if (bodyHealthMutation != null)
+        {
+            CharacterPreparedAggregateDamageReceipt receipt =
+                bodyHealthMutation.ApplyPreparedAggregateDamage(
+                    Target,
+                    finalDamage,
+                    CharacterDeathCauseCode.Combat,
+                    string.IsNullOrWhiteSpace(reason)
+                        ? "defense-facility-effect"
+                        : reason,
+                    allowDeath: true);
+            preparedDamageReceipts?.Add(receipt);
+            Report.AddDamage(receipt.AppliedDamage);
+            return;
+        }
+
         Target.ApplyDamage(finalDamage, reason);
         Report.AddDamage(finalDamage);
     }

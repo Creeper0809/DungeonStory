@@ -2,16 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
-using DungeonStory.Operation;
 using UnityEngine;
 using VContainer.Unity;
 public sealed class SeasonalWildlifeVisitorApplicationAdapter :
     IStartable,
     IDisposable
 {
-    private const string AlertCategory = "V20 계절 야생동물";
-    private const string CargoAlertCategory = "V20 계절 표류 화물";
-
     private readonly ISeasonalEventQuery seasonal;
     private readonly ISeasonalWildlifeArrivalCommand commands;
     private readonly IWildlifeExternalArrivalRuntime arrivals;
@@ -83,7 +79,7 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
                 StringComparison.Ordinal)
             && !string.IsNullOrEmpty(resolved.OccurrenceInstanceId))
         {
-            PublishResolvedAlert(resolved, absoluteDay);
+            PublishArrivalExpiration(resolved, absoluteDay);
             return;
         }
         ProcessActiveSeasonalContent(absoluteDay);
@@ -100,7 +96,9 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
         string[] occurrenceIds = seasonal.ActiveSeasonalEvents
             .Where(value =>
                 value?.seasonalWildlifeArrival?.configured == true
-                && value.deadlineAbsoluteDay >= absoluteDay)
+                && (value.deadlineAbsoluteDay >= absoluteDay
+                    || IsTerminalOutcomePending(
+                        value.seasonalWildlifeArrival)))
             .Select(value => value.instanceId)
             .Distinct(StringComparer.Ordinal)
             .ToArray();
@@ -114,7 +112,9 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
     {
         V20ActiveEventSaveData occurrence = FindActive(occurrenceId);
         if (occurrence == null
-            || occurrence.deadlineAbsoluteDay < absoluteDay)
+            || occurrence.deadlineAbsoluteDay < absoluteDay
+                && !IsTerminalOutcomePending(
+                    occurrence.seasonalWildlifeArrival))
         {
             return;
         }
@@ -127,7 +127,7 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
             commands.TryRecordSeasonalWildlifeArrivalFailure(
                 occurrenceId,
                 "방문 야생동물 종을 찾지 못했습니다.");
-            PublishActiveAlert(FindActive(occurrenceId), absoluteDay, null);
+            PublishArrivalProgress(FindActive(occurrenceId), absoluteDay, null);
             return;
         }
 
@@ -176,7 +176,25 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
             }
         }
 
-        PublishActiveAlert(FindActive(occurrenceId), absoluteDay, definition);
+        occurrence = FindActive(occurrenceId);
+        if (occurrence?.seasonalWildlifeArrival?.members.All(
+                value => value?.spawned == true) == true
+            && string.IsNullOrEmpty(
+                occurrence.seasonalWildlifeArrival.outcomeResultKey))
+        {
+            if (!commands.TryObserveSeasonalWildlifeArrival(
+                    occurrenceId,
+                    definition.DisplayName,
+                    absoluteDay,
+                    out string outcomeFailure))
+            {
+                commands.TryRecordSeasonalWildlifeArrivalFailure(
+                    occurrenceId,
+                    outcomeFailure);
+            }
+        }
+
+        PublishArrivalProgress(FindActive(occurrenceId), absoluteDay, definition);
     }
 
     private void TryCommitPlan(
@@ -247,84 +265,40 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
             out _);
     }
 
-    private void PublishActiveAlert(
+    private void PublishArrivalProgress(
         V20ActiveEventSaveData occurrence,
         int absoluteDay,
         WildlifeSpeciesDefinition definition)
     {
-        if (occurrence?.seasonalWildlifeArrival?.configured != true)
-        {
-            return;
-        }
-        SeasonalWildlifeArrivalSaveData arrival =
-            occurrence.seasonalWildlifeArrival;
-        int spawned = arrival.members.Count(value => value?.spawned == true);
-        int remaining = Math.Max(0, arrival.exactCount - spawned);
-        string speciesName = definition?.DisplayName ?? arrival.speciesId;
-        string locations = arrival.members.Count == 0
-            ? "미확정"
-            : string.Join(", ", arrival.members.Select(value =>
-                value == null
-                    ? "?"
-                    : $"({value.positionX},{value.positionY})"));
-        string failure = string.IsNullOrEmpty(arrival.lastFailureReason)
-            ? string.Empty
-            : $"\n현재 지연: {arrival.lastFailureReason}";
-        SeasonalWorldEventDefinitionSO authored = catalog.Require(
-            occurrence.definitionId);
-        events.Publish(new EventAlertRequestedEvent(new EventAlertRequest(
-            authored.DisplayName,
-            $"대상: {speciesName} {arrival.exactCount}마리\n"
-                + $"도착 확정: {spawned}마리 / 남은 생성: {remaining}마리\n"
-                + $"외부 위치: {locations}\n"
-                + $"기한: {occurrence.deadlineAbsoluteDay}일 "
-                + $"(남은 {Math.Max(0, occurrence.deadlineAbsoluteDay - absoluteDay)}일)"
-                + failure,
-            arrival.qualification
-                == SeasonalWildlifeArrivalQualification.Predatory
-                    ? EventAlertImportance.High
-                    : EventAlertImportance.Medium,
-            AlertCategory,
-            Array.Empty<EventAlertChoice>(),
-            occurrence.instanceId)));
+        if (occurrence?.seasonalWildlifeArrival?.configured != true) return;
+        SeasonalWildlifeArrivalSaveData arrival = occurrence.seasonalWildlifeArrival;
+        events.Publish(new SeasonalWildlifeProgressedFact(
+            occurrence.instanceId, catalog.Require(occurrence.definitionId).DisplayName,
+            definition?.DisplayName ?? arrival.speciesId, arrival.qualification,
+            arrival.exactCount, arrival.members.Count(value => value?.spawned == true),
+            arrival.members.Select(value => value == null ? (Vector2Int?)null
+                : new Vector2Int(value.positionX, value.positionY)),
+            occurrence.deadlineAbsoluteDay, absoluteDay, arrival.lastFailureReason));
     }
 
-    private void PublishResolvedAlert(
-        V20ContentEffectsResolvedEvent resolved,
-        int absoluteDay)
+    private void PublishArrivalExpiration(V20ContentEffectsResolvedEvent resolved, int absoluteDay)
     {
         SeasonalWorldEventDefinitionSO definition;
-        try
-        {
-            definition = catalog.Require(resolved.DefinitionId);
-        }
-        catch (KeyNotFoundException)
-        {
-            return;
-        }
-        if (definition.wildlifeArrivalProfile?.IsConfigured != true)
-        {
-            return;
-        }
-        events.Publish(new EventAlertRequestedEvent(new EventAlertRequest(
-            definition.DisplayName,
-            $"계절 방문 기한이 {absoluteDay}일에 종료되었습니다. 이미 도착한 개체는 유지되고 미생성 잔여만 취소됩니다.",
-            definition.wildlifeArrivalProfile.qualification
-                == SeasonalWildlifeArrivalQualification.Predatory
-                    ? EventAlertImportance.High
-                    : EventAlertImportance.Medium,
-            AlertCategory,
-            Array.Empty<EventAlertChoice>(),
-            resolved.OccurrenceInstanceId,
-            isResolved: true,
-            resultSummary: "기한 종료: 미생성 잔여 취소, 기존 개체 유지")));
+        try { definition = catalog.Require(resolved.DefinitionId); }
+        catch (KeyNotFoundException) { return; }
+        if (definition.wildlifeArrivalProfile?.IsConfigured != true) return;
+        events.Publish(new SeasonalWildlifeExpiredFact(
+            resolved.OccurrenceInstanceId, definition.DisplayName,
+            definition.wildlifeArrivalProfile.qualification, absoluteDay));
     }
 
     private void ProcessActiveDriftCargo(int absoluteDay)
     {
         string[] occurrenceIds = seasonal.ActiveSeasonalEvents
             .Where(value => value?.seasonalDriftCargo?.configured == true
-                && !value.seasonalDriftCargo.expirationCompleted)
+                && (!value.seasonalDriftCargo.expirationCompleted
+                    || IsDriftCargoOutcomePending(
+                        value.seasonalDriftCargo)))
             .Select(value => value.instanceId)
             .Distinct(StringComparer.Ordinal)
             .ToArray();
@@ -348,7 +322,7 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
                     out string expirationFailure))
             {
                 RecordCargoFailure(occurrenceId, expirationFailure);
-                PublishCargoAlert(
+                PublishCargoProgress(
                     FindActive(occurrenceId),
                     absoluteDay,
                     null,
@@ -368,7 +342,7 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
                 out DungeonItemDefinition itemDefinition))
         {
             RecordCargoFailure(occurrenceId, "작성된 표류 화물 품목을 찾지 못했습니다.");
-            PublishCargoAlert(FindActive(occurrenceId), absoluteDay, null, 0L, 0);
+            PublishCargoProgress(FindActive(occurrenceId), absoluteDay, null, 0L, 0);
             return;
         }
         long unitMassGrams = items.MassQuery.GetDefinitionUnitMass(
@@ -379,12 +353,26 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
             RecordCargoFailure(
                 occurrenceId,
                 $"표류 화물 작성 중량 {authoredMassGrams}g이 허용 범위 6000~11000g 밖입니다.");
-            PublishCargoAlert(
+            PublishCargoProgress(
                 FindActive(occurrenceId),
                 absoluteDay,
                 itemDefinition,
                 unitMassGrams,
                 0);
+            return;
+        }
+
+        if (IsDriftCargoOutcomePending(cargo))
+        {
+            PublishDriftCargoOutcome(
+                occurrence,
+                itemDefinition,
+                unitMassGrams,
+                absoluteDay);
+            PublishCargoExpiration(
+                FindActive(occurrenceId),
+                itemDefinition,
+                absoluteDay);
             return;
         }
 
@@ -395,7 +383,7 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
                 RecordCargoFailure(
                     occurrenceId,
                     "합법적인 접근 가능 외곽 화물 위치가 없어 이번 화물은 생성되지 않습니다.");
-                PublishCargoAlert(
+                PublishCargoProgress(
                     FindActive(occurrenceId),
                     absoluteDay,
                     itemDefinition,
@@ -506,7 +494,7 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
                     out string expirationFailure))
             {
                 RecordCargoFailure(occurrenceId, expirationFailure);
-                PublishCargoAlert(
+                PublishCargoProgress(
                     FindActive(occurrenceId),
                     absoluteDay,
                     itemDefinition,
@@ -514,13 +502,19 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
                     remainingQuantity);
                 return;
             }
+            occurrence = FindActive(occurrenceId);
+            PublishDriftCargoOutcome(
+                occurrence,
+                itemDefinition,
+                unitMassGrams,
+                absoluteDay);
             PublishCargoExpiration(
                 FindActive(occurrenceId),
                 itemDefinition,
                 absoluteDay);
             return;
         }
-        PublishCargoAlert(
+        PublishCargoProgress(
             FindActive(occurrenceId),
             absoluteDay,
             itemDefinition,
@@ -682,7 +676,24 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
             occurrenceId,
             failure);
 
-    private void PublishCargoAlert(
+    private void PublishDriftCargoOutcome(
+        V20ActiveEventSaveData occurrence,
+        DungeonItemDefinition item,
+        long unitMassGrams,
+        int absoluteDay)
+    {
+        if (!campaign.TryObserveSeasonalDriftCargo(
+                occurrence.instanceId,
+                item.DisplayName,
+                unitMassGrams,
+                absoluteDay,
+                out string failure))
+        {
+            RecordCargoFailure(occurrence?.instanceId, failure);
+        }
+    }
+
+    private void PublishCargoProgress(
         V20ActiveEventSaveData occurrence,
         int absoluteDay,
         DungeonItemDefinition item,
@@ -690,62 +701,26 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
         int remainingQuantity)
     {
         SeasonalDriftCargoSaveData cargo = occurrence?.seasonalDriftCargo;
-        if (cargo?.configured != true)
-            return;
-        string itemName = item?.DisplayName ?? cargo.itemId;
-        string location = cargo.positionFrozen
-            ? $"({cargo.positionX},{cargo.positionY})"
-            : "미확정";
+        if (cargo?.configured != true) return;
         int available = FindCargoStacks(occurrence.instanceId)
             .Where(value => IsUnpickedSource(value, cargo))
             .Sum(value => value.AvailableQuantity);
-        string failure = string.IsNullOrEmpty(cargo.lastFailureReason)
-            ? string.Empty
-            : $"\n현재 지연: {cargo.lastFailureReason}";
-        SeasonalWorldEventDefinitionSO authored = catalog.Require(
-            occurrence.definitionId);
-        events.Publish(new EventAlertRequestedEvent(new EventAlertRequest(
-            authored.DisplayName,
-            $"대상: {itemName} {cargo.exactQuantity}개\n"
-                + $"외곽 위치: {location}\n"
-                + $"미회수: {remainingQuantity}개 / "
-                + $"{remainingQuantity * unitMassGrams / 1000f:0.###}kg\n"
-                + $"실제 픽업 확보: {cargo.securedQuantity}개 / "
-                + $"현재 픽업 가능: {available}개\n"
-                + $"기한: {occurrence.deadlineAbsoluteDay}일 "
-                + $"(남은 {Math.Max(0, occurrence.deadlineAbsoluteDay - absoluteDay)}일)"
-                + failure,
-            EventAlertImportance.Medium,
-            CargoAlertCategory,
-            Array.Empty<EventAlertChoice>(),
-            occurrence.instanceId)));
+        events.Publish(new SeasonalCargoProgressedFact(
+            occurrence.instanceId, catalog.Require(occurrence.definitionId).DisplayName,
+            item?.DisplayName ?? cargo.itemId, cargo.exactQuantity,
+            cargo.positionFrozen ? new Vector2Int(cargo.positionX, cargo.positionY) : (Vector2Int?)null,
+            remainingQuantity, unitMassGrams, cargo.securedQuantity, available,
+            occurrence.deadlineAbsoluteDay, absoluteDay, cargo.lastFailureReason));
     }
 
-    private void PublishCargoExpiration(
-        V20ActiveEventSaveData occurrence,
-        DungeonItemDefinition item,
-        int absoluteDay)
+    private void PublishCargoExpiration(V20ActiveEventSaveData occurrence, DungeonItemDefinition item, int absoluteDay)
     {
         SeasonalDriftCargoSaveData cargo = occurrence?.seasonalDriftCargo;
-        if (cargo?.expirationCompleted != true)
-            return;
-        SeasonalWorldEventDefinitionSO authored = catalog.Require(
-            occurrence.definitionId);
-        string itemName = item?.DisplayName ?? cargo.itemId;
-        events.Publish(new EventAlertRequestedEvent(new EventAlertRequest(
-            authored.DisplayName,
-            $"회수 기한이 {absoluteDay}일에 끝났습니다. "
-                + $"{itemName} 확보 {cargo.securedQuantity}개, "
-                + $"미픽업 원본 유실 {cargo.expiredQuantity}개 "
-                + $"({cargo.expiredMassGrams / 1000f:0.###}kg). "
-                + "운반 중·회수 드롭·일반 재고는 유지됩니다.",
-            EventAlertImportance.Medium,
-            CargoAlertCategory,
-            Array.Empty<EventAlertChoice>(),
-            occurrence.instanceId,
-            isResolved: true,
-            resultSummary:
-                $"확보 {cargo.securedQuantity} / 원본 유실 {cargo.expiredQuantity}")));
+        if (cargo?.expirationCompleted != true) return;
+        events.Publish(new SeasonalCargoExpiredFact(
+            occurrence.instanceId, catalog.Require(occurrence.definitionId).DisplayName,
+            item?.DisplayName ?? cargo.itemId, cargo.securedQuantity,
+            cargo.expiredQuantity, cargo.expiredMassGrams, absoluteDay));
     }
 
     private V20ActiveEventSaveData FindActive(string occurrenceId) =>
@@ -755,4 +730,18 @@ public sealed class SeasonalWildlifeVisitorApplicationAdapter :
                 value.instanceId,
                 occurrenceId,
                 StringComparison.Ordinal));
+
+    private static bool IsTerminalOutcomePending(
+        SeasonalWildlifeArrivalSaveData arrival) =>
+        arrival?.configured == true
+        && arrival.members.Count == arrival.exactCount
+        && arrival.members.All(value => value?.spawned == true)
+        && string.IsNullOrEmpty(arrival.outcomeResultKey);
+
+    private static bool IsDriftCargoOutcomePending(
+        SeasonalDriftCargoSaveData cargo) =>
+        cargo?.configured == true
+        && cargo.spawned
+        && cargo.expirationCompleted
+        && string.IsNullOrEmpty(cargo.outcomeResultKey);
 }

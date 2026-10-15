@@ -358,6 +358,7 @@ public static class
         Proxy<ILeasedItemReservationService>(),
         Proxy<IFacilityCapabilityQuery>(),
         Proxy<IGameClock>(),
+        new EditorFixedGameCalendar(137, 9),
         Proxy<IPhysicalItemBatchDispositionService>(),
         Proxy<IApparelPhysicalTransaction>(),
         Proxy<IProductionOutputMaximumMassRegistry>(),

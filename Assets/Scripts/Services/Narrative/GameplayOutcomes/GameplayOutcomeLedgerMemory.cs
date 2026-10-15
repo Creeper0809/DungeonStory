@@ -1104,6 +1104,16 @@ public sealed partial class GameplayOutcomeLedger
             commitRevision = page.ResultKey.CommitRevision,
             localResultIndex = page.ResultKey.LocalResultIndex,
             ownerRevision = page.OwnerRevision,
+            temporalMetadataVersion = GameplayOutcomeDeliveryTime.CurrentVersion,
+            absoluteDay = page.AbsoluteDay,
+            parentRunId = page.Causation.HasParent ? page.Causation.ParentOutcomeId.RunId.Value : string.Empty,
+            parentSequence = page.Causation.HasParent ? page.Causation.ParentOutcomeId.Sequence : 0L,
+            deliveryMetadataVersion = page.DeliveryMetadataVersion,
+            deliveryClockId = page.DeliveryClockId,
+            recordedAbsoluteHour = page.RecordedAbsoluteHour,
+            publishedRevision = page.PublishedRevision,
+            deliveryFaultCount = page.DeliveryFaultCount,
+            deliveryDelayReason = page.DeliveryDelayReason,
             terminalTier = terminalTier,
             canonicalHash = exactHash,
             influenceUseCount = SumInfluenceUseCount(page),
@@ -1112,6 +1122,7 @@ public sealed partial class GameplayOutcomeLedger
         int tombstoneIndex = state.Tombstones.Count;
         state.Tombstones.Add(tombstone);
         state.TombstoneByResultKey.Add(page.ResultKey, tombstoneIndex);
+        state.TombstoneByOutcomeId.Add(page.OutcomeId, tombstoneIndex);
         state.ActiveByResultKey.Remove(page.ResultKey);
         state.ActiveByOutcomeId.Remove(page.OutcomeId);
         RemoveDuePage(pageIndex);
@@ -1232,8 +1243,12 @@ public sealed partial class GameplayOutcomeLedger
         memory.influenceRevision = checked(
             memory.influenceRevision + sourceSubject.InfluenceRevision);
         memory.salience = Math.Max(memory.salience, decision.Salience);
-        memory.lastSequence = page.Sequence;
-        memory.lastDay = page.AbsoluteDay;
+        // Delayed publication can consolidate an earlier sequence/date after a
+        // newer record. These are source bounds, not the last merge's values.
+        memory.firstSequence = Math.Min(memory.firstSequence, page.Sequence);
+        memory.lastSequence = Math.Max(memory.lastSequence, page.Sequence);
+        memory.firstDay = Math.Min(memory.firstDay, page.AbsoluteDay);
+        memory.lastDay = Math.Max(memory.lastDay, page.AbsoluteDay);
         memory.sourceSegmentHash = GameplayOutcomeCanonicalHash.RollSourceHash(memory.sourceSegmentHash, exactHash);
         memory.sharedAggregateId = GameplayOutcomeCanonicalHash.CreateSharedAggregateId(
             state.RunId, page.OutcomeTypeId, page.Status,

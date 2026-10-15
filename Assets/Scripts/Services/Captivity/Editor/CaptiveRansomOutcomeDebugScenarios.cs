@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.Narrative.Korean;
 using UnityEngine;
 
@@ -22,24 +23,14 @@ public static class CaptiveRansomOutcomeDebugScenarios
 
     private static void VerifyCanonicalOutcome()
     {
-        GameplayOutcomeRegistry registry = new(
-            new IGameplayOutcomeDescriptor[]
-            {
-                new CaptiveRansomOutcomeDescriptor(new KoreanJosaFormatter())
-            },
-            new IGameplayOutcomeAdapterRegistration[]
-            {
-                new CaptiveRansomOutcomeAdapter()
-            });
-        GameplayOutcomeLedger ledger = NewLedger(registry, "run:captive-ransom");
-        CaptiveRansomGameplayOutcomeBridge bridge = new(
-            new GameplayOutcomeRecorder(ledger, registry, new GameEventBus()),
-            ledger);
+        using RansomFactAuthority authority = new("run:captive-ransom");
+        GameplayOutcomeRegistry registry = authority.Registry;
+        GameplayOutcomeLedger ledger = authority.Ledger;
         CaptiveRansomOutcomeRuntime runtime = new(
-            bridge,
+            authority.Facts,
+            authority.Facts,
             new GameEventBus(),
-            new FakeWorldRegistry(),
-            new FakeClock());
+            new FakeWorldRegistry());
         CaptiveState state = State("canonical", CaptivityStatus.Confined);
 
         Require(
@@ -49,18 +40,23 @@ public static class CaptiveRansomOutcomeDebugScenarios
                 120,
                 43f,
                 12,
-                out PreparedCaptiveRansomOutcome prepared,
+                out CaptiveRansomPublication prepared,
                 out long revision,
                 out string failure)
             && revision == 1L
             && !prepared.IsReplay,
             "canonical ransom prepare failed: " + failure);
-        state.status = CaptivityStatus.Ransom;
-        state.ransomOutcomeRevision = revision;
-        state.ransomAcceptedAmount = 120;
-        Require(
-            runtime.Commit(prepared).DurablyCommitted,
-            "canonical ransom commit was not durable");
+        using (prepared)
+        {
+            state.status = CaptivityStatus.Ransom;
+            state.retaliationPressure = 43f;
+            state.ransomOutcomeRevision = revision;
+            state.ransomAcceptedAmount = 120;
+            state.ransomIncomeCredited = false;
+            Require(
+                runtime.Commit(prepared).Completed,
+                "canonical ransom commit was not delivered");
+        }
 
         GameplayOutcomeQueryPage global = ledger.GetGlobal(
             OutcomeCursor.FirstPage(10),
@@ -106,26 +102,39 @@ public static class CaptiveRansomOutcomeDebugScenarios
                 120,
                 43f,
                 12,
-                out PreparedCaptiveRansomOutcome replay,
-                out _,
-                out string replayFailure)
-            && replay.IsReplay
-            && runtime.Commit(replay).DurablyCommitted
-            && ledger.GetGlobal(
-                OutcomeCursor.FirstPage(10),
-                OutcomeFilter.All).Items.Count == 1,
-            "canonical ransom replay failed or duplicated: " + replayFailure);
+                out CaptiveRansomPublication replay,
+                out long replayRevision,
+                out string replayFailure),
+            "canonical ransom replay prepare failed: " + replayFailure);
+        using (replay)
+        {
+            replayState.status = CaptivityStatus.Ransom;
+            replayState.retaliationPressure = 43f;
+            replayState.ransomOutcomeRevision = replayRevision;
+            replayState.ransomAcceptedAmount = 120;
+            replayState.ransomIncomeCredited = false;
+            Require(
+                replay.IsReplay
+                && runtime.Commit(replay).Completed
+                && ledger.GetGlobal(
+                    OutcomeCursor.FirstPage(10),
+                    OutcomeFilter.All).Items.Count == 1,
+                "canonical ransom replay failed or duplicated: " + replayFailure);
+        }
 
-        CaptiveRansomOutcomeReceipt drifted = new(
-            state.captiveId,
-            Name("canonical"),
-            CaptivityStatus.Confined,
-            121,
-            43f,
-            1L,
-            12);
+        CaptiveRansomAcceptedFact drifted = new(new CaptiveRansomAcceptedFactData
+        {
+            captiveId = state.captiveId,
+            displayName = "가람",
+            decisionMakerId = string.Empty,
+            previousStatus = CaptivityStatus.Confined,
+            amount = 121,
+            retaliationPressure = 43f,
+            revision = 1L,
+            absoluteDay = 12
+        });
         Require(
-            !bridge.TryPrepare(drifted, out _, out _),
+            !authority.Facts.Replay(drifted).MayBeCommitted,
             "same ransom result key accepted a drifted amount");
 
         GameplayOutcomeLedgerSaveData saved = ledger.CaptureGameplayOutcomes();
@@ -150,7 +159,7 @@ public static class CaptiveRansomOutcomeDebugScenarios
     {
         using (OwnerFixture rejected = new(
                    "rejected",
-                   OwnerOutcomeCommitPhase.Rejected,
+                   DomainFactDeliveryPhase.Rejected,
                    "qa-ransom-rejected"))
         {
             Require(
@@ -164,6 +173,7 @@ public static class CaptiveRansomOutcomeDebugScenarios
                 && rejected.State.ransomOutcomeRevision == 0L
                 && rejected.State.ransomAcceptedAmount == 0
                 && !rejected.State.ransomIncomeCredited
+                && !rejected.State.ransomObservation.HasFact
                 && rejected.Money.CreditCount == 0
                 && rejected.Terminal.AttemptCount == 0
                 && rejected.Actor.characterType == CharacterType.NPC
@@ -174,7 +184,7 @@ public static class CaptiveRansomOutcomeDebugScenarios
 
         using (OwnerFixture pending = new(
                    "pending",
-                   OwnerOutcomeCommitPhase.CommittedPendingDelivery,
+                   DomainFactDeliveryPhase.AcceptedPendingDelivery,
                    "qa-delivery-pending"))
         {
             Require(
@@ -188,6 +198,8 @@ public static class CaptiveRansomOutcomeDebugScenarios
                 && pending.State.status == CaptivityStatus.Released
                 && pending.State.ransomOutcomeRevision == 1L
                 && pending.State.ransomIncomeCredited
+                && pending.State.ransomObservation.HasFact
+                && !pending.State.ransomObservation.pending
                 && !pending.State.ransomObserversPending
                 && pending.Money.CreditCount == 1
                 && pending.Terminal.AttemptCount == 1
@@ -199,7 +211,7 @@ public static class CaptiveRansomOutcomeDebugScenarios
 
         using (OwnerFixture creditRetry = new(
                    "credit-retry",
-                   OwnerOutcomeCommitPhase.PublishedAcknowledged,
+                   DomainFactDeliveryPhase.Delivered,
                    string.Empty,
                    creditFailures: 1))
         {
@@ -232,7 +244,7 @@ public static class CaptiveRansomOutcomeDebugScenarios
 
         using (OwnerFixture physicalRetry = new(
                    "physical-retry",
-                   OwnerOutcomeCommitPhase.PublishedAcknowledged,
+                   DomainFactDeliveryPhase.Delivered,
                    string.Empty,
                    terminalFailures: 1))
         {
@@ -264,7 +276,7 @@ public static class CaptiveRansomOutcomeDebugScenarios
 
         using (OwnerFixture observerFault = new(
                    "observer-fault",
-                   OwnerOutcomeCommitPhase.PublishedAcknowledged,
+                   DomainFactDeliveryPhase.Delivered,
                    string.Empty,
                    eventBus: new ThrowingEventBus()))
         {
@@ -284,10 +296,10 @@ public static class CaptiveRansomOutcomeDebugScenarios
 
     private static void VerifySaveCompatibility()
     {
-        CaptiveState committed = State("save", CaptivityStatus.Released);
-        committed.ransomOutcomeRevision = 1L;
-        committed.ransomAcceptedAmount = 120;
-        committed.ransomIncomeCredited = true;
+        CaptiveState committed = PublishedState(
+            "save",
+            DomainFactDeliveryPhase.Delivered,
+            finalize: true);
         CaptivitySaveData roundTrip = JsonUtility.FromJson<CaptivitySaveData>(
             JsonUtility.ToJson(Save(committed)));
         DungeonGameRestoreReport roundTripReport = new();
@@ -296,18 +308,23 @@ public static class CaptiveRansomOutcomeDebugScenarios
             roundTripReport.Success
             && roundTrip.captives.Single().ransomOutcomeRevision == 1L
             && roundTrip.captives.Single().ransomAcceptedAmount == 120
-            && roundTrip.captives.Single().ransomIncomeCredited,
+            && roundTrip.captives.Single().ransomIncomeCredited
+            && roundTrip.captives.Single().ransomObservation.HasFact
+            && !roundTrip.captives.Single().ransomObservation.pending,
             "captivity save round trip lost ransom state: "
             + string.Join(" | ", roundTripReport.Errors));
 
-        CaptiveState pending = State("save-pending", CaptivityStatus.Ransom);
-        pending.ransomOutcomeRevision = 1L;
-        pending.ransomAcceptedAmount = 90;
-        pending.ransomObserversPending = true;
+        CaptiveState pending = PublishedState(
+            "save-pending",
+            DomainFactDeliveryPhase.AcceptedPendingDelivery,
+            finalize: false);
         DungeonGameRestoreReport pendingReport = new();
         CaptivitySaveValidation.Validate(Save(pending), pendingReport);
         Require(
-            pendingReport.Success,
+            pendingReport.Success
+            && pending.ransomObservation.HasFact
+            && pending.ransomObservation.pending
+            && pending.ransomObserversPending,
             "durable pending ransom state was rejected: "
             + string.Join(" | ", pendingReport.Errors));
 
@@ -377,19 +394,62 @@ public static class CaptiveRansomOutcomeDebugScenarios
         }
     };
 
-    private static string Id(string suffix) => IdPrefix + suffix;
-
-    private static KoreanNameSnapshot Name(string suffix)
+    private static CaptiveState PublishedState(
+        string suffix,
+        DomainFactDeliveryPhase phase,
+        bool finalize)
     {
-        string id = Id(suffix);
-        return new KoreanNameSnapshot(
-            "가람",
-            "captivity-ransom-display-v1:"
-                + NarrativeInferenceHash.ComputeSha256Utf8(id + "|가람"),
-            KoreanPronunciationHint.AutoHangulDisplay(
-                "captivity-ransom-pronunciation-v1:" + id),
-            "ko-KR");
+        using RansomFactAuthority authority = new(
+            "run:captive-ransom-save:" + suffix);
+        GameEventBus events = new();
+        CaptiveRansomOutcomeRuntime runtime = new(
+            new ConfigurablePublisher(authority.Facts, phase, "qa-save-stage"),
+            authority.Facts,
+            events,
+            new FakeWorldRegistry());
+        CaptiveState state = State(suffix, CaptivityStatus.Confined);
+        Require(
+            runtime.TryPrepare(
+                state,
+                CaptivityStatus.Confined,
+                120,
+                43f,
+                12,
+                out CaptiveRansomPublication prepared,
+                out long revision,
+                out string prepareFailure),
+            "ransom save fact prepare failed: " + prepareFailure);
+        using (prepared)
+        {
+            state.status = CaptivityStatus.Ransom;
+            state.retaliationPressure = 43f;
+            state.ransomOutcomeRevision = revision;
+            state.ransomAcceptedAmount = 120;
+            state.ransomIncomeCredited = false;
+            DomainFactDelivery delivery = runtime.Commit(prepared);
+            Require(
+                delivery.Phase == phase,
+                "ransom save fact delivery phase drifted: " + delivery.Detail);
+        }
+        if (!finalize)
+            return state.Clone();
+
+        Require(
+            runtime.TryBeginFinalization(
+                state,
+                out IDisposable finalization,
+                out string finalizationFailure),
+            "ransom save finalization did not begin: " + finalizationFailure);
+        using (finalization)
+        {
+            state.ransomIncomeCredited = true;
+            state.status = CaptivityStatus.Released;
+            runtime.NotifyCommitted(state);
+        }
+        return state.Clone();
     }
+
+    private static string Id(string suffix) => IdPrefix + suffix;
 
     private static string Fact(GameplayOutcomeSnapshot snapshot, string factId) =>
         snapshot.facts.Single(value => value.factId == factId).value;
@@ -404,10 +464,11 @@ public static class CaptiveRansomOutcomeDebugScenarios
     {
         private readonly List<UnityEngine.Object> cleanup = new();
         private readonly IDisposable subscription;
+        private readonly RansomFactAuthority authority;
 
         public OwnerFixture(
             string suffix,
-            OwnerOutcomeCommitPhase phase,
+            DomainFactDeliveryPhase phase,
             string detail,
             int creditFailures = 0,
             int terminalFailures = 0,
@@ -429,19 +490,24 @@ public static class CaptiveRansomOutcomeDebugScenarios
             Doors.SetCaptive(Id, true);
             Money = new FakeMoney(creditFailures);
             Terminal = new FakeTerminal(terminalFailures);
-            Committer = new ConfigurableCommitter(phase, detail);
             Events = eventBus ?? new GameEventBus();
+            authority = new RansomFactAuthority(
+                "run:captive-ransom:" + suffix);
+            Publisher = new ConfigurablePublisher(
+                authority.Facts,
+                phase,
+                detail);
             if (Events is GameEventBus concrete)
             {
                 subscription = concrete.Subscribe<CaptiveRansomedEvent>(
                     _ => EventCount++);
             }
-            FakeClock clock = new();
+            FakeCalendar calendar = new();
             CaptiveRansomOutcomeRuntime outcomes = new(
-                Committer,
+                Publisher,
+                authority.Facts,
                 Events,
-                new FakeWorldRegistry(Actor),
-                clock);
+                new FakeWorldRegistry(Actor));
             Runtime = new CaptivityRansomRuntime(
                 actors,
                 actorRuntime,
@@ -450,7 +516,7 @@ public static class CaptiveRansomOutcomeDebugScenarios
                 Money,
                 Terminal,
                 Doors,
-                clock,
+                calendar,
                 outcomes);
         }
 
@@ -460,7 +526,7 @@ public static class CaptiveRansomOutcomeDebugScenarios
         public FakeDoorSubjects Doors { get; }
         public FakeMoney Money { get; }
         public FakeTerminal Terminal { get; }
-        public ConfigurableCommitter Committer { get; }
+        public ConfigurablePublisher Publisher { get; }
         public IGameEventBus Events { get; }
         public CaptivityRansomRuntime Runtime { get; }
         public int EventCount { get; private set; }
@@ -468,6 +534,7 @@ public static class CaptiveRansomOutcomeDebugScenarios
         public void Dispose()
         {
             subscription?.Dispose();
+            authority.Dispose();
             foreach (UnityEngine.Object value in cleanup.Where(value => value != null))
                 UnityEngine.Object.DestroyImmediate(value);
         }
@@ -503,47 +570,124 @@ public static class CaptiveRansomOutcomeDebugScenarios
         }
     }
 
-    private sealed class ConfigurableCommitter : ICaptiveRansomOutcomeCommitter
+    private sealed class RansomFactAuthority : IDisposable
     {
-        private readonly OwnerOutcomeCommitPhase phase;
+        private readonly IDisposable observation;
+
+        public RansomFactAuthority(string runId)
+        {
+            Registry = new GameplayOutcomeRegistry(
+                new IGameplayOutcomeDescriptor[]
+                {
+                    new CaptiveRansomOutcomeDescriptor(
+                        new KoreanJosaFormatter())
+                },
+                new IGameplayOutcomeAdapterRegistration[]
+                {
+                    new CaptiveRansomOutcomeAdapter()
+                });
+            Ledger = NewLedger(Registry, runId);
+            GameplayOutcomeRecorder recorder = new(
+                Ledger,
+                Registry,
+                new GameEventBus());
+            Facts = new DomainFactDispatcher();
+            observation = Facts.Subscribe(
+                "captive-ransom:fixture",
+                new GameplayDomainFactObserver<
+                    CaptiveRansomAcceptedFact,
+                    CaptiveRansomOutcomeReceipt>(
+                    CaptiveRansomFactMapping.Capture,
+                    Registry,
+                    Ledger,
+                    recorder,
+                    new GameplayDomainFactCommitGroup(recorder, Ledger)));
+        }
+
+        public GameplayOutcomeRegistry Registry { get; }
+        public GameplayOutcomeLedger Ledger { get; }
+        public DomainFactDispatcher Facts { get; }
+
+        public void Dispose()
+        {
+            observation.Dispose();
+            Facts.Dispose();
+        }
+    }
+
+    private sealed class ConfigurablePublisher : IDomainFactStagingPublisher
+    {
+        private readonly IDomainFactStagingPublisher inner;
+        private readonly DomainFactDeliveryPhase phase;
         private readonly string detail;
 
-        public ConfigurableCommitter(
-            OwnerOutcomeCommitPhase phase,
+        public ConfigurablePublisher(
+            IDomainFactStagingPublisher inner,
+            DomainFactDeliveryPhase phase,
             string detail)
         {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
             this.phase = phase;
             this.detail = detail ?? string.Empty;
         }
 
-        public CaptiveRansomOutcomeReceipt LastReceipt { get; private set; }
+        public CaptiveRansomAcceptedFact LastFact { get; private set; }
 
-        public bool TryPrepare(
-            in CaptiveRansomOutcomeReceipt receipt,
-            out PreparedCaptiveRansomOutcome prepared,
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
             out string failureReason)
         {
-            LastReceipt = receipt;
-            prepared = new PreparedCaptiveRansomOutcome(
-                default,
-                receipt.ResultKey,
-                receipt.OwnerRevision,
-                false);
-            failureReason = string.Empty;
+            if (fact is CaptiveRansomAcceptedFact ransom)
+                LastFact = ransom;
+            if (!inner.TryStage(fact, out stage, out failureReason))
+                return false;
+            stage = new ConfigurableStage(stage, phase, detail);
             return true;
         }
+    }
 
-        public OwnerOutcomeCommitResult Commit(
-            in PreparedCaptiveRansomOutcome prepared) => new(
-            phase,
-            prepared.ResultKey,
-            default,
-            string.Empty,
-            detail);
+    private sealed class ConfigurableStage : IDomainFactStage
+    {
+        private readonly IDomainFactStage inner;
+        private readonly DomainFactDeliveryPhase phase;
+        private readonly string detail;
 
-        public void Cancel(in PreparedCaptiveRansomOutcome prepared)
+        public ConfigurableStage(
+            IDomainFactStage inner,
+            DomainFactDeliveryPhase phase,
+            string detail)
         {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            this.phase = phase;
+            this.detail = detail ?? string.Empty;
         }
+
+        public string OperationKey => inner.OperationKey;
+        public long OwnerRevision => inner.OwnerRevision;
+        public bool IsReplay => inner.IsReplay;
+        public bool IsActive => inner.IsActive;
+
+        public DomainFactDelivery Commit()
+        {
+            if (phase == DomainFactDeliveryPhase.Rejected)
+            {
+                inner.Cancel();
+                return DomainFactDelivery.Reject(detail);
+            }
+            DomainFactDelivery delivery = inner.Commit();
+            return phase == DomainFactDeliveryPhase.Delivered
+                || !delivery.MayBeCommitted
+                    ? delivery
+                    : new DomainFactDelivery(
+                        phase,
+                        delivery.OperationKey,
+                        delivery.PublicationId,
+                        delivery.Fingerprint,
+                        detail);
+        }
+
+        public void Cancel() => inner.Cancel();
     }
 
     private sealed class FakeTerminal : ICaptivityRansomTerminalPhysicalPort
@@ -704,12 +848,25 @@ public static class CaptiveRansomOutcomeDebugScenarios
         }
     }
 
-    private sealed class FakeClock : IGameClock
+    private sealed class FakeCalendar : IGameCalendar
     {
-        public float DeltaTime => 0.02f;
-        public float Time => GameCalendarRules.SecondsPerDay * 12f;
-        public int FrameCount => 100;
-        public bool IsPaused => false;
+        public int Day => 13;
+        public int Hour => 0;
+        public int Year => Current.Year;
+        public int DayOfYear => Current.DayOfYear;
+        public Season Season => Current.Season;
+        public int DayOfSeason => Current.DayOfSeason;
+        public long AbsoluteHour => Current.AbsoluteHour;
+        public float ElapsedSeconds => 0f;
+        public TimeOfDay TimeOfDay => default;
+        public bool IsRunning { get; private set; }
+        public CalendarDateTime Current => GameCalendarRules.Project(Day, Hour);
+        public CalendarDateTime GetRegionalTime(int utcOffsetHours) =>
+            GameCalendarRules.ProjectRegional(Day, Hour, utcOffsetHours);
+        public void Start() => IsRunning = true;
+        public void SetDateTime(int day, int hour)
+        {
+        }
     }
 
     private sealed class FakeWorldRegistry : ICharacterAiWorldRegistry

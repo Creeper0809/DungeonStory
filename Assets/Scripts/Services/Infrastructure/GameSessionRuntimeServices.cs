@@ -60,9 +60,17 @@ public sealed class GameCalendarRuntime : IGameCalendar, ITickable
         float elapsed = state.curTime.Value + Mathf.Max(0f, gameClock.DeltaTime);
         while (elapsed >= GameCalendarRules.SecondsPerDay)
         {
-            gameEventBus.Publish(new OperatingDayEndedEvent(state.day.Value));
+            int endedDay = state.day.Value;
             elapsed -= GameCalendarRules.SecondsPerDay;
-            state.day.Value++;
+            // Midnight has occurred before either notification. Ended carries
+            // the completed accounting day; listeners that advance life or
+            // ambition to endedDay + 1 must see that same authoritative date.
+            // Publish a coherent midnight, not next-day/old-hour mixed state.
+            state.curTime.Value = 0f;
+            state.hour.Value = 0;
+            state.timeOfDay.Value = ResolveTimeOfDay(0f);
+            state.day.Value = checked(endedDay + 1);
+            gameEventBus.Publish(new OperatingDayEndedEvent(endedDay));
             gameEventBus.Publish(new OperatingDayStartedEvent(state.day.Value));
         }
 

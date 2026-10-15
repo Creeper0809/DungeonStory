@@ -45,9 +45,9 @@ MonoBehaviour:
     recommendedRank: 1
     minimumRiskRank: 0
   operationProficiency:
-    primaryProficiencyId: 
+    primaryProficiencyId: proficiency:social
     secondaryProficiencyId: 
-    primaryWeight: 0
+    primaryWeight: 1
     combinationMode: 0
     recommendedRank: 0
     minimumRiskRank: 0

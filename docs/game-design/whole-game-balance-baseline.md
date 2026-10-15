@@ -1,5 +1,25 @@
 # DungeonStory 전역 밸런스 기준서
 
+## 경험 중요도 기반 새 서사 요청 (2026-10-09)
+
+- Before: exact 원장 근거의 raw salience ×10과 최소1이 공식 중요도에 사용되어 경미한 사건도 상한에 쉽게 도달했다.
+- After: 버전2의 전 사건 유형 규칙으로 확인한 중요도 × 각 profile의 기존 MaximumImportance를 사용한다. 일상 .10, 경미 .30, 유의미 .55, 강렬 .80, 결정적 .95이며 개인 경험 아님/미평가는 중요도0(기존 policy 하한으로 상승시키지 않음)이다. 예: max4에서 경미 피해는1.2, 강렬은3.2. 환경 단계만 변하면 .10, 실제 체력 손실은 직전치 대비10%/50%/0 도달 경계로 평가하며 사망을 추정하지 않는다.
+- 모든 사건은 상태·당사자 역할·실제 수치/명시 결과로 분기한다. 거래/제작/환경 설정에 강렬함을 일괄 부여하지 않는다. 일반 식사·휴식과 결핍→충족을 구분하고, 신체 영구변화·사망·포로 신분 종료·시체 섭취 등은 별도 typed 근거를 요구한다. 사용한 근거/한국어 이유를 동결한다. 유형별 상세 조건과 경계 실행 결과는 새 all-policies 보고서에 남긴다. 과거 파일럿 입력의 재해석·학습 적격화는 하지 않는다.
+- 현행 검증: [149종 정책·374개 사례별 판단 이유](../../Artifacts/QA/ExperiencePolicyAll-20261009-r5/environment-exposure-report.txt.all-policies.txt), [대표 실제 경로 결과](../../Artifacts/QA/ExperiencePolicyAll-20261009-r5/environment-exposure-report.txt). 이는 정책 계약/역사 재평가/대표 실행 검증이며149종 모두 새 플레이나 모든 가능한 조합 검증이 아니다.
+- 새 생성 입력의 우선순위와 스킬/특성/장비/시설 공식 예산에 영향을 주지만 기존 확정 효과·자산·기본 공식 계수·소비 비용·저장 원장 사실은 바꾸지 않는다. 기존 legacy 근거와 특성 횟수 발현 게이트는 별도 경로로 유지한다. 전역 밸런스 동일성이나 네 profile 전체 실전 재검증을 주장하지 않는다. 표적 실행 결과는 progress.md에 기록한다.
+
+## 서사 근거의 사건 신원 중복 판정 교정 (2026-10-08, r559)
+
+- Before: 같은 인과 chain/root/parent 또는 시설·계약 provenance 값을 공유하는 서로 다른 legacy 사건을 이미 집계한 사건으로 오인해 제외할 수 있었다.
+- After: 정확한 사건/operation ID와 명시적 receipt operation alias만 동일 원천으로 판정한다. 공개 부모 참조는 같은 주체의 공개 근거 집합에 있는 부모의 public fact ID만 사용하며 내부 계보는 보존한다.
+- 공식·상한·자산·기존 확정 수치·저장 schema는 변경하지 않는다. 새 생성에서는 잘못 누락되던 별개 근거가 복구되어 입력 예산에 영향을 줄 수 있다. 전역 밸런스 동일성이나 모든 profile의 실제 예산 소비 검증을 주장하지 않는다. 표적 사건/압축/공개 경계 검증 결과는 루트 progress.md에 기록한다.
+
+## 결핍 자동 제압의 우선 작업 지시 보존 (2026-10-02)
+
+- Before: 자동 제압이 수동 제압과 같은 setter를 호출해 이미 지정된 건설 대상과 작업 종류를 지웠다. r274 실제 실행에서 두 주민의 Construct 지시가 Guard로 대체되고 복귀하지 않았다.
+- After: 결핍 자동 제압 후보에서 기존 우선 작업 대상이 있는 주민만 제외한다. 지시 없는 경비 인력의 자동 대응과 직접 내리는 수동 제압 명령은 유지한다. 전원이 명시적 지시를 수행 중이면 자동 제압 인력이 없을 수 있으며 플레이어가 직접 제압을 지시할 수 있다.
+- 작업량·속도·음식·피해·붕괴 문턱·제압 저항·비용·저장 형식은 변경하지 않는다. 자동 대응 가용 인력과 실제 작업 지속성에는 영향을 주므로 전역 밸런스 동일성으로 주장하지 않는다. r275/continuation-r27에서 실제 Hunger 붕괴 후 세 exact Construct 지시 보존은 확인했지만36.638/751WU 후 candidate 평가 대기와90game 무진척으로 전체 건설은 실패했다. 지시 없는 경비와 수동 제압의 별도 runtime는 NOT_RUN이며 unchanged 경로를 static 검토한 것으로만 기록한다.
+
 ## Phase80 실전 검증의 신체 치료 소실 교정 (2026-09-19)
 
 - 기록 ID: `balance:phase80:surface-healing-alias-authority`. 의료 회복 경로의 기존 결함 수정이며 새 콘텐츠가 아니다.
@@ -62,6 +82,13 @@ Phase76 통합 검토 추가 계약: 시설 신규 생성은 결과 `BuildingSO`
 9. 현재 상태: **밸런스 공식 검증 진행 중**. 공용 signed-cost 단위 시나리오는 추가됐으며, 네 도메인 자산 재작성·실제 소비·저장 왕복·새 파일럿 검증 전에는 밸런스 완료가 아니다.
 
 ## 서사 기반 공식 수치 생성 권위 (2026-09-16, 구현 전 기준 배정)
+
+2026-09-20 변경 `balance:narrative-primary-allocation:v1`: 신규 CharacterSkill의
+첫 선택 모듈을 주효과로 보존하고, 작성된 최소치 위의 강화 비용은 주효과가 보조
+전체 이상을 받는다. 기본·트리거·영역·시너지 비용과 SO 범위/단가는 변경하지 않는다.
+주효과 상한 때문에 남은 예산은 `primary-prominence-cap`으로 명시한다. 과거 확정
+기술은 policy 0으로 원래 수치를 보존한다. 후천 특성/장비/시설의 단일 이로운 모듈
+제약은 유지한다. 이는 배분 일관성 기준이며 실제 승률·전투 효율의 밸런스 인증이 아니다.
 
 1. 기록 ID: `balance:narrative-formula-mechanics:v1`.
 2. 콘텐츠 종류: 신규 캐릭터 액티브·패시브·궁극기, 후천 특성, 장비 진화, 시설 계보 진화의 기능·수치 생성 공통 계약.
@@ -1384,6 +1411,8 @@ Balance status: no balance values changed. Static implementation is complete; Un
 
 ### V26-157 implementation continuation (2026-08-12)
 
+- 2026-10-01 approved correction (`balance:settlement-idle-resident-emergency-reserve`): the reserve numerator now includes one existing 30-WU response window per live productive idle resident (owner/work-role, adult, non-downed), in addition to the existing active ReserveEligible remaining-WU contribution. Visitors, minors, downed actors, any active accounting operation including critical/protected recovery, and work already executing before its first accepted WU receive no idle credit. This is potential response capacity, not completed labor, actual daily WU, output/EWU, stock, money or a new resource. Existing minimum/P90/alert target, immigration thresholds and Red/medical/food/water/housing rejection rules stay unchanged. Role/operation/life/body changes are read from their owners; the projection is rebuilt after restore rather than saved in a new DTO. Risk: idle capacity changes reserve bands and admissions, but cannot cancel active emergency/health gates or duplicate active workers. Alternatives rejected: fake jobs, injected accounting, stock purchases as labor, or lowering the admission threshold. Focused math/worker-index/immutable-query tests and actual resumed recruitment/support-effect/save verification are required; current implementation is not yet Unity-verified.
+
 - Actual approved character work now enters a fixed-point daily labor ledger. Process-output conversion, domain automation, losses, essential maintenance and facility maintenance remain separate physical-commit channels.
 - Emergency reserve target authority is `max(12 WU, productive non-downed adults * 3 WU, highest authored P90 risk WU)` multiplied by committed Green/Amber/Red state. Missing disaster forecasts are not fabricated.
 - The saved 30-day per-capita net-WU median replaces the sovereign 20-resident gate. Temporal qualification replaces the 60-resident gate with per-capita index 2.00 and emergency coverage 1.20 sustained for 120 days.
@@ -1980,6 +2009,8 @@ EWU와 목표 회수 기간: 상류 물리 조합식의 최저 EWU 경로와 품
 - 특정 문화가 서비스, 기후, 전투와 세대 운영을 모두 지배할 수 없다.
 
 ### 4.15 숙련·경력·멘토링
+
+2026-09-27 연결 누락 교정: S02 잡화진열선반·S03 잠금진열장은 Operate를 지원하지만 운영 숙련이 비어 실제 AI 작업 예상 시간 계산이 예외로 끝났다. 같은 소매 접객인 S01 판매카운터와 동일한 `proficiency:social` 단일100%/견습 기준을 두 자산과 V25 작성기에 연결한다. 가격·BOM·WU·면적·전력·서비스 시간·숙련 성장률은 변경하지 않는다. 실효 운영 속도는 기존 사교 숙련 공식이 담당하며 새 배율·대체 숙련·무료 작업 폴백을 추가하지 않는다. 실제 로드한 소매3자산/Operate 누락0 및 자연 AI 회귀가 검증 범위이며 전역 밸런스 완료로 세지 않는다.
 
 - 숙련 권위는 현장 작업, 건설·공학, 제작, 식량 생산, 학술, 의료, 사교, 근접 전투, 원거리 전투의 9종이다.
 - 대등급은 견습·숙련자·기술자·전문가·대가를 유지하고 각 대등급 내부를 `IV → III → II → I` 네 구간으로 나눈다. 다음 진행은 `견습 I → 숙련자 IV` 순서다. 요구 조건은 기존 대등급을 계속 사용하고 UI·초기 생성·미세 조정은 소등급을 사용한다.

@@ -87,6 +87,8 @@ public sealed class DungeonRuntimeLifetimeScope : LifetimeScope
         Scene scopeScene = gameObject.scene;
         DungeonSceneComponentQuery sceneQuery = new DungeonSceneComponentQuery(scopeScene);
         EnsureEventSystem(sceneQuery);
+        sceneQuery.SingleRequired<FacilityAnnouncementObserver>(includeInactive: true);
+        sceneQuery.SingleRequired<RunVariableObservationObserver>(includeInactive: true);
         DungeonSceneRuntimeReferences sceneRuntimeReferences =
             CaptureSceneRuntimeReferences(sceneQuery);
         DungeonUserSettingsRuntimeTargets userSettingsTargets =

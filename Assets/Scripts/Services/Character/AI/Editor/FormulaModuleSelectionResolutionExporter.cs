@@ -264,7 +264,7 @@ public static partial class FormulaPresentationPilotExporter
                 };
                 rows.Add(new JObject
                 {
-                    ["schemaVersion"] = 3,
+                    ["schemaVersion"] = 4,
                     ["ordinal"] = index + 1,
                     ["profileId"] = profile,
                     ["targetPersistentId"] = RequireString(source, "targetPersistentId"),
@@ -420,7 +420,7 @@ public static partial class FormulaPresentationPilotExporter
             value => settings.RequireFormulaDescriptor(value).CapabilityId,
             value => value.displayName, StringComparer.Ordinal);
         AllocationResidual residual = ResolveSkillResidual(
-            settings, rule, resolved);
+            settings, rule, resolved, out JObject primaryAllocation);
         return AllocationJson(resolved.formulaVersion, resolved.formulaCatalogSha256,
             resolved.narrativeBudget, resolved.positiveCost, resolved.drawbackCredit,
             resolved.calculatedCost, resolved.drawbackId,
@@ -432,6 +432,7 @@ public static partial class FormulaPresentationPilotExporter
             burdenEffects: CharacterSkillBurdenEffects(settings, choice, resolved),
             residual: residual,
             skillContext: SkillContextJson(rule, kind),
+            primaryAllocation: primaryAllocation,
             mechanicalSummary: BuildSkillMechanicalSummary(
                 rule, kind, resolved, descriptors, displayNames));
     }
@@ -457,19 +458,13 @@ public static partial class FormulaPresentationPilotExporter
     private static AllocationResidual ResolveSkillResidual(
         CharacterSkillSystemSettingsSO settings,
         CharacterSkillCandidateRule rule,
-        CharacterSkillInstance resolved)
+        CharacterSkillInstance resolved,
+        out JObject primaryAllocation)
     {
         if (settings == null || rule == null || resolved == null)
             throw new ArgumentNullException("Skill residual evidence requires resolved formula inputs.");
-        int residual = resolved.narrativeBudget - resolved.calculatedCost;
-        if (residual < 0)
-            throw new InvalidOperationException("Resolved CharacterSkill exceeded its narrative budget.");
-        if (residual == 0) return new AllocationResidual(
-            resolved.narrativeBudget, resolved.calculatedCost, "none");
-
-        int positiveBudget = checked(resolved.narrativeBudget + resolved.drawbackCredit);
-        bool anyExpandableAxis = false;
-        bool allAxesAtMaximum = true;
+        CharacterSkillFormulaGeneration.ValidateRestoredFormulaSkill(resolved, settings);
+        List<NarrativeFormulaCapabilityAllocation> allocations = new();
         foreach (CharacterSkillFormulaCapabilityEnvelope capability in resolved.formulaCapabilities)
         {
             CharacterSkillModuleRule module = rule.allowedModuleIds
@@ -481,25 +476,26 @@ public static partial class FormulaPresentationPilotExporter
                 throw new InvalidOperationException(
                     "Resolved CharacterSkill capability is absent from its authoritative rule.");
             NarrativeFormulaCapabilityDescriptor descriptor = settings.RequireFormulaDescriptor(module);
-            foreach (CharacterSkillFormulaParameter parameter in capability.parameters)
-            {
-                NarrativeFormulaQuantizedRange range = descriptor.RequireRange(parameter.parameterId);
-                if (parameter.units > range.MaximumUnits)
-                    throw new InvalidOperationException(
-                        "Resolved CharacterSkill parameter escaped its descriptor range.");
-                if (parameter.units >= range.MaximumUnits) continue;
-                allAxesAtMaximum = false;
-                if (checked(resolved.positiveCost + range.CostPerQuantum) <= positiveBudget)
-                    anyExpandableAxis = true;
-            }
+            allocations.Add(new NarrativeFormulaCapabilityAllocation(descriptor,
+                capability.parameters.Select(parameter => new NarrativeFormulaParameterValue(
+                    parameter.parameterId, parameter.units))));
         }
-        if (anyExpandableAxis)
+        NarrativeFormulaCandidate candidate = new(allocations, resolved.positiveCost,
+            new NarrativeFormulaDrawbackResolution(resolved.drawbackId,
+                resolved.drawbackCredit, resolved.drawbackCredit,
+                NarrativeFormulaDrawbackSelectionKind.PlayerChoice,
+                resolved.drawbackEvidenceQualified),
+            0d, 0d, resolved.evidenceIds, resolved.primaryCapabilityId);
+        primaryAllocation = new JObject
         {
-            throw new InvalidOperationException(
-                "Selected CharacterSkill formula left an affordable next quantum; residual is not explainable.");
-        }
+            ["policyVersion"] = resolved.prominencePolicyVersion,
+            ["primaryModuleId"] = resolved.combinationId,
+            ["primaryCapabilityId"] = resolved.primaryCapabilityId,
+            ["primaryEnhancementCost"] = NarrativeFormulaCore.EnhancementCost(allocations[0]),
+            ["supportingEnhancementCost"] = allocations.Skip(1).Sum(NarrativeFormulaCore.EnhancementCost)
+        };
         return new AllocationResidual(resolved.narrativeBudget, resolved.calculatedCost,
-            allAxesAtMaximum ? "effective-cap-reached" : "next-quantum-exceeds-budget");
+            NarrativeFormulaCore.ResidualReason(candidate, resolved.narrativeBudget));
     }
 
     /// <summary>
@@ -822,7 +818,8 @@ public static partial class FormulaPresentationPilotExporter
         IEnumerable<JObject> burdenEffects = null,
         AllocationResidual residual = null,
         JObject skillContext = null,
-        string mechanicalSummary = null)
+        string mechanicalSummary = null,
+        JObject primaryAllocation = null)
     {
         JArray capabilityValues = new(capabilities ?? Array.Empty<JObject>());
         JArray burdenValues = new(burdenEffects ?? Array.Empty<JObject>());
@@ -849,6 +846,7 @@ public static partial class FormulaPresentationPilotExporter
             ["residualBudget"] = resolvedResidual.ResidualBudget,
             ["residualReason"] = resolvedResidual.Reason,
             ["skillContext"] = skillContext?.DeepClone() ?? JValue.CreateNull(),
+            ["primaryAllocation"] = primaryAllocation?.DeepClone() ?? JValue.CreateNull(),
             ["capabilities"] = capabilityValues,
             ["burdenEffects"] = burdenValues
         };
@@ -1458,7 +1456,7 @@ public static partial class FormulaPresentationPilotExporter
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++)
         {
             JObject row = rows[rowIndex];
-            if ((int?)row["schemaVersion"] != 3
+            if ((int?)row["schemaVersion"] != 4
                 || row["strengthBand"] is not JObject strengthBand
                 || !PilotStrengthBands.Any(value => string.Equals(
                     value.Id, (string)strengthBand["id"], StringComparison.Ordinal)))
@@ -1522,13 +1520,31 @@ public static partial class FormulaPresentationPilotExporter
         string burdenKind = (string)value["positiveBurdenKind"] ?? string.Empty;
         JArray capabilities = value["capabilities"] as JArray;
         JArray burdenEffects = value["burdenEffects"] as JArray;
+        JObject primary = value["primaryAllocation"] as JObject;
+        if (value["skillContext"] is JObject)
+        {
+            if (primary == null
+                || (int?)primary["policyVersion"] != NarrativeFormulaCore.CurrentProminencePolicyVersion
+                || string.IsNullOrWhiteSpace((string)primary["primaryModuleId"])
+                || capabilities == null || capabilities.Count == 0
+                || (string)primary["primaryCapabilityId"] != (string)capabilities[0]["capabilityId"]
+                || (int?)primary["primaryEnhancementCost"] is not int primaryCost
+                || (int?)primary["supportingEnhancementCost"] is not int supportCost
+                || supportCost < 0 || primaryCost < supportCost
+                || (long)primaryCost + supportCost > positive)
+                throw new InvalidOperationException("Skill allocation lacks valid primary/support evidence.");
+        }
+        else if (value["primaryAllocation"]?.Type != JTokenType.Null)
+            throw new InvalidOperationException("Single-positive domains must not claim a skill prominence policy.");
         if (budget < 0 || positive < 0 || credit < 0 || calculated < 0
             || calculated != positive - credit || calculated > budget
             || burdenKind is not ("NotApplicable" or "None" or "OperatingCost"
                 or "OptionalDrawback" or "InseparableRisk")
             || residual != budget - calculated
             || residualReason is not ("none" or "next-quantum-exceeds-budget"
-                or "effective-cap-reached")
+                or "effective-cap-reached" or "primary-prominence-cap")
+            || (residualReason == "primary-prominence-cap"
+                && (int?)value["primaryAllocation"]?["policyVersion"] != NarrativeFormulaCore.CurrentProminencePolicyVersion)
             || (residual == 0 && residualReason != "none")
             || (residual > 0 && residualReason == "none")
             || (burdenEffectId.Length == 0 && Math.Abs(burdenPotency) > 0.001d)

@@ -108,4 +108,5 @@ public sealed class CharacterCombatCommandSaveData
     public List<CharacterCombatCommand> commands = new List<CharacterCombatCommand>();
     public List<CharacterCombatCommandRevisionSaveData> revisions = new();
     public int commandSequence;
+    public List<CombatCellShotPendingData> pendingCellShots = new();
 }

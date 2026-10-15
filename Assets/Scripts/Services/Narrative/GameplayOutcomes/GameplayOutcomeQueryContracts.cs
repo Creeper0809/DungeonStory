@@ -154,6 +154,11 @@ public sealed class GameplayOutcomeSnapshot
     public int localResultIndex;
     public string outcomeTypeId = string.Empty;
     public int absoluteDay;
+    public int deliveryMetadataVersion;
+    public string deliveryClockId = string.Empty;
+    public long recordedAbsoluteHour;
+    public long publishedRevision;
+    public string deliveryDelayReason = string.Empty;
     public GameplayOutcomeStatus status;
     public long ownerRevision;
     public long commitGeneration;
@@ -390,6 +395,9 @@ public interface IGameplayOutcomeQuery
     GameplayOutcomeQueryPage GetForOperation(GameplayOperationId id);
     GameplayOutcomeQueryPage GetNarrativeEvidence(NarrativeEvidenceQuery query);
     bool TryGetExact(GameplayOutcomeId id, out GameplayOutcomeSnapshot outcome);
+    bool TryGetCompacted(
+        NarrativeMemoryId id,
+        out CompactedNarrativeMemorySnapshot memory);
     bool TryProject(GameplayOutcomeId id, NarrativePerspectiveContext perspective, out NarrativeView view);
     bool TryProjectMemory(
         NarrativeMemoryId id,

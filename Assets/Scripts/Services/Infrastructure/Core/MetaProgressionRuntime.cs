@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 using VContainer;
@@ -10,6 +11,7 @@ using VContainer;
 // This concrete adapter owns the legacy scene GUID; persistence contracts live in Meta Core.
 public sealed class MetaProgressionRuntime : MonoBehaviour,
     IMetaProgressionPersistencePort,
+    IRunCompletionPreparation,
     IMetaRuntimeEventSink
 {
     [SerializeField] private bool showRunResultPanel = true;
@@ -17,20 +19,21 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
     private IGameClock gameClock;
     private IMetaRunResultBuilder runResultBuilder;
     private IMetaRuntimeApplicationPort applicationPort;
-    private IMetaUpgradePurchaseOutcomeTransaction outcomeTransactions;
-    private IMetaRunResultOutcomeTransaction runResultOutcomeTransactions;
+    private IDomainFactPublisher domainFacts;
     private MetaRunProgressTracker runProgress;
     private DungeonRuntimeAggregateRootStore aggregateRootStore;
 
     private MetaRunLifecycleAggregateState Lifecycle => aggregateRootStore.GetOrCreate(() => new MetaRunLifecycleAggregateState());
     private MetaRunLifecycleAggregateState WritableLifecycle => aggregateRootStore.GetOrCreateWritable(
         () => new MetaRunLifecycleAggregateState(),
-        current => new MetaRunLifecycleAggregateState { Ended = current?.Ended ?? false, LatestResult = current?.LatestResult });
+        current => new MetaRunLifecycleAggregateState { Ended = current?.Ended ?? false,
+            LatestResult = current?.LatestResult, PendingCompletion = current?.PendingCompletion });
 
     public MetaProgressionState State => state ?? throw Missing(nameof(IMetaUpgradeDefinitionCatalog));
     public RunResultSnapshot LatestResult => Lifecycle.LatestResult;
     public MetaRunProgressTracker RunProgress => runProgress ?? throw Missing(nameof(MetaRunProgressTracker));
     public bool HasEnded => Lifecycle.Ended;
+    public MetaRunCompletionSnapshot PendingCompletion => Lifecycle.PendingCompletion;
 
     [Inject]
     public void Construct(
@@ -52,20 +55,10 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
     }
 
     [Inject]
-    public void ConstructOutcomeTransactions(
-        IMetaUpgradePurchaseOutcomeTransaction outcomeTransactions)
+    public void ConstructDomainFacts(IDomainFactPublisher domainFacts)
     {
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
-    }
-
-    [Inject]
-    public void ConstructRunResultOutcomeTransactions(
-        IMetaRunResultOutcomeTransaction runResultOutcomeTransactions)
-    {
-        this.runResultOutcomeTransactions = runResultOutcomeTransactions
-            ?? throw new ArgumentNullException(
-                nameof(runResultOutcomeTransactions));
+        this.domainFacts = domainFacts
+            ?? throw new ArgumentNullException(nameof(domainFacts));
     }
 
     public void SetShowRunResultPanel(bool value) => showRunResultPanel = value;
@@ -86,18 +79,26 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
             return State.TryPurchaseUpgrade(id, out message);
         }
 
-        if (outcomeTransactions == null)
+        if (domainFacts == null)
         {
             message = "강화 구매 결과 기록이 준비되지 않았습니다.";
-            Debug.LogError("meta-upgrade-purchase-outcome-transaction-unavailable");
+            Debug.LogError("meta-upgrade-purchase-domain-fact-publisher-unavailable");
             return false;
         }
 
         string upgradeId = definition.id;
-        if (!outcomeTransactions.TryReserve(
-                upgradeId,
-                Math.Max(1, RunProgress.CurrentDay),
-                out IMetaUpgradePurchaseOutcomeReservation prepared,
+        int previousLevel = State.GetUpgradeLevel(upgradeId);
+        int absoluteDay = Math.Max(1, RunProgress.CurrentDay);
+        var proposedFact = new MetaUpgradePurchaseDomainFact(
+            upgradeId,
+            definition.title,
+            previousLevel,
+            previousLevel + 1,
+            definition.cost,
+            absoluteDay);
+        if (!domainFacts.TryReserve(
+                proposedFact,
+                out DomainFactLease prepared,
                 out string reserveFailure))
         {
             message = "강화 구매 결과를 예약하지 못했습니다.";
@@ -108,7 +109,6 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
         }
 
         PurchaseRollbackSnapshot rollback = CapturePurchaseSnapshot();
-        int previousLevel = State.GetUpgradeLevel(upgradeId);
         bool success;
         try
         {
@@ -126,15 +126,18 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
             return false;
         }
 
-        MetaUpgradePurchaseOutcomeCommitResult committed;
+        DomainFactDelivery committed;
         try
         {
-            committed = outcomeTransactions.Commit(
+            committed = domainFacts.Publish(
                 prepared,
-                definition.title,
-                previousLevel,
-                State.GetUpgradeLevel(upgradeId),
-                definition.cost);
+                new MetaUpgradePurchaseDomainFact(
+                    upgradeId,
+                    definition.title,
+                    previousLevel,
+                    State.GetUpgradeLevel(upgradeId),
+                    definition.cost,
+                    absoluteDay));
         }
         catch
         {
@@ -142,13 +145,13 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
             throw;
         }
 
-        if (!committed.DurablyCommitted)
+        if (!committed.MayBeCommitted)
         {
             RestorePurchaseSnapshot(rollback);
             message = "강화 구매 결과를 확정하지 못했습니다.";
             Debug.LogError(
                 "meta-upgrade-purchase-outcome-commit-failed:"
-                + committed.DetailCode);
+                + committed.Detail);
             return false;
         }
 
@@ -180,20 +183,74 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
     public void RecordResearchRecipes(IEnumerable<string> ids) => RunProgress.RecordRecipes(ids);
     public void RecordSynthesis(string recipeId, int resultBuildingId) => RunProgress.RecordSynthesis(recipeId, resultBuildingId);
 
+    public IRunCompletionPreparedState Prepare(OwnerRunCompletionFactData fact)
+    {
+        if (fact == null) throw new ArgumentNullException(nameof(fact));
+        if (HasEnded || PendingCompletion != null)
+            throw new InvalidOperationException("meta-completion-already-prepared-or-ended");
+        fact.Validate();
+        var result = BuildResult(fact.displayName, fact.reason, fact.outcome);
+        var snapshot = new MetaRunCompletionSnapshot(fact, checked(State.CompletedRunCount + 1),
+            result, RunProgress.UnlockedRecipeIds,
+            MetaProgressionEffects.GetIntegerBonus(State, MetaUpgradeEffectIds.PreservedRecipeSlots));
+        return new PreparedCompletion(this, snapshot);
+    }
+
+    private RunResultSnapshot BuildResult(string ownerName, string reason, DungeonRunOutcome outcome)
+    {
+        var result = runResultBuilder.Build(RunProgress.CreateResultContext(
+            ownerName, reason, applicationPort.CaptureRunEnvironment(), outcome));
+        return result.WithLegacyCurrency(MetaProgressionCalculator.CalculateLegacyCurrency(result));
+    }
+
+    private sealed class PreparedCompletion : IRunCompletionPreparedState
+    {
+        private readonly MetaProgressionRuntime owner;
+        private readonly MetaRunCompletionSnapshot snapshot;
+        private bool published, cancelled;
+        internal PreparedCompletion(MetaProgressionRuntime owner, MetaRunCompletionSnapshot snapshot)
+        { this.owner = owner; this.snapshot = snapshot; }
+        public void Publish()
+        {
+            if (cancelled || published || owner.HasEnded || owner.PendingCompletion != null
+                || snapshot.RunSequence != checked(owner.State.CompletedRunCount + 1))
+                throw new InvalidOperationException("meta-completion-preparation-stale");
+            owner.WritableLifecycle.PendingCompletion = snapshot;
+            published = true;
+        }
+        public void Cancel()
+        {
+            if (cancelled) return;
+            if (published)
+            {
+                if (owner.HasEnded || !ReferenceEquals(owner.PendingCompletion, snapshot))
+                    throw new InvalidOperationException("meta-completion-cannot-cancel-committed-state");
+                owner.WritableLifecycle.PendingCompletion = null;
+            }
+            cancelled = true;
+        }
+    }
+
     public RunResultSnapshot EndRun(string ownerName, string reason, DungeonRunOutcome outcome = DungeonRunOutcome.Defeat)
     {
         if (HasEnded && LatestResult != null) return LatestResult;
-        MetaRunEnvironmentSnapshot environment = applicationPort.CaptureRunEnvironment();
-        RunResultSnapshot result = runResultBuilder.Build(RunProgress.CreateResultContext(ownerName, reason, environment, outcome));
-        result = result.WithLegacyCurrency(MetaProgressionCalculator.CalculateLegacyCurrency(result));
+        MetaRunCompletionSnapshot pending = PendingCompletion;
+        if (pending != null && (!pending.Matches(ownerName, reason, outcome)
+            || pending.RunSequence != checked(State.CompletedRunCount + 1)))
+            throw new InvalidOperationException("meta-completion-settlement-conflict");
+        RunResultSnapshot result = pending?.Result ?? BuildResult(ownerName, reason, outcome);
 
-        if (runResultOutcomeTransactions == null)
-            throw Missing(nameof(IMetaRunResultOutcomeTransaction));
+        if (domainFacts == null)
+            throw Missing(nameof(IDomainFactPublisher));
         int runSequence = checked(State.CompletedRunCount + 1);
-        if (!runResultOutcomeTransactions.TryReserve(
-                runSequence,
-                Math.Max(1, RunProgress.CurrentDay),
-                out IMetaRunResultOutcomeReservation prepared,
+        int absoluteDay = pending?.Fact.absoluteDay ?? Math.Max(1, RunProgress.CurrentDay);
+        var proposedFact = new MetaRunResultDomainFact(
+            runSequence,
+            absoluteDay,
+            result);
+        if (!domainFacts.TryReserve(
+                proposedFact,
+                out DomainFactLease prepared,
                 out string reserveFailure))
         {
             throw new InvalidOperationException(
@@ -204,37 +261,41 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
         MetaRunLifecycleAggregateState lifecycleBefore = new()
         {
             Ended = Lifecycle.Ended,
-            LatestResult = Lifecycle.LatestResult
+            LatestResult = Lifecycle.LatestResult,
+            PendingCompletion = pending
         };
         try
         {
             WritableLifecycle.Ended = true;
             State.AddCurrency(result.legacyCurrency);
             State.RecordRunCompleted();
-            int slots = MetaProgressionEffects.GetIntegerBonus(
+            int slots = pending?.PreservedRecipeSlots ?? MetaProgressionEffects.GetIntegerBonus(
                 State,
                 MetaUpgradeEffectIds.PreservedRecipeSlots);
             State.PreserveRecipes(
-                RunProgress.UnlockedRecipeIds.OrderBy(
+                (pending != null ? pending.RecipeCandidates : RunProgress.UnlockedRecipeIds).OrderBy(
                     id => id,
                     StringComparer.Ordinal),
                 slots);
             WritableLifecycle.LatestResult = result;
 
-            MetaRunResultOutcomeCommitResult committed =
-                runResultOutcomeTransactions.Commit(prepared, result);
-            if (!committed.DurablyCommitted)
+            DomainFactDelivery committed = domainFacts.Publish(
+                prepared,
+                new MetaRunResultDomainFact(
+                    runSequence,
+                    absoluteDay,
+                    result));
+            if (!committed.MayBeCommitted)
             {
-                RestorePurchaseSnapshot(stateBefore);
-                aggregateRootStore.Replace(lifecycleBefore);
                 throw new InvalidOperationException(
                     "Run result outcome commit failed: "
-                    + committed.DetailCode);
+                    + committed.Detail);
             }
+            WritableLifecycle.PendingCompletion = null;
         }
         catch
         {
-            runResultOutcomeTransactions.Cancel(prepared);
+            domainFacts.Cancel(prepared);
             RestorePurchaseSnapshot(stateBefore);
             aggregateRootStore.Replace(lifecycleBefore);
             throw;
@@ -297,12 +358,12 @@ public sealed class MetaProgressionRuntime : MonoBehaviour,
     }
 
     private void CancelPurchaseAndRestore(
-        IMetaUpgradePurchaseOutcomeReservation prepared,
+        DomainFactLease prepared,
         PurchaseRollbackSnapshot rollback)
     {
         try
         {
-            outcomeTransactions.Cancel(prepared);
+            domainFacts.Cancel(prepared);
         }
         finally
         {

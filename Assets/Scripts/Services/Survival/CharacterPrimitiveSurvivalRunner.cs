@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 internal enum CharacterPrimitiveSurvivalActionKind
@@ -45,15 +46,18 @@ internal sealed class CharacterPrimitiveSurvivalRunner
 
     private readonly CharacterBreakdownWorld world;
     private readonly CharacterEmergencyMovement movement;
+    private readonly CharacterDeprivationStateStore stateStore;
     private readonly IGameClock clock;
     private readonly IFieldMealConsumptionCommand fieldMeals;
     private readonly IGameEventBus events;
     private readonly IItemQuantityReservationService quantityReservations;
     private readonly IReservedItemTransferService reservedTransfers;
     private readonly IGameCalendar calendar;
-    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private readonly IDomainFactPublisher primitiveFacts;
     private readonly ICharacterPrimitiveSurvivalCoroutineScheduler coroutineScheduler;
     private readonly Dictionary<CharacterId, RunningPrimitiveAction> runningActions = new();
+    private readonly HashSet<string> reportedRetiredPublications = new(StringComparer.Ordinal);
+    private float lastRetiredRecoveryTime = float.NegativeInfinity;
 
     private readonly struct RunningPrimitiveAction
     {
@@ -75,12 +79,15 @@ internal sealed class CharacterPrimitiveSurvivalRunner
     internal CharacterPrimitiveSurvivalRunner(
         CharacterBreakdownWorld world,
         CharacterEmergencyMovement movement,
+        CharacterDeprivationStateStore stateStore,
         IGameClock clock,
         IGameEventBus events,
         CharacterPrimitiveSurvivalDependencies dependencies)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.movement = movement ?? throw new ArgumentNullException(nameof(movement));
+        this.stateStore = stateStore
+            ?? throw new ArgumentNullException(nameof(stateStore));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         dependencies = dependencies
@@ -89,7 +96,7 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         quantityReservations = dependencies.QuantityReservations;
         reservedTransfers = dependencies.ReservedTransfers;
         calendar = dependencies.Calendar;
-        outcomeTransactions = dependencies.OutcomeTransactions;
+        primitiveFacts = dependencies.PrimitiveFacts;
         coroutineScheduler = dependencies.CoroutineScheduler;
     }
 
@@ -129,6 +136,82 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         return found;
     }
 
+    internal void RecoverRetiredPublications()
+    {
+        if (stateStore.IsRestoreStaging) return;
+        float now = clock.Time;
+        if (now >= lastRetiredRecoveryTime && now < lastRetiredRecoveryTime + 1f) return;
+        lastRetiredRecoveryTime = now;
+        foreach (var pending in stateStore.CaptureRetiredPrimitivePublications())
+        {
+            try
+            {
+                var rest = pending.GetRestObservation();
+                if (pending.rollbackBlocked || rest?.rollbackBlocked == true)
+                    throw new InvalidOperationException("primitive-retired-recovery-rollback-blocked");
+                if (rest != null)
+                {
+                    var results = new DomainFactDelivery[1];
+                    ((IDomainFactRecoveryPublisher)primitiveFacts).ReplayBatch(new[]
+                    {
+                        DomainFactReplay.Create(pending.restPublicationKey,
+                            new CharacterRestAppliedFact(rest.fact))
+                    }, results, out string failure);
+                    var child = results[0];
+                    if (child.Phase is not (DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery)
+                        || child.OperationKey != pending.restPublicationKey || string.IsNullOrEmpty(child.PublicationId)
+                        || child.Fingerprint.Length != 64)
+                        throw new InvalidOperationException("primitive-retired-rest-child-pending:" + failure);
+                }
+                DomainFactDelivery delivered = PublishPending(pending);
+                if (!PublicationConfirmed(pending, delivered))
+                    throw new InvalidOperationException("primitive-retired-publication-pending:" + delivered.Detail);
+                stateStore.ClearRetiredPrimitivePublication(pending.operationId, pending.publicationKey);
+                reportedRetiredPublications.Remove(pending.operationId);
+                // The actor lifetime has ended: publish the applied facts only.
+                // No physical effects, mood or actor-targeted notifications are repeated.
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                and not StackOverflowException and not AccessViolationException)
+            {
+                if (reportedRetiredPublications.Add(pending.operationId))
+                    Debug.LogError(exception.Message + ":" + pending.operationId);
+            }
+        }
+    }
+
+    internal bool TryResumePending(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        if (actor == null || actor.IsDead)
+        {
+            return false;
+        }
+
+        CharacterId actorId = CharacterPersistentIdentity.Require(actor);
+        if (IsRunning(actorId))
+        {
+            status = "현재 생존 행동 종료 대기";
+            return false;
+        }
+        if (!stateStore.TryGetPrimitiveSurvivalPending(
+                actorId,
+                out PrimitiveSurvivalPendingSaveData pending))
+        {
+            return false;
+        }
+
+        if (pending.actionId == "survival:floor-rest" && !RequireStats(actor).TryCompleteRestObservation())
+        {
+            status = "이전 휴식 적용 사실 전달 대기";
+            return false;
+        }
+        ValidatePendingChild(actor, pending);
+        CompletePendingParent(actor);
+        status = "이전 생존 행동 결과 복구 완료";
+        return true;
+    }
+
     internal bool TryStart(
         CharacterActor actor,
         CharacterPrimitiveSurvivalActionKind kind,
@@ -141,6 +224,11 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         }
 
         CharacterId actorId = CharacterPersistentIdentity.Require(actor);
+        if (stateStore.TryGetPrimitiveSurvivalPending(actorId, out _))
+        {
+            status = "이전 생존 행동 결과 복구 대기";
+            return false;
+        }
         CharacterActionIntentKind intentKind = ResolveIntentKind(actor, kind);
         if (runningActions.TryGetValue(
                 actorId,
@@ -178,10 +266,8 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             GetActionId(kind),
             intentKind >= CharacterActionIntentKind.EmergencyNeed,
             needValue));
-        actor.AddActivity(CharacterActivityEvent.InternalAi(
-            CharacterActivityOutcomes.Started,
-            "primitive-survival-start",
-            $"Primitive survival started: kind={kind}; intent={intentKind}; epoch={intentLease.Epoch}; position={actor.GetNowXY()}"));
+        events.Publish(new PrimitiveSurvivalChangedEvent(PrimitiveSurvivalTransition.Started, actor,
+            kind: kind.ToString(), intentKind: intentKind, epoch: intentLease.Epoch, position: actor.GetNowXY()));
         coroutineScheduler.Start(actor, Run(actor, actorId, kind, intentLease));
         status = GetLabel(kind);
         return true;
@@ -195,7 +281,12 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         }
     }
 
-    internal void Reset() => runningActions.Clear();
+    internal void Reset()
+    {
+        runningActions.Clear();
+        lastRetiredRecoveryTime = float.NegativeInfinity;
+        reportedRetiredPublications.Clear();
+    }
 
     private IEnumerator Run(
         CharacterActor actor,
@@ -379,15 +470,8 @@ internal sealed class CharacterPrimitiveSurvivalRunner
                 out MealConsumptionResult result)
             && result.Success)
         {
-            actor.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Health,
-                CharacterActivityOutcomes.Completed,
-                $"{result.DisplayName}을(를) 야전식으로 먹음",
-                actionId: "survival:field-meal",
-                targetId: stackId.Value,
-                reasonCode: "no-meal-facility",
-                value: result.Nutrition,
-                bubbleEligible: true));
+            events.Publish(new PrimitiveSurvivalChangedEvent(PrimitiveSurvivalTransition.FieldMealCompleted, actor,
+                displayName: result.DisplayName, sourceStackId: stackId.Value, recovery: result.Nutrition));
             PublishCompletedEvent(
                 actor,
                 "survival:field-meal",
@@ -424,10 +508,9 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             return true;
         }
 
-        actor?.AddActivity(CharacterActivityEvent.InternalAi(
-            CharacterActivityOutcomes.Changed,
-            "field-meal-source-replan",
-            $"Field meal source changed: phase={phase}; revision={sourceRevision}; expected={expectedStackId.Value}@{expectedPosition}."));
+        if (actor != null)
+            events.Publish(new PrimitiveSurvivalChangedEvent(PrimitiveSurvivalTransition.MealSourceChanged, actor,
+                phase: phase, sourceRevision: sourceRevision, sourceStackId: expectedStackId.Value, sourcePosition: expectedPosition));
         return false;
     }
 
@@ -446,41 +529,75 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             yield break;
         }
 
-        if (!TryCommitCompletedOutcome(
-                actor,
-                "survival:floor-rest",
-                PrimitiveSurvivalBalanceAuthority.FloorRestRecovery,
-                0))
+        CharacterStats stats = RequireStats(actor);
+        CharacterMoodDeliveryTransactionSnapshot statsBefore =
+            stats.CaptureMoodDeliveryTransactionState();
+        PreparedPrimitiveCompletion prepared = ReserveCompletion(actor, "survival:floor-rest");
+        CharacterEventContext eventContext = BuildCompletedContext(prepared.Data, prepared.Data.operationId);
+        string restResultBefore = stats.LastRestOutcomeResultKey;
+        if (stats.HasPendingRestObservation)
         {
-            yield break;
+            primitiveFacts.Cancel(prepared.Lease);
+            throw new InvalidOperationException("floor-rest-prior-recovery-unresolved");
+        }
+        float hygieneBefore = stats.GetConditionValue(CharacterCondition.HYGIENE);
+        try
+        {
+            // Stage the other reversible effect before the independently durable rest.
+            stats.ChangeConditionBeforeOutcomeCommit(CharacterCondition.HYGIENE,
+                PrimitiveSurvivalBalanceAuthority.FloorRestHygieneDelta);
+            stats.RecoverNeed(
+                CharacterCondition.SLEEP,
+                PrimitiveSurvivalBalanceAuthority.FloorRestRecovery,
+                CharacterNeedRecoverySource.Rest,
+                eventContext: eventContext);
+            if (stats.IsRestRollbackBlocked || !stats.HasPendingRestObservation
+                && (string.IsNullOrWhiteSpace(stats.LastRestOutcomeResultKey)
+                    || string.Equals(stats.LastRestOutcomeResultKey, restResultBefore, StringComparison.Ordinal)))
+            {
+                throw new InvalidOperationException(
+                    "Primitive floor-rest recovery did not commit a new rest outcome.");
+            }
+            stateStore.RecordPrimitiveSurvivalPending(
+                CharacterPersistentIdentity.Require(actor),
+                CreatePending(
+                    actor,
+                    prepared,
+                    "survival:floor-rest",
+                    PrimitiveSurvivalBalanceAuthority.FloorRestRecovery,
+                    0,
+                    default,
+                    default));
+        }
+        catch
+        {
+            primitiveFacts.Cancel(prepared.Lease);
+            if (stats.HasPendingRestObservation || stats.LastRestOutcomeResultKey != restResultBefore)
+            {
+                // Retain the actual child and its unfinished parent; never undo a
+                // confirmed/uncertain recovery because a later owner step failed.
+                CharacterId id = CharacterPersistentIdentity.Require(actor);
+                if (!stateStore.TryGetPrimitiveSurvivalPending(id, out _))
+                    stateStore.RecordPrimitiveSurvivalPending(id, CreatePending(actor, prepared,
+                        "survival:floor-rest", PrimitiveSurvivalBalanceAuthority.FloorRestRecovery,
+                        0, default, default));
+            }
+            else stats.RestoreMoodDeliveryTransactionState(statsBefore, publish: false);
+            throw;
         }
 
-        actor.Stats?.RecoverNeed(
-            CharacterCondition.SLEEP,
-            PrimitiveSurvivalBalanceAuthority.FloorRestRecovery,
-            CharacterNeedRecoverySource.Rest);
-        actor.ChangesStat(
-            CharacterCondition.HYGIENE,
-            PrimitiveSurvivalBalanceAuthority.FloorRestHygieneDelta);
-        actor.ApplyMoodFactor(
-            "survival:floor-rest",
-            "맨바닥에서 잠",
-            PrimitiveSurvivalBalanceAuthority.FloorRestMoodDelta,
-            180f,
-            1);
-        actor.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Health,
-            CharacterActivityOutcomes.Completed,
-            "맨바닥에서 잠을 청함",
-            actionId: "survival:floor-rest",
-            reasonCode: "no-rest-facility",
-            value: PrimitiveSurvivalBalanceAuthority.FloorRestRecovery,
-            bubbleEligible: true));
-        PublishCompletedEvent(
-            actor,
-            "survival:floor-rest",
-            PrimitiveSurvivalBalanceAuthority.FloorRestRecovery,
-            0);
+        try { stats.PublishCommittedConditionChange(CharacterCondition.HYGIENE, hygieneBefore,
+            stats.GetConditionValue(CharacterCondition.HYGIENE), prepared.Data.absoluteDay); }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            and not StackOverflowException and not AccessViolationException)
+        { Debug.LogError("floor-rest-hygiene-observer-failed:" + exception.Message); }
+
+        if (stats.HasUnconfirmedRestObservation)
+        {
+            primitiveFacts.Cancel(prepared.Lease);
+            yield break;
+        }
+        CompletePendingParent(actor, prepared.Lease);
     }
 
     private IEnumerator RunLatrine(
@@ -538,53 +655,81 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             yield break;
         }
 
-        if (!TryCommitCompletedOutcome(
-                actor,
-                "survival:primitive-latrine",
-                PrimitiveSurvivalBalanceAuthority.LatrineRecovery,
-                0))
+        CharacterStats stats = RequireStats(actor);
+        CharacterMoodDeliveryTransactionSnapshot statsBefore =
+            stats.CaptureMoodDeliveryTransactionState();
+        CharacterBreakdownWorld.FilthTransactionSnapshot filthBefore =
+            world.CaptureFilth();
+        PreparedPrimitiveCompletion prepared = ReserveCompletion(actor, "survival:primitive-latrine");
+        CharacterEventContext eventContext = BuildCompletedContext(prepared.Data, prepared.Data.operationId);
+        WorldFilthSnapshot waste = default;
+        WorldFilthSnapshot stain = default;
+        try
         {
-            yield break;
+            string actorId = CharacterPersistentIdentity.Require(actor).Value;
+            waste = world.AddFilth(
+                WorldFilthType.Waste,
+                target,
+                PrimitiveSurvivalBalanceAuthority.LatrineWaste,
+                actorId,
+                0.35f);
+            stain = world.AddFilth(
+                WorldFilthType.Stain,
+                target,
+                PrimitiveSurvivalBalanceAuthority.LatrineStain,
+                actorId,
+                0.2f);
+            stats.RecoverNeed(
+                CharacterCondition.EXCRETION,
+                PrimitiveSurvivalBalanceAuthority.LatrineRecovery,
+                CharacterNeedRecoverySource.Toilet,
+                eventContext: eventContext);
+            actor.ChangesStat(
+                CharacterCondition.HYGIENE,
+                PrimitiveSurvivalBalanceAuthority.LatrineHygieneDelta);
+            stateStore.RecordPrimitiveSurvivalPending(
+                CharacterPersistentIdentity.Require(actor),
+                CreatePending(
+                    actor,
+                    prepared,
+                    "survival:primitive-latrine",
+                    PrimitiveSurvivalBalanceAuthority.LatrineRecovery,
+                    0,
+                    waste,
+                    stain));
+        }
+        catch
+        {
+            primitiveFacts.Cancel(prepared.Lease);
+            Exception rollbackFailure = null;
+            try
+            {
+                world.RestoreFilth(filthBefore);
+            }
+            catch (Exception exception)
+            {
+                rollbackFailure = exception;
+            }
+            try
+            {
+                stats.RestoreMoodDeliveryTransactionState(statsBefore);
+            }
+            catch (Exception exception)
+            {
+                rollbackFailure = rollbackFailure == null
+                    ? exception
+                    : new AggregateException(rollbackFailure, exception);
+            }
+            if (rollbackFailure != null)
+            {
+                throw new InvalidOperationException(
+                    "Primitive latrine rollback failed after the outcome transaction was rejected.",
+                    rollbackFailure);
+            }
+            throw;
         }
 
-        world.AddFilth(
-            WorldFilthType.Waste,
-            target,
-            PrimitiveSurvivalBalanceAuthority.LatrineWaste,
-            CharacterPersistentIdentity.Require(actor).Value,
-            0.35f);
-        world.AddFilth(
-            WorldFilthType.Stain,
-            target,
-            PrimitiveSurvivalBalanceAuthority.LatrineStain,
-            CharacterPersistentIdentity.Require(actor).Value,
-            0.2f);
-        actor.Stats?.RecoverNeed(
-            CharacterCondition.EXCRETION,
-            PrimitiveSurvivalBalanceAuthority.LatrineRecovery,
-            CharacterNeedRecoverySource.Toilet);
-        actor.ChangesStat(
-            CharacterCondition.HYGIENE,
-            PrimitiveSurvivalBalanceAuthority.LatrineHygieneDelta);
-        actor.ApplyMoodFactor(
-            "survival:primitive-latrine",
-            "임시 변소를 사용함",
-            PrimitiveSurvivalBalanceAuthority.LatrineMoodDelta,
-            180f,
-            1);
-        actor.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Health,
-            CharacterActivityOutcomes.Completed,
-            "지정된 임시 변소를 사용함",
-            actionId: "survival:primitive-latrine",
-            reasonCode: "no-toilet-facility",
-            value: PrimitiveSurvivalBalanceAuthority.LatrineRecovery,
-            bubbleEligible: true));
-        PublishCompletedEvent(
-            actor,
-            "survival:primitive-latrine",
-            PrimitiveSurvivalBalanceAuthority.LatrineRecovery,
-            0);
+        CompletePendingParent(actor, prepared.Lease);
     }
 
     private IEnumerator RunBucketWash(
@@ -640,80 +785,70 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         }
 
         DungeonPhysicalItemSaveData physicalBefore = world.CaptureItems();
-        CharacterMoodDeliveryTransactionSnapshot statsBefore =
-            actor.Stats?.CaptureMoodDeliveryTransactionState();
-        PreparedMigratedProducerOutcome prepared =
-            ReserveCompletedOutcome(actor);
-
+        CharacterStats stats = RequireStats(actor);
+        CharacterMoodDeliveryTransactionSnapshot statsBefore = stats.CaptureMoodDeliveryTransactionState();
+        PreparedPrimitiveCompletion prepared = ReserveCompletion(actor, "survival:bucket-wash", water.StackId);
         string operationId = $"primitive:wash:{actorId.Value}:{clock.FrameCount}";
-        if (!quantityReservations.TryReserve(
-                operationId,
-                actorId.Value,
-                ItemReservationPurpose.Hygiene,
+        if (!quantityReservations.TryReserve(operationId, actorId.Value, ItemReservationPurpose.Hygiene,
                 $"hygiene:{actorId.Value}",
-                new ItemQuantityReservationRequest(
-                    (ItemStackId)water.StackId,
-                    1,
-                    water.ReservationSignature),
-                out ItemQuantityLease lease,
-                out _))
+                new ItemQuantityReservationRequest((ItemStackId)water.StackId, 1, water.ReservationSignature),
+                out ItemQuantityLease lease, out _))
         {
-            outcomeTransactions.Cancel(prepared);
+            primitiveFacts.Cancel(prepared.Lease);
             yield break;
         }
 
         bool consumed;
+        PrimitiveSurvivalPendingSaveData pending = null;
         try
         {
-            consumed = reservedTransfers.TryConsumeReservedQuantity(
-                lease.leaseId,
-                1,
-                out _);
+            consumed = reservedTransfers.TryConsumeReservedQuantity(lease.leaseId, 1, out _);
             if (consumed)
             {
-                actor.Stats?.RecoverNeed(
-                    CharacterCondition.HYGIENE,
-                    PrimitiveSurvivalBalanceAuthority.BucketWashRecovery,
+                stats.RecoverNeed(CharacterCondition.HYGIENE, PrimitiveSurvivalBalanceAuthority.BucketWashRecovery,
                     CharacterNeedRecoverySource.Hygiene);
-                CommitCompletedOutcome(
-                    prepared,
-                    actor,
-                    "survival:bucket-wash",
-                    PrimitiveSurvivalBalanceAuthority.BucketWashRecovery,
-                    1);
+                pending = CreatePending(actor, prepared, "survival:bucket-wash",
+                    PrimitiveSurvivalBalanceAuthority.BucketWashRecovery, 1, default, default);
+                stateStore.RecordPrimitiveSurvivalPending(actorId, pending);
             }
         }
         catch
         {
-            outcomeTransactions.Cancel(prepared);
+            primitiveFacts.Cancel(prepared.Lease);
             world.RestoreItems(physicalBefore);
-            if (statsBefore != null)
-                actor.Stats?.RestoreMoodDeliveryTransactionState(statsBefore);
+            stats.RestoreMoodDeliveryTransactionState(statsBefore);
             throw;
         }
         if (!consumed)
         {
-            quantityReservations.Release(
-                lease.leaseId,
-                ItemReservationReleaseReason.Cancelled);
-            outcomeTransactions.Cancel(prepared);
+            quantityReservations.Release(lease.leaseId, ItemReservationReleaseReason.Cancelled);
+            primitiveFacts.Cancel(prepared.Lease);
             yield break;
         }
 
-        actor.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Health,
-            CharacterActivityOutcomes.Completed,
-            "깨끗한 물 한 단위로 몸을 씻음",
-            actionId: "survival:bucket-wash",
-            targetId: water.StackId,
-            reasonCode: "no-hygiene-facility",
-            value: PrimitiveSurvivalBalanceAuthority.BucketWashRecovery,
-            bubbleEligible: true));
-        PublishCompletedEvent(
-            actor,
-            "survival:bucket-wash",
-            PrimitiveSurvivalBalanceAuthority.BucketWashRecovery,
-            1);
+        DomainFactDelivery delivered = PublishPending(pending, prepared.Lease);
+        if (delivered.Phase == DomainFactDeliveryPhase.Rejected)
+        {
+            // Only a known rejection permits undoing these reversible effects.
+            // An unknown ACK retains the frozen result and never consumes water again.
+            try
+            {
+                world.RestoreItems(physicalBefore);
+                stats.RestoreMoodDeliveryTransactionState(statsBefore);
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                and not StackOverflowException and not AccessViolationException)
+            {
+                stateStore.BlockPrimitiveSurvivalRecovery(actorId, pending.operationId, exception.Message);
+                throw;
+            }
+            stateStore.ClearPrimitiveSurvivalPending(actorId, pending.operationId);
+            throw new InvalidOperationException("Primitive wash observation rejected: " + delivered.Detail);
+        }
+        if (!PublicationConfirmed(pending, delivered))
+            throw new InvalidOperationException("Primitive wash completion remains pending: " + delivered.Detail);
+        stateStore.ClearPrimitiveSurvivalPending(actorId, pending.operationId);
+        CompleteCommittedPending(actor, pending, delivered);
     }
 
     private IEnumerator WaitGameSeconds(
@@ -744,7 +879,7 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         }
     }
 
-    private static bool ContinuePrimitiveFallback(
+    private bool ContinuePrimitiveFallback(
         CharacterActor actor,
         CharacterPrimitiveSurvivalActionKind kind,
         in CharacterActionIntentLease intentLease,
@@ -757,19 +892,33 @@ internal sealed class CharacterPrimitiveSurvivalRunner
 
         FacilityRole facilityRole = GetFacilityRole(kind);
         CharacterCondition condition = GetCondition(kind);
-        if (facilityRole == FacilityRole.None
-            || AIPrimitiveSurvivalAction.CanUsePrimitiveFallback(
-                actor,
-                facilityRole,
-                condition))
+        if (facilityRole == FacilityRole.None)
         {
             return true;
         }
 
-        actor.AddActivity(CharacterActivityEvent.InternalAi(
-            CharacterActivityOutcomes.Cancelled,
-            "primitive-yielded-to-authored-facility",
-            $"Primitive survival yielded to an authored facility: kind={kind}; phase={phase}; role={facilityRole}."));
+        bool fallbackAllowed = AIPrimitiveSurvivalAction.CanUsePrimitiveFallback(
+                actor,
+                facilityRole,
+                condition,
+                out bool pathSearchPending);
+        if (fallbackAllowed || pathSearchPending)
+        {
+            // Pending blocks admission of a NEW primitive action, but is not
+            // proof of an authored replacement for this already-owned lease.
+            // Movement changes the path origin; retain ownership until the
+            // existing periodic recheck receives a published snapshot. Real
+            // source, proximity and transaction checks still guard commitment.
+            if (pathSearchPending && phase != "timed-service-recheck")
+            {
+                events.Publish(new PrimitiveSurvivalChangedEvent(PrimitiveSurvivalTransition.PathSearchPending, actor,
+                    kind: kind.ToString(), phase: phase, facilityRole: facilityRole));
+            }
+            return true;
+        }
+
+        events.Publish(new PrimitiveSurvivalChangedEvent(PrimitiveSurvivalTransition.YieldedToFacility, actor,
+            kind: kind.ToString(), phase: phase, facilityRole: facilityRole));
         actor.Brain.EndExternallyDrivenAction(
             intentLease,
             clearFailures: false);
@@ -851,16 +1000,15 @@ internal sealed class CharacterPrimitiveSurvivalRunner
             && grid.IsWalkable(target);
     }
 
-    private static void RecordFailure(
+    private void RecordFailure(
         CharacterActor actor,
         CharacterPrimitiveSurvivalActionKind kind,
         string reasonCode,
         string detail)
     {
-        actor?.AddActivity(CharacterActivityEvent.InternalAi(
-            CharacterActivityOutcomes.Failed,
-            reasonCode,
-            $"Primitive survival failed: kind={kind}; {detail}"));
+        if (actor != null)
+            events.Publish(new PrimitiveSurvivalChangedEvent(PrimitiveSurvivalTransition.Failed, actor,
+                kind: kind.ToString(), reasonCode: reasonCode, detail: detail));
     }
 
     private static bool IsAliveAndNear(
@@ -872,80 +1020,230 @@ internal sealed class CharacterPrimitiveSurvivalRunner
         && Mathf.Abs(actor.GetNowXY().x - target.x)
             + Mathf.Abs(actor.GetNowXY().y - target.y) <= distance;
 
-    private bool TryCommitCompletedOutcome(
-        CharacterActor actor,
-        string actionId,
-        float recovery,
-        int physicalItemCount)
+    private sealed class PreparedPrimitiveCompletion
     {
-        PreparedMigratedProducerOutcome prepared =
-            ReserveCompletedOutcome(actor);
-        CommitCompletedOutcome(
-            prepared,
-            actor,
-            actionId,
-            recovery,
-            physicalItemCount);
-        return true;
+        internal PrimitiveSurvivalPendingSaveData Data;
+        internal DomainFactLease Lease;
     }
 
-    private PreparedMigratedProducerOutcome ReserveCompletedOutcome(
-        CharacterActor actor)
+    private PreparedPrimitiveCompletion ReserveCompletion(CharacterActor actor, string actionId, string waterStackId = "")
+    {
+        var data = new PrimitiveSurvivalPendingSaveData
+        {
+            operationId = "primitive:" + Guid.NewGuid().ToString("N"),
+            characterId = CharacterPersistentIdentity.Require(actor).Value,
+            characterName = actor.BuildingDisplayName,
+            actionId = actionId, absoluteDay = Math.Max(1, calendar.Day),
+            recovery = actionId == "survival:floor-rest" ? PrimitiveSurvivalBalanceAuthority.FloorRestRecovery
+                : actionId == "survival:primitive-latrine" ? PrimitiveSurvivalBalanceAuthority.LatrineRecovery
+                : PrimitiveSurvivalBalanceAuthority.BucketWashRecovery,
+            physicalItemCount = actionId == "survival:bucket-wash" ? 1 : 0,
+            waterStackId = waterStackId
+        };
+        var proposed = new PrimitiveSurvivalCompletedFact(data, reservationOnly: true);
+        if (!primitiveFacts.TryReserve(proposed, out DomainFactLease lease, out string failure))
+            throw new InvalidOperationException("Primitive survival observation unavailable: " + failure);
+        string key = lease.PublicationKey;
+        if (!DomainFactValueSyntax.IsText(key, 4096, false))
+        {
+            primitiveFacts.Cancel(lease);
+            throw new InvalidOperationException("Primitive survival publication has no durable identity.");
+        }
+        data.publicationKey = key;
+        return new PreparedPrimitiveCompletion { Data = data, Lease = lease };
+    }
+
+    private void CompletePendingParent(CharacterActor actor, DomainFactLease lease = default)
     {
         CharacterId actorId = CharacterPersistentIdentity.Require(actor);
-        if (!outcomeTransactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.CharacterPrimitiveSurvivalCompletedEvent,
-                "primitive-survival:" + actorId.Value,
-                Math.Max(1, calendar.Day),
-                GameplayOutcomeStatus.Succeeded,
-                out PreparedMigratedProducerOutcome prepared,
-                out string reservationFailure))
+        if (!stateStore.TryGetPrimitiveSurvivalPending(actorId, out PrimitiveSurvivalPendingSaveData pending))
+            throw new InvalidOperationException("Primitive survival applied child has no pending completion.");
+        DomainFactDelivery delivered;
+        try
+        {
+            ValidatePendingChild(actor, pending);
+            delivered = PublishPending(pending, lease);
+        }
+        finally { if (lease.IsValid) primitiveFacts.Cancel(lease); }
+        if (!PublicationConfirmed(pending, delivered))
+            throw new InvalidOperationException("Primitive survival completion remains pending: " + delivered.Detail);
+        stateStore.ClearPrimitiveSurvivalPending(actorId, pending.operationId);
+        CompleteCommittedPending(actor, pending, delivered);
+    }
+
+    private DomainFactDelivery PublishPending(PrimitiveSurvivalPendingSaveData pending, DomainFactLease lease = default)
+    {
+        try
+        {
+            var fact = new PrimitiveSurvivalCompletedFact(pending);
+            if (lease.IsValid) return primitiveFacts.Publish(lease, fact);
+            var results = new DomainFactDelivery[1];
+            return ((IDomainFactRecoveryPublisher)primitiveFacts).ReplayBatch(
+                new[] { DomainFactReplay.Create(pending.publicationKey, fact) }, results, out string failure)
+                ? results[0] : DomainFactDelivery.Reject(failure);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            and not StackOverflowException and not AccessViolationException)
+        { return DomainFactDelivery.Uncertain("primitive-survival-publication-unconfirmed:" + exception.Message); }
+    }
+
+    private static bool PublicationConfirmed(PrimitiveSurvivalPendingSaveData pending, DomainFactDelivery delivery) =>
+        delivery.Phase is DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery
+        && delivery.OperationKey == pending.publicationKey && !string.IsNullOrEmpty(delivery.PublicationId)
+        && delivery.Fingerprint.Length == 64;
+
+    private PrimitiveSurvivalPendingSaveData CreatePending(CharacterActor actor, PreparedPrimitiveCompletion prepared,
+        string actionId, float recovery, int physicalItemCount, in WorldFilthSnapshot waste, in WorldFilthSnapshot stain)
+    {
+        PrimitiveSurvivalPendingSaveData data = prepared.Data.Clone();
+        if (data.actionId != actionId || data.recovery != recovery || data.physicalItemCount != physicalItemCount)
+            throw new InvalidOperationException("Primitive survival applied action differs from its reservation.");
+        CharacterStats stats = RequireStats(actor);
+        data.sleepAfter = stats.GetConditionValue(CharacterCondition.SLEEP, 0f);
+        data.hygieneAfter = stats.GetConditionValue(CharacterCondition.HYGIENE, 0f);
+        data.excretionAfter = stats.GetConditionValue(CharacterCondition.EXCRETION, 0f);
+        if (actionId == "survival:floor-rest")
+        {
+            var rest = stats.CaptureRestObservation();
+            if (rest != null) data.restObservations.Add(rest);
+            data.restPublicationKey = rest?.publicationKey ?? stats.LastRestOutcomeResultKey;
+        }
+        if (actionId == "survival:primitive-latrine")
+        {
+            data.targetGridX = waste.Position.x; data.targetGridY = waste.Position.y;
+            data.wasteFilthId = waste.FilthId; data.wasteAmountAfter = waste.Amount;
+            data.stainFilthId = stain.FilthId; data.stainAmountAfter = stain.Amount;
+        }
+        return data;
+    }
+
+    private void ValidatePendingChild(
+        CharacterActor actor,
+        PrimitiveSurvivalPendingSaveData pending)
+    {
+        if (pending.rollbackBlocked)
+            throw new InvalidOperationException("primitive-survival-rollback-blocked:" + pending.rollbackFailure);
+        if (pending.actionId == "survival:bucket-wash")
+        {
+            PrimitiveSurvivalCompletedFact.ValidateSaved(pending, CharacterPersistentIdentity.Require(actor).Value);
+            return;
+        }
+        bool floorRest = string.Equals(
+            pending.actionId,
+            "survival:floor-rest",
+            StringComparison.Ordinal);
+        bool latrine = string.Equals(
+            pending.actionId,
+            "survival:primitive-latrine",
+            StringComparison.Ordinal);
+        float expectedRecovery = floorRest
+            ? PrimitiveSurvivalBalanceAuthority.FloorRestRecovery
+            : latrine
+                ? PrimitiveSurvivalBalanceAuthority.LatrineRecovery
+                : float.NaN;
+        if ((!floorRest && !latrine)
+            || !Mathf.Approximately(pending.recovery, expectedRecovery)
+            || pending.physicalItemCount != 0)
         {
             throw new InvalidOperationException(
-                "Required primitive-survival outcome reservation failed: "
-                + reservationFailure);
+                "Primitive-survival pending receipt contains an unsupported child contract.");
+        }
+        if (floorRest)
+        {
+            if (RequireStats(actor).IsRestRollbackBlocked)
+                throw new InvalidOperationException("floor-rest-child-rollback-blocked");
+            return;
         }
 
-        return prepared;
+        Vector2Int target = new(pending.targetGridX, pending.targetGridY);
+        string actorId = CharacterPersistentIdentity.Require(actor).Value;
+        IReadOnlyList<WorldFilthSnapshot> atTarget =
+            world.GetFilthAt(target) ?? Array.Empty<WorldFilthSnapshot>();
+        RequireFilthReceipt(
+            atTarget,
+            pending.wasteFilthId,
+            WorldFilthType.Waste,
+            pending.wasteAmountAfter,
+            target,
+            actorId);
+        RequireFilthReceipt(
+            atTarget,
+            pending.stainFilthId,
+            WorldFilthType.Stain,
+            pending.stainAmountAfter,
+            target,
+            actorId);
     }
 
-    private void CommitCompletedOutcome(
-        in PreparedMigratedProducerOutcome prepared,
-        CharacterActor actor,
-        string actionId,
-        float recovery,
-        int physicalItemCount)
+    private static void RequireFilthReceipt(
+        IReadOnlyList<WorldFilthSnapshot> filth,
+        string expectedId,
+        WorldFilthType expectedType,
+        float expectedAmount,
+        Vector2Int expectedPosition,
+        string expectedActorId)
     {
-        CharacterId actorId = CharacterPersistentIdentity.Require(actor);
-        MigratedProducerOutcomeCommitResult committed =
-            outcomeTransactions.CommitSingleSubject(
-                prepared,
-                new MigratedProducerOutcomeSubject(
-                    MigratedProducerOutcomeIds.CharacterKind,
-                    actorId.Value,
-                    actor != null ? actor.BuildingDisplayName : actorId.Value,
-                    MigratedProducerOutcomeIds.ActorRole),
-                $"action={actionId}; recovery={recovery:0.###}; physicalItemCount={physicalItemCount}");
-        if (committed.DurablyCommitted)
-            return;
-
-        throw new InvalidOperationException(
-            "Required primitive-survival outcome commit failed: "
-            + committed.DetailCode);
+        WorldFilthSnapshot receipt = filth.FirstOrDefault(value =>
+            string.Equals(value.FilthId, expectedId, StringComparison.Ordinal));
+        if (!string.Equals(receipt.FilthId, expectedId, StringComparison.Ordinal)
+            || receipt.Type != expectedType
+            || receipt.Position != expectedPosition
+            || !string.Equals(
+                receipt.SourceCharacterId,
+                expectedActorId,
+                StringComparison.Ordinal)
+            || !Mathf.Approximately(receipt.Amount, expectedAmount))
+        {
+            throw new InvalidOperationException(
+                "Primitive-latrine recovery could not verify its durable filth child: "
+                + expectedId);
+        }
     }
 
-    private void PublishCompletedEvent(
-        CharacterActor actor,
-        string actionId,
-        float recovery,
-        int physicalItemCount)
+    private void CompleteCommittedPending(CharacterActor actor, PrimitiveSurvivalPendingSaveData pending,
+        in DomainFactDelivery delivered)
     {
-        CharacterId actorId = CharacterPersistentIdentity.Require(actor);
+        CharacterEventContext context = BuildCompletedContext(pending, delivered.PublicationId);
+        bool floor = pending.actionId == "survival:floor-rest";
+        bool latrine = pending.actionId == "survival:primitive-latrine";
+        // Effects are settled and pending cleared. Attempt each remaining reaction
+        // once, retaining failures rather than replaying physical effects.
+        List<Exception> failures = null;
+        void Publish(Action callback)
+        {
+            try { callback(); }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                and not StackOverflowException and not AccessViolationException)
+            { (failures ??= new List<Exception>()).Add(exception); }
+        }
+        if (floor || latrine)
+            Publish(() => actor.ApplyMoodFactorFromEvent(pending.actionId,
+                floor ? "맨바닥에서 잠" : "임시 변소를 사용함",
+                floor ? PrimitiveSurvivalBalanceAuthority.FloorRestMoodDelta : PrimitiveSurvivalBalanceAuthority.LatrineMoodDelta,
+                180f, 1, pending.absoluteDay, context));
+        string publicationId = delivered.PublicationId;
+        Publish(() => events.Publish(new PrimitiveSurvivalChangedEvent(PrimitiveSurvivalTransition.Completed,
+            actor, pending: pending, publicationId: publicationId)));
+        Publish(() => PublishCompletedEvent(actor, pending.actionId, pending.recovery, pending.physicalItemCount));
+        if (failures != null) throw new AggregateException("Primitive survival completion reactions failed.", failures);
+    }
+
+    private void PublishCompletedEvent(CharacterActor actor, string actionId, float recovery, int physicalItemCount) =>
         events.Publish(new CharacterPrimitiveSurvivalCompletedEvent(
-            actorId,
-            actionId,
-            recovery,
-            physicalItemCount));
+            CharacterPersistentIdentity.Require(actor), actionId, recovery, physicalItemCount));
+
+    private static CharacterEventContext BuildCompletedContext(PrimitiveSurvivalPendingSaveData data, string eventId) => new()
+    {
+        eventInstanceId = eventId, chainId = eventId, actorId = data.characterId,
+        actorDisplayName = data.characterName, resultDetail = "생존 행동 완료", occurredDay = data.absoluteDay
+    };
+
+    private static CharacterStats RequireStats(CharacterActor actor)
+    {
+        if (actor?.Stats != null)
+            return actor.Stats;
+        throw new InvalidOperationException(
+            "Primitive survival requires an initialized character stats owner.");
     }
 
     private static string GetLabel(CharacterPrimitiveSurvivalActionKind kind) =>

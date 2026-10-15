@@ -163,7 +163,8 @@ public sealed class DefenseFeatureCommandService : IDefenseFeatureCommandService
             defenseFacilities.GetSnapshot(facility);
         bool succeeded;
         DomainFailure failure;
-        if (snapshot.OperationalState == DefenseFacilityOperationalState.Jammed)
+        if (snapshot.OperationalState == DefenseFacilityOperationalState.Jammed
+            || snapshot.HasPendingMaintenance)
         {
             succeeded = defenseFacilities.TryClearJam(
                 facility,

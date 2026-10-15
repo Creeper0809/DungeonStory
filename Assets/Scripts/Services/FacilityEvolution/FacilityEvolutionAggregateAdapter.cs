@@ -21,6 +21,33 @@ public sealed class FacilityEvolutionPreparedState
 
 public static class FacilityEvolutionAggregateAdapter
 {
+    public static void ValidateObservationJson(string payload)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(payload);
+        if (root["pendingMaterialCommit"] is not Newtonsoft.Json.Linq.JObject pending
+            || string.IsNullOrEmpty((string)pending["operationId"])) return;
+        foreach (string field in new[] { "publicationKey", "publicationId", "publicationFingerprint" })
+            Require(pending[field]?.Type == Newtonsoft.Json.Linq.JTokenType.String,
+                "Facility evolution saved observation string is missing: " + field);
+        foreach (string field in new[] { "observationAccepted", "observationDelivered" })
+            Require(pending[field]?.Type == Newtonsoft.Json.Linq.JTokenType.Boolean,
+                "Facility evolution saved observation flag is missing: " + field);
+        Require(pending["completedFact"] is Newtonsoft.Json.Linq.JObject,
+            "Facility evolution saved frozen fact is missing.");
+        var fact = (Newtonsoft.Json.Linq.JObject)pending["completedFact"];
+        foreach (var field in typeof(FacilityEvolutionCompletedFactData).GetFields())
+        {
+            var value = fact[field.Name];
+            var expected = field.FieldType == typeof(string) ? Newtonsoft.Json.Linq.JTokenType.String
+                : field.FieldType == typeof(string[]) ? Newtonsoft.Json.Linq.JTokenType.Array
+                : Newtonsoft.Json.Linq.JTokenType.Integer;
+            Require(value?.Type == expected, "Facility evolution saved frozen field is missing: " + field.Name);
+            if (expected == Newtonsoft.Json.Linq.JTokenType.Array)
+                Require(value.All(item => item.Type == Newtonsoft.Json.Linq.JTokenType.String),
+                    "Facility evolution saved frozen source array is invalid.");
+        }
+    }
+
     public static FacilityEvolutionPreparedState Prepare(
         FacilityEvolutionStateSnapshot snapshot)
     {
@@ -165,7 +192,12 @@ public static class FacilityEvolutionAggregateAdapter
                 && (!string.IsNullOrWhiteSpace(pending.commitId)
                     || pending.quantity != 0
                     || pending.inputMassGrams != 0L
-                    || pending.phase != FacilityEvolutionMaterialCommitPhase.None))
+                    || pending.phase != FacilityEvolutionMaterialCommitPhase.None
+                    || pending.completedFact?.IsEmpty == false
+                    || !string.IsNullOrEmpty(pending.publicationKey)
+                    || !string.IsNullOrEmpty(pending.publicationId)
+                    || !string.IsNullOrEmpty(pending.publicationFingerprint)
+                    || pending.observationAccepted || pending.observationDelivered))
             {
                 throw new InvalidOperationException(
                     "Facility evolution pending material payload has no operation identity.");
@@ -175,8 +207,9 @@ public static class FacilityEvolutionAggregateAdapter
 
         Require(!string.IsNullOrWhiteSpace(pending.reasonCode),
             "Facility evolution pending material reason is missing.");
-        Require(!string.IsNullOrWhiteSpace(pending.commitId),
-            "Facility evolution pending physical commit is missing.");
+        Require(pending.completedFact != null, "Facility evolution frozen fact is missing.");
+        pending.completedFact.Validate();
+        bool hasMaterials = pending.completedFact.HasMaterialCommit;
         Require(!string.IsNullOrWhiteSpace(pending.recipeId),
             "Facility evolution pending recipe is missing.");
         Require(!string.IsNullOrWhiteSpace(pending.sourceFacilityPersistentId),
@@ -185,10 +218,10 @@ public static class FacilityEvolutionAggregateAdapter
             "Facility evolution pending source definition is missing.");
         Require(!string.IsNullOrWhiteSpace(pending.resultFacilityDefinitionId),
             "Facility evolution pending result definition is missing.");
-        Require(pending.quantity > 0,
-            "Facility evolution pending quantity must be positive.");
-        Require(pending.inputMassGrams > 0L,
-            "Facility evolution pending input mass must be positive.");
+        Require(hasMaterials
+                ? !string.IsNullOrWhiteSpace(pending.commitId) && pending.quantity > 0 && pending.inputMassGrams > 0L
+                : pending.commitId == string.Empty && pending.quantity == 0 && pending.inputMassGrams == 0L,
+            "Facility evolution pending physical state is neither complete nor explicitly empty.");
         Require(pending.historySequence > 0,
             "Facility evolution pending history sequence must be positive.");
         Require(
@@ -196,8 +229,8 @@ public static class FacilityEvolutionAggregateAdapter
             || pending.phase == FacilityEvolutionMaterialCommitPhase.DomainApplied,
             "Facility evolution pending phase is invalid.");
 
-        string[] sourceStackIds = pending.sourceStackIds ?? Array.Empty<string>();
-        Require(sourceStackIds.Length > 0
+        string[] sourceStackIds = pending.sourceStackIds;
+        Require(sourceStackIds != null && (hasMaterials ? sourceStackIds.Length > 0 : sourceStackIds.Length == 0)
             && sourceStackIds.All(id => !string.IsNullOrWhiteSpace(id)),
             "Facility evolution pending source-stack provenance is missing.");
         Require(sourceStackIds
@@ -226,6 +259,26 @@ public static class FacilityEvolutionAggregateAdapter
 
         FacilityEvolutionStateSnapshot resolved =
             pending.ReadResolvedResultState();
+        FacilityEvolutionCompletedFactData fact = pending.completedFact;
+        Require(fact.operationId == pending.operationId && fact.historySequence == pending.historySequence
+            && fact.facilityPersistentId == pending.sourceFacilityPersistentId && fact.recipeId == pending.recipeId
+            && fact.resultFacilityDefinitionId == pending.resultFacilityDefinitionId && fact.resultStarGrade == resolved.starGrade
+            && fact.materialCommitId == pending.commitId && fact.materialQuantity == pending.quantity
+            && fact.materialInputMassGrams == pending.inputMassGrams
+            && fact.sourceStackIds.SequenceEqual(sourceStackIds, StringComparer.Ordinal),
+            "Facility evolution frozen fact conflicts with its owner.");
+        Require(FacilityEvolutionCompletedFactData.Text(pending.publicationKey, true)
+            && FacilityEvolutionCompletedFactData.Text(pending.publicationId, true)
+            && FacilityEvolutionCompletedFactData.Text(pending.publicationFingerprint, true),
+            "Facility evolution observation metadata is missing.");
+        bool hasProof = pending.publicationId.Length > 0;
+        Require(hasProof == (pending.publicationFingerprint.Length > 0)
+            && pending.observationAccepted == hasProof
+            && (!pending.observationDelivered || pending.observationAccepted)
+            && (pending.phase == FacilityEvolutionMaterialCommitPhase.DomainApplied
+                ? pending.publicationKey.Length > 0
+                : !pending.observationAccepted),
+            "Facility evolution observation phase is inconsistent.");
         Require(resolved.hasRecordSnapshot,
             "Facility evolution pending resolved result has no record aggregate.");
         Require(string.IsNullOrWhiteSpace(
@@ -256,7 +309,7 @@ public static class FacilityEvolutionAggregateAdapter
         Require(hasEvidenceIntent
                 == !string.IsNullOrWhiteSpace(pending.evidenceAnchorId),
             "Facility pending evidence-use intent is partial.");
-        Require(!pending.evidenceUseCompleted || hasEvidenceIntent,
+        Require(!pending.evidenceUseCompleted || hasEvidenceIntent && pending.observationDelivered,
             "Facility pending evidence-use completion has no intent.");
         if (hasEvidenceIntent)
         {
@@ -367,6 +420,12 @@ public static class FacilityEvolutionAggregateAdapter
     {
         FacilityEvolutionState instance = snapshot.instanceEvolution
             ?? throw new InvalidOperationException("Facility instance evolution state is missing.");
+        // The domain projection below contains evidence IDs, not the complete
+        // frozen bindings. Validate the raw payload before those fields disappear,
+        // including resolved results retained inside a material commit.
+        foreach (EvolutionNode node in instance.evolutionNodes ?? new List<EvolutionNode>())
+            ValidateNodeEvidence(node);
+        ValidateNodeEvidence(snapshot.pendingFormulaPresentation?.node);
         FacilityEvolutionRecordSnapshotBuilder record = new FacilityEvolutionRecordSnapshotBuilder(snapshot);
 
         return new Domain.FacilityEvolutionAggregateSnapshot(
@@ -381,6 +440,21 @@ public static class FacilityEvolutionAggregateAdapter
                 .Select(entry => $"{entry.sequence}:{entry.evolutionId}"),
             record.Build(),
             ToInstance(instance));
+    }
+
+    private static void ValidateNodeEvidence(EvolutionNode node)
+    {
+        if (node?.gameplayOutcomeEvidence == null) return;
+        HashSet<string> distinct = new(StringComparer.Ordinal);
+        foreach (GameplayOutcomeEvidenceBindingSnapshot binding in node.gameplayOutcomeEvidence)
+        {
+            Require(GameplayOutcomeEvidenceBindingAuthority.TryValidate(binding, out string failure),
+                "Facility evolution node evidence is invalid: " + failure);
+            Require(distinct.Add(binding.publicFactId)
+                    && node.evidenceIds != null
+                    && node.evidenceIds.Contains(binding.publicFactId, StringComparer.Ordinal),
+                "Facility evolution node evidence is duplicated or not selected by its node.");
+        }
     }
 
     private static Domain.FacilityInstanceEvolutionSnapshot ToInstance(

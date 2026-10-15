@@ -329,6 +329,7 @@ public sealed class CropPlotBuildingPanelPresenter :
             CropTreatmentOrderPhase.Working => "작업 중",
             CropTreatmentOrderPhase.InputCommitted => "물리 소비 확정",
             CropTreatmentOrderPhase.OutcomePublished => "결과 승인 대기",
+            CropTreatmentOrderPhase.LedgerCommitted => "원장 승인 대기",
             CropTreatmentOrderPhase.PlotDestroyedLossPending => "파괴 손실 처리",
             _ => "없음"
         };

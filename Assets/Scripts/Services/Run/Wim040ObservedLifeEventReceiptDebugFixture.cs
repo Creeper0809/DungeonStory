@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 // This fixture deliberately lives in the runtime assembly so it can verify the
@@ -201,7 +202,12 @@ public static class Wim040ObservedLifeEventReceiptDebugFixture
             "recipe:wim040:career-loss",
             new BuildingInstanceId("building:wim040:career-production"),
             studentId.Value,
-            CreateCompletedLossBatch());
+            CreateCompletedLossBatch(),
+            new DomainFactDelivery(DomainFactDeliveryPhase.Delivered,
+                new GameplayResultKey(ProductionCombatOutcomeIds.ProductionProducerId,
+                    new GameplayOperationId("production-cycle:production-bill:wim040:career-loss:1"), 1L, 0).ToString(),
+                new GameplayOutcomeId(new GameplayOutcomeRunId("run:wim040:career-loss"), 1L).ToString(),
+                new string('a', 64), "fixture-only-proof"));
         ObservedProductionLossLifeEventReceipt observedLoss = new(
             productionLoss,
             mentorship,
@@ -405,6 +411,26 @@ public static class Wim040ObservedLifeEventReceiptDebugFixture
                 }
             }
         };
+    }
+
+    public static ProductionCycleCompletedFact CreateCompletedLossFact(string workerId)
+    {
+        var batch = CreateCompletedLossBatch();
+        return new ProductionCycleCompletedFact(new ProductionCycleCompletedFactData
+        {
+            billId = batch.billId, cycleSequence = batch.cycleSequence, recipeId = batch.recipeId,
+            facilityId = "building:wim040:career-production", facilityDisplayName = "생산 손실 시험 시설",
+            workerId = workerId, workerDisplayName = "생산 손실 시험 작업자", absoluteDay = 41,
+            batchCommitId = batch.batchCommitId, outcomeFingerprint = batch.outcomeFingerprint,
+            plannedOutputFingerprint = batch.admissionFingerprint, destinationId = batch.destinationId,
+            declaredLossMassGrams = batch.totalDeclaredLossMassGrams,
+            lines = batch.lines.Where(line => ProductionOutputRoleRules.IsPhysical(line.role)).Select(line => new ProductionCompletedLineData
+            { outputLineId = line.outputLineId, itemId = line.itemId, commitIds = new() { line.lineCommitId },
+                quantity = line.quantity, massGrams = line.exactMassGrams, capabilityFingerprint = line.outputCapabilityFingerprint }).ToList(),
+            stacks = batch.physicalCandidates.Select(stack => new ProductionCompletedStackData
+            { stackId = stack.stackId, outputLineId = stack.outputLineId, itemId = stack.itemId, quantity = stack.quantity,
+                massGrams = stack.massGrams }).ToList()
+        });
     }
 
     private static string Digest(char value) => new(value, 64);

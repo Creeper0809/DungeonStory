@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -15,6 +17,8 @@ using UnityEngine;
 /// </summary>
 public static class Wim030CrystalBeetleCarapaceDebugScenarios
 {
+    private const string E11ReportPathEnvironmentVariable =
+        "DUNGEONSTORY_U0_E11_BUTCHERY_REPORT_PATH";
     private const string ReportPath =
         "Artifacts/QA/wim-implementation/wim-030-crystal-carapace.txt";
     private const long CarcassMassGrams = 4000L;
@@ -40,7 +44,9 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
         Debug.Log("WIM030 crystal-beetle carapace verification passed. Report: " + ReportPath);
     }
 
-    public static string Verify()
+    public static string Verify() => Verify(null);
+
+    private static string Verify(JArray observations)
     {
         IGameContentCatalog content = new ResourceGameContentCatalog(
             new UnityGameContentRootLoader());
@@ -53,7 +59,7 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
             new ResourceWildlifeSpeciesCatalogProvider(content, itemDefinitions);
 
         VerifyPublishedAuthoring(itemDefinitions, speciesCatalog);
-        VerifyPhysicalCarcassTransform(itemCatalog, speciesCatalog);
+        VerifyPhysicalCarcassTransform(itemCatalog, speciesCatalog, observations);
 
         return string.Join(
             Environment.NewLine,
@@ -62,12 +68,95 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
                 "WIM030 crystal-beetle carapace: PASS",
                 "catalog=resource:crystal-beetle-carapace; mass=1000g; displayPrice=5; consumer=none (decorative output)",
                 "butcher=wild:carcass:crystal_beetle 4000g -> 1 carapace 1000g + wildlife-carcass-butcher-loss 3000g",
+                "parent=animal-husbandry-work-result; event=wildlife-general-butchery; exact=1; physicalChildJoined=true",
                 "rejection=source preserved; retry=single committed output; repeated consumption=blocked; save=current physical-item round trip",
                 "publisher-readonly-inspection=matches current authoring; secondPublish=NOT_RUN (use the dedicated no-op operator entry)",
                 "publisher-target-paths="
                     + Wim030CrystalBeetleCarapaceAssetBuilder.TargetAssetPathsForOperator,
                 "scope=isolated physical-item runtime fixture; not natural wildlife AI or whole-world-save proof; D03 workSeconds=1 is not asserted as 1 WU"
             }) + Environment.NewLine;
+    }
+
+    public static void RunE11Batch()
+    {
+        string output = Environment.GetEnvironmentVariable(
+            E11ReportPathEnvironmentVariable);
+        Require(
+            !string.IsNullOrWhiteSpace(output),
+            "A create-only E11 butchery report path is required.");
+        string rawOutput = Path.ChangeExtension(output, ".raw.json");
+        if (File.Exists(output) || File.Exists(rawOutput))
+        {
+            throw new InvalidOperationException(
+                "E11 butchery evidence is immutable and already exists: "
+                + output);
+        }
+
+        string directory = Path.GetDirectoryName(output);
+        if (!string.IsNullOrWhiteSpace(directory))
+            Directory.CreateDirectory(directory);
+
+        var observations = new JArray();
+        var checks = new List<string> { "E11_WILDLIFE_BUTCHERY" };
+        Exception failure = null;
+        try
+        {
+            // Execute both original phase80 named steps, without running its
+            // unrelated whole suite or invoking legacy overwrite writers.
+            Require(WildlifeGameplayOutcomeDebugScenarios.RunRegression(),
+                "Original wildlife command/action outcome recovery regression failed.");
+            checks.Add("wildlife-command-action-outcome-recovery=PASS; originalChecks=4; controlled-owner-bridge-fixture");
+            string general = Verify(observations);
+            Require(general.Contains(
+                "parent=animal-husbandry-work-result; event=wildlife-general-butchery; exact=1; physicalChildJoined=true",
+                StringComparison.Ordinal), "Original general-butchery physical-join requirement failed.");
+            checks.Add("wildlife-general-butchery-physical-join=PASS");
+            checks.Add("generalButchery=PASS");
+            checks.Add(general.TrimEnd());
+            string taboo = MigratedProducerCharacterSurvivalEntryE2EDebugScenarios
+                .VerifyE11TabooButcheryFocused();
+            checks.Add("tabooButchery=PASS");
+            checks.Add(taboo);
+        }
+        catch (Exception exception)
+        {
+            failure = exception;
+            checks.Add(exception.ToString());
+        }
+        finally
+        {
+            checks.Add("humanApprovalClaimed=false");
+            checks.Add("trainingEligible=false");
+            checks.Add(failure == null ? "RESULT=PASS" : "RESULT=FAIL");
+            var raw = new JObject
+            {
+                ["schemaVersion"] = 1,
+                ["passed"] = failure == null,
+                ["trainingEligible"] = false,
+                ["naturalGameplay"] = false,
+                ["wholeWorldRestore"] = false,
+                ["coldProcessRestore"] = false,
+                ["fixtureScope"] = "actual carcass transform/item/ledger owners with controlled carcass/catalog rejection; physical-owner JSON round trip only; original generic recovery and taboo assertions preserved",
+                ["observations"] = observations,
+                ["checks"] = new JArray(checks),
+                ["failure"] = failure?.ToString()
+            };
+            using var rawStream = new FileStream(rawOutput, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            using var rawWriter = new StreamWriter(rawStream, new UTF8Encoding(false));
+            rawWriter.Write(raw.ToString());
+        }
+        string report = string.Join(Environment.NewLine, checks) + Environment.NewLine;
+        using FileStream stream = new(
+            output,
+            FileMode.CreateNew,
+            FileAccess.Write,
+            FileShare.Read);
+        using StreamWriter writer = new(
+            stream,
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.Write(report);
+        if (failure != null) throw new InvalidOperationException("E11 wildlife butchery verification failed.", failure);
+        Debug.Log("E11_WILDLIFE_BUTCHERY=PASS");
     }
 
     private static void VerifyPublishedAuthoring(
@@ -124,7 +213,8 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
 
     private static void VerifyPhysicalCarcassTransform(
         IDungeonItemCatalogProvider itemCatalog,
-        IWildlifeSpeciesCatalogProvider speciesCatalog)
+        IWildlifeSpeciesCatalogProvider speciesCatalog,
+        JArray observations)
     {
         WorldItemStackRuntime runtime =
             PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
@@ -151,7 +241,10 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
             Wim030CrystalBeetleCarapaceAssetBuilder.CrystalBeetleCarcassItemId);
         var outcomeFixture = new MigratedProducerOutcomeEditorFixture(
             "run:wim030-crystal-beetle-transform");
+        using DomainFactDispatcher physicalFacts =
+            outcomeFixture.CreatePhysicalTransformationFacts();
         var session = new FixedGameSessionStateProvider();
+        ObserveButchery(observations, "prepared-carcass", runtime, outcomeFixture, source.StackId);
 
         IPhysicalItemTransformService rejectingTransform =
             new PhysicalItemTransformService(
@@ -161,17 +254,21 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
                 new CarapaceExcludedCatalog(itemCatalog),
                 EditorNullItemMarkerPresenter.Instance,
                 session,
-                outcomeFixture.Transaction);
+                physicalFacts);
         WildlifeCarcassService rejectingService = new(
             runtime,
             rejectingTransform,
             speciesCatalog,
             new GameEventBus());
+        rejectingService.ConstructFactPublisher(
+            EditorFixedGameCalendar.Instance,
+            physicalFacts);
         bool rejected = rejectingService.TryButcherNextCarcass(
             butcher: null,
             building: null,
             out int rejectedProduced,
             out _);
+        ObserveButchery(observations, "missing-output-rejected", runtime, outcomeFixture, source.StackId);
         Require(!rejected && rejectedProduced == 0,
             "WIM030 missing-output rejection unexpectedly committed.");
         Require(FindOnly(
@@ -195,17 +292,32 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
                     itemCatalog,
                     EditorNullItemMarkerPresenter.Instance,
                     session,
-                    outcomeFixture.Transaction));
+                    physicalFacts));
         WildlifeCarcassService committedService = new(
             runtime,
             committedTransform,
             speciesCatalog,
             new GameEventBus());
-        Require(committedService.TryButcherNextCarcass(
+        committedService.ConstructFactPublisher(
+            EditorFixedGameCalendar.Instance,
+            physicalFacts);
+        bool committed = committedService.TryButcherNextCarcass(
                     butcher: null,
                     building: null,
                     out int produced,
-                    out _)
+                    out _);
+        ObserveButchery(observations, "retry-committed", runtime, outcomeFixture, source.StackId,
+            committed ? new JObject
+            {
+                ["committed"] = committed,
+                ["produced"] = produced,
+                ["reasonCode"] = ((RecordingTransformService)committedTransform).LastReceipt.ReasonCode,
+                ["inputMassGrams"] = ((RecordingTransformService)committedTransform).LastReceipt.InputMassGrams,
+                ["outputMassGrams"] = ((RecordingTransformService)committedTransform).LastReceipt.OutputMassGrams,
+                ["lossMassGrams"] = ((RecordingTransformService)committedTransform).LastReceipt.LossMassGrams,
+                ["outputQuantity"] = ((RecordingTransformService)committedTransform).LastReceipt.OutputQuantity
+            } : new JObject { ["committed"] = false, ["produced"] = produced });
+        Require(committed
                 && produced == 1,
             "WIM030 retry did not produce exactly one carapace.");
 
@@ -222,6 +334,17 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
             && receipt.LossMassGrams == ButcherLossMassGrams
             && receipt.OutputQuantity == 1,
             "WIM030 transform receipt lost the approved mass or loss contract.");
+        Require(outcomeFixture.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count(value =>
+                value != null
+                && value.outcomeTypeId == MigratedProducerOutcomeCatalog.Get(
+                    MigratedProducerOutcomeKind.AnimalHusbandryWorkResult)
+                    .OutcomeTypeId.Value
+                && value.facts.Any(fact => fact != null
+                    && fact.factId == MigratedProducerOutcomeIds.SummaryFact.Value
+                    && fact.value.Contains(
+                        "carcassStackId=" + source.StackId,
+                        StringComparison.Ordinal))) == 1,
+            "WIM030 general butchery parent result was missing or duplicated.");
         Require(!runtime.GetAllStacks().Any(value => value != null
                 && string.Equals(
                     value.ItemId,
@@ -233,23 +356,55 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
                     Wim030CrystalBeetleCarapaceAssetBuilder.CarapaceItemId)
                 .Quantity == 1,
             "WIM030 committed transformation has an incorrect carapace quantity.");
-        Require(!committedService.TryButcherNextCarcass(
+        string completedLedger = JsonUtility.ToJson(outcomeFixture.Ledger.CaptureGameplayOutcomes());
+        string completedPhysical = JsonUtility.ToJson(runtime.Capture());
+        bool repeated = committedService.TryButcherNextCarcass(
                     butcher: null,
                     building: null,
                     out int repeatedProduced,
-                    out _)
+                    out _);
+        ObserveButchery(observations, "same-carcass-repeat-blocked", runtime, outcomeFixture, source.StackId);
+        Require(!repeated
                 && repeatedProduced == 0,
             "WIM030 consumed a carcass more than once.");
+        Require(JsonUtility.ToJson(outcomeFixture.Ledger.CaptureGameplayOutcomes()) == completedLedger
+            && JsonUtility.ToJson(runtime.Capture()) == completedPhysical,
+            "Repeated butchery changed published completion identity or physical output.");
 
         DungeonPhysicalItemSaveData snapshot = runtime.Capture();
         Require(snapshot.version == DungeonPhysicalItemSaveData.CurrentVersion,
             "WIM030 did not use the current physical-item save format.");
-        runtime.Restore(snapshot);
+        runtime.Restore(JsonUtility.FromJson<DungeonPhysicalItemSaveData>(JsonUtility.ToJson(snapshot)));
+        ObserveButchery(observations, "physical-json-restored", runtime, outcomeFixture, source.StackId);
         Require(FindOnly(
                     runtime,
                     Wim030CrystalBeetleCarapaceAssetBuilder.CarapaceItemId)
                 .Quantity == 1,
             "WIM030 carapace did not survive the current physical-item save round trip.");
+        Require(JsonUtility.ToJson(outcomeFixture.Ledger.CaptureGameplayOutcomes()) == completedLedger
+            && JsonUtility.ToJson(runtime.Capture()) == completedPhysical,
+            "Physical JSON round trip changed completion identity or output state.");
+        repeated = committedService.TryButcherNextCarcass(null, null, out repeatedProduced, out _);
+        ObserveButchery(observations, "restored-carcass-repeat-blocked", runtime, outcomeFixture, source.StackId);
+        Require(!repeated && repeatedProduced == 0
+            && JsonUtility.ToJson(outcomeFixture.Ledger.CaptureGameplayOutcomes()) == completedLedger
+            && JsonUtility.ToJson(runtime.Capture()) == completedPhysical,
+            "Restored butchery repeated output or changed completion identity.");
+    }
+
+    private static void ObserveButchery(JArray observations, string stage,
+        WorldItemStackRuntime runtime, MigratedProducerOutcomeEditorFixture fixture,
+        string sourceStackId, JObject receipt = null)
+    {
+        if (observations == null) return;
+        observations.Add(new JObject
+        {
+            ["stage"] = stage,
+            ["sourceStackId"] = sourceStackId,
+            ["physical"] = JObject.Parse(JsonUtility.ToJson(runtime.Capture())),
+            ["ledger"] = JObject.Parse(JsonUtility.ToJson(fixture.Ledger.CaptureGameplayOutcomes())),
+            ["transformReceipt"] = receipt
+        });
     }
 
     private static WorldItemStackSnapshot FindOnly(
@@ -312,7 +467,10 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
         }
     }
 
-    private sealed class RecordingTransformService : IPhysicalItemTransformService
+    private sealed class RecordingTransformService :
+        IPhysicalItemTransformService,
+        IPhysicalItemTransformBatchService,
+        IPhysicalItemTransformRecoveryService
     {
         private readonly IPhysicalItemTransformService inner;
 
@@ -389,6 +547,62 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
             if (committed)
                 LastReceipt = receipt;
             return committed;
+        }
+
+        public bool TryTransformWholeStackWithCompanion(
+            string sourceStackId,
+            IReadOnlyList<PhysicalItemTransformOutput> outputs,
+            string operationId,
+            string reasonCode,
+            DomainFactEmission companion,
+            int companionAbsoluteDay,
+            out PhysicalItemTransformReceipt receipt,
+            out PhysicalItemTransformFailureCode failureCode,
+            out string failureReason)
+        {
+            if (inner is not IPhysicalItemTransformBatchService batch)
+                throw new InvalidOperationException(
+                    "Recording transform requires the batch companion boundary.");
+            bool committed = batch.TryTransformWholeStackWithCompanion(
+                sourceStackId,
+                outputs,
+                operationId,
+                reasonCode,
+                companion,
+                companionAbsoluteDay,
+                out receipt,
+                out failureCode,
+                out failureReason);
+            if (committed)
+                LastReceipt = receipt;
+            return committed;
+        }
+
+        public bool HasTransformation(string operationId)
+        {
+            if (inner is not IPhysicalItemTransformRecoveryService recovery)
+                throw new InvalidOperationException(
+                    "Recording transform requires the recovery boundary.");
+            return recovery.HasTransformation(operationId);
+        }
+
+        public bool TryRecoverTransformation(
+            string operationId,
+            DomainFactReplay companion,
+            out PhysicalItemTransformReceipt receipt,
+            out string failureReason)
+        {
+            if (inner is not IPhysicalItemTransformRecoveryService recovery)
+                throw new InvalidOperationException(
+                    "Recording transform requires the recovery boundary.");
+            bool recovered = recovery.TryRecoverTransformation(
+                operationId,
+                companion,
+                out receipt,
+                out failureReason);
+            if (recovered)
+                LastReceipt = receipt;
+            return recovered;
         }
     }
 }

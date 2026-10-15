@@ -147,6 +147,7 @@ public static class FormulaFinalReviewDebugScenarios
 
     public static bool RunEffectiveBoundsAndManualActivation()
     {
+        using var activation = new CharacterSkillActivationEditorFixture();
         CharacterSkillSystemSettingsSO settings = EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
         Type fixtureType = typeof(CharacterProgressionDebugScenarios).GetNestedType("ActorFixture", BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("The existing progression test fixture is missing.");
@@ -250,12 +251,14 @@ public static class FormulaFinalReviewDebugScenarios
             Require(CharacterSkillDrawbackEffectSourceProjection.Project(actor.Progression).Count == 0,
                 "Serialized absent stat burden was projected as a gameplay effect.");
             Require(CharacterManualSkillRuntime.TryActivateForExpedition(actor, skill.id, null,
-                    new[] { actor }, _ => 0, 100, out string firstMessage),
+                    new[] { actor }, _ => 0, 100, activation.Transaction,
+                    out string firstMessage),
                 "Resolved formula skill could not activate in expedition: " + firstMessage);
             CharacterSkillInstance buff = CharacterManualSkillRuntime.GetActiveBuffSkills(actor, 100).Single(value => value.id == skill.id);
             Require(JsonUtility.ToJson(buff) == frozen, "Activation changed the frozen numeric envelope.");
             Require(!CharacterManualSkillRuntime.TryActivateForExpedition(actor, skill.id, null,
-                    new[] { actor }, _ => 0, 101, out _), "Cooldown did not block immediate reuse.");
+                    new[] { actor }, _ => 0, 101, activation.Transaction,
+                    out _), "Cooldown did not block immediate reuse.");
             Require(CharacterManualSkillRuntime.GetActiveBuffSkills(actor, 123).Any(value => value.id == skill.id)
                     && !CharacterManualSkillRuntime.GetActiveBuffSkills(actor, 124).Any(value => value.id == skill.id),
                 "Manual duration did not expire in game hours.");
@@ -271,6 +274,7 @@ public static class FormulaFinalReviewDebugScenarios
 
     public static bool RunContextAndWorkSpeedScenario()
     {
+        using var activation = new CharacterSkillActivationEditorFixture();
         Type fixtureType = typeof(CharacterProgressionDebugScenarios).GetNestedType("ActorFixture", BindingFlags.NonPublic);
         using IDisposable fixture = (IDisposable)Activator.CreateInstance(fixtureType,
             new object[] { 8977, "속도 검증자", "human", false, "character:qa-formula-speed" });
@@ -339,7 +343,8 @@ public static class FormulaFinalReviewDebugScenarios
         Require(actor.TryGetAbility(out AbilityWork work) && CharacterAiEditorTestDependencies.GameCalendar != null,
             "Fixture lacks the injected game clock.");
         Require(CharacterManualSkillRuntime.TryActivateForExpedition(actor, manual.id, null, new[] { actor },
-            _ => 0, CharacterAiEditorTestDependencies.GameCalendar.AbsoluteHour, out string message),
+            _ => 0, CharacterAiEditorTestDependencies.GameCalendar.AbsoluteHour,
+            activation.Transaction, out string message),
             "Manual work-speed activation failed: " + message);
         AssertWork(Magnitude(manual), "v6-manual-once");
         actor.Progression.GrowthState.useLimits.manualSkillBuffs.Clear();

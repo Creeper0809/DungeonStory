@@ -133,6 +133,15 @@ public sealed class WorkExecutionResult
 {
     public bool CompletedSuccessfully { get; set; } = true;
     public bool CompletionEffectsAlreadyApplied { get; set; }
+    // A domain owner has already published the terminal work identity for this
+    // operation. The executor still performs labor/skill accounting, but must
+    // not create a second direct-stream identity with a different result key.
+    public bool CompletionIdentityAlreadyPublished { get; set; }
+    public bool CompletionIdentityOwnedByDomain { get; set; }
+    public string TerminalOwnerId { get; private set; } = string.Empty;
+    public string ChildResultKey { get; private set; } = string.Empty;
+    public string TargetEntityId { get; private set; } = string.Empty;
+    public float? ContributionWorkUnits { get; private set; }
     public DomainFailure Failure { get; set; } = DomainFailure.None;
     public CharacterOperationBlockAxis FailureAxis { get; set; } =
         CharacterOperationBlockAxis.Unknown;
@@ -145,6 +154,72 @@ public sealed class WorkExecutionResult
             ?? throw new ArgumentNullException(nameof(sourceRevisionReader));
         FailureSourceRevision = sourceRevisionReader();
     }
+
+    /// <summary>
+    /// Supplies only references already committed by the domain handler. The
+    /// executor never fabricates a child result key when this method was not
+    /// called.
+    /// </summary>
+    public void SetTerminalReference(
+        string terminalOwnerId,
+        string childResultKey,
+        string targetEntityId,
+        float contributionWorkUnits)
+    {
+        TerminalOwnerId = RequireCanonical(
+            terminalOwnerId,
+            nameof(terminalOwnerId));
+        ChildResultKey = RequireCanonicalOrEmpty(
+            childResultKey,
+            nameof(childResultKey));
+        TargetEntityId = RequireCanonicalOrEmpty(
+            targetEntityId,
+            nameof(targetEntityId));
+        if (!float.IsFinite(contributionWorkUnits)
+            || contributionWorkUnits < 0f)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(contributionWorkUnits));
+        }
+        ContributionWorkUnits = contributionWorkUnits;
+    }
+
+    private static string RequireCanonical(
+        string value,
+        string parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(value)
+            || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "A canonical terminal owner id is required.",
+                parameterName);
+        }
+        return value;
+    }
+
+    private static string RequireCanonicalOrEmpty(
+        string value,
+        string parameterName)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+        if (string.IsNullOrWhiteSpace(value)
+            || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "An optional canonical terminal reference cannot contain surrounding whitespace.",
+                parameterName);
+        }
+        return value;
+    }
+}
+
+public static class WorkCompletionIdentityEmissionPolicy
+{
+    public static bool ShouldPublishGeneric(
+        bool domainTerminalIdentityPublished) =>
+        !domainTerminalIdentityPublished;
 }
 
 public sealed class WorkExecutionContext
@@ -159,6 +234,7 @@ public sealed class WorkExecutionContext
         IEnumerator> executePersistentWorkAmount;
     private readonly Func<bool> canContinue;
     private readonly Action<float, float> recordApprovedWork;
+    private readonly Func<float> approvedWorkUnitsQuery;
     private readonly Func<bool> trySuspendAtCheckpoint;
     private readonly Action<IDisposable> registerCancellationResource;
 
@@ -179,7 +255,10 @@ public sealed class WorkExecutionContext
                 IEnumerator> executePersistentWorkAmount = null,
             Action<float, float> recordApprovedWork = null,
             Func<bool> trySuspendAtCheckpoint = null,
-            Action<IDisposable> registerCancellationResource = null)
+            Action<IDisposable> registerCancellationResource = null,
+            CharacterCommandOrigin commandOrigin =
+                CharacterCommandOrigin.Autonomous,
+            Func<float> approvedWorkUnitsQuery = null)
     {
         if (!workTypeId.IsValid)
         {
@@ -198,12 +277,16 @@ public sealed class WorkExecutionContext
             ? FacilityWorkTypeMap.GetRequired(definition)
             : FacilityWorkType.None;
         WorkTypeId = workTypeId;
+        if (!Enum.IsDefined(typeof(CharacterCommandOrigin), commandOrigin))
+            throw new ArgumentOutOfRangeException(nameof(commandOrigin));
+        CommandOrigin = commandOrigin;
         this.executeWorkAmount = executeWorkAmount
             ?? throw new ArgumentNullException(nameof(executeWorkAmount));
         this.canContinue = canContinue
             ?? throw new ArgumentNullException(nameof(canContinue));
         this.executePersistentWorkAmount = executePersistentWorkAmount;
         this.recordApprovedWork = recordApprovedWork;
+        this.approvedWorkUnitsQuery = approvedWorkUnitsQuery;
         this.trySuspendAtCheckpoint = trySuspendAtCheckpoint;
         this.registerCancellationResource = registerCancellationResource;
     }
@@ -214,6 +297,19 @@ public sealed class WorkExecutionContext
     public BuildableObject Target { get; }
     internal FacilityWorkType LegacyWorkType { get; }
     public WorkTypeId WorkTypeId { get; }
+    public CharacterCommandOrigin CommandOrigin { get; }
+    public float ApprovedWorkUnits
+    {
+        get
+        {
+            if (approvedWorkUnitsQuery == null)
+                throw new InvalidOperationException("This execution has no approved-work query.");
+            float value = approvedWorkUnitsQuery();
+            if (!float.IsFinite(value) || value < 0f)
+                throw new InvalidOperationException("Approved work must be finite and non-negative.");
+            return value;
+        }
+    }
     public bool CanContinue => canContinue();
 
     public IEnumerator ExecuteWorkAmount(

@@ -23,7 +23,7 @@ public sealed class DungeonUserSettingsService :
         this.runtimeTargets = runtimeTargets
             ?? throw new ArgumentNullException(nameof(runtimeTargets));
         SettingsPath = Path.Combine(
-            Application.persistentDataPath,
+            DungeonPersistencePaths.Root,
             SettingsDirectoryName,
             SettingsFileName);
     }

@@ -299,11 +299,14 @@ public static class V20CampaignDebugScenarios
     internal const string Wim032033RequestPath =
         "Temp/wim-032-033-faction-contracts.request";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
-    public const string Wim044ReportPath =
-        "Artifacts/QA/wim-implementation/"
-        + "wim-044-retirement-choice-schedule.txt";
-    internal const string Wim044RequestPath =
-        "Temp/wim-044-retirement-choice-schedule.request";
+    public static string Wim044ReportPath => DungeonPersistencePaths.IsIsolatedVerification
+        ? Path.Combine(Path.GetDirectoryName(DungeonPersistencePaths.Root),
+            "wim-044-retirement-choice-schedule.txt")
+        : "Artifacts/QA/wim-implementation/wim-044-retirement-choice-schedule.txt";
+    internal static string Wim044RequestPath => DungeonPersistencePaths.IsIsolatedVerification
+        ? Path.Combine(Path.GetDirectoryName(DungeonPersistencePaths.Root),
+            "wim-044-retirement-choice-schedule.request")
+        : "Temp/wim-044-retirement-choice-schedule.request";
 
     [MenuItem("DungeonStory/QA/Run WIM-032-033 Faction Contracts Focused")]
     public static void RunWim032033FactionContractsFromMenu() =>
@@ -361,6 +364,34 @@ public static class V20CampaignDebugScenarios
     public static void RunWim044RetirementChoiceScheduleFromMenu() =>
         RunWim044RetirementChoiceScheduleFocused();
 
+    public static void RequestWim044IsolatedBatch()
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification
+            || EditorApplication.isPlayingOrWillChangePlaymode)
+            throw new InvalidOperationException("WIM044 requires a fresh isolated batch PlayMode entry.");
+        if (File.Exists(Wim044ReportPath) || File.Exists(Wim044RequestPath)
+            || File.Exists("Temp/wim-044-retirement-choice-schedule.request"))
+            throw new InvalidOperationException("Existing WIM044 evidence or request must be preserved.");
+        Directory.CreateDirectory(Path.GetDirectoryName(Wim044ReportPath));
+        U1FullWorldOwnerBindingVerification.VerifyIsolationConfiguration();
+        WildlifeAiHuntPlayModeVerifier.PrepareIsolatedBackgroundNarrativeDeferral();
+        RunWim044RetirementChoiceScheduleFocused();
+    }
+
+    internal static void WriteWim044IsolatedEvidence(string fileName, string text)
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification
+            || string.IsNullOrWhiteSpace(fileName) || fileName != Path.GetFileName(fileName)
+            || fileName is "." or "..")
+            throw new InvalidOperationException("WIM044 evidence requires an isolated output and a file name.");
+        string directory = Path.GetDirectoryName(Wim044ReportPath);
+        Directory.CreateDirectory(directory);
+        using var stream = new FileStream(Path.Combine(directory, fileName),
+            FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+        using var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(false));
+        writer.Write(text);
+    }
+
     public static string RunWim044RetirementChoiceScheduleFocused()
     {
         if (Application.isPlaying)
@@ -368,10 +399,13 @@ public static class V20CampaignDebugScenarios
             StartWim044Runner(exitPlayMode: false);
             return "STARTED: WIM-044 live PlayMode verifier";
         }
-        Directory.CreateDirectory("Temp");
-        File.WriteAllText(
-            Wim044RequestPath,
-            DateTime.UtcNow.ToString("O"));
+        if (DungeonPersistencePaths.IsIsolatedVerification)
+            WriteWim044IsolatedEvidence(Path.GetFileName(Wim044RequestPath), DateTime.UtcNow.ToString("O"));
+        else
+        {
+            Directory.CreateDirectory("Temp");
+            File.WriteAllText(Wim044RequestPath, DateTime.UtcNow.ToString("O"));
+        }
         if (!string.Equals(
                 UnityEngine.SceneManagement.SceneManager.GetActiveScene().path,
                 GameplayScenePath,
@@ -435,8 +469,10 @@ public static class V20CampaignDebugScenarios
 
             IV20DailyEvaluationDiagnostic dailyEvaluation = scope.Container
                 .Resolve<IV20DailyEvaluationDiagnostic>();
-            if (dailyEvaluation is not V20CampaignApplicationAdapter adapter)
+            if (dailyEvaluation is not V20CampaignApplicationAdapter)
                 return "FROZEN: production daily adapter is unavailable.";
+            CampaignPresentationObserver presentation = scope.Container
+                .Resolve<CampaignPresentationObserver>();
             V20MilestoneWorldSnapshotProjector projector = scope.Container
                 .Resolve<V20MilestoneWorldSnapshotProjector>();
             IGameCalendar calendar = scope.Container.Resolve<IGameCalendar>();
@@ -453,12 +489,12 @@ public static class V20CampaignDebugScenarios
                 return "FROZEN: two ready living participants are required.";
 
             System.Reflection.MethodInfo participantNames =
-                typeof(V20CampaignApplicationAdapter).GetMethod(
+                typeof(CampaignPresentationObserver).GetMethod(
                     "ParticipantNames",
                     System.Reflection.BindingFlags.Instance
                     | System.Reflection.BindingFlags.NonPublic);
             System.Reflection.MethodInfo choiceOutcome =
-                typeof(V20CampaignApplicationAdapter).GetMethod(
+                typeof(CampaignPresentationObserver).GetMethod(
                     "SocietyChoiceOutcome",
                     System.Reflection.BindingFlags.Static
                     | System.Reflection.BindingFlags.NonPublic);
@@ -466,10 +502,10 @@ public static class V20CampaignDebugScenarios
                 return "FROZEN: actionable-alert formatter contract changed.";
 
             string zero = (string)participantNames.Invoke(
-                adapter,
+                presentation,
                 new object[] { new V20ActiveEventSaveData() });
             string one = (string)participantNames.Invoke(
-                adapter,
+                presentation,
                 new object[]
                 {
                     new V20ActiveEventSaveData
@@ -481,7 +517,7 @@ public static class V20CampaignDebugScenarios
                     }
                 });
             string two = (string)participantNames.Invoke(
-                adapter,
+                presentation,
                 new object[]
                 {
                     new V20ActiveEventSaveData
@@ -3202,6 +3238,8 @@ public sealed class V20RetirementChoiceScheduleLivePlayModeRunner : MonoBehaviou
         originalTimeScale = Time.timeScale;
         report.Add("WIM-044 live retirement choice schedule verification");
         report.Add($"utc={DateTime.UtcNow:O}");
+        report.Add("[INFO] scope=controlled prerequisites; actual career/proficiency/whole-world restore; "
+            + "trainingEligible=false; humanApprovalClaimed=false; fullAuditClosure=false");
 
         Exception verificationFailure = null;
         IEnumerator verification = VerifyLiveFlow();
@@ -3285,21 +3323,37 @@ public sealed class V20RetirementChoiceScheduleLivePlayModeRunner : MonoBehaviou
         }
         report.Insert(0, passed
             ? "WIM044_RETIREMENT_CHOICE_SCHEDULE_LIVE=PASS"
-            : "WIM044_RETIREMENT_CHOICE_SCHEDULE_LIVE=FROZEN");
+            : DungeonPersistencePaths.IsIsolatedVerification
+                ? "WIM044_RETIREMENT_CHOICE_SCHEDULE_LIVE=FAIL"
+                : "WIM044_RETIREMENT_CHOICE_SCHEDULE_LIVE=FROZEN");
         report.Add("failures=" + (passed ? 0 : 1));
-        Directory.CreateDirectory(Path.GetDirectoryName(
-            V20CampaignDebugScenarios.Wim044ReportPath));
-        File.WriteAllLines(
-            V20CampaignDebugScenarios.Wim044ReportPath,
-            report);
-        if (passed)
-            Debug.Log(string.Join("\n", report));
-        else
-            Debug.LogError(string.Join("\n", report));
-
-        if (ExitPlayModeOnCompletion)
-            EditorApplication.ExitPlaymode();
-        Destroy(gameObject);
+        int exitCode = passed ? 0 : 1;
+        try
+        {
+            if (DungeonPersistencePaths.IsIsolatedVerification)
+                V20CampaignDebugScenarios.WriteWim044IsolatedEvidence(
+                    Path.GetFileName(V20CampaignDebugScenarios.Wim044ReportPath),
+                    string.Join("\n", report) + "\n");
+            else
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(V20CampaignDebugScenarios.Wim044ReportPath));
+                File.WriteAllLines(V20CampaignDebugScenarios.Wim044ReportPath, report);
+            }
+            if (passed) Debug.Log(string.Join("\n", report));
+            else Debug.LogError(string.Join("\n", report));
+        }
+        catch (Exception exception)
+        {
+            exitCode = 1;
+            Debug.LogException(exception);
+        }
+        finally
+        {
+            if (ExitPlayModeOnCompletion) EditorApplication.ExitPlaymode();
+            Destroy(gameObject);
+            if (Application.isBatchMode && DungeonPersistencePaths.IsIsolatedVerification)
+                EditorApplication.delayCall += () => EditorApplication.Exit(exitCode);
+        }
     }
 
     private IEnumerator VerifyLiveFlow()
@@ -3715,6 +3769,7 @@ public sealed class V20RetirementChoiceScheduleLivePlayModeRunner : MonoBehaviou
                 && activeWork.AssignedWorkTypeId == BuiltInWorkTypeIds.Operate,
             "Focused fixture could not establish real active MentorAcademy work.");
         careers.ClearMentorship(studentId);
+        calendar.SetDateTime(expectedDueDay, choiceHour);
         gameEvents.Publish(new OperatingDayStartedEvent(expectedDueDay));
         Require(!activeWork.CanContinueCurrentWork(out string activeStopReason)
                 && activeStopReason.Contains("retiree", StringComparison.Ordinal),
@@ -3737,7 +3792,6 @@ public sealed class V20RetirementChoiceScheduleLivePlayModeRunner : MonoBehaviou
             careerPersistence.Capture(),
             targetId);
         gameEvents.Publish(new OperatingDayStartedEvent(expectedDueDay));
-        gameEvents.Publish(new OperatingDayStartedEvent(expectedDueDay + 1));
         Require(rootStore.PublishedRestoreRevision == revisionBeforeDue
                 && CountRetiredHistory(
                     careerPersistence.Capture(),
@@ -3781,6 +3835,13 @@ public sealed class V20RetirementChoiceScheduleLivePlayModeRunner : MonoBehaviou
             "Qualified MentorAcademy work bypassed the retained four-hour cap.");
         report.Add("[PASS] WORK unsafe=blocked; MentorAcademyOperate=assigned; cap=4h; "
             + "academy=" + academySource);
+
+        calendar.SetDateTime(expectedDueDay + 1, choiceHour);
+        gameEvents.Publish(new OperatingDayStartedEvent(expectedDueDay + 1));
+        Require(rootStore.PublishedRestoreRevision == revisionBeforeDue
+                && CountRetiredHistory(careerPersistence.Capture(), targetId)
+                    == retiredHistoryCount,
+            "Next-day replay duplicated retirement or advanced restore-only state.");
 
         Restore(pendingSave, "pending missed-day branch restore");
         calendar.SetDateTime(expectedDueDay + 3, choiceHour);
@@ -3896,6 +3957,10 @@ public sealed class V20RetirementChoiceScheduleLivePlayModeRunner : MonoBehaviou
                 && value.sourceKind ==
                     ObservedLifeEventSourceKind.ProficiencyPromotion);
         careers.ClearMentorship(studentId);
+        bool hadMentorSkill = proficiencyQuery.TryGetProficiency(mentorId,
+                BuiltInCharacterProficiencyIds.Social, calendar.AbsoluteHour,
+                out CharacterProficiencySnapshot mentorSkillBefore);
+        CaptureIsolatedCareerWorld("career-before-promotion-world.json");
         proficiencyCommands.AddDirectExperience(
             mentorId,
             BuiltInCharacterProficiencyIds.Social,
@@ -3955,6 +4020,11 @@ public sealed class V20RetirementChoiceScheduleLivePlayModeRunner : MonoBehaviou
                     StringComparison.Ordinal),
             "Actual proficiency award did not publish one exact quiet-promotion receipt and resolved occurrence.");
         string promotionCanonicalPayload = promotionReceipt.canonicalPayload;
+        report.Add("[INFO] PROMOTION actor=" + mentorId.Value
+            + "; rank=" + (hadMentorSkill ? mentorSkillBefore.Rank.ToString() : "not-recorded") + "->" + mentorSkill.Rank
+            + "; experience=" + (hadMentorSkill ? mentorSkillBefore.CurrentExperience.ToString() : "not-recorded") + "->" + mentorSkill.CurrentExperience
+            + "; operation=" + promotionReceipt.sourceOperationId);
+        CaptureIsolatedCareerWorld("career-after-promotion-world.json");
         careers.AssignMentorship(
             mentorId,
             studentId,
@@ -4090,6 +4160,7 @@ public sealed class V20RetirementChoiceScheduleLivePlayModeRunner : MonoBehaviou
                 "life-event:last-lesson",
                 StringComparison.Ordinal));
 
+        CaptureIsolatedCareerWorld("career-before-lesson-world.json");
         adapter.Tick();
 
         WorldItemStackSnapshot ledgerAfter = items.GetAllStacks().Single(value =>
@@ -4165,6 +4236,13 @@ public sealed class V20RetirementChoiceScheduleLivePlayModeRunner : MonoBehaviou
 
         string canonicalPayload = receipt.canonicalPayload;
         DungeonGameSaveData observedSave = saves.Capture();
+        if (DungeonPersistencePaths.IsIsolatedVerification)
+            V20CampaignDebugScenarios.WriteWim044IsolatedEvidence(
+                "career-after-lesson-world.json", saves.ToJson(observedSave));
+        report.Add("[INFO] LAST_LESSON operation=" + expectedOperationId
+            + "; ledger=" + expectedLedgerStackId + "; revision=" + ledgerRevisionBefore
+            + "->" + ledgerAfter.ContentRevision + "; durability=" + ledgerDurabilityBefore
+            + "->" + ledgerDurabilityAfter + "; student=" + studentId.Value);
         Restore(observedSave, "last-lesson observed whole-save round trip");
         WorldItemStackSnapshot restoredLedger = container
             .Resolve<IWorldItemStackRuntime>()
@@ -4229,6 +4307,7 @@ public sealed class V20RetirementChoiceScheduleLivePlayModeRunner : MonoBehaviou
                     StringComparison.Ordinal)),
             "Whole-save restore lost the quiet-promotion receipt payload.");
 
+        CaptureIsolatedCareerWorld("career-restored-world.json");
         adapter.Tick();
         SocietyEventWorldSaveData replay = campaign.CaptureSociety();
         WorldItemStackSnapshot replayLedger = items.GetAllStacks().Single(value =>
@@ -4265,7 +4344,14 @@ public sealed class V20RetirementChoiceScheduleLivePlayModeRunner : MonoBehaviou
                     StringComparison.Ordinal),
             "Same-day actual adapter replay duplicated or mutated the last lesson.");
 
+        CaptureIsolatedCareerWorld("career-replayed-world.json");
         Restore(pendingSave, "post-last-lesson branch cleanup restore");
+    }
+
+    private void CaptureIsolatedCareerWorld(string fileName)
+    {
+        if (DungeonPersistencePaths.IsIsolatedVerification)
+            V20CampaignDebugScenarios.WriteWim044IsolatedEvidence(fileName, saves.ToJson(saves.Capture()));
     }
 
     private static int VerifyAuthoredRetirementAndProducer(
@@ -4731,24 +4817,18 @@ public sealed class V20RetirementChoiceScheduleLivePlayModeRunner : MonoBehaviou
             container.Resolve<ICharacterNarrativeQuery>(),
             container.Resolve<ICharacterNarrativeCatalog>(),
             container.Resolve<ICharacterCultureGameplayQuery>(),
-            container.Resolve<ISeasonalEventQuery>(),
             container.Resolve<ISocietyEventQuery>(),
             container.Resolve<ISocietyObservedMealIncidentCommand>(),
-            container.Resolve<IFactionCampaignQuery>(),
             container.Resolve<V20StoryContentCatalog>(),
-            container.Resolve<IReproductionService>(),
             container.Resolve<ICharacterLifeQuery>(),
             container.Resolve<ICareerService>(),
             container.Resolve<IFacilityCapabilityQuery>(),
-            container.Resolve<IKinshipQuery>(),
-            container.Resolve<IGriefTraumaService>(),
-            container.Resolve<IPopulationHealthQuery>(),
-            container.Resolve<IDiseaseDefinitionCatalog>(),
             container.Resolve<ICharacterBodyHealthQuery>(),
             container.Resolve<ICharacterConsumablesApplication>(),
             container.Resolve<ICharacterMedicalCommand>(),
             container.Resolve<ICharacterMedicalQuery>(),
-            container.Resolve<ICharacterLifetimeQuery>());
+            container.Resolve<ICharacterLifetimeQuery>(),
+            () => container.Resolve<IExteriorIncidentRuntime>());
         int revisionBefore = rootStore.PublishedRestoreRevision;
         try
         {

@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation.Facts;
 using System.Collections.Generic;
 
 internal sealed class ElectricalNetworkAggregateState
@@ -79,10 +80,27 @@ internal sealed class FluidNetworkAggregateState
                 TransferStatus = source.TransferStatus,
                 FrozenPipeLatched = source.FrozenPipeLatched,
                 FrozenPipeOccurrenceInstanceId =
-                    source.FrozenPipeOccurrenceInstanceId
+                    source.FrozenPipeOccurrenceInstanceId,
+                NextAutonomousOutcomeSequence =
+                    source.NextAutonomousOutcomeSequence,
+                LeakEpisodeStartCleanWater =
+                    source.LeakEpisodeStartCleanWater,
+                LeakEpisodeStartUnsafeWater =
+                    source.LeakEpisodeStartUnsafeWater,
+                LeakEpisodeStartFoulWater =
+                    source.LeakEpisodeStartFoulWater,
+                LeakEpisodeCleanLoss = source.LeakEpisodeCleanLoss,
+                LeakEpisodeUnsafeLoss = source.LeakEpisodeUnsafeLoss,
+                LeakEpisodeFoulLoss = source.LeakEpisodeFoulLoss,
+                LeakEpisodeFilthAmount = source.LeakEpisodeFilthAmount
             };
             clonedNode.PendingManualWaterTransfers.AddRange(
                 source.PendingManualWaterTransfers.ConvertAll(value => value.DeepClone()));
+            clonedNode.PendingAutonomousOutcomes.AddRange(
+                source.PendingAutonomousOutcomes.ConvertAll(
+                    value => value.DeepClone()));
+            clonedNode.LeakEpisodeFilthIds.AddRange(
+                source.LeakEpisodeFilthIds);
             clone.Nodes.Add(pair.Key, clonedNode);
         }
 
@@ -130,19 +148,19 @@ internal sealed class ConveyorAggregateState
     }
 }
 
-internal sealed class InfrastructureCommandOutcomeAggregateState
+internal sealed class InfrastructureObservationAggregateState
 {
     public long NextOwnerRevision = 1L;
-    public readonly SortedDictionary<long, InfrastructureCommandOutcomeOutboxSaveData>
+    public readonly SortedDictionary<long, InfrastructureObservationSaveData>
         Pending = new();
 
-    public InfrastructureCommandOutcomeAggregateState DeepClone()
+    public InfrastructureObservationAggregateState DeepClone()
     {
-        InfrastructureCommandOutcomeAggregateState clone = new()
+        InfrastructureObservationAggregateState clone = new()
         {
             NextOwnerRevision = NextOwnerRevision
         };
-        foreach (KeyValuePair<long, InfrastructureCommandOutcomeOutboxSaveData>
+        foreach (KeyValuePair<long, InfrastructureObservationSaveData>
                  pair in Pending)
         {
             clone.Pending.Add(pair.Key, pair.Value.Clone());

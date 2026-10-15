@@ -582,7 +582,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             defenderConstruct: target.IsCharacter
                 && IsConstruct(target.Character));
         CombatAttackResult result;
-        ReservedCombatDamageOutcome reservedDamage = default;
+        ReservedCombatAction reservedDamage = default;
         if (target.IsCharacter)
         {
             if (!resultApplier.TryReserveDamageOutcome(
@@ -656,6 +656,10 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
                 attackRevision,
                 reservedDamage,
                 mechanicalMutation,
+                CombatActionEvidenceData.Capture(
+                    attackRequest,
+                    result,
+                    weapon?.Verb?.damageType ?? CombatDamageType.Slash),
                 $"던전 방어 교전: {attacker.Identity?.DisplayName ?? attacker.name}",
                 CharacterCommandOrigin.Autonomous);
             if (!apply.Succeeded)
@@ -743,7 +747,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
                 target,
                 attackOperationId,
                 attackRevision,
-                out ReservedCombatDamageOutcome reservedDamage,
+                out ReservedCombatAction reservedDamage,
                 out _,
                 out string reserveFailure))
         {
@@ -833,6 +837,10 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             attackRevision,
             reservedDamage,
             mechanicalMutation,
+            CombatActionEvidenceData.Capture(
+                attackRequest,
+                result,
+                weapon.Verb?.damageType ?? CombatDamageType.Pierce),
             $"원거리 방어 사격: {attacker.Identity?.DisplayName ?? attacker.name}",
             CharacterCommandOrigin.Autonomous);
         if (!apply.Succeeded)
@@ -968,7 +976,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
 
     private bool TryResolveDetachedAttack(
         CombatAttackRequest request,
-        in ReservedCombatDamageOutcome reservedDamage,
+        in ReservedCombatAction reservedDamage,
         out CombatAttackResult result,
         out string failureReason)
     {

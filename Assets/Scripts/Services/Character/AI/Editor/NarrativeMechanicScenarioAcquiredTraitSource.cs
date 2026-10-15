@@ -772,11 +772,15 @@ public sealed class NarrativeMechanicScenarioAcquiredTraitSource
         });
         ControlledReversibleCarriedDisposition physicalDisposition = new(
             carriedStackId);
+        using EvolutionGameplayOutcomeEditorFixture erasureOutcomes = new(
+            "run:trait-scenario-erasure:" + scenarioId);
         MemoryErasureSealUseResult erasure =
             new MemoryErasureSealTransactionService(
                 new ControlledDefinitionSource(settings, modules),
                 new ControlledGameCalendar(day: 214, hour: 9),
-                physicalDisposition)
+                physicalDisposition,
+                erasureOutcomes.MemoryErasureFacts,
+                erasureOutcomes.MemoryErasures)
             .TryErase(
                 actor.Actor,
                 manifestedInstance.instanceId,
@@ -1078,7 +1082,7 @@ public sealed class NarrativeMechanicScenarioAcquiredTraitSource
                 selected.combinationId,
                 packet.evidenceFactIds[0]);
         }
-        EvolutionGameplayOutcomeEditorFixture outcomes = new(
+        using EvolutionGameplayOutcomeEditorFixture outcomes = new(
             "run:trait-scenario-editor:" + targetId + ":"
                 + submission.Audit.ResultingRevision);
         return inference.CompleteMilestone(
@@ -1093,7 +1097,8 @@ public sealed class NarrativeMechanicScenarioAcquiredTraitSource
                 responseJson,
                 NarrativeInferenceTimestamp.FromGameTick(gameTick)),
             packet,
-            outcomes.Bridge);
+            outcomes.TraitInferenceFacts,
+            outcomes.TraitInferences);
     }
 
     private static NarrativeMechanicCatalogCanonicalJsonObject

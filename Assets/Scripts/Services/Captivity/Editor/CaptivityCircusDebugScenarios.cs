@@ -701,7 +701,7 @@ public static class CaptivityCircusDebugScenarios
             capturePosition = new Vector2Int(2, 2),
             assignedShowOrderId = order.orderId,
             transportState = CapturedWildlifeTransportState.MovingToShow,
-            nextCareAt = 1f,
+            remainingCareSeconds = 1f,
             lastCareStatus = "moving"
         };
         CircusSaveData payload = new CircusSaveData
@@ -714,7 +714,7 @@ public static class CaptivityCircusDebugScenarios
         DungeonGameRestoreReport valid = new DungeonGameRestoreReport();
         CircusSaveValidation.Validate(payload, programs, valid);
         Require(valid.Success,
-            "valid circus V2 payload failed: " + string.Join(" | ", valid.Errors));
+            "valid current circus payload failed: " + string.Join(" | ", valid.Errors));
 
         CircusSaveData duplicate = CloneCircusPayload(payload);
         duplicate.orders.Add(duplicate.orders[0].Clone());
@@ -758,9 +758,14 @@ public static class CaptivityCircusDebugScenarios
         {
             version = source.version,
             nextOrderSequence = source.nextOrderSequence,
+            nextWildlifeGameplayOutcomeSequence =
+                source.nextWildlifeGameplayOutcomeSequence,
             orders = source.orders.Select(order => order.Clone()).ToList(),
             capturedWildlife = source.capturedWildlife
                 .Select(state => state.Clone())
+                .ToList(),
+            wildlifeGameplayOutcomes = source.wildlifeGameplayOutcomes
+                .Select(value => value?.Clone())
                 .ToList()
         };
     }

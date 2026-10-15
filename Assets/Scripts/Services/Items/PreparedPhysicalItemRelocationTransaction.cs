@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DungeonStory.Narrative.Korean;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 public readonly struct PreparedPhysicalItemRelocationPreview
@@ -9,7 +9,7 @@ public readonly struct PreparedPhysicalItemRelocationPreview
     internal PreparedPhysicalItemRelocationPreview(
         PhysicalItemRelocationReceipt receipt,
         string itemInstanceId,
-        KoreanNameSnapshot displayName,
+        string displayName,
         long ownerRevision)
     {
         Receipt = receipt;
@@ -20,11 +20,11 @@ public readonly struct PreparedPhysicalItemRelocationPreview
 
     public PhysicalItemRelocationReceipt Receipt { get; }
     public string ItemInstanceId { get; }
-    public KoreanNameSnapshot DisplayName { get; }
+    public string DisplayName { get; }
     public long OwnerRevision { get; }
     public bool IsValid => Receipt.IsCommitted
         && OwnerRevision > 0L
-        && GameplayOutcomeLedger.IsValidDisplayNameSnapshot(DisplayName);
+        && DomainFactValueSyntax.IsText(DisplayName, DomainFactValueSyntax.MaximumNameCharacters, false);
 }
 
 public interface IPreparedPhysicalItemRelocation
@@ -54,20 +54,6 @@ public interface IPreparedPhysicalItemRelocationService
         string operationId,
         string reasonCode,
         out IPreparedPhysicalItemRelocation prepared,
-        out string failureReason);
-}
-
-/// <summary>
-/// Domain-neutral bridge invoked after an exact relocation preview has been
-/// calculated and before its physical mutation is applied. Implementations
-/// own the typed narrative receipt; the item service never dispatches on a
-/// result kind.
-/// </summary>
-public interface IPhysicalItemRelocationOutcomeParticipant
-{
-    bool TryPrepare(
-        in PreparedPhysicalItemRelocationPreview preview,
-        out IPreparedPhysicalItemGameplayOutcome prepared,
         out string failureReason);
 }
 
@@ -182,16 +168,10 @@ public sealed class PreparedPhysicalItemRelocationService :
             massGrams,
             source.position,
             destinationPosition);
-        KoreanNameSnapshot display = new(
-            definition.DisplayName,
-            "item-definition:" + source.itemId + ":v1",
-            KoreanPronunciationHint.AutoHangulDisplay(
-                "item-definition-pronunciation-v1"),
-            "ko-KR");
         PreparedPhysicalItemRelocationPreview preview = new(
             receipt,
             source.itemInstanceId,
-            display,
+            definition.DisplayName,
             checked((long)repository.ItemStackVersion
                 + (wholeStack ? 1L : 2L)));
         if (!preview.IsValid)

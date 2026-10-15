@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.Narrative.Korean;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-public static class StaffRebellionResponseDebugScenarios
+public static partial class StaffRebellionResponseDebugScenarios
 {
     [MenuItem("DungeonStory/Debug/Character/Run P2 Staff Rebellion Response Scenarios")]
     public static void RunFromMenu()
@@ -181,11 +182,28 @@ public static class StaffRebellionResponseDebugScenarios
             out _);
         StaffDiscontentSnapshot before = initial?.ToSnapshot();
         float moodBefore = staff.stats[CharacterCondition.MOOD];
+        int narrativeCountBefore =
+            staff.Progression.NarrativeLedger.facts.Count;
+        long narrativeSequenceBefore =
+            staff.Progression.NarrativeLedger.nextEventSequence;
+        int moodNotificationCount = 0;
+        void CountMoodNotification(CharacterMoodSnapshot _) =>
+            moodNotificationCount++;
+        staff.Stats.OnMoodChange += CountMoodNotification;
 
-        bool calmed = world.Runtime.TryCalmStaff(
-            CharacterActor.From(staff),
-            CharacterActor.From(actor),
-            out StaffRebellionResponseResult result);
+        bool calmed;
+        StaffRebellionResponseResult result;
+        try
+        {
+            calmed = world.Runtime.TryCalmStaff(
+                CharacterActor.From(staff),
+                CharacterActor.From(actor),
+                out result);
+        }
+        finally
+        {
+            staff.Stats.OnMoodChange -= CountMoodNotification;
+        }
         bool restored = world.Runtime.State.TryGetRecord(
             CharacterActor.From(staff),
             out StaffDiscontentRecord current);
@@ -198,6 +216,11 @@ public static class StaffRebellionResponseDebugScenarios
             && Mathf.Approximately(
                 staff.stats[CharacterCondition.MOOD],
                 moodBefore)
+            && moodNotificationCount == 0
+            && staff.Progression.NarrativeLedger.facts.Count
+                == narrativeCountBefore
+            && staff.Progression.NarrativeLedger.nextEventSequence
+                == narrativeSequenceBefore
             && world.Runtime.OutcomeRevision == 0L
             && world.Ledger.GetGlobal(
                 OutcomeCursor.FirstPage(10),
@@ -354,10 +377,16 @@ public static class StaffRebellionResponseDebugScenarios
         private readonly GridSystemManager previousGridSystem;
         private readonly List<GameObject> objects = new List<GameObject>();
         private readonly List<ScriptableObject> scriptableObjects = new List<ScriptableObject>();
+        private readonly IGameEventBus events;
+        private readonly DomainFactDispatcher facts;
+        private readonly IDisposable responseObservation;
+        private readonly IDisposable transitionObservation;
+        private readonly StaffDiscontentPresentationObserver presentation;
 
         public RebellionScenarioWorld(
             bool rejectCommit = false,
-            bool rejectDelivery = false)
+            bool rejectDelivery = false,
+            string ledgerRunId = "run:staff-response-test")
         {
             previousGridSystem = GridSystemInstanceField?.GetValue(null) as GridSystemManager;
             Grid = new Grid(8, 1);
@@ -371,6 +400,11 @@ public static class StaffRebellionResponseDebugScenarios
             GameObject runtimeObject = new GameObject("Rebellion Response Runtime");
             objects.Add(runtimeObject);
             Runtime = runtimeObject.AddComponent<StaffDiscontentRuntime>();
+            events = new GameEventBus();
+            presentation = new StaffDiscontentPresentationObserver(
+                CharacterAiEditorTestDependencies.WorldRegistry,
+                events);
+            presentation.Initialize();
             StaffDiscontentOutcomeDescriptor descriptor = new(
                 new KoreanJosaFormatter());
             StaffDiscontentOutcomeAdapter adapter = new();
@@ -388,27 +422,76 @@ public static class StaffRebellionResponseDebugScenarios
                     smallPageCount: 8,
                     largePageCount: 0,
                     knownResultKeyCapacity: 128),
-                new GameplayOutcomeRunId("run:staff-response-test"),
+                new GameplayOutcomeRunId(
+                    string.IsNullOrWhiteSpace(ledgerRunId)
+                        ? throw new ArgumentException(
+                            "A staff-response ledger run ID is required.",
+                            nameof(ledgerRunId))
+                        : ledgerRunId.Trim()),
                 1L);
             Recorder = new GameplayOutcomeRecorder(
                 Ledger,
                 Registry,
-                CharacterAiEditorTestDependencies.GameEvents);
-            StaffDiscontentGameplayOutcomeBridge realCommitter = new(
-                Recorder,
-                Ledger,
-                Ledger);
-            OutcomeCommitter = rejectCommit
-                ? new RejectingCommitter(realCommitter)
-                : realCommitter;
+                events);
+            facts = new DomainFactDispatcher();
+            responseObservation = facts.Subscribe(
+                "staff-rebellion-response:debug",
+                new GameplayDomainFactObserver<
+                    StaffRebellionResponseResolvedFact,
+                    StaffDiscontentOutcomeReceipt>(
+                    StaffDiscontentFactMapping.Capture,
+                    Registry,
+                    Ledger,
+                    Recorder,
+                    new GameplayDomainFactCommitGroup(Recorder, Ledger)));
+            GameplayOutcomeRegistry transitionRegistry =
+                new GameplayOutcomeRegistry(
+                    new IGameplayOutcomeDescriptor[]
+                    {
+                        new StaffDiscontentTransitionOutcomeDescriptor(
+                            new KoreanJosaFormatter())
+                    },
+                    new IGameplayOutcomeAdapterRegistration[]
+                    {
+                        new StaffDiscontentTransitionOutcomeAdapter()
+                    });
+            GameplayOutcomeLedger transitionLedger = new(
+                transitionRegistry,
+                new GameplayOutcomeBufferLimits(
+                    smallPageCount: 8,
+                    largePageCount: 0,
+                    knownResultKeyCapacity: 128),
+                new GameplayOutcomeRunId(
+                    "run:staff-response-transition-test"),
+                1L);
+            GameplayOutcomeRecorder transitionRecorder = new(
+                transitionLedger,
+                transitionRegistry,
+                events);
+            transitionObservation = facts.Subscribe(
+                "staff-discontent-transition:response-debug",
+                new GameplayDomainFactObserver<
+                    StaffDiscontentTransitionedFact,
+                    StaffDiscontentTransitionOutcomeReceipt>(
+                    StaffDiscontentFactMapping.Capture,
+                    transitionRegistry,
+                    transitionLedger,
+                    transitionRecorder,
+                    new GameplayDomainFactCommitGroup(
+                        transitionRecorder,
+                        transitionLedger)));
+            IDomainFactStagingPublisher publisher = rejectCommit
+                ? new RejectingResponsePublisher(facts)
+                : facts;
             RootStore = new DungeonRuntimeAggregateRootStore();
             Runtime.Construct(
                 CharacterAiEditorTestDependencies.WorldRegistry,
-                CharacterAiEditorTestDependencies.GameEvents,
+                events,
                 RootStore,
                 CharacterAiEditorTestDependencies.SettlementStandings,
-                OutcomeCommitter,
-                CharacterAiEditorTestDependencies.GameClock);
+                publisher,
+                facts,
+                CharacterAiEditorTestDependencies.GameCalendar);
 
             for (int x = 0; x < Grid.width; x++)
             {
@@ -421,7 +504,6 @@ public static class StaffRebellionResponseDebugScenarios
         public GameplayOutcomeRegistry Registry { get; }
         public GameplayOutcomeLedger Ledger { get; }
         public GameplayOutcomeRecorder Recorder { get; }
-        public IStaffDiscontentOutcomeCommitter OutcomeCommitter { get; }
         public DungeonRuntimeAggregateRootStore RootStore { get; }
 
         public bool HasPublishedResponse(
@@ -480,7 +562,12 @@ public static class StaffRebellionResponseDebugScenarios
                     StringComparison.Ordinal);
         }
 
-        public CharacterActor CreateStaff(int id, string name, Vector2Int position, float mood)
+        public CharacterActor CreateStaff(
+            int id,
+            string name,
+            Vector2Int position,
+            float mood,
+            string persistentId = null)
         {
             GameObject obj = new GameObject(name);
             objects.Add(obj);
@@ -509,7 +596,10 @@ public static class StaffRebellionResponseDebugScenarios
             obj.transform.position = Grid.GetWorldPos(position);
             character.RefreshAbilityCache();
             character.Initialization(data);
-            character.Identity.SetPersistentId($"character:staff-rebellion-test:{id}");
+            character.Identity.SetPersistentId(
+                string.IsNullOrWhiteSpace(persistentId)
+                    ? $"character:staff-rebellion-test:{id}"
+                    : persistentId.Trim());
             character.SetLifecycleState(CharacterLifecycleState.Active);
             character.stats[CharacterCondition.SLEEP] = 50f;
             character.stats[CharacterCondition.HUNGER] = 50f;
@@ -522,6 +612,10 @@ public static class StaffRebellionResponseDebugScenarios
 
         public void Dispose()
         {
+            presentation.Dispose();
+            responseObservation.Dispose();
+            transitionObservation.Dispose();
+            facts.Dispose();
             GridSystemInstanceField?.SetValue(null, previousGridSystem);
             foreach (GameObject obj in objects.Where((obj) => obj != null))
             {
@@ -561,56 +655,47 @@ public static class StaffRebellionResponseDebugScenarios
         }
     }
 
-    private sealed class RejectingCommitter : IStaffDiscontentOutcomeCommitter
+    private sealed class RejectingResponsePublisher :
+        IDomainFactStagingPublisher
     {
-        private readonly IStaffDiscontentOutcomeCommitter inner;
+        private readonly IDomainFactStagingPublisher inner;
 
-        public RejectingCommitter(IStaffDiscontentOutcomeCommitter inner) =>
+        public RejectingResponsePublisher(IDomainFactStagingPublisher inner) =>
             this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
 
-        public bool TryReserve(
-            long ownerRevision,
-            int absoluteDay,
-            bool hasResponder,
-            out ReservedStaffDiscontentOutcome reserved,
-            out string failureReason) => inner.TryReserve(
-            ownerRevision,
-            absoluteDay,
-            hasResponder,
-            out reserved,
-            out failureReason);
-
-        public bool TryWrite(
-            in StaffDiscontentOutcomeReceipt receipt,
-            in ReservedStaffDiscontentOutcome reserved,
-            out PreparedOwnerOutcome prepared,
-            out string failureReason) => inner.TryWrite(
-            receipt,
-            reserved,
-            out prepared,
-            out failureReason);
-
-        public OwnerOutcomeCommitResult Commit(
-            in PreparedOwnerOutcome prepared,
-            long expectedOwnerRevision)
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
+            out string failureReason)
         {
-            inner.Cancel(prepared);
-            return new OwnerOutcomeCommitResult(
-                OwnerOutcomeCommitPhase.Rejected,
-                prepared.ResultKey,
-                default,
-                string.Empty,
+            if (!inner.TryStage(fact, out stage, out failureReason))
+                return false;
+            if (fact is StaffRebellionResponseResolvedFact)
+                stage = new RejectingResponseStage(stage);
+            return true;
+        }
+    }
+
+    private sealed class RejectingResponseStage : IDomainFactStage
+    {
+        private readonly IDomainFactStage inner;
+
+        public RejectingResponseStage(IDomainFactStage inner) =>
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+
+        public string OperationKey => inner.OperationKey;
+        public long OwnerRevision => inner.OwnerRevision;
+        public bool IsReplay => inner.IsReplay;
+        public bool IsActive => inner.IsActive;
+
+        public DomainFactDelivery Commit()
+        {
+            inner.Cancel();
+            return DomainFactDelivery.Reject(
                 "injected-staff-outcome-commit-rejection");
         }
 
-        public OwnerOutcomeCommitResult Reconcile(
-            GameplayResultKey resultKey) => inner.Reconcile(resultKey);
-
-        public void Cancel(in ReservedStaffDiscontentOutcome reserved) =>
-            inner.Cancel(reserved);
-
-        public void Cancel(in PreparedOwnerOutcome prepared) =>
-            inner.Cancel(prepared);
+        public void Cancel() => inner.Cancel();
     }
 
     private sealed class RejectingDeliveryDescriptor :

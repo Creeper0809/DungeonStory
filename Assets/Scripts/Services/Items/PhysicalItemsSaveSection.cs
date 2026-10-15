@@ -156,7 +156,7 @@ public sealed class PhysicalItemsSaveSection :
         try
         {
             DungeonPhysicalItemSaveData payload =
-                JsonUtility.FromJson<DungeonPhysicalItemSaveData>(payloadJson);
+                DungeonSaveJson.Deserialize<DungeonPhysicalItemSaveData>(payloadJson);
             if (payload == null)
             {
                 report.AddError("Physical item payload deserialized to null.");
@@ -212,6 +212,95 @@ public sealed class PhysicalItemsSaveSection :
                 "pendingCapacityRoutingDrains"
             });
         ValidateRequiredCheckpointScalarFields(payloadJson);
+        ValidateRelocationShape(payloadJson);
+        ValidateBatchDispositionShape(payloadJson);
+        ValidateTransformationShape(payloadJson);
+    }
+
+    private static void ValidateTransformationShape(string json)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(json);
+        if (root["physicalItemTransformations"] is not Newtonsoft.Json.Linq.JArray rows)
+            throw new InvalidOperationException("Physical item current schema requires physicalItemTransformations.");
+        foreach (var row in rows)
+        {
+            RequireFields(row, typeof(PhysicalItemTransformationSaveData));
+            var fact = row["fact"];
+            RequireFields(fact, typeof(PhysicalItemTransformationData));
+            foreach (var input in (Newtonsoft.Json.Linq.JArray)fact["inputs"])
+                RequireFields(input, typeof(PhysicalItemTransformationInputData));
+            foreach (var output in (Newtonsoft.Json.Linq.JArray)fact["outputs"])
+                RequireFields(output, typeof(PhysicalItemTransformationOutputData));
+        }
+        static void RequireFields(Newtonsoft.Json.Linq.JToken token, Type type)
+        {
+            if (token is not Newtonsoft.Json.Linq.JObject data)
+                throw new InvalidOperationException("Physical transformation requires an object.");
+            foreach (var field in type.GetFields())
+            {
+                var expected = field.FieldType == typeof(string) ? Newtonsoft.Json.Linq.JTokenType.String
+                    : field.FieldType == typeof(bool) ? Newtonsoft.Json.Linq.JTokenType.Boolean
+                    : field.FieldType == typeof(int) || field.FieldType == typeof(long)
+                        ? Newtonsoft.Json.Linq.JTokenType.Integer
+                    : field.FieldType == typeof(PhysicalItemTransformationData) ? Newtonsoft.Json.Linq.JTokenType.Object
+                    : Newtonsoft.Json.Linq.JTokenType.Array;
+                if (data[field.Name]?.Type != expected)
+                    throw new InvalidOperationException("Physical transformation field missing or invalid: " + field.Name);
+            }
+        }
+    }
+
+    private static void ValidateBatchDispositionShape(string json)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(json);
+        if (root["pendingBatchDispositions"] is not Newtonsoft.Json.Linq.JArray rows)
+            throw new InvalidOperationException("Physical item current schema requires pendingBatchDispositions.");
+        foreach (var row in rows)
+        {
+            if (row is not Newtonsoft.Json.Linq.JObject data)
+                throw new InvalidOperationException("Physical disposition must be an object.");
+            foreach (var field in typeof(PhysicalItemBatchDispositionSaveData).GetFields())
+            {
+                var expected = field.FieldType == typeof(string) ? Newtonsoft.Json.Linq.JTokenType.String
+                    : field.FieldType == typeof(bool) ? Newtonsoft.Json.Linq.JTokenType.Boolean
+                    : field.FieldType == typeof(int) || field.FieldType == typeof(long)
+                        ? Newtonsoft.Json.Linq.JTokenType.Integer : Newtonsoft.Json.Linq.JTokenType.Array;
+                if (data[field.Name]?.Type != expected)
+                    throw new InvalidOperationException("Physical disposition field missing or invalid: " + field.Name);
+            }
+            foreach (var fact in (Newtonsoft.Json.Linq.JArray)data["sourceFacts"])
+            {
+                if (fact is not Newtonsoft.Json.Linq.JObject source)
+                    throw new InvalidOperationException("Physical disposition source must be an object.");
+                foreach (var field in typeof(PhysicalItemDispositionSourceFactSaveData).GetFields())
+                {
+                    var expected = field.FieldType == typeof(string)
+                        ? Newtonsoft.Json.Linq.JTokenType.String : Newtonsoft.Json.Linq.JTokenType.Integer;
+                    if (source[field.Name]?.Type != expected)
+                        throw new InvalidOperationException("Physical disposition source field missing or invalid: " + field.Name);
+                }
+            }
+        }
+    }
+
+    private static void ValidateRelocationShape(string json)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(json);
+        if (root["physicalItemRelocations"] is not Newtonsoft.Json.Linq.JArray rows)
+            throw new InvalidOperationException("Physical item current schema requires physicalItemRelocations.");
+        foreach (var row in rows)
+        {
+            if (row is not Newtonsoft.Json.Linq.JObject data)
+                throw new InvalidOperationException("Physical relocation must be an object.");
+            foreach (var field in typeof(PhysicalItemRelocationSaveData).GetFields())
+            {
+                var token = data[field.Name];
+                var expected = field.FieldType == typeof(string)
+                    ? Newtonsoft.Json.Linq.JTokenType.String : Newtonsoft.Json.Linq.JTokenType.Integer;
+                if (token == null || token.Type != expected)
+                    throw new InvalidOperationException("Physical relocation field missing or invalid: " + field.Name);
+            }
+        }
     }
 
     private static bool HasTopLevelProperty(string json, string propertyName)

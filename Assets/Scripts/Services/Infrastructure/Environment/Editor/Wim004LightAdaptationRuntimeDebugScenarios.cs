@@ -71,6 +71,7 @@ public static class Wim004LightAdaptationRuntimeDebugScenarios
                 services.Resolve<ICharacterApparelPersistence>(),
                 services.Resolve<ICharacterApparelCommand>(),
                 services.Resolve<IApparelWorkOrderPersistence>(),
+                services.Resolve<ICharacterBodyHealthQuery>(),
                 services.Resolve<ICharacterBodyHealthCommand>(), clock,
                 new CharacterEnvironmentAggregateStateStore(new DungeonRuntimeAggregateRootStore()),
                 performance,
@@ -82,10 +83,12 @@ public static class Wim004LightAdaptationRuntimeDebugScenarios
                     services.Resolve<IClimateQuery>(),
                     services.Resolve<IClimateDefinitionCatalog>(),
                     services.Resolve<IGridSystemProvider>(),
-                    services.Resolve<IApparelDefinitionCatalog>(),
-                    services.Resolve<ITextileMaterialCatalog>(),
-                    services.Resolve<IApparelMaterialProjector>(),
-                    services.Resolve<IAnatomyAttachmentQuery>()));
+                     services.Resolve<IApparelDefinitionCatalog>(),
+                     services.Resolve<ITextileMaterialCatalog>(),
+                     services.Resolve<IApparelMaterialProjector>(),
+                     services.Resolve<IAnatomyAttachmentQuery>()),
+                services.Resolve<IGameCalendar>(),
+                services.Resolve<DungeonStory.Foundation.Facts.IDomainFactPublisher>());
             EnvironmentWorkPolicyUnityAdapter policy = new(
                 field, runtime, protection,
                 services.Resolve<IEnvironmentalWorkwearQuery>(),

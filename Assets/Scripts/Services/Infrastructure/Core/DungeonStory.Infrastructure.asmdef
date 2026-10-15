@@ -3,6 +3,7 @@
   "rootNamespace": "DungeonStory.Infrastructure",
   "references": [
     "DungeonStory.Automation",
+    "DungeonStory.Combat",
     "DungeonStory.Buildings",
     "DungeonStory.Captivity",
     "DungeonStory.CoreSession",

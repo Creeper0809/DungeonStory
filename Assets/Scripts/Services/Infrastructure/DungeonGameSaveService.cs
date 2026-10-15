@@ -14,7 +14,7 @@ public sealed class DungeonSaveSlotCatalog : IDungeonSaveSlotCatalog
 
     [VContainer.Inject]
     public DungeonSaveSlotCatalog()
-        : this(Path.Combine(Application.persistentDataPath, "Saves"))
+        : this(Path.Combine(DungeonPersistencePaths.Root, "Saves"))
     {
     }
 
@@ -201,6 +201,7 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
 
     public DungeonGameSaveData Capture()
     {
+        DungeonSaveEditorTrace.Record("capture.begin");
         for (int index = 0; index < captureGuards.Count; index++)
         {
             captureGuards[index].ValidateBeforeCapture();
@@ -223,7 +224,9 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
         {
             try
             {
+                DungeonSaveEditorTrace.Record("capture-preflight.before:" + validator.GetType().Name);
                 validator.Validate(save, captureReport);
+                DungeonSaveEditorTrace.Record("capture-preflight.after:" + validator.GetType().Name);
             }
             catch (Exception exception)
             {
@@ -263,6 +266,7 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
 
     public bool TryRestore(DungeonGameSaveData saveData, out DungeonGameRestoreReport report)
     {
+        DungeonSaveEditorTrace.Record("restore.begin");
         report = new DungeonGameRestoreReport();
         if (saveData == null)
         {
@@ -298,7 +302,9 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
         {
             try
             {
+                DungeonSaveEditorTrace.Record("restore-preflight.before:" + validator.GetType().Name);
                 validator.Validate(saveData, report);
+                DungeonSaveEditorTrace.Record("restore-preflight.after:" + validator.GetType().Name);
             }
             catch (Exception exception)
             {
@@ -333,7 +339,9 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
             }
             for (int index = 0; index < restoreCompletedHooks.Count; index++)
             {
+                DungeonSaveEditorTrace.Record("restore-hook.before:" + restoreCompletedHooks[index].GetType().Name);
                 restoreCompletedHooks[index].OnRestoreCompleted();
+                DungeonSaveEditorTrace.Record("restore-hook.after:" + restoreCompletedHooks[index].GetType().Name);
             }
         }
         catch (Exception exception)
@@ -420,7 +428,7 @@ public sealed class DungeonGameSaveSlotService : IDungeonGameSaveSlotService
     public string Save(string slotId, bool prettyPrint = false)
     {
         string path = slotCatalog.GetPath(slotId);
-        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? Application.persistentDataPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? DungeonPersistencePaths.Root);
         string temporaryPath = path + ".tmp";
         string backupPath = path + ".bak";
         string serialized = saveService.ToJson(saveService.Capture(), prettyPrint);
@@ -523,7 +531,7 @@ public sealed class DungeonGameSaveSlotService : IDungeonGameSaveSlotService
             }
 
             string corruptDirectory = Path.Combine(
-                Path.GetDirectoryName(path) ?? Application.persistentDataPath,
+                Path.GetDirectoryName(path) ?? DungeonPersistencePaths.Root,
                 "Corrupt");
             Directory.CreateDirectory(corruptDirectory);
             string name = Path.GetFileNameWithoutExtension(path);

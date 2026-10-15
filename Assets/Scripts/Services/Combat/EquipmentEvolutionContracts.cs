@@ -82,6 +82,12 @@ public interface IEquipmentEvolutionRuntime : IEquipmentEvolutionPersistence
         string displayName,
         string narrativeFlavor,
         out string failureReason);
+    bool TryFreezePresentationContext(
+        string equipmentInstanceId,
+        string presentationId,
+        NarrativePublicContextMaterial material,
+        out EquipmentEvolutionPresentationRequest frozenRequest,
+        out string failureReason);
     bool TryCommitModuleSelection(
         string equipmentInstanceId,
         EquipmentEvolutionModuleSelectionResponseDto response,

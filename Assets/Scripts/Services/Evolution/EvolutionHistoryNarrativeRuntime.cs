@@ -319,7 +319,8 @@ public static class EvolutionNarrativePromptFormatter
         string profileId,
         EvolutionNarrativeRequestSnapshot request,
         string targetDisplayName,
-        IReadOnlyDictionary<string, string> resolvedParticipantDisplayNames)
+        IReadOnlyDictionary<string, string> resolvedParticipantDisplayNames,
+        IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> exactEvidence = null)
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
         if (!request.frozenHistoryCaptured)
@@ -418,16 +419,34 @@ public static class EvolutionNarrativePromptFormatter
 
         bool hasResolvedCharacter = participantNames.Keys.Any(id =>
             !string.Equals(id, subjectId, StringComparison.Ordinal));
-        NarrativePublicContextMaterial material = NarrativePublicContextFactory.Build(
-            profileId,
-            subjectId,
-            subjectKind,
-            string.Empty,
-            requireCharacterFact: hasResolvedCharacter,
-            requireMotif: true,
-            entities,
-            facts,
-            SelectionPolicyId);
+        GameplayOutcomeEvidenceBindingSnapshot[] exact = (exactEvidence
+                ?? Array.Empty<GameplayOutcomeEvidenceBindingSnapshot>())
+            .Where(value => value != null)
+            .OrderBy(value => value.publicFactId, StringComparer.Ordinal)
+            .ToArray();
+        NarrativePublicContextMaterial material = facts.Count == 0
+            ? GameplayOutcomeEvidencePublicMaterialComposer.BuildExactEvidenceOnly(
+                profileId,
+                subjectId,
+                subjectKind,
+                subjectName,
+                string.Empty,
+                requireCharacterFact: hasResolvedCharacter,
+                requireMotif: true,
+                exact,
+                SelectionPolicyId)
+            : GameplayOutcomeEvidencePublicMaterialComposer.AddExactEvidence(
+                NarrativePublicContextFactory.Build(
+                    profileId,
+                    subjectId,
+                    subjectKind,
+                    string.Empty,
+                    requireCharacterFact: hasResolvedCharacter,
+                    requireMotif: true,
+                    entities,
+                    facts,
+                    SelectionPolicyId),
+                exact);
         RequireLockedEvidenceReadable(request.evidenceIds, material.Events);
         return material;
     }
@@ -938,6 +957,88 @@ public sealed class EvolutionHistoryNarrativeRuntime :
             requestKey?.Trim() ?? string.Empty,
             out audit);
     }
+
+#if UNITY_EDITOR
+    // Read-only dispatch observation for source capture. The correlation ID must
+    // still be owned by this live runtime; the prompt is rebuilt only from the
+    // persisted frozen request and its exact node.
+    public bool TryCapturePendingModuleDispatch(
+        string correlationId,
+        out CombatEquipmentInstance equipmentInstance,
+        out EvolutionNode node,
+        out EquipmentEvolutionPresentationRequest pending,
+        out string prompt)
+    {
+        equipmentInstance = null;
+        node = null;
+        pending = null;
+        prompt = string.Empty;
+        string normalized = correlationId?.Trim() ?? string.Empty;
+        if (normalized.Length == 0 || !inFlight.Contains(normalized))
+            return false;
+
+        var matches = equipment.Instances
+            .Where(value => value?.evolution != null)
+            .Select(value => new
+            {
+                Instance = value,
+                Request = value.evolution.presentationRequests?.SingleOrDefault(request =>
+                    request != null
+                    && string.Equals(
+                        request.presentationId,
+                        normalized,
+                        StringComparison.Ordinal)
+                    && request.state
+                        == EquipmentEvolutionPresentationState.ModuleSelectionPending)
+            })
+            .Where(value => value.Request != null)
+            .ToArray();
+        if (matches.Length != 1)
+            return false;
+
+        CombatEquipmentInstance capturedInstance = matches[0].Instance;
+        EquipmentEvolutionPresentationRequest capturedRequest =
+            matches[0].Request;
+        EvolutionNode capturedNode = capturedInstance.evolution.evolutionNodes?
+            .SingleOrDefault(value => value != null
+                && string.Equals(
+                    value.nodeId,
+                    capturedRequest.nodeId,
+                    StringComparison.Ordinal));
+        if (capturedNode == null
+            || capturedNode.presentationState
+                != EquipmentEvolutionPresentationState.ModuleSelectionPending
+            || !string.Equals(
+                capturedNode.moduleSelectionId,
+                normalized,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        capturedRequest.ValidateFrozenNodeBinding(capturedNode);
+        string capturedPrompt = BuildEquipmentFormulaPresentationPrompt(
+            capturedInstance,
+            capturedNode,
+            capturedRequest);
+        equipmentInstance = capturedInstance;
+        node = capturedNode.Clone();
+        pending = capturedRequest.Clone();
+        prompt = capturedPrompt;
+        return true;
+    }
+
+    // The isolated source verifier calls this only after draining unrelated
+    // response-less transports. It bypasses the scan timer, not the production
+    // owner lookup, prompt construction, queue acceptance or callback path.
+    public bool TrySubmitNextFormulaPresentationForIsolatedCapture()
+    {
+        float now = uiClock.Time;
+        CollectPendingSnapshots();
+        CancelOrphanedRequests();
+        return TrySubmitNextFormulaPresentation(now);
+    }
+#endif
 
     public void Tick()
     {
@@ -1706,6 +1807,37 @@ public sealed class EvolutionHistoryNarrativeRuntime :
         if (!string.Equals(instance?.instanceId, request?.targetPersistentId, StringComparison.Ordinal)
             || !string.Equals(node?.presentationId, request?.presentationId, StringComparison.Ordinal))
             throw new InvalidOperationException("Equipment presentation owner or identity changed.");
+        NarrativePublicContextMaterial material = request.RestorePublicContext();
+        if (material == null)
+        {
+            material = BuildEquipmentFormulaPublicMaterial(instance, node, request);
+            if (equipmentEvolution == null)
+                throw new InvalidOperationException("Equipment public context requires its persistent owner.");
+            if (!equipmentEvolution.TryFreezePresentationContext(instance.instanceId, request.presentationId,
+                    material, out EquipmentEvolutionPresentationRequest frozenRequest, out string failure))
+                throw new InvalidOperationException(failure);
+            material = frozenRequest.RestorePublicContext();
+        }
+        StringBuilder builder = new StringBuilder(1400);
+        if (node.presentationState == EquipmentEvolutionPresentationState.ModuleSelectionPending)
+            return BuildEquipmentModuleSelectionPrompt(node, request, material);
+        builder.AppendLine("C# 규칙이 장비 진화의 모든 기계 효과를 확정했다.");
+        builder.AppendLine("효과나 수치를 바꾸거나 다시 말하지 말고 이름과 짧은 유래만 작성한다.");
+        builder.AppendLine("displayName과 narrativeFlavor에는 숫자 또는 퍼센트 표기를 쓰지 않는다.");
+        builder.AppendLine("제공된 근거 밖의 인물·사건·효과를 만들지 않는다.");
+        builder.AppendLine("정확히 다음 세 문자열 키만 가진 JSON 객체를 반환한다:");
+        builder.AppendLine("{\"presentationId\":\"제공된 값 그대로\",\"displayName\":\"32자 이하 한국어 이름\",\"narrativeFlavor\":\"180자 이하 유래\"}");
+        builder.Append("presentationId=").AppendLine(request.presentationId);
+        builder.Append("mechanicalDescription=").AppendLine(node.mechanicalDescription);
+        builder.AppendLine("근거 사건과 공개 인물 이름은 publicNarrativeContext만 사용한다.");
+        return NarrativePublicPromptEnvelope.Create(builder.ToString(), material).Prompt;
+    }
+
+    private NarrativePublicContextMaterial BuildEquipmentFormulaPublicMaterial(
+        CombatEquipmentInstance instance,
+        EvolutionNode node,
+        EquipmentEvolutionPresentationRequest request)
+    {
         HashSet<string> exactIds = (request.gameplayOutcomeEvidence
                 ?? new List<GameplayOutcomeEvidenceBindingSnapshot>())
             .Where(value => value != null)
@@ -1746,44 +1878,56 @@ public sealed class EvolutionHistoryNarrativeRuntime :
                 .Select(value => value.originalEvent.Clone()).ToList(),
             frozenHistoryCaptured = true
         };
-        NarrativePublicContextMaterial material =
-            EvolutionNarrativePromptFormatter.BuildPublicMaterial(
+        return EvolutionNarrativePromptFormatter.BuildPublicMaterial(
                 LocalLlmRequestProfiles.EvolutionHistory.Id,
                 publicRequest,
                 ResolveTargetDisplayName(publicRequest),
-                participantNames);
-        material = GameplayOutcomeEvidencePublicMaterialComposer.AddExactEvidence(
-            material,
-            request.gameplayOutcomeEvidence);
-        StringBuilder builder = new StringBuilder(1400);
-        if (node.presentationState == EquipmentEvolutionPresentationState.ModuleSelectionPending)
+                participantNames,
+                request.gameplayOutcomeEvidence);
+    }
+
+    internal static string BuildEquipmentModuleSelectionPrompt(
+        EvolutionNode node,
+        EquipmentEvolutionPresentationRequest request,
+        NarrativePublicContextMaterial material)
+    {
+        if (node == null || request == null || material == null
+            || node.presentationState
+                != EquipmentEvolutionPresentationState.ModuleSelectionPending
+            || !string.Equals(
+                node.moduleSelectionId,
+                request.presentationId,
+                StringComparison.Ordinal))
         {
-            builder.AppendLine("C#이 현재 장비 기록에서 선택 가능한 개별 진화 모듈을 모두 제공했다.");
-            builder.AppendLine("기록에 가장 어울리는 이로운 모듈 하나와 근거 사실을 고른다. 수치와 부정 부담은 C#이 선택 뒤 계산한다.");
-            builder.Append("profile=").AppendLine(LocalLlmRequestProfiles.EquipmentEvolutionModuleSelection.Id);
-            builder.Append("selectionId=").AppendLine(node.moduleSelectionId);
-            builder.AppendLine("moduleOffers:");
-            foreach (EquipmentEvolutionModuleOfferState offer in node.moduleSelectionOffers
-                         .OrderBy(value => value.moduleId, StringComparer.Ordinal))
-                builder.Append("- moduleId=").Append(offer.moduleId)
-                    .Append("; polarity=Positive; meaning=")
-                    .AppendLine(offer.semanticDescription);
-            builder.Append("evidenceFactIds=")
-                .AppendLine(string.Join(",", request.evidenceIds));
-            builder.AppendLine("정확히 selectionId, positiveModuleIds, drawbackModuleIds, evidenceFactIds, displayName, narrativeFlavor 여섯 키만 가진 JSON 객체를 반환한다.");
-            builder.AppendLine("positiveModuleIds는 제공된 모듈 중 정확히 하나다. 현재 독립 부정 모듈 제안이 없으므로 drawbackModuleIds는 빈 배열이다.");
-            builder.AppendLine("evidenceFactIds는 제공된 실제 사실 ID의 비어 있지 않은 부분집합이다. 수치·비용·효과 ID를 만들지 않는다.");
-            return NarrativePublicPromptEnvelope.Create(builder.ToString(), material).Prompt;
+            throw new InvalidOperationException(
+                "Equipment module-selection prompt state is invalid.");
         }
-        builder.AppendLine("C# 규칙이 장비 진화의 모든 기계 효과를 확정했다.");
-        builder.AppendLine("효과나 수치를 바꾸거나 다시 말하지 말고 이름과 짧은 유래만 작성한다.");
-        builder.AppendLine("displayName과 narrativeFlavor에는 숫자 또는 퍼센트 표기를 쓰지 않는다.");
-        builder.AppendLine("제공된 근거 밖의 인물·사건·효과를 만들지 않는다.");
-        builder.AppendLine("정확히 다음 세 문자열 키만 가진 JSON 객체를 반환한다:");
-        builder.AppendLine("{\"presentationId\":\"제공된 값 그대로\",\"displayName\":\"32자 이하 한국어 이름\",\"narrativeFlavor\":\"180자 이하 유래\"}");
-        builder.Append("presentationId=").AppendLine(request.presentationId);
-        builder.Append("mechanicalDescription=").AppendLine(node.mechanicalDescription);
-        builder.AppendLine("근거 사건과 공개 인물 이름은 publicNarrativeContext만 사용한다.");
+        bool hasDrawback = node.moduleSelectionOffers.Any(
+            value => value.polarity == EvolutionModuleOfferPolarity.Drawback);
+        if (hasDrawback && node.formulaVersion
+                < EquipmentEvolutionRules.DrawbackModuleSelectionFormulaVersion)
+            throw new InvalidOperationException("Legacy equipment selection cannot contain independent drawbacks.");
+        StringBuilder builder = new(1400);
+        builder.AppendLine("C#이 현재 장비 기록에서 선택 가능한 개별 진화 모듈을 모두 제공했다.");
+        builder.AppendLine("기록에 가장 어울리는 이로운 모듈 하나와 근거 사실을 고른다. 수치와 부정 부담은 C#이 선택 뒤 계산한다.");
+        builder.Append("profile=").AppendLine(LocalLlmRequestProfiles.EquipmentEvolutionModuleSelection.Id);
+        builder.Append("selectionId=").AppendLine(node.moduleSelectionId);
+        builder.AppendLine("maximumPositiveModules=1");
+        builder.Append("maximumDrawbackModules=").AppendLine(hasDrawback ? "1" : "0");
+        builder.AppendLine("moduleOffers:");
+        foreach (EquipmentEvolutionModuleOfferState offer in node.moduleSelectionOffers
+                     .OrderBy(value => value.moduleId, StringComparer.Ordinal))
+            builder.Append("- moduleId=").Append(offer.moduleId)
+                .Append("; polarity=").Append(EvolutionModuleFormulaDescriptor.ToNarrativePolarity(offer.polarity))
+                .Append("; meaning=")
+                .AppendLine(offer.semanticDescription);
+        builder.Append("evidenceFactIds=")
+            .AppendLine(string.Join(",", request.evidenceIds));
+        builder.AppendLine("정확히 selectionId, positiveModuleIds, drawbackModuleIds, evidenceFactIds, displayName, narrativeFlavor 여섯 키만 가진 JSON 객체를 반환한다.");
+        builder.AppendLine(hasDrawback
+            ? "positiveModuleIds는 Positive 모듈 중 정확히 하나다. drawbackModuleIds는 선택 가능한 Drawback 모듈 중 0~1개다. 제공된 충돌 조건을 지키고 선택을 뒷받침하는 실제 기록을 인용한다. 모듈에 붙은 필수 부담은 이 선택형 단점과 별개다."
+            : "positiveModuleIds는 Positive 모듈 중 정확히 하나다. 현재 독립 부정 모듈 제안이 없으므로 drawbackModuleIds는 빈 배열이다.");
+        builder.AppendLine("evidenceFactIds는 제공된 실제 사실 ID의 비어 있지 않은 부분집합이다. 수치·비용·효과 ID를 만들지 않는다.");
         return NarrativePublicPromptEnvelope.Create(builder.ToString(), material).Prompt;
     }
 

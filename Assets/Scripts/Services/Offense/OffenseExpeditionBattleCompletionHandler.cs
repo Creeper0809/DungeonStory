@@ -103,11 +103,9 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
                 }
                 if (award.Status == MemoryErasureSealBossAwardStatus.Awarded)
                 {
-                    gameEventBus.RaiseAlert(
-                        "기억 소거 인장 획득",
-                        "이 권역의 첫 보스를 격파해 기억 소거 인장 1개가 전리품 투하 지점에 생성되었습니다.",
-                        EventAlertImportance.High,
-                        "오펜스");
+                    gameEventBus.Publish(new OffenseExpeditionActivityFact(
+                        OffenseExpeditionActivity.RegionBossSealAwarded,
+                        expedition.ExpeditionId));
                 }
             }
 
@@ -168,29 +166,22 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
                     session,
                     combatant,
                     null));
-                actor.Progression?.RecordNarrative(
-                    CharacterNarrativeDomain.Combat,
-                    victory ? "battle-victory" : "battle-survived",
-                    expedition.Target.id,
-                    victory ? "won" : "survived",
-                    combatant.TotalDamageTaken,
-                    triggerPassives: false,
-                    eventContext: new GameplayNarrativeEventContext
-                    {
-                        eventInstanceId = $"{session.BattleId}:result:{combatant.PersistentId}",
-                        chainId = expedition.ExpeditionId,
-                        locationId = expedition.Target?.id ?? string.Empty,
-                        locationDisplayName = !string.IsNullOrWhiteSpace(expedition.Target?.regionDisplayName)
-                            ? expedition.Target.regionDisplayName
-                            : expedition.Target?.title ?? string.Empty,
-                        actorId = combatant.PersistentId,
-                        actorDisplayName = actor.BuildingDisplayName,
-                        counterpartyId = expedition.Target?.factionId ?? string.Empty,
-                        counterpartyDisplayName = expedition.Target?.title ?? string.Empty,
-                        usedObjectId = completedNode?.Id ?? string.Empty,
-                        usedObjectDisplayName = completedNode?.Title ?? string.Empty,
-                        resultDetail = victory ? "교전 승리" : "교전 생존"
-                    });
+                if (actor.Progression != null)
+                {
+                    gameEventBus.Publish(new OffenseBattleExperienceFact(
+                        session.BattleId,
+                        expedition.ExpeditionId,
+                        combatant.PersistentId,
+                        actor.BuildingDisplayName,
+                        expedition.Target.id,
+                        expedition.Target.title ?? string.Empty,
+                        expedition.Target.regionDisplayName ?? string.Empty,
+                        expedition.Target.factionId ?? string.Empty,
+                        completedNode?.Id ?? string.Empty,
+                        completedNode?.Title ?? string.Empty,
+                        victory,
+                        combatant.TotalDamageTaken));
+                }
             }
             actor.Stats?.ChangesStat(CharacterCondition.SLEEP, victory ? -8f : -20f);
             actor.Stats?.ApplyMoodFactor(
@@ -231,11 +222,10 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
                     expedition,
                     out string mobilityMessage))
             {
-                gameEventBus.RaiseAlert(
-                    "원정대 조난",
-                    mobilityMessage,
-                    EventAlertImportance.High,
-                    "오펜스");
+                gameEventBus.Publish(new OffenseExpeditionActivityFact(
+                    OffenseExpeditionActivity.PartyStranded,
+                    expedition.ExpeditionId,
+                    message: mobilityMessage));
                 host.NotifyStateChanged();
                 return;
             }
@@ -282,11 +272,11 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
                 return;
             }
 
-            gameEventBus.RaiseAlert(
-                "목표 파괴",
-                $"{expedition.Target.title} 격파. 안전 이동 {granted}칸이 지급되었습니다. 다음 목적지를 선택하세요.",
-                EventAlertImportance.High,
-                "오펜스");
+            gameEventBus.Publish(new OffenseExpeditionActivityFact(
+                OffenseExpeditionActivity.ObjectiveDestroyed,
+                expedition.ExpeditionId,
+                targetTitle: expedition.Target.title ?? string.Empty,
+                count: granted));
             host.NotifyStateChanged();
             return;
         }
@@ -296,11 +286,10 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
         if (!expedition.IsComplete)
         {
             host.NotifyStateChanged();
-            gameEventBus.RaiseAlert(
-                "원정 교전 승리",
-                $"{expedition.CurrentNode?.Title ?? expedition.Target.title}을 돌파했습니다. 다음 경로를 선택하세요.",
-                EventAlertImportance.Low,
-                "오펜스");
+            gameEventBus.Publish(new OffenseExpeditionActivityFact(
+                OffenseExpeditionActivity.RouteBattleCompleted,
+                expedition.ExpeditionId,
+                nodeTitle: expedition.CurrentNode?.Title ?? expedition.Target.title ?? string.Empty));
             return;
         }
 

@@ -6,17 +6,29 @@ public static class DungeonWorkRegistration
     public static void RegisterDungeonWork(this IContainerBuilder builder)
     {
         RegisterWorkStatPolicies(builder);
+        builder.RegisterEntryPoint<WorkExecutionActivityObserver>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<WorkControlActivityObserver>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<OwnerCommandActivityObserver>(Lifetime.Singleton);
+        builder.RegisterMigratedDomainFact<RepairWorkCompletedFact>(
+            "log:work.repair-completed", RepairWorkCompletedFactMapping.Capture);
+        builder.RegisterMigratedDomainFact<ConstructionWorkEndedFact>(
+            "log:work.construction-ended", ConstructionWorkEndedFactMapping.Capture);
+        builder.Register<ConstructionWorkEndedFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
+        builder.RegisterWorkCompletionDomainFact<RepairWorkCompletionFact>(
+            "reaction:work.repair-completion", RepairWorkCompletionObservation.CreateCompletionRequest,
+            WorkCompletionNotificationMode.ApplyOnly);
+        builder.RegisterEntryPoint<WorkAccidentObservationRuntime>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonSaveRestoreCompletedHook>();
 
         builder.Register<EmergencyWorkAccountingRuntime>(Lifetime.Singleton)
             .AsSelf()
             .AsImplementedInterfaces();
-        builder.Register<EmergencyWorkSuspensionGameplayOutcomeBridge>(
-                Lifetime.Singleton)
-            .As<IEmergencyWorkSuspensionOutcomeCommitter>();
-        builder.Register<EmergencyWorkSuspensionOutcomeAdapter>(Lifetime.Singleton)
-            .As<IGameplayOutcomeAdapterRegistration>();
-        builder.Register<EmergencyWorkSuspensionOutcomeDescriptor>(Lifetime.Singleton)
-            .As<IGameplayOutcomeDescriptor>();
+        builder.RegisterGameplayDomainFact<EmergencyWorkSuspensionFact, EmergencyWorkSuspensionOutcomeReceipt>(
+            "log:work.emergency-suspension", EmergencyWorkSuspensionFactMapping.Capture);
+        builder.Register<EmergencyWorkSuspensionFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
+        builder.RegisterGameplayActionLogs(nameof(EmergencyWorkSuspensionOutcomeAdapter));
         builder.Register<SettlementAlertRuntime>(Lifetime.Singleton)
             .AsSelf()
             .AsImplementedInterfaces();
@@ -28,6 +40,7 @@ public static class DungeonWorkRegistration
         builder.RegisterEntryPoint<SettlementLaborAccountingRuntime>(
                 Lifetime.Singleton)
             .As<ISettlementLaborAccountingService>()
+            .As<IDungeonRestoreTransactionParticipant>()
             .As<ISettlementLaborPersistence>();
         builder.Register<SettlementThreatEventAdapter>(Lifetime.Singleton)
             .AsImplementedInterfaces();

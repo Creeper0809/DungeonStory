@@ -80,7 +80,8 @@ public static class CharacterAiPlanDebugScenarios
     {
         return new CharacterAiDecisionPipeline(
             NoCharacterDeprivationBoundary.Instance,
-            NoCharacterDeprivationBoundary.Instance);
+            NoCharacterDeprivationBoundary.Instance,
+            vandalismCommands: PlanProbeVandalismCommand.Instance);
     }
 
     [MenuItem("DungeonStory/Debug/Character/Prepare Plan Character AI Test Scene")]
@@ -99,6 +100,7 @@ public static class CharacterAiPlanDebugScenarios
         RunScenario("Social rumor spread and reputation", VerifySocialRumorSpreadAndReputation, errors);
         RunScenario("Facility rumor mood is capped per target", VerifyFacilityRumorMoodTargetCap, errors);
         RunScenario("Social character relationship and source trust", VerifySocialRelationshipAndSourceTrust, errors);
+        RunScenario("Relationship skill provenance", VerifyRelationshipSkillProvenance, errors);
         RunScenario("Social reputation affects facility utility", VerifySocialReputationAffectsFacilityScore, errors);
         RunScenario("RimWorld-style BT job giver responsibility", VerifyRimWorldStyleBtUtilityResponsibility, errors);
         RunScenario("Mood impulse JSON parser", VerifyMoodImpulseJsonParser, errors);
@@ -2100,6 +2102,163 @@ public static class CharacterAiPlanDebugScenarios
             {
                 Object.DestroyImmediate(runtimeObject);
             }
+        }
+    }
+
+    public static bool VerifyRelationshipSkillProvenance()
+    {
+        SocialReputationRuntime runtime = EnsureSocialRuntimeInstance(
+            out GameObject runtimeObject);
+        GameObject speakerObject = CreateActorObject(
+            "RelationshipSkillProvenanceSpeaker");
+        GameObject targetObject = CreateActorObject(
+            "RelationshipSkillProvenanceTarget");
+        CharacterSO speakerData = CreateCharacterData(
+            CharacterType.Customer,
+            "Provenance Speaker",
+            "Slime");
+        CharacterSO targetData = CreateCharacterData(
+            CharacterType.Customer,
+            "Provenance Target",
+            "Demon");
+        speakerData.id = 777211;
+        targetData.id = 777212;
+        try
+        {
+            runtime.ClearForDebug();
+            CharacterActor speaker = speakerObject.GetComponent<CharacterActor>();
+            CharacterActor target = targetObject.GetComponent<CharacterActor>();
+            speaker.EnsureRuntimeState();
+            target.EnsureRuntimeState();
+            speaker.Initialize(speakerData);
+            target.Initialize(targetData);
+            speaker.SetLifecycleState(CharacterLifecycleState.Active);
+            target.SetLifecycleState(CharacterLifecycleState.Active);
+            target.Identity.SetPersistentId(
+                "character:g13:relationship-provenance-target");
+
+            CharacterSkillInstance skill = new CharacterSkillInstance
+            {
+                id = "skill:g13:relationship-provenance",
+                combinationId = "combination:g13:relationship-provenance",
+                displayName = "온화한 교섭",
+                description = "긍정적인 관계 변화를 강화한다.",
+                kind = CharacterSkillKind.Passive,
+                trigger = CharacterSkillTrigger.RelationshipChanged,
+                target = CharacterSkillTarget.Ally,
+                modules = new List<CharacterSkillModuleSelection>
+                {
+                    new CharacterSkillModuleSelection
+                    {
+                        moduleId = "relationship",
+                        variantId = "small"
+                    }
+                }
+            };
+            speaker.Progression.GrowthState.passiveSkills.Add(skill);
+            string expectedProvenance = CharacterSkillRuntimeEffects
+                .CaptureManagementModifierProvenance(
+                    speaker,
+                    CharacterSkillTrigger.RelationshipChanged,
+                    new[] { "relationship" });
+            string mechanicsSha256 = CharacterSkillActivationTransaction
+                .ComputeMechanicsSha256(skill);
+            var rumor = new SocialRumor
+            {
+                type = SocialRumorType.Praise,
+                targetType = SocialRumorTargetType.Character,
+                targetCharacterId = target.Identity.PersistentId,
+                targetCharacterName = targetData.characterName,
+                sentiment = 0.5f,
+                spreadChance = 0f,
+                trustImpact = 0.1f,
+                validUntil = Time.time + 600f,
+                summary = "약속을 지켜 신뢰를 얻었다",
+                source = "G13ProvenanceTest"
+            };
+
+            bool applied = runtime.ApplyRumor(rumor, speaker);
+            SocialRumorSnapshot captured = SocialRumorSnapshot.Capture(
+                rumor,
+                Time.time);
+            SocialRumorSnapshot roundTrip = JsonUtility.FromJson<
+                SocialRumorSnapshot>(JsonUtility.ToJson(captured));
+            SocialRumor restored = roundTrip?.Restore(Time.time + 10f);
+            bool preserved = applied
+                && Mathf.Approximately(rumor.baseSentiment, 0.5f)
+                && Mathf.Approximately(rumor.sentiment, 0.52f)
+                && string.Equals(
+                    rumor.relationshipSkillModifierProvenance,
+                    expectedProvenance,
+                    System.StringComparison.Ordinal)
+                && expectedProvenance.Contains(
+                    "passive|" + skill.id + "|relationship|",
+                    System.StringComparison.Ordinal)
+                && expectedProvenance.EndsWith(
+                    "|" + mechanicsSha256,
+                    System.StringComparison.Ordinal)
+                && roundTrip != null
+                && restored != null
+                && Mathf.Approximately(roundTrip.baseSentiment, 0.5f)
+                && Mathf.Approximately(roundTrip.sentiment, 0.52f)
+                && Mathf.Approximately(restored.baseSentiment, 0.5f)
+                && Mathf.Approximately(restored.sentiment, 0.52f)
+                && string.Equals(
+                    restored.relationshipSkillModifierProvenance,
+                    expectedProvenance,
+                    System.StringComparison.Ordinal);
+            if (!preserved)
+                throw new System.InvalidOperationException(
+                    "Relationship skill provenance did not survive apply/save/restore.");
+
+            var validSave = new DungeonCharacterSaveData
+            {
+                persistentId = "character:g13:relationship-provenance-save",
+                acquiredTraits = new CharacterAcquiredTraitAggregateState(),
+                socialMemory = new CharacterSocialMemorySnapshot
+                {
+                    recentRumors = new List<SocialRumorSnapshot>
+                    {
+                        roundTrip.Clone()
+                    }
+                }
+            };
+            var validReport = new DungeonGameRestoreReport();
+            CharacterWorldSaveValidation.ValidateActor(
+                validSave,
+                validSave.persistentId,
+                validReport);
+            if (validReport.Errors.Any(value => value.Contains(
+                    "invalid rumor snapshot",
+                    System.StringComparison.Ordinal)))
+                throw new System.InvalidOperationException(
+                    "Valid relationship skill provenance failed save validation.");
+
+            SocialRumorSnapshot tampered = roundTrip.Clone();
+            tampered.relationshipSkillModifierProvenance = string.Empty;
+            validSave.socialMemory.recentRumors =
+                new List<SocialRumorSnapshot> { tampered };
+            var tamperedReport = new DungeonGameRestoreReport();
+            CharacterWorldSaveValidation.ValidateActor(
+                validSave,
+                validSave.persistentId,
+                tamperedReport);
+            if (!tamperedReport.Errors.Any(value => value.Contains(
+                    "invalid rumor snapshot",
+                    System.StringComparison.Ordinal)))
+                throw new System.InvalidOperationException(
+                    "Tampered relationship skill provenance was accepted.");
+
+            return true;
+        }
+        finally
+        {
+            Object.DestroyImmediate(speakerObject);
+            Object.DestroyImmediate(targetObject);
+            Object.DestroyImmediate(speakerData);
+            Object.DestroyImmediate(targetData);
+            if (runtimeObject != null)
+                Object.DestroyImmediate(runtimeObject);
         }
     }
 
@@ -4202,6 +4361,41 @@ public static class CharacterAiPlanDebugScenarios
             Object.DestroyImmediate(buildingObject);
             Object.DestroyImmediate(characterData);
             Object.DestroyImmediate(buildingData);
+        }
+    }
+
+    private sealed class PlanProbeVandalismCommand :
+        ICharacterVandalismCommand
+    {
+        internal static readonly PlanProbeVandalismCommand Instance = new();
+
+        private PlanProbeVandalismCommand()
+        {
+        }
+
+        public bool TryCommitDamage(
+            CharacterActor actor,
+            BuildableObject facility,
+            FacilityVandalismSourceKind source,
+            string reason,
+            IReadOnlyList<string> witnessPublicationKeys,
+            out string publicationKey,
+            out string failureReason)
+        {
+            publicationKey = string.Empty;
+            if (actor == null || facility == null || facility.IsGridDestroyed
+                || facility.IsDamaged || string.IsNullOrWhiteSpace(reason))
+            {
+                failureReason = "plan-probe-vandalism-precondition-failed";
+                return false;
+            }
+            facility.SetDamaged(true);
+            if (facility.IsDamaged)
+                publicationKey = "qa:plan-probe-vandalism";
+            failureReason = facility.IsDamaged
+                ? string.Empty
+                : "plan-probe-vandalism-damage-not-applied";
+            return facility.IsDamaged;
         }
     }
 

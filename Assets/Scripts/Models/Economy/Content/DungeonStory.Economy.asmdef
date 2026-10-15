@@ -5,6 +5,7 @@
     "DungeonStory.Automation",
     "DungeonStory.Buildings",
     "DungeonStory.Combat",
+    "DungeonStory.CoreSession",
     "DungeonStory.Environment",
     "DungeonStory.Foundation",
     "DungeonStory.Items",

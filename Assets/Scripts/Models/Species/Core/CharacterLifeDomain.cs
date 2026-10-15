@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 
 public enum AgeConditionSeverity
 {
@@ -137,12 +138,61 @@ public sealed class CharacterLifeRecordSaveData
 [Serializable]
 public sealed class CharacterLifeWorldSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 5;
     public int version = CurrentVersion;
     public List<CharacterLifeRecordSaveData> characters = new();
     public int nextTemporalStasisMaintenanceOperationSequence = 1;
     public TemporalStasisMaintenanceCommitSaveData
         pendingTemporalStasisMaintenance = new();
+    public List<AgeConditionAnatomyProjectionSaveData>
+        pendingAgeConditionAnatomyProjections = new();
+    public int lastAdvancedAbsoluteDay;
+    public CharacterLifeDailyObservationSaveData pendingDailyObservation = new();
+}
+
+public enum AgeConditionAnatomyProjectionPhase
+{
+    None = 0,
+    Pending = 1,
+    AnatomyApplied = 2
+}
+
+[Serializable]
+public sealed class AgeConditionAnatomyNodeDeltaSaveData
+{
+    public string nodeId = string.Empty;
+    public float maximumHealth;
+    public float healthBefore;
+    public float requestedDamage;
+    public float healthAfter;
+    public float bleedingBefore;
+    public float bleedingAfter;
+}
+
+[Serializable]
+public sealed class AgeConditionAnatomyProjectionSaveData
+{
+    public int phase;
+    public string operationId = string.Empty;
+    public string parentPublicationId = string.Empty;
+    public string parentPublicationKey = string.Empty;
+    public string characterDisplayName = string.Empty;
+    public string publicationKey = string.Empty;
+    public int absoluteDay;
+    public string characterId = string.Empty;
+    public string conditionId = string.Empty;
+    public int previousSeverity;
+    public int currentSeverity;
+    public bool newlyDiagnosed;
+    public bool resolved;
+    public int attemptCount;
+    public string lastFailureCode = string.Empty;
+    public bool actorDied;
+    public float aggregateMaximumHealth;
+    public float aggregateHealthBefore;
+    public float aggregateHealthAfter;
+    public bool aggregateWasDowned;
+    public List<AgeConditionAnatomyNodeDeltaSaveData> nodeDeltas = new();
 }
 
 public enum TemporalStasisMaintenanceCommitPhase
@@ -813,6 +863,29 @@ public sealed class CharacterLifeRestoreCandidate
     internal CharacterLifeAggregateState State { get; }
 }
 
+public interface IAgeConditionAnatomyProjectionStore
+{
+    IReadOnlyList<AgeConditionAnatomyProjectionSaveData>
+        PendingAgeConditionAnatomyProjections { get; }
+    void EnqueueAgeConditionAnatomyProjection(
+        AgeConditionAnatomyProjectionSaveData projection);
+    void RecordAgeConditionAnatomyApplied(
+        string operationId,
+        IReadOnlyList<AgeConditionAnatomyNodeDeltaSaveData> nodeDeltas,
+        float aggregateMaximumHealth,
+        float aggregateHealthBefore,
+        float aggregateHealthAfter,
+        bool aggregateWasDowned,
+        bool actorDied,
+        string characterDisplayName);
+    void RecordAgeConditionAnatomyPublication(string operationId, string publicationKey);
+    void ResetAgeConditionAnatomyProjection(string operationId);
+    void RecordAgeConditionAnatomyFailure(
+        string operationId,
+        string failureCode);
+    void CompleteAgeConditionAnatomyProjection(string operationId);
+}
+
 public readonly struct CharacterLifeStageTransition
 {
     public CharacterLifeStageTransition(
@@ -872,15 +945,21 @@ public sealed class CharacterLifeDailyAdvanceCandidate
 internal sealed class CharacterLifeAggregateState
 {
     internal Dictionary<CharacterId, CharacterLifeRecord> Characters { get; } = new();
+    internal int LastAdvancedAbsoluteDay { get; set; }
+    internal CharacterLifeDailyObservationSaveData PendingDailyObservation { get; set; } = new();
     internal int NextTemporalStasisMaintenanceOperationSequence { get; set; } = 1;
     internal TemporalStasisMaintenanceCommitSaveData
         PendingTemporalStasisMaintenance { get; set; } = new();
+    internal List<AgeConditionAnatomyProjectionSaveData>
+        PendingAgeConditionAnatomyProjections { get; } = new();
 
     internal CharacterLifeAggregateState DeepClone(
         ICharacterLifeDefinitionCatalog definitions)
     {
         CharacterLifeAggregateState clone = new()
         {
+            LastAdvancedAbsoluteDay = LastAdvancedAbsoluteDay,
+            PendingDailyObservation = CharacterLifeObservationState.Clone(PendingDailyObservation),
             NextTemporalStasisMaintenanceOperationSequence =
                 NextTemporalStasisMaintenanceOperationSequence,
             PendingTemporalStasisMaintenance =
@@ -894,6 +973,9 @@ internal sealed class CharacterLifeAggregateState
                 new CharacterSpeciesId(data.phenotypeSpeciesId));
             clone.Characters.Add(pair.Key, CharacterLifeRecord.Restore(data, history));
         }
+        clone.PendingAgeConditionAnatomyProjections.AddRange(
+            PendingAgeConditionAnatomyProjections.Select(
+                CloneAgeConditionAnatomyProjection));
 
         return clone;
     }
@@ -926,12 +1008,56 @@ internal sealed class CharacterLifeAggregateState
             commitId = source.commitId ?? string.Empty
         };
     }
+
+    internal static AgeConditionAnatomyProjectionSaveData
+        CloneAgeConditionAnatomyProjection(
+            AgeConditionAnatomyProjectionSaveData source)
+    {
+        source ??= new AgeConditionAnatomyProjectionSaveData();
+        return new AgeConditionAnatomyProjectionSaveData
+        {
+            phase = source.phase,
+            operationId = source.operationId ?? string.Empty,
+            parentPublicationId = source.parentPublicationId,
+            parentPublicationKey = source.parentPublicationKey,
+            characterDisplayName = source.characterDisplayName,
+            publicationKey = source.publicationKey,
+            absoluteDay = source.absoluteDay,
+            characterId = source.characterId ?? string.Empty,
+            conditionId = source.conditionId ?? string.Empty,
+            previousSeverity = source.previousSeverity,
+            currentSeverity = source.currentSeverity,
+            newlyDiagnosed = source.newlyDiagnosed,
+            resolved = source.resolved,
+            attemptCount = source.attemptCount,
+            lastFailureCode = source.lastFailureCode ?? string.Empty,
+            actorDied = source.actorDied,
+            aggregateMaximumHealth = source.aggregateMaximumHealth,
+            aggregateHealthBefore = source.aggregateHealthBefore,
+            aggregateHealthAfter = source.aggregateHealthAfter,
+            aggregateWasDowned = source.aggregateWasDowned,
+            nodeDeltas = (source.nodeDeltas
+                    ?? new List<AgeConditionAnatomyNodeDeltaSaveData>())
+                .Select(value => new AgeConditionAnatomyNodeDeltaSaveData
+                {
+                    nodeId = value?.nodeId ?? string.Empty,
+                    maximumHealth = value?.maximumHealth ?? 0f,
+                    healthBefore = value?.healthBefore ?? 0f,
+                    requestedDamage = value?.requestedDamage ?? 0f,
+                    healthAfter = value?.healthAfter ?? 0f,
+                    bleedingBefore = value?.bleedingBefore ?? 0f,
+                    bleedingAfter = value?.bleedingAfter ?? 0f
+                })
+                .ToList()
+        };
+    }
 }
 
 public sealed class CharacterLifeRuntime :
     ICharacterLifeQuery,
     ICharacterLifeCommand,
-    ICharacterLifePersistence
+    ICharacterLifePersistence,
+    IAgeConditionAnatomyProjectionStore
 {
     private const string AgingRandomStreamId = "population:aging";
     private readonly DungeonRuntimeAggregateRootStore rootStore;
@@ -952,8 +1078,17 @@ public sealed class CharacterLifeRuntime :
     }
 
     public int Version => version;
+    public int LastAdvancedAbsoluteDay => Current.LastAdvancedAbsoluteDay;
+    public CharacterLifeDailyObservationSaveData PendingDailyObservation =>
+        CharacterLifeObservationState.Clone(Current.PendingDailyObservation);
     public IReadOnlyCollection<CharacterLifeRecord> Records =>
         Current.Characters.Values;
+    public IReadOnlyList<AgeConditionAnatomyProjectionSaveData>
+        PendingAgeConditionAnatomyProjections =>
+        Current.PendingAgeConditionAnatomyProjections
+            .OrderBy(value => value.operationId, StringComparer.Ordinal)
+            .Select(CharacterLifeAggregateState.CloneAgeConditionAnatomyProjection)
+            .ToArray();
 
     public bool TryGet(CharacterId characterId, out CharacterLifeRecord record) =>
         Current.Characters.TryGetValue(characterId, out record);
@@ -1033,6 +1168,8 @@ public sealed class CharacterLifeRuntime :
             throw new InvalidOperationException(
                 "A character-life daily advance candidate is already active.");
         }
+        if (Current.PendingDailyObservation.entries.Count > 0)
+            throw new InvalidOperationException("life-daily-observation-pending");
 
         CharacterLifeAggregateState previousState = Current;
         CharacterLifeAggregateState nextState = previousState.DeepClone(definitions);
@@ -1095,6 +1232,52 @@ public sealed class CharacterLifeRuntime :
             changes.ToArray(),
             transitions.ToArray());
         return activeDailyAdvance;
+    }
+
+    public void StageDailyObservations(CharacterLifeDailyAdvanceCandidate candidate, int absoluteDay,
+        IReadOnlyList<CharacterLifeTransitionFact> facts, IReadOnlyList<string> publicationKeys)
+    {
+        RequireActiveDailyAdvance(candidate);
+        if (candidate.Published || absoluteDay <= Current.LastAdvancedAbsoluteDay || facts == null
+            || publicationKeys == null || facts.Count != publicationKeys.Count)
+            throw new InvalidOperationException("life-daily-observation-stage-invalid");
+        var expected = candidate.AgeConditionChanges.Select(value => CharacterLifeTransitionFact.FromAgeCondition(value, absoluteDay))
+            .Concat(candidate.LifeStageTransitions.Select(value => CharacterLifeTransitionFact.FromLifeStage(value, absoluteDay))).ToArray();
+        if (!expected.Select(value => value.DomainId).SequenceEqual(facts.Select(value => value?.DomainId)))
+            throw new InvalidOperationException("life-daily-observation-candidate-mismatch");
+        var pending = new CharacterLifeDailyObservationSaveData { absoluteDay = facts.Count == 0 ? 0 : absoluteDay,
+            entries = facts.Select((fact, index) => new CharacterLifeTransitionPublicationSaveData
+            { fact = fact.Snapshot(), publicationKey = publicationKeys[index] }).ToList() };
+        CharacterLifeObservationState.Validate(pending);
+        candidate.NextState.LastAdvancedAbsoluteDay = absoluteDay;
+        candidate.NextState.PendingDailyObservation = pending;
+    }
+
+    public CharacterLifeTransitionFact[] CompleteDailyObservations(IReadOnlyList<DomainFactDelivery> deliveries)
+    {
+        CharacterLifeAggregateState state = Writable;
+        var pending = state.PendingDailyObservation;
+        if (deliveries == null || pending.entries.Count != deliveries.Count)
+            throw new InvalidOperationException("life-daily-observation-delivery-count-invalid");
+        var facts = pending.entries.Select(row => new CharacterLifeTransitionFact(row.fact)).ToArray();
+        var projections = new List<AgeConditionAnatomyProjectionSaveData>();
+        for (int index = 0; index < facts.Length; index++)
+        {
+            CharacterLifeObservationState.RequireDelivery(deliveries[index], pending.entries[index].publicationKey);
+            if (facts[index].Kind != CharacterLifeTransitionKind.AgeCondition || facts[index].AgeChange.Resolved) continue;
+            var projection = CharacterLifeObservationState.Projection(facts[index], deliveries[index]);
+            ValidateAgeConditionAnatomyProjection(projection);
+            if (state.PendingAgeConditionAnatomyProjections.Any(row => row.operationId == projection.operationId))
+                throw new InvalidOperationException("life-daily-anatomy-projection-already-scheduled");
+            projections.Add(projection);
+        }
+        // Scheduling body work and clearing the observed daily cohort is one root publication.
+        var next = state.DeepClone(definitions);
+        next.PendingAgeConditionAnatomyProjections.AddRange(projections);
+        next.PendingDailyObservation = new CharacterLifeDailyObservationSaveData();
+        rootStore.Replace(next);
+        version = unchecked(version + 1);
+        return facts;
     }
 
     public void PublishDailyAdvance(CharacterLifeDailyAdvanceCandidate candidate)
@@ -1301,6 +1484,177 @@ public sealed class CharacterLifeRuntime :
                 $"Character life state '{characterId.Value}' is not registered.");
     }
 
+    public void EnqueueAgeConditionAnatomyProjection(
+        AgeConditionAnatomyProjectionSaveData projection)
+    {
+        ValidateAgeConditionAnatomyProjection(projection);
+        CharacterLifeAggregateState state = Writable;
+        AgeConditionAnatomyProjectionSaveData existing =
+            state.PendingAgeConditionAnatomyProjections.SingleOrDefault(value =>
+                string.Equals(
+                    value.operationId,
+                    projection.operationId,
+                    StringComparison.Ordinal));
+        if (existing != null)
+        {
+            if (existing.parentPublicationId != projection.parentPublicationId
+                || existing.parentPublicationKey != projection.parentPublicationKey
+                || !string.Equals(existing.characterId, projection.characterId,
+                    StringComparison.Ordinal)
+                || !string.Equals(existing.conditionId, projection.conditionId,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Conflicting age-condition anatomy projection replay.");
+            }
+            return;
+        }
+        state.PendingAgeConditionAnatomyProjections.Add(
+            CharacterLifeAggregateState.CloneAgeConditionAnatomyProjection(
+                projection));
+        version = unchecked(version + 1);
+    }
+
+    public void RecordAgeConditionAnatomyApplied(
+        string operationId,
+        IReadOnlyList<AgeConditionAnatomyNodeDeltaSaveData> nodeDeltas,
+        float aggregateMaximumHealth,
+        float aggregateHealthBefore,
+        float aggregateHealthAfter,
+        bool aggregateWasDowned,
+        bool actorDied,
+        string characterDisplayName)
+    {
+        AgeConditionAnatomyProjectionSaveData projection =
+            RequireAgeConditionAnatomyProjection(operationId);
+        if ((AgeConditionAnatomyProjectionPhase)projection.phase
+            == AgeConditionAnatomyProjectionPhase.AnatomyApplied)
+            throw new InvalidOperationException("Age-condition body effect is already applied; replay its frozen observation.");
+        if ((AgeConditionAnatomyProjectionPhase)projection.phase
+            != AgeConditionAnatomyProjectionPhase.Pending)
+        {
+            throw new InvalidOperationException(
+                "Age-condition anatomy projection phase is invalid.");
+        }
+        AgeConditionAnatomyNodeDeltaSaveData[] copied = (nodeDeltas
+                ?? throw new ArgumentNullException(nameof(nodeDeltas)))
+            .Select(CloneNodeDelta)
+            .ToArray();
+        if (copied.Length == 0
+            || copied.Any(value => string.IsNullOrWhiteSpace(value.nodeId)
+                || value.maximumHealth <= 0f
+                || value.healthBefore < value.healthAfter
+                || value.requestedDamage <= 0f))
+        {
+            throw new InvalidOperationException(
+                "Age-condition anatomy node deltas are invalid.");
+        }
+        var candidate = CharacterLifeAggregateState.CloneAgeConditionAnatomyProjection(projection);
+        candidate.nodeDeltas = copied.ToList(); candidate.actorDied = actorDied;
+        candidate.aggregateMaximumHealth = aggregateMaximumHealth; candidate.aggregateHealthBefore = aggregateHealthBefore;
+        candidate.aggregateHealthAfter = aggregateHealthAfter; candidate.aggregateWasDowned = aggregateWasDowned;
+        candidate.phase = (int)AgeConditionAnatomyProjectionPhase.AnatomyApplied;
+        candidate.characterDisplayName = characterDisplayName;
+        AgeConditionAnatomyAppliedFact.Validate(candidate);
+        projection.nodeDeltas = copied.ToList();
+        projection.characterDisplayName = characterDisplayName;
+        projection.actorDied = actorDied;
+        projection.aggregateMaximumHealth = aggregateMaximumHealth;
+        projection.aggregateHealthBefore = aggregateHealthBefore;
+        projection.aggregateHealthAfter = aggregateHealthAfter;
+        projection.aggregateWasDowned = aggregateWasDowned;
+        projection.phase = (int)AgeConditionAnatomyProjectionPhase.AnatomyApplied;
+        projection.lastFailureCode = string.Empty;
+        version = unchecked(version + 1);
+    }
+
+    public void ResetAgeConditionAnatomyProjection(string operationId)
+    {
+        AgeConditionAnatomyProjectionSaveData projection =
+            RequireAgeConditionAnatomyProjection(operationId);
+        projection.phase = (int)AgeConditionAnatomyProjectionPhase.Pending;
+        projection.nodeDeltas.Clear();
+        projection.actorDied = false;
+        projection.aggregateMaximumHealth = 0f;
+        projection.aggregateHealthBefore = 0f;
+        projection.aggregateHealthAfter = 0f;
+        projection.aggregateWasDowned = false;
+        projection.characterDisplayName = string.Empty;
+        projection.publicationKey = string.Empty;
+        version = unchecked(version + 1);
+    }
+
+    public void RecordAgeConditionAnatomyPublication(string operationId, string publicationKey)
+    {
+        var projection = RequireAgeConditionAnatomyProjection(operationId);
+        if (projection.phase != (int)AgeConditionAnatomyProjectionPhase.AnatomyApplied
+            || !DomainFactValueSyntax.IsText(publicationKey, 1024, false)
+            || projection.publicationKey.Length > 0 && projection.publicationKey != publicationKey)
+            throw new InvalidOperationException("age-anatomy-observation-key-conflict");
+        projection.publicationKey = publicationKey;
+        version = unchecked(version + 1);
+    }
+
+    public void RecordAgeConditionAnatomyFailure(
+        string operationId,
+        string failureCode)
+    {
+        AgeConditionAnatomyProjectionSaveData projection =
+            RequireAgeConditionAnatomyProjection(operationId);
+        projection.attemptCount = checked(projection.attemptCount + 1);
+        projection.lastFailureCode = string.IsNullOrWhiteSpace(failureCode)
+            ? "age-condition-anatomy-projection-failed"
+            : failureCode.Trim();
+        version = unchecked(version + 1);
+    }
+
+    public void CompleteAgeConditionAnatomyProjection(string operationId)
+    {
+        var projection = RequireAgeConditionAnatomyProjection(operationId);
+        if (projection.phase != (int)AgeConditionAnatomyProjectionPhase.AnatomyApplied
+            || !DomainFactValueSyntax.IsText(projection.publicationKey, 1024, false))
+            throw new InvalidOperationException("age-anatomy-observation-not-complete");
+        CharacterLifeAggregateState state = Writable;
+        int removed = state.PendingAgeConditionAnatomyProjections.RemoveAll(value =>
+            string.Equals(value.operationId, operationId, StringComparison.Ordinal));
+        if (removed != 1)
+        {
+            throw new InvalidOperationException(
+                "Age-condition anatomy projection completion was not exact.");
+        }
+        version = unchecked(version + 1);
+    }
+
+    private AgeConditionAnatomyProjectionSaveData
+        RequireAgeConditionAnatomyProjection(string operationId)
+    {
+        string canonical = operationId?.Trim() ?? string.Empty;
+        if (!IsCanonicalRequired(operationId)
+            || !string.Equals(canonical, operationId, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "A canonical projection operation ID is required.",
+                nameof(operationId));
+        }
+        return Writable.PendingAgeConditionAnatomyProjections.SingleOrDefault(value =>
+                   string.Equals(value.operationId, canonical,
+                       StringComparison.Ordinal))
+               ?? throw new InvalidOperationException(
+                   "Age-condition anatomy projection is missing.");
+    }
+
+    private static AgeConditionAnatomyNodeDeltaSaveData CloneNodeDelta(
+        AgeConditionAnatomyNodeDeltaSaveData value) => new()
+    {
+        nodeId = value?.nodeId?.Trim() ?? string.Empty,
+        maximumHealth = value?.maximumHealth ?? 0f,
+        healthBefore = value?.healthBefore ?? 0f,
+        requestedDamage = value?.requestedDamage ?? 0f,
+        healthAfter = value?.healthAfter ?? 0f,
+        bleedingBefore = value?.bleedingBefore ?? 0f,
+        bleedingAfter = value?.bleedingAfter ?? 0f
+    };
+
     private void RequireActiveDailyAdvance(
         CharacterLifeDailyAdvanceCandidate candidate)
     {
@@ -1313,6 +1667,8 @@ public sealed class CharacterLifeRuntime :
 
     public CharacterLifeWorldSaveData Capture() => new()
     {
+        lastAdvancedAbsoluteDay = Current.LastAdvancedAbsoluteDay,
+        pendingDailyObservation = CharacterLifeObservationState.Clone(Current.PendingDailyObservation),
         characters = Current.Characters.Values
             .OrderBy(value => value.CharacterId.Value, StringComparer.Ordinal)
             .Select(value => value.Capture())
@@ -1321,19 +1677,30 @@ public sealed class CharacterLifeRuntime :
             Current.NextTemporalStasisMaintenanceOperationSequence,
         pendingTemporalStasisMaintenance =
             CharacterLifeAggregateState.CloneTemporalStasisMaintenanceCommit(
-                Current.PendingTemporalStasisMaintenance)
+                Current.PendingTemporalStasisMaintenance),
+        pendingAgeConditionAnatomyProjections =
+            Current.PendingAgeConditionAnatomyProjections
+                .OrderBy(value => value.operationId, StringComparer.Ordinal)
+                .Select(CharacterLifeAggregateState
+                    .CloneAgeConditionAnatomyProjection)
+                .ToList()
     };
 
     public CharacterLifeRestoreCandidate PrepareRestore(CharacterLifeWorldSaveData data)
     {
         if (data == null || data.version != CharacterLifeWorldSaveData.CurrentVersion
-            || data.characters == null)
+            || data.characters == null || data.pendingAgeConditionAnatomyProjections == null
+            || data.lastAdvancedAbsoluteDay < 0)
         {
             throw new InvalidOperationException(
                 "Character-life payload is missing or has an unsupported version.");
         }
 
-        CharacterLifeAggregateState restored = new();
+        var daily = CharacterLifeObservationState.Clone(data.pendingDailyObservation);
+        if (daily.entries.Count > 0 && daily.absoluteDay != data.lastAdvancedAbsoluteDay)
+            throw new InvalidOperationException("life-daily-observation-day-conflict");
+        CharacterLifeAggregateState restored = new() { LastAdvancedAbsoluteDay = data.lastAdvancedAbsoluteDay,
+            PendingDailyObservation = daily };
         string previousId = string.Empty;
         foreach (CharacterLifeRecordSaveData source in data.characters)
         {
@@ -1364,8 +1731,70 @@ public sealed class CharacterLifeRuntime :
         restored.PendingTemporalStasisMaintenance =
             CharacterLifeAggregateState.CloneTemporalStasisMaintenanceCommit(
                 data.pendingTemporalStasisMaintenance);
+        foreach (AgeConditionAnatomyProjectionSaveData projection in
+                 data.pendingAgeConditionAnatomyProjections
+                 ?? new List<AgeConditionAnatomyProjectionSaveData>())
+        {
+            ValidateAgeConditionAnatomyProjection(projection);
+            if (restored.PendingAgeConditionAnatomyProjections.Any(value =>
+                    string.Equals(value.operationId, projection.operationId,
+                        StringComparison.Ordinal)))
+            {
+                throw new InvalidOperationException(
+                    "Duplicate age-condition anatomy projection operation.");
+            }
+            restored.PendingAgeConditionAnatomyProjections.Add(
+                CharacterLifeAggregateState.CloneAgeConditionAnatomyProjection(
+                    projection));
+        }
 
         return new CharacterLifeRestoreCandidate(restored);
+    }
+
+    private static void ValidateAgeConditionAnatomyProjection(
+        AgeConditionAnatomyProjectionSaveData projection)
+    {
+        if (projection == null)
+            throw new InvalidOperationException(
+                "Age-condition anatomy projection is missing.");
+        AgeConditionAnatomyProjectionPhase phase =
+            (AgeConditionAnatomyProjectionPhase)projection.phase;
+        bool validSeverity = Enum.IsDefined(
+                typeof(AgeConditionSeverity),
+                projection.previousSeverity)
+            && Enum.IsDefined(
+                typeof(AgeConditionSeverity),
+                projection.currentSeverity);
+        if (phase is not AgeConditionAnatomyProjectionPhase.Pending
+                and not AgeConditionAnatomyProjectionPhase.AnatomyApplied
+            || !IsCanonicalRequired(projection.operationId)
+            || !DomainFactValueSyntax.IsText(projection.parentPublicationId, 1024, false)
+            || !DomainFactValueSyntax.IsText(projection.parentPublicationKey, 1024, false)
+            || !DomainFactValueSyntax.IsText(projection.publicationKey, 1024, true)
+            || projection.absoluteDay <= 0
+            || !IsCanonicalRequired(projection.characterId)
+            || !IsCanonicalRequired(projection.conditionId)
+            || !validSeverity
+            || projection.resolved
+            || projection.attemptCount < 0
+            || (phase == AgeConditionAnatomyProjectionPhase.Pending
+                && ((projection.nodeDeltas?.Count ?? 0) != 0 || projection.characterDisplayName != string.Empty
+                    || projection.publicationKey != string.Empty))
+            || (phase == AgeConditionAnatomyProjectionPhase.AnatomyApplied
+                && ((projection.nodeDeltas?.Count ?? 0) == 0
+                    || projection.aggregateMaximumHealth <= 0f
+                    || projection.aggregateHealthBefore <
+                        projection.aggregateHealthAfter
+                    || projection.aggregateHealthBefore >
+                        projection.aggregateMaximumHealth)))
+        {
+            throw new InvalidOperationException(
+                "Age-condition anatomy projection payload is invalid.");
+        }
+        if (projection.operationId != AgeConditionAnatomyAppliedFact.Parent(projection).AnatomyOperationId)
+            throw new InvalidOperationException("age-anatomy-domain-identity-conflict");
+        if (phase == AgeConditionAnatomyProjectionPhase.AnatomyApplied)
+            AgeConditionAnatomyAppliedFact.Validate(projection);
     }
 
     private static void ValidateTemporalStasisMaintenance(

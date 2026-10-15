@@ -611,12 +611,12 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                 "production-destructive-drain-stock-sensor-child-orphan: "
                 + orphanStockSensorChild.stepOperationId);
         }
-        EnvironmentalFireDamageOutcomeSaveRecord orphanFireDamage =
+        EnvironmentalFireDamageRecord orphanFireDamage =
             (fire?.damageOperations
-                ?? new List<EnvironmentalFireDamageOutcomeSaveRecord>())
+                ?? new List<EnvironmentalFireDamageRecord>())
             .FirstOrDefault(value => value != null
                 && value.phase ==
-                    EnvironmentalFireDamageOutcomePhase.AwaitingWorldRemoval
+                    EnvironmentalFireDamagePhase.AwaitingWorldRemoval
                 && !joinedFireDamageOperations.Contains(
                     value.operationId ?? string.Empty));
         if (orphanFireDamage != null)
@@ -629,7 +629,7 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
 
     private static void ValidateFireDamageOutcomeJoin(
         ProductionFacilityDestructiveDrainEntrySaveData entry,
-        IReadOnlyList<EnvironmentalFireDamageOutcomeSaveRecord> operations,
+        IReadOnlyList<EnvironmentalFireDamageRecord> operations,
         ISet<string> joined)
     {
         ProductionFacilityDestructiveDrainParticipantSaveData row = entry
@@ -651,8 +651,8 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                     "production-destructive-drain-fire-damage-owner-invalid");
             }
             string operationId = owner.ownerStableId.Substring(Prefix.Length);
-            EnvironmentalFireDamageOutcomeSaveRecord operation = (operations
-                    ?? Array.Empty<EnvironmentalFireDamageOutcomeSaveRecord>())
+            EnvironmentalFireDamageRecord operation = (operations
+                    ?? Array.Empty<EnvironmentalFireDamageRecord>())
                 .SingleOrDefault(value => value != null
                     && string.Equals(value.operationId, operationId,
                         StringComparison.Ordinal));
@@ -664,9 +664,9 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                 || !string.Equals(operation.requestFingerprint,
                     owner.requestFingerprint, StringComparison.Ordinal)
                 || operation.phase ==
-                    EnvironmentalFireDamageOutcomePhase.Prepared
-                || operation.phase ==
-                        EnvironmentalFireDamageOutcomePhase.OutcomeCommitted
+                    EnvironmentalFireDamagePhase.Prepared
+                || operation.phase is
+                        EnvironmentalFireDamagePhase.Delivered or EnvironmentalFireDamagePhase.Applied
                     && (owner.phase !=
                             ProductionFacilityDestructiveDrainStepPhase
                                 .OwnerAcknowledged
@@ -713,10 +713,10 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
     private static bool HasAnyFireDamageDestructiveDrainOwner(
         DungeonEnvironmentalFireSaveData payload) =>
         (payload?.damageOperations
-                ?? new List<EnvironmentalFireDamageOutcomeSaveRecord>())
+                ?? new List<EnvironmentalFireDamageRecord>())
             .Any(value => value != null
                 && value.phase ==
-                    EnvironmentalFireDamageOutcomePhase.AwaitingWorldRemoval);
+                    EnvironmentalFireDamagePhase.AwaitingWorldRemoval);
 
     private void ValidateWorkOrderDestructiveDrainJoins(
         DungeonWorkOrderSaveData workOrders,
@@ -2009,7 +2009,7 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                     maintenance),
             [ProductionOutputDestinationDurableSaveProjector
                 .FireDamageContributorId] =
-                EnvironmentalFireDamageOutcomeAuthority
+                EnvironmentalFireDamageAuthority
                     .ProjectFacilityContribution(
                         facilityId,
                         fire?.damageOperations),

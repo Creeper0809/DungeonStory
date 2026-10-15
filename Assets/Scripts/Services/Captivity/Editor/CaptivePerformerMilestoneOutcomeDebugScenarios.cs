@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.Narrative.Korean;
 using UnityEngine;
 
@@ -22,30 +23,12 @@ public static class CaptivePerformerMilestoneOutcomeDebugScenarios
 
     private static void VerifyCanonicalLedgerPath()
     {
-        GameplayOutcomeRegistry registry = new(
-            new IGameplayOutcomeDescriptor[]
-            {
-                new CaptivePerformerMilestoneOutcomeDescriptor(
-                    new KoreanJosaFormatter())
-            },
-            new IGameplayOutcomeAdapterRegistration[]
-            {
-                new CaptivePerformerMilestoneOutcomeAdapter()
-            });
-        GameplayOutcomeLedger ledger = NewLedger(
-            registry,
-            "run:captive-performer-milestone");
-        GameplayOutcomeRecorder recorder = new(
-            ledger,
-            registry,
-            new GameEventBus());
-        CaptivePerformerMilestoneGameplayOutcomeBridge bridge = new(
-            recorder,
-            ledger);
         RecordingObserver observers = new();
-        CaptivePerformerMilestoneOutcomeRuntime runtime = new(
-            bridge,
+        using MilestoneFixture fixture = new(
+            "run:captive-performer-milestone",
             observers);
+        CaptivePerformerMilestoneOutcomeRuntime runtime = fixture.Runtime;
+        GameplayOutcomeLedger ledger = fixture.Ledger;
         CaptiveState state = PerformerState();
 
         Require(
@@ -61,7 +44,9 @@ public static class CaptivePerformerMilestoneOutcomeDebugScenarios
             && state.performerMilestoneOutcomeRevision == 3L
             && state.carePriorityOutcomeRevision == 1L
             && state.staffContractOutcomeRevision == 2L
-            && state.finalContractOutcomeRevision == 3L,
+            && state.finalContractOutcomeRevision == 3L
+            && state.performerMilestones.Count == 3
+            && state.performerMilestones.All(value => !value.pending),
             "milestone state did not commit in 50/75/100 revision order");
         Require(
             observers.Thresholds.SequenceEqual(new[] { 50, 75, 100 })
@@ -126,26 +111,31 @@ public static class CaptivePerformerMilestoneOutcomeDebugScenarios
             "canonical milestone replay failed: " + replayFailure);
         Require(
             replayState.performerMilestoneOutcomeRevision == 3L
+            && replayState.performerMilestones.Count == 3
+            && replayState.performerMilestones.All(value => !value.pending)
             && ledger.GetGlobal(
                 OutcomeCursor.FirstPage(10),
                 OutcomeFilter.All).Items.Count == 3
             && observers.Thresholds.Count == 3,
             "canonical replay duplicated outcomes or transient observers");
 
-        CaptivePerformerMilestoneOutcomeReceipt drifted = new(
-            CaptiveId,
-            Name(),
-            50,
-            99f,
-            1L,
-            7);
+        CaptivePerformerMilestoneUnlockedFact drifted = new(
+            new CaptivePerformerMilestoneFactData
+            {
+                captiveId = CaptiveId,
+                displayName = "가람",
+                threshold = 50,
+                fame = 99f,
+                revision = 1L,
+                absoluteDay = 7
+            });
         Require(
-            !bridge.TryPrepare(drifted, out _, out _),
+            !fixture.Facts.Replay(drifted).MayBeCommitted,
             "same milestone result key accepted a drifted receipt");
 
         GameplayOutcomeLedgerSaveData saved = ledger.CaptureGameplayOutcomes();
         GameplayOutcomeLedger restored = NewLedger(
-            registry,
+            fixture.Registry,
             "run:captive-performer-milestone-restore");
         restored.BeginRestoreCandidate();
         GameplayOutcomeLedgerRestoreCandidate candidate =
@@ -173,91 +163,125 @@ public static class CaptivePerformerMilestoneOutcomeDebugScenarios
     {
         CaptiveState rejected = PerformerState(50f);
         rejected.lastResult = "공연 완료";
-        ConfigurableCommitter rejectCommitter = new(
-            OwnerOutcomeCommitPhase.Rejected,
-            "qa-definite-rejection");
         RecordingObserver rejectObserver = new();
-        CaptivePerformerMilestoneOutcomeRuntime rejectRuntime = new(
-            rejectCommitter,
-            rejectObserver);
-        Require(
-            !rejectRuntime.TryCommitEligibleMilestones(
-                rejected,
-                9,
-                out string rejectFailure)
-            && rejectFailure.Contains("qa-definite-rejection", StringComparison.Ordinal)
-            && rejected.performerFame == 50f
-            && !rejected.carePriorityUnlocked
-            && rejected.performerMilestoneOutcomeRevision == 0L
-            && rejected.carePriorityOutcomeRevision == 0L
-            && rejected.lastResult == "공연 완료"
-            && rejectObserver.Thresholds.Count == 0,
-            "definite commit rejection did not roll back only milestone state");
+        using (MilestoneFixture fixture = new(
+                   "run:captive-performer-milestone-reject",
+                   rejectObserver,
+                   StageBehavior.RejectCommit))
+        {
+            Require(
+                !fixture.Runtime.TryCommitEligibleMilestones(
+                    rejected,
+                    9,
+                    out string rejectFailure)
+                && rejectFailure.Contains(
+                    "qa-definite-rejection",
+                    StringComparison.Ordinal)
+                && rejected.performerFame == 50f
+                && !rejected.carePriorityUnlocked
+                && rejected.performerMilestoneOutcomeRevision == 0L
+                && rejected.carePriorityOutcomeRevision == 0L
+                && rejected.performerMilestones.Count == 0
+                && rejected.lastResult == "공연 완료"
+                && rejectObserver.Thresholds.Count == 0,
+                "definite commit rejection did not roll back only milestone state");
+        }
 
         CaptiveState prepareFailed = PerformerState(50f);
-        ConfigurableCommitter prepareFailure = new(
-            OwnerOutcomeCommitPhase.PublishedAcknowledged,
-            string.Empty,
-            prepareSucceeds: false);
-        Require(
-            !new CaptivePerformerMilestoneOutcomeRuntime(
-                    prepareFailure,
-                    new RecordingObserver())
-                .TryCommitEligibleMilestones(
+        using (MilestoneFixture fixture = new(
+                   "run:captive-performer-milestone-prepare-reject",
+                   new RecordingObserver(),
+                   StageBehavior.RejectPrepare))
+        {
+            Require(
+                !fixture.Runtime.TryCommitEligibleMilestones(
                     prepareFailed,
                     9,
                     out _)
-            && prepareFailed.performerFame == 50f
-            && !prepareFailed.carePriorityUnlocked
-            && prepareFailed.performerMilestoneOutcomeRevision == 0L,
-            "prepare failure changed earned fame or milestone state");
+                && prepareFailed.performerFame == 50f
+                && !prepareFailed.carePriorityUnlocked
+                && prepareFailed.performerMilestoneOutcomeRevision == 0L
+                && prepareFailed.performerMilestones.Count == 0,
+                "prepare failure changed earned fame or milestone state");
+        }
 
         CaptiveState deliveryPending = PerformerState(50f);
         RecordingObserver pendingObserver = new();
-        Require(
-            new CaptivePerformerMilestoneOutcomeRuntime(
-                    new ConfigurableCommitter(
-                        OwnerOutcomeCommitPhase.CommittedPendingDelivery,
-                        "qa-delivery-pending"),
-                    pendingObserver)
-                .TryCommitEligibleMilestones(
+        using (MilestoneFixture fixture = new(
+                   "run:captive-performer-milestone-pending",
+                   pendingObserver,
+                   StageBehavior.PendingDelivery))
+        {
+            Require(
+                fixture.Runtime.TryCommitEligibleMilestones(
                     deliveryPending,
                     9,
                     out string pendingFailure)
-            && pendingFailure.Length == 0
-            && deliveryPending.carePriorityUnlocked
-            && deliveryPending.performerMilestoneOutcomeRevision == 1L
-            && pendingObserver.Thresholds.SequenceEqual(new[] { 50 }),
-            "durable pending delivery was treated as a rollback");
+                && pendingFailure.Contains(
+                    "captive-milestone-delivery-pending",
+                    StringComparison.Ordinal)
+                && deliveryPending.carePriorityUnlocked
+                && deliveryPending.performerMilestoneOutcomeRevision == 1L
+                && deliveryPending.performerMilestones.Count == 1
+                && deliveryPending.performerMilestones[0].pending
+                && deliveryPending.performerMilestones[0].observersPending
+                && pendingObserver.Thresholds.Count == 0,
+                "durable pending delivery was treated as a rollback or notified early");
+            Require(
+                fixture.Runtime.TryCommitNextPendingMilestone(
+                    new[] { deliveryPending },
+                    9,
+                    out bool attempted,
+                    out string recoveryFailure)
+                && attempted
+                && recoveryFailure.Length == 0
+                && !deliveryPending.performerMilestones[0].pending
+                && !deliveryPending.performerMilestones[0].observersPending
+                && pendingObserver.Thresholds.SequenceEqual(new[] { 50 })
+                && fixture.Runtime.TryCommitNextPendingMilestone(
+                    new[] { deliveryPending },
+                    9,
+                    out bool repeated,
+                    out _)
+                && !repeated
+                && pendingObserver.Thresholds.SequenceEqual(new[] { 50 }),
+                "pending milestone recovery did not notify exactly once");
+        }
 
         CaptiveState observerFault = PerformerState(50f);
         RecordingObserver throwingObserver = new(throwOnNotification: true);
-        Require(
-            new CaptivePerformerMilestoneOutcomeRuntime(
-                    new ConfigurableCommitter(
-                        OwnerOutcomeCommitPhase.PublishedAcknowledged,
-                        string.Empty),
-                    throwingObserver)
-                .TryCommitEligibleMilestones(
+        using (MilestoneFixture fixture = new(
+                   "run:captive-performer-milestone-observer-fault",
+                   throwingObserver))
+        {
+            Require(
+                fixture.Runtime.TryCommitEligibleMilestones(
                     observerFault,
                     9,
                     out string observerFailure)
-            && observerFailure.Length == 0
-            && observerFault.carePriorityUnlocked
-            && observerFault.performerMilestoneOutcomeRevision == 1L,
-            "observer exception escaped or rolled back a durable milestone");
+                && observerFailure.Length == 0
+                && observerFault.carePriorityUnlocked
+                && observerFault.performerMilestoneOutcomeRevision == 1L
+                && !observerFault.performerMilestones.Single().pending,
+                "observer exception escaped or rolled back a durable milestone");
+        }
     }
 
     private static void VerifyCaptivitySaveCompatibility()
     {
         CaptiveState committed = PerformerState();
-        committed.carePriorityUnlocked = true;
-        committed.staffContractUnlocked = true;
-        committed.finalContractPending = true;
-        committed.performerMilestoneOutcomeRevision = 3L;
-        committed.carePriorityOutcomeRevision = 1L;
-        committed.staffContractOutcomeRevision = 2L;
-        committed.finalContractOutcomeRevision = 3L;
+        using (MilestoneFixture fixture = new(
+                   "run:captive-performer-milestone-save",
+                   new RecordingObserver()))
+        {
+            Require(
+                fixture.Runtime.TryCommitEligibleMilestones(
+                    committed,
+                    7,
+                    out string commitFailure),
+                "save fixture could not commit milestone observations: "
+                + commitFailure);
+        }
         CaptivitySaveData source = Save(committed);
         CaptivitySaveData roundTrip = JsonUtility.FromJson<CaptivitySaveData>(
             JsonUtility.ToJson(source));
@@ -266,7 +290,8 @@ public static class CaptivePerformerMilestoneOutcomeDebugScenarios
         Require(
             roundTripReport.Success
             && roundTrip.captives.Single().performerMilestoneOutcomeRevision == 3L
-            && roundTrip.captives.Single().finalContractOutcomeRevision == 3L,
+            && roundTrip.captives.Single().finalContractOutcomeRevision == 3L
+            && roundTrip.captives.Single().performerMilestones.Count == 3,
             "captivity save round trip lost milestone revisions: "
             + string.Join(" | ", roundTripReport.Errors));
 
@@ -333,18 +358,6 @@ public static class CaptivePerformerMilestoneOutcomeDebugScenarios
         }
     };
 
-    private static KoreanNameSnapshot Name()
-    {
-        string revision = "captivity-performer-display-v1:"
-            + NarrativeInferenceHash.ComputeSha256Utf8(CaptiveId + "|가람");
-        return new KoreanNameSnapshot(
-            "가람",
-            revision,
-            KoreanPronunciationHint.AutoHangulDisplay(
-                "captivity-performer-pronunciation-v1:" + CaptiveId),
-            "ko-KR");
-    }
-
     private static double Metric(GameplayOutcomeSnapshot snapshot, string metricId) =>
         snapshot.metrics.Single(value => value.metricId == metricId).value;
 
@@ -354,54 +367,140 @@ public static class CaptivePerformerMilestoneOutcomeDebugScenarios
             throw new InvalidOperationException(message);
     }
 
-    private sealed class ConfigurableCommitter :
-        ICaptivePerformerMilestoneOutcomeCommitter
+    private enum StageBehavior
     {
-        private readonly OwnerOutcomeCommitPhase phase;
-        private readonly string detail;
-        private readonly bool prepareSucceeds;
+        None,
+        RejectPrepare,
+        RejectCommit,
+        PendingDelivery
+    }
 
-        public ConfigurableCommitter(
-            OwnerOutcomeCommitPhase phase,
-            string detail,
-            bool prepareSucceeds = true)
+    private sealed class MilestoneFixture : IDisposable
+    {
+        private readonly IDisposable observation;
+
+        public MilestoneFixture(
+            string runId,
+            RecordingObserver observers,
+            StageBehavior behavior = StageBehavior.None)
         {
-            this.phase = phase;
-            this.detail = detail ?? string.Empty;
-            this.prepareSucceeds = prepareSucceeds;
+            Registry = new GameplayOutcomeRegistry(
+                new IGameplayOutcomeDescriptor[]
+                {
+                    new CaptivePerformerMilestoneOutcomeDescriptor(
+                        new KoreanJosaFormatter())
+                },
+                new IGameplayOutcomeAdapterRegistration[]
+                {
+                    new CaptivePerformerMilestoneOutcomeAdapter()
+                });
+            Ledger = NewLedger(Registry, runId);
+            GameplayOutcomeRecorder recorder = new(
+                Ledger,
+                Registry,
+                new GameEventBus());
+            Facts = new DomainFactDispatcher();
+            observation = Facts.Subscribe(
+                "captive-performer-milestone:fixture",
+                new GameplayDomainFactObserver<
+                    CaptivePerformerMilestoneUnlockedFact,
+                    CaptivePerformerMilestoneOutcomeReceipt>(
+                    CaptivePerformerMilestoneFactMapping.Capture,
+                    Registry,
+                    Ledger,
+                    recorder,
+                    new GameplayDomainFactCommitGroup(recorder, Ledger)));
+            IDomainFactStagingPublisher publisher = behavior == StageBehavior.None
+                ? Facts
+                : new ConfigurableStagingPublisher(Facts, behavior);
+            Runtime = new CaptivePerformerMilestoneOutcomeRuntime(
+                publisher,
+                Facts,
+                observers ?? throw new ArgumentNullException(nameof(observers)));
         }
 
-        public bool TryPrepare(
-            in CaptivePerformerMilestoneOutcomeReceipt receipt,
-            out PreparedCaptivePerformerMilestoneOutcome prepared,
+        public GameplayOutcomeRegistry Registry { get; }
+        public GameplayOutcomeLedger Ledger { get; }
+        public DomainFactDispatcher Facts { get; }
+        public CaptivePerformerMilestoneOutcomeRuntime Runtime { get; }
+
+        public void Dispose()
+        {
+            observation.Dispose();
+            Facts.Dispose();
+        }
+    }
+
+    private sealed class ConfigurableStagingPublisher :
+        IDomainFactStagingPublisher
+    {
+        private readonly IDomainFactStagingPublisher inner;
+        private readonly StageBehavior behavior;
+
+        public ConfigurableStagingPublisher(
+            IDomainFactStagingPublisher inner,
+            StageBehavior behavior)
+        {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            this.behavior = behavior;
+        }
+
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
             out string failureReason)
         {
-            if (!prepareSucceeds)
+            if (behavior == StageBehavior.RejectPrepare)
             {
-                prepared = default;
+                stage = null;
                 failureReason = "qa-prepare-rejected";
                 return false;
             }
-            prepared = new PreparedCaptivePerformerMilestoneOutcome(
-                default,
-                receipt.ResultKey,
-                receipt.OwnerRevision,
-                false);
-            failureReason = string.Empty;
+            if (!inner.TryStage(fact, out stage, out failureReason))
+                return false;
+            stage = new ConfigurableStage(stage, behavior);
             return true;
         }
+    }
 
-        public OwnerOutcomeCommitResult Commit(
-            in PreparedCaptivePerformerMilestoneOutcome prepared) => new(
-            phase,
-            prepared.ResultKey,
-            default,
-            string.Empty,
-            detail);
+    private sealed class ConfigurableStage : IDomainFactStage
+    {
+        private readonly IDomainFactStage inner;
+        private readonly StageBehavior behavior;
 
-        public void Cancel(in PreparedCaptivePerformerMilestoneOutcome prepared)
+        public ConfigurableStage(
+            IDomainFactStage inner,
+            StageBehavior behavior)
         {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            this.behavior = behavior;
         }
+
+        public string OperationKey => inner.OperationKey;
+        public long OwnerRevision => inner.OwnerRevision;
+        public bool IsReplay => inner.IsReplay;
+        public bool IsActive => inner.IsActive;
+
+        public DomainFactDelivery Commit()
+        {
+            if (behavior == StageBehavior.RejectCommit)
+            {
+                inner.Cancel();
+                return DomainFactDelivery.Reject("qa-definite-rejection");
+            }
+            DomainFactDelivery delivery = inner.Commit();
+            return behavior == StageBehavior.PendingDelivery
+                && delivery.MayBeCommitted
+                    ? new DomainFactDelivery(
+                        DomainFactDeliveryPhase.AcceptedPendingDelivery,
+                        delivery.OperationKey,
+                        delivery.PublicationId,
+                        delivery.Fingerprint,
+                        "qa-delivery-pending")
+                    : delivery;
+        }
+
+        public void Cancel() => inner.Cancel();
     }
 
     private sealed class RecordingObserver : ICaptivityPerformerPort

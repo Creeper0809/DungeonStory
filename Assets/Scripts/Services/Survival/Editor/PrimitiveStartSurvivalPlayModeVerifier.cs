@@ -883,13 +883,18 @@ public sealed class PrimitiveStartSurvivalPlayModeRunner : MonoBehaviour
                                 value.ProjectId.Value,
                                 definition.ResearchProjectId,
                                 StringComparison.Ordinal));
-                    BlueprintResearchUnlockResult unlock =
-                        BlueprintResearchService.ApplyCompletion(
-                            project,
-                            progression.BlueprintResearch.State,
-                            progression.BlueprintResearch.ShopUnlockState,
-                            facilityCatalog);
-                    events.Publish(new BlueprintResearchCompletedEvent(project, unlock));
+                    bool researchCompleted = progression.BlueprintResearch
+                        .TryCompleteProjectImmediatelyForVerification(
+                            project.ProjectId,
+                            out string completionFailure);
+                    Check(researchCompleted,
+                        prefix + "_RESEARCH_COMPLETION_" + population
+                        + "_" + tierIndex,
+                        researchCompleted
+                            ? "completed=" + project.ProjectId.Value
+                            : "failure=" + completionFailure);
+                    if (!researchCompleted)
+                        yield break;
                     yield return null;
                 }
 

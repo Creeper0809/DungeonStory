@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
@@ -92,8 +93,65 @@ public static class CharacterSkillRuntimeEffects
             .Concat(progression.OwnerFixedSkills)
             .Where(item => item != null && item.trigger == context.Trigger))
         {
-            ExecuteSkill(context, passive);
+            if (!HasImmediateAutomaticEffect(context, passive))
+                continue;
+            ICharacterSkillActivationTransaction transactions =
+                progression.SkillActivationTransactions;
+            if (transactions == null)
+            {
+#if UNITY_EDITOR
+                ExecuteSkill(context, passive);
+                continue;
+#else
+                throw new InvalidOperationException(
+                    "Character automatic skill activation transaction is unavailable.");
+#endif
+            }
+            bool accepted = transactions.TryCommitAutomatic(
+                    new CharacterSkillAutomaticActivationRequest(
+                        context,
+                        passive,
+                        CharacterSkillActivationKind.AutomaticPassive,
+                        context.EventId),
+                    out _,
+                    out string failureReason);
+            if (!accepted && !string.Equals(
+                    failureReason,
+                    "skill-automatic-activation-no-effect",
+                    StringComparison.Ordinal))
+            {
+                Debug.LogWarning(
+                    $"Automatic passive '{passive.id}' was rejected: "
+                    + failureReason,
+                    context.Actor);
+            }
+            else if (accepted && !string.IsNullOrEmpty(failureReason))
+                Debug.LogWarning($"Automatic passive '{passive.id}' applied; observation pending: {failureReason}", context.Actor);
         }
+    }
+
+    private static bool HasImmediateAutomaticEffect(
+        CharacterSkillExecutionContext context,
+        CharacterSkillInstance skill)
+    {
+        if (context?.BattleSession != null)
+            return ToCombatAbility(skill, RequireSettings(context.Actor)) != null;
+        foreach (CharacterSkillModuleSelection selection in skill?.modules
+            ?? new List<CharacterSkillModuleSelection>())
+        {
+            CharacterSkillModuleRule module = FindModule(
+                selection,
+                RequireSettings(context.Actor));
+            string capability = CharacterSkillModuleCapabilityRegistry
+                .Require(module)
+                .CapabilityId;
+            if (capability is "damage" or "heal" or "guard" or "protect"
+                or "cleanse" or "needs" or "mood" or "cleaning")
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void ExecuteSkill(CharacterSkillExecutionContext context, CharacterSkillInstance skill)
@@ -331,6 +389,117 @@ public static class CharacterSkillRuntimeEffects
         return Mathf.Clamp(sentiment + points / 100f, -1f, 1f);
     }
 
+    public static string CaptureWorkModifierProvenance(
+        CharacterActor actor,
+        WorkTypeId workTypeId)
+    {
+        if (actor?.Progression == null || !workTypeId.IsValid)
+            return WorkCompletionIdentityReferenceDefaults.None;
+
+        var moduleIds = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "work_speed"
+        };
+        if (workTypeId == BuiltInWorkTypeIds.Operate
+            || workTypeId == BuiltInWorkTypeIds.Research)
+        {
+            moduleIds.Add("output");
+            moduleIds.Add("stock");
+        }
+        if (workTypeId == BuiltInWorkTypeIds.Research)
+            moduleIds.Add("research");
+        if (workTypeId == BuiltInWorkTypeIds.Repair)
+            moduleIds.Add("repair");
+        if (workTypeId == BuiltInWorkTypeIds.Clean)
+            moduleIds.Add("cleaning");
+        if (workTypeId == BuiltInWorkTypeIds.Reception)
+            moduleIds.Add("revenue");
+
+        return CaptureManagementModifierProvenance(
+            actor,
+            CharacterSkillTrigger.WorkCompleted,
+            moduleIds);
+    }
+
+    public static string CaptureManagementModifierProvenance(
+        CharacterActor actor,
+        CharacterSkillTrigger passiveTrigger,
+        IEnumerable<string> moduleIds)
+    {
+        CharacterProgression progression = actor?.Progression;
+        if (progression == null)
+            return WorkCompletionIdentityReferenceDefaults.None;
+
+        string[] relevantModuleIds = (moduleIds ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        if (relevantModuleIds.Length == 0)
+            return WorkCompletionIdentityReferenceDefaults.None;
+
+        var sources = new List<(CharacterSkillInstance skill, string kind)>();
+        sources.AddRange(progression.PassiveSkills
+            .Where(value => value != null
+                && value.trigger == passiveTrigger)
+            .Select(value => (value, "passive")));
+        sources.AddRange(progression.OwnerFixedSkills
+            .Where(value => value != null
+                && value.trigger == passiveTrigger)
+            .Select(value => (value, "owner-fixed")));
+        if (actor.TryGetAbility(out AbilityWork work)
+            && work.GameCalendar != null)
+        {
+            sources.AddRange(CharacterManualSkillRuntime
+                .GetActiveBuffSkills(actor, work.GameCalendar.AbsoluteHour)
+                .Where(value => value != null)
+                .Select(value => (value, "manual-buff")));
+        }
+        CharacterSkillInstance ultimate = progression.Ultimate;
+        if (ultimate != null
+            && ultimate.ultimateDomain == CharacterUltimateDomain.Management
+            && progression.GrowthState?.useLimits?.managementOperatingDay >= 0)
+        {
+            sources.Add((ultimate, "management-ultimate"));
+        }
+
+        string[] entries = sources
+            .SelectMany(source => relevantModuleIds.Select(moduleId => new
+            {
+                source.skill,
+                source.kind,
+                moduleId,
+                value = GetModuleTotal(
+                    source.skill,
+                    moduleId,
+                    progression.SkillSettings)
+            }))
+            .Where(value => value.value > 0f)
+            .Select(value => string.Join("|",
+                value.kind,
+                value.skill.id,
+                value.moduleId,
+                value.value.ToString("R", CultureInfo.InvariantCulture),
+                CharacterSkillActivationTransaction.ComputeMechanicsSha256(
+                    value.skill)))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string canonical = entries.Length == 0
+            ? WorkCompletionIdentityReferenceDefaults.None
+            : string.Join(";", entries);
+        if (!DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(
+                canonical,
+                CharacterSkillActivationFact.MaximumStateCharacters,
+                allowEmpty: false))
+        {
+            throw new InvalidOperationException(
+                "Character skill modifier provenance exceeds the domain fact limit.");
+        }
+        return canonical;
+    }
+
     public static float GetManagementModuleTotal(
         CharacterActor actor,
         string moduleId,
@@ -506,6 +675,21 @@ public static class CharacterSkillRuntimeEffects
         }
 
         return true;
+    }
+
+    internal static OffenseBattleCombatant ResolveBattleSourceForActivation(
+        CharacterSkillExecutionContext context) =>
+        ResolveBattleSource(context);
+
+    internal static IReadOnlyList<OffenseBattleCombatant>
+        ResolveBattleTargetsForActivation(
+            CharacterSkillExecutionContext context,
+            CharacterSkillInstance skill)
+    {
+        OffenseBattleCombatant source = ResolveBattleSource(context);
+        return source == null
+            ? Array.Empty<OffenseBattleCombatant>()
+            : ResolveBattleTargets(context, skill, source).ToArray();
     }
 
     private static OffenseBattleCombatant ResolveBattleSource(CharacterSkillExecutionContext context)
@@ -812,24 +996,28 @@ public sealed class CharacterSkillAutomaticTriggerRuntime :
 {
     private readonly ICharacterWorldQuery characterWorld;
     private readonly IGameEventBus gameEventBus;
+    private readonly ICharacterSkillActivationTransaction activationTransactions;
     private IDisposable invasionSpawnedSubscription;
     private IDisposable operatingDayStartedSubscription;
 
     public CharacterSkillAutomaticTriggerRuntime(
         ICharacterWorldQuery characterWorld,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        ICharacterSkillActivationTransaction activationTransactions)
     {
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.activationTransactions = activationTransactions
+            ?? throw new ArgumentNullException(nameof(activationTransactions));
     }
 
     public void Start()
     {
-        invasionSpawnedSubscription =
+        invasionSpawnedSubscription ??=
             gameEventBus.Subscribe<InvasionSpawnedEvent>(OnInvasionSpawned);
-        operatingDayStartedSubscription =
+        operatingDayStartedSubscription ??=
             gameEventBus.Subscribe<OperatingDayStartedEvent>(OnTriggerEvent);
     }
 
@@ -847,23 +1035,18 @@ public sealed class CharacterSkillAutomaticTriggerRuntime :
                 characterWorld.Characters)
             .Where(actor => actor != null && !actor.IsDead)
             .ToArray();
-        int serial = actors
-            .Select(actor => actor.Progression?.GrowthState?.useLimits?.defenseInvasionSerial ?? -1)
-            .DefaultIfEmpty(-1)
-            .Max() + 1;
+        string intruderId = CharacterPersistentIdentity.Require(
+            eventType.intruderActor).Value;
+        int serial = CharacterGrowthRules.StableHash(
+            "automatic-ultimate:invasion:" + intruderId) & int.MaxValue;
         foreach (CharacterActor actor in actors)
         {
             TriggerAutomaticUltimate(
                 actor,
                 CharacterUltimateDomain.Defense,
                 serial,
+                "invasion-spawned:" + intruderId + ":" + serial,
                 eventType.intruderActor);
-            actor.Progression?.RecordNarrative(
-                CharacterNarrativeDomain.Invasion,
-                "invasion-started",
-                eventType.threatSnapshot.stage.ToString(),
-                "faced",
-                eventType.threatSnapshot.threat);
         }
     }
 
@@ -873,7 +1056,11 @@ public sealed class CharacterSkillAutomaticTriggerRuntime :
                 characterWorld.Characters)
             .Where(actor => actor != null && !actor.IsDead))
         {
-            TriggerAutomaticUltimate(actor, CharacterUltimateDomain.Management, eventType.day);
+            TriggerAutomaticUltimate(
+                actor,
+                CharacterUltimateDomain.Management,
+                eventType.day,
+                "operating-day-started:" + eventType.day);
         }
     }
 
@@ -881,22 +1068,49 @@ public sealed class CharacterSkillAutomaticTriggerRuntime :
         CharacterActor actor,
         CharacterUltimateDomain domain,
         int serial,
+        string eventId,
         CharacterActor target = null)
     {
-        if (actor?.Progression == null || !actor.Progression.TryMarkUltimateUsed(domain, serial))
+        CharacterSkillInstance ultimate = actor?.Progression?.Ultimate;
+        if (ultimate == null || ultimate.ultimateDomain != domain)
         {
             return;
         }
-
-        CharacterSkillInstance ultimate = actor.Progression.Ultimate;
-        if (domain == CharacterUltimateDomain.Defense)
+        var context = new CharacterSkillExecutionContext(
+            actor,
+            ultimate.trigger,
+            eventId,
+            targetActor: target);
+        CharacterSkillAutomaticExecutionMode executionMode = domain
+            == CharacterUltimateDomain.Defense
+                ? CharacterSkillAutomaticExecutionMode.DefenseUltimate
+                : CharacterSkillAutomaticExecutionMode.Standard;
+        if (!activationTransactions.TryCommitAutomatic(
+                new CharacterSkillAutomaticActivationRequest(
+                    context,
+                    ultimate,
+                    CharacterSkillActivationKind.AutomaticUltimate,
+                    eventId,
+                    domain,
+                    serial,
+                    executionMode),
+                out _,
+                out string failureReason))
         {
-            CharacterSkillRuntimeEffects.ApplyDefenseUltimate(actor, ultimate, target);
+            if (!string.Equals(
+                    failureReason,
+                    "skill-automatic-ultimate-limit-active",
+                    StringComparison.Ordinal))
+            {
+                Debug.LogWarning(
+                    $"Automatic ultimate '{ultimate.id}' was rejected: "
+                    + failureReason,
+                    actor);
+            }
+            return;
         }
-        else
-        {
-            CharacterSkillRuntimeEffects.ApplyOutsideCombat(actor, ultimate);
-        }
+        if (!string.IsNullOrEmpty(failureReason))
+            Debug.LogWarning($"Automatic ultimate '{ultimate.id}' applied; observation pending: {failureReason}", actor);
         gameEventBus.RaiseAlert(
             ultimate.displayName,
             $"{actor.Identity?.DisplayName ?? actor.name}: {ultimate.description}",

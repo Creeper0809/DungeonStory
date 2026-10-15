@@ -193,6 +193,78 @@ public sealed class CropIrrigationSupplyOutcomeAdapter :
     protected override string FailurePrefix => "crop-irrigation";
 }
 
+public sealed class CropTreatmentOutcomeAdapter :
+    EnvironmentOutcomeAdapter<CropTreatmentOutcomeReceipt>
+{
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.CropTreatmentApplied;
+    protected override string FailurePrefix => "crop-treatment";
+}
+
+public sealed class CropSelectionCommandOutcomeAdapter :
+    EnvironmentOutcomeAdapter<CropSelectionCommandReceipt>
+{
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.CropSelectionChanged;
+    protected override string FailurePrefix => "crop-selection";
+}
+
+public sealed class GoldenHarvestScheduleOutcomeAdapter :
+    EnvironmentOutcomeAdapter<GoldenHarvestScheduleReceipt>
+{
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.GoldenHarvestScheduled;
+    protected override string FailurePrefix => "golden-harvest-schedule";
+}
+
+public sealed class CropManualWaterRefillOutcomeAdapter :
+    EnvironmentOutcomeAdapter<CropManualWaterRefillOutcomeReceipt>
+{
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.CropManualWaterRefilled;
+    protected override string FailurePrefix => "crop-manual-water-refill";
+}
+
+public sealed class EnvironmentalControlCommandOutcomeAdapter :
+    EnvironmentOutcomeAdapter<EnvironmentalControlCommandReceipt>
+{
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.EnvironmentalControlChanged;
+    protected override string FailurePrefix => "environmental-control";
+}
+
+public sealed class EnvironmentalExposureThresholdOutcomeAdapter :
+    EnvironmentOutcomeAdapter<EnvironmentalExposureThresholdReceipt>
+{
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.EnvironmentalExposureThreshold;
+    protected override string FailurePrefix => "environmental-exposure-threshold";
+}
+
+public sealed class WildlifeFoodRaidOutcomeAdapter :
+    EnvironmentOutcomeAdapter<WildlifeFoodRaidOutcomeReceipt>
+{
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.WildlifeFoodRaidCompleted;
+    protected override string FailurePrefix => "wildlife-food-raid";
+}
+
+public sealed class WildlifeCommandOutcomeAdapter :
+    EnvironmentOutcomeAdapter<WildlifeCommandOutcomeReceipt>
+{
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.WildlifeCommand;
+    protected override string FailurePrefix => "wildlife-command";
+}
+
+public sealed class WildlifeActionOutcomeAdapter :
+    EnvironmentOutcomeAdapter<WildlifeActionOutcomeReceipt>
+{
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.WildlifeAction;
+    protected override string FailurePrefix => "wildlife-action";
+}
+
 public sealed class EnvironmentalFireIgnitionOutcomeAdapter :
     EnvironmentOutcomeAdapter<EnvironmentalFireIgnitionOutcomeReceipt>
 {
@@ -257,6 +329,14 @@ public sealed class SpeciesIncidentOutcomeAdapter : EnvironmentOutcomeAdapter<Sp
 {
     public override GameplayOutcomeTypeId OutcomeTypeId => EnvironmentOutcomeIds.SpeciesIncidentTriggered;
     protected override string FailurePrefix => "species-incident";
+}
+
+public sealed class GolemUpkeepOutcomeAdapter :
+    EnvironmentOutcomeAdapter<GolemUpkeepOutcomeReceipt>
+{
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.GolemUpkeepEpisode;
+    protected override string FailurePrefix => "golem-upkeep";
 }
 
 public sealed class HarpyGaleRelocationOutcomeAdapter :

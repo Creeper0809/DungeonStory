@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation.Facts;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
@@ -76,7 +77,7 @@ internal sealed class ElectricalNetworkRuntime :
     private readonly IFacilityBufferDestinationReleaseService bufferRelease;
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly ISeasonalEventQuery seasonalEvents;
-    private readonly IInfrastructureCommandOutcomeTransaction commandOutcomes;
+    private readonly IInfrastructureFactJournal commandOutcomes;
     private readonly Dictionary<string, float> nextFuelRequestAt =
         new Dictionary<string, float>(StringComparer.Ordinal);
     private readonly Dictionary<string, ElectricalNetworkSummaryState>
@@ -155,7 +156,7 @@ internal sealed class ElectricalNetworkRuntime :
         IFacilityBufferDestinationReleaseService bufferRelease,
         ISeasonalEventQuery seasonalEvents,
         IMilestoneGameplayModifierQuery milestoneModifiers,
-        IInfrastructureCommandOutcomeTransaction commandOutcomes)
+        IInfrastructureFactJournal commandOutcomes)
     {
         this.topologyRuntime = topologyRuntime
             ?? throw new ArgumentNullException(nameof(topologyRuntime));
@@ -191,6 +192,7 @@ internal sealed class ElectricalNetworkRuntime :
     {
         get
         {
+            commandOutcomes?.AssertIdle();
             EnsureTopology();
             RefreshSnapshots();
             return networks;
@@ -199,6 +201,7 @@ internal sealed class ElectricalNetworkRuntime :
 
     public void Tick()
     {
+        commandOutcomes?.AssertIdle();
         if (clock.IsPaused || clock.DeltaTime <= 0f)
         {
             return;
@@ -218,6 +221,7 @@ internal sealed class ElectricalNetworkRuntime :
 
     public bool IsPowered(BuildableObject building)
     {
+        commandOutcomes?.AssertIdle();
         EnsureTopology();
         if (!TryResolve(building, out string nodeId, out _))
         {
@@ -233,6 +237,7 @@ internal sealed class ElectricalNetworkRuntime :
         BuildableObject building,
         out PowerNodeSnapshot snapshot)
     {
+        commandOutcomes?.AssertIdle();
         EnsureTopology();
         snapshot = null;
         if (!TryResolve(building, out string nodeId, out IndustrialNodeDescriptor node)
@@ -251,6 +256,7 @@ internal sealed class ElectricalNetworkRuntime :
     [GameplayEntryPoint("Main industrial connection card; WIM-013 power connection scenario")]
     public InfrastructureCommandResult SetConnectionEnabled(BuildableObject building, bool enabled)
     {
+        commandOutcomes?.AssertIdle();
         EnsureTopology();
         if (!TryResolve(building, out string nodeId, out IndustrialNodeDescriptor node)
             || !HasPowerConnection(node))
@@ -258,36 +264,36 @@ internal sealed class ElectricalNetworkRuntime :
         ElectricalNodeState state = EnsureState(node);
         if (state.ConnectionEnabled == enabled)
             return InfrastructureCommandResult.Success();
-        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+        if (!InfrastructureFactExecution.TryPrepare(
                 commandOutcomes,
-                InfrastructureCommandOutcomeKind.PowerConnectionChanged,
+                IndustrialTransitionKind.PowerConnectionChanged,
                 nodeId,
                 node.Building,
-                InfrastructureCommandOutcomeExecution.Bool(
-                    state.ConnectionEnabled),
-                InfrastructureCommandOutcomeExecution.Bool(enabled),
-                out IPreparedInfrastructureCommandOutcome prepared,
+                new IndustrialStateData { connected = state.ConnectionEnabled },
+                new IndustrialStateData { connected = enabled },
+                out IDomainFactStage prepared,
                 out InfrastructureCommandResult failure))
         {
             return failure;
         }
         ElectricalNetworkAggregateState before = State.DeepClone();
         state.ConnectionEnabled = enabled;
-        InfrastructureCommandOutcomeCommitResult commit =
+        DomainFactDelivery commit =
             commandOutcomes.CommitReversible(prepared);
-        if (!commit.DurablyCommitted)
+        if (commit.Phase == DomainFactDeliveryPhase.Rejected)
         {
             RestoreRejectedCommand(before);
-            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+            return InfrastructureFactExecution.CommitFailure(commit);
         }
         RefreshAfterCommittedCommand();
-        return InfrastructureCommandResult.Success();
+        return commit.Completed ? InfrastructureCommandResult.Success() : InfrastructureFactExecution.CommitFailure(commit);
     }
 
     public InfrastructureCommandResult SetPriority(
         BuildableObject building,
         PowerPriority priority)
     {
+        commandOutcomes?.AssertIdle();
         EnsureTopology();
         if (!Enum.IsDefined(typeof(PowerPriority), priority)
             || !TryResolve(building, out string nodeId, out IndustrialNodeDescriptor node)
@@ -301,14 +307,14 @@ internal sealed class ElectricalNetworkRuntime :
         ElectricalNodeState state = EnsureState(node);
         if (state.Priority == priority)
             return InfrastructureCommandResult.Success();
-        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+        if (!InfrastructureFactExecution.TryPrepare(
                 commandOutcomes,
-                InfrastructureCommandOutcomeKind.PowerPriorityChanged,
+                IndustrialTransitionKind.PowerPriorityChanged,
                 nodeId,
                 node.Building,
-                state.Priority.ToString(),
-                priority.ToString(),
-                out IPreparedInfrastructureCommandOutcome prepared,
+                new IndustrialStateData { powerPriority = state.Priority },
+                new IndustrialStateData { powerPriority = priority },
+                out IDomainFactStage prepared,
                 out InfrastructureCommandResult failure))
         {
             return failure;
@@ -316,20 +322,21 @@ internal sealed class ElectricalNetworkRuntime :
         ElectricalNetworkAggregateState before = State.DeepClone();
         state.Priority = priority;
         Touch();
-        InfrastructureCommandOutcomeCommitResult commit =
+        DomainFactDelivery commit =
             commandOutcomes.CommitReversible(prepared);
-        if (!commit.DurablyCommitted)
+        if (commit.Phase == DomainFactDeliveryPhase.Rejected)
         {
             RestoreRejectedCommand(before);
-            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+            return InfrastructureFactExecution.CommitFailure(commit);
         }
         RefreshAfterCommittedCommand();
-        return InfrastructureCommandResult.Success();
+        return commit.Completed ? InfrastructureCommandResult.Success() : InfrastructureFactExecution.CommitFailure(commit);
     }
 
     public InfrastructureCommandResult ResetBreaker(
         BuildableObject building)
     {
+        commandOutcomes?.AssertIdle();
         EnsureTopology();
         if (!TryResolve(building, out string nodeId, out IndustrialNodeDescriptor node)
             || node.Building.BuildingData
@@ -350,20 +357,16 @@ internal sealed class ElectricalNetworkRuntime :
         float nextFault = Mathf.Max(0f, state.Fault - 10f);
         if (!state.BreakerTripped && Mathf.Approximately(state.Fault, nextFault))
             return InfrastructureCommandResult.Success();
-        string beforeValue = "breaker="
-            + InfrastructureCommandOutcomeExecution.Bool(state.BreakerTripped)
-            + ";fault="
-            + InfrastructureCommandOutcomeExecution.Float(state.Fault);
-        string afterValue = "breaker=false;fault="
-            + InfrastructureCommandOutcomeExecution.Float(nextFault);
-        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+        var beforeValue = new IndustrialStateData { breakerTripped = state.BreakerTripped, fault = state.Fault };
+        var afterValue = new IndustrialStateData { breakerTripped = false, fault = nextFault };
+        if (!InfrastructureFactExecution.TryPrepare(
                 commandOutcomes,
-                InfrastructureCommandOutcomeKind.PowerBreakerReset,
+                IndustrialTransitionKind.PowerBreakerReset,
                 nodeId,
                 node.Building,
                 beforeValue,
                 afterValue,
-                out IPreparedInfrastructureCommandOutcome prepared,
+                out IDomainFactStage prepared,
                 out InfrastructureCommandResult failure))
         {
             return failure;
@@ -372,15 +375,15 @@ internal sealed class ElectricalNetworkRuntime :
         state.BreakerTripped = false;
         state.Fault = nextFault;
         Touch();
-        InfrastructureCommandOutcomeCommitResult commit =
+        DomainFactDelivery commit =
             commandOutcomes.CommitReversible(prepared);
-        if (!commit.DurablyCommitted)
+        if (commit.Phase == DomainFactDeliveryPhase.Rejected)
         {
             RestoreRejectedCommand(before);
-            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
+            return InfrastructureFactExecution.CommitFailure(commit);
         }
         RefreshAfterCommittedCommand();
-        return InfrastructureCommandResult.Success();
+        return commit.Completed ? InfrastructureCommandResult.Success() : InfrastructureFactExecution.CommitFailure(commit);
     }
 
     private void RestoreRejectedCommand(ElectricalNetworkAggregateState before)
@@ -416,6 +419,7 @@ internal sealed class ElectricalNetworkRuntime :
 
     public DungeonPowerInfrastructureSaveData Capture()
     {
+        commandOutcomes?.AssertIdle();
         EnsureTopology();
         // Restore publication can replace the aggregate state independently of
         // the topology epoch.  A later capture must therefore reconcile the
@@ -460,6 +464,7 @@ internal sealed class ElectricalNetworkRuntime :
     public ElectricalNetworkRestoreCandidate PrepareRestore(
         DungeonPowerInfrastructureSaveData snapshot)
     {
+        commandOutcomes?.AssertIdle();
         IndustrialInfrastructureSaveValidation.RequireValid(snapshot);
         ElectricalNetworkAggregateState restored =
             new ElectricalNetworkAggregateState
@@ -501,6 +506,7 @@ internal sealed class ElectricalNetworkRuntime :
 
     public void Restore(ElectricalNetworkRestoreCandidate candidate)
     {
+        commandOutcomes?.AssertIdle();
         if (candidate == null)
         {
             throw new ArgumentNullException(nameof(candidate));
@@ -1387,14 +1393,51 @@ internal sealed class ElectricalNetworkRuntime :
                 return true;
             }
 
-            state.FuelSeconds = pending.fuelSecondsAfter;
-            pending.phase = (int)PowerFuelCommitPhase.OutcomePublished;
-            pending.sourceStackIds = receipt.SourceStackIds
+            IReadOnlyList<string> sourceStackIds = receipt.SourceStackIds
                 .OrderBy(value => value, StringComparer.Ordinal)
                 .ToList();
+            var beforeValue = new IndustrialStateData { fuelSeconds = pending.fuelSecondsBefore };
+            var afterValue = new IndustrialStateData { fuelSeconds = pending.fuelSecondsAfter };
+            if (!InfrastructureFactExecution.TryPrepare(
+                    commandOutcomes,
+                    IndustrialTransitionKind.PowerFuelConsumed,
+                    node.NodeId,
+                    node.Building,
+                    beforeValue,
+                    afterValue,
+                    out IDomainFactStage prepared,
+                    out InfrastructureCommandResult failure,
+                    new IndustrialTransitionDetails { operationId = pending.operationId, itemId = pending.itemId,
+                        quantity = pending.quantity, massGrams = receipt.InputMassGrams,
+                        sourceStackIds = sourceStackIds.ToList(), physicalCommitId = receipt.CommitId }))
+            {
+                Debug.LogError(
+                    "Power fuel gameplay outcome preparation failed; physical receipt remains pending: "
+                    + pending.operationId + ":" + failure.Failure.Code + ":"
+                    + string.Join(":", failure.Failure.Parameters.ToArray()));
+                return false;
+            }
+            try
+            {
+                commandOutcomes.QueueCommitted(prepared);
+            }
+            catch (Exception exception)
+            {
+                commandOutcomes.Cancel(prepared);
+                Debug.LogError(
+                    "Power fuel gameplay outcome queue failed; physical receipt remains pending: "
+                    + pending.operationId + ":" + exception.GetType().Name);
+                return false;
+            }
+
+            state.FuelSeconds = pending.fuelSecondsAfter;
+            pending.phase = (int)PowerFuelCommitPhase.OutcomePublished;
+            pending.sourceStackIds = sourceStackIds.ToList();
             pending.inputMassGrams = receipt.InputMassGrams;
             pending.commitId = receipt.CommitId;
+            pending.outcomeOwnerRevision = prepared.OwnerRevision;
             Touch();
+            commandOutcomes.DeliverQueued(prepared.OwnerRevision, prepared);
             fuelUsable = true;
         }
         else
@@ -1405,6 +1448,17 @@ internal sealed class ElectricalNetworkRuntime :
                     $"Power fuel commit '{pending.operationId}' lost its published physical receipt.");
             }
             fuelUsable = state.FuelSeconds > 0f;
+        }
+
+        if (pending.outcomeOwnerRevision <= 0L)
+        {
+            throw new InvalidOperationException(
+                $"Power fuel commit '{pending.operationId}' lost its gameplay outcome revision.");
+        }
+        commandOutcomes.DeliverQueued(pending.outcomeOwnerRevision);
+        if (commandOutcomes.IsPending(pending.outcomeOwnerRevision))
+        {
+            return false;
         }
 
         if (hasReceipt
@@ -1443,6 +1497,8 @@ internal sealed class ElectricalNetworkRuntime :
         foreach (IndustrialNodeDescriptor node in nodes)
         {
             ElectricalNodeState state = EnsureState(node);
+            float heatBefore = state.Heat;
+            float faultBefore = state.Fault;
             state.Heat = ratio > 1f
                 ? state.Heat + (ratio - 1f) * 18f * deltaTime
                 : Mathf.Max(0f, state.Heat - 8f * deltaTime);
@@ -1459,10 +1515,44 @@ internal sealed class ElectricalNetworkRuntime :
                     .GetAbility<BuildingCircuitBreakerAbility>();
             if (breaker != null
                 && ratio > Mathf.Max(1f, breaker.overloadTolerance)
-                && state.Heat >= Mathf.Max(1f, breaker.tripHeat))
+                && state.Heat >= Mathf.Max(1f, breaker.tripHeat)
+                && !state.BreakerTripped)
             {
+                var beforeValue = new IndustrialStateData { breakerTripped = false, powered = state.Powered, heat = heatBefore, fault = faultBefore };
+                var afterValue = new IndustrialStateData { breakerTripped = true, powered = false, heat = state.Heat, fault = state.Fault };
+                if (!InfrastructureFactExecution.TryPrepare(
+                        commandOutcomes,
+                        IndustrialTransitionKind.PowerBreakerTripped,
+                        node.NodeId,
+                        node.Building,
+                        beforeValue,
+                        afterValue,
+                        out IDomainFactStage prepared,
+                        out InfrastructureCommandResult failure,
+                        new IndustrialTransitionDetails { loadRatio = ratio, tripHeat = Mathf.Max(1f, breaker.tripHeat),
+                            overloadTolerance = Mathf.Max(1f, breaker.overloadTolerance) }))
+                {
+                    Debug.LogError(
+                        "Power breaker trip gameplay outcome preparation failed; trip deferred: "
+                        + node.NodeId + ":" + failure.Failure.Code + ":"
+                        + string.Join(":", failure.Failure.Parameters.ToArray()));
+                    continue;
+                }
+                try
+                {
+                    commandOutcomes.QueueCommitted(prepared);
+                }
+                catch (Exception exception)
+                {
+                    commandOutcomes.Cancel(prepared);
+                    Debug.LogError(
+                        "Power breaker trip gameplay outcome queue failed; trip deferred: "
+                        + node.NodeId + ":" + exception.GetType().Name);
+                    continue;
+                }
                 state.BreakerTripped = true;
                 state.Powered = false;
+                commandOutcomes.DeliverQueued(prepared.OwnerRevision, prepared);
             }
         }
     }

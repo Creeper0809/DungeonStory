@@ -380,6 +380,51 @@ public readonly struct LocalLlmChoiceResult
     public string Error { get; }
 }
 
+#if UNITY_EDITOR
+public sealed class LocalLlmCapturedRequest
+{
+    private readonly byte[] wireBodyBytes;
+
+    internal LocalLlmCapturedRequest(
+        string profileId,
+        string correlationId,
+        int attemptIndex,
+        string prompt,
+        string model,
+        int schemaVersion,
+        string schemaHash,
+        byte[] wireBodyBytes)
+    {
+        ProfileId = profileId ?? string.Empty;
+        CorrelationId = correlationId ?? string.Empty;
+        AttemptIndex = attemptIndex;
+        Prompt = prompt ?? string.Empty;
+        Model = model ?? string.Empty;
+        SchemaVersion = schemaVersion;
+        SchemaHash = schemaHash ?? string.Empty;
+        this.wireBodyBytes = wireBodyBytes != null
+            ? (byte[])wireBodyBytes.Clone()
+            : Array.Empty<byte>();
+    }
+
+    public string ProfileId { get; }
+    public string CorrelationId { get; }
+    public int AttemptIndex { get; }
+    public string Prompt { get; }
+    public string Model { get; }
+    public int SchemaVersion { get; }
+    public string SchemaHash { get; }
+    public string WireBodyJson => Encoding.UTF8.GetString(wireBodyBytes);
+    public bool CaptureOnly => true;
+    public bool NetworkSent => false;
+
+    public byte[] CopyWireBodyBytes()
+    {
+        return (byte[])wireBodyBytes.Clone();
+    }
+}
+#endif
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public readonly struct LocalLlmResult
 {
@@ -388,13 +433,15 @@ public readonly struct LocalLlmResult
         string content,
         string error,
         string originalText,
-        NarrativeGenerationTrace narrativeTrace = null)
+        NarrativeGenerationTrace narrativeTrace = null,
+        string rawModelContent = null)
     {
         Status = status;
         Content = content ?? string.Empty;
         Error = error ?? string.Empty;
         OriginalText = originalText ?? string.Empty;
         NarrativeTrace = narrativeTrace;
+        RawModelContent = rawModelContent ?? string.Empty;
     }
 
     public LocalLlmRequestStatus Status { get; }
@@ -402,6 +449,7 @@ public readonly struct LocalLlmResult
     public string Error { get; }
     public string OriginalText { get; }
     public NarrativeGenerationTrace NarrativeTrace { get; }
+    public string RawModelContent { get; }
     public bool IsSuccess => Status == LocalLlmRequestStatus.Succeeded;
     public bool IsCancelled => Status == LocalLlmRequestStatus.Cancelled;
 }
@@ -503,6 +551,10 @@ public sealed class LocalLlmRequestQueue :
     IMultiPerspectiveNarrativeLlmRuntime
 {
     private const float AcquiredTraitTimeoutSeconds = 60f;
+#if UNITY_EDITOR
+    private const string LiveNarrativeCaptureVariable =
+        "DUNGEONSTORY_LIVE_NARRATIVE_CAPTURE";
+#endif
 
     [SerializeField] private string endpointUrl;
     [SerializeField] private string modelName = "DungeonStory-Qwen3-1.7B-Q4_K_M";
@@ -540,6 +592,12 @@ public sealed class LocalLlmRequestQueue :
     private PrefixAffinityKey currentAffinityKey;
     private int currentAffinityBurst;
     private bool isSuspended;
+#if UNITY_EDITOR
+    private bool isIsolatedRequestCaptureMode;
+    private bool isolatedAutomaticDispatchEnabled = true;
+    private Action<LocalLlmCapturedRequest> isolatedRequestCaptureObserver;
+    private Func<LocalLlmCapturedRequest, string> isolatedTestResponseProvider;
+#endif
 
     public int QueuedCount => queue.Count;
     public int RunningCount => runningRequests.Count;
@@ -608,6 +666,25 @@ public sealed class LocalLlmRequestQueue :
                 LocalLlmRuntimeReadinessState.Failed,
                 "Local LLM queue is not active.");
         }
+#if UNITY_EDITOR
+        if (isIsolatedRequestCaptureMode)
+        {
+            if (isolatedRequestCaptureObserver == null)
+            {
+                return new LocalLlmRuntimeReadinessSnapshot(
+                    LocalLlmRuntimeReadinessState.Starting);
+            }
+            if (string.IsNullOrWhiteSpace(modelName))
+            {
+                return new LocalLlmRuntimeReadinessSnapshot(
+                    LocalLlmRuntimeReadinessState.Failed,
+                    "Isolated request capture requires the queue's configured model name.");
+            }
+
+            return new LocalLlmRuntimeReadinessSnapshot(
+                LocalLlmRuntimeReadinessState.Ready);
+        }
+#endif
         if (hostStartupTask != null)
         {
             return new LocalLlmRuntimeReadinessSnapshot(
@@ -675,9 +752,200 @@ public sealed class LocalLlmRequestQueue :
         suppressWarningLogsForDebug = value;
     }
 
+#if UNITY_EDITOR
+    public void ConfigureIsolatedRequestCapture(
+        Action<LocalLlmCapturedRequest> observer)
+    {
+        if (!isIsolatedRequestCaptureMode)
+        {
+            throw new InvalidOperationException(
+                "Isolated request capture is not active for this queue instance.");
+        }
+        if (observer == null)
+        {
+            throw new ArgumentNullException(nameof(observer));
+        }
+        if (isolatedRequestCaptureObserver != null)
+        {
+            throw new InvalidOperationException(
+                "An isolated request capture observer is already registered.");
+        }
+
+        isolatedRequestCaptureObserver = observer;
+    }
+
+    // Deterministic orchestration for an already accepted request in the
+    // non-network isolated verifier. The request still uses ProcessRequest and
+    // the production schema/wire serializer; this only bypasses competition
+    // from unrelated response-less capture requests in Update scheduling.
+    public bool TryDispatchQueuedRequestForIsolatedCapture(
+        string correlationId)
+    {
+        if (!isIsolatedRequestCaptureMode
+            || isolatedRequestCaptureObserver == null
+            || !Application.isBatchMode
+            || !DungeonPersistencePaths.IsIsolatedVerification)
+        {
+            throw new InvalidOperationException(
+                "Targeted isolated dispatch requires active batch capture verification.");
+        }
+
+        string canonical = correlationId?.Trim() ?? string.Empty;
+        if (canonical.Length == 0
+            || !string.Equals(correlationId, canonical, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        LocalLlmQueuedRequest[] matches = queue
+            .Where(request => request != null
+                && string.Equals(
+                    request.CorrelationId,
+                    canonical,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length == 0) return false;
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Targeted isolated dispatch found duplicate correlations.");
+        }
+
+        LocalLlmQueuedRequest request = matches[0];
+        queue.Remove(request);
+        StartCoroutine(ProcessRequest(request));
+        return true;
+    }
+
+    // Defer unrelated transport in an explicitly isolated replay. Accepted
+    // requests remain queued: no fabricated reply, cancellation callback or
+    // retry is produced. The exact target still uses the normal ProcessRequest
+    // path through TryDispatchQueuedRequestForIsolatedCapture.
+    public void ConfigureIsolatedAutomaticDispatch(bool enabled)
+    {
+        if (!isIsolatedRequestCaptureMode || isolatedRequestCaptureObserver == null
+            || !Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification)
+            throw new InvalidOperationException("Automatic dispatch control requires active isolated batch capture.");
+        isolatedAutomaticDispatchEnabled = enabled;
+    }
+
+    // Explicit integration fixture, never a timeout fallback or a model response.
+    public void ConfigureIsolatedShopTestResponses(Func<LocalLlmCapturedRequest, string> provider)
+    {
+        if (!isIsolatedRequestCaptureMode || !Application.isBatchMode
+            || !DungeonPersistencePaths.IsIsolatedVerification
+            || Environment.GetEnvironmentVariable("DUNGEONSTORY_SHOP_CONTINUATION_VERIFY") != "1")
+            throw new InvalidOperationException("Shop test responses require the explicit isolated Shop verifier.");
+        if (provider == null) throw new ArgumentNullException(nameof(provider));
+        if (isolatedTestResponseProvider != null)
+            throw new InvalidOperationException("An isolated test response provider is already registered.");
+        isolatedTestResponseProvider = provider;
+    }
+
+    public void ClearIsolatedShopTestResponses() => isolatedTestResponseProvider = null;
+
+    // Explicit facility-campaign visitor preparation fixture. This is limited
+    // to the isolated source-v9 facility intake and never replaces the
+    // facility evolution request or any production gameplay outcome.
+    public void ConfigureIsolatedFacilityVisitorTestResponses(
+        Func<LocalLlmCapturedRequest, string> provider)
+    {
+        if (!isIsolatedRequestCaptureMode || !Application.isBatchMode
+            || !DungeonPersistencePaths.IsIsolatedVerification
+            || Environment.GetEnvironmentVariable(
+                "DUNGEONSTORY_SOURCE_V9_FACILITY_INTAKE") != "1")
+        {
+            throw new InvalidOperationException(
+                "Facility visitor test responses require the explicit isolated source-v9 facility verifier.");
+        }
+        if (provider == null) throw new ArgumentNullException(nameof(provider));
+        if (isolatedTestResponseProvider != null)
+        {
+            throw new InvalidOperationException(
+                "An isolated test response provider is already registered.");
+        }
+        isolatedTestResponseProvider = provider;
+    }
+
+    public void ClearIsolatedFacilityVisitorTestResponses() =>
+        isolatedTestResponseProvider = null;
+
+    // Explicit source-v9 module replay fixture. This is available only in the
+    // isolated campaign verifier and is never a timeout fallback or model call.
+    public void ConfigureIsolatedModuleReplayTestResponses(
+        Func<LocalLlmCapturedRequest, string> provider)
+    {
+        if (!isIsolatedRequestCaptureMode || !Application.isBatchMode
+            || !DungeonPersistencePaths.IsIsolatedVerification
+            || (Environment.GetEnvironmentVariable(
+                    "DUNGEONSTORY_SOURCE_V9_EQUIPMENT_REPLAY") != "1"
+                && Environment.GetEnvironmentVariable(
+                    "DUNGEONSTORY_SOURCE_V9_SKILL_REPLAY") != "1"
+                && Environment.GetEnvironmentVariable(
+                    "DUNGEONSTORY_SOURCE_V9_TRAIT_REPLAY") != "1"
+                && Environment.GetEnvironmentVariable(
+                    "DUNGEONSTORY_SOURCE_V9_FACILITY_REPLAY") != "1"
+                && Environment.GetEnvironmentVariable(
+                    "DUNGEONSTORY_ORIGINAL_SKILL_PENDING_DIAGNOSTICS") != "1"))
+        {
+            throw new InvalidOperationException(
+                "Module replay responses require the explicit isolated source-v9 verifier.");
+        }
+        if (provider == null) throw new ArgumentNullException(nameof(provider));
+        if (isolatedTestResponseProvider != null)
+            throw new InvalidOperationException(
+                "An isolated test response provider is already registered.");
+        isolatedTestResponseProvider = provider;
+    }
+
+    public void ClearIsolatedModuleReplayTestResponses() =>
+        isolatedTestResponseProvider = null;
+
+    // A saved support continuation can need one real new visitor before an
+    // expedition. Its offered preparation responses are an explicit fixture,
+    // not replay of the saved skill and never a production/network fallback.
+    public void ConfigureIsolatedSkillVisitorTestResponses(
+        Func<LocalLlmCapturedRequest, string> provider)
+    {
+        if (!isIsolatedRequestCaptureMode || !Application.isBatchMode
+            || !DungeonPersistencePaths.IsIsolatedVerification
+            || Environment.GetEnvironmentVariable("DUNGEONSTORY_LIVE_NARRATIVE_CAPTURE") != "1"
+            || Environment.GetEnvironmentVariable("DUNGEONSTORY_SKILL_BATTLE_DIAGNOSTICS") != "1"
+            || string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DUNGEONSTORY_SKILL_BATTLE_ACTOR_ID"))
+            || string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DUNGEONSTORY_SKILL_BATTLE_SKILL_ID")))
+        {
+            throw new InvalidOperationException(
+                "Skill visitor test responses require the explicit isolated saved support verifier.");
+        }
+        if (provider == null) throw new ArgumentNullException(nameof(provider));
+        if (isolatedTestResponseProvider != null)
+            throw new InvalidOperationException("An isolated test response provider is already registered.");
+        isolatedTestResponseProvider = provider;
+    }
+
+    public void ClearIsolatedSkillVisitorTestResponses() =>
+        isolatedTestResponseProvider = null;
+#endif
+
     private void OnEnable()
     {
         isSuspended = false;
+#if UNITY_EDITOR
+        isIsolatedRequestCaptureMode = ShouldEnableIsolatedRequestCapture();
+        isolatedAutomaticDispatchEnabled = true;
+        isolatedRequestCaptureObserver = null;
+        isolatedTestResponseProvider = null;
+        if (isIsolatedRequestCaptureMode)
+        {
+            structuredBackend = new DungeonStoryHostStructuredChatBackend();
+            // Capture the same model alias that normal host startup selects,
+            // not a stale serialized scene value. No host/network is started.
+            modelName = "DungeonStory-Qwen3-1.7B-Q4_K_M";
+            endpointUrl = string.Empty;
+            hostStartupTask = null;
+            return;
+        }
+#endif
         structuredBackend = new DungeonStoryHostStructuredChatBackend(
             () => localHost?.SessionToken ?? string.Empty);
         endpointUrl = string.Empty;
@@ -695,6 +963,12 @@ public sealed class LocalLlmRequestQueue :
     private void OnDisable()
     {
         ResetTransientState("Local LLM queue was disabled.", remainSuspended: true);
+#if UNITY_EDITOR
+        isolatedRequestCaptureObserver = null;
+        isolatedTestResponseProvider = null;
+        isIsolatedRequestCaptureMode = false;
+        isolatedAutomaticDispatchEnabled = true;
+#endif
         Task<HostStartupResult> pendingStartup = hostStartupTask;
         hostStartupTask = null;
         if (pendingStartup != null)
@@ -711,6 +985,51 @@ public sealed class LocalLlmRequestQueue :
         localHost = null;
         endpointUrl = string.Empty;
     }
+
+#if UNITY_EDITOR
+    private static bool ShouldEnableIsolatedRequestCapture()
+    {
+        bool requested = string.Equals(
+            Environment.GetEnvironmentVariable(LiveNarrativeCaptureVariable),
+            "1",
+            StringComparison.Ordinal);
+        if (!requested)
+        {
+            return false;
+        }
+
+        bool isBatchMode = Application.isBatchMode;
+        bool isIsolatedVerification = isBatchMode
+            && DungeonPersistencePaths.IsIsolatedVerification;
+        return ResolveIsolatedRequestCaptureMode(
+            requested,
+            isBatchMode,
+            isIsolatedVerification);
+    }
+
+    internal static bool ResolveIsolatedRequestCaptureMode(
+        bool requested,
+        bool isBatchMode,
+        bool isIsolatedVerification)
+    {
+        if (!requested)
+        {
+            return false;
+        }
+        if (!isBatchMode)
+        {
+            throw new InvalidOperationException(
+                "DUNGEONSTORY_LIVE_NARRATIVE_CAPTURE=1 requires Unity Editor batch mode.");
+        }
+        if (!isIsolatedVerification)
+        {
+            throw new InvalidOperationException(
+                "DUNGEONSTORY_LIVE_NARRATIVE_CAPTURE=1 requires isolated verification persistence.");
+        }
+
+        return true;
+    }
+#endif
 
     private void ResetTransientState(string reason, bool remainSuspended)
     {
@@ -760,6 +1079,13 @@ public sealed class LocalLlmRequestQueue :
             localHost = null;
             endpointUrl = string.Empty;
         }
+#if UNITY_EDITOR
+        if (isIsolatedRequestCaptureMode
+            && (!isolatedAutomaticDispatchEnabled || isolatedRequestCaptureObserver == null))
+        {
+            return;
+        }
+#endif
         DropExpiredRequests();
         if (hostStartupTask != null)
         {
@@ -988,6 +1314,17 @@ public sealed class LocalLlmRequestQueue :
                     : "EquipmentChoice.PromptInvalid: " + canonicalError));
             return false;
         }
+
+#if UNITY_EDITOR
+        if (isIsolatedRequestCaptureMode)
+        {
+            const string captureError =
+                "EquipmentChoice binary requests are unsupported in isolated request capture mode.";
+            lastError = "EquipmentChoice: Failed - " + captureError;
+            callback?.Invoke(new LocalLlmChoiceResult(false, -1, captureError));
+            return false;
+        }
+#endif
 
         if (isSuspended || !isActiveAndEnabled || !HasConfiguredEndpoint)
         {
@@ -1373,9 +1710,28 @@ public sealed class LocalLlmRequestQueue :
         {
             if (request.IsEquipmentChoice)
             {
+#if UNITY_EDITOR
+                if (isIsolatedRequestCaptureMode)
+                {
+                    Complete(request, new LocalLlmResult(
+                        LocalLlmRequestStatus.Failed,
+                        string.Empty,
+                        "EquipmentChoice binary requests are unsupported in isolated request capture mode.",
+                        request.OriginalText));
+                    yield break;
+                }
+#endif
                 yield return ProcessEquipmentChoiceRequest(request);
                 yield break;
             }
+
+#if UNITY_EDITOR
+            if (isIsolatedRequestCaptureMode)
+            {
+                yield return ProcessIsolatedRequestCapture(request);
+                yield break;
+            }
+#endif
 
             if (!HasConfiguredEndpoint)
             {
@@ -1459,6 +1815,16 @@ public sealed class LocalLlmRequestQueue :
                     yield break;
                 }
 
+                string rawModelContent = content;
+                if (structuredBackend is DungeonStoryHostStructuredChatBackend
+                    && !DungeonStoryHostStructuredChatBackend.TryResolveModelContent(
+                        request.Profile, activePrompt, content, out content, out string resolutionError))
+                {
+                    Complete(request, new LocalLlmResult(LocalLlmRequestStatus.Failed, string.Empty,
+                        "Model reference reject: " + resolutionError, request.OriginalText,
+                        rawModelContent: rawModelContent));
+                    yield break;
+                }
                 structuredOutputCapability = StructuredOutputCapability.Supported;
                 if (NarrativeExactKeyContract.IsRegisteredProfile(request.Profile.Id))
                 {
@@ -1481,7 +1847,7 @@ public sealed class LocalLlmRequestQueue :
                             LocalLlmRequestStatus.Failed,
                             string.Empty,
                             "Exact-key contract reject: " + exactError,
-                            request.OriginalText));
+                            request.OriginalText, rawModelContent: rawModelContent));
                         yield break;
                     }
                     content = exactJson;
@@ -1506,7 +1872,7 @@ public sealed class LocalLlmRequestQueue :
                         LocalLlmRequestStatus.Failed,
                         string.Empty,
                         "Narrative quality hard reject: " + quality.Error,
-                        request.OriginalText));
+                        request.OriginalText, rawModelContent: rawModelContent));
                     yield break;
                 }
 
@@ -1530,7 +1896,8 @@ public sealed class LocalLlmRequestQueue :
                     content,
                     string.Empty,
                     request.OriginalText,
-                    trace));
+                    trace,
+                    rawModelContent));
                 yield break;
             }
         }
@@ -1540,6 +1907,144 @@ public sealed class LocalLlmRequestQueue :
             runningRequests.Remove(request);
         }
     }
+
+#if UNITY_EDITOR
+    private IEnumerator ProcessIsolatedRequestCapture(LocalLlmQueuedRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(modelName))
+        {
+            Complete(request, new LocalLlmResult(
+                LocalLlmRequestStatus.Failed,
+                string.Empty,
+                "Isolated request capture requires the queue's configured model name.",
+                request.OriginalText));
+            yield break;
+        }
+
+        request.Attach(null, Now);
+        if (!TryNotifyIsolatedRequestCapture(request, out LocalLlmCapturedRequest captured, out string captureError))
+        {
+            Complete(request, new LocalLlmResult(
+                LocalLlmRequestStatus.Failed,
+                string.Empty,
+                captureError,
+                request.OriginalText));
+            yield break;
+        }
+
+        if (isolatedTestResponseProvider != null)
+        {
+            string response = null;
+            string fixtureError = null;
+            try { response = isolatedTestResponseProvider(captured); }
+            catch (Exception exception) { fixtureError = "Isolated test response failed: " + exception.Message; }
+            if (fixtureError != null)
+            {
+                Complete(request, new LocalLlmResult(LocalLlmRequestStatus.Failed, string.Empty,
+                    fixtureError, request.OriginalText));
+                yield break;
+            }
+            if (response != null)
+            {
+                CompleteIsolatedTestResponse(request, response);
+                yield break;
+            }
+        }
+
+        float timeoutAt = Now + Mathf.Max(0.1f, request.TimeoutSeconds);
+        while (!request.IsCompleted && Now < timeoutAt)
+        {
+            yield return null;
+        }
+
+        if (!request.IsCompleted)
+        {
+            Complete(request, new LocalLlmResult(
+                LocalLlmRequestStatus.TimedOut,
+                string.Empty,
+                "Isolated request capture received no model response.",
+                request.OriginalText));
+        }
+    }
+
+    private bool TryNotifyIsolatedRequestCapture(
+        LocalLlmQueuedRequest request,
+        out LocalLlmCapturedRequest captured,
+        out string error)
+    {
+        captured = null;
+        error = string.Empty;
+        LlmStaticSchemaDefinition schema;
+        byte[] payload;
+        try
+        {
+            schema = LlmStaticSchemaCatalog.Require(request.Profile.Id);
+            payload = DungeonStoryHostStructuredChatBackend.BuildRequestPayload(
+                modelName,
+                request.Profile,
+                schema,
+                request.Prompt);
+        }
+        catch (Exception exception)
+        {
+            error = "Isolated request capture serialization failed: " + exception.Message;
+            return false;
+        }
+
+        lastSchemaId = schema.ProfileId;
+        lastSchemaVersion = schema.Version;
+        lastSchemaHash = schema.Hash;
+        captured = new LocalLlmCapturedRequest(
+            request.Profile.Id,
+            request.CorrelationId,
+            0,
+            request.Prompt,
+            modelName,
+            schema.Version,
+            schema.Hash,
+            payload);
+        try
+        {
+            isolatedRequestCaptureObserver(captured);
+        }
+        catch (Exception exception)
+        {
+            error = "Isolated request capture observer failed: " + exception.Message;
+            return false;
+        }
+
+        return true;
+    }
+
+    private void CompleteIsolatedTestResponse(LocalLlmQueuedRequest request, string response)
+    {
+        if (!NarrativeExactKeyContract.TryValidateProfileResponse(request.Profile.Id, response,
+                out string exactJson, out string exactError))
+        {
+            Complete(request, new LocalLlmResult(LocalLlmRequestStatus.Failed, string.Empty,
+                "Isolated test exact-key reject: " + exactError, request.OriginalText));
+            return;
+        }
+        NarrativeQualityResult quality = narrativeQualityGate.Evaluate(request.Profile, request.Prompt, exactJson);
+        lastNarrativeQualityVerdict = quality.Verdict;
+        if (!quality.IsAccepted)
+        {
+            Complete(request, new LocalLlmResult(LocalLlmRequestStatus.Failed, string.Empty,
+                "Isolated test quality reject: " + quality.Error, request.OriginalText));
+            return;
+        }
+        LlmStaticSchemaDefinition schema = LlmStaticSchemaCatalog.Require(request.Profile.Id);
+        NarrativeRequestContext.TryParse(request.Prompt, out NarrativeRequestContext context);
+        Complete(request, new LocalLlmResult(LocalLlmRequestStatus.Succeeded, exactJson, string.Empty,
+            request.OriginalText, new NarrativeGenerationTrace
+            {
+                schemaId = schema.ProfileId, schemaVersion = schema.Version, schemaHash = schema.Hash,
+                cultureStyleId = context?.CultureStyleId ?? string.Empty, usedMotifIds = quality.MotifIds,
+                usedCharacterFactIds = quality.CharacterFactIds, verdict = quality.Verdict,
+                retryCount = 0, usedFallback = false
+            }));
+    }
+#endif
 
     private IEnumerator ProcessEquipmentChoiceRequest(LocalLlmQueuedRequest request)
     {

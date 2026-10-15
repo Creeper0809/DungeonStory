@@ -63,7 +63,7 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
             actors,
             actorRuntime,
             doorSubjectRegistry,
-            gameClock,
+            session.GameCalendar,
             this.escapeOutcomes);
     }
 
@@ -315,7 +315,11 @@ internal sealed class CaptivityEscapeRuntime : ICaptivityEscapeRuntime
         string reason)
     {
         CaptiveState state = actors.FindState(captiveId);
-        if (state == null)
+        // Physical completion may be committed by the runtime tick before the
+        // ability observes arrival. Exit lifecycle cleanup still closes that
+        // ability, but its late failure callback cannot recapture a completed
+        // escape or mutate the already-published outcome.
+        if (state == null || state.status == CaptivityStatus.Escaped)
         {
             return;
         }

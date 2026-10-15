@@ -173,7 +173,10 @@ public static class EnvironmentalWorkwearPlannedOutputDebugScenarios
                 ReadApparel(stack).deterministicBatchHash)
             .OrderBy(value => value)
             .ToArray();
+        Require(first.All(stack => ReadApparel(stack).craftedAbsoluteDay == 137),
+            "Workwear manufacture date must use the session calendar, not elapsed seconds.");
         fixture.Clock.TimeValue += GameCalendarRules.SecondsPerDay * 9f;
+        fixture.Calendar.SetDateTime(146, 9);
         Require(
             fixture.Handler.TryProduceIdempotent(
                 context,
@@ -189,6 +192,7 @@ public static class EnvironmentalWorkwearPlannedOutputDebugScenarios
         IReadOnlyList<WorldItemStackSnapshot> replay = fixture.Query.GetAllStacks();
         Require(
             replay.Count == 2
+            && replay.All(stack => ReadApparel(stack).craftedAbsoluteDay == 137)
             && replay.Select(stack => stack.StackId)
                 .OrderBy(value => value, StringComparer.Ordinal)
                 .SequenceEqual(firstStackIds, StringComparer.Ordinal)
@@ -406,7 +410,7 @@ public static class EnvironmentalWorkwearPlannedOutputDebugScenarios
                 new FixedMaterialCatalog(material),
                 Repository,
                 mass,
-                Clock,
+                Calendar,
                 new FixedFacilityQuery(handle),
                 new FixedDestinationAuthority(profile),
                 new FixedCapacityProjector(),
@@ -424,6 +428,7 @@ public static class EnvironmentalWorkwearPlannedOutputDebugScenarios
 
         internal string DestinationId { get; }
         internal MutableClock Clock { get; }
+        internal EditorFixedGameCalendar Calendar { get; } = new(137, 9);
         internal WorldItemRepository Repository { get; }
         internal WorldItemQueryService Query { get; }
         internal FacilityBufferMassAdmissionService Admission { get; }

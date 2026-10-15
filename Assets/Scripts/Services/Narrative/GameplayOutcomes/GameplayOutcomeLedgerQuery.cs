@@ -36,6 +36,7 @@ public sealed partial class GameplayOutcomeLedger
             return new GameplayOutcomeQueryPage(Array.Empty<GameplayOutcomeQueryItem>(), OutcomeCursor.FirstPage(query.MaximumCount));
         lock (gate)
         {
+            RequireQueryCalendarNoLock();
             List<EvidenceCandidate> candidates = new List<EvidenceCandidate>();
             for (int slot = state.PublishedPageIndices.Count - 1; slot >= 0; slot--)
             {
@@ -89,6 +90,7 @@ public sealed partial class GameplayOutcomeLedger
     {
         lock (gate)
         {
+            RequireQueryCalendarNoLock();
             if (id.IsValid
                 && state.ActiveByOutcomeId.TryGetValue(id, out int pageIndex))
             {
@@ -104,6 +106,33 @@ public sealed partial class GameplayOutcomeLedger
         }
     }
 
+    public bool TryGetCompacted(
+        NarrativeMemoryId id,
+        out CompactedNarrativeMemorySnapshot memory)
+    {
+        if (!id.IsValid)
+        {
+            memory = null;
+            return false;
+        }
+        lock (gate)
+        {
+            RequireQueryCalendarNoLock();
+            for (int index = 0; index < state.CompactedMemories.Count; index++)
+            {
+                CompactedNarrativeMemorySnapshot candidate =
+                    state.CompactedMemories[index];
+                if (!string.Equals(candidate.memoryId, id.Value,
+                        StringComparison.Ordinal))
+                    continue;
+                memory = CloneCompacted(candidate);
+                return true;
+            }
+        }
+        memory = null;
+        return false;
+    }
+
     public bool TryProject(
         GameplayOutcomeId id,
         NarrativePerspectiveContext perspective,
@@ -111,6 +140,7 @@ public sealed partial class GameplayOutcomeLedger
     {
         lock (gate)
         {
+            RequireQueryCalendarNoLock();
             if (!id.IsValid
                 || !state.ActiveByOutcomeId.TryGetValue(id, out int pageIndex))
             {
@@ -149,6 +179,7 @@ public sealed partial class GameplayOutcomeLedger
         }
         lock (gate)
         {
+            RequireQueryCalendarNoLock();
             for (int index = 0; index < state.CompactedMemories.Count; index++)
             {
                 CompactedNarrativeMemorySnapshot memory = state.CompactedMemories[index];
@@ -191,6 +222,7 @@ public sealed partial class GameplayOutcomeLedger
         bool entityOnly,
         bool operationOnly)
     {
+        RequireQueryCalendarNoLock();
         List<GameplayOutcomeQueryItem> items = new List<GameplayOutcomeQueryItem>(cursor.Limit + 16);
         HashSet<string> emittedSharedAggregates = entityOnly || operationOnly
             ? null
@@ -234,6 +266,15 @@ public sealed partial class GameplayOutcomeLedger
             ? CursorAfter(items[items.Count - 1], cursor.Limit)
             : cursor;
         return new GameplayOutcomeQueryPage(items, next);
+    }
+
+    private void RequireQueryCalendarNoLock()
+    {
+        if (deliveryCalendar == null) return; // Explicit untimed historical/test ledger.
+        if (!GameplayOutcomeDeliveryTime.TryReadCalendarHour(deliveryCalendar, out long currentHour))
+            throw new InvalidOperationException("Outcome query calendar clock is inconsistent.");
+        if (state.QueryTimeUpperBoundHour > currentHour)
+            throw new InvalidOperationException("Outcome query contains published sources after its current calendar.");
     }
 
     private static bool MatchesFilter(GameplayOutcomeValuePage page, in OutcomeFilter filter)

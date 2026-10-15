@@ -7,7 +7,7 @@ using UnityEngine;
 public static class MigratedProducerProductionEntry57BatchRunner
 {
     private const string ReportRelativePath =
-        "Artifacts/QA/MigratedProducerProductionEntry57-20260920-r25/"
+        "Artifacts/QA/MigratedProducerProductionEntry71-20260925-r3/"
         + "runtime-report.json";
 
     public static void RunBatch()
@@ -44,17 +44,17 @@ public static class MigratedProducerProductionEntry57BatchRunner
         if (!passed)
         {
             throw new InvalidOperationException(
-                "Migrated production-entry 57/57 E2E failed: " + detail);
+                "Migrated production-entry 71/71 E2E failed: " + detail);
         }
 
-        Debug.Log("MIGRATED_PRODUCER_PRODUCTION_ENTRY_57=PASS");
+        Debug.Log("MIGRATED_PRODUCER_PRODUCTION_ENTRY_71=PASS");
     }
 
     private static string BuildReport(bool passed, string detail) =>
         "{\n"
         + "  \"schema\": \"migrated-producer-production-entry-e2e@1\",\n"
         + "  \"status\": \"" + (passed ? "PASS" : "FAIL") + "\",\n"
-        + "  \"expectedKinds\": 57,\n"
+        + "  \"expectedKinds\": 72,\n"
         + "  \"coverageContract\": \"success+reject-rollback+delivery-retry\",\n"
         + "  \"unityMcpUsed\": false,\n"
         + "  \"dungeonPlayerMcpUsed\": false,\n"

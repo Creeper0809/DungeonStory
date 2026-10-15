@@ -476,15 +476,28 @@ public class StaffWorkPriorityPanel :
         {
             WorkPriorityLevel current = capturedWork.WorkPriorities.GetPriority(capturedType);
             WorkPriorityLevel next = current.Next();
-            capturedWork.SetWorkPriority(capturedType, next);
-            if (StaffWorkPriorityIdentityOrderPolicy.IsDeferredCleaning(
+            List<Exception> failures = null;
+            void Attempt(Action action)
+            {
+                try { action(); }
+                catch (Exception exception) when (exception is not OutOfMemoryException
+                    && exception is not StackOverflowException && exception is not AccessViolationException)
+                { (failures ??= new List<Exception>()).Add(exception); }
+            }
+            Attempt(() => capturedWork.SetWorkPriority(capturedType, next));
+            // A post-change activity observer may fail after the owner applies
+            // the priority. Charge that change once, never a rejected change.
+            if (capturedWork.WorkPriorities.GetPriority(capturedType) == next
+                && StaffWorkPriorityIdentityOrderPolicy.IsDeferredCleaning(
                     capturedType,
                     current,
                     next))
             {
-                directOrderCosts?.Apply(capturedCharacter, DeferCleaningActionTag);
+                Attempt(() => directOrderCosts?.Apply(capturedCharacter, DeferCleaningActionTag));
             }
-            Refresh();
+            Attempt(Refresh);
+            if (failures != null)
+                throw new AggregateException("Work priority command or notification failed.", failures);
         });
 
         CharacterDirectOrderCostPreview preview = GetDirectOrderCostPreview(

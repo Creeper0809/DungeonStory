@@ -42,12 +42,12 @@ public sealed class CharacterDeprivationRuntime :
     private readonly CharacterSafeDrinkPlanner safeDrinkPlanner;
     private readonly CharacterEmergencyMovement emergencyMovement;
     private readonly CharacterSafeReliefRunner safeReliefRunner;
+    private readonly CharacterWaterPublicationOutbox waterPublications;
     private readonly CharacterPrimitiveSurvivalRunner primitiveSurvivalRunner;
     private readonly CharacterDeprivationConsequences consequences;
     private readonly CharacterBreakdownActionRunner breakdownActionRunner;
     private readonly CharacterDeprivationPersistenceCoordinator persistence;
-    private readonly Dictionary<CharacterId, int> alertLevels =
-        new Dictionary<CharacterId, int>();
+    private readonly List<DeprivationBurdenSample> burdenSamples = new(512);
     private readonly List<CharacterActor> tickActors =
         new List<CharacterActor>(512);
     private readonly HashSet<CharacterId> liveTickIds =
@@ -66,8 +66,6 @@ public sealed class CharacterDeprivationRuntime :
     private float tickElapsed;
     private float tickNow;
     private bool tickPassActive;
-    private int pendingWarningAlerts;
-    private int pendingDangerAlerts;
     private int observedRestoreRevision;
     private readonly CharacterDeprivationDiagnostics diagnostics = new();
 
@@ -134,32 +132,39 @@ public sealed class CharacterDeprivationRuntime :
         emergencyMovement = new CharacterEmergencyMovement(
             gridSystemProvider,
             stateStore);
+        waterPublications = new CharacterWaterPublicationOutbox(
+            stateStore, authority.Notifications, authority.Recovery, gameEventBus);
         safeReliefRunner = new CharacterSafeReliefRunner(
             itemStackRuntime,
             authority.PrimitiveSurvival.ReservedTransfers,
             waterQuery,
             gameClock,
             needBalanceRuntime,
-            gameEventBus,
             stateStore,
             safeDrinkPlanner,
             emergencyMovement,
             diagnostics,
             authority.PrimitiveSurvival.Calendar,
-            authority.PrimitiveSurvival.OutcomeTransactions);
+            waterPublications);
         consequences = new CharacterDeprivationConsequences(
             stateStore,
-            worldRegistry);
+            worldRegistry,
+            authority.PrimitiveSurvival.Calendar,
+            authority.Notifications);
         CharacterBreakdownWorld breakdownWorld = new CharacterBreakdownWorld(
             gridSystemProvider,
             itemStackRuntime,
             filthQuery,
             waterQuery,
             roomLayoutCache,
-            worldRegistry);
+            worldRegistry,
+            authority.BatchDispositions,
+            authority.Facts,
+            authority.Recovery);
         primitiveSurvivalRunner = new CharacterPrimitiveSurvivalRunner(
             breakdownWorld,
             emergencyMovement,
+            stateStore,
             gameClock,
             gameEventBus,
             authority.PrimitiveSurvival);
@@ -171,7 +176,7 @@ public sealed class CharacterDeprivationRuntime :
             emergencyMovement,
             diagnostics,
             consequences,
-            gameEventBus);
+            waterPublications);
         persistence = new CharacterDeprivationPersistenceCoordinator(
             stateStore,
             worldRegistry,
@@ -218,6 +223,7 @@ public sealed class CharacterDeprivationRuntime :
         tickActors.Clear();
         liveTickIds.Clear();
         staleStateIds.Clear();
+        burdenSamples.Clear();
         safeReliefRunner.Reset();
         safeDrinkPlanner.Reset();
     }
@@ -233,6 +239,9 @@ public sealed class CharacterDeprivationRuntime :
     private void TickRuntime()
     {
         EnsureDerivedCachesCurrent();
+        breakdownActionRunner.RecoverCorpsePublications();
+        waterPublications.Tick();
+        primitiveSurvivalRunner.RecoverRetiredPublications();
         if (!Application.isPlaying || gameClock.IsPaused)
         {
             return;
@@ -270,8 +279,7 @@ public sealed class CharacterDeprivationRuntime :
 
             liveTickIds.Clear();
             tickActorIndex = 0;
-            pendingWarningAlerts = 0;
-            pendingDangerAlerts = 0;
+            burdenSamples.Clear();
             tickPassActive = true;
         }
 
@@ -313,7 +321,6 @@ public sealed class CharacterDeprivationRuntime :
             return;
         }
 
-        FlushAggregatedAlerts();
         staleStateIds.Clear();
         foreach (KeyValuePair<CharacterId, CharacterDeprivationState> pair in stateStore.Entries)
         {
@@ -335,7 +342,6 @@ public sealed class CharacterDeprivationRuntime :
             primitiveSurvivalRunner.ReleaseActor(stale);
             safeDrinkPlanner.ReleaseForActor(stale.Value);
             stateStore.Remove(stale);
-            alertLevels.Remove(stale);
         }
 
         tickActors.Clear();
@@ -345,26 +351,23 @@ public sealed class CharacterDeprivationRuntime :
         frameWorkBudget.SetBacklog(
             DynamicFrameWorkDomain.CharacterDeprivation,
             0);
+        PublishBurdenSnapshot();
     }
 
-    private void FlushAggregatedAlerts()
+    private void PublishBurdenSnapshot()
     {
-        if (pendingDangerAlerts > 0)
-        {
-            gameEventBus.RaiseAlert(
-                $"{pendingDangerAlerts}명이 결핍으로 붕괴 위험에 빠졌습니다",
-                "건강 탭에서 가장 심한 결핍을 확인하고 음식, 물, 화장실, 휴식 시설을 확보하세요.",
-                EventAlertImportance.High,
-                "생존");
-        }
+        var snapshot = new DeprivationBurdenSnapshotEvent(stateStore.PublishedRestoreRevision, burdenSamples);
+        burdenSamples.Clear();
+        PublishStateObservation(snapshot);
+    }
 
-        if (pendingWarningAlerts > 0)
+    private void PublishStateObservation<T>(T fact)
+    {
+        try { gameEventBus.Publish(fact); }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
         {
-            gameEventBus.RaiseAlert(
-                $"{pendingWarningAlerts}명의 건강에 결핍 부담이 쌓이고 있습니다",
-                "결핍 원인을 해결하지 않으면 건강 이상과 돌발 행동으로 이어질 수 있습니다.",
-                EventAlertImportance.Medium,
-                "생존");
+            Debug.LogWarning("deprivation-state-observation:" + exception.GetType().Name + ":" + exception.Message);
         }
     }
 
@@ -730,7 +733,7 @@ public sealed class CharacterDeprivationRuntime :
         if (!IsEligibleHumanoid(actor)
             || biologicalOnly && !UsesBiologicalFoodAndWater(actor)
             || actor.Stats == null
-            || GetNeed(actor, condition) > GetResponse(condition).routineStart
+            || CharacterNeedAiThresholds.GetRoutineUtility(actor, condition) <= 0f
             || HasActiveBreakdown(actor))
         {
             return false;
@@ -868,7 +871,7 @@ public sealed class CharacterDeprivationRuntime :
         breakdownActionRunner.ReleaseActor(characterId);
         safeDrinkPlanner.ReleaseForActor(characterId.Value);
         stateStore.Remove(characterId);
-        alertLevels.Remove(characterId);
+        PublishStateObservation(new DeprivationCharacterResetEvent(characterId));
         return true;
     }
 
@@ -916,6 +919,16 @@ public sealed class CharacterDeprivationRuntime :
     {
         consequences.RecordTaboo(actor, memory);
     }
+
+#if UNITY_EDITOR
+    internal bool DebugTryFindEmergencyFood(CharacterActor actor, out WorldItemStackSnapshot food) =>
+        breakdownActionRunner.TryFindEmergencyFood(actor, out food);
+
+    internal bool DebugTryConsumeHumanoidCorpse(
+        CharacterActor actor, WorldItemStackSnapshot source, string operationId) =>
+        breakdownActionRunner.TryConsumeHumanoidCorpse(
+            actor, source, 75f, 0, operationId, "breakdown-emergency-food");
+#endif
 
     public void RecordTabooWitnesses(
         CharacterActor source,
@@ -1057,6 +1070,7 @@ public sealed class CharacterDeprivationRuntime :
         float elapsed,
         float now)
     {
+        primitiveSurvivalRunner.TryResumePending(actor, out _);
         bool biologicalFoodAndWater =
             UsesBiologicalFoodAndWater(actor);
         UpdateBurden(
@@ -1092,7 +1106,7 @@ public sealed class CharacterDeprivationRuntime :
         }
 
         ApplyDamageConsequences(actor, state, now);
-        UpdateAlert(actor, state);
+        CollectBurdenSample(state);
         if (debugRules.IsEnabled(DungeonDebugCheat.PreventBreakdowns))
         {
             if (state.breakdown.active)
@@ -1412,7 +1426,7 @@ public sealed class CharacterDeprivationRuntime :
         return needBalanceRuntime.HighBurdenDamageIntervalSeconds;
     }
 
-    private void UpdateAlert(CharacterActor actor, CharacterDeprivationState state)
+    private void CollectBurdenSample(CharacterDeprivationState state)
     {
         float highest = 0f;
         List<DeprivationBurdenSaveData> burdens = state.burdens;
@@ -1425,24 +1439,7 @@ public sealed class CharacterDeprivationRuntime :
             }
         }
 
-        int level = highest >= BreakdownThreshold ? 2 : highest >= WarningThreshold ? 1 : 0;
-        CharacterId characterId = (CharacterId)state.characterId;
-        alertLevels.TryGetValue(characterId, out int previous);
-        if (level <= previous)
-        {
-            alertLevels[characterId] = level;
-            return;
-        }
-
-        alertLevels[characterId] = level;
-        if (level >= 2)
-        {
-            pendingDangerAlerts++;
-        }
-        else
-        {
-            pendingWarningAlerts++;
-        }
+        burdenSamples.Add(new DeprivationBurdenSample((CharacterId)state.characterId, highest));
     }
 
     private void StartBreakdown(
@@ -1472,14 +1469,7 @@ public sealed class CharacterDeprivationRuntime :
         actor.Brain?.StopCurrentActionForReplan("결핍 붕괴");
         actor.Brain?.RequestImmediateReplan(clearFailures: true);
         actor.ApplyMoodFactor("survival:breakdown", "통제력을 잃음", -8f, 180f, 1);
-        actor.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Health,
-            CharacterActivityOutcomes.Started,
-            GetBreakdownLabel(kind),
-            actionId: "survival/breakdown",
-            reasonCode: cause.ToString(),
-            sentiment: -1f,
-            bubbleEligible: true));
+        PublishStateObservation(new DeprivationBreakdownStartedEvent(actor, kind, cause));
         DispatchAutomaticSuppression(actor);
     }
 
@@ -1532,6 +1522,9 @@ public sealed class CharacterDeprivationRuntime :
                 || guard == breakdownActor
                 || !guard.TryGetAbility(out AbilityWork work)
                 || work.HasPrioritySuppressTarget
+                // Automatic response must not erase an existing priority work
+                // command. Explicit manual suppression remains a replacement.
+                || work.PriorityWorkTarget != null
                 || !work.WorkPriorities.IsEnabled(BuiltInWorkTypeIds.Guard))
             {
                 continue;
@@ -1602,6 +1595,7 @@ public sealed class CharacterDeprivationRuntime :
 
     private void EnsureDerivedCachesCurrent()
     {
+        if (stateStore.IsRestoreStaging) return;
         int publishedRevision = stateStore.PublishedRestoreRevision;
         if (observedRestoreRevision == publishedRevision)
         {
@@ -1614,31 +1608,19 @@ public sealed class CharacterDeprivationRuntime :
 
     private void InvalidateDerivedCaches()
     {
-        alertLevels.Clear();
+        burdenSamples.Clear();
         safeReliefRunner.Reset();
         primitiveSurvivalRunner.Reset();
-        safeDrinkPlanner.Reset();
+        int retiredDrinkLeases = safeDrinkPlanner.ResetAfterWorldRestore();
+        if (retiredDrinkLeases > 0)
+            Debug.Log($"Safe-drink world-restore retirement: leases={retiredDrinkLeases}; reason=transient-action-replan; water-consumed=0.");
         breakdownActionRunner.Reset();
         tickActors.Clear();
         liveTickIds.Clear();
         staleStateIds.Clear();
         tickActorIndex = 0;
         tickPassActive = false;
-        pendingWarningAlerts = 0;
-        pendingDangerAlerts = 0;
         diagnostics.Reset();
     }
 
-    private static string GetBreakdownLabel(CharacterBreakdownKind kind)
-    {
-        return kind switch
-        {
-            CharacterBreakdownKind.DesperateRelief => "배변 붕괴",
-            CharacterBreakdownKind.DesperateDrink => "갈증 붕괴",
-            CharacterBreakdownKind.DesperateEat => "굶주림 붕괴",
-            CharacterBreakdownKind.Collapse => "탈진 실신",
-            CharacterBreakdownKind.ViolentImpulse => "정신 붕괴",
-            _ => "붕괴"
-        };
-    }
 }

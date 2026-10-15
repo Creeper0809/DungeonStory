@@ -1,11 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using DungeonStory.Infrastructure;
 using VContainer.Unity;
 
 public sealed class SettlementAlertRuntime :
     ISettlementAlertService,
     ISettlementAlertPersistence,
+    IDungeonRestoreTransactionParticipant,
+    IDungeonSaveRestoreCompletedHook,
     ITickable
 {
     public const long DowngradeStabilityHours = 2L;
@@ -15,7 +20,11 @@ public sealed class SettlementAlertRuntime :
     private readonly IGameEventBus events;
     private readonly IEmergencyWorkAccountingReconciler accountingReconciler;
     private readonly IEmergencyWorkAccountingService accounting;
-    private readonly IEmergencyWorkSuspensionOutcomeCommitter suspensionOutcomes;
+    private readonly IDomainFactStagingPublisher facts;
+    private readonly IDomainFactRecoveryPublisher recovery;
+    private readonly Dictionary<string, EmergencyWorkSuspensionObservationSaveData> suspensionObservations = new(StringComparer.Ordinal);
+    private bool publishingSuspension;
+    private float? lastSuspensionRetryAt;
     private readonly Dictionary<string, IncidentState> incidents =
         new Dictionary<string, IncidentState>(StringComparer.Ordinal);
     private readonly Dictionary<string, ContextTransitionState> contextTransitions =
@@ -40,29 +49,147 @@ public sealed class SettlementAlertRuntime :
     private long coverageStableSinceAbsoluteHour = -1L;
     private bool snapshotDirty = true;
     private SettlementAlertSnapshot cachedSnapshot;
+    private Action restorePreviousState;
+    private DungeonStory.Infrastructure.SettlementThreatAlertSaveData restoreCandidate;
+
+    public string ParticipantId => "210.operation.settlement-alert";
+
+    public void BeginRestoreCandidate()
+    {
+        // Stage the save DTO without changing live authority. Keep transient
+        // claims/cache state too: it cannot be reconstructed by replaying a DTO.
+        if (restorePreviousState != null)
+            throw new InvalidOperationException("Settlement alert restore is already staged.");
+        var previousIncidents = new Dictionary<string, IncidentState>(incidents, StringComparer.Ordinal);
+        var previousTransitions = new Dictionary<string, ContextTransitionState>(contextTransitions, StringComparer.Ordinal);
+        var previousSuspended = new Dictionary<string, SettlementSuspendedWorkSnapshot>(suspendedWork, StringComparer.Ordinal);
+        var previousObservations = suspensionObservations.ToDictionary(pair => pair.Key, pair => pair.Value.Clone(), StringComparer.Ordinal);
+        var previousRetryAt = lastSuspensionRetryAt;
+        var previousDesired = desiredLevel; var previousCommitted = committedLevel;
+        long previousEpoch = alertEpochId, previousEntered = levelEnteredAbsoluteHour;
+        long previousDowngrade = downgradeStableSinceAbsoluteHour, previousCoverageSince = coverageStableSinceAbsoluteHour;
+        int previousAmber = amberIncidentCount, previousRed = redIncidentCount, previousAuditDay = lastQualifiedRedAuditDay;
+        var previousCoverage = coverageBand; var previousDesiredCoverage = desiredCoverageBand;
+        float previousReserve = reserveCoverage;
+        bool previousDirty = snapshotDirty;
+        var previousSnapshot = cachedSnapshot;
+        restorePreviousState = () =>
+        {
+            incidents.Clear();
+            foreach (var pair in previousIncidents) incidents.Add(pair.Key, pair.Value);
+            contextTransitions.Clear();
+            foreach (var pair in previousTransitions) contextTransitions.Add(pair.Key, pair.Value);
+            suspendedWork.Clear();
+            foreach (var pair in previousSuspended) suspendedWork.Add(pair.Key, pair.Value);
+            suspensionObservations.Clear();
+            foreach (var pair in previousObservations) suspensionObservations.Add(pair.Key, pair.Value);
+            lastSuspensionRetryAt = previousRetryAt;
+            desiredLevel = previousDesired; committedLevel = previousCommitted;
+            alertEpochId = previousEpoch; levelEnteredAbsoluteHour = previousEntered;
+            downgradeStableSinceAbsoluteHour = previousDowngrade; coverageStableSinceAbsoluteHour = previousCoverageSince;
+            amberIncidentCount = previousAmber; redIncidentCount = previousRed; lastQualifiedRedAuditDay = previousAuditDay;
+            coverageBand = previousCoverage; desiredCoverageBand = previousDesiredCoverage; reserveCoverage = previousReserve;
+            snapshotDirty = previousDirty; cachedSnapshot = previousSnapshot;
+        };
+    }
+
+    public void PublishRestoreCandidate()
+    {
+        if (restoreCandidate != null) ApplyAlertSaveData(restoreCandidate);
+    }
+
+    public void RollbackPublishedRestoreCandidate() => DiscardRestoreCandidate();
+
+    public void DiscardRestoreCandidate()
+    {
+        restorePreviousState?.Invoke();
+        CompleteRestoreCandidate();
+    }
+
+    public void CompleteRestoreCandidate()
+    {
+        restorePreviousState = null;
+        restoreCandidate = null;
+    }
 
     public SettlementAlertRuntime(
         IGameCalendar calendar,
         IGameEventBus events,
         IEmergencyWorkAccountingReconciler accountingReconciler,
         IEmergencyWorkAccountingService accounting,
-        IEmergencyWorkSuspensionOutcomeCommitter suspensionOutcomes)
+        IDomainFactStagingPublisher facts,
+        IDomainFactRecoveryPublisher recovery)
     {
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.accountingReconciler = accountingReconciler
             ?? throw new ArgumentNullException(nameof(accountingReconciler));
         this.accounting = accounting ?? throw new ArgumentNullException(nameof(accounting));
-        this.suspensionOutcomes = suspensionOutcomes
-            ?? throw new ArgumentNullException(nameof(suspensionOutcomes));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
         levelEnteredAbsoluteHour = 0L;
     }
 
     public void Tick()
     {
+        float retryTime = calendar.ElapsedSeconds;
+        if (!lastSuspensionRetryAt.HasValue || retryTime < lastSuspensionRetryAt.Value
+            || retryTime - lastSuspensionRetryAt.Value >= 5f)
+        {
+            lastSuspensionRetryAt = retryTime;
+            try { ResumeSuspensionObservations(); }
+            catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException and not AccessViolationException)
+            { UnityEngine.Debug.LogException(exception); }
+        }
         long now = calendar.AbsoluteHour;
         AdvanceThreatDowngrade(now);
         AdvanceCoverageUpgrade(now);
+    }
+
+    public void OnRestoreCompleted()
+    {
+        lastSuspensionRetryAt = calendar.ElapsedSeconds;
+        try { ResumeSuspensionObservations(); }
+        catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException and not AccessViolationException)
+        {
+            // The world is already published. Keep the pending observation and
+            // retry later; failure here must not report a rolled-back world.
+            UnityEngine.Debug.LogException(exception);
+        }
+    }
+
+    private void ResumeSuspensionObservations()
+    {
+        if (publishingSuspension) throw new InvalidOperationException("suspension-observation-reentrant");
+        bool pending = false;
+        foreach (var row in suspensionObservations.Values)
+            if (row.pending) { pending = true; break; }
+        if (!pending) return;
+        publishingSuspension = true;
+        try
+        {
+            foreach (var pair in suspensionObservations.Where(pair => pair.Value.pending).ToArray())
+            {
+                var row = pair.Value;
+                var results = new DomainFactDelivery[1];
+                if (!recovery.ReplayBatch(new[] { DomainFactReplay.Create(row.publicationKey,
+                        new EmergencyWorkSuspensionFact(row.fact)) }, results, out string failure))
+                    throw new InvalidOperationException("suspension-observation-replay-pending:" + failure);
+                RequireSuspensionDelivery(results[0], row.publicationKey);
+                if (suspendedWork.ContainsKey(pair.Key)) row.pending = false;
+                else suspensionObservations.Remove(pair.Key);
+            }
+        }
+        finally { publishingSuspension = false; }
+    }
+
+    private static void RequireSuspensionDelivery(in DomainFactDelivery delivery, string key)
+    {
+        if (!delivery.Completed || delivery.OperationKey != key
+            || !DomainFactValueSyntax.IsText(delivery.PublicationId, 1024, false)
+            || delivery.Fingerprint?.Length != 64
+            || !delivery.Fingerprint.All(value => value is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F'))
+            throw new InvalidOperationException("suspension-observation-delivery-pending:" + delivery.Detail);
     }
 
     public SettlementAlertSnapshot Capture()
@@ -117,6 +244,8 @@ public sealed class SettlementAlertRuntime :
                 reserveCoverage = reserveCoverage,
                 coverageStableSinceAbsoluteHour = coverageStableSinceAbsoluteHour
             };
+        result.suspensionObservations = suspensionObservations.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => pair.Value.Clone()).ToList();
         foreach (KeyValuePair<string, IncidentState> pair in incidents)
         {
             result.incidents.Add(new DungeonStory.Infrastructure.SettlementIncidentSaveData
@@ -155,6 +284,19 @@ public sealed class SettlementAlertRuntime :
     public void RestoreAlertSaveData(
         DungeonStory.Infrastructure.SettlementThreatAlertSaveData saveData)
     {
+        if (saveData == null) throw new ArgumentNullException(nameof(saveData));
+        if (restorePreviousState != null)
+        {
+            restoreCandidate = saveData;
+            return;
+        }
+        ApplyAlertSaveData(saveData);
+    }
+
+    private void ApplyAlertSaveData(
+        DungeonStory.Infrastructure.SettlementThreatAlertSaveData saveData)
+    {
+        EmergencyWorkSuspensionObservationState.Validate(saveData);
         if (saveData == null
             || saveData.incidents == null
             || saveData.suspendedWork == null)
@@ -165,6 +307,10 @@ public sealed class SettlementAlertRuntime :
         incidents.Clear();
         contextTransitions.Clear();
         suspendedWork.Clear();
+        suspensionObservations.Clear();
+        lastSuspensionRetryAt = null;
+        foreach (var row in saveData.suspensionObservations)
+            suspensionObservations.Add(row.fact.characterId, row.Clone());
         amberIncidentCount = 0;
         redIncidentCount = 0;
         for (int index = 0; index < saveData.incidents.Count; index++)
@@ -219,7 +365,9 @@ public sealed class SettlementAlertRuntime :
                     source.progressExternallyPersisted,
                     source.inlineCompletedWork,
                     source.inlineRequiredWork,
-                    source.outcomeOwnerRevision));
+                    source.outcomeOwnerRevision,
+                    suspensionObservations[source.characterId].fact.workerDisplayName,
+                    suspensionObservations[source.characterId].fact.targetDisplayName));
         }
         TouchSnapshot();
 
@@ -376,6 +524,8 @@ public sealed class SettlementAlertRuntime :
     public EmergencyAccountingResult RecordSuspendedWork(
         SettlementSuspendedWorkSnapshot value)
     {
+        if (publishingSuspension)
+            return EmergencyAccountingResult.Fail("SettlementSuspensionReentrant", "A suspension observation is already being published.");
         if (string.IsNullOrWhiteSpace(value.CharacterId)
             || !value.WorkTypeId.IsValid
             || string.IsNullOrWhiteSpace(value.TargetBuildingId)
@@ -389,46 +539,90 @@ public sealed class SettlementAlertRuntime :
                 "Suspended work requires a character, work type, target, current epoch and externally persisted progress.");
         }
 
-        if (!suspensionOutcomes.TryPrepare(
-                value,
-                Math.Max(1, calendar.Day),
-                out PreparedEmergencyWorkSuspensionOutcome prepared,
-                out string failureReason))
-        {
-            return EmergencyAccountingResult.Fail(
-                "SettlementSuspendedWorkOutcomePrepareFailed",
-                failureReason);
-        }
-
         bool hadPrevious = suspendedWork.TryGetValue(
             value.CharacterId,
             out SettlementSuspendedWorkSnapshot previous);
-        if (prepared.IsReplay)
+        suspensionObservations.TryGetValue(value.CharacterId, out var previousObservation);
+        if (hadPrevious && previous.OutcomeOwnerRevision == value.OutcomeOwnerRevision)
         {
-            suspensionOutcomes.Cancel(prepared);
-            return hadPrevious && Matches(previous, value)
-                ? EmergencyAccountingResult.Ok("suspended-work-already-recorded")
+            // Escalation may rebind the active epoch; the original fact and names
+            // remain frozen. A repeated physical receipt is not a second event.
+            return Matches(previous, value) && previousObservation != null
+                ? EmergencyAccountingResult.Ok(previousObservation.pending
+                    ? "suspended-work-recorded-observation-pending" : "suspended-work-already-recorded")
                 : EmergencyAccountingResult.Fail(
-                    "SettlementSuspendedWorkReplayStateMissing",
-                    "The suspension outcome is durable but its exact owner state is absent.");
+                    "SettlementSuspendedWorkRevisionConflict", "The suspension revision has different applied state.");
+        }
+        if (previousObservation?.pending == true)
+            return EmergencyAccountingResult.Fail("SettlementSuspensionObservationPending", "The previous applied suspension awaits observation.");
+        if (hadPrevious && value.OutcomeOwnerRevision <= previous.OutcomeOwnerRevision)
+            return EmergencyAccountingResult.Fail("SettlementSuspendedWorkRevisionConflict", "Suspension revisions cannot move backwards.");
+        if (!WorkTypeCatalog.TryGet(value.WorkTypeId, out var workType))
+            return EmergencyAccountingResult.Fail("SettlementSuspendedWorkInvalid", "Unknown suspended work type.");
+        EmergencyWorkSuspensionFact fact;
+        try { fact = new EmergencyWorkSuspensionFact(value, Math.Max(1, calendar.Day), workType.DisplayName?.Trim() ?? string.Empty); }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        { return EmergencyAccountingResult.Fail("SettlementSuspendedWorkInvalid", exception.Message); }
+        IDomainFactStage stage;
+        try
+        {
+            if (!facts.TryStage(fact, out stage, out string failureReason))
+                return EmergencyAccountingResult.Fail("SettlementSuspendedWorkObservationPrepareFailed", failureReason);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException and not AccessViolationException)
+        { return EmergencyAccountingResult.Fail("SettlementSuspendedWorkObservationPrepareFailed", exception.Message); }
+        bool applied = false, publicationCrossed = false;
+        publishingSuspension = true;
+        try
+        {
+            if (stage.IsReplay)
+                return EmergencyAccountingResult.Fail("SettlementSuspendedWorkReplayStateMissing",
+                    "The suspension is already observed but its exact active owner state is absent.");
+            var observation = new EmergencyWorkSuspensionObservationSaveData
+            { fact = fact.Snapshot(), publicationKey = stage.OperationKey, pending = true };
+            observation.Validate();
+            suspendedWork[value.CharacterId] = value;
+            suspensionObservations[value.CharacterId] = observation;
+            TouchSnapshot();
+            applied = true;
+            publicationCrossed = true;
+            var delivered = stage.Commit();
+            if (!delivered.MayBeCommitted)
+            {
+                publicationCrossed = false;
+                RestorePrevious();
+                return EmergencyAccountingResult.Fail("SettlementSuspendedWorkObservationRejected", delivered.Detail);
+            }
+            if (!delivered.Completed)
+                return EmergencyAccountingResult.Ok("suspended-work-recorded-observation-pending:" + delivered.Detail);
+            RequireSuspensionDelivery(delivered, observation.publicationKey);
+            if (suspendedWork.ContainsKey(value.CharacterId)) observation.pending = false;
+            else suspensionObservations.Remove(value.CharacterId);
+            return EmergencyAccountingResult.Ok("suspended-work-recorded");
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException and not AccessViolationException)
+        {
+            if (publicationCrossed)
+                return EmergencyAccountingResult.Ok("suspended-work-recorded-observation-pending:" + exception.Message);
+            if (applied) RestorePrevious();
+            return EmergencyAccountingResult.Fail("SettlementSuspendedWorkObservationFailed", exception.Message);
+        }
+        finally
+        {
+            try { stage?.Cancel(); }
+            catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException and not AccessViolationException)
+            { UnityEngine.Debug.LogException(exception); }
+            finally { publishingSuspension = false; }
         }
 
-        suspendedWork[value.CharacterId] = value;
-        TouchSnapshot();
-        OwnerOutcomeCommitResult committed = suspensionOutcomes.Commit(prepared);
-        if (!committed.DurablyCommitted)
+        void RestorePrevious()
         {
-            if (hadPrevious)
-                suspendedWork[value.CharacterId] = previous;
-            else
-                suspendedWork.Remove(value.CharacterId);
+            if (hadPrevious) suspendedWork[value.CharacterId] = previous;
+            else suspendedWork.Remove(value.CharacterId);
+            if (previousObservation != null) suspensionObservations[value.CharacterId] = previousObservation;
+            else suspensionObservations.Remove(value.CharacterId);
             TouchSnapshot();
-            suspensionOutcomes.Cancel(prepared);
-            return EmergencyAccountingResult.Fail(
-                "SettlementSuspendedWorkOutcomeCommitRejected",
-                committed.DetailCode);
         }
-        return EmergencyAccountingResult.Ok("suspended-work-recorded");
     }
 
     public bool TryGetSuspendedWork(
@@ -459,6 +653,7 @@ public sealed class SettlementAlertRuntime :
         }
 
         suspendedWork.Remove(normalized);
+        RemoveCompletedSuspensionObservation(normalized);
         TouchSnapshot();
         return EmergencyAccountingResult.Ok("suspended-work-resumed");
     }
@@ -490,9 +685,16 @@ public sealed class SettlementAlertRuntime :
         }
 
         suspendedWork.Remove(normalized);
+        RemoveCompletedSuspensionObservation(normalized);
         TouchSnapshot();
         return EmergencyAccountingResult.Ok(
             $"suspended-work-abandoned:{normalizedReason}");
+    }
+
+    private void RemoveCompletedSuspensionObservation(string characterId)
+    {
+        if (suspensionObservations.TryGetValue(characterId, out var row) && !row.pending)
+            suspensionObservations.Remove(characterId);
     }
 
     private void ReevaluateDesiredLevel()
@@ -558,7 +760,9 @@ public sealed class SettlementAlertRuntime :
                         previousWork.ProgressExternallyPersisted,
                         previousWork.InlineCompletedWork,
                         previousWork.InlineRequiredWork,
-                        previousWork.OutcomeOwnerRevision);
+                        previousWork.OutcomeOwnerRevision,
+                        previousWork.WorkerDisplayName,
+                        previousWork.TargetDisplayName);
             }
         }
         levelEnteredAbsoluteHour = calendar.AbsoluteHour;

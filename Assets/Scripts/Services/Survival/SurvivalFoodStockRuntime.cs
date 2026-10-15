@@ -1493,9 +1493,15 @@ internal sealed class SurvivalFoodStockRuntime
 
     internal static string FormatFacilityFuelOperationId(
         BuildableObject facility,
-        int sequence) => FacilityFuelOwnerDomain + ":"
-        + Uri.EscapeDataString(facility.RequirePersistentInstanceId().Value)
-        + $":{sequence:D8}";
+        int sequence)
+    {
+        if (sequence <= 0) throw new ArgumentOutOfRangeException(nameof(sequence));
+        // Operation IDs cross the physical outcome boundary; unlike destination
+        // routing keys they must stay canonical stable IDs, not URI components.
+        string facilityId = new GameplayOperationId(facility.RequirePersistentInstanceId().Value).Value;
+        return new GameplayOperationId(FacilityFuelOwnerDomain + ":" + facilityId + ":"
+            + sequence.ToString("D8", System.Globalization.CultureInfo.InvariantCulture)).Value;
+    }
 
     private static bool IsExactFacilityFuelStack(
         WorldItemStackSnapshot stack,

@@ -118,7 +118,8 @@ public sealed class OffenseHexWorldSimulation :
     IOffenseWorldSimulation,
     IWorldThreatModifierQuery,
     IStartable,
-    IDisposable
+    IDisposable,
+    IDungeonRestoreTransactionParticipant
 {
     public const int DefaultRadius = 9;
     public const int InitialRevealedSiteCount = 2;
@@ -142,6 +143,8 @@ public sealed class OffenseHexWorldSimulation :
     private IDisposable daySubscription;
     private int nextDynamicSiteSequence;
     private int nextUrgentSiteSequence;
+    private bool restoreTransactionActive;
+    private OffenseHexWorldRestoreCandidate stagedRestore, previousRestore;
 
     public OffenseHexWorldSimulation(
         DungeonSceneRuntimeReferences sceneRuntimes,
@@ -683,6 +686,18 @@ public sealed class OffenseHexWorldSimulation :
     internal void PublishRestore(OffenseHexWorldRestoreCandidate candidate)
     {
         candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        if (restoreTransactionActive)
+        {
+            if (stagedRestore != null || previousRestore != null)
+                throw new InvalidOperationException("Offense world restore candidate was already staged or published.");
+            stagedRestore = candidate;
+            return;
+        }
+        ApplyRestore(candidate);
+    }
+
+    private void ApplyRestore(OffenseHexWorldRestoreCandidate candidate)
+    {
         WorldSeed = candidate.WorldSeed;
         WorldDay = candidate.WorldDay;
         WorldHour = candidate.WorldHour;
@@ -691,6 +706,42 @@ public sealed class OffenseHexWorldSimulation :
         urgentSites = candidate.UrgentSites;
         nextDynamicSiteSequence = candidate.NextDynamicSiteSequence;
         nextUrgentSiteSequence = candidate.NextUrgentSiteSequence;
+    }
+
+    public string ParticipantId => "offense.hex-world";
+
+    public void BeginRestoreCandidate()
+    {
+        if (restoreTransactionActive)
+            throw new InvalidOperationException("Offense world restore is already active.");
+        restoreTransactionActive = true;
+    }
+
+    public void PublishRestoreCandidate()
+    {
+        if (!restoreTransactionActive || stagedRestore == null || previousRestore != null)
+            throw new InvalidOperationException("Offense world restore candidate is missing or already published.");
+        // Keep the exact previous collections and unsaved next-ID counters.
+        // Rebuilding a save image here would lose live reference identity.
+        previousRestore = new OffenseHexWorldRestoreCandidate(
+            WorldSeed, WorldDay, WorldHour, tiles, sites, urgentSites,
+            nextDynamicSiteSequence, nextUrgentSiteSequence);
+        ApplyRestore(stagedRestore);
+        stagedRestore = null;
+    }
+
+    public void RollbackPublishedRestoreCandidate() => DiscardRestoreCandidate();
+
+    public void DiscardRestoreCandidate()
+    {
+        if (previousRestore != null) ApplyRestore(previousRestore);
+        CompleteRestoreCandidate();
+    }
+
+    public void CompleteRestoreCandidate()
+    {
+        stagedRestore = previousRestore = null;
+        restoreTransactionActive = false;
     }
 
     private void OnDayStarted(OperatingDayStartedEvent day)

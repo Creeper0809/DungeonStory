@@ -26,6 +26,16 @@ public interface IInvasionCampaignRuntime
     bool TryGetBranch(string branchId, out HumanInvasionBranchState branch);
     bool TryDestroySupportSite(string siteId, out string message);
     ScheduledInvasionOperationState ScheduleNextOperation(float threat);
+    ScheduledInvasionOperationState ScheduleMilestonePressureOperation(
+        float threat,
+        string sourceOwnerId,
+        int sourceAbsoluteDay,
+        out bool created);
+    ScheduledInvasionOperationState ClaimOrScheduleNextOperation(float threat);
+    void RecordOperationStarted(
+        string operationId,
+        string invasionRuntimeId,
+        string publicationKey);
     float GetBranchStrengthMultiplier(string branchId);
     InvasionCampaignSaveData Capture();
     void ReplaceFromValidatedSnapshot(InvasionCampaignSaveData state);
@@ -136,6 +146,113 @@ public sealed class InvasionCampaignRuntime :
     }
 
     public ScheduledInvasionOperationState ScheduleNextOperation(float threat)
+        => CreateOperation(threat, currentDay, string.Empty);
+
+    public ScheduledInvasionOperationState ScheduleMilestonePressureOperation(
+        float threat,
+        string sourceOwnerId,
+        int sourceAbsoluteDay,
+        out bool created)
+    {
+        created = false;
+        string requiredSource = sourceOwnerId?.Trim() ?? string.Empty;
+        if (requiredSource.Length == 0)
+            throw new ArgumentException(
+                "A milestone-pressure source owner ID is required.",
+                nameof(sourceOwnerId));
+        if (sourceAbsoluteDay < 1)
+            throw new ArgumentOutOfRangeException(nameof(sourceAbsoluteDay));
+        EnsureInitialized();
+        ScheduledInvasionOperationState existing = operations
+            .SingleOrDefault(value => value != null
+                && string.Equals(
+                    value.sourceOwnerId,
+                    requiredSource,
+                    StringComparison.Ordinal));
+        if (existing != null)
+        {
+            if (existing.sourceAbsoluteDay != sourceAbsoluteDay
+                || existing.scheduledDay != sourceAbsoluteDay)
+            {
+                throw new InvalidOperationException(
+                    "A milestone-pressure operation changed its source day.");
+            }
+            return existing;
+        }
+
+        ScheduledInvasionOperationState operation = CreateOperation(
+            threat,
+            sourceAbsoluteDay,
+            requiredSource);
+        created = operation != null;
+        return operation;
+    }
+
+    public ScheduledInvasionOperationState ClaimOrScheduleNextOperation(
+        float threat)
+    {
+        EnsureInitialized();
+        ScheduledInvasionOperationState pending = operations
+            .Where(value => value != null
+                && !string.IsNullOrWhiteSpace(value.sourceOwnerId)
+                && string.IsNullOrWhiteSpace(value.startedInvasionRuntimeId)
+                && value.scheduledDay <= currentDay)
+            .OrderBy(value => value.scheduledDay)
+            .ThenBy(value => value.operationId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        return pending ?? ScheduleNextOperation(threat);
+    }
+
+    public void RecordOperationStarted(
+        string operationId,
+        string invasionRuntimeId,
+        string publicationKey)
+    {
+        string requiredOperation = operationId?.Trim() ?? string.Empty;
+        string requiredRuntime = invasionRuntimeId?.Trim() ?? string.Empty;
+        if (requiredOperation.Length == 0
+            || requiredRuntime.Length == 0
+            || !DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(publicationKey, 2048, false))
+        {
+            throw new ArgumentException(
+                "A complete invasion-operation start identity is required.");
+        }
+
+        ScheduledInvasionOperationState operation = operations
+            .SingleOrDefault(value => value != null
+                && string.Equals(
+                    value.operationId,
+                    requiredOperation,
+                    StringComparison.Ordinal))
+            ?? throw new InvalidOperationException(
+                "The started invasion operation is not registered: "
+                + requiredOperation);
+        if (!string.IsNullOrWhiteSpace(operation.startedInvasionRuntimeId))
+        {
+            if (string.Equals(
+                    operation.startedInvasionRuntimeId,
+                    requiredRuntime,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    operation.startedPublicationKey,
+                    publicationKey,
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+            throw new InvalidOperationException(
+                "An invasion operation cannot start more than once: "
+                + requiredOperation);
+        }
+
+        operation.startedInvasionRuntimeId = requiredRuntime;
+        operation.startedPublicationKey = publicationKey;
+    }
+
+    private ScheduledInvasionOperationState CreateOperation(
+        float threat,
+        int scheduledDay,
+        string sourceOwnerId)
     {
         EnsureInitialized();
         HumanInvasionBranchState primary = Branches
@@ -157,9 +274,13 @@ public sealed class InvasionCampaignRuntime :
                 primaryBranchId = primary.branchId,
                 participatingBranchIds = SelectParticipants(primary.branchId),
                 objectiveId = ResolveObjective(primary.branchId),
-                scheduledDay = currentDay,
+                scheduledDay = scheduledDay,
                 intelligenceConfidence = Mathf.Clamp01(
-                    0.35f + GetStrength(primary.branchId) / 200f)
+                    0.35f + GetStrength(primary.branchId) / 200f),
+                sourceOwnerId = sourceOwnerId,
+                sourceAbsoluteDay = string.IsNullOrWhiteSpace(sourceOwnerId)
+                    ? 0
+                    : scheduledDay
             };
         operations.Add(operation);
         if (operations.Count > 20)

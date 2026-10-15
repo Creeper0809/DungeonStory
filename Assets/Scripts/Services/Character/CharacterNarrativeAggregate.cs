@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 
 internal sealed class CharacterNarrativeRecord
 {
@@ -23,6 +24,8 @@ internal sealed class CharacterNarrativeRecord
         CultureId = new SpeciesCultureId(data.cultureId);
         ActiveAmbitionId = new CharacterAmbitionId(data.activeAmbitionId);
         AmbitionStatus = data.ambitionStatus;
+        AmbitionStartedAbsoluteDay = data.ambitionStartedAbsoluteDay;
+        AmbitionDueAbsoluteDay = data.ambitionDueAbsoluteDay;
         AmbitionProgress = data.ambitionProgress;
         NextAmbitionAllowedAbsoluteDay = data.nextAmbitionAllowedAbsoluteDay;
         AssimilationTargetCultureId = new SpeciesCultureId(data.assimilationTargetCultureId);
@@ -125,6 +128,8 @@ internal sealed class CharacterNarrativeRecord
     public SpeciesCultureId CultureId { get; private set; }
     public CharacterAmbitionId ActiveAmbitionId { get; private set; }
     public CharacterAmbitionStatus AmbitionStatus { get; private set; }
+    public int AmbitionStartedAbsoluteDay { get; private set; }
+    public int AmbitionDueAbsoluteDay { get; private set; }
     public int AmbitionProgress { get; private set; }
     public int NextAmbitionAllowedAbsoluteDay { get; private set; }
     public SpeciesCultureId AssimilationTargetCultureId { get; private set; }
@@ -206,7 +211,22 @@ internal sealed class CharacterNarrativeRecord
         if (!value.CharacterId.IsValid) throw new InvalidOperationException($"Invalid narrative CharacterId '{data.characterId}'.");
         catalog.Require(value.BackgroundId);
         catalog.Require(value.CultureId);
-        if (value.ActiveAmbitionId.IsValid) catalog.Require(value.ActiveAmbitionId);
+        if (value.ActiveAmbitionId.IsValid)
+        {
+            CharacterAmbitionDefinitionSO active = catalog.Require(
+                value.ActiveAmbitionId);
+            value.EnsureAmbitionDeadline(active);
+        }
+        if (value.AmbitionStartedAbsoluteDay < 0
+            || value.AmbitionDueAbsoluteDay < 0
+            || (value.AmbitionStatus == CharacterAmbitionStatus.Active
+                && value.AmbitionStartedAbsoluteDay > 0
+                && value.AmbitionDueAbsoluteDay
+                    <= value.AmbitionStartedAbsoluteDay)
+            || (value.AmbitionStatus != CharacterAmbitionStatus.Active
+                && value.AmbitionDueAbsoluteDay != 0))
+            throw new InvalidOperationException(
+                $"'{data.characterId}' has an invalid ambition schedule.");
         foreach (string traitId in value.expressedTraits.Concat(value.latentTraits))
             catalog.RequireHeritable(traitId);
         if (value.expressedTraits.Count > 4 || value.latentTraits.Count > 2)
@@ -267,14 +287,33 @@ internal sealed class CharacterNarrativeRecord
         return value;
     }
 
-    public void StartAmbition(CharacterAmbitionId id, int absoluteDay)
+    public void StartAmbition(
+        CharacterAmbitionId id,
+        int absoluteDay,
+        int dueAbsoluteDay)
     {
         if (!id.IsValid) throw new ArgumentException("A valid ambition id is required.", nameof(id));
         if (AmbitionStatus == CharacterAmbitionStatus.Active) throw new InvalidOperationException("A character cannot have two active ambitions.");
         if (absoluteDay < NextAmbitionAllowedAbsoluteDay) throw new InvalidOperationException("The ambition cooldown has not elapsed.");
+        if (dueAbsoluteDay <= absoluteDay)
+            throw new ArgumentOutOfRangeException(nameof(dueAbsoluteDay));
         ActiveAmbitionId = id;
         AmbitionStatus = CharacterAmbitionStatus.Active;
+        AmbitionStartedAbsoluteDay = absoluteDay;
+        AmbitionDueAbsoluteDay = dueAbsoluteDay;
         AmbitionProgress = 0;
+    }
+
+    private void EnsureAmbitionDeadline(CharacterAmbitionDefinitionSO definition)
+    {
+        if (AmbitionStatus != CharacterAmbitionStatus.Active
+            || AmbitionDueAbsoluteDay > 0
+            || AmbitionStartedAbsoluteDay <= 0)
+        {
+            return;
+        }
+        AmbitionDueAbsoluteDay = checked(
+            AmbitionStartedAbsoluteDay + definition.deadlineDays);
     }
 
     public bool TryInitializeBackground(
@@ -369,6 +408,8 @@ internal sealed class CharacterNarrativeRecord
         AmbitionStatus = status;
         NextAmbitionAllowedAbsoluteDay = checked(absoluteDay + 10);
         ActiveAmbitionId = default;
+        AmbitionStartedAbsoluteDay = 0;
+        AmbitionDueAbsoluteDay = 0;
         AmbitionProgress = 0;
     }
 
@@ -510,6 +551,8 @@ internal sealed class CharacterNarrativeRecord
         CultureId = CultureId,
         ActiveAmbitionId = ActiveAmbitionId,
         AmbitionStatus = AmbitionStatus,
+        AmbitionStartedAbsoluteDay = AmbitionStartedAbsoluteDay,
+        AmbitionDueAbsoluteDay = AmbitionDueAbsoluteDay,
         AmbitionProgress = AmbitionProgress,
         NextAmbitionAllowedAbsoluteDay = NextAmbitionAllowedAbsoluteDay,
         AssimilationTargetCultureId = AssimilationTargetCultureId,
@@ -551,6 +594,8 @@ internal sealed class CharacterNarrativeRecord
         cultureId = CultureId.Value,
         activeAmbitionId = ActiveAmbitionId.Value,
         ambitionStatus = AmbitionStatus,
+        ambitionStartedAbsoluteDay = AmbitionStartedAbsoluteDay,
+        ambitionDueAbsoluteDay = AmbitionDueAbsoluteDay,
         ambitionProgress = AmbitionProgress,
         nextAmbitionAllowedAbsoluteDay = NextAmbitionAllowedAbsoluteDay,
         assimilationTargetCultureId = AssimilationTargetCultureId.Value,
@@ -933,6 +978,10 @@ public sealed class CharacterNarrativeAggregateState
     internal List<CharacterIdentityRuntimeStateSaveData> IdentityStates { get; } = new();
     internal List<WorkCompletionIdentityDeliveryCursorSaveData>
         WorkCompletionDeliveries { get; } = new();
+    internal int NextTraitAnalysisOperationSequence { get; set; }
+    internal TraitAnalysisCommitSaveData PendingTraitAnalysis { get; set; } =
+        new();
+    internal List<CharacterAmbitionTransitionObservationSaveData> AmbitionTransitionObservations { get; } = new();
 
     public static CharacterNarrativeAggregateState Restore(CharacterNarrativeWorldSaveData data, ICharacterNarrativeCatalog catalog)
     {
@@ -945,6 +994,9 @@ public sealed class CharacterNarrativeAggregateState
         if (data.workCompletionDeliveries == null)
             throw new InvalidOperationException(
                 "Work-completion delivery collection is required.");
+        if (data.nextTraitAnalysisOperationSequence < 0)
+            throw new InvalidOperationException(
+                "Trait-analysis operation sequence is invalid.");
         CharacterNarrativeAggregateState state = new();
         foreach (CharacterNarrativeSaveData recordData in data.characters)
         {
@@ -958,6 +1010,25 @@ public sealed class CharacterNarrativeAggregateState
         state.WorkCompletionDeliveries.AddRange(
             WorkCompletionIdentityDeliveryLedger.ValidateAndClone(
                 data.workCompletionDeliveries));
+        state.NextTraitAnalysisOperationSequence =
+            data.nextTraitAnalysisOperationSequence;
+        state.PendingTraitAnalysis = ValidateTraitAnalysis(
+            data.pendingTraitAnalysis,
+            state.Characters,
+            catalog,
+            state.NextTraitAnalysisOperationSequence);
+        if (data.ambitionTransitionObservations == null || data.ambitionTransitionObservations.Count > 1)
+            throw new InvalidOperationException("Ambition transition pending collection is missing or exceeds its single owner.");
+        foreach (var source in data.ambitionTransitionObservations)
+        {
+            var pending = source?.Clone() ?? throw new InvalidOperationException("Ambition transition pending is null.");
+            pending.Validate();
+            if (!state.Characters.TryGetValue(new CharacterId(pending.fact.characterId), out var record))
+                throw new InvalidOperationException("Ambition transition character is missing.");
+            catalog.Require(new CharacterAmbitionId(pending.fact.ambitionId));
+            pending.fact.RequireAfterState(record.Snapshot());
+            state.AmbitionTransitionObservations.Add(pending);
+        }
         return state;
     }
 
@@ -968,6 +1039,99 @@ public sealed class CharacterNarrativeAggregateState
         identityStates = IdentityStates.Select(value => value.Clone()).ToList(),
         workCompletionDeliveries = WorkCompletionDeliveries
             .Select(value => value.Clone())
-            .ToList()
+            .ToList(),
+        nextTraitAnalysisOperationSequence =
+            NextTraitAnalysisOperationSequence,
+        pendingTraitAnalysis = PendingTraitAnalysis?.Clone()
+            ?? new TraitAnalysisCommitSaveData(),
+        ambitionTransitionObservations = AmbitionTransitionObservations.Select(value => value.Clone()).ToList()
     };
+
+    private static TraitAnalysisCommitSaveData ValidateTraitAnalysis(
+        TraitAnalysisCommitSaveData source,
+        IReadOnlyDictionary<CharacterId, CharacterNarrativeRecord> characters,
+        ICharacterNarrativeCatalog catalog,
+        int nextSequence)
+    {
+        TraitAnalysisCommitSaveData value = source?.Clone()
+            ?? new TraitAnalysisCommitSaveData();
+        if (!Enum.IsDefined(
+                typeof(TraitAnalysisCommitPhase),
+                value.phase))
+            throw new InvalidOperationException(
+                "Trait-analysis phase is invalid.");
+        TraitAnalysisCommitPhase phase =
+            (TraitAnalysisCommitPhase)value.phase;
+        value.ValidateObservationState();
+        if (phase == TraitAnalysisCommitPhase.None)
+            return new TraitAnalysisCommitSaveData();
+        if (value.operationSequence != nextSequence
+            || value.operationSequence < 0
+            || !DomainFactValueSyntax.IsIdentity(value.operationId)
+            || !DomainFactValueSyntax.IsIdentity(value.characterId)
+            || !DomainFactValueSyntax.IsIdentity(value.facilityInstanceId)
+            || !DomainFactValueSyntax.IsIdentity(value.facilityDefinitionId)
+            || !DomainFactValueSyntax.IsIdentity(value.itemId)
+            || !DomainFactValueSyntax.IsIdentity(value.sourceStackId)
+            || value.operationId != TraitAnalysisCommandRuntime.FormatOperationId(
+                new CharacterId(value.characterId), value.operationSequence)
+            || value.absoluteDay < 1
+            || string.IsNullOrWhiteSpace(value.characterDisplayName)
+            || string.IsNullOrWhiteSpace(value.facilityDisplayName))
+        {
+            throw new InvalidOperationException(
+                "Trait-analysis intent is invalid.");
+        }
+        CharacterId characterId = new(value.characterId);
+        if (!characters.TryGetValue(characterId, out CharacterNarrativeRecord record))
+            throw new InvalidOperationException(
+                "Trait-analysis character is missing.");
+        string[] latent = (value.latentTraitIds ?? new List<string>())
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Select(item => item.Trim())
+            .OrderBy(item => item, StringComparer.Ordinal)
+            .ToArray();
+        if (latent.Length == 0
+            || latent.Distinct(StringComparer.Ordinal).Count() != latent.Length)
+            throw new InvalidOperationException(
+                "Trait-analysis latent trait evidence is invalid.");
+        foreach (string traitId in latent)
+            catalog.RequireHeritable(traitId);
+        if (!record.Snapshot().LatentHeritableTraitIds
+                .OrderBy(item => item, StringComparer.Ordinal)
+                .SequenceEqual(latent, StringComparer.Ordinal))
+            throw new InvalidOperationException(
+                "Trait-analysis latent trait evidence is stale.");
+        value.latentTraitIds = latent.ToList();
+        if (phase >= TraitAnalysisCommitPhase.RevealPublished)
+        {
+            string[] sources = (value.physicalSourceStackIds
+                    ?? new List<string>())
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Select(item => item.Trim())
+                .OrderBy(item => item, StringComparer.Ordinal)
+                .ToArray();
+            if (!record.HeritableTraitsAnalyzed
+                || !DomainFactValueSyntax.IsIdentity(
+                    value.physicalCommitId)
+                || value.physicalInputMassGrams <= 0L
+                || sources.Length == 0
+                || sources.Distinct(StringComparer.Ordinal).Count()
+                    != sources.Length
+                || sources.Any(item =>
+                    !DomainFactValueSyntax.IsIdentity(item)))
+            {
+                throw new InvalidOperationException(
+                    "Trait-analysis committed evidence is invalid.");
+            }
+            value.physicalSourceStackIds = sources.ToList();
+            value.CreateCompletedFact();
+        }
+        else if (record.HeritableTraitsAnalyzed)
+        {
+            throw new InvalidOperationException(
+                "Trait-analysis reveal advanced before its saved phase.");
+        }
+        return value;
+    }
 }

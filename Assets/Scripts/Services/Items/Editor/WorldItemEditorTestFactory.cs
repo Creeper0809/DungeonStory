@@ -24,7 +24,8 @@ public static class WorldItemEditorTestFactory
         ICharacterAiPerformanceRecorder performanceRecorder,
         IItemQuantityReservationPersistence reservationPersistence = null,
         IFacilityOutputExactRouteOutboxPersistence
-            exactRouteOutboxPersistence = null)
+            exactRouteOutboxPersistence = null,
+        IPhysicalItemBatchDispositionService batchDispositionOverride = null)
     {
         _ = pathSearch ?? throw new ArgumentNullException(nameof(pathSearch));
         IPhysicalItemMassQuery massQuery = new PhysicalItemMassQuery(catalog);
@@ -75,7 +76,7 @@ public static class WorldItemEditorTestFactory
             itemTransferService,
             theft);
         IPhysicalItemBatchDispositionService batchDispositions =
-            new PhysicalItemBatchDispositionService(
+            batchDispositionOverride ?? new PhysicalItemBatchDispositionService(
                 repository,
                 massQuery,
                 itemMarkerPresenter);

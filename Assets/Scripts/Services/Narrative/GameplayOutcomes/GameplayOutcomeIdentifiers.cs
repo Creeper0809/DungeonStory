@@ -2,28 +2,8 @@ using System;
 
 internal static class GameplayOutcomeStableIdSyntax
 {
-    public static bool IsValid(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value) || value.Length > 192)
-            return false;
-
-        for (int index = 0; index < value.Length; index++)
-        {
-            char current = value[index];
-            bool valid = current >= 'a' && current <= 'z'
-                || current >= 'A' && current <= 'Z'
-                || current >= '0' && current <= '9'
-                || current == '.'
-                || current == ':'
-                || current == '_'
-                || current == '-'
-                || current == '/';
-            if (!valid)
-                return false;
-        }
-
-        return true;
-    }
+    public static bool IsValid(string value) =>
+        DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsIdentity(value);
 
     public static string Require(string value, string parameterName)
     {

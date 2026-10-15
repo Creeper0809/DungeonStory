@@ -277,6 +277,7 @@ public sealed class CharacterMealDeliveryState
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CharacterConsumableOperationState
 {
+    public string mealEffectsSkippedReason = string.Empty;
     public string operationId = string.Empty;
     public string characterId = string.Empty;
     public string itemDefinitionId = string.Empty;
@@ -288,6 +289,7 @@ public sealed class CharacterConsumableOperationState
     public bool contaminated;
     public float completedAt;
     public float appliedEffect;
+    public string outcomeResultKey = string.Empty;
 
     public ConsumableOperationId OperationId =>
         (ConsumableOperationId)operationId;
@@ -302,12 +304,19 @@ public sealed class CharacterConsumableOperationState
 [Serializable]
 public sealed class CharacterMealPlanSaveData
 {
+    public bool ritualFastingConsequenceDelivered;
+    public bool physicalContextFrozen;
+    public UnityEngine.Vector2Int consumptionPosition;
+    public string effectsSkippedReason = string.Empty;
     public string planId = string.Empty;
     public string characterId = string.Empty;
     public string facilityInstanceId = string.Empty;
     public string sourceStackId = string.Empty;
     public string itemDefinitionId = string.Empty;
     public CharacterMealPlanPhase phase = CharacterMealPlanPhase.Eating;
+    public int factAbsoluteDay;
+    public string publicationKey = string.Empty;
+    public bool publicationPending;
     public double createdAt;
     public double leaseExpiresAt;
     public float expectedCompletionEta;
@@ -321,7 +330,20 @@ public sealed class CharacterMealPlanSaveData
     public long physicalCommitInputMassGrams;
     public bool committedPolicyViolation;
     public bool committedContaminated;
+    public bool contaminationRollFrozen;
+    public bool resolvedContaminationDamage;
     public bool primitiveSurvivalOutcomeRequired;
+    public string primitivePublicationKey = string.Empty;
+    public float primitiveNutrition;
+    public bool recipientActiveAtCompletion;
+    public bool postCommitEventDelivered;
+    public bool effectEvidenceFrozen;
+    public float hungerBefore;
+    public float hungerAfter;
+    public float healthBefore;
+    public float healthAfter;
+    public float moodBefore;
+    public float moodAfter;
 
     public ConsumableOperationId OperationId =>
         (ConsumableOperationId)planId;
@@ -342,6 +364,9 @@ public sealed class CharacterSubstanceUsePlanSaveData
     public string sourceStackId = string.Empty;
     public CharacterSubstanceUsePlanPhase phase =
         CharacterSubstanceUsePlanPhase.ItemCommitted;
+    public int factAbsoluteDay;
+    public string publicationKey = string.Empty;
+    public bool publicationPending;
     public bool automaticOperation;
     public string physicalCommitOperationId = string.Empty;
     public string physicalCommitReasonCode = string.Empty;
@@ -359,6 +384,8 @@ public sealed class CharacterSubstanceUsePlanSaveData
     public bool resolvedAddicted;
     public bool resolvedOverdosed;
     public bool becameAddicted;
+    public float resolvedEffectMood;
+    public float resolvedOverdoseDamage;
 
     public ConsumableOperationId OperationId =>
         (ConsumableOperationId)operationId;
@@ -366,6 +393,21 @@ public sealed class CharacterSubstanceUsePlanSaveData
     public ConsumableItemDefinitionId ItemDefinitionId =>
         (ConsumableItemDefinitionId)itemDefinitionId;
     public ItemStackId SourceStackId => (ItemStackId)sourceStackId;
+}
+
+[Serializable]
+public sealed class CharacterMealOperationFailureState
+{
+    public string operationId = string.Empty;
+    public string characterId = string.Empty;
+    public string facilityInstanceId = string.Empty;
+    public CharacterConsumablesFailureCode failureCode;
+    public string detail = string.Empty;
+    public bool recoveryPending;
+
+    public ConsumableOperationId OperationId => new(operationId);
+    public CharacterId CharacterId => new(characterId);
+    public BuildingInstanceId FacilityId => new(facilityInstanceId);
 }
 
 [Serializable]
@@ -378,6 +420,9 @@ public sealed class CharacterDetoxTreatmentPlanSaveData
     public string sourceStackId = string.Empty;
     public CharacterDetoxTreatmentPlanPhase phase =
         CharacterDetoxTreatmentPlanPhase.ItemCommitted;
+    public int factAbsoluteDay;
+    public string publicationKey = string.Empty;
+    public bool publicationPending;
     public float detoxReduction;
     public float appliedReduction;
     public string physicalCommitOperationId = string.Empty;
@@ -401,17 +446,21 @@ public sealed class CharacterDetoxTreatmentPlanSaveData
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonCharacterConsumablesSaveData
 {
-    public const int CurrentVersion = 9;
+    public const int CurrentVersion = 17;
 
     public int version = CurrentVersion;
+    public float timelineTime = -1f;
     public long nextOperationSequence = 1;
     public long nextDeliverySequence = 1;
+    public long policyRevision;
+    public List<CharacterConsumablesPolicyPendingFactSaveData> pendingPolicyFacts = new();
     public List<CharacterDietPolicyState> dietPolicies = new();
     public List<CharacterSubstancePolicyState> substancePolicies = new();
     public List<CharacterSubstanceState> substanceStates = new();
     public List<CharacterToxicityState> toxicityStates = new();
     public List<CharacterMealDeliveryState> pendingMealDeliveries = new();
     public List<CharacterConsumableOperationState> completedOperations = new();
+    public List<CharacterMealOperationFailureState> failedMealOperations = new();
     public List<CharacterMealFollowupCooldownSaveData> mealFollowupCooldowns = new();
     public List<CharacterMealQualityPolicyState> mealQualityPolicies = new();
     public List<CharacterMealPlanSaveData> activeMealPlans = new();

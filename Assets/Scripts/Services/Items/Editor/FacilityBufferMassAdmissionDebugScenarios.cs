@@ -147,6 +147,7 @@ public static class FacilityBufferMassAdmissionDebugScenarios
         VerifyReserveRevalidatesClaim();
         VerifyReservedTargetNullableOwnerAdmission();
         VerifyPlannedOutputAdmission();
+        VerifyRolledBackPlannedOutputRetry();
         VerifyProductionCapacitySourceBinding();
         VerifyPreparedOutputMaximumBranchOneGramBoundary();
         VerifyCustodyOwnedExactAdmission();
@@ -761,6 +762,76 @@ public static class FacilityBufferMassAdmissionDebugScenarios
             "route:qa:custody",
             new string('b', 64),
             massRevision);
+    }
+
+    private static void VerifyRolledBackPlannedOutputRetry()
+    {
+        const string destination = "production-output:building:qa:retry";
+        const string owner = "economy.production-output";
+        Vector2Int position = new(33, 9);
+        FacilityBufferDestinationClaimRegistry claims = new();
+        FakeMassQuery mass = new();
+        FacilityBufferMassAdmissionService admission = new(claims, new FakeOccupancyQuery(), mass);
+        FacilityBufferCapacityProfile profile = new(destination, position, owner, destination,
+            "building:qa:retry", new PhysicalMassGrams(8_000L), capacityRevision: 1L);
+        Require(claims.TryClaim(new FacilityBufferDestinationClaim(destination, position, owner,
+                destination, profile.OwnerFacilityId, FacilityBufferDestinationAnchorKind.LiveBuilding),
+                out _, out _)
+                && admission.TryReplaceOwnedProfiles(owner, new[] { profile }, out _, out _),
+            "Rolled-back output fixture authority is missing.");
+        FacilityBufferPlannedOutputRequest request = Request("rollback", 2);
+        Require(admission.TryReservePlannedOutput(request, out FacilityBufferPlannedOutputToken first,
+                    out _, out _)
+                && !admission.TryReservePlannedOutput(request, out _, out _, out _)
+                && admission.TryReleasePlannedOutput(first,
+                    FacilityBufferMassAdmissionReleaseReason.TransactionRollback, out _, out _)
+                && !admission.TryReservePlannedOutput(Request("rollback", 1), out _, out _, out _)
+                && admission.TryGetCapacity(destination, position, out var empty)
+                && empty.ReservedMassGrams == 0L,
+            "Reserved duplicate or changed rollback request was admitted or leaked capacity.");
+        mass.AuthorityRevision++;
+        Require(!admission.TryReservePlannedOutput(request, out _, out _, out _),
+            "Rolled-back output accepted a changed mass authority fingerprint.");
+        mass.AuthorityRevision--;
+        Require(admission.TryReservePlannedOutput(request, out FacilityBufferPlannedOutputToken retry,
+                    out _, out _)
+                && retry.TokenId != first.TokenId
+                && retry.Request.PublicationOperationId == first.Request.PublicationOperationId
+                && retry.PlannedOutput.Fingerprint == first.PlannedOutput.Fingerprint
+                && admission.TryReleasePlannedOutput(first,
+                    FacilityBufferMassAdmissionReleaseReason.TransactionRollback, out _, out _)
+                && admission.TryGetCapacity(destination, position, out var live)
+                && live.ReservedMassGrams == retry.ReservedMassGrams
+                && !admission.TryReservePlannedOutput(request, out _, out _, out _),
+            "Exact rollback retry lost identity or replaying old release removed the new reservation.");
+        FacilityBufferPlannedOutputPublicationReceipt publication = CreatePublication(retry,
+            "stack:qa:rollback-retry", retry.ReservedMassGrams);
+        Require(admission.TryCommitPlannedOutput(retry, publication, out var committed, out _, out _)
+                && !admission.TryReservePlannedOutput(request, out _, out _, out _)
+                && admission.TryCommitPlannedOutput(retry, publication, out var replay, out _, out _)
+                && committed.TokenId == replay.TokenId,
+            "Routed duplicate was re-admitted or exact committed receipt replay changed.");
+        foreach (FacilityBufferMassAdmissionReleaseReason reason in new[]
+                 { FacilityBufferMassAdmissionReleaseReason.OwnerCancelled,
+                   FacilityBufferMassAdmissionReleaseReason.DestinationInvalidated })
+        {
+            FacilityBufferPlannedOutputRequest cancelled = Request(reason.ToString(), 1);
+            Require(admission.TryReservePlannedOutput(cancelled, out var token, out _, out _)
+                    && admission.TryReleasePlannedOutput(token, reason, out _, out _)
+                    && !admission.TryReservePlannedOutput(cancelled, out _, out _, out _),
+                "A non-rollback terminal output operation was re-admitted: " + reason);
+        }
+        FacilityBufferMassAdmissionRequest transfer = CreateRequest("qa:planned-retry:transfer",
+            profile, "stack:qa:planned-retry:transfer", 1);
+        Require(admission.TryReserveExactLot(transfer, out var transferToken, out _, out _)
+                && admission.TryRelease(transferToken,
+                    FacilityBufferMassAdmissionReleaseReason.TransactionRollback, out _, out _)
+                && !admission.TryReservePlannedOutput(Request("transfer", 1), out _, out _, out _),
+            "Planned-output retry reused a source-transfer operation ID.");
+
+        FacilityBufferPlannedOutputRequest Request(string suffix, int quantity) => CreatePlannedRequest(
+            profile, "qa:planned-retry:" + suffix, "production-output-batch:qa:retry:" + suffix,
+            "outcome:qa:retry:" + suffix, "output:main", "qa:item:planned", quantity);
     }
 
     private static void VerifyPlannedOutputAdmission()

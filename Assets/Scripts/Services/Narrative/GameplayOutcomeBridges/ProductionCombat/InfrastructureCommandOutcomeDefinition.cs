@@ -60,6 +60,8 @@ public static class InfrastructureCommandOutcomeIds
                 "automation-mode-changed",
             InfrastructureCommandOutcomeKind.AutomationMaintained =>
                 "automation-maintained",
+            InfrastructureCommandOutcomeKind.AutomationMaintenanceRequiredEntered =>
+                "automation-maintenance-required-entered",
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
         };
 }
@@ -72,7 +74,8 @@ public readonly struct InfrastructureCommandOutcomeReceipt
         long ownerRevision,
         int absoluteDay)
     {
-        if (!Enum.IsDefined(typeof(InfrastructureCommandOutcomeKind), source.Kind))
+        if (!Enum.IsDefined(typeof(InfrastructureCommandOutcomeKind), source.Kind)
+            || InfrastructureOutcomeKindRules.IsAutonomous(source.Kind))
             throw new ArgumentOutOfRangeException(nameof(source));
         if (!GameplayOutcomeStableIdSyntax.IsValid(source.TargetId)
             || !GameplayOutcomeStableIdSyntax.IsValid(source.FacilityId))
@@ -123,6 +126,8 @@ public sealed class InfrastructureCommandOutcomeAdapter :
         if (!receipt.ResultKey.IsValid
             || !Enum.IsDefined(
                 typeof(InfrastructureCommandOutcomeKind),
+                receipt.Source.Kind)
+            || InfrastructureOutcomeKindRules.IsAutonomous(
                 receipt.Source.Kind)
             || !GameplayOutcomeStableIdSyntax.IsValid(receipt.Source.TargetId)
             || !GameplayOutcomeStableIdSyntax.IsValid(receipt.Source.FacilityId)
@@ -210,231 +215,6 @@ public sealed class InfrastructureCommandOutcomeAdapter :
                 "infrastructure-command-write-failed");
         }
         return OutcomePrepareResult.Prepared();
-    }
-}
-
-internal sealed class PreparedInfrastructureCommandOutcome :
-    IPreparedInfrastructureCommandOutcome
-{
-    internal PreparedInfrastructureCommandOutcome(
-        PreparedOwnerOutcome prepared,
-        GameplayResultKey resultKey,
-        in InfrastructureCommandOutcomeSource source,
-        long ownerRevision,
-        in InfrastructureCommandOutcomeFrozenContext frozenContext,
-        bool replay)
-    {
-        Prepared = prepared;
-        ResultKey = resultKey;
-        Source = source;
-        OwnerRevision = ownerRevision;
-        FrozenContext = frozenContext;
-        IsReplay = replay;
-    }
-
-    internal PreparedOwnerOutcome Prepared { get; }
-    public GameplayResultKey ResultKey { get; }
-    public InfrastructureCommandOutcomeSource Source { get; }
-    public long OwnerRevision { get; }
-    public InfrastructureCommandOutcomeFrozenContext FrozenContext { get; }
-    public bool IsReplay { get; }
-    internal bool IsValid => IsReplay ? ResultKey.IsValid : Prepared.IsValid;
-}
-
-public sealed class InfrastructureCommandGameplayOutcomeBridge :
-    IInfrastructureCommandOutcomeCommitter
-{
-    private readonly IGameCalendar calendar;
-    private readonly IGameplayOutcomeDisplayNameQuery displayNames;
-    private readonly PreparedOutcomeOwnerTransaction transactions;
-
-    public InfrastructureCommandGameplayOutcomeBridge(
-        IGameplayOutcomeRecorder recorder,
-        IGameplayOutcomeDiagnosticsQuery diagnostics,
-        IGameplayOutcomeDisplayNameQuery displayNames,
-        IGameCalendar calendar)
-    {
-        transactions = new PreparedOutcomeOwnerTransaction(
-            recorder ?? throw new ArgumentNullException(nameof(recorder)),
-            diagnostics ?? throw new ArgumentNullException(nameof(diagnostics)));
-        this.displayNames = displayNames
-            ?? throw new ArgumentNullException(nameof(displayNames));
-        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
-    }
-
-    public bool TryPrepare(
-        in InfrastructureCommandOutcomeSource source,
-        long ownerRevision,
-        out IPreparedInfrastructureCommandOutcome prepared,
-        out string failureReason)
-    {
-        prepared = null;
-        GameplayEntityId facility = new(
-            InfrastructureCommandOutcomeIds.FacilityKind,
-            source.FacilityId);
-        if (!displayNames.TryGetCurrentName(
-                facility,
-                out KoreanNameSnapshot facilityName))
-        {
-            failureReason = "infrastructure-command-facility-name-missing";
-            return false;
-        }
-
-        InfrastructureCommandOutcomeFrozenContext context;
-        try
-        {
-            context = new InfrastructureCommandOutcomeFrozenContext(
-                facilityName.DisplayText,
-                facilityName.DisplaySnapshotRevision,
-                (int)facilityName.PronunciationHint.Mode,
-                facilityName.PronunciationHint.Value,
-                (int)facilityName.PronunciationHint.ExplicitFinalConsonant,
-                facilityName.PronunciationHint.Revision,
-                string.IsNullOrWhiteSpace(facilityName.Locale)
-                    ? "ko-KR"
-                    : facilityName.Locale,
-                Math.Max(1, calendar.Day));
-        }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or InvalidOperationException
-                                           or OverflowException)
-        {
-            failureReason = "infrastructure-command-context-invalid:"
-                + exception.Message;
-            return false;
-        }
-        return TryPrepareFrozen(
-            source,
-            ownerRevision,
-            context,
-            out prepared,
-            out failureReason);
-    }
-
-    public bool TryPreparePending(
-        InfrastructureCommandOutcomeOutboxSaveData pending,
-        out IPreparedInfrastructureCommandOutcome prepared,
-        out string failureReason)
-    {
-        prepared = null;
-        if (pending == null)
-        {
-            failureReason = "infrastructure-command-pending-null";
-            return false;
-        }
-        try
-        {
-            InfrastructureCommandOutcomeSource source = pending.ToSource();
-            InfrastructureCommandOutcomeFrozenContext context =
-                pending.ToFrozenContext();
-            return TryPrepareFrozen(
-                source,
-                pending.ownerRevision,
-                context,
-                out prepared,
-                out failureReason);
-        }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or InvalidOperationException
-                                           or OverflowException)
-        {
-            failureReason = "infrastructure-command-pending-invalid:"
-                + exception.Message;
-            return false;
-        }
-    }
-
-    private bool TryPrepareFrozen(
-        in InfrastructureCommandOutcomeSource source,
-        long ownerRevision,
-        in InfrastructureCommandOutcomeFrozenContext context,
-        out IPreparedInfrastructureCommandOutcome prepared,
-        out string failureReason)
-    {
-        prepared = null;
-        if (!Enum.IsDefined(
-                typeof(KoreanPronunciationMode),
-                context.PronunciationMode)
-            || !Enum.IsDefined(
-                typeof(KoreanFinalConsonantKind),
-                context.PronunciationFinalConsonant))
-        {
-            failureReason = "infrastructure-command-pronunciation-invalid";
-            return false;
-        }
-        KoreanNameSnapshot facilityName = new(
-            context.FacilityDisplayText,
-            context.FacilityDisplayRevision,
-            new KoreanPronunciationHint(
-                (KoreanPronunciationMode)context.PronunciationMode,
-                context.PronunciationValue,
-                (KoreanFinalConsonantKind)
-                    context.PronunciationFinalConsonant,
-                context.PronunciationRevision),
-            context.Locale);
-
-        InfrastructureCommandOutcomeReceipt receipt;
-        try
-        {
-            receipt = new InfrastructureCommandOutcomeReceipt(
-                source,
-                facilityName,
-                ownerRevision,
-                context.AbsoluteDay);
-        }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or InvalidOperationException
-                                           or OverflowException)
-        {
-            failureReason = "infrastructure-command-receipt-invalid:"
-                + exception.Message;
-            return false;
-        }
-
-        if (!transactions.TryPrepare(
-                receipt,
-                out PreparedOwnerOutcome token,
-                out OwnerOutcomeCommitResult replay,
-                out _,
-                out failureReason))
-        {
-            return false;
-        }
-        prepared = new PreparedInfrastructureCommandOutcome(
-            token,
-            receipt.ResultKey,
-            source,
-            receipt.OwnerRevision,
-            context,
-            replay.DurablyCommitted);
-        return true;
-    }
-
-    public InfrastructureCommandOutcomeCommitResult Commit(
-        IPreparedInfrastructureCommandOutcome prepared)
-    {
-        if (prepared is not PreparedInfrastructureCommandOutcome exact
-            || !exact.IsValid)
-        {
-            return new InfrastructureCommandOutcomeCommitResult(
-                false,
-                "infrastructure-command-outcome-token-invalid");
-        }
-        OwnerOutcomeCommitResult result = exact.IsReplay
-            ? transactions.Reconcile(exact.ResultKey)
-            : transactions.Commit(exact.Prepared, exact.OwnerRevision);
-        return new InfrastructureCommandOutcomeCommitResult(
-            result.DurablyCommitted,
-            result.DetailCode);
-    }
-
-    public void Cancel(IPreparedInfrastructureCommandOutcome prepared)
-    {
-        if (prepared is PreparedInfrastructureCommandOutcome exact
-            && !exact.IsReplay)
-        {
-            transactions.Cancel(exact.Prepared);
-        }
     }
 }
 
@@ -555,6 +335,7 @@ internal sealed class InfrastructureCommandPerspectiveProjector :
         "conveyor-overflow-approved" => "넘침 배출 승인",
         "automation-mode-changed" => "자동화 방식 변경",
         "automation-maintained" => "자동화 설비 정비",
+        "automation-maintenance-required-entered" => "자동화 정비 필요 진입",
         _ => "산업 설비 설정 변경"
     };
 
@@ -624,13 +405,8 @@ public static class InfrastructureCommandOutcomeRegistration
     public static void RegisterInfrastructureCommandGameplayOutcomes(
         this IContainerBuilder builder)
     {
-        builder.Register<InfrastructureCommandGameplayOutcomeBridge>(
-                Lifetime.Singleton)
-            .As<IInfrastructureCommandOutcomeCommitter>();
-        builder.Register<InfrastructureCommandOutcomeAdapter>(Lifetime.Singleton)
-            .As<IGameplayOutcomeAdapterRegistration>();
-        builder.Register<InfrastructureCommandOutcomeDescriptor>(
-                Lifetime.Singleton)
-            .As<IGameplayOutcomeDescriptor>();
+        builder.RegisterIndustrialTransitionFactObservation();
+        builder.RegisterGameplayActionLogs(nameof(InfrastructureCommandOutcomeAdapter));
+        builder.RegisterGameplayActionLogs(nameof(InfrastructureAutonomousOutcomeAdapter));
     }
 }

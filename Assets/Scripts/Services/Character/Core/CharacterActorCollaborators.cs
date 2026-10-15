@@ -386,7 +386,8 @@ public sealed class CharacterActorActivityBridge
     public void AddActivity(
         CharacterLog log,
         CharacterProgression progression,
-        CharacterActivityEvent activity)
+        CharacterActivityEvent activity,
+        int absoluteDay = 0)
     {
         log?.AddActivity(activity);
         if (activity == null
@@ -403,8 +404,13 @@ public sealed class CharacterActorActivityBridge
             return;
         }
 
+        CharacterNarrativeDomain domain = CharacterNarrativeDomainUtility.FromActivity(activity);
+        bool completedWork = string.Equals(activity.OutcomeId,
+            CharacterActivityOutcomes.Completed, StringComparison.Ordinal);
+        bool triggerPassives = domain is not (CharacterNarrativeDomain.Work or CharacterNarrativeDomain.FacilityUse)
+            || completedWork;
         progression?.RecordNarrative(
-            CharacterNarrativeDomainUtility.FromActivity(activity),
+            domain,
             !string.IsNullOrWhiteSpace(activity.ActionId)
                 ? activity.ActionId
                 : activity.KindId,
@@ -414,6 +420,8 @@ public sealed class CharacterActorActivityBridge
             activity.OutcomeId,
             !Mathf.Approximately(activity.Value, 0f)
                 ? activity.Value
-                : activity.Quantity);
+                : activity.Quantity,
+            absoluteDay,
+            triggerPassives: triggerPassives);
     }
 }

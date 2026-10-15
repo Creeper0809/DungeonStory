@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
-using DungeonStory.Narrative.Korean;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -62,6 +62,10 @@ public sealed class CharacterDirectOrderCostPreviewService
     public CharacterDirectOrderCostPreview Apply(CharacterActor actor, string actionTag)
     {
         CharacterDirectOrderCostPreview preview = Preview(actor, actionTag);
+        // Stress has no observer publication. Apply this independent cost before
+        // mood callbacks so a failing observer cannot omit an accepted order's cost.
+        if (!Mathf.Approximately(preview.StressDelta, 0f))
+            actor?.Lifecycle?.ApplyStressDelta(preview.StressDelta);
         if (!Mathf.Approximately(preview.MoodDelta, 0f))
             moods.Apply(
                 actor,
@@ -69,8 +73,6 @@ public sealed class CharacterDirectOrderCostPreviewService
                 preview.MoodDelta,
                 preview.DurationDays,
                 "직접 명령의 후유증");
-        if (!Mathf.Approximately(preview.StressDelta, 0f))
-            actor?.Lifecycle?.ApplyStressDelta(preview.StressDelta);
         return preview;
     }
 }
@@ -387,7 +389,7 @@ public sealed class CharacterDeathIdentityEventAdapter :
 
 public sealed class WorkIdentityEventAdapter :
     CharacterIdentityEventAdapterBase,
-    IWorkCompletionIdentityDeliveryCommand
+    IWorkCompletionIdentityDeliveryCommand, ITickable
 {
     private readonly CharacterDirectOrderCostPreviewService directOrders;
     private readonly CharacterIdentityStateStore states;
@@ -395,7 +397,10 @@ public sealed class WorkIdentityEventAdapter :
     private readonly CharacterPersistentNeedRuntime persistentNeeds;
     private readonly WorkCompletionIdentityDeliveryLedger completionDeliveries;
     private readonly ICharacterLifetimeQuery characterLifetime;
-    private readonly WorkCompletionIdentityGameplayOutcomeBridge outcomes;
+    private readonly IDomainFactStagingPublisher observations;
+    private readonly IDomainFactRecoveryPublisher recovery;
+    private readonly IDomainFactDeliveryQuery deliveryQuery;
+    private bool observing;
 
     [Serializable]
     private sealed class WorkEventHistoryState
@@ -414,7 +419,9 @@ public sealed class WorkIdentityEventAdapter :
         CharacterPersistentNeedRuntime persistentNeeds,
         WorkCompletionIdentityDeliveryLedger completionDeliveries,
         ICharacterLifetimeQuery characterLifetime,
-        WorkCompletionIdentityGameplayOutcomeBridge outcomes)
+        IDomainFactStagingPublisher observations,
+        IDomainFactRecoveryPublisher recovery,
+        IDomainFactDeliveryQuery deliveryQuery)
         : base(events, world, moods)
     {
         this.directOrders = directOrders
@@ -428,8 +435,9 @@ public sealed class WorkIdentityEventAdapter :
             ?? throw new ArgumentNullException(nameof(completionDeliveries));
         this.characterLifetime = characterLifetime
             ?? throw new ArgumentNullException(nameof(characterLifetime));
-        this.outcomes = outcomes
-            ?? throw new ArgumentNullException(nameof(outcomes));
+        this.observations = observations ?? throw new ArgumentNullException(nameof(observations));
+        this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
+        this.deliveryQuery = deliveryQuery ?? throw new ArgumentNullException(nameof(deliveryQuery));
     }
 
     [GameplayInternalOnly(
@@ -483,243 +491,202 @@ public sealed class WorkIdentityEventAdapter :
             Moods.Apply(actor, "shift:forced-day", 0f, 1, "주간 강제 교대");
     }
 
-    public WorkCompletionIdentityDeliveryResult EnsureApplied(
-        WorkCompletionIdentityDeliveryRequest request)
+    public WorkCompletionIdentityDeliveryResult EnsureApplied(WorkCompletionIdentityDeliveryRequest request)
     {
-        if (request.Origin != CharacterCommandOrigin.Autonomous
-            || !string.Equals(
-                request.WorkId,
-                BuiltInWorkTypeIds.Harvest.Value,
-                StringComparison.Ordinal))
-            return new(
-                WorkCompletionIdentityDeliveryStatus.Conflict,
-                "Durable work completion currently supports autonomous harvest only.");
-        WorkCompletionIdentityDeliveryStatus status = completionDeliveries
-            .Inspect(request, out string failureReason);
-        if (status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied)
-            return ReconcileAppliedDelivery(request);
-        if (status == WorkCompletionIdentityDeliveryStatus.Conflict)
-            return new(status, failureReason);
-        CharacterActor actor = Find(request.Character);
-        if (actor == null)
+        EnterObservation();
+        try
         {
-            CharacterActor lifetimeActor = characterLifetime.AllCharacters
-                .FirstOrDefault(candidate => candidate != null
-                    && candidate.Identity != null
-                    && candidate.Identity.TypedPersistentId.Equals(
-                        request.Character));
-            bool terminal = lifetimeActor == null
-                || lifetimeActor.IsDead
-                || lifetimeActor.CurrentLifecycleState ==
-                    CharacterLifecycleState.Despawned;
-            if (!terminal)
-                return new(
-                    WorkCompletionIdentityDeliveryStatus.Deferred,
-                    "The completion character is temporarily unavailable in the live world.");
-            WorkCompletionIdentityDeliveryStatus terminalCommit =
-                completionDeliveries.Commit(
-                    request,
-                    out failureReason,
-                    WorkCompletionIdentityDeliveryDisposition
-                        .TerminalRecipientUnavailable);
-            if (terminalCommit == WorkCompletionIdentityDeliveryStatus.Conflict)
-                return new(terminalCommit, failureReason);
-            return new(terminalCommit);
+            bool supported = request.WorkId?.StartsWith("surgery:", StringComparison.Ordinal) == true
+                    && request.ChildResultKey != WorkCompletionIdentityReferenceDefaults.None
+                || request.WorkId == BuiltInWorkTypeIds.AnimalCare.Value
+                || request.WorkId == BuiltInWorkTypeIds.Repair.Value || request.WorkId == BuiltInWorkTypeIds.ThreatMitigation.Value
+                || request.Origin == CharacterCommandOrigin.Autonomous && request.WorkId == BuiltInWorkTypeIds.Harvest.Value;
+            if (!supported) return new(WorkCompletionIdentityDeliveryStatus.Conflict, "Unsupported durable work completion.");
+            var status = completionDeliveries.Inspect(request, out string failure);
+            if (status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied) return ReconcileAppliedDelivery(request);
+            if (status != WorkCompletionIdentityDeliveryStatus.Applied) return new(status, failure);
+            CharacterActor actor = Find(request.Character);
+            if (actor == null)
+            {
+                CharacterActor lifetimeActor = FindLifetime(request.Character);
+                if (lifetimeActor != null && !lifetimeActor.IsDead
+                    && lifetimeActor.CurrentLifecycleState != CharacterLifecycleState.Despawned)
+                    return new(WorkCompletionIdentityDeliveryStatus.Deferred, "Completion character temporarily unavailable.");
+                return new(completionDeliveries.Commit(request, out failure,
+                    WorkCompletionIdentityDeliveryDisposition.TerminalRecipientUnavailable), failure);
+            }
+            return ApplyWithObservation(request, actor, requiresTerminalDelivery: true);
         }
-
-        return ApplyWithOutcome(request, actor);
+        finally { observing = false; }
     }
 
-    private WorkCompletionIdentityDeliveryResult ReconcileAppliedDelivery(
-        WorkCompletionIdentityDeliveryRequest request)
+    public void Tick()
     {
-        if (!completionDeliveries.TryGetCommittedDisposition(
-                request,
-                out WorkCompletionIdentityDeliveryDisposition disposition))
-        {
-            return new(
-                WorkCompletionIdentityDeliveryStatus.Conflict,
-                "The committed work-completion delivery cursor is missing.");
-        }
-        if (disposition == WorkCompletionIdentityDeliveryDisposition
-                .TerminalRecipientUnavailable)
-        {
-            return new(WorkCompletionIdentityDeliveryStatus.AlreadyApplied);
-        }
-
-        OwnerOutcomeCommitResult existing = outcomes.Reconcile(request);
-        if (existing.DurablyCommitted)
-            return new(WorkCompletionIdentityDeliveryStatus.AlreadyApplied);
-        if (disposition == WorkCompletionIdentityDeliveryDisposition
-                .EffectsAppliedWithOutcome)
-        {
-            return new(
-                WorkCompletionIdentityDeliveryStatus.Conflict,
-                existing.DetailCode.Length == 0
-                    ? "The committed work identity outcome is missing."
-                    : existing.DetailCode);
-        }
-
-        CharacterActor actor = Find(request.Character);
-        if (actor == null)
-        {
-            CharacterActor lifetimeActor = FindLifetime(request.Character);
-            bool terminal = lifetimeActor == null
-                || lifetimeActor.IsDead
-                || lifetimeActor.CurrentLifecycleState ==
-                    CharacterLifecycleState.Despawned;
-            return terminal
-                ? new WorkCompletionIdentityDeliveryResult(
-                    WorkCompletionIdentityDeliveryStatus.AlreadyApplied,
-                    "A legacy identity delivery has no recoverable display snapshot for outcome backfill.")
-                : new WorkCompletionIdentityDeliveryResult(
-                    WorkCompletionIdentityDeliveryStatus.Deferred,
-                    "The completion character is temporarily unavailable for outcome backfill.");
-        }
-
-        if (!outcomes.TryPrepare(
-                request,
-                out PreparedWorkCompletionIdentityOutcome prepared,
-                out bool capacityDeferred,
-                out string failureReason))
-        {
-            return new(
-                capacityDeferred
-                    ? WorkCompletionIdentityDeliveryStatus.Deferred
-                    : WorkCompletionIdentityDeliveryStatus.Conflict,
-                failureReason);
-        }
-        OwnerOutcomeCommitResult committed = outcomes.Commit(prepared);
-        if (!committed.DurablyCommitted)
-        {
-            outcomes.Cancel(prepared);
-            return new(
-                WorkCompletionIdentityDeliveryStatus.Conflict,
-                committed.DetailCode);
-        }
-        if (!completionDeliveries.TryPromoteCommittedDisposition(
-                request,
-                WorkCompletionIdentityDeliveryDisposition.EffectsApplied,
-                WorkCompletionIdentityDeliveryDisposition
-                    .EffectsAppliedWithOutcome))
-        {
-            throw new InvalidOperationException(
-                "The legacy work-completion delivery changed during outcome backfill.");
-        }
-        return new(WorkCompletionIdentityDeliveryStatus.AlreadyApplied);
+        EnterObservation();
+        try { RecoverPendingObservations(); }
+        finally { observing = false; }
     }
 
-    private WorkCompletionIdentityDeliveryResult ApplyWithOutcome(
-        WorkCompletionIdentityDeliveryRequest request,
-        CharacterActor actor)
+    private void EnterObservation()
     {
-        if (!outcomes.TryPrepare(
-                request,
-                out PreparedWorkCompletionIdentityOutcome prepared,
-                out bool capacityDeferred,
-                out string failureReason))
-        {
-            return new(
-                capacityDeferred
-                    ? WorkCompletionIdentityDeliveryStatus.Deferred
-                    : WorkCompletionIdentityDeliveryStatus.Conflict,
-                failureReason);
-        }
+        if (observing) throw new InvalidOperationException("Work identity observation is already applying.");
+        observing = true;
+    }
 
+    private void RecoverPendingObservations()
+    {
+        if (!completionDeliveries.HasPendingObservations) return;
+        foreach (var cursor in completionDeliveries.CapturePendingObservations())
+            ReconcileAppliedDelivery(cursor.observation.ToRequest());
+    }
+
+    private WorkCompletionIdentityDeliveryResult ReconcileAppliedDelivery(WorkCompletionIdentityDeliveryRequest request)
+    {
+        if (!completionDeliveries.TryGetCursor(request, out var cursor))
+            return new(WorkCompletionIdentityDeliveryStatus.Conflict, "Work identity delivery cursor is missing.");
+        if (cursor.disposition == WorkCompletionIdentityDeliveryDisposition.TerminalRecipientUnavailable)
+            return new(WorkCompletionIdentityDeliveryStatus.AlreadyApplied);
+        if (cursor.disposition == WorkCompletionIdentityDeliveryDisposition.EffectsAppliedWithOutcome)
+        {
+            var known = deliveryQuery.Reconcile(cursor.publicationKey);
+            return IsAcknowledged(known, cursor.publicationKey) && known.PublicationId == cursor.publicationId
+                && known.Fingerprint == cursor.publicationFingerprint
+                ? new(WorkCompletionIdentityDeliveryStatus.AlreadyApplied)
+                : new(WorkCompletionIdentityDeliveryStatus.Conflict, "Work identity publication proof is missing or changed.");
+        }
+        if (cursor.disposition != WorkCompletionIdentityDeliveryDisposition.EffectsAppliedPendingObservation)
+            return new(WorkCompletionIdentityDeliveryStatus.Conflict, "Work identity cursor has no frozen observation.");
+        var fact = new WorkIdentityAppliedFact(cursor.observation);
+        completionDeliveries.BeginApply(request);
+        try
+        {
+            var results = new DomainFactDelivery[1];
+            if (!recovery.ReplayBatch(new[] { DomainFactReplay.Create(cursor.publicationKey, fact) }, results, out string failure)
+                || !IsAcknowledged(results[0], cursor.publicationKey))
+                return new(WorkCompletionIdentityDeliveryStatus.Deferred, "Work identity observation unconfirmed: " + failure);
+            completionDeliveries.CommitObservation(fact, cursor.publicationKey, results[0].PublicationId, results[0].Fingerprint, complete: true);
+            return new(WorkCompletionIdentityDeliveryStatus.AlreadyApplied);
+        }
+        finally { completionDeliveries.EndApply(request); }
+    }
+
+    private WorkCompletionIdentityDeliveryResult ApplyWithObservation(
+        WorkCompletionIdentityDeliveryRequest request, CharacterActor actor, bool requiresTerminalDelivery)
+    {
+        WorkIdentityAppliedFact fact;
+        IDomainFactStage stage;
+        try
+        {
+            fact = new WorkIdentityAppliedFact(request, actor.Identity.DisplayName, requiresTerminalDelivery);
+            if (!observations.TryStage(fact, out stage, out string failure))
+                return new(WorkCompletionIdentityDeliveryStatus.Deferred, failure);
+        }
+        catch (ArgumentException exception)
+        { return new(WorkCompletionIdentityDeliveryStatus.Conflict, exception.Message); }
+        if (stage.IsReplay)
+        {
+            stage.Cancel();
+            return new(WorkCompletionIdentityDeliveryStatus.Conflict, "Work identity observation exists without its owner cursor.");
+        }
         completionDeliveries.BeginApply(request);
         IReadOnlyList<CharacterIdentityRuntimeStateSaveData> identityBefore = null;
         CharacterMoodDeliveryTransactionSnapshot moodBefore = null;
         CharacterProgressionSnapshot progressionBefore = null;
-        bool outcomeDurablyCommitted = false;
+        bool observationMayBeCommitted = false;
         try
         {
             identityBefore = states.Capture();
             moodBefore = actor.Stats?.CaptureMoodDeliveryTransactionState();
             progressionBefore = actor.Progression?.CapturePersistentState();
             ApplyCompleted(request.ToEvent(), actor);
-            OwnerOutcomeCommitResult outcome = outcomes.Commit(prepared);
-            if (!outcome.DurablyCommitted)
+            DomainFactDelivery delivery;
+            try
             {
-                throw new InvalidOperationException(
-                    "Work-completion identity outcome was rejected: "
-                    + outcome.DetailCode);
+                observationMayBeCommitted = true;
+                delivery = stage.Commit();
             }
-            outcomeDurablyCommitted = true;
-            WorkCompletionIdentityDeliveryStatus committed =
-                completionDeliveries.Commit(
-                    request,
-                    out failureReason,
-                    WorkCompletionIdentityDeliveryDisposition
-                        .EffectsAppliedWithOutcome);
-            if (committed != WorkCompletionIdentityDeliveryStatus.Applied)
-                throw new InvalidOperationException(
-                    "Work-completion delivery changed during synchronous apply: "
-                    + failureReason);
-            return new(committed);
+            catch (Exception error) when (error is not OutOfMemoryException && error is not StackOverflowException && error is not AccessViolationException)
+            {
+                Debug.LogWarning("work-identity-observation-ack-unknown:" + error.GetType().Name);
+                delivery = DomainFactDelivery.Uncertain("work-identity-observation-transport-exception");
+            }
+            observationMayBeCommitted = delivery.MayBeCommitted;
+            if (!observationMayBeCommitted)
+                throw new InvalidOperationException("Work identity observation rejected: " + delivery.Detail);
+            bool complete = IsAcknowledged(delivery, stage.OperationKey);
+            completionDeliveries.CommitObservation(fact, stage.OperationKey, delivery.PublicationId, delivery.Fingerprint, complete);
+            if (!complete) stage.Cancel();
+            return complete ? new(WorkCompletionIdentityDeliveryStatus.Applied)
+                : new(WorkCompletionIdentityDeliveryStatus.Deferred, "Work identity effects applied; observation awaiting acknowledgement.");
         }
         catch (Exception error)
         {
-            if (outcomeDurablyCommitted)
+            if (observationMayBeCommitted) throw;
+            stage.Cancel();
+            var failures = new List<Exception>();
+            try { if (identityBefore != null) states.RestoreTrustedTransactionSnapshot(identityBefore); }
+            catch (Exception rollback) { failures.Add(rollback); }
+            try { if (progressionBefore != null) actor.Progression?.RestorePersistentState(progressionBefore); }
+            catch (Exception rollback) { failures.Add(rollback); }
+            try { if (moodBefore != null) actor.Stats?.RestoreMoodDeliveryTransactionState(moodBefore); }
+            catch (Exception rollback) { failures.Add(rollback); }
+            if (failures.Count != 0)
             {
-                throw new InvalidOperationException(
-                    "The work identity outcome committed, but its owner cursor did not finalize.",
-                    error);
-            }
-            outcomes.Cancel(prepared);
-            List<Exception> rollbackFailures = new();
-            try
-            {
-                if (identityBefore != null)
-                    states.RestoreTrustedTransactionSnapshot(identityBefore);
-            }
-            catch (Exception rollbackError)
-            {
-                rollbackFailures.Add(rollbackError);
-            }
-            try
-            {
-                if (progressionBefore != null)
-                    actor.Progression?.RestorePersistentState(progressionBefore);
-            }
-            catch (Exception rollbackError)
-            {
-                rollbackFailures.Add(rollbackError);
-            }
-            try
-            {
-                if (moodBefore != null)
-                    actor.Stats?.RestoreMoodDeliveryTransactionState(moodBefore);
-            }
-            catch (Exception rollbackError)
-            {
-                rollbackFailures.Add(rollbackError);
-            }
-            if (rollbackFailures.Count != 0)
-            {
-                rollbackFailures.Insert(0, error);
-                throw new AggregateException(
-                    "Work-completion delivery apply and rollback failed.",
-                    rollbackFailures);
+                failures.Insert(0, error);
+                throw new AggregateException("Work identity apply and rollback failed.", failures);
             }
             throw;
         }
-        finally
-        {
-            completionDeliveries.EndApply(request);
-        }
+        finally { completionDeliveries.EndApply(request); }
     }
+
+    private static bool IsAcknowledged(DomainFactDelivery delivery, string key) =>
+        delivery.Phase is DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery
+        && delivery.OperationKey == key && !string.IsNullOrWhiteSpace(delivery.PublicationId)
+        && delivery.Fingerprint?.Length == 64;
 
     public bool RetireProducerStream(string producerStreamId) =>
         completionDeliveries.RetireProducerStream(producerStreamId);
 
     private void OnCompleted(WorkCompletedIdentityEvent e)
     {
+        EnterObservation();
+        try { OnCompletedCore(e); }
+        finally { observing = false; }
+    }
+
+    private void OnCompletedCore(WorkCompletedIdentityEvent e)
+    {
+        RecoverPendingObservations();
+        bool referenced = e.ChildResultKey != WorkCompletionIdentityReferenceDefaults.None;
         CharacterActor actor = Find(e.Character);
-        if (actor == null) return;
+        if (actor == null && !referenced)
+            return;
         WorkCompletionIdentityDeliveryRequest request =
-            completionDeliveries.CreateNextDirectRequest(e);
+            referenced
+                ? WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(e)
+                : completionDeliveries.CreateNextDirectRequest(e);
+        if (referenced)
+        {
+            WorkCompletionIdentityDeliveryStatus status =
+                completionDeliveries.Inspect(request, out string failure);
+            if (status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied)
+            {
+                WorkCompletionIdentityDeliveryResult replay = ReconcileAppliedDelivery(request);
+                if (!replay.IsApplied)
+                    throw new InvalidOperationException(replay.FailureReason);
+                return;
+            }
+            if (status == WorkCompletionIdentityDeliveryStatus.Conflict)
+                throw new InvalidOperationException(failure);
+        }
+        if (actor == null)
+        {
+            throw new InvalidOperationException(
+                "The referenced completion character is unavailable; delivery remains uncommitted.");
+        }
         WorkCompletionIdentityDeliveryResult result =
-            ApplyWithOutcome(request, actor);
+            ApplyWithObservation(request, actor, requiresTerminalDelivery: false);
         if (!result.IsApplied)
         {
             throw new InvalidOperationException(
@@ -738,8 +705,18 @@ public sealed class WorkIdentityEventAdapter :
         WorkCompletedIdentityEvent e,
         CharacterActor actor)
     {
+        // A checkpoint preserves accepted labor and resumable domain progress;
+        // it is neither a completed direct order nor a failed work attempt.
+        // The observation still describes the typed checkpoint.
+        if (e.ProductId.StartsWith(
+                "checkpoint:",
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
         if (e.Origin == CharacterCommandOrigin.DirectPlayerOrder)
-            directOrders.Apply(actor, e.WorkId);
+            directOrders.Apply(actor, ResolveDirectOrderActionTag(e.WorkId));
 
         bool failed = e.ProductId.StartsWith(
             "outcome:",
@@ -881,6 +858,12 @@ public sealed class WorkIdentityEventAdapter :
         || string.Equals(workId, BuiltInWorkTypeIds.Rescue.Value, StringComparison.Ordinal)
         || string.Equals(workId, BuiltInWorkTypeIds.ThreatMitigation.Value, StringComparison.Ordinal);
 
+    public static string ResolveDirectOrderActionTag(string workId) =>
+        workId != null
+        && workId.StartsWith("surgery:", StringComparison.Ordinal)
+            ? BuiltInWorkTypeIds.Surgery.Value
+            : workId;
+
     private static bool IsMedicalWork(string workId) =>
         string.Equals(workId, BuiltInWorkTypeIds.Treat.Value, StringComparison.Ordinal)
         || string.Equals(workId, BuiltInWorkTypeIds.Surgery.Value, StringComparison.Ordinal)
@@ -1007,7 +990,7 @@ public sealed class SocialIdentityEventAdapter : CharacterIdentityEventAdapterBa
 {
     private readonly CharacterRelationshipMemoryService memories;
     private readonly CharacterIdentityStateStore states;
-    private readonly ISocialLifeOutcomeCommitter outcomes;
+    private readonly SocialInteractionPublicationRuntime outcomes;
     private readonly ICharacterNarrativeQuery narratives;
     private readonly IBuildingWorldQuery buildings;
     private readonly IRoomFacilityPolicy roomFacilityPolicy;
@@ -1018,7 +1001,7 @@ public sealed class SocialIdentityEventAdapter : CharacterIdentityEventAdapterBa
         CharacterMoodPolicyService moods,
         CharacterRelationshipMemoryService memories,
         CharacterIdentityStateStore states,
-        ISocialLifeOutcomeCommitter outcomes,
+        SocialInteractionPublicationRuntime outcomes,
         ICharacterNarrativeQuery narratives,
         IBuildingWorldQuery buildings,
         IRoomFacilityPolicy roomFacilityPolicy)
@@ -1053,77 +1036,50 @@ public sealed class SocialIdentityEventAdapter : CharacterIdentityEventAdapterBa
             throw new InvalidOperationException(
                 "Social conflict requires two live, distinct participants.");
 
-        KoreanNameSnapshot instigatorName = CaptureCharacterName(instigator);
-        KoreanNameSnapshot targetName = CaptureCharacterName(target);
-        bool hasVenue = TryResolveVisitorConflictContext(
-            e,
-            instigator,
-            target,
-            out VisitorConflictContext venue);
-        IReadOnlyList<CharacterIdentityRuntimeStateSaveData> identityBefore =
-            states.Capture();
-        CharacterMoodDeliveryTransactionSnapshot moodBefore =
-            target.Stats?.CaptureMoodDeliveryTransactionState();
-        if (!outcomes.TryReserveConflict(
-                e.OperationId,
-                e.AbsoluteDay,
-                hasVenue,
-                out ReservedSocialLifeOutcome reserved,
-                out string reserveFailure))
-            throw new InvalidOperationException(
-                "Social conflict narrative reservation failed: "
-                + reserveFailure);
-        bool committed = false;
-        PreparedSocialLifeOutcome prepared = default;
-        try
+        bool hasVenue = TryResolveVisitorConflictContext(e, instigator, target, out VisitorConflictContext venue);
+        var fact = new SocialInteractionFact(new SocialInteractionFactData
         {
-            ApplyConflict(e, instigator, target, out float committedMoodDelta);
-            SocialConflictOutcomeReceipt receipt = new(
-                e.OperationId,
-                e.Instigator,
-                instigatorName,
-                e.Target,
-                targetName,
-                e.ConflictId,
-                e.Severity,
-                e.Origin,
-                committedMoodDelta,
-                e.AbsoluteDay,
-                hasVenue ? venue.Customer : default,
-                hasVenue ? venue.InstigatorCulture : default,
-                hasVenue ? venue.TargetCulture : default,
-                hasVenue ? venue.FacilityInstanceId : default,
-                hasVenue ? venue.FacilityName : default,
-                hasVenue ? venue.Location : default);
-            if (!outcomes.TryWriteConflict(
-                    receipt,
-                    reserved,
-                    out prepared,
-                    out string writeFailure))
-                throw new InvalidOperationException(
-                    "Social conflict narrative write failed: " + writeFailure);
-            if (!outcomes.TryCommit(prepared, out string commitFailure))
-                throw new InvalidOperationException(
-                    "Social conflict narrative commit failed: " + commitFailure);
-            committed = true;
-
-            ApplyConflictReactions(e, instigator, target);
-            if (hasVenue && committedMoodDelta < 0f)
-                Events.Publish<SocialConflictCommittedReceiptEvent>(
-                    venue.ToLegacyEvent(e));
-        }
-        catch
+            kind = SocialInteractionKind.Conflict, operationId = e.OperationId,
+            actorId = e.Instigator.Value, actorName = instigator.Identity.DisplayName.Trim(),
+            targetId = e.Target.Value, targetName = target.Identity.DisplayName.Trim(),
+            absoluteDay = e.AbsoluteDay, conflictId = e.ConflictId, severity = e.Severity, origin = e.Origin,
+            customerId = hasVenue ? venue.Customer.Value : string.Empty,
+            instigatorCultureId = hasVenue ? venue.InstigatorCulture.Value : string.Empty,
+            targetCultureId = hasVenue ? venue.TargetCulture.Value : string.Empty,
+            facilityId = hasVenue ? venue.FacilityInstanceId.Value : string.Empty,
+            facilityName = hasVenue ? venue.FacilityName : string.Empty,
+            positionX = hasVenue ? venue.Location.X : 0, positionY = hasVenue ? venue.Location.Y : 0
+        }, true);
+        bool answered = string.Equals(e.ConflictId, "insulted", StringComparison.Ordinal)
+            && HasBehaviorTag(target, "social:answer-insult");
+        if (!outcomes.TryPrepare(fact, out var prepared, out string failure))
+            throw new InvalidOperationException("Social conflict preparation failed: " + failure);
+        float committedMoodDelta;
+        using (prepared)
         {
-            if (!committed)
+            var identityBefore = states.Capture();
+            var moodBefore = target.Stats?.CaptureMoodDeliveryTransactionState();
+            var socialBefore = target.SocialMemory?.CaptureSnapshot();
+            prepared.SetRollback(() =>
             {
-                outcomes.Cancel(prepared);
-                outcomes.Cancel(reserved);
                 states.RestoreTrustedTransactionSnapshot(identityBefore);
-                if (moodBefore != null)
-                    target.Stats?.RestoreMoodDeliveryTransactionState(moodBefore);
-            }
-            throw;
+                if (moodBefore != null) target.Stats?.RestoreMoodDeliveryTransactionState(moodBefore);
+                if (socialBefore != null) target.SocialMemory?.RestoreSnapshot(socialBefore);
+                return true;
+            });
+            ApplyConflict(e, instigator, target, out committedMoodDelta);
+            if (answered) Moods.Apply(target, "social:insult-answered", 0f, 1, "모욕에 맞섬");
+            if (!prepared.PublishApplied(committedMoodDelta).MayBeCommitted)
+                throw new InvalidOperationException("Social conflict observation rejected: " + outcomes.LastFailure);
         }
+        // Presentation failure cannot undo an already applied game result.
+        if (answered)
+        {
+            try { Events.Publish(new SocialInsultAnsweredEvent(e.Target.Value, fact.Snapshot().actorName)); }
+            catch (Exception exception) { Debug.LogError("Social response presentation failed: " + exception.Message); }
+        }
+        if (hasVenue && committedMoodDelta < 0f)
+            Events.Publish(venue.ToLegacyEvent(e));
     }
 
     private void ApplyConflict(
@@ -1157,31 +1113,6 @@ public sealed class SocialIdentityEventAdapter : CharacterIdentityEventAdapterBa
                 : -Mathf.Max(1f, e.Severity),
             2,
             "사회적 충돌");
-    }
-
-    private void ApplyConflictReactions(
-        SocialConflictEvent e,
-        CharacterActor instigator,
-        CharacterActor target)
-    {
-        if (string.Equals(e.ConflictId, "insulted", StringComparison.Ordinal)
-            && HasBehaviorTag(target, "social:answer-insult"))
-        {
-            target.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Social,
-                CharacterActivityOutcomes.Responded,
-                $"{instigator?.Identity?.DisplayName ?? "상대"}의 모욕에 즉시 맞섰다.",
-                actionId: "social:answer-insult",
-                reasonCode: "trait:hot-blooded",
-                sentiment: 0.35f,
-                bubbleEligible: true));
-            Moods.Apply(
-                target,
-                "social:insult-answered",
-                0f,
-                1,
-                "모욕에 맞섬");
-        }
     }
 
     private bool TryResolveVisitorConflictContext(
@@ -1258,7 +1189,7 @@ public sealed class SocialIdentityEventAdapter : CharacterIdentityEventAdapterBa
                 instigatorNarrative.CultureId,
                 targetNarrative.CultureId,
                 facility.PersistentInstanceId,
-                CaptureFacilityName(facility),
+                facility.BuildingData.objectName.Trim(),
                 new CoreGridCell(targetCell.x, targetCell.y));
             return true;
         }
@@ -1283,103 +1214,35 @@ public sealed class SocialIdentityEventAdapter : CharacterIdentityEventAdapterBa
         if (offender == null || recipient == null || offender == recipient)
             throw new InvalidOperationException(
                 "Apology requires two live, distinct participants.");
-        KoreanNameSnapshot offenderName = CaptureCharacterName(offender);
-        KoreanNameSnapshot recipientName = CaptureCharacterName(recipient);
-        IReadOnlyList<CharacterIdentityRuntimeStateSaveData> identityBefore =
-            states.Capture();
-        CharacterMoodDeliveryTransactionSnapshot moodBefore =
-            recipient.Stats?.CaptureMoodDeliveryTransactionState();
-        if (!outcomes.TryReserveApology(
-                e.OperationId,
-                e.AbsoluteDay,
-                out ReservedSocialLifeOutcome reserved,
-                out string reserveFailure))
-            throw new InvalidOperationException(
-                "Apology narrative reservation failed: " + reserveFailure);
-        bool committed = false;
-        PreparedSocialLifeOutcome prepared = default;
-        try
+        var fact = new SocialInteractionFact(new SocialInteractionFactData
         {
-            if (!memories.TryForgive(
-                    recipient,
-                    offender,
-                    e.OffenseId,
-                    e.RestitutionProvided))
-                throw new InvalidOperationException(
-                    "Apology no longer matches a forgivable relationship memory.");
-            float moodDelta = Moods.Apply(
-                recipient,
-                "social:sincere-apology",
-                0f,
-                2,
-                "진정한 사과");
-            ApologyOutcomeReceipt receipt = new(
-                e.OperationId,
-                e.Offender,
-                offenderName,
-                e.Recipient,
-                recipientName,
-                e.OffenseId,
-                e.RestitutionProvided,
-                moodDelta,
-                e.AbsoluteDay);
-            if (!outcomes.TryWriteApology(
-                    receipt,
-                    reserved,
-                    out prepared,
-                    out string writeFailure))
-                throw new InvalidOperationException(
-                    "Apology narrative write failed: " + writeFailure);
-            if (!outcomes.TryCommit(prepared, out string commitFailure))
-                throw new InvalidOperationException(
-                    "Apology narrative commit failed: " + commitFailure);
-            committed = true;
-        }
-        catch
+            kind = SocialInteractionKind.Apology, operationId = e.OperationId,
+            actorId = e.Offender.Value, actorName = offender.Identity.DisplayName.Trim(),
+            targetId = e.Recipient.Value, targetName = recipient.Identity.DisplayName.Trim(),
+            absoluteDay = e.AbsoluteDay, origin = e.Origin, offenseId = e.OffenseId,
+            restitutionProvided = e.RestitutionProvided, offendingPublicationId = e.OffendingPublicationId,
+            rootOperationId = e.RootOperationId, causationRelationId = e.CausationRelationId
+        }, true);
+        if (!outcomes.TryPrepare(fact, out var prepared, out string failure))
+            throw new InvalidOperationException("Apology preparation failed: " + failure);
+        using (prepared)
         {
-            if (!committed)
+            var identityBefore = states.Capture();
+            var moodBefore = recipient.Stats?.CaptureMoodDeliveryTransactionState();
+            var socialBefore = recipient.SocialMemory?.CaptureSnapshot();
+            prepared.SetRollback(() =>
             {
-                outcomes.Cancel(prepared);
-                outcomes.Cancel(reserved);
                 states.RestoreTrustedTransactionSnapshot(identityBefore);
-                if (moodBefore != null)
-                    recipient.Stats?.RestoreMoodDeliveryTransactionState(moodBefore);
-            }
-            throw;
+                if (moodBefore != null) recipient.Stats?.RestoreMoodDeliveryTransactionState(moodBefore);
+                if (socialBefore != null) recipient.SocialMemory?.RestoreSnapshot(socialBefore);
+                return true;
+            });
+            if (!memories.TryForgive(recipient, offender, e.OffenseId, e.RestitutionProvided))
+                throw new InvalidOperationException("Apology no longer matches a forgivable relationship memory.");
+            float delta = Moods.Apply(recipient, "social:sincere-apology", 0f, 2, "진정한 사과");
+            if (!prepared.PublishApplied(delta).MayBeCommitted)
+                throw new InvalidOperationException("Apology observation rejected: " + outcomes.LastFailure);
         }
-    }
-
-    private static KoreanNameSnapshot CaptureCharacterName(CharacterActor actor)
-    {
-        string display = actor?.Identity?.DisplayName?.Trim() ?? string.Empty;
-        CharacterId id = actor?.Identity?.TypedPersistentId ?? default;
-        if (!id.IsValid || display.Length == 0)
-            throw new InvalidOperationException(
-                "A stable character id and historical display name are required.");
-        string revision =
-            "social-life-character-v1:" + id.Value + ":" + display;
-        return new KoreanNameSnapshot(
-            display,
-            revision,
-            KoreanPronunciationHint.AutoHangulDisplay(revision),
-            "ko-KR");
-    }
-
-    private static KoreanNameSnapshot CaptureFacilityName(BuildableObject facility)
-    {
-        string display = facility?.BuildingData?.objectName?.Trim()
-            ?? string.Empty;
-        BuildingInstanceId id = facility?.PersistentInstanceId ?? default;
-        if (!id.IsValid || display.Length == 0)
-            throw new InvalidOperationException(
-                "A stable facility id and historical display name are required.");
-        string revision =
-            "social-life-facility-v1:" + id.Value + ":" + display;
-        return new KoreanNameSnapshot(
-            display,
-            revision,
-            KoreanPronunciationHint.AutoHangulDisplay(revision),
-            "ko-KR");
     }
 
     private readonly struct VisitorConflictContext
@@ -1389,7 +1252,7 @@ public sealed class SocialIdentityEventAdapter : CharacterIdentityEventAdapterBa
             SpeciesCultureId instigatorCulture,
             SpeciesCultureId targetCulture,
             BuildingInstanceId facilityInstanceId,
-            KoreanNameSnapshot facilityName,
+            string facilityName,
             CoreGridCell location)
         {
             Customer = customer;
@@ -1404,7 +1267,7 @@ public sealed class SocialIdentityEventAdapter : CharacterIdentityEventAdapterBa
         public SpeciesCultureId InstigatorCulture { get; }
         public SpeciesCultureId TargetCulture { get; }
         public BuildingInstanceId FacilityInstanceId { get; }
-        public KoreanNameSnapshot FacilityName { get; }
+        public string FacilityName { get; }
         public CoreGridCell Location { get; }
 
         public SocialConflictCommittedReceiptEvent ToLegacyEvent(

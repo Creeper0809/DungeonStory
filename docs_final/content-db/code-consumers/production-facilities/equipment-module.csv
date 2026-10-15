@@ -3,7 +3,6 @@ EquipmentModuleDefinitionSO,content-type,,type-reference,models:combat,runtime,s
 EquipmentModuleDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentRuntime.cs
 EquipmentModuleDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentRuntimeContracts.cs
 EquipmentModuleDefinitionSO,content-type,,type-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentStatProjector.cs
-EquipmentModuleDefinitionSO,content-type,,type-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/EquipmentExpeditionRewardService.cs
 EquipmentModuleDefinitionSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/EquipmentModuleRuntime.cs
 EquipmentModuleDefinitionSO,content-type,,type-reference,services:combat,content-loading,structural-type-consumer,Assets/Scripts/Services/Combat/ResourceEquipmentModuleCatalog.cs
 EquipmentModuleDefinitionSO,content-type,,type-reference; save-restore-reference,services:effects,persistence,structural-type-consumer,Assets/Scripts/Services/Effects/Runtime/CharacterDerivedStatsSnapshot.cs

@@ -1,59 +1,29 @@
-/// <summary>
-/// Applies the named expedition experience calculation to character progression.
-/// The expedition runtime coordinates journey state; it does not write character
-/// progression records itself.
-/// </summary>
+using System;
+
+/// <summary>Applies node experience through character progression and reports actual transitions, without narrative policy.</summary>
 public sealed class OffenseExpeditionExperienceRules
 {
-    public void AwardNodeExperience(
-        OffenseExpeditionRun expedition,
-        OffenseRouteNode node)
+    public void AwardNodeExperience(OffenseExpeditionRun expedition, OffenseRouteNode node,
+        Action<OffenseNodeExperienceData> observed)
     {
-        if (expedition == null || node == null)
-        {
-            return;
-        }
-
-        int stage = expedition.Target?.campaignOrder ?? 1;
-        int experience = CalculateNodeExperience(node, stage);
-        if (experience <= 0)
-        {
-            return;
-        }
-
+        if (observed == null) throw new ArgumentNullException(nameof(observed));
+        if (expedition == null || node == null) return;
+        int experience = CalculateNodeExperience(node, expedition.Target?.campaignOrder ?? 1);
+        if (experience <= 0) return;
         foreach (OffenseExpeditionMemberState member in expedition.MemberStates)
         {
             CharacterActor actor = member?.Actor;
-            if (actor == null || actor.IsDead)
+            if (actor == null || actor.IsDead || actor.Progression == null) continue;
+            var progression = actor.Progression;
+            int levelBefore = progression.Level, experienceBefore = progression.CurrentExperience;
+            progression.AddExperience(experience);
+            observed(new OffenseNodeExperienceData
             {
-                continue;
-            }
-
-            actor.Progression?.AddExperience(experience);
-            actor.Progression?.RecordNarrative(
-                CharacterNarrativeDomain.Expedition,
-                $"node:{node.Kind}",
-                expedition.Target?.id ?? string.Empty,
-                "resolved",
-                experience,
-                eventContext: new GameplayNarrativeEventContext
-                {
-                    eventInstanceId = $"{expedition.ExpeditionId}:node:{node.Id}:{actor.Identity?.PersistentId}",
-                    chainId = expedition.ExpeditionId,
-                    locationId = expedition.Target?.id ?? string.Empty,
-                    locationDisplayName = !string.IsNullOrWhiteSpace(expedition.Target?.regionDisplayName)
-                        ? expedition.Target.regionDisplayName
-                        : expedition.Target?.title ?? string.Empty,
-                    actorId = actor.Identity?.PersistentId ?? string.Empty,
-                    actorDisplayName = actor.BuildingDisplayName,
-                    counterpartyId = expedition.Target?.factionId ?? string.Empty,
-                    counterpartyDisplayName = expedition.Target?.title ?? string.Empty,
-                    usedObjectId = node.Id,
-                    usedObjectDisplayName = node.Title,
-                    resultDetail = string.IsNullOrWhiteSpace(node.Description)
-                        ? node.Kind.ToString()
-                        : node.Description
-                });
+                characterId = CharacterPersistentIdentity.Require(actor).Value,
+                displayName = actor.BuildingDisplayName,
+                requestedAmount = experience, levelBefore = levelBefore, levelAfter = progression.Level,
+                experienceBefore = experienceBefore, experienceAfter = progression.CurrentExperience
+            });
         }
     }
 

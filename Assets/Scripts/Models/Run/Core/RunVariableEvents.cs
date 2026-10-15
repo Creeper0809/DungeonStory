@@ -28,12 +28,14 @@ public readonly struct RunStartVariablesSelectedEvent
 
 public readonly struct RunVariableActivatedEvent
 {
-    public RunVariableActivatedEvent(ActiveRunVariable activeVariable)
+    public RunVariableActivatedEvent(ActiveRunVariable activeVariable, bool announce = true)
     {
         this.activeVariable = new ActiveRunVariableSnapshot(activeVariable);
+        Announce = announce;
     }
 
     public ActiveRunVariableSnapshot activeVariable { get; }
+    public bool Announce { get; }
 }
 
 public readonly struct RunVariableExpiredEvent
@@ -48,10 +50,12 @@ public readonly struct RunVariableExpiredEvent
 
 public readonly struct InvasionVariableSelectedEvent
 {
-    public InvasionVariableSelectedEvent(RunVariableDefinition definition)
+    public InvasionVariableSelectedEvent(RunVariableDefinition definition, bool announce = true)
     {
         this.definition = definition;
+        Announce = announce;
     }
 
     public RunVariableDefinition definition { get; }
+    public bool Announce { get; }
 }

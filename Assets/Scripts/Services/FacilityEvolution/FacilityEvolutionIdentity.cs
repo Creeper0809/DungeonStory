@@ -3,11 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public interface IFacilityIdentityPressureProvider
-{
-    void Apply(RoomProfile profile);
-}
-
 public readonly struct FacilityEvolutionIdentityScore
 {
     public FacilityEvolutionIdentityScore(
@@ -126,14 +121,6 @@ public sealed class FacilityIdentitySnapshot
             .OrderByDescending((entry) => entry.Value)
             .Take(12)
             .ToDictionary((entry) => entry.Key, (entry) => entry.Value);
-    }
-}
-
-public sealed class DefaultFacilityIdentityPressureProvider : IFacilityIdentityPressureProvider
-{
-    public void Apply(RoomProfile profile)
-    {
-        FacilityIdentityPressureUtility.ApplyDefaultPressures(profile);
     }
 }
 

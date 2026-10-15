@@ -1,0 +1,58 @@
+[
+  {
+    "path": "Assets/Scripts/Views/UI/CharacterSummaryTextFormatter.cs",
+    "removedLines": 5,
+    "beforeSha256": "cd586ae218254c3c17aaa88000d4d36ee7691175269bee1ab4397a69f7d5342f",
+    "afterSha256": "36d35b27a49125e84b2820a38b730c9cb484426ae06fd251b1c4ab185ef97678",
+    "removedDeclarations": [
+      "public static string FormatSigned("
+    ]
+  },
+  {
+    "path": "Assets/Scripts/Views/UI/CharacterSummaryCombatPresenter.cs",
+    "removedLines": 25,
+    "beforeSha256": "97fe9d4923b016e4d6d12b96fbab46cfee4301f3bac4f57c0ca2507c8b400529",
+    "afterSha256": "04fc0e441507a7b5718f00313e3b376a7507849c49ca6c6a6d3da5c302976323",
+    "removedDeclarations": [
+      "internal sealed class CombatEquipmentUiStatBlock",
+      "internal CombatEquipmentUiStatBlock GetCurrentEquipmentBonuses("
+    ]
+  },
+  {
+    "path": "Assets/Scripts/Views/Character/UI/StartPartyPreparationPresentation.cs",
+    "removedLines": 14,
+    "beforeSha256": "429c578de988c10c573b918bb703e1072516b78455616beade895c060a11ee33",
+    "afterSha256": "e31f880c5744fb792931ef83c9b130f3c4627f900b79e151c84d98a4f6423f36",
+    "removedDeclarations": [
+      "public static void AppendFlags(",
+      "public static string FormatTraitIds("
+    ]
+  },
+  {
+    "path": "Assets/Scripts/Services/Codex/CodexRuntimeApplicationAdapter.cs",
+    "removedLines": 7,
+    "beforeSha256": "76180c24f99f65ebf1060d40b9b1af9c5f4fd55e995f6db2ab68c981aa40d9a2",
+    "afterSha256": "80b5f06e25a7350b93cb3996d8e89a399d6649ea80af3775f183f72b6d7b2c68",
+    "removedDeclarations": [
+      "internal static string FormatLegacyWorkTypes("
+    ]
+  },
+  {
+    "path": "Assets/Scripts/Services/Combat/CharacterBodyHealthStateRules.cs",
+    "removedLines": 33,
+    "beforeSha256": "96566759d57e533c4c3cd49dab11be07190fb2c0e24127a446c0547448e1d106",
+    "afterSha256": "4f01cb07a4c9860acd03a48efc193a4b108db62d4f76da7c8b028773f0f261fe",
+    "removedDeclarations": [
+      "public CombatBodyPart? GetLegacyBodyPart("
+    ]
+  },
+  {
+    "path": "Assets/Scripts/Services/Offense/OffenseExpeditionPanel.cs",
+    "removedLines": 25,
+    "beforeSha256": "1840bc643377d8ea7fc69d417e5877215df7c86600373bd1f30e527ea8873916",
+    "afterSha256": "ddad2207157226150e2d15f064e9ddf7505b8685b640f5b5d3431a94230f9ad6",
+    "removedDeclarations": [
+      "private static string FormatEquipmentStats("
+    ]
+  }
+]

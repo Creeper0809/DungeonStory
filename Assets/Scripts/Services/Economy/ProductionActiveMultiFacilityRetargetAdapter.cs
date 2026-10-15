@@ -491,6 +491,17 @@ public sealed class ProductionActiveFacilityRetargetStateStore :
                      .OrderBy(value => value.InstanceId.Value,
                          StringComparer.Ordinal))
         {
+            // Non-production buildings also participate in world replacement,
+            // but have no workstation/output destination authority to restore.
+            // Keep their IDs in 'replaced' so an old production source cannot
+            // be reintroduced when its replacement has no workstation ability.
+            if (facility.WorkstationTag.Length == 0)
+            {
+                if (facility.WorkstationLaneProfile.IsSpecified)
+                    throw new InvalidOperationException(
+                        "Production retarget workstation has a missing tag.");
+                continue;
+            }
             merged[facility.InstanceId] = facility;
         }
         foreach (ProductionFacilityHandle facility in facilities.Facilities

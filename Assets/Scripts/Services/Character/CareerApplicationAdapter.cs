@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using VContainer.Unity;
 
 public sealed class CareerApplicationAdapter :
@@ -36,7 +37,7 @@ public sealed class CareerApplicationAdapter :
         ICombatEquipmentRuntime combatEquipment,
         IObservedCareerLifeEventCommand observedLifeEvents,
         ICareerPersistence careerPersistence,
-        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        ISocialRitualFactPublisher awardFacts,
         CharacterMoodPolicyService moods = null,
         ICharacterSettlementStandingQuery settlementStandings = null)
     {
@@ -54,7 +55,7 @@ public sealed class CareerApplicationAdapter :
             equipmentSlots,
             equipmentUse,
             careerPersistence,
-            outcomeTransactions);
+            awardFacts);
         this.combatEquipment = combatEquipment
             ?? throw new ArgumentNullException(nameof(combatEquipment));
         this.observedLifeEvents = observedLifeEvents
@@ -250,8 +251,10 @@ public sealed class CareerApplicationAdapter :
             student.TryGetAbility(out AbilityWork studentWork);
             mentorWork?.ClearPriorityWorkTarget();
             studentWork?.ClearPriorityWorkTarget();
-            mentor.AddLog($"{student.Identity?.DisplayName ?? student.name}에게 {assignment.ProficiencyId.Value} 숙련을 가르쳤다.");
-            student.AddLog($"{mentor.Identity?.DisplayName ?? mentor.name}에게 {assignment.ProficiencyId.Value} 숙련을 배웠다.");
+            mentor.PublishDomainEvent(new CareerMentorshipCompletedEvent(mentor,
+                student.Identity?.DisplayName ?? student.name, assignment.ProficiencyId.Value, true));
+            student.PublishDomainEvent(new CareerMentorshipCompletedEvent(student,
+                mentor.Identity?.DisplayName ?? mentor.name, assignment.ProficiencyId.Value, false));
         }
     }
 
@@ -445,7 +448,8 @@ public sealed class CareerDurableEquipmentAwardRuntime
     private readonly IDurableFacilityEquipmentSlotCommand slots;
     private readonly IDurableFacilityEquipmentUseCommand use;
     private readonly ICareerPersistence careerPersistence;
-    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private readonly ISocialRitualFactPublisher awardFacts;
+    private bool awarding;
 
     public CareerDurableEquipmentAwardRuntime(
         IDurableFacilityEquipmentPolicyQuery policies,
@@ -460,14 +464,14 @@ public sealed class CareerDurableEquipmentAwardRuntime
         IDurableFacilityEquipmentSlotCommand slots,
         IDurableFacilityEquipmentUseCommand use,
         ICareerPersistence careerPersistence,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        ISocialRitualFactPublisher awardFacts)
     {
         this.policies = policies
             ?? throw new ArgumentNullException(nameof(policies));
         this.slots = slots ?? throw new ArgumentNullException(nameof(slots));
         this.use = use ?? throw new ArgumentNullException(nameof(use));
         this.careerPersistence = careerPersistence;
-        this.outcomeTransactions = outcomeTransactions;
+        this.awardFacts = awardFacts;
     }
 
     [GameplayInternalOnly(
@@ -478,6 +482,7 @@ public sealed class CareerDurableEquipmentAwardRuntime
         UnityEngine.Vector2Int academyPosition,
         Func<bool> commitAward)
     {
+        AssertIdle();
         if (!academyId.IsValid || commitAward == null)
             throw new ArgumentException("Career equipment award input is invalid.");
         if (!TryPrepareAssignment(
@@ -505,6 +510,7 @@ public sealed class CareerDurableEquipmentAwardRuntime
         Func<bool> commitAward,
         out CareerMentorshipAwardCommitReceipt receipt)
     {
+        AssertIdle();
         receipt = default;
         if (!academyId.IsValid
             || !mentorship.MentorCharacterId.IsValid
@@ -514,9 +520,9 @@ public sealed class CareerDurableEquipmentAwardRuntime
             || absoluteDay < 1
             || commitAward == null)
             throw new ArgumentException("Career equipment award input is invalid.");
-        if (careerPersistence == null || outcomeTransactions == null)
+        if (careerPersistence == null || awardFacts == null)
             throw new InvalidOperationException(
-                "Career mentorship award outcome transaction is unavailable.");
+                "Career mentorship award fact publication is unavailable.");
         if (!TryPrepareAssignment(
                 academyId,
                 academyPosition,
@@ -525,14 +531,15 @@ public sealed class CareerDurableEquipmentAwardRuntime
             return false;
         }
 
-        CareerMentorshipAwardOutcomeEffect effect = new(
+        CareerMentorshipAwardFactEffect effect = new(
             commitAward,
             academyId,
             mentorship,
             absoluteDay,
             careerPersistence,
-            outcomeTransactions);
+            awardFacts);
         DurableFacilityEquipmentUseResult result;
+        awarding = true;
         try
         {
             result = use.TryApplyWearAndEffect(
@@ -546,6 +553,7 @@ public sealed class CareerDurableEquipmentAwardRuntime
             effect.CancelUncommitted();
             throw;
         }
+        finally { awarding = false; }
         if (result.Succeeded)
         {
             receipt = effect.CommittedReceipt;
@@ -558,6 +566,11 @@ public sealed class CareerDurableEquipmentAwardRuntime
             effect.CancelUncommitted();
         }
         return result.Succeeded;
+    }
+
+    private void AssertIdle()
+    {
+        if (awarding) throw new InvalidOperationException("career-mentorship-award-active");
     }
 
     private bool TryPrepareAssignment(
@@ -643,7 +656,7 @@ public sealed class CareerDurableEquipmentAwardRuntime
         }
     }
 
-    private sealed class CareerMentorshipAwardOutcomeEffect :
+    private sealed class CareerMentorshipAwardFactEffect :
         IDurableFacilityEquipmentEffectCommit
     {
         private readonly Func<bool> commit;
@@ -651,21 +664,22 @@ public sealed class CareerDurableEquipmentAwardRuntime
         private readonly CareerMentorshipSnapshot mentorship;
         private readonly int absoluteDay;
         private readonly ICareerPersistence careerPersistence;
-        private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
+        private readonly ISocialRitualFactPublisher awardFacts;
         private CharacterCareerWorldSaveData careerBefore;
-        private PreparedMigratedProducerOutcome prepared;
+        private DomainFactLease prepared;
+        private CareerMentorshipAwardFact fact;
         private CareerMentorshipAwardCommitReceipt projectedReceipt;
         private bool reserved;
         private bool mutationAttempted;
         private bool durablyCommitted;
 
-        internal CareerMentorshipAwardOutcomeEffect(
+        internal CareerMentorshipAwardFactEffect(
             Func<bool> commit,
             BuildingInstanceId academyId,
             CareerMentorshipSnapshot mentorship,
             int absoluteDay,
             ICareerPersistence careerPersistence,
-            IMigratedProducerOutcomeTransaction outcomeTransactions)
+            ISocialRitualFactPublisher awardFacts)
         {
             this.commit = commit ?? throw new ArgumentNullException(nameof(commit));
             this.academyId = academyId;
@@ -673,8 +687,8 @@ public sealed class CareerDurableEquipmentAwardRuntime
             this.absoluteDay = absoluteDay;
             this.careerPersistence = careerPersistence
                 ?? throw new ArgumentNullException(nameof(careerPersistence));
-            this.outcomeTransactions = outcomeTransactions
-                ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+            this.awardFacts = awardFacts
+                ?? throw new ArgumentNullException(nameof(awardFacts));
         }
 
         internal CareerMentorshipAwardCommitReceipt CommittedReceipt
@@ -700,12 +714,9 @@ public sealed class CareerDurableEquipmentAwardRuntime
             projectedReceipt = CareerMentorshipAwardCommitReceipt
                 .FromPreflight(academyId, subject);
             careerBefore = careerPersistence.Capture();
-            if (!outcomeTransactions.TryReserveSingleSubject(
-                    MigratedProducerOutcomeKind
-                        .CareerMentorshipAwardCommitReceipt,
-                    projectedReceipt.SourceOperationId,
-                    absoluteDay,
-                    GameplayOutcomeStatus.Succeeded,
+            fact = new CareerMentorshipAwardFact(mentorship, projectedReceipt, absoluteDay);
+            if (!awardFacts.TryReserve(
+                    fact,
                     out prepared,
                     out failureReason))
             {
@@ -753,25 +764,19 @@ public sealed class CareerDurableEquipmentAwardRuntime
                     return false;
                 }
 
-                MigratedProducerOutcomeCommitResult committed =
-                    outcomeTransactions.CommitSingleSubject(
-                        prepared,
-                        new MigratedProducerOutcomeSubject(
-                            MigratedProducerOutcomeIds.CharacterKind,
-                            mentorship.StudentCharacterId.Value,
-                            mentorship.StudentCharacterId.Value,
-                            MigratedProducerOutcomeIds.ActorRole),
-                        BuildSummary(actual));
-                if (!committed.DurablyCommitted)
+                DomainFactDelivery committed = awardFacts.Publish(prepared, fact);
+                if (!committed.MayBeCommitted)
                 {
                     reserved = false;
                     RestoreCareer();
                     failureReason =
                         "career-mentorship-award-outcome-commit-rejected:"
-                        + committed.DetailCode;
+                        + committed.Detail;
                     return false;
                 }
 
+                // Unknown acknowledgement keeps the actual wear and award. The journal
+                // retries only this frozen receipt, never XP, mood, work or equipment use.
                 durablyCommitted = true;
                 reserved = false;
                 mutationAttempted = false;
@@ -792,7 +797,7 @@ public sealed class CareerDurableEquipmentAwardRuntime
                 return;
             if (reserved)
             {
-                outcomeTransactions.Cancel(prepared);
+                awardFacts.Cancel(prepared);
                 reserved = false;
             }
             if (mutationAttempted)
@@ -808,18 +813,6 @@ public sealed class CareerDurableEquipmentAwardRuntime
                 careerPersistence.PrepareRestore(snapshot));
             mutationAttempted = false;
         }
-
-        private string BuildSummary(
-            in CareerMentorshipAwardCommitReceipt receipt) =>
-            "멘토링 보상 확정: mentor="
-            + mentorship.MentorCharacterId.Value
-            + "; student=" + mentorship.StudentCharacterId.Value
-            + "; academy=" + receipt.AcademyBuildingId.Value
-            + "; proficiency=" + mentorship.ProficiencyId.Value
-            + "; ledger=" + receipt.LedgerStackId
-            + "; revision=" + receipt.BeforeContentRevision
-            + "->" + receipt.AfterContentRevision
-            + "; day=" + absoluteDay;
 
         private static bool SameReceipt(
             in CareerMentorshipAwardCommitReceipt expected,

@@ -218,8 +218,14 @@ public static class Wim016IrrigationContractDebugScenarios
             BuildableObject building,
             out FluidNetworkSnapshot snapshot)
         {
-            snapshot = default;
-            return false;
+            snapshot = new FluidNetworkSnapshot
+            {
+                NetworkId = "network:wim016-irrigation-fixture",
+                Channel = UtilityChannel.CleanWater,
+                CleanWater = Water,
+                Capacity = 3f
+            };
+            return building != null;
         }
         public bool TryGetMaintenance(
             BuildableObject building,

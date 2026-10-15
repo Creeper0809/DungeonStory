@@ -109,7 +109,7 @@ public sealed class CombatEquipmentTerminalFrozenSubject
         source?.orderId,
         source?.facilityPersistentId,
         source?.materialDestinationId,
-        source == null ? string.Empty : JsonUtility.ToJson(source),
+        source == null ? string.Empty : CombatEquipmentSaveJson.SerializeOrder(source),
         mass,
         out subject,
         out failureReason);
@@ -1141,7 +1141,7 @@ public static class CombatEquipmentTerminalDrainCanonical
         try
         {
             CombatEquipmentCraftOrderSaveData value =
-                JsonUtility.FromJson<CombatEquipmentCraftOrderSaveData>(
+                DungeonSaveJson.Deserialize<CombatEquipmentCraftOrderSaveData>(
                     source.sourcePayload);
             return value != null
                 && Token(value.orderId)
@@ -1154,7 +1154,7 @@ public static class CombatEquipmentTerminalDrainCanonical
                 && string.Equals(value.materialDestinationId,
                     source.inputDestinationId, StringComparison.Ordinal)
                 && string.Equals(
-                    JsonUtility.ToJson(value),
+                    CombatEquipmentSaveJson.SerializeOrder(value),
                     source.sourcePayload,
                     StringComparison.Ordinal);
         }

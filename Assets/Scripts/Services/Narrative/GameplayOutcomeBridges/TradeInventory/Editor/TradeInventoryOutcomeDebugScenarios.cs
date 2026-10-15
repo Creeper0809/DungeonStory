@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using DungeonStory.Narrative.Korean;
 using UnityEngine;
 
 public static class TradeInventoryOutcomeDebugScenarios
@@ -97,13 +99,16 @@ public static class TradeInventoryOutcomeDebugScenarios
             maximumFeedContamination = 40f
         };
 
+        var rejectedObservations = new TestWastePolicyObservationPort(
+            DomainFactDeliveryPhase.Rejected,
+            DomainFactDeliveryPhase.Delivered);
         WasteProcessingRuntime rollbackRuntime = new(
             new WasteProcessingMaterialDependencies(inventory, catalog),
             new WasteProcessingOperationDependencies(production, clock, rules),
             new DungeonRuntimeAggregateRootStore(),
-            new TestWastePolicyParticipant(
-                canonicalCommit: false,
-                acknowledged: false));
+            rejectedObservations,
+            rejectedObservations,
+            EditorFixedGameCalendar.Instance);
         WastePolicyCommandResult failed = rollbackRuntime.SetPolicy(desired);
         DungeonWasteProcessingSaveData rolledBack = rollbackRuntime.Capture();
         WastePolicyData original = rollbackRuntime.GetPolicy(
@@ -113,35 +118,47 @@ public static class TradeInventoryOutcomeDebugScenarios
             && original.disposition == WasteDispositionKind.Store
             && original.enabled
             && Mathf.Approximately(original.maximumFeedContamination, 79f)
-            && rolledBack.nextOutcomeSequence == 1L
-            && rolledBack.pendingPolicyOutcome == null,
+            && rolledBack.nextPolicySequence == 1L
+            && rolledBack.pendingPolicyChanges.Count == 0
+            && rejectedObservations.StageCount == 1,
             "A pre-canonical waste-policy outcome failure must restore the exact policy and sequence.");
 
+        var pendingObservations = new TestWastePolicyObservationPort(
+            DomainFactDeliveryPhase.AcceptedPendingDelivery,
+            DomainFactDeliveryPhase.Delivered);
         WasteProcessingRuntime source = new(
             new WasteProcessingMaterialDependencies(inventory, catalog),
             new WasteProcessingOperationDependencies(production, clock, rules),
             new DungeonRuntimeAggregateRootStore(),
-            new TestWastePolicyParticipant(
-                canonicalCommit: true,
-                acknowledged: false));
+            pendingObservations,
+            pendingObservations,
+            EditorFixedGameCalendar.Instance);
         WastePolicyCommandResult committed = source.SetPolicy(desired);
         DungeonWasteProcessingSaveData interrupted = source.Capture();
+        WastePolicyObservationSaveData pending =
+            interrupted.pendingPolicyChanges.SingleOrDefault();
         Require(
             committed.Succeeded
             && committed.OperationId == "waste-policy:1:command:1"
             && committed.OwnerRevision == 1L
-            && interrupted.nextOutcomeSequence == 2L
-            && interrupted.pendingPolicyOutcome != null
-            && interrupted.pendingPolicyOutcome.gameplayOutcome != null,
+            && interrupted.nextPolicySequence == 2L
+            && pending != null
+            && pending.fact.operationId == committed.OperationId
+            && pending.publicationKey == pendingObservations.LastPublicationKey
+            && pending.publicationId == TestWastePolicyObservationPort.PublicationId
+            && pending.publicationFingerprint == LowercaseHash,
             "A canonical-but-unacknowledged policy result must remain in the owner save outbox.");
 
+        var deliveredObservations = new TestWastePolicyObservationPort(
+            DomainFactDeliveryPhase.Delivered,
+            DomainFactDeliveryPhase.Delivered);
         WasteProcessingRuntime restored = new(
             new WasteProcessingMaterialDependencies(inventory, catalog),
             new WasteProcessingOperationDependencies(production, clock, rules),
             new DungeonRuntimeAggregateRootStore(),
-            new TestWastePolicyParticipant(
-                canonicalCommit: true,
-                acknowledged: true));
+            deliveredObservations,
+            deliveredObservations,
+            EditorFixedGameCalendar.Instance);
         restored.Restore(restored.BuildRestore(interrupted));
         WastePolicyData beforeRetry = restored.GetPolicy(WasteOriginKind.Plant);
         restored.Tick();
@@ -155,8 +172,10 @@ public static class TradeInventoryOutcomeDebugScenarios
             && Mathf.Approximately(
                 afterRetry.maximumFeedContamination,
                 desired.maximumFeedContamination)
-            && reconciled.nextOutcomeSequence == 2L
-            && reconciled.pendingPolicyOutcome == null,
+            && reconciled.nextPolicySequence == 2L
+            && reconciled.pendingPolicyChanges.Count == 0
+            && deliveredObservations.ReplayCount == 1
+            && deliveredObservations.StageCount == 0,
             "Save/restore acknowledgement replay must not apply the policy mutation twice.");
     }
 
@@ -181,19 +200,20 @@ public static class TradeInventoryOutcomeDebugScenarios
             null,
             catalog,
             null,
-            diagnostics,
+            null,
+            new MutableOutcomeDeliveryQuery(diagnostics),
             null);
         CanonicalCommitIdentityDeferredParticipant participant = new(
             diagnostics);
         string operation = "qa:trade-inventory:post-commit-fault";
         Require(
-            ((IOutcomeAwarePhysicalItemBatchDispositionService)service)
+            ((IJointPhysicalItemBatchDispositionService)service)
                 .TryCommitPending(
                     new[] { new PhysicalItemTransformInput(stackId, 1) },
                     PhysicalItemDispositionKind.Sink,
                     operation,
                     "qa-post-commit-fault",
-                    participant,
+                    new PhysicalItemLegacyOutcomeEffect(participant),
                     out PhysicalItemBatchDispositionReceipt receipt,
                     out _)
             && receipt.IsCommitted
@@ -214,8 +234,15 @@ public static class TradeInventoryOutcomeDebugScenarios
         DungeonPhysicalItemSaveData save = sourcePersistence.Capture();
         Require(
             save.pendingBatchDispositions.Count == 1
-            && save.pendingBatchDispositions[0].gameplayOutcomeExpected
-            && save.pendingBatchDispositions[0].gameplayOutcome == null,
+            && save.pendingBatchDispositions[0].publicationExpected
+            && save.pendingBatchDispositions[0].ownerRevision
+                == receipt.OwnerRevision
+            && save.pendingBatchDispositions[0].publicationKey.Length > 0
+            && save.pendingBatchDispositions[0].publicationId.Length == 0
+            && save.pendingBatchDispositions[0].publicationFingerprint.Length
+                == 0
+            && !save.pendingBatchDispositions[0].publicationDelivered
+            && save.pendingBatchDispositions[0].defaultObservationDay == 0,
             "The unresolved exact outcome key must survive physical capture.");
 
         WorldItemRepository restoredRepository = new(
@@ -234,7 +261,8 @@ public static class TradeInventoryOutcomeDebugScenarios
             null,
             catalog,
             null,
-            diagnostics,
+            null,
+            new MutableOutcomeDeliveryQuery(diagnostics),
             null);
         // Simulate the interrupted window after canonical acknowledgement but
         // before the physical join attached its identity. Consolidation may
@@ -310,8 +338,36 @@ public static class TradeInventoryOutcomeDebugScenarios
     {
         TestCatalog catalog = new();
         TestMassQuery mass = new();
-        MutableOutcomeDiagnostics diagnostics = new();
-        RetryOnlyOutcomeRecorder recorder = new(diagnostics);
+        GameplayOutcomeRegistry registry = new(
+            new IGameplayOutcomeDescriptor[]
+            {
+                new TradeInventoryOutcomeDescriptor(new KoreanJosaFormatter())
+            },
+            new IGameplayOutcomeAdapterRegistration[]
+            {
+                new TradeInventoryOutcomeAdapter()
+            });
+        GameplayOutcomeLedger ledger = new(
+            registry,
+            GameplayOutcomeBufferLimits.Default);
+        GameplayOutcomeRecorder recorder = new(
+            ledger,
+            registry,
+            new GameEventBus());
+        using DomainFactDispatcher dispatcher = new();
+        dispatcher.Subscribe(
+            "physical-relocation",
+            new GameplayDomainFactObserver<
+                PhysicalItemRelocatedFact,
+                TradeInventoryOutcomeReceipt>(
+                PhysicalItemRelocationFactObservation.Capture,
+                registry,
+                ledger,
+                recorder,
+                new GameplayDomainFactCommitGroup(recorder, ledger)));
+        var deferredFacts = new DeliveryOverrideStagingPublisher(
+            dispatcher,
+            DomainFactDeliveryPhase.AcceptedPendingDelivery);
         WorldItemRepository repository = new(
             new GuidPersistentIdGenerator(),
             new DungeonRuntimeAggregateRootStore());
@@ -330,9 +386,9 @@ public static class TradeInventoryOutcomeDebugScenarios
                 mass,
                 catalog,
                 EditorNullItemMarkerPresenter.Instance),
-            new DeferredRelocationOutcomeParticipant(diagnostics),
-            recorder,
-            diagnostics);
+            deferredFacts,
+            dispatcher,
+            EditorFixedGameCalendar.Instance);
         string operation = "qa:trade-inventory:relocation-journal";
         Require(
             service.TryRelocateQuantity(
@@ -358,7 +414,15 @@ public static class TradeInventoryOutcomeDebugScenarios
         Require(
             saved.physicalItemRelocations.Count == 1
             && saved.physicalItemRelocations[0].phase == (int)
-                PhysicalItemRelocationJournalPhase.CanonicalOutcomeCommitted,
+                PhysicalItemRelocationJournalPhase.PublicationAccepted
+            && saved.physicalItemRelocations[0].ownerRevision > 0L
+            && saved.physicalItemRelocations[0].absoluteDay > 0
+            && !string.IsNullOrWhiteSpace(
+                saved.physicalItemRelocations[0].publicationKey)
+            && !string.IsNullOrWhiteSpace(
+                saved.physicalItemRelocations[0].publicationId)
+            && saved.physicalItemRelocations[0].publicationFingerprint.Length
+                == 64,
             "Commit-before-delivery relocation join was not saved.");
 
         WorldItemRepository restoredRepository = new(
@@ -377,9 +441,9 @@ public static class TradeInventoryOutcomeDebugScenarios
                 mass,
                 catalog,
                 EditorNullItemMarkerPresenter.Instance),
-            new DeferredRelocationOutcomeParticipant(diagnostics),
-            recorder,
-            diagnostics);
+            dispatcher,
+            dispatcher,
+            EditorFixedGameCalendar.Instance);
         Require(
             restored.TryRelocateQuantity(
                 stackId,
@@ -409,24 +473,18 @@ public static class TradeInventoryOutcomeDebugScenarios
             && conflict.Contains("operation-conflict", StringComparison.Ordinal),
             "Same operation with a different payload did not fail closed.");
 
-        diagnostics.State = GameplayOutcomeReplayState.Compacted;
-        Require(
-            restored.TryRelocateQuantity(
-                stackId,
-                1,
-                destinationPosition,
-                WorldItemStackState.Loose,
-                string.Empty,
-                operation,
-                "qa-relocation-journal",
-                out _,
-                out _),
-            "Compacted acknowledgement proof did not preserve replay identity.");
         DungeonPhysicalItemSaveData acknowledged =
             restoredPersistence.Capture();
         Require(
             acknowledged.physicalItemRelocations.Single().phase == (int)
-                PhysicalItemRelocationJournalPhase.PublishedAcknowledged,
+                PhysicalItemRelocationJournalPhase.Delivered
+            && acknowledged.physicalItemRelocations.Single().publicationKey
+                == saved.physicalItemRelocations[0].publicationKey
+            && acknowledged.physicalItemRelocations.Single().publicationId
+                == saved.physicalItemRelocations[0].publicationId
+            && acknowledged.physicalItemRelocations.Single()
+                .publicationFingerprint
+                == saved.physicalItemRelocations[0].publicationFingerprint,
             "Acknowledged relocation phase did not survive capture.");
     }
 
@@ -509,6 +567,19 @@ public static class TradeInventoryOutcomeDebugScenarios
 
         internal void SetIdentity(GameplayResultKey key) => resultKey = key;
 
+        internal bool TryGetPublication(
+            string publicationKey,
+            out GameplayOutcomeReplayIdentity identity)
+        {
+            identity = default;
+            return resultKey.IsValid
+                && string.Equals(
+                    resultKey.ToString(),
+                    publicationKey,
+                    StringComparison.Ordinal)
+                && TryGetResultIdentity(resultKey, out identity);
+        }
+
         public GameplayOutcomeLedgerDiagnostics GetDiagnostics() => default;
         public IReadOnlyList<GameplayOutcomeOutboxSnapshot> GetOutboxSnapshot() =>
             Array.Empty<GameplayOutcomeOutboxSnapshot>();
@@ -533,128 +604,103 @@ public static class TradeInventoryOutcomeDebugScenarios
         }
     }
 
-    private sealed class DeferredRelocationOutcomeParticipant :
-        IPhysicalItemRelocationOutcomeParticipant
+    private sealed class MutableOutcomeDeliveryQuery : IDomainFactDeliveryQuery
     {
         private readonly MutableOutcomeDiagnostics diagnostics;
 
-        internal DeferredRelocationOutcomeParticipant(
+        internal MutableOutcomeDeliveryQuery(
             MutableOutcomeDiagnostics diagnostics) =>
-            this.diagnostics = diagnostics;
+            this.diagnostics = diagnostics
+                ?? throw new ArgumentNullException(nameof(diagnostics));
 
-        public bool TryPrepare(
-            in PreparedPhysicalItemRelocationPreview preview,
-            out IPreparedPhysicalItemGameplayOutcome prepared,
-            out string failureReason)
+        public DomainFactDelivery Reconcile(string publicationKey)
         {
-            GameplayResultKey key = new(
-                "qa.trade-inventory.relocation",
-                new GameplayOperationId(preview.Receipt.OperationId),
-                0L,
-                0);
-            prepared = new Prepared(diagnostics, key);
-            failureReason = string.Empty;
-            return preview.IsValid;
-        }
-
-        private sealed class Prepared : IPreparedPhysicalItemGameplayOutcome
-        {
-            private readonly MutableOutcomeDiagnostics diagnostics;
-
-            internal Prepared(
-                MutableOutcomeDiagnostics diagnostics,
-                GameplayResultKey key)
+            if (diagnostics.TryGetPublication(
+                    publicationKey,
+                    out GameplayOutcomeReplayIdentity identity))
             {
-                this.diagnostics = diagnostics;
-                ResultKey = key;
+                return new DomainFactDelivery(
+                    DomainFactDeliveryPhase.Delivered,
+                    publicationKey,
+                    identity.OutcomeId.ToString(),
+                    identity.CanonicalPayloadHash,
+                    string.Empty);
             }
-
-            public GameplayResultKey ResultKey { get; }
-            public bool IsCanonicalReplay => false;
-
-            public bool TryCommit(
-                long expectedOwnerRevision,
-                out PhysicalGameplayOutcomeAttachment attachment,
-                out bool canonicalCommitted,
-                out string failureReason)
-            {
-                diagnostics.State =
-                    GameplayOutcomeReplayState.DeliveryFaultPending;
-                diagnostics.SetIdentity(ResultKey);
-                diagnostics.TryGetResultIdentity(
-                    ResultKey,
-                    out GameplayOutcomeReplayIdentity identity);
-                attachment = new PhysicalGameplayOutcomeAttachment(
-                    identity.ResultKey,
-                    identity.OutcomeId,
-                    identity.State,
-                    identity.CanonicalPayloadHash);
-                canonicalCommitted = true;
-                failureReason = "qa-delivery-pending";
-                return true;
-            }
-
-            public void Cancel()
-            {
-            }
+            return new DomainFactDelivery(
+                DomainFactDeliveryPhase.InDoubt,
+                publicationKey,
+                null,
+                null,
+                "qa-publication-identity-pending");
         }
     }
 
-    private sealed class RetryOnlyOutcomeRecorder : IGameplayOutcomeRecorder
+    private sealed class DeliveryOverrideStagingPublisher :
+        IDomainFactStagingPublisher
     {
-        private readonly MutableOutcomeDiagnostics diagnostics;
+        private readonly IDomainFactStagingPublisher inner;
+        private readonly DomainFactDeliveryPhase phase;
 
-        internal RetryOnlyOutcomeRecorder(
-            MutableOutcomeDiagnostics diagnostics) =>
-            this.diagnostics = diagnostics;
-
-        public int RetryPendingDeliveries(int maximumCount)
+        internal DeliveryOverrideStagingPublisher(
+            IDomainFactStagingPublisher inner,
+            DomainFactDeliveryPhase phase)
         {
-            if (maximumCount > 0
-                && diagnostics.State ==
-                    GameplayOutcomeReplayState.DeliveryFaultPending)
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            if (phase is DomainFactDeliveryPhase.Rejected
+                or DomainFactDeliveryPhase.Delivered)
             {
-                diagnostics.State =
-                    GameplayOutcomeReplayState.PublishedAcknowledged;
-                return 1;
+                throw new ArgumentOutOfRangeException(nameof(phase));
             }
-            return 0;
+            this.phase = phase;
         }
 
-        public OutcomePrepareResult TryPrepare<TReceipt>(
-            in TReceipt receipt,
-            out PreparedOutcomeToken prepared) =>
-            throw new NotSupportedException();
-        public OutcomePrepareResult TryReserve(
-            in OutcomeWriteRequirements requirements,
-            out PreparedOutcomeReservation reservation) =>
-            throw new NotSupportedException();
-        public OutcomePrepareResult TryWriteReserved<TReceipt>(
-            in TReceipt receipt,
-            in PreparedOutcomeReservation reservation,
-            out PreparedOutcomeToken prepared) =>
-            throw new NotSupportedException();
-        public void CancelReservation(
-            in PreparedOutcomeReservation reservation) =>
-            throw new NotSupportedException();
-        public void CancelPrepared(in PreparedOutcomeToken prepared) =>
-            throw new NotSupportedException();
-        public OutcomeCommitResult CommitPrepared(
-            in PreparedOutcomeToken prepared,
-            long expectedOwnerRevision,
-            out CommittedOutcomeToken committed) =>
-            throw new NotSupportedException();
-        public OutcomeCommitResult CommitPreparedBatch(
-            PreparedOutcomeToken[] prepared,
-            long[] expectedOwnerRevisions,
-            CommittedOutcomeToken[] committed) =>
-            throw new NotSupportedException();
-        public OutcomeDeliveryResult TryDeliver(
-            in CommittedOutcomeToken committed) =>
-            throw new NotSupportedException();
-        public OutcomeAcknowledgeResult Acknowledge(
-            in CommittedOutcomeToken committed) =>
-            throw new NotSupportedException();
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
+            out string failure)
+        {
+            if (!inner.TryStage(fact, out IDomainFactStage prepared, out failure))
+            {
+                stage = null;
+                return false;
+            }
+            stage = new DeliveryOverrideStage(prepared, phase);
+            return true;
+        }
+
+        private sealed class DeliveryOverrideStage : IDomainFactStage
+        {
+            private readonly IDomainFactStage inner;
+            private readonly DomainFactDeliveryPhase phase;
+
+            internal DeliveryOverrideStage(
+                IDomainFactStage inner,
+                DomainFactDeliveryPhase phase)
+            {
+                this.inner = inner;
+                this.phase = phase;
+            }
+
+            public string OperationKey => inner.OperationKey;
+            public long OwnerRevision => inner.OwnerRevision;
+            public bool IsReplay => inner.IsReplay;
+            public bool IsActive => inner.IsActive;
+
+            public DomainFactDelivery Commit()
+            {
+                DomainFactDelivery delivered = inner.Commit();
+                return !delivered.MayBeCommitted
+                    ? delivered
+                    : new DomainFactDelivery(
+                        phase,
+                        delivered.OperationKey,
+                        delivered.PublicationId,
+                        delivered.Fingerprint,
+                        "qa-physical-relocation-delivery-override");
+            }
+
+            public void Cancel() => inner.Cancel();
+        }
     }
 
     private sealed class TestCatalog : IDungeonItemCatalogProvider
@@ -715,83 +761,115 @@ public static class TradeInventoryOutcomeDebugScenarios
         }
     }
 
-    private sealed class TestWastePolicyParticipant :
-        IWastePolicyGameplayOutcomeParticipant
+    private sealed class TestWastePolicyObservationPort :
+        IDomainFactStagingPublisher,
+        IDomainFactRecoveryPublisher
     {
-        private readonly bool canonicalCommit;
-        private readonly bool acknowledged;
+        internal const string PublicationId = "run:qa-trade-inventory/2";
+        private readonly DomainFactDeliveryPhase commitPhase;
+        private readonly DomainFactDeliveryPhase replayPhase;
 
-        internal TestWastePolicyParticipant(
-            bool canonicalCommit,
-            bool acknowledged)
+        internal TestWastePolicyObservationPort(
+            DomainFactDeliveryPhase commitPhase,
+            DomainFactDeliveryPhase replayPhase)
         {
-            this.canonicalCommit = canonicalCommit;
-            this.acknowledged = acknowledged;
+            this.commitPhase = commitPhase;
+            this.replayPhase = replayPhase;
         }
 
-        public bool TryPrepare(
-            in WastePolicyGameplayOutcomePreview preview,
-            out IPreparedWastePolicyGameplayOutcome prepared,
-            out string failureReason)
+        internal int StageCount { get; private set; }
+        internal int ReplayCount { get; private set; }
+        internal string LastPublicationKey { get; private set; } = string.Empty;
+
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
+            out string failure)
         {
-            prepared = preview.IsValid
-                ? new Prepared(preview, canonicalCommit, acknowledged)
-                : null;
-            failureReason = prepared == null
-                ? "qa-waste-policy-preview-invalid"
-                : string.Empty;
-            return prepared != null;
+            if (fact is not WastePolicyChangedFact policy)
+            {
+                stage = null;
+                failure = "qa-waste-policy-fact-type-invalid";
+                return false;
+            }
+            StageCount++;
+            LastPublicationKey = "qa:waste-policy-observation:"
+                + policy.OperationId;
+            stage = new Stage(
+                LastPublicationKey,
+                policy.OwnerRevision,
+                commitPhase);
+            failure = string.Empty;
+            return true;
         }
 
-        private sealed class Prepared : IPreparedWastePolicyGameplayOutcome
+        public bool ReplayBatch(
+            IReadOnlyList<DomainFactReplay> facts,
+            DomainFactDelivery[] results,
+            out string failure)
         {
-            private readonly bool canonicalCommit;
-            private readonly bool acknowledged;
-
-            internal Prepared(
-                in WastePolicyGameplayOutcomePreview preview,
-                bool canonicalCommit,
-                bool acknowledged)
+            if (facts == null || results == null
+                || facts.Count != 1 || results.Length != 1)
             {
-                this.canonicalCommit = canonicalCommit;
-                this.acknowledged = acknowledged;
-                ResultKey = new WastePolicyOutcomeKey(
-                    "trade-inventory.waste-policy-command-result",
-                    preview.OperationId,
-                    preview.OwnerRevision,
-                    0);
+                failure = "qa-waste-policy-replay-shape-invalid";
+                return false;
+            }
+            ReplayCount++;
+            results[0] = Delivery(
+                replayPhase,
+                facts[0].PublicationKey,
+                "qa-waste-policy-replay");
+            failure = string.Empty;
+            return replayPhase != DomainFactDeliveryPhase.Rejected;
+        }
+
+        private static DomainFactDelivery Delivery(
+            DomainFactDeliveryPhase phase,
+            string operationKey,
+            string detail) => phase == DomainFactDeliveryPhase.Rejected
+            ? DomainFactDelivery.Reject(detail)
+            : new DomainFactDelivery(
+                phase,
+                operationKey,
+                PublicationId,
+                LowercaseHash,
+                detail);
+
+        private sealed class Stage : IDomainFactStage
+        {
+            private readonly DomainFactDeliveryPhase phase;
+            private bool active = true;
+
+            internal Stage(
+                string operationKey,
+                long ownerRevision,
+                DomainFactDeliveryPhase phase)
+            {
+                OperationKey = operationKey;
+                OwnerRevision = ownerRevision;
+                this.phase = phase;
             }
 
-            public WastePolicyOutcomeKey ResultKey { get; }
-            public bool IsCanonicalReplay => acknowledged;
+            public string OperationKey { get; }
+            public long OwnerRevision { get; }
+            public bool IsReplay => false;
+            public bool IsActive => active;
 
-            public bool TryCommit(
-                long expectedOwnerRevision,
-                out WastePolicyOutcomeAttachment attachment,
-                out bool canonicalCommitted,
-                out string failureReason)
+            public DomainFactDelivery Commit()
             {
-                canonicalCommitted = canonicalCommit;
-                failureReason = canonicalCommit
-                    ? acknowledged
-                        ? string.Empty
-                        : "qa-waste-policy-delivery-pending"
-                    : "qa-waste-policy-pre-canonical-fault";
-                attachment = canonicalCommit
-                    ? new WastePolicyOutcomeAttachment(
-                        ResultKey,
-                        "run:qa-trade-inventory",
-                        2L,
-                        acknowledged ? 6 : 4,
-                        acknowledged,
-                        LowercaseHash)
-                    : default;
-                return canonicalCommit;
+                if (!active)
+                    return DomainFactDelivery.Reject(
+                        "qa-waste-policy-stage-inactive");
+                active = false;
+                return Delivery(
+                    phase,
+                    OperationKey,
+                    phase == DomainFactDeliveryPhase.Rejected
+                        ? "qa-waste-policy-pre-canonical-fault"
+                        : "qa-waste-policy-delivery-pending");
             }
 
-            public void Cancel()
-            {
-            }
+            public void Cancel() => active = false;
         }
     }
 

@@ -76,7 +76,10 @@ public sealed class RegularCustomerRecord
         bool recruitDeliveryPending = false,
         RegularCustomerRecruitDeliveryKind recruitDeliveryKind =
             RegularCustomerRecruitDeliveryKind.None,
-        int pendingMercenaryRolePremium = 0)
+        int pendingMercenaryRolePremium = 0,
+        bool recruitDeliveryApplied = false,
+        string recruitDeliveryActorId = "",
+        string recruitDeliveryOutcomeResultKey = "")
     {
         SourceData = sourceData;
         progress = new RegularCustomerProgressState(
@@ -92,7 +95,10 @@ public sealed class RegularCustomerRecord
             recruitCapabilities,
             recruitDeliveryPending,
             recruitDeliveryKind,
-            pendingMercenaryRolePremium);
+            pendingMercenaryRolePremium,
+            recruitDeliveryApplied,
+            recruitDeliveryActorId,
+            recruitDeliveryOutcomeResultKey);
     }
 
     public string CustomerId => progress.CustomerId;
@@ -112,6 +118,10 @@ public sealed class RegularCustomerRecord
         progress.RecruitDeliveryKind;
     public int PendingMercenaryRolePremium =>
         progress.PendingMercenaryRolePremium;
+    public bool RecruitDeliveryApplied => progress.RecruitDeliveryApplied;
+    public string RecruitDeliveryActorId => progress.RecruitDeliveryActorId;
+    public string RecruitDeliveryOutcomeResultKey =>
+        progress.RecruitDeliveryOutcomeResultKey;
     public RegularCustomerStatus Status => progress.Status;
 
     public void RecordVisit(CharacterActor customer, float satisfaction, RegularCustomerRules rules)
@@ -149,8 +159,11 @@ public sealed class RegularCustomerRecord
             mercenaryRolePremium);
     }
 
-    public void CompleteRecruitDelivery() =>
-        progress.CompleteRecruitDelivery();
+    public void MarkRecruitDeliveryApplied(string actorId) =>
+        progress.MarkRecruitDeliveryApplied(actorId);
+
+    public void CompleteRecruitDelivery(string outcomeResultKey) =>
+        progress.CompleteRecruitDelivery(outcomeResultKey);
 
     public bool MarkRecruitCandidate()
     {
@@ -185,7 +198,10 @@ public sealed class RegularCustomerRecord
             RecruitCapabilities,
             RecruitDeliveryPending,
             RecruitDeliveryKind,
-            PendingMercenaryRolePremium)
+            PendingMercenaryRolePremium,
+            RecruitDeliveryApplied,
+            RecruitDeliveryActorId,
+            RecruitDeliveryOutcomeResultKey)
         {
             ActiveActor = ActiveActor
         };
@@ -238,6 +254,7 @@ public sealed class RegularCustomerAggregateState
     internal readonly Dictionary<string, RegularCustomerRecord> Records =
         new Dictionary<string, RegularCustomerRecord>(StringComparer.Ordinal);
     internal readonly IReadOnlyCollection<RegularCustomerRecord> RecordsView;
+    internal readonly List<RegularCustomerPendingFactData> PendingFacts = new();
 
     public RegularCustomerAggregateState()
     {
@@ -252,6 +269,8 @@ public sealed class RegularCustomerAggregateState
         {
             clone.Records.Add(pair.Key, pair.Value.DeepClone());
         }
+
+        clone.PendingFacts.AddRange(PendingFacts.Select(row => row.Clone()));
 
         return clone;
     }
@@ -288,6 +307,22 @@ public sealed class RegularCustomerState
 
     public IReadOnlyCollection<RegularCustomerRecord> Records =>
         Current.RecordsView;
+    internal IReadOnlyList<RegularCustomerPendingFactData> PendingFacts =>
+        Current.PendingFacts.Select(row => row.Clone()).ToArray();
+
+    internal void AddPendingFact(RegularCustomerPendingFactData row)
+    {
+        row.Validate();
+        if (Current.PendingFacts.Any(value => value.publicationKey == row.publicationKey))
+            throw new InvalidOperationException("regular-customer-pending-fact-duplicate");
+        Writable.PendingFacts.Add(row.Clone());
+    }
+
+    internal void RemovePendingFact(string publicationKey)
+    {
+        if (Writable.PendingFacts.RemoveAll(row => row.publicationKey == publicationKey) != 1)
+            throw new InvalidOperationException("regular-customer-pending-fact-not-found");
+    }
     public IReadOnlyList<RegularCustomerRecruitResult> RecruitedCharacters =>
         Current.Records.Values
             .Where(record => record.IsRecruited)
@@ -381,7 +416,9 @@ public sealed class RegularCustomerState
             && record.IsRecruited;
     }
 
-    public bool TryCompleteRecruitDelivery(string customerId)
+    public bool TryMarkRecruitDeliveryApplied(
+        string customerId,
+        string actorId)
     {
         if (!Writable.Records.TryGetValue(
                 customerId ?? string.Empty,
@@ -393,7 +430,26 @@ public sealed class RegularCustomerState
             return false;
         }
 
-        record.CompleteRecruitDelivery();
+        record.MarkRecruitDeliveryApplied(actorId);
+        return true;
+    }
+
+    public bool TryCompleteRecruitDelivery(
+        string customerId,
+        string outcomeResultKey)
+    {
+        if (!Writable.Records.TryGetValue(
+                customerId ?? string.Empty,
+                out RegularCustomerRecord record)
+            || record == null
+            || !record.IsRecruited
+            || !record.RecruitDeliveryPending
+            || !record.RecruitDeliveryApplied)
+        {
+            return false;
+        }
+
+        record.CompleteRecruitDelivery(outcomeResultKey);
         return true;
     }
 
@@ -519,7 +575,8 @@ public sealed class RegularCustomerState
     }
 
     internal RegularCustomerRestoreCandidate PrepareRestoreCandidate(
-        IEnumerable<RegularCustomerRecord> savedRecords)
+        IEnumerable<RegularCustomerRecord> savedRecords,
+        IEnumerable<RegularCustomerPendingFactData> pendingFacts = null)
     {
         if (savedRecords == null)
         {
@@ -553,6 +610,27 @@ public sealed class RegularCustomerState
             }
         }
 
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var row in pendingFacts ?? Array.Empty<RegularCustomerPendingFactData>())
+        {
+            if (row == null) throw new InvalidOperationException("regular-customer-pending-fact-null");
+            row.Validate();
+            var fact = row.fact;
+            if (!keys.Add(row.publicationKey) || !restored.Records.TryGetValue(fact.customerId, out var record)
+                || fact.visitCount > record.VisitCount
+                || fact.visitCount == record.VisitCount && (fact.averageSatisfaction != record.AverageSatisfaction
+                    || fact.displayName != record.DisplayName || fact.speciesTag != record.SpeciesTag)
+                || fact.capabilities != record.RecruitCapabilities
+                || fact.stage != RegularCustomerFactStage.VisitRecorded && (!record.IsRecruited
+                    || !record.RecruitDeliveryPending || record.RecruitedAbsoluteDay != fact.recruitedAbsoluteDay
+                    || record.RecruitDeliveryKind != fact.deliveryKind
+                    || record.PendingMercenaryRolePremium != fact.mercenaryRolePremium)
+                || fact.stage == RegularCustomerFactStage.RecruitmentCommitted && record.RecruitDeliveryApplied
+                || fact.stage == RegularCustomerFactStage.RecruitmentDelivered && (!record.RecruitDeliveryApplied
+                    || record.RecruitDeliveryActorId != fact.actorId))
+                throw new InvalidOperationException("regular-customer-pending-fact-owner-conflict");
+            restored.PendingFacts.Add(row.Clone());
+        }
         return new RegularCustomerAggregateRestoreCandidate(restored);
     }
 
@@ -607,6 +685,15 @@ public sealed class RegularCustomerState
 
 public readonly struct RegularCustomerVisitEventSnapshot
 {
+    internal RegularCustomerVisitEventSnapshot(RegularCustomerFactData fact)
+    {
+        success = true;
+        customer = new RegularCustomerSnapshot(fact.customerId, fact.displayName, fact.speciesTag,
+            fact.visitCount, fact.averageSatisfaction, fact.status, fact.capabilities);
+        becameRegular = fact.becameRegular;
+        becameRecruitCandidate = fact.becameRecruitCandidate;
+        message = "방문 기록 갱신";
+    }
     public RegularCustomerVisitEventSnapshot(RegularCustomerVisitResult result)
     {
         success = result.Success;

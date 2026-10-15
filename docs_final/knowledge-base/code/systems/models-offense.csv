@@ -22,6 +22,7 @@ Assets/Scripts/Models/Offense/Core/OffenseRewardSelector.cs,models:offense,Model
 Assets/Scripts/Models/Offense/Core/OffenseSeasonalExpeditionOffer.cs,models:offense,Models,Offense,runtime,,2,OffenseSeasonalPhysicalRewardData; OffenseSeasonalExpeditionOfferData,class,runtime-support,,
 Assets/Scripts/Models/Offense/Core/OffenseSiteArchetypeSO.cs,models:offense,Models,Offense,runtime,,1,OffenseSiteArchetypeSO,class,authored-definition,,
 Assets/Scripts/Models/Offense/Core/OffenseSiteValueContracts.cs,models:offense,Models,Offense,runtime,,4,StrategicPressureAxis; OffenseRewardGrantSpec; OffenseRewardPreview; OffenseSiteRewardDefinition,class; enum,player-observation,,
+Assets/Scripts/Models/Offense/Core/OffenseStockRewardReceipt.cs,models:offense,Models,Offense,runtime,,2,OffenseStockRewardReceiptData; OffenseStockRewardReceipt,class,event-or-transaction,,
 Assets/Scripts/Models/Offense/Core/OffenseStrategicMapInput.cs,models:offense,Models,Offense,runtime,,1,OffenseStrategicMapInput,class,runtime-support,,
 Assets/Scripts/Models/Offense/Core/OffenseThreatModifierKind.cs,models:offense,Models,Offense,runtime,,1,OffenseThreatModifierKind,enum,runtime-support,,
 Assets/Scripts/Models/Offense/Core/OffenseUrgentSiteDefinitionSO.cs,models:offense,Models,Offense,runtime,,1,OffenseUrgentSiteDefinitionSO,class,authored-definition,,

@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using DungeonStory.Narrative.Korean;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -120,6 +122,7 @@ public sealed class DungeonSpaceExpansionPlayModeVerificationRunner : MonoBehavi
         GameObject facilityRoot = null;
         DungeonSpaceExpansionRuntime expansion = null;
         GameEventBus events = null;
+        DomainFactDispatcher facts = null;
         try
         {
             Dictionary<string, ResearchProjectSO> projects = LoadProjects();
@@ -129,6 +132,48 @@ public sealed class DungeonSpaceExpansionPlayModeVerificationRunner : MonoBehavi
             TestGridAuthority gridAuthority =
                 new TestGridAuthority(CreateInitialGrid());
             events = new GameEventBus();
+            GameplayOutcomeRegistry registry = new(
+                new IGameplayOutcomeDescriptor[]
+                {
+                    new ResearchWorkOutcomeDescriptor(),
+                    new DungeonSpaceExpansionOutcomeDescriptor(
+                        new KoreanJosaFormatter())
+                },
+                new IGameplayOutcomeAdapterRegistration[]
+                {
+                    new ResearchWorkOutcomeAdapter(),
+                    new DungeonSpaceExpansionOutcomeAdapter()
+                });
+            GameplayOutcomeLedger ledger = new(
+                registry,
+                GameplayOutcomeBufferLimits.Default);
+            GameplayOutcomeRecorder recorder = new(
+                ledger,
+                registry,
+                events);
+            facts = new DomainFactDispatcher();
+            facts.Subscribe(
+                "research-work-gameplay-outcome",
+                new GameplayDomainFactObserver<
+                    ResearchWorkAppliedFact,
+                    ResearchWorkOutcomeReceipt>(
+                    ResearchWorkFactObservation.Capture,
+                    registry,
+                    ledger,
+                    recorder,
+                    new GameplayDomainFactCommitGroup(recorder, ledger)));
+            facts.Subscribe(
+                "infrastructure.space-expansion-observer",
+                new GameplayDomainFactObserver<
+                    DungeonSpaceExpandedFact,
+                    DungeonSpaceExpansionOutcomeReceipt>(
+                    fact => DungeonSpaceExpansionFactObservation.Capture(
+                        fact,
+                        ledger),
+                    registry,
+                    ledger,
+                    recorder,
+                    new GameplayDomainFactCommitGroup(recorder, ledger)));
             researchRoot = new GameObject("Expansion Research Runtime Fixture");
             researchRoot.SetActive(false);
             BlueprintResearchRuntime research =
@@ -155,13 +200,16 @@ public sealed class DungeonSpaceExpansionPlayModeVerificationRunner : MonoBehavi
                 aggregateRootStore: new DungeonRuntimeAggregateRootStore(),
                 debugRules: DisabledDungeonDebugRuleQuery.Instance,
                 uiClock: new UnityUiClock());
+            research.ConstructGameplayOutcomes(
+                new BlueprintResearchOutcomeTransaction(facts, facts));
 
             expansion = new DungeonSpaceExpansionRuntime(
                 events,
                 gridAuthority,
                 gridAuthority,
                 EditorFixedGameCalendar.Instance,
-                new EditorDungeonSpaceExpansionOutcomeCommitter(),
+                facts,
+                facts,
                 new EditorBlueprintResearchStateService(research.State));
             expansion.Start();
 
@@ -257,6 +305,7 @@ public sealed class DungeonSpaceExpansionPlayModeVerificationRunner : MonoBehavi
         finally
         {
             expansion?.Dispose();
+            facts?.Dispose();
             events?.Clear();
             if (facilityRoot != null)
             {

@@ -1,23 +1,24 @@
 using System;
 using System.Globalization;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 
 /// <summary>
-/// Single-writer, no-callback research/shop/outbox boundary. Calculation and
-/// serialization are detached; publication is rollback-capable until the exact
-/// prepared receipt commits. Delivery/observers never rerun gameplay.
+/// Single-writer research/shop boundary. The owner publishes immutable domain
+/// facts; observers alone own recording, identities and delivery. An ambiguous
+/// publication retains applied state and its frozen fact, never reruns gameplay.
 /// </summary>
 public sealed class BlueprintResearchOutcomeTransaction
 {
-    private readonly IGameplayOutcomeRecorder recorder;
-    private readonly IGameplayOutcomeDiagnosticsQuery diagnostics;
+    private readonly IDomainFactStagingPublisher facts;
+    private readonly IDomainFactRecoveryPublisher recovery;
 
     public BlueprintResearchOutcomeTransaction(
-        IGameplayOutcomeRecorder recorder,
-        IGameplayOutcomeDiagnosticsQuery diagnostics)
+        IDomainFactStagingPublisher facts,
+        IDomainFactRecoveryPublisher recovery)
     {
-        this.recorder = recorder ?? throw new ArgumentNullException(nameof(recorder));
-        this.diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
     }
 
     public bool TryApply(
@@ -34,7 +35,7 @@ public sealed class BlueprintResearchOutcomeTransaction
         string facilityName,
         out BlueprintResearchWorkResult result,
         out BlueprintResearchUnlockResult unlocks,
-        ResearchEquipmentOutcomeEvidence equipment = null)
+        ResearchEquipmentUseSnapshot equipment = null)
         => TryApplyCore(state, shop, catalog, project, blueprint, work, absoluteDay,
             researcherId, researcherName, facilityId, facilityName, null, false, out result, out unlocks, equipment);
 
@@ -76,12 +77,17 @@ public sealed class BlueprintResearchOutcomeTransaction
         string researcherId, string researcherName, string facilityId, string facilityName,
         ForbiddenResearchLeapPreparation leap, bool immediate,
         out BlueprintResearchWorkResult result, out BlueprintResearchUnlockResult unlocks,
-        ResearchEquipmentOutcomeEvidence equipment = null)
+        ResearchEquipmentUseSnapshot equipment = null)
     {
         if (state == null || shop == null || catalog == null)
             throw new ArgumentNullException("Research transaction owner dependencies are required.");
         result = default;
         unlocks = default;
+        if (state.HasPendingPublication)
+        {
+            result = Failure(project, blueprint, "research-fact-publication-pending");
+            return false;
+        }
         if (!float.IsFinite(work) || !immediate && leap == null && work <= 0f
             || project == null && blueprint == null)
         {
@@ -151,84 +157,73 @@ public sealed class BlueprintResearchOutcomeTransaction
             : new BlueprintResearchUnlockResult(blueprint, Array.Empty<BlueprintUnlockRecord>());
         long sequence = checked(state.OutcomeSequence + 1);
         candidate.RestoreOutcomeSequence(sequence);
-        GameplayResultKey key = new(
-            "research.work",
-            new GameplayOperationId("research-work:" + sequence.ToString(CultureInfo.InvariantCulture)),
-            sequence, 0);
-        ResearchWorkOutcomeReceipt receipt = new(
-            key, absoluteDay, projectId, projectName, researcherId, researcherName,
+        ResearchWorkAppliedFact fact = CaptureFact(
+            sequence, absoluteDay, project != null, blueprint?.id ?? project?.Blueprint?.id ?? -1,
+            projectId, projectName, researcherId, researcherName,
             facilityId, facilityName, before, after, required, completed, candidateUnlocks.Unlocks,
             immediate ? ResearchWorkCause.ImmediateCompletion : leap != null
                 ? ResearchWorkCause.ForbiddenLeap : ResearchWorkCause.Work,
-            leap?.Resolution ?? default, leap?.AftermathUntilSeconds ?? 0f, equipment);
-        // Allocate every owner replacement before reserving the bounded ledger page.
-        BlueprintResearchAggregateState preparedState = candidate.CaptureAggregateClone();
+            leap?.Resolution ?? default, leap?.AftermathUntilSeconds ?? 0f, equipment, Math.Abs(work));
         FacilityShopRestoreCandidate preparedShop = shop.PrepareRestore(candidateShop.Capture());
-        OutcomePrepareResult preparation = recorder.TryPrepare(receipt, out PreparedOutcomeToken token);
-        if (!preparation.Success)
+        if (!facts.TryStage(fact, out IDomainFactStage stage, out string preparationFailure))
         {
-            result = Failure(project, blueprint,
-                "research-outcome-prepare-" + preparation.Code + ":" + preparation.DetailCode,
-                preparation.Code == OutcomePrepareCode.CapacityDeferred);
+            result = Failure(project, blueprint, preparationFailure,
+                preparationFailure.Contains("CapacityDeferred", StringComparison.Ordinal));
             return false;
         }
-
-        if (leap != null && !leap.IsCurrent)
+        if (stage.IsReplay || stage.OwnerRevision != sequence || leap != null && !leap.IsCurrent)
         {
-            recorder.CancelPrepared(token);
-            result = Failure(project, blueprint, "research-leap-preparation-stale");
+            stage.Cancel();
+            result = Failure(project, blueprint, "research-fact-preparation-stale");
             return false;
         }
-
-        CommittedOutcomeToken committed = default;
-        bool durable = false;
-        string detail = string.Empty;
+        string key = stage.OperationKey;
+        BlueprintResearchAggregateState preparedState;
         try
         {
-            // No events, external effects, await or user callbacks in this boundary.
+            if (completed && project != null) candidate.RecordCompletedProjectResultKey(projectId, key);
+            candidate.RestorePendingPublication(new ResearchWorkPendingPublication
+            { active = true, publicationKey = key, fact = fact.Capture() });
+            preparedState = candidate.CaptureAggregateClone();
+        }
+        catch { stage.Cancel(); throw; }
+        // No callbacks inside owner publication. Definite owner failure remains reversible.
+        try
+        {
             state.ReplaceAggregate(preparedState);
             shop.PublishRestore(preparedShop);
             if (leap != null && !leap.TryPublish())
                 throw new InvalidOperationException("research-leap-preparation-stale");
-            OutcomeCommitResult commit = recorder.CommitPrepared(token, sequence, out committed);
-            durable = commit.Success;
-            if (!durable)
-                detail = "research-outcome-commit-" + commit.Code + ":" + commit.DetailCode;
         }
-        catch (Exception exception) when (IsRecoverable(exception))
-        {
-            // A dependency can throw after committing. Only canonical identity,
-            // never the mere fact of an exception, proves that gameplay must stay.
-            durable = diagnostics.TryGetResultIdentity(key, out GameplayOutcomeReplayIdentity identity)
-                && identity.State >= GameplayOutcomeReplayState.Committed;
-            detail = "research-outcome-commit-exception:" + exception.GetType().Name;
-            if (!durable)
-            {
-                state.ReplaceAggregate(beforeState);
-                shop.PublishRestore(beforeShop);
-                leap?.Rollback();
-                recorder.CancelPrepared(token);
-                throw;
-            }
-        }
-        if (!durable)
+        catch
         {
             state.ReplaceAggregate(beforeState);
             shop.PublishRestore(beforeShop);
             leap?.Rollback();
-            recorder.CancelPrepared(token);
-            result = Failure(project, blueprint, detail);
+            stage.Cancel();
+            throw;
+        }
+        DomainFactDelivery delivery = Commit(stage);
+        if (!delivery.MayBeCommitted)
+        {
+            state.ReplaceAggregate(beforeState);
+            shop.PublishRestore(beforeShop);
+            leap?.Rollback();
+            stage.Cancel();
+            result = Failure(project, blueprint, delivery.Detail);
             return false;
         }
-
-        // Post-commit faults retain the canonical payload and report pending status.
-        detail = Deliver(committed, detail);
+        bool pending = !IsConfirmed(delivery, key);
+        if (!pending) state.RestorePendingPublication(null);
         unlocks = candidateUnlocks;
         string message = completed ? "연구 완료" : "연구 진행";
+        string detail = DeliveryDetail(delivery);
         if (detail.Length > 0) message += " (" + detail + ")";
         result = project != null
-            ? BlueprintResearchWorkResult.ForProject(true, project, after - before, after, required, completed, message)
-            : new BlueprintResearchWorkResult(true, blueprint, after - before, after, required, completed, message);
+            ? BlueprintResearchWorkResult.ForProject(true, project, after - before, after, required, completed, message,
+                committedResultKey: key, publicationPending: pending)
+            : new BlueprintResearchWorkResult(true, blueprint, after - before, after, required, completed, message,
+                committedResultKey: key, publicationPending: pending);
         return true;
     }
 
@@ -237,7 +232,7 @@ public sealed class BlueprintResearchOutcomeTransaction
     public bool TryApplyKnowledgeProgress(
         DungeonRuntimeAggregateRootStore root, float work, int absoluteDay,
         string taskLabel, string researcherId, string researcherName,
-        string facilityId, string facilityName, ResearchEquipmentOutcomeEvidence equipment,
+        string facilityId, string facilityName, ResearchEquipmentUseSnapshot equipment,
         out BlueprintResearchWorkResult result)
     {
         if (root == null) throw new ArgumentNullException(nameof(root));
@@ -253,6 +248,11 @@ public sealed class BlueprintResearchOutcomeTransaction
             return false;
         }
         BlueprintResearchState sequenceOwner = new(root);
+        if (sequenceOwner.HasPendingPublication)
+        {
+            result = Failure(null, null, "research-fact-publication-pending");
+            return false;
+        }
         BlueprintResearchAggregateState beforeResearch = sequenceOwner.CaptureAggregateClone();
         BlueprintResearchAggregateState preparedResearch = beforeResearch.DeepClone();
         KnowledgeResidueAggregateState beforeKnowledge = current.DeepClone();
@@ -267,73 +267,124 @@ public sealed class BlueprintResearchOutcomeTransaction
         preparedKnowledge.FirstTask.completedWork = after;
         long sequence = checked(beforeResearch.OutcomeSequence + 1);
         preparedResearch.OutcomeSequence = sequence;
-        GameplayResultKey key = new("research.work",
-            new GameplayOperationId("research-work:" + sequence.ToString(CultureInfo.InvariantCulture)), sequence, 0);
-        ResearchWorkOutcomeReceipt receipt = new(key, absoluteDay, task.taskId, taskLabel,
+        ResearchWorkAppliedFact fact = CaptureFact(sequence, absoluteDay, false, -1, task.taskId, taskLabel,
             researcherId, researcherName, facilityId, facilityName, before, after, task.requiredWork,
             false, Array.Empty<BlueprintUnlockRecord>(), ResearchWorkCause.KnowledgeProgress,
-            equipment: equipment);
-        OutcomePrepareResult preparation = recorder.TryPrepare(receipt, out PreparedOutcomeToken token);
-        if (!preparation.Success)
+            default, 0, equipment, work);
+        if (!facts.TryStage(fact, out IDomainFactStage stage, out string preparationFailure))
         {
-            result = Failure(null, null, "knowledge-outcome-prepare-" + preparation.Code + ":" + preparation.DetailCode,
-                preparation.Code == OutcomePrepareCode.CapacityDeferred);
+            result = Failure(null, null, preparationFailure,
+                preparationFailure.Contains("CapacityDeferred", StringComparison.Ordinal));
             return false;
         }
-        CommittedOutcomeToken committed = default;
-        bool durable = false;
-        string detail = string.Empty;
+        if (stage.IsReplay || stage.OwnerRevision != sequence)
+        {
+            stage.Cancel();
+            result = Failure(null, null, "research-fact-preparation-stale");
+            return false;
+        }
+        string key = stage.OperationKey;
+        preparedResearch.PendingPublication = new ResearchWorkPendingPublication
+        { active = true, publicationKey = key, fact = fact.Capture() };
         try
         {
             root.PublishPreparedReplacements(preparedResearch, preparedKnowledge);
-            OutcomeCommitResult commit = recorder.CommitPrepared(token, sequence, out committed);
-            durable = commit.Success;
-            if (!durable) detail = "knowledge-outcome-commit-" + commit.Code + ":" + commit.DetailCode;
         }
-        catch (Exception exception) when (IsRecoverable(exception))
-        {
-            durable = diagnostics.TryGetResultIdentity(key, out GameplayOutcomeReplayIdentity identity)
-                && identity.State >= GameplayOutcomeReplayState.Committed;
-            detail = "knowledge-outcome-commit-exception:" + exception.GetType().Name;
-            if (!durable)
-            {
-                root.PublishPreparedReplacements(beforeResearch, beforeKnowledge);
-                recorder.CancelPrepared(token);
-                throw;
-            }
-        }
-        if (!durable)
+        catch
         {
             root.PublishPreparedReplacements(beforeResearch, beforeKnowledge);
-            recorder.CancelPrepared(token);
-            result = Failure(null, null, detail);
+            stage.Cancel();
+            throw;
+        }
+        DomainFactDelivery delivery = Commit(stage);
+        if (!delivery.MayBeCommitted)
+        {
+            root.PublishPreparedReplacements(beforeResearch, beforeKnowledge);
+            stage.Cancel();
+            result = Failure(null, null, delivery.Detail);
             return false;
         }
-        detail = Deliver(committed, detail);
+        bool pending = !IsConfirmed(delivery, key);
+        if (!pending) sequenceOwner.RestorePendingPublication(null);
+        string detail = DeliveryDetail(delivery);
         result = new BlueprintResearchWorkResult(true, null, after - before, after, task.requiredWork,
-            false, taskLabel + (detail.Length == 0 ? string.Empty : " (" + detail + ")"));
+            false, taskLabel + (detail.Length == 0 ? string.Empty : " (" + detail + ")"),
+            committedResultKey: key, publicationPending: pending);
         return true;
     }
 
-    private string Deliver(CommittedOutcomeToken committed, string detail)
+    public bool TryRecoverPending(BlueprintResearchState state, out ResearchWorkAppliedFact recovered,
+        out string publicationKey, out string failure)
     {
-        if (committed.IsValid)
+        if (state == null) throw new ArgumentNullException(nameof(state));
+        recovered = null;
+        publicationKey = string.Empty;
+        failure = string.Empty;
+        ResearchWorkPendingPublication pending = state.PendingPublication;
+        if (pending == null) return true;
+        ResearchWorkAppliedFact fact = new(pending.fact);
+        if (fact.Revision != state.OutcomeSequence)
         {
-            try
+            failure = "research-pending-revision-mismatch";
+            return false;
+        }
+        var deliveries = new DomainFactDelivery[1];
+        try
+        {
+            if (!recovery.ReplayBatch(new[] { DomainFactReplay.Create(pending.publicationKey, fact) },
+                    deliveries, out failure) || !IsConfirmed(deliveries[0], pending.publicationKey))
             {
-                OutcomeDeliveryResult delivery = recorder.TryDeliver(committed);
-                if (!delivery.Published)
-                    detail = "research-outcome-delivery-pending:" + delivery.DetailCode;
-                else if (!recorder.Acknowledge(committed).Success)
-                    detail = "research-outcome-acknowledgement-pending";
-            }
-            catch (Exception exception) when (IsRecoverable(exception))
-            {
-                detail = "research-outcome-delivery-pending:" + exception.GetType().Name;
+                if (string.IsNullOrEmpty(failure)) failure = deliveries[0].Detail;
+                return false;
             }
         }
-        return detail;
+        catch (Exception exception) when (IsRecoverable(exception))
+        { failure = "research-fact-recovery-uncertain:" + exception.GetType().Name; return false; }
+        // Caller emits post-commit gameplay notifications once; never recomputes work/unlocks/wear.
+        state.RestorePendingPublication(null);
+        recovered = fact;
+        publicationKey = pending.publicationKey;
+        return true;
     }
+
+    private static DomainFactDelivery Commit(IDomainFactStage stage)
+    {
+        try { return stage.Commit(); }
+        catch (Exception exception) when (IsRecoverable(exception))
+        { return DomainFactDelivery.Uncertain("research-fact-commit-uncertain:" + exception.GetType().Name); }
+    }
+
+    private static bool IsConfirmed(DomainFactDelivery delivery, string key) =>
+        delivery.Phase is DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery
+        && string.Equals(delivery.OperationKey, key, StringComparison.Ordinal);
+
+    private static string DeliveryDetail(DomainFactDelivery delivery) => delivery.Phase switch
+    {
+        DomainFactDeliveryPhase.InDoubt => "research-fact-publication-pending:" + delivery.Detail,
+        DomainFactDeliveryPhase.AcceptedPendingDelivery => "research-fact-delivery-pending:" + delivery.Detail,
+        _ => delivery.Detail
+    };
+
+    private static ResearchWorkAppliedFact CaptureFact(long revision, int day, bool isProject, int blueprintId,
+        string subjectId, string subjectName, string researcherId, string researcherName,
+        string facilityId, string facilityName, float before, float after, float required, bool completed,
+        System.Collections.Generic.IReadOnlyList<BlueprintUnlockRecord> unlocks, ResearchWorkCause cause,
+        ExtremeRiskResolution leap, float aftermathUntil, ResearchEquipmentUseSnapshot equipment, float approvedWork) => new(new()
+        {
+            revision = revision, absoluteDay = day, isProject = isProject, blueprintId = blueprintId,
+            subjectId = subjectId, subjectName = subjectName, researcherId = researcherId ?? string.Empty,
+            researcherName = researcherName ?? string.Empty, facilityId = facilityId ?? string.Empty,
+            facilityName = facilityName ?? string.Empty, before = before, after = after, required = required,
+            completed = completed, cause = cause, leapOutcome = (int)leap.Outcome,
+            leapPrimary = leap.PrimaryMultiplier, leapSecondary = leap.SecondaryMultiplier,
+            leapDelta = leap.ProgressDelta, leapHash = leap.FixedRollHash, aftermathUntil = aftermathUntil,
+            approvedWork = approvedWork, hasEquipment = equipment != null, equipment = equipment?.Capture(),
+            unlocks = unlocks.Select(value => new ResearchUnlockFactData
+            {
+                typeId = value.UnlockTypeId, categoryLabel = value.CategoryLabel, valueId = value.ValueId,
+                displayName = value.DisplayName, codexDetail = value.CodexDetail
+            }).ToArray()
+        });
 
     private static BlueprintResearchWorkResult Failure(
         ResearchProjectSO project, FacilityBlueprintSO blueprint, string reason, bool capacityDeferred = false) => project != null

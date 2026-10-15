@@ -191,6 +191,7 @@ public static class DomainFailureLocalizationFormatContract
             [FailureCode.ServiceFeatureMissing] = 1,
             [FailureCode.ServiceSupportUnpowered] = 1,
             [FailureCode.EnvironmentThermostatUnsupported] = 2,
+            [FailureCode.EnvironmentOutcomeUnavailable] = 2,
             [FailureCode.EnvironmentEvacuationCellUnavailable] = 1,
             [FailureCode.EnvironmentWorkwearDefinitionMissing] = 1,
             [FailureCode.EnvironmentWorkwearSpeciesIncompatible] = 2,

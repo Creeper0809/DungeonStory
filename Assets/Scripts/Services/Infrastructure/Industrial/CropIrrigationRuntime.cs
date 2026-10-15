@@ -103,13 +103,19 @@ public sealed class PreparedCropIrrigationSupply
         BuildableObject irrigator,
         float suppliedAt,
         float minimumRefillIntervalSeconds,
-        FluidInfrastructureMutationToken fluidMutation)
+        FluidInfrastructureMutationToken fluidMutation,
+        string networkId,
+        float networkWaterBefore,
+        float networkWaterAfter)
     {
         Result = result;
         Irrigator = irrigator;
         SuppliedAt = suppliedAt;
         MinimumRefillIntervalSeconds = minimumRefillIntervalSeconds;
         FluidMutation = fluidMutation;
+        NetworkId = networkId ?? string.Empty;
+        NetworkWaterBefore = networkWaterBefore;
+        NetworkWaterAfter = networkWaterAfter;
         IsPending = true;
     }
 
@@ -118,6 +124,9 @@ public sealed class PreparedCropIrrigationSupply
         Result.Assessment.PlotId.IsValid ? Plot?.BuildingData : null);
     public string IrrigatorDisplayName => FacilityShopService.GetBuildingName(
         Irrigator?.BuildingData);
+    public string NetworkId { get; }
+    public float NetworkWaterBefore { get; }
+    public float NetworkWaterAfter { get; }
     internal BuildableObject Plot { get; set; }
     internal BuildableObject Irrigator { get; }
     internal float SuppliedAt { get; }
@@ -218,6 +227,14 @@ public sealed class CropIrrigationRuntime :
 
         FluidInfrastructureMutationToken fluidBefore =
             fluidMutations.CaptureMutation();
+        if (!TryCaptureCleanNetworkWater(
+                evaluation.Irrigator,
+                out string networkId,
+                out float networkWaterBefore))
+        {
+            prepared = null;
+            return false;
+        }
         if (!fluid.TryConsume(
                 evaluation.Irrigator,
                 RequiredQuality,
@@ -238,12 +255,33 @@ public sealed class CropIrrigationRuntime :
                 evaluation.Irrigator,
                 clock.Time,
                 evaluation.Ability.minimumRefillIntervalSeconds,
-                default)
+                default,
+                networkId,
+                networkWaterBefore,
+                networkWaterBefore)
             {
                 Plot = request.Plot,
                 IsPending = false
             };
             return false;
+        }
+
+        if (!TryCaptureCleanNetworkWater(
+                evaluation.Irrigator,
+                out string networkAfterId,
+                out float networkWaterAfter)
+            || !string.Equals(
+                networkAfterId,
+                networkId,
+                StringComparison.Ordinal)
+            || Math.Abs(
+                networkWaterBefore
+                - evaluation.Assessment.WaterUnits
+                - networkWaterAfter) > Epsilon)
+        {
+            fluidMutations.RestoreMutation(fluidBefore);
+            throw new InvalidOperationException(
+                "Prepared crop irrigation did not preserve an exact source-network water delta.");
         }
 
         prepared = new PreparedCropIrrigationSupply(
@@ -255,11 +293,32 @@ public sealed class CropIrrigationRuntime :
             evaluation.Irrigator,
             clock.Time,
             evaluation.Ability.minimumRefillIntervalSeconds,
-            fluidBefore)
+            fluidBefore,
+            networkId,
+            networkWaterBefore,
+            networkWaterAfter)
         {
             Plot = request.Plot
         };
         return true;
+    }
+
+    private bool TryCaptureCleanNetworkWater(
+        BuildableObject irrigator,
+        out string networkId,
+        out float water)
+    {
+        networkId = string.Empty;
+        water = 0f;
+        if (!fluidQuery.TryGetNetwork(irrigator, out FluidNetworkSnapshot snapshot)
+            || snapshot == null
+            || snapshot.Channel != UtilityChannel.CleanWater
+            || string.IsNullOrWhiteSpace(snapshot.NetworkId))
+            return false;
+
+        networkId = snapshot.NetworkId;
+        water = snapshot.CleanWater + snapshot.UnsafeWater + snapshot.FoulWater;
+        return float.IsFinite(water) && water >= 0f;
     }
 
     public void CommitPreparedSupply(PreparedCropIrrigationSupply prepared)

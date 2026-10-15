@@ -135,7 +135,8 @@ public static class CropTreatmentPhysicalOutbox
     {
         failureReason = string.Empty;
         if (owner == null
-            || owner.phase != CropTreatmentOrderPhase.OutcomePublished
+            || owner.phase is not (CropTreatmentOrderPhase.OutcomePublished
+                or CropTreatmentOrderPhase.LedgerCommitted)
             || items == null
             || !IsCanonical(owner.commitId))
         {
@@ -254,8 +255,14 @@ public static class CropTreatmentPhysicalOutbox
     {
         if (owner == null) return;
         owner.phase = CropTreatmentOrderPhase.None;
+        owner.outcomeSchemaVersion = 0;
         owner.operationSequence = 0;
         owner.operationId = string.Empty;
+        owner.publicationKey = string.Empty;
+        owner.plotDisplayName = string.Empty;
+        owner.itemDisplayName = string.Empty;
+        owner.locationX = 0;
+        owner.locationY = 0;
         owner.reasonCode = string.Empty;
         owner.destinationId = string.Empty;
         owner.itemId = string.Empty;
@@ -277,6 +284,19 @@ public static class CropTreatmentPhysicalOutbox
         owner.tareOutputCommitIds.Clear();
         owner.ecologyBeforeFingerprint = string.Empty;
         owner.ecologyAfterFingerprint = string.Empty;
+        owner.responsibleWorkerId = string.Empty;
+        owner.responsibleWorkerDisplayName = string.Empty;
+        owner.workContributions?.Clear();
+        owner.workContributions ??= new List<CraftContributionSaveData>();
+        owner.pestPressureBefore = 0f;
+        owner.pestPressureAfter = 0f;
+        owner.diseasePressureBefore = 0f;
+        owner.diseasePressureAfter = 0f;
+        owner.cooldownBeforeDay = 0;
+        owner.cooldownAfterDay = 0;
+        owner.completedAbsoluteDay = 0;
+        owner.gameplayOutcomeId = string.Empty;
+        owner.gameplayOutcomeDigest = string.Empty;
         owner.terminalDisposition = CropTreatmentTerminalDisposition.None;
         owner.terminalReasonCode = string.Empty;
         owner.terminalLossQuantity = 0;

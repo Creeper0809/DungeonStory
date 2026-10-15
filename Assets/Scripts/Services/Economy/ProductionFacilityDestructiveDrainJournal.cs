@@ -579,12 +579,12 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
                  migrated.entries)
         {
             BuildingInstanceId facilityId = (BuildingInstanceId)entry.facilityId;
-            string contribution = EnvironmentalFireDamageOutcomeAuthority
+            string contribution = EnvironmentalFireDamageAuthority
                 .ProjectFacilityContribution(
                     facilityId,
                     Array.Empty<
                         DungeonStory.Environment
-                            .EnvironmentalFireDamageOutcomeSaveRecord>());
+                            .EnvironmentalFireDamageRecord>());
             CanonicalSemanticDigestBuilder plan = new();
             plan.Append("environmental-fire-damage-destructive-plan@1");
             plan.Append(facilityId.Value);

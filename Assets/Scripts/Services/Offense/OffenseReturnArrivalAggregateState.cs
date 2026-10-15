@@ -172,6 +172,8 @@ internal static class OffenseReturnArrivalSaveValidation
 
             bool terminal = arrival.stage is OffenseReturnArrivalStage.Secured
                 or OffenseReturnArrivalStage.Escaped;
+            try { OffenseArrivalSettlementRuntime.ValidateState(arrival); }
+            catch (ArgumentException exception) { report.AddError(exception.Message); }
             if (terminal
                 ? arrival.settledMaterializedAmount != arrival.requestedAmount
                     || arrival.settledSecuredAmount < 0
@@ -315,7 +317,8 @@ internal static class OffenseReturnArrivalSaveValidation
                     source.escapedIds),
                 prisonerIndividuals = source.prisonerIndividuals
                     .Select(value => value.Clone()).ToList(),
-                lastStatus = source.lastStatus
+                lastStatus = source.lastStatus,
+                settlement = source.settlement.Clone()
             });
         }
         foreach (OffensePrisonerCandidatePoolState source in

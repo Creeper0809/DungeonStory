@@ -678,13 +678,6 @@ public static class CodexDomainTextFormatter
                 : workTypeId.ToString()));
     }
 
-    internal static string FormatLegacyWorkTypes(FacilityWorkType workTypes)
-    {
-        return string.Join(", ", FacilityWorkTypeMap
-            .Enumerate(workTypes)
-            .Select(definition => definition.DisplayName));
-    }
-
     public static string FormatDefenseConcept(DefenseAttackConcept concept)
     {
         return concept switch

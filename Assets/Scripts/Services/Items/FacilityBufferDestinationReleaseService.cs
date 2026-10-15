@@ -66,8 +66,10 @@ public sealed class FacilityBufferDestinationReleaseService :
             .ToArray();
         Dictionary<string, CharacterActor> actorsById =
             new(StringComparer.Ordinal);
-        foreach (HaulDeliveryIntentSaveData intent in intents
-                     .Where(intent => intent.HasCommittedPickup))
+        string[] allowedOperations = intents
+            .Select(intent => intent.operationId)
+            .ToArray();
+        foreach (HaulDeliveryIntentSaveData intent in intents)
         {
             CharacterActor actor = (characterWorld.Characters
                     ?? Array.Empty<CharacterActor>())
@@ -78,6 +80,15 @@ public sealed class FacilityBufferDestinationReleaseService :
                         StringComparison.Ordinal));
             CharacterCarryInventory inventory = actor?.CarryInventory;
             AbilityHaul haul = actor?.GetComponent<AbilityHaul>();
+            if (!intent.HasCommittedPickup)
+            {
+                // An unpicked intent can already belong to a running movement
+                // plan. Stop that exact owner before releasing its intent/leases;
+                // an unbound planner reservation still needs only logical release.
+                if (haul != null && haul.OwnsHaulOperation(intent.operationId))
+                    actorsById[intent.ownerCharacterId] = actor;
+                continue;
+            }
             if (actor == null
                 || inventory == null
                 || haul == null
@@ -104,7 +115,24 @@ public sealed class FacilityBufferDestinationReleaseService :
             actorsById[intent.ownerCharacterId] = actor;
         }
 
-        if (actorsById.Count > 0
+        foreach (CharacterActor actor in actorsById.Values)
+        {
+            AbilityHaul haul = actor.GetComponent<AbilityHaul>();
+            if (haul.IsCapacityRoutingQuiescenceFrozen
+                || haul.CaptureActiveHaulOperationIds().Any(operation =>
+                    !allowedOperations.Contains(operation, StringComparer.Ordinal))
+                || actor.CarryInventory?.Items.Any(item => item != null
+                    && item.quantity > 0
+                    && !allowedOperations.Contains(
+                        item.ownerOperationId, StringComparer.Ordinal)) == true)
+            {
+                failureReason = "facility-buffer-terminal-plan-preflight-failed:"
+                    + actor.BuildingCharacterId.Value;
+                return false;
+            }
+        }
+
+        if (actorsById.Values.Any(actor => actor.CarryInventory?.HasItems == true)
             && worldItems is not IWorldItemCarryRecoveryRuntime)
         {
             failureReason =
@@ -118,7 +146,8 @@ public sealed class FacilityBufferDestinationReleaseService :
                          StringComparer.Ordinal))
         {
             AbilityHaul haul = actor.GetComponent<AbilityHaul>();
-            if (!haul.TryStopHauling(
+            if (!haul.TryStopHaulingIfActiveOperationsSubsetOf(
+                    allowedOperations,
                     reason,
                     HaulInterruptionDisposition
                         .ReleaseUnpickedAndDropCarriedAtActor,

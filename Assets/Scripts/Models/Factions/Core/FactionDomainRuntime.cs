@@ -79,6 +79,36 @@ namespace DungeonStory.Factions
         public int RouteSettlementOperationSequence =>
             State.RouteSettlementOperationSequence;
         public int GoodwillOperationSequence => State.GoodwillOperationSequence;
+        public int RelationshipObservationSequence => State.RelationshipObservationSequence;
+        public IReadOnlyList<FactionRelationshipObservationData> RelationshipObservations =>
+            State.RelationshipObservations.Select(value => value.Clone()).ToArray();
+
+        public void QueueRelationshipObservation(FactionRelationshipObservationData value)
+        {
+            if (State.RelationshipObservations.Count != 0 || value == null
+                || State.RelationshipObservationSequence == int.MaxValue
+                || value.sequence != State.RelationshipObservationSequence + 1)
+                throw new InvalidOperationException("faction-relationship-observation-sequence-conflict");
+            FactionRelationshipObservationValidation.Validate(value.sequence, new[] { value },
+                State.CurrentDay, State.Factions.Keys.ToArray());
+            State.RelationshipObservations.Add(value.Clone());
+            State.RelationshipObservationSequence = value.sequence;
+        }
+        public void AcknowledgeRelationshipObservation(int sequence, string key) =>
+            RemoveRelationshipObservation(sequence, key, false);
+        public void RollbackRelationshipObservation(int sequence, string key) =>
+            RemoveRelationshipObservation(sequence, key, true);
+        private void RemoveRelationshipObservation(int sequence, string key, bool rollback)
+        {
+            if (State.RelationshipObservations.Count != 1
+                || State.RelationshipObservations[0].sequence != sequence
+                || State.RelationshipObservations[0].publicationKey != key
+                || State.RelationshipObservationSequence != sequence)
+                throw new InvalidOperationException("faction-relationship-observation-ack-conflict");
+            State.RelationshipObservations.Clear();
+            if (rollback) State.RelationshipObservationSequence--;
+        }
+
         public long AllianceBenefitBalanceMilliEwu =>
             State.AllianceBenefitBalanceMilliEwu;
         public long AllianceBenefitRefillRemainder =>

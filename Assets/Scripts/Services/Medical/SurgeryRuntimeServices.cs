@@ -218,30 +218,30 @@ public sealed class SurgeryExecutionServices
 {
     public SurgeryExecutionServices(
         IGameClock clock,
+        IGameCalendar calendar,
         IRandomStreamProvider randomStreams,
         ICharacterEnvironmentStatusQuery environmentStatus,
         ISurgeryEnvironmentRiskEvaluator environmentRisk,
         ExtremeTraitRuntime extremeTraits = null,
-        IRunSeedProvider runSeedProvider = null,
-        CharacterIdentityEventPublisher identityEvents = null)
+        IRunSeedProvider runSeedProvider = null)
     {
         Clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         EnvironmentStatus = environmentStatus ?? throw new ArgumentNullException(nameof(environmentStatus));
         EnvironmentRisk = environmentRisk ?? throw new ArgumentNullException(nameof(environmentRisk));
         OutcomeRandom = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get("medical:surgery-outcomes");
         ExtremeTraits = extremeTraits;
         RunSeedProvider = runSeedProvider;
-        IdentityEvents = identityEvents;
     }
 
     public IGameClock Clock { get; }
+    public IGameCalendar Calendar { get; }
     public IRandomStream OutcomeRandom { get; }
     public ICharacterEnvironmentStatusQuery EnvironmentStatus { get; }
     public ISurgeryEnvironmentRiskEvaluator EnvironmentRisk { get; }
     public ExtremeTraitRuntime ExtremeTraits { get; }
     public IRunSeedProvider RunSeedProvider { get; }
-    public CharacterIdentityEventPublisher IdentityEvents { get; }
 }
 
 internal static class SurgeryRuntimeSupport

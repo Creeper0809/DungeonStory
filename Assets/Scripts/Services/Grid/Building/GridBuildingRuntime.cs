@@ -152,9 +152,17 @@ public class GridBuildingPlacementService
             return TryPlaceBuildingImmediate(buildingData, position, out errorMessage);
         }
 
-        EnsureHallwayUnderBuildingFootprint(buildingData, position);
+        if (!TryCreateConstructionSupportHallways(
+                buildingData,
+                position,
+                out List<BuildableObject> createdSupportHallways,
+                out errorMessage))
+        {
+            return false;
+        }
         if (!CreateConstructionSite(buildingData, position, out ConstructionSite site, out errorMessage))
         {
+            RollbackConstructionSupportHallwaysOrThrow(createdSupportHallways);
             return false;
         }
 
@@ -166,15 +174,40 @@ public class GridBuildingPlacementService
                 out string orderFailure))
         {
             RemoveConstructionSite(site);
+            RollbackConstructionSupportHallwaysOrThrow(createdSupportHallways);
             errorMessage = string.IsNullOrWhiteSpace(orderFailure)
                 ? "공사 주문을 만들 수 없습니다."
                 : orderFailure;
             return false;
         }
 
+        string placementOperationId = WorkOrderPlacementIdentity.ForOrder(orderId);
+        string[] supportIds = createdSupportHallways
+            .Select(value => value.RequirePersistentInstanceId().Value)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        if (!workOrderRuntime.TryAttachConstructionPlacement(
+                orderId,
+                placementOperationId,
+                supportIds,
+                out string attachmentFailure))
+        {
+            workOrderRuntime.CancelOrder(orderId, refundDeliveredMaterials: true);
+            RemoveConstructionSite(site);
+            RollbackConstructionSupportHallwaysOrThrow(createdSupportHallways);
+            errorMessage = string.IsNullOrWhiteSpace(attachmentFailure)
+                ? "공사 배치 신원을 주문에 연결할 수 없습니다."
+                : attachmentFailure;
+            return false;
+        }
+
         site.ConfigureSite(
             orderId,
-            () => TryPlaceBuildingImmediateUnchecked(buildingData, position, chargeCost: false, out _),
+            () => TryPlaceBuildingImmediateUncheckedWithReceipt(
+                buildingData,
+                position,
+                chargeCost: false,
+                out _),
             () => RemoveConstructionSite(site));
         placementValidator.ApplyBuildSuccess(buildingData);
         errorMessage = string.Empty;
@@ -196,13 +229,21 @@ public class GridBuildingPlacementService
             return false;
         }
 
-        EnsureHallwayUnderBuildingFootprint(buildingData, position);
+        if (!TryCreateConstructionSupportHallways(
+                buildingData,
+                position,
+                out List<BuildableObject> createdSupportHallways,
+                out errorMessage))
+        {
+            return false;
+        }
         if (!CreateConstructionSite(
                 buildingData,
                 position,
                 out ConstructionSite site,
                 out errorMessage))
         {
+            RollbackConstructionSupportHallwaysOrThrow(createdSupportHallways);
             return false;
         }
 
@@ -214,15 +255,36 @@ public class GridBuildingPlacementService
                 out string orderFailure))
         {
             RemoveConstructionSite(site);
+            RollbackConstructionSupportHallwaysOrThrow(createdSupportHallways);
             errorMessage = string.IsNullOrWhiteSpace(orderFailure)
                 ? "품질 재건 주문을 만들 수 없습니다."
                 : orderFailure;
             return false;
         }
 
+        string placementOperationId = WorkOrderPlacementIdentity.ForOrder(orderId);
+        string[] supportIds = createdSupportHallways
+            .Select(value => value.RequirePersistentInstanceId().Value)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        if (!concreteRuntime.TryAttachConstructionPlacement(
+                orderId,
+                placementOperationId,
+                supportIds,
+                out string attachmentFailure))
+        {
+            concreteRuntime.CancelOrder(orderId, refundDeliveredMaterials: true);
+            RemoveConstructionSite(site);
+            RollbackConstructionSupportHallwaysOrThrow(createdSupportHallways);
+            errorMessage = string.IsNullOrWhiteSpace(attachmentFailure)
+                ? "품질 재건 배치 신원을 주문에 연결할 수 없습니다."
+                : attachmentFailure;
+            return false;
+        }
+
         site.ConfigureSite(
             orderId,
-            () => TryPlaceBuildingImmediateUnchecked(
+            () => TryPlaceBuildingImmediateUncheckedWithReceipt(
                 buildingData,
                 position,
                 chargeCost: false,
@@ -253,13 +315,29 @@ public class GridBuildingPlacementService
         bool chargeCost,
         out string errorMessage)
     {
+        return TryPlaceBuildingImmediateUncheckedWithReceipt(
+            buildingData,
+            position,
+            chargeCost,
+            out errorMessage).IsValid;
+    }
+
+    internal BuildingPlacementCommitReceipt
+        TryPlaceBuildingImmediateUncheckedWithReceipt(
+            BuildingSO buildingData,
+            Vector2Int position,
+            bool chargeCost,
+            out string errorMessage)
+    {
         if (grid == null || buildingData == null)
         {
             errorMessage = "그리드 또는 건물 데이터가 없습니다.";
-            return false;
+            return default;
         }
 
         BuildableObject replacedWall = null;
+        string replacedFacilityId = string.Empty;
+        string replacedFacilityDefinitionId = string.Empty;
         if (buildingData.IsInteriorDoor)
         {
             List<Vector2Int> doorPositions = buildingData.GetGridPosList(position);
@@ -271,16 +349,23 @@ public class GridBuildingPlacementService
                     replacedWall.BuildingData.Placement.IsMovement))
             {
                 errorMessage = "문은 설치된 내벽 한 칸에만 설치할 수 있습니다.";
-                return false;
+                return default;
             }
+            replacedFacilityId = replacedWall.RequirePersistentInstanceId().Value;
+            replacedFacilityDefinitionId =
+                ResolveBuildingDefinitionId(replacedWall.BuildingData);
         }
 
         EnsureHallwayUnderBuildingFootprint(buildingData, position);
 
-        if (!PlaceBuildingWithoutValidation(buildingData, position, out errorMessage))
+        if (!PlaceBuildingWithoutValidation(
+                buildingData,
+                position,
+                out BuildableObject placedBuilding,
+                out errorMessage))
         {
             RestoreReplacedWall(replacedWall, ref errorMessage);
-            return false;
+            return default;
         }
 
         if (replacedWall != null)
@@ -294,7 +379,11 @@ public class GridBuildingPlacementService
             placementValidator.ApplyBuildSuccess(buildingData);
         }
 
-        return true;
+        return new BuildingPlacementCommitReceipt(
+            placedBuilding.RequirePersistentInstanceId().Value,
+            ResolveBuildingDefinitionId(buildingData),
+            replacedFacilityId,
+            replacedFacilityDefinitionId);
     }
 
     public bool CanPlaceBuilding(BuildingSO buildingData, Vector2Int position)
@@ -686,6 +775,94 @@ public class GridBuildingPlacementService
         }
     }
 
+    private bool TryCreateConstructionSupportHallways(
+        BuildingSO buildingData,
+        Vector2Int position,
+        out List<BuildableObject> createdHallways,
+        out string errorMessage)
+    {
+        createdHallways = new List<BuildableObject>();
+        errorMessage = string.Empty;
+        if (!RequiresHallwayUnderFootprint(buildingData) || hallwayBuilding == null)
+        {
+            return true;
+        }
+
+        foreach (Vector2Int gridPos in buildingData.GetGridPosList(position))
+        {
+            GridCell cell = grid?.GetGridCell(gridPos);
+            if (cell == null)
+            {
+                RollbackConstructionSupportHallwaysOrThrow(createdHallways);
+                errorMessage = $"공사 지지 통로를 배치할 칸이 없습니다: {gridPos}.";
+                return false;
+            }
+            if (cell.HasBuildingInLayer(GridLayer.Hallway))
+            {
+                continue;
+            }
+
+            if (!PlaceBuildingWithoutValidation(
+                    hallwayBuilding,
+                    gridPos,
+                    out string placementFailure))
+            {
+                RollbackConstructionSupportHallwaysOrThrow(createdHallways);
+                errorMessage = string.IsNullOrWhiteSpace(placementFailure)
+                    ? $"공사 지지 통로를 배치하지 못했습니다: {gridPos}."
+                    : placementFailure;
+                return false;
+            }
+
+            BuildableObject created =
+                cell.GetOccupant(GridLayer.Hallway) as BuildableObject;
+            if (created == null)
+            {
+                RollbackConstructionSupportHallwaysOrThrow(createdHallways);
+                errorMessage = $"배치된 공사 지지 통로를 확인하지 못했습니다: {gridPos}.";
+                return false;
+            }
+            createdHallways.Add(created);
+        }
+
+        return true;
+    }
+
+    private void RollbackConstructionSupportHallwaysOrThrow(
+        IReadOnlyList<BuildableObject> createdHallways)
+    {
+        if (createdHallways == null || createdHallways.Count == 0)
+        {
+            return;
+        }
+
+        for (int index = createdHallways.Count - 1; index >= 0; index--)
+        {
+            BuildableObject hallway = createdHallways[index];
+            if (hallway == null)
+            {
+                continue;
+            }
+            BuildingSO data = hallway.BuildingData;
+            Vector2Int center = hallway.centerPos;
+            IReadOnlyList<Vector2Int> positions = data?.GetGridPosList(center);
+            if (data == null
+                || positions == null
+                || !grid.RemoveOccupant(
+                    hallway,
+                    GridLayer.Hallway,
+                    positions,
+                    data.Placement.IsMovement))
+            {
+                throw new InvalidOperationException(
+                    $"Could not roll back construction support hallway at {center}.");
+            }
+
+            buildingFactory.DeleteVisual(data, center);
+            hallway.DestroySelf();
+        }
+    }
+
     private bool IsDuplicateInitialHallway(InitialBuildInfo item)
     {
         if (item?.Building == null || item.Building.Placement.Layer != GridLayer.Hallway)
@@ -714,8 +891,22 @@ public class GridBuildingPlacementService
             && !placement.IsStructuralWall;
     }
 
-    private bool PlaceBuildingWithoutValidation(BuildingSO buildingData, Vector2Int position, out string errorMessage)
+    private bool PlaceBuildingWithoutValidation(
+        BuildingSO buildingData,
+        Vector2Int position,
+        out string errorMessage) => PlaceBuildingWithoutValidation(
+        buildingData,
+        position,
+        out _,
+        out errorMessage);
+
+    private bool PlaceBuildingWithoutValidation(
+        BuildingSO buildingData,
+        Vector2Int position,
+        out BuildableObject placedBuilding,
+        out string errorMessage)
     {
+        placedBuilding = null;
         if (!CanRegisterBuilding(buildingData, position))
         {
             errorMessage = $"{buildingData?.objectName ?? "Building"} cannot occupy the requested grid layer.";
@@ -746,9 +937,15 @@ public class GridBuildingPlacementService
             return false;
         }
 
+        placedBuilding = buildableObject;
         errorMessage = string.Empty;
         return true;
     }
+
+    private static string ResolveBuildingDefinitionId(BuildingSO building) =>
+        !string.IsNullOrWhiteSpace(building?.ContentDefinitionId)
+            ? building.ContentDefinitionId.Trim()
+            : "building:" + Math.Max(1, building?.id ?? 1);
 
     private bool CreateConstructionSite(
         BuildingSO buildingData,
@@ -787,7 +984,7 @@ public class GridBuildingPlacementService
             false);
         if (!registered)
         {
-            UnityEngine.Object.Destroy(siteObject);
+            DestroyConstructionSiteObject(siteObject);
             site = null;
             errorMessage = "공사 현장을 그리드에 등록하지 못했습니다.";
             return false;
@@ -811,8 +1008,16 @@ public class GridBuildingPlacementService
             false);
         if (site != null)
         {
-            UnityEngine.Object.Destroy(site.gameObject);
+            DestroyConstructionSiteObject(site.gameObject);
         }
+    }
+
+    private static void DestroyConstructionSiteObject(GameObject siteObject)
+    {
+        if (Application.isPlaying)
+            UnityEngine.Object.Destroy(siteObject);
+        else
+            UnityEngine.Object.DestroyImmediate(siteObject);
     }
 
     private bool CanRegisterBuilding(BuildingSO buildingData, Vector2Int position)

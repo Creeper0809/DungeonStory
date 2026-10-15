@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
@@ -36,10 +38,45 @@ public static class OffenseJourneyDebugScenarios
             errors);
         Run("journey state restore", VerifyJourneyStateRestore, errors);
         Run("offense save payload round trip", VerifySavePayloadRoundTrip, errors);
+        Run("offense departure restore publication",
+            VerifyDepartureRestorePublication,
+            errors);
 
         foreach (string error in errors) Debug.LogError(error);
         if (errors.Count == 0 && logSuccess) Debug.Log("Offense journey scenarios passed.");
         return errors.Count == 0;
+    }
+
+    public static void RunDepartureRestoreFromBatch()
+    {
+        string output = Environment.GetEnvironmentVariable(
+            "DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            throw new InvalidOperationException(
+                "Departure restore verification requires its isolated output directory.");
+        }
+
+        string directory = Path.GetFullPath(output);
+        Directory.CreateDirectory(directory);
+        DepartureRestoreReport report = new DepartureRestoreReport();
+        try
+        {
+            report.actual = RunDepartureRestoreCases();
+            Require(report.actual.Count == report.checks,
+                "Departure restore verification did not execute all three cases.");
+            report.passed = true;
+        }
+        catch (Exception exception)
+        {
+            report.failure = exception.GetType().Name + ": " + exception.Message;
+            WriteDepartureRestoreReport(directory, report);
+            Debug.LogException(exception);
+            throw;
+        }
+
+        WriteDepartureRestoreReport(directory, report);
+        Debug.Log("[Offense Departure Restore] PASS; checks=3");
     }
 
     private static bool VerifyBranchingEventAndLoot()
@@ -743,6 +780,234 @@ public static class OffenseJourneyDebugScenarios
         }
     }
 
+    private static bool VerifyDepartureRestorePublication()
+    {
+        Require(RunDepartureRestoreCases().Count == 3,
+            "Departure restore verification did not execute all three cases.");
+        return true;
+    }
+
+    private static List<DepartureRestoreCaseResult> RunDepartureRestoreCases()
+    {
+        IOffenseCampaignCatalog catalog =
+            OffenseEditorTestDependencies.CreateCampaignCatalog();
+        Require(catalog.TryGet("food_farm", out OffenseTargetDefinition target),
+            "Authored food_farm target is required for departure restore verification.");
+        return new List<DepartureRestoreCaseResult>
+        {
+            VerifyDepartureRestoreCase(
+                "non-strategic-authoritative-complete",
+                usesWorldTravel: false,
+                savedDepartureCompleted: true,
+                catalog: catalog,
+                target: target),
+            VerifyDepartureRestoreCase(
+                "strategic-pending-departure",
+                usesWorldTravel: true,
+                savedDepartureCompleted: false,
+                catalog: catalog,
+                target: target),
+            VerifyDepartureRestoreCase(
+                "strategic-complete-departure",
+                usesWorldTravel: true,
+                savedDepartureCompleted: true,
+                catalog: catalog,
+                target: target)
+        };
+    }
+
+    private static DepartureRestoreCaseResult VerifyDepartureRestoreCase(
+        string caseId,
+        bool usesWorldTravel,
+        bool savedDepartureCompleted,
+        IOffenseCampaignCatalog catalog,
+        OffenseTargetDefinition target)
+    {
+        string persistentId = new GuidPersistentIdGenerator().NewCharacterId().Value;
+        using ActorFixture sourceActor = new ActorFixture(
+            "Departure Source " + caseId,
+            persistentId);
+        using ActorFixture restoredActor = new ActorFixture(
+            "Departure Restore " + caseId,
+            persistentId);
+        GameObject sourceRuntimeObject = new GameObject(
+            "Departure Source Runtime " + caseId);
+        GameObject restoredRuntimeObject = new GameObject(
+            "Departure Restored Runtime " + caseId);
+        try
+        {
+            OffenseExpeditionRuntime sourceRuntime =
+                sourceRuntimeObject.AddComponent<OffenseExpeditionRuntime>();
+            OffenseWorldMapRuntime sourceWorldMap =
+                sourceRuntimeObject.AddComponent<OffenseWorldMapRuntime>();
+            OffenseRewardRuntime sourceRewards =
+                sourceRuntimeObject.AddComponent<OffenseRewardRuntime>();
+            OffenseExpeditionRun sourceRun = new OffenseExpeditionRun(
+                "departure-restore:" + caseId,
+                target,
+                new[] { sourceActor.Actor },
+                20f,
+                target.durationSeconds,
+                OffenseRouteGenerator.Create(target),
+                new OffenseSupplyLoadout(),
+                new OffenseExpeditionPreparation());
+            if (usesWorldTravel)
+            {
+                sourceRun.BeginWorldTravel("world-site:departure-restore:" + caseId);
+            }
+            if (savedDepartureCompleted)
+            {
+                sourceRun.MarkDepartureCompleted();
+                Require(sourceActor.Actor.BeginExpedition(),
+                    $"Source actor could not depart for case '{caseId}'.");
+            }
+            sourceRuntime.PublishRestoreCandidate(
+                sourceRuntime.BuildRestoreCandidate(
+                    new List<OffenseExpeditionRun> { sourceRun },
+                    new List<OffenseExpeditionResult>()));
+
+            FakeCharacterSaveService sourceCharacters =
+                new FakeCharacterSaveService(sourceActor.Actor, persistentId);
+            OffenseSaveService sourceSave = new OffenseSaveService(
+                new OffenseSceneRuntimeReferences(
+                    sourceWorldMap,
+                    sourceRewards,
+                    sourceRuntime,
+                    null,
+                    null),
+                catalog,
+                sourceCharacters,
+                new EmptyBattleRuntime());
+            DungeonOffenseSaveData captured = sourceSave.Capture();
+            DungeonOffenseExpeditionRunSaveData saved =
+                captured.activeExpeditions.Single();
+            Require(saved.usesWorldTravel == usesWorldTravel
+                    && saved.departureCompleted == savedDepartureCompleted
+                    && !saved.returnPending,
+                $"Source departure flags did not capture authoritatively for case '{caseId}'.");
+            if (usesWorldTravel)
+            {
+                Require(saved.worldTarget != null
+                        && saved.worldTarget.IsValid
+                        && !string.IsNullOrWhiteSpace(saved.worldSiteId),
+                    $"Strategic source did not capture a valid world target for case '{caseId}'.");
+            }
+
+            OffenseExpeditionRuntime restoredRuntime =
+                restoredRuntimeObject.AddComponent<OffenseExpeditionRuntime>();
+            OffenseWorldMapRuntime restoredWorldMap =
+                restoredRuntimeObject.AddComponent<OffenseWorldMapRuntime>();
+            OffenseRewardRuntime restoredRewards =
+                restoredRuntimeObject.AddComponent<OffenseRewardRuntime>();
+            FakeCharacterSaveService restoredCharacters =
+                new FakeCharacterSaveService(restoredActor.Actor, persistentId);
+            OffenseBattleRuntime restoredBattle =
+                CreateDepartureRestoreBattleRuntime(restoredCharacters);
+            OffenseSaveService restoredSave = new OffenseSaveService(
+                new OffenseSceneRuntimeReferences(
+                    restoredWorldMap,
+                    restoredRewards,
+                    restoredRuntime,
+                    null,
+                    null),
+                catalog,
+                restoredCharacters,
+                restoredBattle);
+            OffenseCampaignRuntime campaign = new OffenseCampaignRuntime();
+            campaign.ConfigureTargets(catalog.Targets);
+            campaign.Reset(0);
+            DungeonGameRestoreReport restoreReport = new DungeonGameRestoreReport();
+            OffenseExpeditionRestoreCandidate candidate =
+                restoredSave.BuildRestoreCandidate(
+                    captured,
+                    restoreReport,
+                    Array.Empty<OffenseRegionState>(),
+                    campaign.State);
+            restoredSave.PublishRestoreCandidate(candidate);
+
+            OffenseExpeditionRun restoredRun =
+                restoredRuntime.ActiveExpeditions.Single();
+            Require(restoreReport.Success
+                    && restoredRun.UsesWorldTravel == usesWorldTravel
+                    && restoredRun.DepartureCompleted == savedDepartureCompleted,
+                $"Restored departure state did not match case '{caseId}'.");
+            if (savedDepartureCompleted)
+            {
+                Require(restoredActor.Actor.IsOnExpedition,
+                    $"Completed departure did not restore its actor lifecycle for case '{caseId}'.");
+            }
+            else
+            {
+                Require(restoredActor.Actor.CurrentLifecycleState
+                            == CharacterLifecycleState.Active
+                        && !restoredActor.Actor.IsOnExpedition,
+                    $"Pending strategic departure changed its actor lifecycle for case '{caseId}'.");
+            }
+
+            DungeonOffenseExpeditionRunSaveData recaptured =
+                restoredSave.Capture().activeExpeditions.Single();
+            Require(recaptured.departureCompleted == savedDepartureCompleted,
+                $"Recapture changed departure completion for case '{caseId}'.");
+            return new DepartureRestoreCaseResult
+            {
+                caseId = caseId,
+                usesWorldTravel = recaptured.usesWorldTravel,
+                savedDepartureCompleted = saved.departureCompleted,
+                restoredDepartureCompleted = restoredRun.DepartureCompleted,
+                restoredActorLifecycle =
+                    restoredActor.Actor.CurrentLifecycleState.ToString(),
+                restoredActorOnExpedition = restoredActor.Actor.IsOnExpedition,
+                recapturedDepartureCompleted = recaptured.departureCompleted,
+                passed = true
+            };
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(restoredRuntimeObject);
+            UnityEngine.Object.DestroyImmediate(sourceRuntimeObject);
+        }
+    }
+
+    private static OffenseBattleRuntime CreateDepartureRestoreBattleRuntime(
+        ICharacterWorldSaveService characterSave)
+    {
+        return new OffenseBattleRuntime(
+            characterSave,
+            EditorRuntimeReferenceFixtures.DungeonWithRunVariables,
+            new GameEventBus(),
+            combatResolution: null,
+            combatEquipmentRuntime: null,
+            bodyHealthQuery: null,
+            bodyHealthCommands: null,
+            offenseRegionRuntime: null,
+            enemyEncounterFactory:
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IEnemyEncounterFactory>(),
+            enemyTactics:
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IEnemyTacticalDecisionService>(),
+            returnArrivals:
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOffenseReturnArrivalRuntime>(),
+            performance: CharacterAiEditorTestDependencies.NeutralPerformance);
+    }
+
+    private static void WriteDepartureRestoreReport(
+        string directory,
+        DepartureRestoreReport report)
+    {
+        string path = Path.Combine(directory, "departure-restore-report.json");
+        using FileStream stream = new FileStream(
+            path,
+            FileMode.CreateNew,
+            FileAccess.Write,
+            FileShare.Read);
+        using StreamWriter writer = new StreamWriter(
+            stream,
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.Write(JsonUtility.ToJson(report, prettyPrint: true));
+    }
+
     private static OffenseExpeditionRun CreateRun(CharacterActor actor, OffenseSupplyLoadout supplies)
     {
         return new OffenseExpeditionRun(
@@ -820,7 +1085,7 @@ public static class OffenseJourneyDebugScenarios
     {
         private readonly GameObject gameObject;
 
-        public ActorFixture(string name)
+        public ActorFixture(string name, string persistentId = null)
         {
             CharacterSO data =
                 OffenseEditorTestDependencies.RequireCharacterArchetype("Orc");
@@ -838,7 +1103,9 @@ public static class OffenseJourneyDebugScenarios
             Actor.RefreshAbilityCache();
             CharacterAiEditorTestDependencies.Inject(gameObject);
             Actor.Identity.SetPersistentId(
-                new GuidPersistentIdGenerator().NewCharacterId());
+                string.IsNullOrWhiteSpace(persistentId)
+                    ? new GuidPersistentIdGenerator().NewCharacterId().Value
+                    : persistentId);
             Actor.Initialization(data);
             Actor.characterType = CharacterType.NPC;
             Actor.SetLifecycleState(CharacterLifecycleState.Active);
@@ -850,6 +1117,31 @@ public static class OffenseJourneyDebugScenarios
         {
             UnityEngine.Object.DestroyImmediate(gameObject);
         }
+    }
+
+    [Serializable]
+    private sealed class DepartureRestoreReport
+    {
+        public bool passed;
+        public int checks = 3;
+        public List<DepartureRestoreCaseResult> actual =
+            new List<DepartureRestoreCaseResult>();
+        public string failure = string.Empty;
+        public bool trainingEligible = false;
+        public bool humanApprovalClaimed = false;
+    }
+
+    [Serializable]
+    private sealed class DepartureRestoreCaseResult
+    {
+        public string caseId = string.Empty;
+        public bool usesWorldTravel;
+        public bool savedDepartureCompleted;
+        public bool restoredDepartureCompleted;
+        public string restoredActorLifecycle = string.Empty;
+        public bool restoredActorOnExpedition;
+        public bool recapturedDepartureCompleted;
+        public bool passed;
     }
 
     private sealed class RetryableReturnPort :

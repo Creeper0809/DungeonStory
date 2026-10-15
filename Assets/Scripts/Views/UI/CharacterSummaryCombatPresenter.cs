@@ -7,18 +7,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-internal sealed class CombatEquipmentUiStatBlock
-{
-    public static CombatEquipmentUiStatBlock Empty => new CombatEquipmentUiStatBlock();
-
-    public int maxHealth;
-    public int attack;
-    public int strength;
-    public int toughness;
-    public int dexterity;
-    public int moveSpeed;
-}
-
 /// <summary>
 /// Owns the combat-tab projection and commands for the character summary view.
 /// The MonoBehaviour only forwards the selected actor and generated view handles.
@@ -100,10 +88,10 @@ public sealed class CharacterSummaryCombatPresenter
                 ? target == CombatLoadoutPresetIds.Combat
                     ? CharacterSummaryCombatTextFormatter.Get(
                         "CharacterSummary.Combat.Notice.LoadoutCombat",
-                        actor.name)
+                        actor.Identity.DisplayName)
                     : CharacterSummaryCombatTextFormatter.Get(
                         "CharacterSummary.Combat.Notice.LoadoutPeace",
-                        actor.name)
+                        actor.Identity.DisplayName)
                 : CharacterSummaryCombatTextFormatter.Get(
                     "CharacterSummary.Combat.Notice.LoadoutUnavailable"),
             success ? NoticeFeedEvent.Grade.NONE : NoticeFeedEvent.Grade.WARNING);
@@ -143,7 +131,7 @@ public sealed class CharacterSummaryCombatPresenter
                 eventBus.ShowNotice(
                     CharacterSummaryCombatTextFormatter.Get(
                         "CharacterSummary.Combat.Notice.WeaponSwitched",
-                        actor.name),
+                        actor.Identity.DisplayName),
                     NoticeFeedEvent.Grade.NONE);
                 Refresh(actor);
                 return;
@@ -180,7 +168,7 @@ public sealed class CharacterSummaryCombatPresenter
             success
                 ? CharacterSummaryCombatTextFormatter.Get(
                     "CharacterSummary.Combat.Notice.Reloaded",
-                    actor.name,
+                    actor.Identity.DisplayName,
                     consumed)
                 : CharacterSummaryCombatTextFormatter.Get(
                     "CharacterSummary.Combat.Notice.ReloadUnavailable"),
@@ -213,7 +201,7 @@ public sealed class CharacterSummaryCombatPresenter
                 eventBus.ShowNotice(
                     CharacterSummaryCombatTextFormatter.Get(
                         "CharacterSummary.Combat.Notice.FireModeSelected",
-                        actor.name,
+                        actor.Identity.DisplayName,
                         CharacterSummaryCombatTextFormatter.FireMode(candidate)),
                     NoticeFeedEvent.Grade.NONE);
                 Refresh(actor);
@@ -241,10 +229,10 @@ public sealed class CharacterSummaryCombatPresenter
                 holdFire
                     ? CharacterSummaryCombatTextFormatter.Get(
                         "CharacterSummary.Combat.Notice.HoldFire",
-                        actor.name)
+                        actor.Identity.DisplayName)
                     : CharacterSummaryCombatTextFormatter.Get(
                         "CharacterSummary.Combat.Notice.AllowFire",
-                        actor.name),
+                        actor.Identity.DisplayName),
                 NoticeFeedEvent.Grade.NONE);
         }
 
@@ -515,19 +503,6 @@ public sealed class CharacterSummaryCombatPresenter
 
         summaryText.text = builder.ToString().TrimEnd();
         RefreshCommandLabels(profile, weapon);
-    }
-
-    internal CombatEquipmentUiStatBlock GetCurrentEquipmentBonuses(CharacterActor actor)
-    {
-        string characterId = actor?.Identity?.PersistentId;
-        if (string.IsNullOrWhiteSpace(characterId))
-        {
-            return CombatEquipmentUiStatBlock.Empty;
-        }
-
-        // Detailed equipment contributions are projected by the item-backed
-        // equipment runtime once character-stat component effects are exposed.
-        return CombatEquipmentUiStatBlock.Empty;
     }
 
     private bool TryGetRuntime(CharacterActor actor, out string characterId)

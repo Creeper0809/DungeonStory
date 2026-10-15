@@ -21,6 +21,9 @@ public sealed class SeasonalWildlifeArrivalSaveData
     public SeasonalWildlifeArrivalQualification qualification;
     public List<SeasonalWildlifeArrivalMemberSaveData> members = new();
     public string lastFailureReason = string.Empty;
+    public string outcomeResultKey = string.Empty;
+    public SeasonalWildlifeArrivalFactData observation = new();
+    public SeasonalTerminalPublicationSaveData publication = new();
 
     public static SeasonalWildlifeArrivalSaveData FromProfile(
         SeasonalWildlifeArrivalProfile profile)
@@ -53,6 +56,11 @@ public interface ISeasonalWildlifeArrivalCommand
     bool TryMarkSeasonalWildlifeArrivalSpawned(
         string occurrenceInstanceId,
         string wildlifeId,
+        out string failureReason);
+    bool TryObserveSeasonalWildlifeArrival(
+        string occurrenceInstanceId,
+        string speciesDisplayName,
+        int absoluteDay,
         out string failureReason);
 }
 
@@ -180,6 +188,9 @@ public static class SeasonalWildlifeArrivalRules
         if (!CanonicalOptionalFailure(state.lastFailureReason))
             throw new InvalidOperationException(
                 $"Seasonal event '{occurrenceInstanceId}' wildlife arrival failure state is invalid.");
+        if (!DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(state.outcomeResultKey, 4096, true))
+            throw new InvalidOperationException(
+                $"Seasonal event '{occurrenceInstanceId}' wildlife arrival outcome key is invalid.");
 
         HashSet<string> ids = new(StringComparer.Ordinal);
         HashSet<(int X, int Y)> positions = new();
@@ -192,6 +203,13 @@ public static class SeasonalWildlifeArrivalRules
                 throw new InvalidOperationException(
                     $"Seasonal event '{occurrenceInstanceId}' wildlife arrival plan contains invalid or duplicate members.");
         }
+        if (!string.IsNullOrEmpty(state.outcomeResultKey)
+            && (state.members.Count != state.exactCount
+                || state.members.Any(value => value?.spawned != true)))
+        {
+            throw new InvalidOperationException(
+                $"Seasonal event '{occurrenceInstanceId}' cannot own a terminal arrival outcome before every frozen member is spawned.");
+        }
     }
 
     public static void ValidateRestoreJoin(
@@ -202,9 +220,38 @@ public static class SeasonalWildlifeArrivalRules
             throw new InvalidOperationException(
                 "Seasonal wildlife restore requires seasonal and wildlife candidates.");
 
-        Dictionary<string, WildlifeActor> actors = candidateWildlife
+        Dictionary<string, string> speciesByWildlifeId = candidateWildlife
             .Where(value => value != null && value.IsAlive)
-            .ToDictionary(value => value.WildlifeId, StringComparer.Ordinal);
+            .ToDictionary(
+                value => value.WildlifeId,
+                value => value.SpeciesId,
+                StringComparer.Ordinal);
+        ValidateRestoreJoin(payload, speciesByWildlifeId);
+    }
+
+    public static void ValidateRestoreJoin(
+        SeasonalEventWorldSaveData payload,
+        IReadOnlyList<WildlifeSaveData> candidateWildlife)
+    {
+        if (payload?.activeEvents == null || candidateWildlife == null)
+            throw new InvalidOperationException(
+                "Seasonal wildlife restore requires seasonal and wildlife candidates.");
+
+        Dictionary<string, string> speciesByWildlifeId = candidateWildlife
+            .Where(value => value != null
+                && value.state != WildlifeState.Dead
+                && value.health > 0)
+            .ToDictionary(
+                value => value.wildlifeId,
+                value => value.speciesId,
+                StringComparer.Ordinal);
+        ValidateRestoreJoin(payload, speciesByWildlifeId);
+    }
+
+    private static void ValidateRestoreJoin(
+        SeasonalEventWorldSaveData payload,
+        IReadOnlyDictionary<string, string> speciesByWildlifeId)
+    {
         HashSet<string> plannedIds = new(StringComparer.Ordinal);
         foreach (V20ActiveEventSaveData occurrence in payload.activeEvents
                      .Where(value =>
@@ -218,12 +265,12 @@ public static class SeasonalWildlifeArrivalRules
                 if (!plannedIds.Add(member.wildlifeId))
                     throw new InvalidOperationException(
                         $"Seasonal wildlife restore duplicates planned ID '{member.wildlifeId}'.");
-                bool exists = actors.TryGetValue(
+                bool exists = speciesByWildlifeId.TryGetValue(
                     member.wildlifeId,
-                    out WildlifeActor actor);
+                    out string speciesId);
                 if (exists
                     && !string.Equals(
-                        actor.SpeciesId,
+                        speciesId,
                         arrival.speciesId,
                         StringComparison.Ordinal))
                     throw new InvalidOperationException(
@@ -285,7 +332,9 @@ public static class SeasonalWildlifeArrivalRules
         || !string.IsNullOrEmpty(state.requiredHabitatId)
         || state.qualification != SeasonalWildlifeArrivalQualification.None
         || (state.members?.Count ?? 0) > 0
-        || !string.IsNullOrEmpty(state.lastFailureReason);
+        || !string.IsNullOrEmpty(state.lastFailureReason)
+        || !string.IsNullOrEmpty(state.outcomeResultKey)
+        || state.observation?.IsEmpty != true || state.publication?.IsEmpty != true;
 
     private static bool CanonicalOptionalFailure(string value) =>
         value != null
@@ -296,4 +345,5 @@ public static class SeasonalWildlifeArrivalRules
                     value,
                     value.Trim(),
                     StringComparison.Ordinal));
+
 }

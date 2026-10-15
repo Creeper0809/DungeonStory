@@ -14,54 +14,40 @@ using VContainer.Unity;
 public sealed class ReproductionApplicationAdapter : IStartable, IDisposable
 {
     private readonly IReproductionService reproduction;
+    private readonly IReproductionProcessTransitionCommand transitions;
     private readonly ICharacterWorldQuery world;
     private readonly ICharacterBodyHealthQuery bodyHealth;
     private readonly IClimateQuery climate;
     private readonly ICharacterLifeDefinitionCatalog lifeDefinitions;
     private readonly ICharacterLifeQuery life;
-    private readonly ICharacterLifeCommand lifeCommands;
-    private readonly ICharacterNarrativeCommand narrativeCommands;
-    private readonly IKinshipCommand kinship;
-    private readonly IGameContentCatalog content;
-    private readonly ICharacterSpawnObjectFactory characterObjects;
-    private readonly ICharacterSpawnerProvider spawners;
+    private readonly IReproductionBirthCommand births;
     private readonly IGameEventBus events;
     private readonly IHeritableTraitEffectQuery heritableTraits;
     private IDisposable dayEndedSubscription;
 
     public ReproductionApplicationAdapter(
         IReproductionService reproduction,
+        IReproductionProcessTransitionCommand transitions,
         ICharacterWorldQuery world,
         ICharacterBodyHealthQuery bodyHealth,
         IClimateQuery climate,
         ICharacterLifeDefinitionCatalog lifeDefinitions,
         ICharacterLifeQuery life,
-        ICharacterLifeCommand lifeCommands,
-        ICharacterNarrativeCommand narrativeCommands,
-        IKinshipCommand kinship,
-        IGameContentCatalog content,
-        ICharacterSpawnObjectFactory characterObjects,
-        ICharacterSpawnerProvider spawners,
+        IReproductionBirthCommand births,
         IGameEventBus events,
         IHeritableTraitEffectQuery heritableTraits)
     {
         this.reproduction = reproduction
             ?? throw new ArgumentNullException(nameof(reproduction));
+        this.transitions = transitions
+            ?? throw new ArgumentNullException(nameof(transitions));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.bodyHealth = bodyHealth ?? throw new ArgumentNullException(nameof(bodyHealth));
         this.climate = climate ?? throw new ArgumentNullException(nameof(climate));
         this.lifeDefinitions = lifeDefinitions
             ?? throw new ArgumentNullException(nameof(lifeDefinitions));
         this.life = life ?? throw new ArgumentNullException(nameof(life));
-        this.lifeCommands = lifeCommands
-            ?? throw new ArgumentNullException(nameof(lifeCommands));
-        this.narrativeCommands = narrativeCommands
-            ?? throw new ArgumentNullException(nameof(narrativeCommands));
-        this.kinship = kinship ?? throw new ArgumentNullException(nameof(kinship));
-        this.content = content ?? throw new ArgumentNullException(nameof(content));
-        this.characterObjects = characterObjects
-            ?? throw new ArgumentNullException(nameof(characterObjects));
-        this.spawners = spawners ?? throw new ArgumentNullException(nameof(spawners));
+        this.births = births ?? throw new ArgumentNullException(nameof(births));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.heritableTraits = heritableTraits
             ?? throw new ArgumentNullException(nameof(heritableTraits));
@@ -93,15 +79,22 @@ public sealed class ReproductionApplicationAdapter : IStartable, IDisposable
                 CharacterActor carrier = FindActor(process.CarrierId);
                 float health = ResolveHealth(carrier);
                 float nutrition = ResolveNutrition(carrier);
-                reproduction.AdvanceProcess(
-                    process.ProcessId,
-                    new ReproductionDailyContext(
+                if (!transitions.TryAdvance(
+                        process.ProcessId,
+                        new ReproductionDailyContext(
                         absoluteDay,
                         health,
                         nutrition,
                         climate.OutdoorTemperatureC,
                         ResolveFertilityCoefficient(process),
-                        ResolveGestationStability(process)));
+                        ResolveGestationStability(process)),
+                        out DomainFailure transitionFailure))
+                {
+                    throw new InvalidOperationException(
+                        "Reproduction daily transition failed: "
+                        + transitionFailure.Code + " "
+                        + string.Join(",", transitionFailure.Parameters.ToArray()));
+                }
             }
 
             ReproductionProcess current = reproduction.Processes.First(value =>
@@ -119,94 +112,14 @@ public sealed class ReproductionApplicationAdapter : IStartable, IDisposable
 
     private void PublishResult(ReproductionProcess process, int absoluteDay)
     {
-        if (!spawners.TryGetSpawner(out CharacterSpawner spawner)
-            || spawner.characterPrefab == null)
-        {
+        if (!births.TryPublish(
+                process.ProcessId,
+                absoluteDay,
+                out DomainFailure failure))
             throw new InvalidOperationException(
-                $"Reproduction process '{process.ProcessId}' completed without a character spawn prefab.");
-        }
-
-        CharacterSO archetype = ResolveArchetype(process.PhenotypeSpeciesId);
-        CharacterSpawnRequest request = new(
-            archetype.DefinitionId,
-            process.PhenotypeSpeciesId,
-            archetype.VisualVariantId,
-            ResolveOffspringRole(process),
-            (archetype.traits ?? Array.Empty<CharacterTraitSO>())
-                .Where(value => value != null)
-                .Select(value => value.DefinitionId),
-            Array.Empty<CharacterTraitId>(),
-            process.InnateAptitudes.ToDictionary(
-                value => value.skillId,
-                value => Math.Clamp(value.value, 0, 100),
-                StringComparer.Ordinal));
-
-        GameObject characterObject = characterObjects.CreateInactive(
-            spawner.characterPrefab);
-        CharacterActor actor = CharacterActorCollection.GetCanonical(
-            characterObject.GetComponent<CharacterActor>());
-        if (actor == null)
-        {
-            characterObjects.Destroy(characterObject);
-            throw new InvalidOperationException(
-                "The authored character prefab has no canonical CharacterActor.");
-        }
-
-        actor.Initialize(archetype, request);
-        actor.characterType = CharacterType.NPC;
-        CharacterId childId = CharacterPersistentIdentity.Require(actor);
-        actor.gameObject.name = $"Newborn {process.PhenotypeSpeciesId.Value} {childId.Value}";
-        actor.transform.position = ResolveBirthPosition(process, spawner);
-
-        SpeciesLifeHistoryDefinition history = lifeDefinitions.RequireLifeHistory(
-            process.PhenotypeSpeciesId);
-        bool activatedGolem = process.Mode == ReproductionMode.GolemAssembly;
-        lifeCommands.Register(
-            childId,
-            process.PhenotypeSpeciesId,
-            chronologicalAgeDays: 0,
-            biologicalAgeDayUnits: activatedGolem ? history.AdultAgeDayUnits : 0d,
-            birthdayDayOfYear: GameCalendarRules.Project(absoluteDay, 0).DayOfYear);
-        narrativeCommands.Register(
-            childId,
-            process.PhenotypeSpeciesId,
-            process.ExpressedTraitIds,
-            process.LatentTraitIds);
-
-        if (activatedGolem)
-        {
-            kinship.SetGuardian(childId, process.FirstParentId);
-        }
-        else
-        {
-            if (process.FirstParentId.Equals(process.SecondParentId))
-                throw new InvalidOperationException(
-                    $"Reproduction process '{process.ProcessId}' has the same character as both genetic parents.");
-            kinship.AddParent(childId, process.FirstParentId, adoptive: false);
-            kinship.AddParent(childId, process.SecondParentId, adoptive: false);
-        }
-
-        characterObjects.Publish(characterObject);
-        actor.SetLifecycleState(CharacterLifecycleState.Active);
-        actor.Brain?.UseStaffWorkActions();
-        actor.Brain?.RequestImmediateReplan(clearFailures: true);
-        reproduction.MarkResultPublished(process.ProcessId, childId);
-    }
-
-    private CharacterSO ResolveArchetype(CharacterSpeciesId phenotypeSpeciesId)
-    {
-        CharacterSO[] candidates = content.GetAll<CharacterSO>()
-            .Where(value => value != null
-                && value.DefinitionId.IsValid
-                && value.species != null
-                && value.species.DefinitionId.Equals(phenotypeSpeciesId)
-                && value.role != CharacterRole.Owner)
-            .OrderBy(value => value.characterType == CharacterType.NPC ? 0 : 1)
-            .ThenBy(value => value.DefinitionId.Value, StringComparer.Ordinal)
-            .ToArray();
-        return candidates.FirstOrDefault()
-            ?? throw new InvalidOperationException(
-                $"No authored non-owner character archetype exists for phenotype '{phenotypeSpeciesId.Value}'.");
+                "Reproduction birth transaction remains pending: "
+                + failure.Code + " "
+                + string.Join(",", failure.Parameters.ToArray()));
     }
 
     private CharacterActor FindActor(CharacterId id) =>
@@ -232,37 +145,6 @@ public sealed class ReproductionApplicationAdapter : IStartable, IDisposable
                 out float nutrition)
                     ? Mathf.Clamp(nutrition, 0f, 100f)
                     : 100f;
-    }
-
-    private Vector3 ResolveBirthPosition(
-        ReproductionProcess process,
-        CharacterSpawner spawner)
-    {
-        CharacterActor carrier = FindActor(process.CarrierId);
-        if (carrier != null) return carrier.transform.position;
-        CharacterActor firstParent = FindActor(process.FirstParentId);
-        return firstParent != null
-            ? firstParent.transform.position
-            : spawner.GetEntryDoorWorldPosition();
-    }
-
-    private static ReproductiveRole ResolveOffspringRole(
-        ReproductionProcess process)
-    {
-        bool firstRole = (PersistentEntityId.GetStableHash32(process.ProcessId) & 1u) == 0u;
-        return process.Mode switch
-        {
-            ReproductionMode.Pregnancy => firstRole
-                ? ReproductiveRole.Carrier
-                : ReproductiveRole.Contributor,
-            ReproductionMode.Egg => firstRole
-                ? ReproductiveRole.Layer
-                : ReproductiveRole.Fertilizer,
-            ReproductionMode.Spore => ReproductiveRole.SporeContributor,
-            ReproductionMode.CoreDivision => ReproductiveRole.DivisionCore,
-            ReproductionMode.GolemAssembly => ReproductiveRole.Assembler,
-            _ => ReproductiveRole.None
-        };
     }
 
     private float ResolveFertilityCoefficient(ReproductionProcess process)

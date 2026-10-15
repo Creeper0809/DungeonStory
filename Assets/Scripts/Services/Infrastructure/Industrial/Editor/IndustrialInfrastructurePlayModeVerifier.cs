@@ -28,6 +28,38 @@ public static class IndustrialInfrastructurePlayModeVerifier
     public const string Wim009TemporarySupplyEvidencePath =
         "Artifacts/QA/wim-implementation/wim-009-temporary-supply-live.txt";
 
+    public static string ResolveCommandOutcomeEvidencePath()
+    {
+        string configured = Environment.GetEnvironmentVariable(
+                "DUNGEON_INFRASTRUCTURE_COMMAND_REPORT_PATH")
+            ?.Trim();
+        if (string.IsNullOrWhiteSpace(configured))
+            return CommandOutcomeEvidencePath;
+        if (Path.IsPathRooted(configured)
+            || configured.Split('/', '\\').Any(segment => segment == ".."))
+        {
+            throw new InvalidOperationException(
+                "Infrastructure command report path must be project-relative and cannot traverse parents.");
+        }
+        return configured;
+    }
+
+    public static string ResolvePowerFuelEvidencePath()
+    {
+        string configured = Environment.GetEnvironmentVariable(
+                "DUNGEON_POWER_FUEL_REPORT_PATH")
+            ?.Trim();
+        if (string.IsNullOrWhiteSpace(configured))
+            return PowerFuelEvidencePath;
+        if (Path.IsPathRooted(configured)
+            || configured.Split('/', '\\').Any(segment => segment == ".."))
+        {
+            throw new InvalidOperationException(
+                "Power-fuel report path must be project-relative and cannot traverse parents.");
+        }
+        return configured;
+    }
+
     [MenuItem(
         "DungeonStory/Debug/Infrastructure/Run Live Industrial PlayMode Scenario")]
     public static void Run()
@@ -148,11 +180,17 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     private IAutomationInfrastructureQuery automation;
     private IAutomationInfrastructureCommand automationCommands;
     private IAutomationInfrastructurePersistence automationPersistence;
-    private IInfrastructureCommandOutcomePersistence commandOutcomePersistence;
+    private IResourceEconomyContentCatalog productionCatalog;
+    private IProductionBillOrderCommand productionOrders;
+    private IProductionBillQuery productionBills;
+    private IProductionBillWorkExecution productionWork;
+    private BlueprintResearchRuntime blueprintResearch;
+    private IInfrastructureObservationPersistence commandOutcomePersistence;
     private IGameplayOutcomeQuery gameplayOutcomes;
     private IWorldItemStackRuntime items;
     private IItemTransferService itemTransfers;
     private IDungeonSaveSectionRegistry saveSections;
+    private IDungeonGameSaveService gameSaves;
     private IFacilityBufferPhysicalOccupancyQuery bufferOccupancy;
     private IFacilityBufferDestinationLifecycleCommand bufferLifecycle;
     private IFacilityBufferDestinationClaimAuthorityQuery bufferClaimAuthority;
@@ -192,6 +230,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         Array.Empty<FacilityBufferCapacityProfile>();
     private Exception verificationFailure;
     private readonly List<Exception> cleanupFailures = new();
+    private DungeonGameSaveData originalGameSave;
 
     private IEnumerator Start()
     {
@@ -239,7 +278,8 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
     private IEnumerator RunVerification()
     {
-            if (CommittedInvasionWarningOnly
+            if (PowerFuelOnly
+                || CommittedInvasionWarningOnly
                 || TemporarySupplyOnly
                 || CommandOutcomesOnly)
             {
@@ -335,6 +375,11 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                     automation,
                     automationCommands,
                     automationPersistence,
+                    productionCatalog,
+                    productionOrders,
+                    productionBills,
+                    productionWork,
+                    blueprintResearch,
                     commandOutcomePersistence,
                     gameplayOutcomes,
                     items,
@@ -524,12 +569,23 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             scope.Container.Resolve<IAutomationInfrastructureCommand>();
         automationPersistence =
             scope.Container.Resolve<IAutomationInfrastructurePersistence>();
+        productionCatalog =
+            scope.Container.Resolve<IResourceEconomyContentCatalog>();
+        productionOrders =
+            scope.Container.Resolve<IProductionBillOrderCommand>();
+        productionBills = scope.Container.Resolve<IProductionBillQuery>();
+        productionWork =
+            scope.Container.Resolve<IProductionBillWorkExecution>();
+        blueprintResearch = scope.Container.Resolve<
+                ProgressionSceneRuntimeReferences>()
+            .BlueprintResearch;
         commandOutcomePersistence = scope.Container.Resolve<
-            IInfrastructureCommandOutcomePersistence>();
+            IInfrastructureObservationPersistence>();
         gameplayOutcomes = scope.Container.Resolve<IGameplayOutcomeQuery>();
         items = scope.Container.Resolve<IWorldItemStackRuntime>();
         itemTransfers = scope.Container.Resolve<IItemTransferService>();
         saveSections = scope.Container.Resolve<IDungeonSaveSectionRegistry>();
+        gameSaves = scope.Container.Resolve<IDungeonGameSaveService>();
         bufferOccupancy = scope.Container.Resolve<
             IFacilityBufferPhysicalOccupancyQuery>();
         bufferLifecycle = scope.Container.Resolve<
@@ -567,7 +623,8 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
     private void CaptureOriginalState()
     {
-        originalWorld = saveSections.CaptureAll();
+        originalGameSave = gameSaves.Capture();
+        originalWorld = originalGameSave.sections;
         originalPower = powerPersistence.Capture();
         originalFluid = fluidPersistence.Capture();
         originalConveyor = conveyorPersistence.Capture();
@@ -731,6 +788,8 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
     private static BuildingSO LoadAutomationFacility()
     {
+        ProductionRecipeSO[] recipes = Resources.LoadAll<ProductionRecipeSO>(
+            ProductionRecipeSO.ResourcePath);
         return AssetDatabase.FindAssets(
                 "t:BuildingSO",
                 new[] { "Assets/Resources/SO/Building" })
@@ -738,7 +797,10 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
             .Where(asset => asset != null
                 && asset.layer == GridLayer.Building
-                && asset.GetAbility<BuildingAutomationAbility>() != null)
+                && asset.GetAbility<BuildingAutomationAbility>() != null
+                && recipes.Any(recipe =>
+                    InfrastructureCommandOutcomeProducerPlayModeScenario
+                        .IsProductionProbeCandidate(asset, recipe)))
             .OrderBy(asset => asset.id)
             .FirstOrDefault();
     }
@@ -983,6 +1045,12 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         BuildableObject shower = FindBuilding("I14");
         BuildableObject wastewaterTank = FindBuilding("I09");
         string generatorNodeId = GetNodeId(generator);
+        GameplayEntityId generatorEntity = new(
+            InfrastructureAutonomousOutcomeIds.FacilityKind,
+            generatorNodeId);
+        int fuelOutcomesBefore = CountAutonomousOutcomes(
+            generatorEntity,
+            "power-fuel-consumed");
         string generatorDestination = "power:" + generatorNodeId;
         string pumpNodeId = GetNodeId(pump);
         Vector2Int generatorAccess = new[]
@@ -1078,13 +1146,13 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             Require(carriedMassBeforeRestore > 0L,
                 "복원 직전 발전기 연료 carried 질량이 0g입니다.");
 
-            List<DungeonSaveSectionEnvelope> checkpoint =
-                saveSections.CaptureAll();
+            DungeonGameSaveData checkpoint = gameSaves.Capture();
             string[] fixtureBuildingIds = createdBuildings.Select(GetNodeId).ToArray();
-            DungeonGameRestoreReport restoreReport = new();
-            Require(saveSections.RestoreAll(checkpoint, restoreReport),
+            Require(gameSaves.TryRestore(
+                    checkpoint,
+                    out DungeonGameRestoreReport restoreReport),
                 "발전기 연료 carried checkpoint 복원 실패: "
-                + string.Join(" | ", restoreReport.Errors));
+                    + string.Join(" | ", restoreReport.Errors));
             for (int settleFrame = 0; settleFrame < 4; settleFrame++)
                 yield return null;
 
@@ -1131,6 +1199,37 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         Require(items.CaptureHaulDeliveryIntentsByDestination(
                     generatorDestination).Count == 0,
             "연료 입고·소비 이후 발전기 haul intent가 남았습니다.");
+        GameplayOutcomeSnapshot fuelOutcome = gameplayOutcomes.GetForEntity(
+                generatorEntity,
+                OutcomeCursor.FirstPage(50),
+                OutcomeFilter.All)
+            .Items
+            .Select(value => value.Exact)
+            .Where(value => value != null
+                && value.outcomeTypeId
+                    == InfrastructureAutonomousOutcomeIds.Transitioned.Value
+                && value.facts.Any(fact => fact.factId
+                        == InfrastructureAutonomousOutcomeIds
+                            .TransitionKindFact.Value
+                    && fact.value == "power-fuel-consumed"))
+            .Single(value => value.ownerRevision > 0L);
+        Require(
+            CountAutonomousOutcomes(
+                generatorEntity,
+                "power-fuel-consumed") == fuelOutcomesBefore + 1
+            && fuelOutcome.facts.Any(fact => fact.factId
+                    == InfrastructureAutonomousOutcomeIds.AfterValueFact.Value
+                && fact.value.Contains(
+                    "physicalCommit=physical-batch-disposition:",
+                    StringComparison.Ordinal)
+                && fact.value.Contains(
+                    "sourceStacks=",
+                    StringComparison.Ordinal)
+                && fact.value.Contains(
+                    "massGrams=",
+                    StringComparison.Ordinal)),
+            "실제 발전기 연료 소비가 정확한 physical child를 가진 자율 결과로 한 번 기록되지 않았습니다.");
+        report.Add("powerFuelAutonomousOutcome=exact-once;physical-child=joined");
 
         if (PowerFuelOnly)
         {
@@ -1462,6 +1561,20 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             "Real generator buffer did not receive the same physical fuel lot.");
         report.Add("authored-generator-owner-main-UI-conveyor-physical-fuel-delivery=PASS");
     }
+
+    private int CountAutonomousOutcomes(
+        GameplayEntityId facility,
+        string stableKind) => gameplayOutcomes.GetForEntity(
+            facility,
+            OutcomeCursor.FirstPage(100),
+            OutcomeFilter.All)
+        .Items.Count(value => value.Exact != null
+            && value.Exact.outcomeTypeId
+                == InfrastructureAutonomousOutcomeIds.Transitioned.Value
+            && value.Exact.facts.Any(fact => fact.factId
+                    == InfrastructureAutonomousOutcomeIds
+                        .TransitionKindFact.Value
+                && fact.value == stableKind));
 
     private void PublishConveyorOutputAuthority(
         BuildableObject output,
@@ -1914,16 +2027,17 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             report);
         if (CommandOutcomesOnly)
         {
-            string commandOutcomeDirectory = Path.GetDirectoryName(
+            string commandOutcomePath =
                 IndustrialInfrastructurePlayModeVerifier
-                    .CommandOutcomeEvidencePath);
+                    .ResolveCommandOutcomeEvidencePath();
+            string commandOutcomeDirectory = Path.GetDirectoryName(
+                commandOutcomePath);
             if (!string.IsNullOrWhiteSpace(commandOutcomeDirectory))
             {
                 Directory.CreateDirectory(commandOutcomeDirectory);
             }
             File.WriteAllLines(
-                IndustrialInfrastructurePlayModeVerifier
-                    .CommandOutcomeEvidencePath,
+                commandOutcomePath,
                 report.Where(line => !line.StartsWith(
                         "fastPartyCommit=",
                         StringComparison.Ordinal)
@@ -2038,11 +2152,13 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             RequireSingleReportLine("powerFuelCarriedRestore="),
             RequireSingleReportLine("power="),
             RequireSingleReportLine("powerFuelRoute="),
+            RequireSingleReportLine("powerFuelAutonomousOutcome="),
             RequireSingleReportLine("mode="),
             RequireSingleReportLine("result=")
         };
         V27BalanceArtifactWriter.WriteIfDifferent(
-            IndustrialInfrastructurePlayModeVerifier.PowerFuelEvidencePath,
+            IndustrialInfrastructurePlayModeVerifier
+                .ResolvePowerFuelEvidencePath(),
             stream =>
             {
                 using StreamWriter writer = new(
@@ -2132,13 +2248,15 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                 if (saveSections == null)
                     throw new InvalidOperationException(
                         "whole-registry save authority is missing during cleanup.");
-                if (originalWorld == null)
+                if (gameSaves == null)
+                    throw new InvalidOperationException(
+                        "whole-game save authority is missing during cleanup.");
+                if (originalWorld == null || originalGameSave == null)
                     throw new InvalidOperationException(
                         "whole-registry baseline snapshot is missing during cleanup.");
-                DungeonGameRestoreReport restoreReport = new();
-                worldRestored = saveSections.RestoreAll(
-                    originalWorld,
-                    restoreReport)
+                worldRestored = gameSaves.TryRestore(
+                    originalGameSave,
+                    out DungeonGameRestoreReport restoreReport)
                     && restoreReport.Success;
                 if (!worldRestored)
                 {
@@ -2232,7 +2350,8 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
     private void EstablishCommittedInvasionRestorableBaseline()
     {
-        List<DungeonSaveSectionEnvelope> live = saveSections.CaptureAll();
+        DungeonGameSaveData liveSave = gameSaves.Capture();
+        List<DungeonSaveSectionEnvelope> live = liveSave.sections;
         DungeonSaveSectionEnvelope charactersBefore = live.Single(value =>
             string.Equals(
                 value.sectionId,
@@ -2261,8 +2380,9 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                 CharacterSettlementStanding.PreparedCandidate;
         }
 
-        DungeonGameRestoreReport restoreReport = new();
-        bool restored = saveSections.RestoreAll(live, restoreReport)
+        bool restored = gameSaves.TryRestore(
+                liveSave,
+                out DungeonGameRestoreReport restoreReport)
             && restoreReport.Success;
         Require(restored,
             "WIM047 could not establish a save-restorable world baseline: "

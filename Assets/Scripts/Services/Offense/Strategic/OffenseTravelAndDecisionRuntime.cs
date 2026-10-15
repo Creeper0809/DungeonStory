@@ -55,8 +55,10 @@ public interface IOffenseReturnSafetyRuntime
     IReadOnlyList<OffenseReturnSafetyStateData> Capture();
 }
 
-public sealed class OffenseReturnSafetyRuntime : IOffenseReturnSafetyRuntime
+public sealed class OffenseReturnSafetyRuntime : IOffenseReturnSafetyRuntime,
+    IDungeonRestoreTransactionParticipant
 {
+    private readonly DungeonRestorePublication restorePublication = new();
     private readonly IOffenseWorldSimulation world;
     private Dictionary<string, OffenseReturnSafetyStateData> states =
         new Dictionary<string, OffenseReturnSafetyStateData>(StringComparer.Ordinal);
@@ -208,9 +210,26 @@ public sealed class OffenseReturnSafetyRuntime : IOffenseReturnSafetyRuntime
     internal void PublishRestore(
         OffenseDictionaryRestoreCandidate<OffenseReturnSafetyStateData> candidate)
     {
-        states = (candidate ?? throw new ArgumentNullException(nameof(candidate)))
-            .Values;
+        candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        if (restorePublication.TryStage(() =>
+            {
+                states = candidate.Values;
+            }, CaptureRestoreRollback)) return;
+        states = candidate.Values;
     }
+
+    private Action CaptureRestoreRollback()
+    {
+        var previous = states;
+        return () => states = previous;
+    }
+
+    public string ParticipantId => "offense.return-safety";
+    public void BeginRestoreCandidate() => restorePublication.Begin();
+    public void PublishRestoreCandidate() => restorePublication.Publish();
+    public void RollbackPublishedRestoreCandidate() => restorePublication.Discard();
+    public void DiscardRestoreCandidate() => restorePublication.Discard();
+    public void CompleteRestoreCandidate() => restorePublication.Complete();
 
     private static OffenseReturnSafetyStateData Clone(
         OffenseReturnSafetyStateData source)
@@ -291,8 +310,10 @@ public interface IOffenseTravelRuntime
     IReadOnlyList<OffenseTravelStateData> Capture();
 }
 
-public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
+public sealed class OffenseTravelRuntime : IOffenseTravelRuntime,
+    IDungeonRestoreTransactionParticipant
 {
+    private readonly DungeonRestorePublication restorePublication = new();
     private const float BaseSegmentDurationSeconds = 2.5f;
     private const float SegmentComparisonTolerance = 0.0001f;
     private readonly IOffenseWorldSimulation world;
@@ -1184,9 +1205,26 @@ public sealed class OffenseTravelRuntime : IOffenseTravelRuntime
     internal void PublishRestore(
         OffenseDictionaryRestoreCandidate<OffenseTravelStateData> candidate)
     {
-        states = (candidate ?? throw new ArgumentNullException(nameof(candidate)))
-            .Values;
+        candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        if (restorePublication.TryStage(() =>
+            {
+                states = candidate.Values;
+            }, CaptureRestoreRollback)) return;
+        states = candidate.Values;
     }
+
+    private Action CaptureRestoreRollback()
+    {
+        var previous = states;
+        return () => states = previous;
+    }
+
+    public string ParticipantId => "offense.travel";
+    public void BeginRestoreCandidate() => restorePublication.Begin();
+    public void PublishRestoreCandidate() => restorePublication.Publish();
+    public void RollbackPublishedRestoreCandidate() => restorePublication.Discard();
+    public void DiscardRestoreCandidate() => restorePublication.Discard();
+    public void CompleteRestoreCandidate() => restorePublication.Complete();
 
     private static bool IsFinite(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value);
@@ -1408,8 +1446,11 @@ public interface IOffenseDecisionRuntime
     IReadOnlyList<OffenseDecisionStateData> Capture();
 }
 
-public sealed class OffenseDecisionRuntime : IOffenseDecisionRuntime
+public sealed class OffenseDecisionRuntime : IOffenseDecisionRuntime,
+    IDungeonRestoreTransactionParticipant, IDungeonSaveRestoreCompletedHook
 {
+    private readonly DungeonRestorePublication restorePublication = new();
+    private bool restoreNotificationPending;
     private readonly IOffenseContentCatalog content;
     private readonly IOffenseReturnSafetyRuntime returnSafety;
     private Dictionary<string, OffenseDecisionStateData> active =
@@ -1657,8 +1698,34 @@ public sealed class OffenseDecisionRuntime : IOffenseDecisionRuntime
     internal void PublishRestore(
         OffenseDictionaryRestoreCandidate<OffenseDecisionStateData> candidate)
     {
-        active = (candidate ?? throw new ArgumentNullException(nameof(candidate)))
-            .Values;
+        candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        if (restorePublication.TryStage(() =>
+            {
+                active = candidate.Values;
+                restoreNotificationPending = true;
+            }, CaptureRestoreRollback)) return;
+        active = candidate.Values;
+        Changed?.Invoke();
+    }
+
+    private Action CaptureRestoreRollback()
+    {
+        var previous = active;
+        bool previousNotification = restoreNotificationPending;
+        return () => { active = previous; restoreNotificationPending = previousNotification; };
+    }
+
+    public string ParticipantId => "offense.decisions";
+    public void BeginRestoreCandidate() => restorePublication.Begin();
+    public void PublishRestoreCandidate() => restorePublication.Publish();
+    public void RollbackPublishedRestoreCandidate() => restorePublication.Discard();
+    public void DiscardRestoreCandidate() => restorePublication.Discard();
+    public void CompleteRestoreCandidate() => restorePublication.Complete();
+
+    public void OnRestoreCompleted()
+    {
+        if (!restoreNotificationPending) return;
+        restoreNotificationPending = false;
         Changed?.Invoke();
     }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using Unity.Profiling;
 using UnityEngine;
 using VContainer;
@@ -54,8 +55,9 @@ internal sealed class WorkOrderConstructionSiteRestoreCandidate
     internal ConstructionSite Site { get; }
 }
 
-public sealed class WorkOrderRuntime :
+public sealed partial class WorkOrderRuntime :
     IWorkOrderRuntime,
+    IRepairWorkOutcomeRuntime,
     IWorkAccidentOperationIdAuthority,
     IWorkOrderQuery,
     IWorkOrderWorkerPolicyQuery,
@@ -93,6 +95,8 @@ public sealed class WorkOrderRuntime :
     private readonly IProjectWorkforceRuntime projectWorkforce;
     private readonly IPhysicalItemSourcePublicationService materialSources;
     private readonly IWorkConstructionInputOwnerRuntime constructionInputs;
+    private IDomainFactPublisher constructionFacts;
+    private readonly IDungeonRunFlowRuntime runFlow;
     private readonly Func<IProductionFacilityDestructiveDrainJournalQuery>
         destructiveDrainJournal;
     private GridBuildingPlacementService placementService;
@@ -186,6 +190,8 @@ public sealed class WorkOrderRuntime :
         return true;
     }
     public int Version => CurrentState.CandidateVersion;
+    internal string LastTerminalOutcomeFailureForDebug { get; private set; } =
+        string.Empty;
     public IReadOnlyList<WorkOrderProgressState> ActiveOrders => ordersById.Values
         .Where(order => order != null
             && order.status != WorkOrderStatus.Completed
@@ -238,6 +244,7 @@ public sealed class WorkOrderRuntime :
         this.materialSources = materialSources
             ?? throw new ArgumentNullException(nameof(materialSources));
         this.constructionInputs = constructionInputs;
+        runFlow = ResolveOptional<IDungeonRunFlowRuntime>();
     }
 
     internal void BindPlacementService(
@@ -259,6 +266,7 @@ public sealed class WorkOrderRuntime :
 
     private void TickRuntime()
     {
+        ContinuePendingRepairOutcomes();
         float cadenceTime = uiClock.Time;
         if (gameClock.IsPaused || cadenceTime < nextReadyConstructionReplanAt)
         {
@@ -269,8 +277,10 @@ public sealed class WorkOrderRuntime :
         RefreshWorkerAvailability();
         ContinuePendingFacilityRecoveries();
         ContinuePendingMaterialRestitutions();
+        ContinuePendingTerminalOutcomes();
         string orphanedConstructionOrderId = ordersById.Values
             .Where(order => order.workTypeId == BuiltInWorkTypeIds.Construct
+                && order.terminalPhase == WorkOrderTerminalPhase.None
                 && order.status != WorkOrderStatus.Completed
                 && order.status != WorkOrderStatus.Cancelled
                 && !HasLiveConstructionSite(order.workOrderId))
@@ -321,6 +331,9 @@ public sealed class WorkOrderRuntime :
         {
             version = DungeonWorkOrderSaveData.CurrentVersion,
             nextOrderSequence = Mathf.Max(1, state.NextOrderSequence),
+            nextRepairOutcomeSequence = Mathf.Max(
+                1,
+                state.NextRepairOutcomeSequence),
             orders = state.OrdersById.Values
                 .Where(order => order.status != WorkOrderStatus.Completed && order.status != WorkOrderStatus.Cancelled)
                 .OrderBy(order => order.workOrderId, StringComparer.Ordinal)
@@ -329,7 +342,14 @@ public sealed class WorkOrderRuntime :
             qualityPipelines = state.QualityPipelinesById.Values
                 .OrderBy(value => value.pipelineId, StringComparer.Ordinal)
                 .Select(value => value.CloneNormalized())
-                .ToList()
+                .ToList(),
+            repairOutcomes = state.RepairOutcomesById.Values
+                .OrderBy(value => value.operationId, StringComparer.Ordinal)
+                .Select(value => value.Clone())
+                .ToList(),
+            pendingAccidents = state.PendingAccidents.Values
+                .OrderBy(value => value.fact.operationId, StringComparer.Ordinal)
+                .Select(value => value.Clone()).ToList()
         };
     }
 
@@ -463,7 +483,8 @@ public sealed class WorkOrderRuntime :
             || !constructionInputs.TryReplaceForRestore(
                 ordersById.Values
                     .Where(value => value.workTypeId == BuiltInWorkTypeIds.Construct
-                        && value.requiredItemMaterials.Count > 0)
+                        && value.requiredItemMaterials.Count > 0
+                        && value.terminalPhase == WorkOrderTerminalPhase.None)
                     .OrderBy(value => value.workOrderId, StringComparer.Ordinal)
                     .Select(ToConstructionInputDescriptor)
                     .ToArray(),
@@ -699,6 +720,57 @@ public sealed class WorkOrderRuntime :
         }
 
         order = ToProgressState(record);
+        return true;
+    }
+
+    public bool TryAttachConstructionPlacement(
+        string orderId,
+        string placementOperationId,
+        IReadOnlyList<string> supportBuildingIds,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string normalizedOrderId = orderId?.Trim() ?? string.Empty;
+        string normalizedOperationId = placementOperationId?.Trim()
+            ?? string.Empty;
+        string[] normalizedSupports = (supportBuildingIds
+                ?? Array.Empty<string>())
+            .Select(value => value?.Trim() ?? string.Empty)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        if (!ordersById.TryGetValue(
+                normalizedOrderId,
+                out WorkOrderRecord order)
+            || order.workTypeId != BuiltInWorkTypeIds.Construct
+            || order.terminalPhase != WorkOrderTerminalPhase.None
+            || !string.Equals(normalizedOperationId,
+                WorkOrderPlacementIdentity.ForOrder(normalizedOrderId), StringComparison.Ordinal)
+            || normalizedSupports.Any(value =>
+                !DomainFactValueSyntax.IsIdentity(value))
+            || normalizedSupports.Distinct(StringComparer.Ordinal).Count()
+                != normalizedSupports.Length)
+        {
+            failureReason = "construction-placement-attachment-invalid";
+            return false;
+        }
+        if (order.placementOperationId.Length > 0)
+        {
+            bool replay = string.Equals(
+                    order.placementOperationId,
+                    normalizedOperationId,
+                    StringComparison.Ordinal)
+                && order.supportBuildingIds.SequenceEqual(
+                    normalizedSupports,
+                    StringComparer.Ordinal);
+            failureReason = replay
+                ? string.Empty
+                : "construction-placement-attachment-conflict";
+            return replay;
+        }
+
+        order.placementOperationId = normalizedOperationId;
+        order.supportBuildingIds.AddRange(normalizedSupports);
+        BumpWorkOrderCandidates();
         return true;
     }
 
@@ -1183,6 +1255,16 @@ public sealed class WorkOrderRuntime :
             return false;
         }
 
+        if (order.terminalPhase ==
+            WorkOrderTerminalPhase.EffectsAppliedPendingOutcome)
+        {
+            return order.terminalKind == WorkOrderTerminalKind.Cancelled
+                && TryFinalizeConstructionTerminal(
+                    order,
+                    FindConstructionSite(order.workOrderId),
+                    out _);
+        }
+
         if (!refundDeliveredMaterials
             && (order.requiredItemMaterials.Count > 0
                 || CountPendingDestinationItems(order) > 0))
@@ -1232,6 +1314,18 @@ public sealed class WorkOrderRuntime :
                 order.materialDestinationId,
                 order.position);
         }
+        if (order.workTypeId == BuiltInWorkTypeIds.Construct
+            && !string.IsNullOrEmpty(order.placementOperationId))
+        {
+            order.terminalKind = WorkOrderTerminalKind.Cancelled;
+            order.terminalPhase =
+                WorkOrderTerminalPhase.EffectsAppliedPendingOutcome;
+            order.status = WorkOrderStatus.Blocked;
+            return TryFinalizeConstructionTerminal(
+                order,
+                FindConstructionSite(order.workOrderId),
+                out _);
+        }
         order.status = WorkOrderStatus.Cancelled;
         ordersById.Remove(orderId);
         foreach (KeyValuePair<ConstructionSite, string> pair in orderIdBySite.ToArray())
@@ -1245,6 +1339,12 @@ public sealed class WorkOrderRuntime :
         BumpWorkOrderCandidates();
         return true;
     }
+
+    private ConstructionSite FindConstructionSite(string orderId) =>
+        orderIdBySite.FirstOrDefault(pair => string.Equals(
+            pair.Value,
+            orderId,
+            StringComparison.Ordinal)).Key;
 
     private bool HasAvailableAutomaticConstructionSlot(string orderId)
     {
@@ -1281,6 +1381,14 @@ public sealed class WorkOrderRuntime :
         {
             message = "작업 주문을 찾을 수 없습니다.";
             return false;
+        }
+        if (order.terminalPhase ==
+            WorkOrderTerminalPhase.EffectsAppliedPendingOutcome)
+        {
+            return TryFinalizeConstructionTerminal(
+                order,
+                FindConstructionSite(order.workOrderId),
+                out message);
         }
 
         BuildableObject target = ResolveTarget(order);
@@ -1367,6 +1475,15 @@ public sealed class WorkOrderRuntime :
         }
         if (target is ConstructionSite site)
         {
+            if (order.terminalPhase ==
+                WorkOrderTerminalPhase.EffectsAppliedPendingOutcome)
+            {
+                appliedCompletionEffects = true;
+                return TryFinalizeConstructionTerminal(
+                    order,
+                    site,
+                    out message);
+            }
             if (!WorkOrderMaterialOutbox.HasAcknowledgedCustody(order))
             {
                 order.status = WorkOrderStatus.WaitingForMaterials;
@@ -1390,7 +1507,8 @@ public sealed class WorkOrderRuntime :
                     return false;
                 }
             }
-            bool placed = site.CompleteConstruction();
+            bool placed = site.CompleteConstruction(
+                out BuildingPlacementCommitReceipt placementReceipt);
             if (!placed)
             {
                 order.status = WorkOrderStatus.Blocked;
@@ -1404,12 +1522,39 @@ public sealed class WorkOrderRuntime :
                     "Construction committed but its input owner could not retire: "
                     + message);
             }
-            order.status = WorkOrderStatus.Completed;
+            if (!placementReceipt.IsValid)
+            {
+                // Legacy/editor-only construction callbacks predate the
+                // production placement receipt contract. Production grid
+                // placement always attaches a canonical operation first.
+                site.RemoveSiteOnly();
+                order.status = WorkOrderStatus.Completed;
+                order.completedWork = order.requiredWork;
+                order.preciseCompletedWork = order.requiredWork;
+                ordersById.Remove(order.workOrderId);
+                orderIdBySite.Remove(site);
+                BumpWorkOrderCandidates();
+                appliedCompletionEffects = true;
+                BuildableObject legacyBuilding =
+                    ApplyCompletedBuildingQuality(order, quality);
+                ResolveQualityPipelineAttempt(order, quality, legacyBuilding);
+                message = "construction completed (legacy fixture)";
+                return true;
+            }
+
+            order.terminalKind = WorkOrderTerminalKind.Completed;
+            order.terminalPhase =
+                WorkOrderTerminalPhase.EffectsAppliedPendingOutcome;
+            order.finalFacilityId = placementReceipt.FinalFacilityId;
+            order.finalFacilityDefinitionId =
+                placementReceipt.FinalFacilityDefinitionId;
+            order.replacedFacilityId =
+                placementReceipt.ReplacedFacilityId;
+            order.replacedFacilityDefinitionId =
+                placementReceipt.ReplacedFacilityDefinitionId;
+            order.status = WorkOrderStatus.Blocked;
             order.completedWork = order.requiredWork;
             order.preciseCompletedWork = order.requiredWork;
-            ordersById.Remove(order.workOrderId);
-            orderIdBySite.Remove(site);
-            BumpWorkOrderCandidates();
             appliedCompletionEffects = true;
             BuildableObject completedBuilding =
                 ApplyCompletedBuildingQuality(order, quality);
@@ -1417,8 +1562,10 @@ public sealed class WorkOrderRuntime :
                 order,
                 quality,
                 completedBuilding);
-            message = "construction completed";
-            return true;
+            return TryFinalizeConstructionTerminal(
+                order,
+                site,
+                out message);
         }
 
         order.status = WorkOrderStatus.Completed;
@@ -1428,6 +1575,175 @@ public sealed class WorkOrderRuntime :
         BumpWorkOrderCandidates();
         message = "work completed";
         return true;
+    }
+
+    private bool TryFinalizeConstructionTerminal(
+        WorkOrderRecord order,
+        ConstructionSite site,
+        out string message)
+    {
+        if (!TryPublishConstructionTerminalFact(order, out message))
+        {
+            order.status = WorkOrderStatus.Blocked;
+            BumpWorkOrderCandidates();
+            return false;
+        }
+
+        order.terminalPhase = WorkOrderTerminalPhase.OutcomeCommitted;
+        order.status = order.terminalKind == WorkOrderTerminalKind.Completed
+            ? WorkOrderStatus.Completed
+            : WorkOrderStatus.Cancelled;
+        ordersById.Remove(order.workOrderId);
+        if (site != null)
+        {
+            orderIdBySite.Remove(site);
+            site.RemoveSiteOnly();
+        }
+        else
+        {
+            RemoveConstructionSiteMapping(order.workOrderId, removeSite: true);
+        }
+        BumpWorkOrderCandidates();
+        message = order.terminalKind == WorkOrderTerminalKind.Completed
+            ? "construction completed"
+            : "construction cancelled";
+        return true;
+    }
+
+    private bool TryPublishConstructionTerminalFact(
+        WorkOrderRecord order,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        LastTerminalOutcomeFailureForDebug = string.Empty;
+        if (order == null || order.workTypeId != BuiltInWorkTypeIds.Construct
+            || order.terminalPhase != WorkOrderTerminalPhase.EffectsAppliedPendingOutcome
+            || order.terminalKind == WorkOrderTerminalKind.None
+            || !DomainFactValueSyntax.IsIdentity(order.placementOperationId))
+        {
+            failureReason = "construction-terminal-state-invalid";
+            LastTerminalOutcomeFailureForDebug = failureReason;
+            return false;
+        }
+
+        try
+        {
+            // Effects are already owned by this order. Capture their business
+            // result once; later retries must not recalculate day/name/quality.
+            if (!order.terminalFactCaptured)
+            {
+                ConstructionWorkEndedData snapshot = CaptureConstructionTerminal(order);
+                snapshot.Validate();
+                order.terminalFact = snapshot;
+                order.terminalFactCaptured = true;
+                BumpWorkOrderCandidates();
+            }
+            var fact = new ConstructionWorkEndedFact(order.terminalFact);
+            DomainFactDelivery delivery = PublishConstructionTerminal(order, fact);
+            bool confirmed = delivery.Phase is DomainFactDeliveryPhase.Delivered
+                or DomainFactDeliveryPhase.AcceptedPendingDelivery;
+            if (confirmed && delivery.OperationKey == order.terminalPublicationKey
+                && !string.IsNullOrEmpty(delivery.PublicationId)
+                && delivery.Fingerprint.Length == 64)
+                return true;
+            failureReason = "construction-terminal-publication-unconfirmed:" + delivery.Detail;
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
+        {
+            // Keep applied effects and the reserved identity on an unknown ACK.
+            failureReason = "construction-terminal-publication-unconfirmed:" + exception.Message;
+        }
+        LastTerminalOutcomeFailureForDebug = failureReason;
+        return false;
+    }
+
+    private ConstructionWorkEndedData CaptureConstructionTerminal(WorkOrderRecord order)
+    {
+        BuildingSO building = TryGetBuilding(order.targetBuildingId)
+            ?? throw new InvalidOperationException("construction-terminal-definition-missing");
+        var contribution = new CraftContributionAccumulator(order.contributions);
+        CraftQualityResolution quality = qualityResolver.Resolve(order.qualityRoll,
+            contribution.WeightedRelevantSkill > 0f ? contribution.WeightedRelevantSkill : 50f,
+            facilityBonus: 0f, toolBonus: 0f,
+            complexityPenalty: ResolveConstructionComplexityPenalty(order));
+        WorkOrderSaveData source = ToSaveData(order);
+        return new ConstructionWorkEndedData
+        {
+            workOrderId = source.workOrderId, terminalKind = source.terminalKind,
+            placementOperationId = source.placementOperationId,
+            constructionSitePersistentId = source.constructionSitePersistentId,
+            targetBuildingId = source.targetBuildingId,
+            buildingDefinitionId = ResolveBuildingDefinitionId(building),
+            buildingDisplayName = building.objectName,
+            finalFacilityId = source.finalFacilityId,
+            finalFacilityDefinitionId = source.finalFacilityDefinitionId,
+            replacedFacilityId = source.replacedFacilityId,
+            replacedFacilityDefinitionId = source.replacedFacilityDefinitionId,
+            absoluteDay = Math.Max(1, runFlow?.CurrentDay ?? 1),
+            gridX = source.gridX, gridY = source.gridY,
+            requiredWork = source.requiredWork, completedWork = source.completedWork,
+            qualityTier = quality.Tier, supportBuildingIds = source.supportBuildingIds,
+            contributions = source.contributions.OrderBy(value => value.characterId, StringComparer.Ordinal).ToList(),
+            itemMaterials = source.itemMaterials,
+            materialInputOperationId = source.materialTransfer.operationId,
+            restitutionOperationId = source.materialTransfer.restitutionOperationId
+        };
+    }
+
+    private DomainFactDelivery PublishConstructionTerminal(WorkOrderRecord order, ConstructionWorkEndedFact fact)
+    {
+        IDomainFactPublisher publisher = constructionFacts ??= ResolveOptional<IDomainFactPublisher>();
+        if (publisher is not IDomainFactRecoveryPublisher recovery)
+            return DomainFactDelivery.Reject("construction-terminal-fact-publication-unavailable");
+        if (string.IsNullOrEmpty(order.terminalPublicationKey))
+        {
+            if (!publisher.TryReserve(fact, out DomainFactLease lease, out string failure))
+                return DomainFactDelivery.Reject(failure);
+            string key = lease.PublicationKey;
+            if (!DomainFactValueSyntax.IsText(key, 1024, false))
+            {
+                publisher.Cancel(lease);
+                return DomainFactDelivery.Reject("construction-terminal-publication-key-missing");
+            }
+            order.terminalPublicationKey = key;
+            BumpWorkOrderCandidates();
+            DomainFactDelivery delivery = publisher.Publish(lease, fact);
+            if (delivery.Phase == DomainFactDeliveryPhase.Rejected)
+            {
+                order.terminalPublicationKey = string.Empty;
+                BumpWorkOrderCandidates();
+            }
+            return delivery;
+        }
+        var results = new DomainFactDelivery[1];
+        return recovery.ReplayBatch(new[] { DomainFactReplay.Create(order.terminalPublicationKey, fact) },
+            results, out string replayFailure)
+            ? results[0] : DomainFactDelivery.Reject(replayFailure);
+    }
+
+    private static string ResolveBuildingDefinitionId(BuildingSO building) =>
+        !string.IsNullOrWhiteSpace(building?.ContentDefinitionId)
+            ? building.ContentDefinitionId.Trim()
+            : "building:" + Math.Max(1, building?.id ?? 1);
+
+    private void RemoveConstructionSiteMapping(
+        string orderId,
+        bool removeSite)
+    {
+        foreach (KeyValuePair<ConstructionSite, string> pair in
+                 orderIdBySite.ToArray())
+        {
+            if (!string.Equals(pair.Value, orderId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+            orderIdBySite.Remove(pair.Key);
+            if (removeSite)
+            {
+                pair.Key?.RemoveSiteOnly();
+            }
+        }
     }
 
     private WorkOrderRecord FindOrder(BuildableObject target, WorkTypeId workTypeId)
@@ -1589,6 +1905,13 @@ public sealed class WorkOrderRuntime :
                 continue;
             }
 
+            if (order.workTypeId == BuiltInWorkTypeIds.Construct
+                && !string.IsNullOrEmpty(order.placementOperationId))
+            {
+                CancelOrder(order.workOrderId, refundDeliveredMaterials: true);
+                continue;
+            }
+
             order.status = WorkOrderStatus.Cancelled;
             ordersById.Remove(order.workOrderId);
             foreach (KeyValuePair<ConstructionSite, string> pair in
@@ -1605,6 +1928,21 @@ public sealed class WorkOrderRuntime :
                 pair.Key?.RemoveSiteOnly();
             }
             BumpWorkOrderCandidates();
+        }
+    }
+
+    private void ContinuePendingTerminalOutcomes()
+    {
+        foreach (WorkOrderRecord order in ordersById.Values
+                     .Where(value => value?.terminalPhase ==
+                         WorkOrderTerminalPhase.EffectsAppliedPendingOutcome)
+                     .OrderBy(value => value.workOrderId, StringComparer.Ordinal)
+                     .ToArray())
+        {
+            TryFinalizeConstructionTerminal(
+                order,
+                FindConstructionSite(order.workOrderId),
+                out _);
         }
     }
 
@@ -1679,7 +2017,7 @@ public sealed class WorkOrderRuntime :
                 () => TryPlaceFinalBuildingOnRestore(
                     grid,
                     building,
-                    order.position),
+                    order),
                 () => RemoveSiteFromGrid(grid, site));
 
             if (!grid.RegisterOccupant(
@@ -1716,15 +2054,30 @@ public sealed class WorkOrderRuntime :
         }
     }
 
-    private bool TryPlaceFinalBuildingOnRestore(Grid grid, BuildingSO building, Vector2Int position)
+    private BuildingPlacementCommitReceipt TryPlaceFinalBuildingOnRestore(
+        Grid grid,
+        BuildingSO building,
+        WorkOrderRecord order)
     {
-        GridBuildingPlacementService service = new GridBuildingPlacementService(
-            grid,
-            null,
-            TryGetBuilding);
-        return service.TryPlaceBuildingImmediateUnchecked(
+        GridBuildingPlacementService service = placementService;
+        if (service == null)
+        {
+            IGridBuildingFactory restoredBuildingFactory =
+                new GridBuildingFactory(
+                    buildingVisual: null,
+                    onBuildingCreated: objectResolver.Inject,
+                    objectFactory: new GridBuildingObjectFactory());
+            service = new GridBuildingPlacementService(
+                grid,
+                null,
+                TryGetBuilding,
+                restoredBuildingFactory,
+                new BuildingPlacementValidator(),
+                this);
+        }
+        return service.TryPlaceBuildingImmediateUncheckedWithReceipt(
             building,
-            position,
+            order.position,
             chargeCost: false,
             out _);
     }
@@ -1920,6 +2273,7 @@ public sealed class WorkOrderRuntime :
         WorkOrderAggregateState restored = new WorkOrderAggregateState
         {
             NextOrderSequence = snapshot.nextOrderSequence,
+            NextRepairOutcomeSequence = snapshot.nextRepairOutcomeSequence,
             CandidateVersion = nextCandidateVersion
         };
         foreach (WorkOrderSaveData source in snapshot.orders)
@@ -1934,7 +2288,16 @@ public sealed class WorkOrderRuntime :
             QualityTargetPipelineSaveData pipeline = source.CloneNormalized();
             restored.QualityPipelinesById.Add(pipeline.pipelineId, pipeline);
         }
+        foreach (RepairWorkOutcomeSaveData source in
+                 snapshot.repairOutcomes
+                    ?? new List<RepairWorkOutcomeSaveData>())
+        {
+            RepairWorkOutcomeSaveData repair = source.Clone();
+            restored.RepairOutcomesById.Add(repair.operationId, repair);
+        }
 
+        foreach (var row in snapshot.pendingAccidents)
+            restored.PendingAccidents.Add(row.fact.operationId, row.Clone());
         return restored;
     }
 
@@ -1988,6 +2351,21 @@ public sealed class WorkOrderRuntime :
                 .ToList(),
             materialTransfer = WorkOrderMaterialOutbox.ToSaveData(
                 order.materialTransfer),
+            terminalPhase = order.terminalPhase,
+            terminalKind = order.terminalKind,
+            terminalFactCaptured = order.terminalFactCaptured,
+            terminalFact = order.terminalFact?.Clone(),
+            terminalPublicationKey = order.terminalPublicationKey,
+            placementOperationId = order.placementOperationId ?? string.Empty,
+            supportBuildingIds = order.supportBuildingIds
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList(),
+            finalFacilityId = order.finalFacilityId ?? string.Empty,
+            finalFacilityDefinitionId =
+                order.finalFacilityDefinitionId ?? string.Empty,
+            replacedFacilityId = order.replacedFacilityId ?? string.Empty,
+            replacedFacilityDefinitionId =
+                order.replacedFacilityDefinitionId ?? string.Empty,
             recoveryOutputs = order.requiredRecoveryOutputs
                 .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => new WorkOrderItemMaterialSaveData
@@ -2041,8 +2419,28 @@ public sealed class WorkOrderRuntime :
                 source.cancelRebuildAfterDestructiveDrain,
             status = source.status,
             materialTransfer = WorkOrderMaterialOutbox.FromSaveData(
-                source.materialTransfer)
+                source.materialTransfer),
+            terminalPhase = source.terminalPhase,
+            terminalKind = source.terminalKind,
+            terminalFactCaptured = source.terminalFactCaptured,
+            terminalFact = source.terminalFact?.Clone(),
+            terminalPublicationKey = source.terminalPublicationKey,
+            placementOperationId = source.placementOperationId?.Trim()
+                ?? string.Empty,
+            finalFacilityId = source.finalFacilityId?.Trim() ?? string.Empty,
+            finalFacilityDefinitionId =
+                source.finalFacilityDefinitionId?.Trim() ?? string.Empty,
+            replacedFacilityId =
+                source.replacedFacilityId?.Trim() ?? string.Empty,
+            replacedFacilityDefinitionId =
+                source.replacedFacilityDefinitionId?.Trim() ?? string.Empty
         };
+
+        order.supportBuildingIds.AddRange((source.supportBuildingIds
+                ?? new List<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .OrderBy(value => value, StringComparer.Ordinal));
 
         order.contributions.AddRange((source.contributions
                 ?? new List<CraftContributionSaveData>())

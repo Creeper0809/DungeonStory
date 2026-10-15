@@ -59,6 +59,10 @@ public static class ResourceStockPolicySaleOutboxDebugScenarios
                 sequence,
                 ItemId,
                 proceeds: 7,
+                unitPrice: 10,
+                saleRateBasisPoints: 7000,
+                absoluteDay: 1,
+                outcomeResultKey: "fixture.stock-policy|fixture-operation|1|0",
                 ToSaleReceipt(physicalReceipt));
         PhysicalItemRestoreCandidateDispositionSnapshot candidateReceipt =
             ToCandidateReceipt(physicalReceipt);
@@ -98,32 +102,58 @@ public static class ResourceStockPolicySaleOutboxDebugScenarios
                     new CandidateQuery(mismatched))),
             "Stock-policy restore accepted mismatched physical mass provenance.");
 
-        FailOnceCommandPort first = new(gateway)
+        FailOnceCommandPort first = new(
+            gateway,
+            physicalReceipt.OwnerRevision)
         {
             FailNextAcknowledgement = true
         };
+        Require(first.TryGetPendingSaleTransfer(operationId, out var discovered)
+                && ResourceStockPolicySaleOutbox.ReceiptMatchesSaved(
+                    pending,
+                    discovered),
+            "Focused receipt join mismatch before settlement: "
+                + $"pending=[{pending.operationId}|{pending.reasonCode}|"
+                + $"{pending.commitId}|{pending.quantity}|{pending.inputMassGrams}|"
+                + $"{pending.physicalOutcomeOwnerRevision}|"
+                + $"{string.Join(',', pending.sourceStackIds)}]; "
+                + $"receipt=[{discovered?.operationId}|{discovered?.reasonCode}|"
+                + $"{discovered?.commitId}|{discovered?.quantity}|"
+                + $"{discovered?.inputMassGrams}|"
+                + $"{discovered?.physicalOutcomeOwnerRevision}|"
+                + $"{string.Join(',', discovered?.sourceStackIds ?? new List<string>())}]");
         Require(!ResourceStockPolicySaleOutbox.TryFinalizePending(
                 pending,
                 first,
-                out _)
+                out string injectedFailure)
             && pending.phase ==
-                ResourceStockPolicySaleCommitPhase.IncomePublished
+                ResourceStockPolicySaleCommitPhase.LedgerCommitted
             && first.IncomePublicationCount == 1
+            && first.OutcomePublicationCount == 1
             && first.PublishedIncome == 7
             && repository.GetEditorPendingBatchDispositionCount() == 1
             && repository.GetEditorTestQuantity(sourceStackId) == 1,
-            "Acknowledgement fault did not preserve exact sale outbox state.");
+            "Acknowledgement fault did not preserve exact sale outbox state: "
+                + $"failure={injectedFailure}; phase={pending.phase}; "
+                + $"income={first.IncomePublicationCount}; "
+                + $"outcome={first.OutcomePublicationCount}; "
+                + $"published={first.PublishedIncome}; "
+                + $"pending={repository.GetEditorPendingBatchDispositionCount()}; "
+                + $"quantity={repository.GetEditorTestQuantity(sourceStackId)}");
 
         ResourceStockPolicyPendingSale restored =
             JsonUtility.FromJson<ResourceStockPolicyPendingSale>(
                 JsonUtility.ToJson(pending));
-        FailOnceCommandPort recovery = new(gateway);
+        FailOnceCommandPort recovery = new(
+            gateway,
+            physicalReceipt.OwnerRevision);
         Require(ResourceStockPolicySaleOutbox.TryFinalizePending(
                 restored,
                 recovery,
                 out string recoveryFailure)
             && string.IsNullOrEmpty(recoveryFailure)
             && recovery.IncomePublicationCount == 0
+            && recovery.OutcomePublicationCount == 0
             && recovery.SuccessfulAcknowledgements == 1
             && repository.GetEditorPendingBatchDispositionCount() == 0
             && repository.GetEditorTestQuantity(sourceStackId) == 1,
@@ -142,19 +172,24 @@ public static class ResourceStockPolicySaleOutboxDebugScenarios
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToList(),
         quantity = receipt.Quantity,
-        inputMassGrams = receipt.InputMassGrams
+        inputMassGrams = receipt.InputMassGrams,
+        physicalOutcomeOwnerRevision = Math.Max(1L, receipt.OwnerRevision)
     };
 
     private static PhysicalItemRestoreCandidateDispositionSnapshot
         ToCandidateReceipt(PhysicalItemBatchDispositionReceipt receipt) => new(
-            receipt.Kind,
-            receipt.OperationId,
-            receipt.ReasonCode,
-            "stock-policy-sale-focused-fixture",
-            receipt.SourceStackIds,
-            receipt.Quantity,
-            receipt.InputMassGrams,
-            receipt.CommitId);
+            new PhysicalItemBatchDispositionSaveData
+            {
+                kind = (int)receipt.Kind,
+                operationId = receipt.OperationId,
+                reasonCode = receipt.ReasonCode,
+                requestFingerprint = "stock-policy-sale-focused-fixture",
+                sourceStackIds = receipt.SourceStackIds.ToList(),
+                quantity = receipt.Quantity,
+                inputMassGrams = receipt.InputMassGrams,
+                commitId = receipt.CommitId,
+                ownerRevision = Math.Max(1L, receipt.OwnerRevision)
+            });
 
     private static bool Throws(Action action)
     {
@@ -181,14 +216,22 @@ public static class ResourceStockPolicySaleOutboxDebugScenarios
         IResourceStockPolicySaleCommandPort
     {
         private readonly IPhysicalFacilityItemBatchTransferGateway gateway;
+        private readonly long physicalOutcomeOwnerRevision;
 
         internal FailOnceCommandPort(
-            IPhysicalFacilityItemBatchTransferGateway gateway) =>
+            IPhysicalFacilityItemBatchTransferGateway gateway,
+            long physicalOutcomeOwnerRevision)
+        {
             this.gateway = gateway
                 ?? throw new ArgumentNullException(nameof(gateway));
+            this.physicalOutcomeOwnerRevision = Math.Max(
+                1L,
+                physicalOutcomeOwnerRevision);
+        }
 
         internal bool FailNextAcknowledgement { get; set; }
         internal int IncomePublicationCount { get; private set; }
+        internal int OutcomePublicationCount { get; private set; }
         internal int PublishedIncome { get; private set; }
         internal int SuccessfulAcknowledgements { get; private set; }
 
@@ -204,17 +247,31 @@ public static class ResourceStockPolicySaleOutboxDebugScenarios
                 return false;
             }
             receipt = ToSaleReceipt(physical);
+            receipt.physicalOutcomeOwnerRevision =
+                physicalOutcomeOwnerRevision;
             return true;
         }
 
         public bool TryPublishSaleIncome(
-            int amount,
-            string operationId,
-            string itemId,
+            ResourceStockPolicyPendingSale pending,
             out string failureReason)
         {
             IncomePublicationCount++;
-            PublishedIncome += amount;
+            PublishedIncome += pending.proceeds;
+            pending.economyTransactionId = "economy:stock-policy-fixture";
+            pending.balanceBefore = 100;
+            pending.balanceAfter = 100 + pending.proceeds;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryPublishSaleFact(
+            ResourceStockPolicyPendingSale pending,
+            out string failureReason)
+        {
+            OutcomePublicationCount++;
+            pending.outcomeId = "run:stock-policy-fixture:1";
+            pending.outcomeDigest = new string('a', 64);
             failureReason = string.Empty;
             return true;
         }

@@ -1,5 +1,16 @@
 # 09. 상태 권위 원장
 
+## 게임 사실과 경험 평가 (2026-10-09)
+
+- 게임 상태 소유자/commit/원장 receipt가 사건 사실의 단일 권위다. 장면 컴포넌트의 구독 수명으로 저장 신원을 만들거나 완료 사실을 대신 쓰지 않는다.
+- [행동 로깅 모듈](../../Assets/Scripts/Services/Narrative/GameplayOutcomes/GameplayActionLogModule.cs)은 receipt adapter·descriptor·한 행동의 experience observer를 결합한다. [명시적 조립 목록](../../Assets/Scripts/Services/Narrative/GameplayOutcomes/GameplayActionLogCatalog.cs)이 유일한 행동 결합 권위이며 production registry는 실제 모듈 인스턴스에서 adapter/descriptor/경험 관찰기를 제공한다. 중복 모듈·다른 행동의 observer·서로 다른 공용 receipt adapter 결합은 거절한다.
+- [IGameplayExperienceObserver와 공통 정책](../../Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Presentation/GameplayExperienceObservation.cs)은 확정된 typed 사실을 읽는다. 새 행동은 전용 adapter/descriptor/observer를 구현하고 catalog 결합과 해당 생산 영역의 RegisterGameplayActionLogs를 추가한다. 기존 행동 판단만 변경할 때는 그 policy만 수정하고 recorder/ledger에 콘텐츠별 분기를 넣지 않는다. 별도 씬 컴포넌트/Inspector 연결은 필요 없다. 순수 관찰기는 저장 상태나 이벤트 구독을 소유하지 않으며 container와 함께 수명이 끝난다. best-effort publish 이벤트를 내구성 권위로 사용하지 않는다.
+- [환경 관찰기](../../Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Environment/EnvironmentalExperienceObserver.cs)는 실제 체력/피해/단위와 관찰 구간으로 판단한다. 원본 salience/pin/문구/첫 발생만으로 강렬함을 만들지 않는다. 지원하지 않는 결과는 명시적 미평가다.
+- 경험 묶음은 결정적으로 재생되는 조회 결과다. 원본을 삭제/병합하거나 인과 부모를 만들어 내지 않으며, 대표 사실1건을 생성 입력으로 고른다. 명시적 원장 부모만 맥락에 추가한다.
+- [binding DTO](../../Assets/Scripts/Models/Evolution/Core/GameplayOutcomeEvidenceBindingSnapshot.cs)의 schema4는 정책v3·행동별 관찰기·분류·중요도·한국어 이유·사용한 metric/fact/role ID를 원본과 별도로 고정한다. v2에서 판단 점수는 유지하고 모듈/observer 신원이 달라져 정책 버전을 올렸다. clone/JSON/hash/권위 검사가 이를 보존한다. 알 수 없는 정책을 재해석하거나 구 저장 migration을 추가하지 않는다.
+- 현행 등록 타입 전체에 환경1+세계47+생애29+migrated72 규칙을 명시한다. 실제 registry와 목록/테스트 집합이 일치하는지 격리 실행에서 검사한다. 누락 근거는 미평가 사유로 남기고, 처리/예약 실패는 개인 경험 아님으로 구분한다. 새 타입 누락은 생산 조회 조립에서 거절한다.
+- 실제 연결: 원장 → [조회/선택](../../Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Presentation/GameplayOutcomeNarrativeEvidenceQuery.cs) → binding → 공개 입력/공식 중요도. 개인 경험 아님은 대표 선택에서 제외하되 명시적 인과 부모 맥락과 원장은 보존한다. legacy 근거/발현 게이트·외부 학습 데이터 재추출은 별도 범위다. 실행 상태와 증거는 progress.md를 따른다.
+
 이 장은 주요 상태마다 누가 쓸 수 있고, 다른 시스템은 어떤 방식으로 읽으며, 저장과 복원에서 무엇을 기준으로 삼는지 정리한다. 클래스 수보다 상태 가족을 기준으로 작성했다. 하나의 상태 가족이 여러 Aggregate로 나뉘어 있으면 그 경계를 유지하며, 편의를 이유로 하나의 전역 Manager가 모두 소유한다고 표현하지 않는다.
 
 조사 기준일은 2026-08-31이다. 현재 소스와 save section 등록을 정적으로 확인했으며 Unity 실행 검증은 하지 않았다.

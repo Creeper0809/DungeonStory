@@ -12,6 +12,13 @@ public class Door : BuildableObject
     public bool IsOpen => OperationStateModule?.IsOpen == true;
     public bool IsHeldOpen => OperationStateModule?.IsHeldOpen == true;
     public int OperationRevision => OperationStateModule?.Revision ?? 0;
+    public long ManualOperationRevision =>
+        OperationStateModule?.ManualRevision ?? 0L;
+    internal bool CanAcceptManualOperation => isActiveAndEnabled
+        && !isDestroy
+        && !IsDetachedRestoreCandidate
+        && OperationStateModule != null
+        && PersistentInstanceId.IsValid;
     public bool ContainsCell(Vector2Int position)
     {
         for (int i = 0; i < buildPoses.Count; i++) if (buildPoses[i] == position) return true;
@@ -120,11 +127,27 @@ public class Door : BuildableObject
     }
 
     [GameplayInternalOnly("Existing player door command adapter", "DoorAccessUnityAdapter")]
-    internal bool SetHeldOpen(bool held)
+    internal bool TryPreviewHeldOpen(bool held, out bool afterOpen)
     {
-        if (!isActiveAndEnabled || isDestroy || IsDetachedRestoreCandidate || OperationStateModule == null) return false;
-        OperationStateModule.Set(held || IsOccupied(), held);
+        afterOpen = false;
+        if (!CanAcceptManualOperation)
+        {
+            return false;
+        }
+        afterOpen = held || IsOccupied();
         return true;
+    }
+
+    [GameplayInternalOnly("Prepared manual door command", "DoorAccessUnityAdapter")]
+    internal bool SetHeldOpen(
+        bool held,
+        DoorHeldOpenPendingSaveData pending)
+    {
+        return TryPreviewHeldOpen(held, out bool afterOpen)
+            && OperationStateModule.TryApplyManualChange(
+                afterOpen,
+                held,
+                pending);
     }
 
     private bool IsOccupied()

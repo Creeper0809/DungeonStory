@@ -33,7 +33,8 @@ public static class WildlifeCaptureRestoreValidator
         {
             throw new ArgumentNullException(nameof(report));
         }
-        if (saveData?.capturedWildlife == null)
+        if (saveData?.capturedWildlife == null
+            || saveData.wildlifeGameplayOutcomes == null)
         {
             report.AddError("Circus restore is missing captured wildlife data.");
             return;
@@ -42,6 +43,16 @@ public static class WildlifeCaptureRestoreValidator
         {
             report.AddError("Captured wildlife restore requires an active grid.");
             return;
+        }
+
+        foreach (WildlifeGameplayOutcomeSaveData pending in
+                 saveData.wildlifeGameplayOutcomes)
+        {
+            if (pending != null && !world.HasSpecies(pending.wildlifeSpeciesId))
+            {
+                report.AddError(
+                    $"Pending captured-wildlife outcome '{pending.operationId}' references unknown species '{pending.wildlifeSpeciesId}'.");
+            }
         }
 
         Dictionary<string, int> penOccupancy =

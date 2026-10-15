@@ -43,7 +43,8 @@ public readonly struct SettlementEmergencyReserveTargetSnapshot
         long targetMilliWu,
         long availableMilliWu,
         float coverage,
-        long revision)
+        long revision,
+        int idleResidentCount = 0)
     {
         ProductiveAdultCount = productiveAdultCount;
         MinimumMilliWu = minimumMilliWu;
@@ -54,6 +55,7 @@ public readonly struct SettlementEmergencyReserveTargetSnapshot
         AvailableMilliWu = availableMilliWu;
         Coverage = coverage;
         Revision = revision;
+        IdleResidentCount = idleResidentCount;
     }
 
     public int ProductiveAdultCount { get; }
@@ -65,6 +67,10 @@ public readonly struct SettlementEmergencyReserveTargetSnapshot
     public long AvailableMilliWu { get; }
     public float Coverage { get; }
     public long Revision { get; }
+    public int IdleResidentCount { get; }
+    public long IdleReserveMilliWu => checked(
+        IdleResidentCount * EmergencyWuUnits.MaximumReserveWindowMilliWu);
+    public long ActiveReserveMilliWu => AvailableMilliWu - IdleReserveMilliWu;
 }
 
 public interface ISettlementEmergencyReserveTargetQuery
@@ -163,7 +169,8 @@ public sealed class EmergencyRiskForecastRegistry :
 /// <summary>
 /// Projects live productive adults, the fixed minimum reserve rule and
 /// authored P90 risk forecasts into the alert service's coverage band.
-/// Expensive population scans only run when the character registry changes.
+/// Idle resident capacity is projected from the same live population, without
+/// recording imaginary work or counting an active worker a second time.
 /// </summary>
 public sealed class SettlementEmergencyReservePlanner :
     ISettlementEmergencyReserveTargetQuery,
@@ -181,10 +188,13 @@ public sealed class SettlementEmergencyReservePlanner :
     private readonly IEmergencyWorkAccountingService accounting;
     private readonly IEmergencyRiskForecastRegistry forecasts;
     private readonly ISettlementAlertService alerts;
+    private readonly List<KeyValuePair<CharacterActor, CharacterId>> productiveAdults =
+        new List<KeyValuePair<CharacterActor, CharacterId>>();
 
     private int lastCharacterVersion = int.MinValue;
     private int productiveAdultCount;
     private long lastAccountingRevision = long.MinValue;
+    private int lastIdleResidentCount = -1;
     private long lastForecastRevision = long.MinValue;
     private long lastAlertEpoch = long.MinValue;
     private SettlementThreatAlertLevel lastAlertLevel =
@@ -256,9 +266,13 @@ public sealed class SettlementEmergencyReservePlanner :
         }
 
         EmergencyReserveSnapshot work = accounting.CaptureSnapshot();
+        if (!work.Healthy)
+            throw new InvalidOperationException("Unhealthy emergency work accounting cannot project reserve capacity.");
+        int idleResidents = CountIdleResidents();
         EmergencyRiskForecastSnapshot risk = forecasts.Capture();
         SettlementAlertSnapshot alert = alerts.Capture();
         if (lastAccountingRevision == work.AccountingRevision
+            && lastIdleResidentCount == idleResidents
             && lastForecastRevision == risk.Revision
             && lastAlertEpoch == alert.AlertEpochId
             && lastAlertLevel == alert.CommittedLevel)
@@ -280,8 +294,10 @@ public sealed class SettlementEmergencyReservePlanner :
             SettlementThreatAlertLevel.Amber ? 2 : 1;
         long target = checked(
             unscaled * multiplierNumerator / multiplierDenominator);
+        long available = CalculateAvailableReserveMilliWu(
+            work.ReserveEligibleMilliWu, idleResidents);
         EmergencyAccountingResult coverage = alerts.UpdateReserveCoverage(
-            work.ReserveEligibleMilliWu,
+            available,
             target);
         if (!coverage.Success)
         {
@@ -296,10 +312,12 @@ public sealed class SettlementEmergencyReservePlanner :
             risk.LimitingSourceId,
             multiplierNumerator / (float)multiplierDenominator,
             target,
-            work.ReserveEligibleMilliWu,
-            work.ReserveEligibleMilliWu / (float)target,
-            revision);
+            available,
+            available / (float)target,
+            revision,
+            idleResidents);
         lastAccountingRevision = work.AccountingRevision;
+        lastIdleResidentCount = idleResidents;
         lastForecastRevision = risk.Revision;
         lastAlertEpoch = alert.AlertEpochId;
         lastAlertLevel = alert.CommittedLevel;
@@ -307,6 +325,7 @@ public sealed class SettlementEmergencyReservePlanner :
 
     private int CountProductiveAdults()
     {
+        productiveAdults.Clear();
         int count = 0;
         IReadOnlyList<CharacterActor> characters = world.Characters;
         for (int index = 0; index < characters.Count; index++)
@@ -323,7 +342,41 @@ public sealed class SettlementEmergencyReservePlanner :
             }
 
             count++;
+            productiveAdults.Add(new KeyValuePair<CharacterActor, CharacterId>(actor, id));
         }
         return count;
+    }
+
+    private int CountIdleResidents()
+    {
+        int count = 0;
+        for (int index = 0; index < productiveAdults.Count; index++)
+        {
+            KeyValuePair<CharacterActor, CharacterId> candidate = productiveAdults[index];
+            CharacterActor actor = candidate.Key;
+            if (actor == null || actor.IsDead)
+                continue;
+            bool worker = CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work);
+            if (actor.Role != CharacterRole.Owner && !worker)
+                continue;
+            // An operation owns even protected/critical workers. A work routine
+            // can also be approaching its first accepted WU before registration.
+            if (accounting.TryGetWorkerOperation(candidate.Value.Value, out _)
+                || work != null && work.isWorking)
+                continue;
+            count++;
+        }
+        return count;
+    }
+
+    public static long CalculateAvailableReserveMilliWu(
+        long activeReserveMilliWu, int idleResidentCount)
+    {
+        if (activeReserveMilliWu < 0L)
+            throw new ArgumentOutOfRangeException(nameof(activeReserveMilliWu));
+        if (idleResidentCount < 0)
+            throw new ArgumentOutOfRangeException(nameof(idleResidentCount));
+        return checked(activeReserveMilliWu
+            + idleResidentCount * EmergencyWuUnits.MaximumReserveWindowMilliWu);
     }
 }

@@ -326,12 +326,16 @@ public readonly struct CropEcologyPreparedHarvestSnapshot
     public CropEcologyPreparedHarvestSnapshot(
         string operationId,
         string plotId,
+        string plotBeforeFingerprint,
+        string plotAfterFingerprint,
         string outcomeFingerprint,
         bool committed,
         CropHarvestEcologyResult result)
     {
         OperationId = operationId ?? string.Empty;
         PlotId = plotId ?? string.Empty;
+        PlotBeforeFingerprint = plotBeforeFingerprint ?? string.Empty;
+        PlotAfterFingerprint = plotAfterFingerprint ?? string.Empty;
         OutcomeFingerprint = outcomeFingerprint ?? string.Empty;
         Committed = committed;
         Result = result;
@@ -339,6 +343,8 @@ public readonly struct CropEcologyPreparedHarvestSnapshot
 
     public string OperationId { get; }
     public string PlotId { get; }
+    public string PlotBeforeFingerprint { get; }
+    public string PlotAfterFingerprint { get; }
     public string OutcomeFingerprint { get; }
     public bool Committed { get; }
     public CropHarvestEcologyResult Result { get; }
@@ -936,6 +942,8 @@ public sealed class CropEcologyAggregateState
         CropEcologyPreparedHarvestSaveData receipt) => new(
         receipt.operationId,
         receipt.plotId,
+        receipt.plotBeforeFingerprint,
+        CapturePlotFingerprint(receipt.plotAfter),
         receipt.outcomeFingerprint,
         receipt.committed,
         new CropHarvestEcologyResult(

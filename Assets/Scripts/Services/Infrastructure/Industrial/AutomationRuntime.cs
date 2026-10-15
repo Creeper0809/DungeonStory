@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation.Facts;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
@@ -117,7 +118,7 @@ internal sealed class AutomationRuntime :
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly ISettlementLaborAccountingService laborAccounting;
     private readonly AutomationStateSession stateSession;
-    private readonly IInfrastructureCommandOutcomeTransaction commandOutcomes;
+    private readonly IInfrastructureFactJournal commandOutcomes;
     private IReadOnlyList<AutomationFacilitySnapshot> facilities =
         Array.Empty<AutomationFacilitySnapshot>();
     private readonly List<BuildableObject> automationFacilities =
@@ -158,7 +159,7 @@ internal sealed class AutomationRuntime :
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         ISettlementLaborAccountingService laborAccounting,
         IMilestoneGameplayModifierQuery milestoneModifiers,
-        IInfrastructureCommandOutcomeTransaction commandOutcomes)
+        IInfrastructureFactJournal commandOutcomes)
     {
         this.buildings = buildings
             ?? throw new ArgumentNullException(nameof(buildings));
@@ -188,6 +189,7 @@ internal sealed class AutomationRuntime :
     {
         get
         {
+            commandOutcomes?.AssertIdle();
             EnsureFacilities();
             RefreshSnapshots();
             return facilities;
@@ -196,6 +198,7 @@ internal sealed class AutomationRuntime :
 
     public void Tick()
     {
+        commandOutcomes?.AssertIdle();
         if (clock.IsPaused || clock.DeltaTime <= 0f)
         {
             return;
@@ -222,6 +225,7 @@ internal sealed class AutomationRuntime :
         BuildableObject facility,
         out AutomationFacilitySnapshot snapshot)
     {
+        commandOutcomes?.AssertIdle();
         snapshot = null;
         if (!TryResolve(
                 facility,
@@ -243,6 +247,7 @@ internal sealed class AutomationRuntime :
         BuildableObject facility,
         AutomationMode mode)
     {
+        commandOutcomes?.AssertIdle();
         if (!Enum.IsDefined(typeof(AutomationMode), mode)
             || !TryResolve(
                 facility,
@@ -280,14 +285,14 @@ internal sealed class AutomationRuntime :
         AutomationFacilityStateSession state = EnsureState(facilityId);
         if (state.Mode == mode)
             return InfrastructureCommandResult.Success();
-        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+        if (!InfrastructureFactExecution.TryPrepare(
                 commandOutcomes,
-                InfrastructureCommandOutcomeKind.AutomationModeChanged,
+                IndustrialTransitionKind.AutomationModeChanged,
                 facilityId,
                 facility,
-                state.Mode.ToString(),
-                mode.ToString(),
-                out IPreparedInfrastructureCommandOutcome prepared,
+                new IndustrialStateData { automationMode = state.Mode },
+                new IndustrialStateData { automationMode = mode },
+                out IDomainFactStage prepared,
                 out InfrastructureCommandResult failure))
         {
             return failure;
@@ -296,21 +301,21 @@ internal sealed class AutomationRuntime :
             stateSession.CaptureMutation();
         state.SetMode(mode);
         Touch();
-        InfrastructureCommandOutcomeCommitResult commit =
+        DomainFactDelivery commit =
             commandOutcomes.CommitReversible(prepared);
-        if (!commit.DurablyCommitted)
+        if (commit.Phase == DomainFactDeliveryPhase.Rejected)
         {
             stateSession.RestoreMutation(before);
             ResetProjectionAfterRestore();
-            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
         }
-        return InfrastructureCommandResult.Success();
+        return commit.Completed ? InfrastructureCommandResult.Success() : InfrastructureFactExecution.CommitFailure(commit);
     }
 
     public InfrastructureCommandResult Maintain(
         BuildableObject facility,
         float amount)
     {
+        commandOutcomes?.AssertIdle();
         if (!TryResolve(
                 facility,
                 out string facilityId,
@@ -342,24 +347,16 @@ internal sealed class AutomationRuntime :
         {
             return InfrastructureCommandResult.Success();
         }
-        string beforeValue = "maintenance="
-            + InfrastructureCommandOutcomeExecution.Float(state.Maintenance)
-            + ";fault="
-            + InfrastructureCommandOutcomeExecution.Float(state.Fault)
-            + ";status=" + state.Status;
-        string afterValue = "maintenance="
-            + InfrastructureCommandOutcomeExecution.Float(nextMaintenance)
-            + ";fault="
-            + InfrastructureCommandOutcomeExecution.Float(nextFault)
-            + ";status=" + InfrastructureStatus.None;
-        if (!InfrastructureCommandOutcomeExecution.TryPrepare(
+        var beforeValue = new IndustrialStateData { maintenance = state.Maintenance, fault = state.Fault, status = state.Status.Code };
+        var afterValue = new IndustrialStateData { maintenance = nextMaintenance, fault = nextFault, status = InfrastructureStatusCode.None };
+        if (!InfrastructureFactExecution.TryPrepare(
                 commandOutcomes,
-                InfrastructureCommandOutcomeKind.AutomationMaintained,
+                IndustrialTransitionKind.AutomationMaintained,
                 facilityId,
                 facility,
                 beforeValue,
                 afterValue,
-                out IPreparedInfrastructureCommandOutcome prepared,
+                out IDomainFactStage prepared,
                 out InfrastructureCommandResult failure))
         {
             return failure;
@@ -368,19 +365,19 @@ internal sealed class AutomationRuntime :
             stateSession.CaptureMutation();
         state.ApplyMaintenance(applied);
         Touch();
-        InfrastructureCommandOutcomeCommitResult commit =
+        DomainFactDelivery commit =
             commandOutcomes.CommitReversible(prepared);
-        if (!commit.DurablyCommitted)
+        if (commit.Phase == DomainFactDeliveryPhase.Rejected)
         {
             stateSession.RestoreMutation(before);
             ResetProjectionAfterRestore();
-            return InfrastructureCommandOutcomeExecution.CommitFailure(commit);
         }
-        return InfrastructureCommandResult.Success();
+        return commit.Completed ? InfrastructureCommandResult.Success() : InfrastructureFactExecution.CommitFailure(commit);
     }
 
     public float GetWorkSpeedMultiplier(BuildableObject facility)
     {
+        commandOutcomes?.AssertIdle();
         if (!TryResolve(
                 facility,
                 out string facilityId,
@@ -403,6 +400,7 @@ internal sealed class AutomationRuntime :
 
     public DungeonAutomationSaveData Capture()
     {
+        commandOutcomes?.AssertIdle();
         EnsureFacilities();
         return stateSession.Capture();
     }
@@ -410,6 +408,7 @@ internal sealed class AutomationRuntime :
     public AutomationRestoreCandidate PrepareRestore(
         DungeonAutomationSaveData snapshot)
     {
+        commandOutcomes?.AssertIdle();
         IndustrialInfrastructureSaveValidation.RequireValid(snapshot);
         return AutomationStateSession.CreateRestoreCandidate(
             snapshot?.facilities);
@@ -417,6 +416,7 @@ internal sealed class AutomationRuntime :
 
     public void Restore(AutomationRestoreCandidate candidate)
     {
+        commandOutcomes?.AssertIdle();
         if (candidate == null)
         {
             throw new ArgumentNullException(nameof(candidate));
@@ -471,13 +471,51 @@ internal sealed class AutomationRuntime :
                 0f,
                 100f);
         }
+        if (fault >= 100f
+            && state.Status.Code
+                != InfrastructureStatusCode.MaintenanceRequired)
+        {
+            var beforeValue = new IndustrialStateData { maintenance = state.Maintenance, fault = state.Fault, status = state.Status.Code };
+            var afterValue = new IndustrialStateData { maintenance = maintenance, fault = fault, status = InfrastructureStatusCode.MaintenanceRequired };
+            if (!InfrastructureFactExecution.TryPrepare(
+                    commandOutcomes,
+                    IndustrialTransitionKind
+                        .AutomationMaintenanceRequiredEntered,
+                    facilityId,
+                    facility,
+                    beforeValue,
+                    afterValue,
+                    out IDomainFactStage prepared,
+                    out _,
+                    new IndustrialTransitionDetails { continuousWear = true }))
+            {
+                return;
+            }
+
+            AutomationInfrastructureMutationToken before =
+                stateSession.CaptureMutation();
+            state.SetCondition(maintenance, fault);
+            state.SetStatus(new InfrastructureStatus(
+                InfrastructureStatusCode.MaintenanceRequired,
+                fault.ToString("R", System.Globalization.CultureInfo.InvariantCulture)));
+            Touch();
+            DomainFactDelivery commit =
+                commandOutcomes.CommitReversible(prepared);
+            if (commit.Phase == DomainFactDeliveryPhase.Rejected)
+            {
+                stateSession.RestoreMutation(before);
+                ResetProjectionAfterRestore();
+            }
+            return;
+        }
+
         state.SetCondition(maintenance, fault);
 
         if (state.Fault >= 100f)
         {
             state.SetStatus(new InfrastructureStatus(
                 InfrastructureStatusCode.MaintenanceRequired,
-                state.Fault.ToString("0.###")));
+                state.Fault.ToString("R", System.Globalization.CultureInfo.InvariantCulture)));
             return;
         }
 

@@ -1,14 +1,6 @@
 using System;
 using DungeonStory.Narrative.Korean;
 
-public enum CaptiveEscapeOutcomeKind
-{
-    PhysicalEscape = 1,
-    ArrivalCustodyLoss = 2,
-    FalseComplianceBetrayal = 3,
-    MinionControlBreak = 4
-}
-
 public static class CaptiveEscapeOutcomeIds
 {
     public const string ProducerId = "captivity.captive-escape";
@@ -41,36 +33,19 @@ public static class CaptiveEscapeOutcomeIds
             ownerRevision,
             0);
 
-    public static string KindId(CaptiveEscapeOutcomeKind kind) => kind switch
+    public static string KindId(CaptiveEscapeKind kind) => kind switch
     {
-        CaptiveEscapeOutcomeKind.PhysicalEscape => "physical-escape",
-        CaptiveEscapeOutcomeKind.ArrivalCustodyLoss => "arrival-custody-loss",
-        CaptiveEscapeOutcomeKind.FalseComplianceBetrayal =>
+        CaptiveEscapeKind.PhysicalEscape => "physical-escape",
+        CaptiveEscapeKind.ArrivalCustodyLoss => "arrival-custody-loss",
+        CaptiveEscapeKind.FalseComplianceBetrayal =>
             "false-compliance-betrayal",
-        CaptiveEscapeOutcomeKind.MinionControlBreak => "minion-control-break",
+        CaptiveEscapeKind.MinionControlBreak => "minion-control-break",
         _ => throw new ArgumentOutOfRangeException(nameof(kind))
     };
 
-    public static bool IsBetrayal(CaptiveEscapeOutcomeKind kind) =>
-        kind is CaptiveEscapeOutcomeKind.FalseComplianceBetrayal
-            or CaptiveEscapeOutcomeKind.MinionControlBreak;
-
-    public static bool IsPreviousStatusValid(
-        CaptiveEscapeOutcomeKind kind,
-        CaptivityStatus status) => kind switch
-        {
-            CaptiveEscapeOutcomeKind.PhysicalEscape =>
-                status == CaptivityStatus.EscapeAttempt,
-            CaptiveEscapeOutcomeKind.ArrivalCustodyLoss =>
-                status == CaptivityStatus.AwaitingCapture,
-            CaptiveEscapeOutcomeKind.FalseComplianceBetrayal =>
-                status is CaptivityStatus.Confined
-                    or CaptivityStatus.Labor
-                    or CaptivityStatus.Performer,
-            CaptiveEscapeOutcomeKind.MinionControlBreak =>
-                status == CaptivityStatus.Minion,
-            _ => false
-        };
+    public static bool IsBetrayal(CaptiveEscapeKind kind) => CaptiveEscapedFact.IsBetrayal(kind);
+    public static bool IsPreviousStatusValid(CaptiveEscapeKind kind, CaptivityStatus status) =>
+        CaptiveEscapedFact.IsPreviousStatusValid(kind, status);
 }
 
 public readonly struct CaptiveEscapeOutcomeReceipt
@@ -78,7 +53,7 @@ public readonly struct CaptiveEscapeOutcomeReceipt
     public CaptiveEscapeOutcomeReceipt(
         string captiveId,
         KoreanNameSnapshot captiveName,
-        CaptiveEscapeOutcomeKind kind,
+        CaptiveEscapeKind kind,
         string trigger,
         bool betrayal,
         CaptivityStatus previousStatus,
@@ -134,7 +109,7 @@ public readonly struct CaptiveEscapeOutcomeReceipt
 
     public CharacterId CaptiveId { get; }
     public KoreanNameSnapshot CaptiveName { get; }
-    public CaptiveEscapeOutcomeKind Kind { get; }
+    public CaptiveEscapeKind Kind { get; }
     public string Trigger { get; }
     public bool Betrayal { get; }
     public CaptivityStatus PreviousStatus { get; }
@@ -246,12 +221,12 @@ public sealed class CaptiveEscapeOutcomeAdapter :
                 "captive-escape-write-failed");
     }
 
-    internal static float Salience(CaptiveEscapeOutcomeKind kind) => kind switch
+    internal static float Salience(CaptiveEscapeKind kind) => kind switch
     {
-        CaptiveEscapeOutcomeKind.PhysicalEscape => 0.9f,
-        CaptiveEscapeOutcomeKind.ArrivalCustodyLoss => 0.84f,
-        CaptiveEscapeOutcomeKind.FalseComplianceBetrayal => 0.94f,
-        CaptiveEscapeOutcomeKind.MinionControlBreak => 0.96f,
+        CaptiveEscapeKind.PhysicalEscape => 0.9f,
+        CaptiveEscapeKind.ArrivalCustodyLoss => 0.84f,
+        CaptiveEscapeKind.FalseComplianceBetrayal => 0.94f,
+        CaptiveEscapeKind.MinionControlBreak => 0.96f,
         _ => 0f
     };
 
@@ -266,85 +241,6 @@ public sealed class CaptiveEscapeOutcomeAdapter :
         GameplayMetricUnitId unit,
         GameplayEntityId subject) => builder.AddMetric(
         new GameplayOutcomeMetric(id, value, unit, subject));
-}
-
-public readonly struct PreparedCaptiveEscapeOutcome
-{
-    public PreparedCaptiveEscapeOutcome(
-        PreparedOwnerOutcome prepared,
-        GameplayResultKey resultKey,
-        long ownerRevision,
-        bool isReplay)
-    {
-        Prepared = prepared;
-        ResultKey = resultKey;
-        OwnerRevision = ownerRevision;
-        IsReplay = isReplay;
-    }
-
-    internal PreparedOwnerOutcome Prepared { get; }
-    public GameplayResultKey ResultKey { get; }
-    public long OwnerRevision { get; }
-    public bool IsReplay { get; }
-}
-
-public interface ICaptiveEscapeOutcomeCommitter
-{
-    bool TryPrepare(
-        in CaptiveEscapeOutcomeReceipt receipt,
-        out PreparedCaptiveEscapeOutcome prepared,
-        out string failureReason);
-    OwnerOutcomeCommitResult Commit(in PreparedCaptiveEscapeOutcome prepared);
-    void Cancel(in PreparedCaptiveEscapeOutcome prepared);
-}
-
-public sealed class CaptiveEscapeGameplayOutcomeBridge :
-    ICaptiveEscapeOutcomeCommitter
-{
-    private readonly PreparedOutcomeOwnerTransaction transactions;
-
-    public CaptiveEscapeGameplayOutcomeBridge(
-        IGameplayOutcomeRecorder recorder,
-        IGameplayOutcomeDiagnosticsQuery diagnostics)
-    {
-        transactions = new PreparedOutcomeOwnerTransaction(
-            recorder ?? throw new ArgumentNullException(nameof(recorder)),
-            diagnostics ?? throw new ArgumentNullException(nameof(diagnostics)));
-    }
-
-    public bool TryPrepare(
-        in CaptiveEscapeOutcomeReceipt receipt,
-        out PreparedCaptiveEscapeOutcome prepared,
-        out string failureReason)
-    {
-        prepared = default;
-        if (!transactions.TryPrepare(
-                receipt,
-                out PreparedOwnerOutcome token,
-                out OwnerOutcomeCommitResult replay,
-                out _,
-                out failureReason))
-        {
-            return false;
-        }
-        prepared = new PreparedCaptiveEscapeOutcome(
-            token,
-            receipt.ResultKey,
-            receipt.OwnerRevision,
-            replay.DurablyCommitted);
-        return true;
-    }
-
-    public OwnerOutcomeCommitResult Commit(
-        in PreparedCaptiveEscapeOutcome prepared) => prepared.IsReplay
-        ? transactions.Reconcile(prepared.ResultKey)
-        : transactions.Commit(prepared.Prepared, prepared.OwnerRevision);
-
-    public void Cancel(in PreparedCaptiveEscapeOutcome prepared)
-    {
-        if (!prepared.IsReplay)
-            transactions.Cancel(prepared.Prepared);
-    }
 }
 
 internal sealed class CaptiveEscapeMemoryPolicy : IOutcomeMemoryPolicy
@@ -364,7 +260,7 @@ internal sealed class CaptiveEscapeMemoryPolicy : IOutcomeMemoryPolicy
         int priorMatchingCount,
         int evaluationDay)
     {
-        CaptiveEscapeOutcomeKind kind = ParseKind(Fact(
+        CaptiveEscapeKind kind = ParseKind(Fact(
             outcome,
             CaptiveEscapeOutcomeIds.KindFact));
         return new OutcomeMemoryEvaluation(
@@ -386,10 +282,10 @@ internal sealed class CaptiveEscapeMemoryPolicy : IOutcomeMemoryPolicy
         return string.Empty;
     }
 
-    internal static CaptiveEscapeOutcomeKind ParseKind(string value)
+    internal static CaptiveEscapeKind ParseKind(string value)
     {
-        foreach (CaptiveEscapeOutcomeKind kind in Enum.GetValues(
-                     typeof(CaptiveEscapeOutcomeKind)))
+        foreach (CaptiveEscapeKind kind in Enum.GetValues(
+                     typeof(CaptiveEscapeKind)))
         {
             if (string.Equals(
                     CaptiveEscapeOutcomeIds.KindId(kind),
@@ -435,7 +331,7 @@ internal sealed class CaptiveEscapePerspectiveProjector :
         GameplayOutcomeParticipant captive = outcome.ParticipantCount > 0
             ? outcome.GetParticipant(0)
             : default;
-        CaptiveEscapeOutcomeKind kind = CaptiveEscapeMemoryPolicy.ParseKind(
+        CaptiveEscapeKind kind = CaptiveEscapeMemoryPolicy.ParseKind(
             CaptiveEscapeMemoryPolicy.Fact(
                 outcome,
                 CaptiveEscapeOutcomeIds.KindFact));
@@ -448,13 +344,13 @@ internal sealed class CaptiveEscapePerspectiveProjector :
         bool neutral = subject.RequiresNeutralFrame;
         string action = kind switch
         {
-            CaptiveEscapeOutcomeKind.PhysicalEscape =>
+            CaptiveEscapeKind.PhysicalEscape =>
                 $"'{trigger}' 끝에 수용지를 탈출했다",
-            CaptiveEscapeOutcomeKind.ArrivalCustodyLoss =>
+            CaptiveEscapeKind.ArrivalCustodyLoss =>
                 $"'{trigger}' 과정에서 수용되기 전에 이탈했다",
-            CaptiveEscapeOutcomeKind.FalseComplianceBetrayal =>
+            CaptiveEscapeKind.FalseComplianceBetrayal =>
                 $"'{trigger}' 상황에서 거짓 복종을 깨고 배신했다",
-            CaptiveEscapeOutcomeKind.MinionControlBreak =>
+            CaptiveEscapeKind.MinionControlBreak =>
                 $"'{trigger}' 끝에 정착지 통제를 깨고 이탈했다",
             _ => "수용 상태에서 이탈했다"
         };
@@ -505,9 +401,15 @@ public sealed class CaptiveEscapeOutcomeDescriptor : IGameplayOutcomeDescriptor
         GameplayOutcomeParticipant participant = outcome.ParticipantCount == 1
             ? outcome.GetParticipant(0)
             : default;
-        GameplayOutcomeSubjectLink subject = outcome.SubjectCount == 1
+        GameplayOutcomeSubjectLink currentSubject = outcome.SubjectCount == 1
             ? outcome.GetSubject(0)
             : default;
+        // Prepare/replay validation precedes CaptureImmutableRows. Restored
+        // outcomes already have that frozen receipt; their current subject
+        // memory tier/salience is owned by retention, not the escape producer.
+        GameplayOutcomeSubjectLink subject = outcome.InitialSubjectCount == 1
+            ? outcome.GetInitialSubject(0)
+            : outcome.InitialSubjectCount == 0 ? currentSubject : default;
         string kindValue = CaptiveEscapeMemoryPolicy.Fact(
             outcome,
             CaptiveEscapeOutcomeIds.KindFact);
@@ -517,7 +419,7 @@ public sealed class CaptiveEscapeOutcomeDescriptor : IGameplayOutcomeDescriptor
         string previousStatusValue = CaptiveEscapeMemoryPolicy.Fact(
             outcome,
             CaptiveEscapeOutcomeIds.PreviousStatusFact);
-        CaptiveEscapeOutcomeKind kind = CaptiveEscapeMemoryPolicy.ParseKind(kindValue);
+        CaptiveEscapeKind kind = CaptiveEscapeMemoryPolicy.ParseKind(kindValue);
         bool betrayal = CaptiveEscapeOutcomeIds.IsBetrayal(kind);
         bool previousStatusParsed = Enum.TryParse(
             previousStatusValue,
@@ -541,6 +443,7 @@ public sealed class CaptiveEscapeOutcomeDescriptor : IGameplayOutcomeDescriptor
             && outcome.Status == GameplayOutcomeStatus.Succeeded
             && outcome.ParticipantCount == 1
             && outcome.SubjectCount == 1
+            && outcome.InitialSubjectCount is 0 or 1
             && outcome.MetricCount == 2
             && outcome.TagCount == (betrayal ? 2 : 1)
             && outcome.ProvenanceCount == 1
@@ -566,6 +469,7 @@ public sealed class CaptiveEscapeOutcomeDescriptor : IGameplayOutcomeDescriptor
             && GameplayOutcomeLedger.IsValidDisplayNameSnapshot(
                 participant.DisplayName)
             && subject.SubjectId.Equals(participant.EntityId)
+            && currentSubject.SubjectId.Equals(participant.EntityId)
             && Math.Abs(
                 subject.Salience - CaptiveEscapeOutcomeAdapter.Salience(kind))
                 < 0.0001f

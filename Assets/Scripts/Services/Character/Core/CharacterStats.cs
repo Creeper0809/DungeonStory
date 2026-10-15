@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using VContainer;
@@ -17,7 +18,8 @@ internal sealed class CharacterMoodDeliveryTransactionSnapshot
         float baseMood,
         float lastCalculatedMood,
         CharacterStatsMaintenanceScheduleSnapshot maintenance,
-        IReadOnlyList<CharacterMoodMemory> factors)
+        IReadOnlyList<CharacterMoodMemory> factors,
+        long restEffectRevision)
     {
         Stats = new Dictionary<CharacterCondition, float>(
             stats ?? throw new ArgumentNullException(nameof(stats)));
@@ -26,6 +28,7 @@ internal sealed class CharacterMoodDeliveryTransactionSnapshot
         BaseMood = baseMood;
         LastCalculatedMood = lastCalculatedMood;
         Maintenance = maintenance;
+        RestEffectRevision = restEffectRevision;
         Factors = (factors ?? Array.Empty<CharacterMoodMemory>())
             .Select(value => value?.DeepClone())
             .Where(value => value != null)
@@ -38,6 +41,7 @@ internal sealed class CharacterMoodDeliveryTransactionSnapshot
     public float BaseMood { get; }
     public float LastCalculatedMood { get; }
     public CharacterStatsMaintenanceScheduleSnapshot Maintenance { get; }
+    public long RestEffectRevision { get; }
     public IReadOnlyList<CharacterMoodMemory> Factors { get; }
 }
 
@@ -49,7 +53,6 @@ public class CharacterStats :
     [SerializeField, ReadOnly] private CharacterIdentity identity;
     [SerializeField, ReadOnly] private CharacterVisual visual;
     [SerializeField, ReadOnly] private CharacterLifecycle lifecycle;
-    [SerializeField, ReadOnly] private CharacterLog log;
     [SerializeField]
     private Dictionary<CharacterCondition, float> stats;
     [SerializeField, ReadOnly] private float maxHealth = 100f;
@@ -63,6 +66,7 @@ public class CharacterStats :
     private ICharacterNeedDefinitionCatalog needDefinitionCatalog;
     private IDungeonDebugRuleQuery debugRules;
     private IGameClock gameClock;
+    private IGameCalendar calendar;
     private IGameEventBus gameEventBus;
     private CharacterStatsProjectionService projectionService;
     private CharacterNeedStateService needStateService;
@@ -72,7 +76,20 @@ public class CharacterStats :
     private ICharacterPerformanceQuery performance;
     private CharacterWorkPerformanceContextResolver workPerformanceContext;
     private ICombatEquipmentRuntime combatEquipment;
-    private IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private IDomainFactPublisher facts;
+    private IDomainFactRecoveryPublisher recovery;
+    private CharacterRestObservationSaveData pendingRest;
+    private bool restBusy;
+    private float nextRestRetry;
+    private long restEffectRevision;
+    public bool HasPendingRestObservation => pendingRest != null;
+    public bool IsRestRollbackBlocked => pendingRest?.rollbackBlocked == true;
+    public bool HasUnconfirmedRestObservation => pendingRest != null && !pendingRest.observationCommitted;
+    internal bool TryCompleteRestObservation()
+    {
+        ResumeRestObservation();
+        return !HasUnconfirmedRestObservation;
+    }
     [NonSerialized]
     private ControlledDictionary<CharacterCondition, float> controlledStats;
     public IDictionary<CharacterCondition, float> Stats
@@ -101,6 +118,7 @@ public class CharacterStats :
     public float MaxHealth => GetVitalsProjection().MaximumHealth;
     public float CurrentHealth => GetVitalsProjection().CurrentHealth;
     public float InjurySeverity => GetVitalsProjection().InjurySeverity;
+    public string LastRestOutcomeResultKey { get; private set; } = string.Empty;
     public float Mood
     {
         get
@@ -139,6 +157,7 @@ public class CharacterStats :
     [Inject]
     public void ConstructCharacterStats(
         IGameClock gameClock,
+        IGameCalendar calendar,
         ICharacterNeedDefinitionCatalog needDefinitionCatalog,
         IDungeonDebugRuleQuery debugRules,
         CharacterStatsProjectionService projectionService,
@@ -146,13 +165,15 @@ public class CharacterStats :
         CharacterMoodStateService moodStateService,
         CharacterStatsMaintenanceSchedule maintenanceSchedule,
         IGameEventBus gameEventBus,
-        IMigratedProducerOutcomeTransaction outcomeTransactions,
+        IDomainFactPublisher facts,
+        IDomainFactRecoveryPublisher recovery,
         ICharacterPerformanceQuery performance = null,
         CharacterWorkPerformanceContextResolver workPerformanceContext = null,
         ICombatEquipmentRuntime combatEquipment = null)
     {
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.needDefinitionCatalog = needDefinitionCatalog
             ?? throw new ArgumentNullException(nameof(needDefinitionCatalog));
         this.debugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
@@ -166,8 +187,8 @@ public class CharacterStats :
             ?? throw new ArgumentNullException(nameof(maintenanceSchedule));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
         this.workPerformanceContext = workPerformanceContext
@@ -196,7 +217,6 @@ public class CharacterStats :
         identity = GetComponent<CharacterIdentity>();
         visual = GetComponent<CharacterVisual>();
         lifecycle = GetComponent<CharacterLifecycle>();
-        log = GetComponent<CharacterLog>();
         EnsureStats();
         lastCalculatedMood = float.NaN;
         if (gameClock != null)
@@ -207,6 +227,11 @@ public class CharacterStats :
 
     public void RunScheduledMaintenance(float now)
     {
+        if (pendingRest != null && now >= nextRestRetry)
+        {
+            nextRestRetry = now + 5f;
+            ResumeRestObservation();
+        }
         maintenanceSchedule.Run(
             now,
             interactionMoodFactors != null && interactionMoodFactors.Count > 0,
@@ -294,115 +319,183 @@ public class CharacterStats :
     }
 
     public void RecoverNeed(
-        CharacterCondition condition,
-        float amount,
-        CharacterNeedRecoverySource source,
-        IEnumerable<string> activeConditionIds = null)
+        CharacterCondition condition, float amount, CharacterNeedRecoverySource source,
+        IEnumerable<string> activeConditionIds = null, CharacterEventContext eventContext = null)
     {
-        float sharedMultiplier = condition == CharacterCondition.SLEEP
-            && source == CharacterNeedRecoverySource.Rest
-                ? GetDetailedStatMultiplier(
-                    "character:sleep-recovery",
-                    activeConditionIds)
-                : 1f;
-        float appliedAmount = RequireNeedStateService().ApplyRecoveryMultiplier(
-            condition,
-            amount,
-            source) * sharedMultiplier;
-        if (condition != CharacterCondition.SLEEP
-            || source != CharacterNeedRecoverySource.Rest)
+        float sharedMultiplier = condition == CharacterCondition.SLEEP && source == CharacterNeedRecoverySource.Rest
+            ? GetDetailedStatMultiplier("character:sleep-recovery", activeConditionIds) : 1f;
+        float appliedAmount = RequireNeedStateService().ApplyRecoveryMultiplier(condition, amount, source) * sharedMultiplier;
+        if (condition != CharacterCondition.SLEEP || source != CharacterNeedRecoverySource.Rest)
+        { ChangesStat(condition, appliedAmount); return; }
+        if (RequireNeedStateService().ShouldFreeze(condition, appliedAmount)) return;
+        if (restBusy) throw new InvalidOperationException("rest-recovery-reentrant");
+        // Finishing an earlier applied rest must never apply that recovery twice.
+        if (pendingRest != null)
         {
-            ChangesStat(condition, appliedAmount);
+            if (pendingRest.rollbackBlocked) Debug.LogError("rest-recovery-blocked:" + pendingRest.rollbackFailure);
+            else ResumeRestObservation();
             return;
         }
-
-        if (RequireNeedStateService().ShouldFreeze(condition, appliedAmount))
-            return;
-        if (actor == null
-            || !CharacterPersistentIdentity.TryGet(actor, out CharacterId id))
-        {
-            Debug.LogError("rest-outcome-character-identity-unavailable");
-            return;
-        }
-
-        int absoluteDay = Mathf.Max(
-            0,
-            Mathf.FloorToInt(
-                gameClock.Time / GameCalendarRules.SecondsPerDay));
-        string ownerIdentity = "rest-outcome:" + id.Value;
-        if (!outcomeTransactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.RestOutcomeIdentityEvent,
-                ownerIdentity,
-                absoluteDay,
-                GameplayOutcomeStatus.Succeeded,
-                out PreparedMigratedProducerOutcome prepared,
-                out string reserveFailure))
-        {
-            Debug.LogError("rest-outcome-reservation-failed:" + reserveFailure);
-            return;
-        }
+        if (actor == null || !CharacterPersistentIdentity.TryGet(actor, out CharacterId id))
+        { Debug.LogError("rest-outcome-character-identity-unavailable"); return; }
 
         EnsureStats();
         SynchronizeExternalMoodOverride();
-        CharacterMoodDeliveryTransactionSnapshot rollback =
-            CaptureMoodDeliveryTransactionState();
-        float previousValue = GetConditionValue(condition, 0f);
-        ApplyStatDeltaWithoutPublishing(condition, appliedAmount);
-        RecalculateMood(
-            notify: false,
-            forceNotify: false,
-            adoptExternalOverride: false);
-        float currentValue = GetConditionValue(condition, previousValue);
-        List<string> conditions = SnapshotConditionIds(activeConditionIds);
-        MigratedProducerOutcomeCommitResult committed;
-        try
+        float before = GetConditionValue(condition, 0f);
+        if (restEffectRevision == long.MaxValue)
+            throw new InvalidOperationException("rest-effect-revision-exhausted");
+        float projectedAfter = Mathf.Clamp(before + appliedAmount, 0f, GetConditionMaximum(condition));
+        if (Mathf.Approximately(before, projectedAfter)) projectedAfter = before;
+        var data = new CharacterRestAppliedFactData
         {
-            committed = outcomeTransactions.CommitSingleSubject(
-                prepared,
-                new MigratedProducerOutcomeSubject(
-                    MigratedProducerOutcomeIds.CharacterKind,
-                    id.Value,
-                    identity?.DisplayName ?? actor.BuildingDisplayName,
-                    MigratedProducerOutcomeIds.ActorRole),
-                $"수면 수치가 {previousValue:0.##}에서 {currentValue:0.##}로 회복됐다.");
-        }
-        catch
-        {
-            outcomeTransactions.Cancel(prepared);
-            RestoreMoodDeliveryTransactionState(rollback);
-            throw;
-        }
-        if (!committed.DurablyCommitted)
-        {
-            RestoreMoodDeliveryTransactionState(rollback);
-            Debug.LogError("rest-outcome-commit-failed:" + committed.DetailCode);
-            return;
-        }
+            characterId = id.Value, displayName = identity?.DisplayName ?? actor.BuildingDisplayName,
+            before = before, after = projectedAfter,
+            absoluteDay = calendar.Day, activeConditions = SnapshotConditionIds(activeConditionIds),
+            context = eventContext?.Clone()
+        };
+        var fact = new CharacterRestAppliedFact(data);
+        if (!facts.TryReserve(fact, out DomainFactLease lease, out string failure))
+        { Debug.LogError("rest-observation-reservation-failed:" + failure); return; }
 
+        CharacterMoodDeliveryTransactionSnapshot rollback;
+        CharacterRestObservationSaveData row;
         try
         {
-            PublishStatsChanged(includeMood: true);
+            rollback = CaptureMoodDeliveryTransactionState();
+            row = new CharacterRestObservationSaveData { fact = fact.Snapshot(), publicationKey = lease.PublicationKey };
+            row.Validate(id.Value);
         }
-        catch (Exception exception)
-        {
-            Debug.LogError("rest-outcome-stats-observer-failed:"
-                + exception.GetType().Name);
-        }
+        catch { facts.Cancel(lease); throw; }
+        restBusy = true;
         try
         {
-            gameEventBus.Publish(new RestOutcomeIdentityEvent(
-                id,
-                previousValue,
-                currentValue,
-                conditions,
-                absoluteDay));
+            try
+            {
+                ApplyStatDeltaWithoutPublishing(condition, appliedAmount, publishConsequences: false);
+                RecalculateMood(notify: false, forceNotify: false, adoptExternalOverride: false);
+                if (GetConditionValue(condition, before) != data.after)
+                    throw new InvalidOperationException("rest-applied-value-conflict");
+            }
+            catch
+            {
+                pendingRest = row;
+                RollbackRejectedRest(row, rollback, "rest-effect-application-failed");
+                throw;
+            }
+            // Save the applied fact before crossing the uncertain publication boundary.
+            pendingRest = row;
+            restEffectRevision = checked(restEffectRevision + 1);
+            DomainFactDelivery result;
+            try { result = facts.Publish(lease, fact); }
+            catch (Exception exception) when (RestRecoverable(exception))
+            {
+                result = DomainFactDelivery.Uncertain("rest-publication-response-unknown:" + exception.GetType().Name);
+                Debug.LogError(result.Detail);
+            }
+            if (!result.MayBeCommitted)
+            {
+                RollbackRejectedRest(row, rollback, result.Detail);
+                Debug.LogError("rest-observation-rejected:" + result.Detail);
+                return;
+            }
+            AcceptRestDelivery(row, result);
+            if (!row.observationCommitted)
+                Debug.LogWarning("rest-observation-unconfirmed:" + result.Detail);
+            FinishRestObservation(row);
         }
-        catch (Exception exception)
+        finally
         {
-            Debug.LogError("rest-outcome-identity-observer-failed:"
-                + exception.GetType().Name);
+            restBusy = false;
+            if (lease.IsValid)
+            {
+                try { facts.Cancel(lease); }
+                catch (Exception exception) when (RestRecoverable(exception))
+                { Debug.LogError("rest-reservation-release-failed:" + exception.Message); }
+            }
         }
     }
+
+    public CharacterRestObservationSaveData CaptureRestObservation()
+    {
+        if (restBusy) throw new InvalidOperationException("rest-save-during-effect-or-notification");
+        pendingRest?.Validate(CharacterPersistentIdentity.Require(actor).Value);
+        return pendingRest?.Clone();
+    }
+
+    private void RollbackRejectedRest(CharacterRestObservationSaveData row,
+        CharacterMoodDeliveryTransactionSnapshot snapshot, string failure)
+    {
+        row.rollbackBlocked = true;
+        row.rollbackFailure = string.IsNullOrWhiteSpace(failure) ? "rest-known-rejection" : failure;
+        RestoreMoodDeliveryTransactionState(snapshot, publish: false, allowRestRollback: true);
+        if (ReferenceEquals(pendingRest, row)) pendingRest = null;
+    }
+
+    private void ResumeRestObservation()
+    {
+        if (restBusy || pendingRest == null || pendingRest.rollbackBlocked) return;
+        restBusy = true;
+        var row = pendingRest;
+        try
+        {
+            if (!row.deliveryCompleted)
+            {
+                var results = new DomainFactDelivery[1];
+                recovery.ReplayBatch(new[] { DomainFactReplay.Create(row.publicationKey,
+                    new CharacterRestAppliedFact(row.fact)) }, results, out string failure);
+                AcceptRestDelivery(row, results[0]);
+                if (!row.deliveryCompleted)
+                    Debug.LogWarning("rest-observation-pending:" + failure + ":" + results[0].Detail);
+            }
+            FinishRestObservation(row);
+        }
+        catch (Exception exception) when (RestRecoverable(exception))
+        { Debug.LogError("rest-observation-recovery-failed:" + exception.Message); }
+        finally { restBusy = false; }
+    }
+
+    private void AcceptRestDelivery(CharacterRestObservationSaveData row, DomainFactDelivery result)
+    {
+        if (!ReferenceEquals(pendingRest, row)) return;
+        bool committed = result.Phase is DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery;
+        if (!committed || result.OperationKey != row.publicationKey
+            || string.IsNullOrWhiteSpace(result.PublicationId)
+            || result.Fingerprint.Length != 64 || !result.Fingerprint.All(Uri.IsHexDigit)) return;
+        row.observationCommitted = true;
+        row.deliveryCompleted |= result.Completed;
+    }
+
+    private void FinishRestObservation(CharacterRestObservationSaveData row)
+    {
+        if (!ReferenceEquals(pendingRest, row) || !row.observationCommitted || row.rollbackBlocked) return;
+        LastRestOutcomeResultKey = row.publicationKey; // Opaque confirmation, never interpreted by the effect owner.
+        if (!row.notificationsAttempted)
+        {
+            row.notificationsAttempted = true;
+            void Notify(Action action, string channel)
+            {
+                try { action(); }
+                catch (Exception exception) when (RestRecoverable(exception))
+                { Debug.LogError("rest-" + channel + "-observer-failed:" + exception.Message); }
+            }
+            var data = row.fact;
+            Notify(() =>
+            {
+                RequestNeedThresholdDecision(CharacterCondition.SLEEP, data.before, data.after);
+                PublishConditionEvent(CharacterCondition.SLEEP, data.before, data.after,
+                    data.context?.occurredDay ?? 0, data.context);
+            }, "condition");
+            if (!ReferenceEquals(pendingRest, row)) return;
+            Notify(() => PublishStatsChanged(includeMood: true), "stats");
+            if (!ReferenceEquals(pendingRest, row)) return;
+            Notify(() => gameEventBus.Publish(new RestOutcomeIdentityEvent(new CharacterId(data.characterId),
+                data.before, data.after, data.activeConditions.ToArray(), data.absoluteDay)), "identity");
+        }
+        if (ReferenceEquals(pendingRest, row) && row.deliveryCompleted) pendingRest = null;
+    }
+
+    private static bool RestRecoverable(Exception exception) =>
+        exception is not OutOfMemoryException and not StackOverflowException and not AccessViolationException;
 
     private static List<string> SnapshotConditionIds(
         IEnumerable<string> activeConditionIds)
@@ -481,7 +574,9 @@ public class CharacterStats :
 
     private bool ApplyStatDeltaWithoutPublishing(
         CharacterCondition condition,
-        float value)
+        float value,
+        bool publishConsequences = true,
+        CharacterEventContext eventContext = null)
     {
         if (RequireNeedStateService().ShouldFreeze(condition, value))
         {
@@ -499,20 +594,55 @@ public class CharacterStats :
         }
 
         stats[condition] = nextValue;
+        if (!publishConsequences)
+            return true;
         RequestNeedThresholdDecision(condition, previousValue, nextValue);
-        if (actor?.Progression != null
-            && ((previousValue >= 20f && nextValue < 20f)
-                || (previousValue <= 80f && nextValue > 80f)))
-        {
-            actor.Progression.RecordNarrative(
-                CharacterNarrativeDomain.Need,
-                $"need:{condition.ToString().ToLowerInvariant()}",
-                string.Empty,
-                nextValue < 20f ? "critical" : "satisfied",
-                nextValue);
-        }
+        PublishConditionEvent(condition, previousValue, nextValue,
+            eventContext?.occurredDay ?? 0, eventContext);
 
         return true;
+    }
+
+    internal float ChangeConditionBeforeOutcomeCommit(CharacterCondition condition, float value)
+    {
+        if (condition == CharacterCondition.MOOD)
+            throw new ArgumentException("Mood must be staged through its mood policy.", nameof(condition));
+        EnsureStats();
+        SynchronizeExternalMoodOverride();
+        float previous = stats[condition];
+        ApplyStatDeltaWithoutPublishing(condition, value, publishConsequences: false);
+        RecalculateMood(notify: false, forceNotify: false, adoptExternalOverride: false);
+        return previous;
+    }
+
+    internal float RecoverEmergencyNeedBeforeOutcomeCommit(
+        CharacterCondition condition, float amount) =>
+        ChangeConditionBeforeOutcomeCommit(
+            condition,
+            RequireNeedStateService().ApplyRecoveryMultiplier(
+                condition, amount, CharacterNeedRecoverySource.Emergency));
+
+    internal void PublishCommittedConditionChange(
+        CharacterCondition condition, float previous, float next, int absoluteDay)
+    {
+        List<Exception> failures = null;
+        void Publish(Action callback)
+        {
+            try { callback(); }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                && exception is not StackOverflowException && exception is not AccessViolationException)
+            { (failures ??= new List<Exception>()).Add(exception); }
+        }
+        if (!Mathf.Approximately(previous, next))
+        {
+            Publish(() => RequestNeedThresholdDecision(condition, previous, next));
+            Publish(() => PublishConditionEvent(condition, previous, next, absoluteDay));
+        }
+        Publish(() => OnStatsInvalidated?.Invoke());
+        Publish(() => OnStatChange?.Invoke(CreateStatSnapshot()));
+        Publish(() => OnMoodChange?.Invoke(BuildMoodSnapshot(gameClock.Time)));
+        if (failures != null)
+            throw new AggregateException("Committed condition observer publication failed.", failures);
     }
 
     private void RequestNeedThresholdDecision(
@@ -559,13 +689,18 @@ public class CharacterStats :
         ApplyResolvedMoodFactor(id, label, value, durationSeconds, maxStacks);
     }
 
-    internal void ApplyResolvedMoodFactor(
+    internal bool ApplyResolvedMoodFactor(
         string id,
         string label,
         float value,
         float durationSeconds = 180f,
-        int maxStacks = 1)
+        int maxStacks = 1,
+        bool publish = true,
+        int absoluteDay = 0,
+        CharacterEventContext eventContext = null)
     {
+        if (absoluteDay < 0)
+            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
         EnsureStats();
         SynchronizeExternalMoodOverride();
         if (!RequireMoodStateService().TryApplyFactor(
@@ -577,21 +712,62 @@ public class CharacterStats :
                 maxStacks,
                 out float now))
         {
-            return;
+            return false;
         }
 
         maintenanceSchedule.DeferMoodExpiry(now);
-        RecalculateMood(notify: true, forceNotify: true, adoptExternalOverride: false);
-        if (actor?.Progression != null
-            && !id.StartsWith("skill:", StringComparison.Ordinal))
-        {
-            actor.Progression.RecordNarrative(
-                CharacterNarrativeDomain.Mood,
+        RecalculateMood(notify: false, forceNotify: false, adoptExternalOverride: false);
+        if (publish)
+            PublishCommittedMoodFactor(
                 id,
-                string.Empty,
-                value >= 0f ? "positive" : "negative",
-                value);
+                value,
+                absoluteDay,
+                eventContext);
+        return true;
+    }
+
+    // Publish only an applied mood factor. Transactional callers defer this until
+    // their outcome is durably committed; ordinary applications publish above.
+    // Record the authoritative experience before independent observer callbacks.
+    internal void PublishCommittedMoodFactor(string id, float resolvedValue, int absoluteDay,
+        CharacterEventContext eventContext = null)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+            throw new ArgumentException("Committed mood factor requires an ID.", nameof(id));
+        if (absoluteDay < 0)
+            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        List<Exception> failures = null;
+        void Publish(Action callback)
+        {
+            try { callback(); }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                && exception is not StackOverflowException && exception is not AccessViolationException)
+            { (failures ??= new List<Exception>()).Add(exception); }
         }
+        // Each post-commit channel is attempted independently. Keep all failures
+        // visible to the domain caller without undoing a durable gameplay result.
+        Publish(() => PublishAppliedMoodFact(id, resolvedValue, absoluteDay, eventContext));
+        Publish(() => OnStatsInvalidated?.Invoke());
+        Publish(() => OnStatChange?.Invoke(CreateStatSnapshot()));
+        Publish(() => OnMoodChange?.Invoke(BuildMoodSnapshot(gameClock.Time)));
+        if (failures != null)
+            throw new AggregateException("Committed mood observer publication failed.", failures);
+    }
+
+    private void PublishConditionEvent(CharacterCondition condition, float before, float after,
+        int absoluteDay = 0, CharacterEventContext context = null)
+    {
+        if (actor == null) return;
+        gameEventBus.Publish(new CharacterConditionChangedEvent(CharacterPersistentIdentity.Require(actor),
+            condition, before, after, absoluteDay, context));
+    }
+
+    private void PublishAppliedMoodFact(string id, float value, int absoluteDay = 0,
+        CharacterEventContext eventContext = null)
+    {
+        if (actor == null) return;
+        gameEventBus.Publish(new CharacterMoodFactorAppliedEvent(CharacterPersistentIdentity.Require(actor),
+            id, value, absoluteDay, eventContext));
     }
 
     public bool RemoveMoodFactor(string id)
@@ -628,14 +804,19 @@ public class CharacterStats :
             baseMood,
             lastCalculatedMood,
             maintenanceSchedule.Capture(),
-            interactionMoodFactors);
+            interactionMoodFactors,
+            restEffectRevision);
     }
 
     internal void RestoreMoodDeliveryTransactionState(
-        CharacterMoodDeliveryTransactionSnapshot snapshot)
+        CharacterMoodDeliveryTransactionSnapshot snapshot,
+        bool publish = true,
+        bool allowRestRollback = false)
     {
         if (snapshot == null)
             throw new ArgumentNullException(nameof(snapshot));
+        if (!allowRestRollback && snapshot.RestEffectRevision != restEffectRevision)
+            throw new InvalidOperationException("stat-rollback-would-undo-applied-rest");
         stats = new Dictionary<CharacterCondition, float>(snapshot.Stats);
         baseMood = Mathf.Clamp(snapshot.BaseMood, 0f, 100f);
         interactionMoodFactors = snapshot.Factors
@@ -652,7 +833,8 @@ public class CharacterStats :
             snapshot.InjurySeverity);
         lastCalculatedMood = snapshot.LastCalculatedMood;
         maintenanceSchedule.Restore(snapshot.Maintenance);
-        PublishStatsChanged(includeMood: true);
+        restEffectRevision = snapshot.RestEffectRevision;
+        if (publish) PublishStatsChanged(includeMood: true);
     }
 
     public float GetMoveSpeed()
@@ -913,7 +1095,7 @@ public class CharacterStats :
     {
         RequireVitalsService().NotifyDamage(
             this,
-            log,
+            actor,
             amount,
             reason,
             died,
@@ -934,7 +1116,7 @@ public class CharacterStats :
 
     internal void NotifyAggregateHealing(float amount)
     {
-        RequireVitalsService().NotifyHealing(this, log, amount);
+        RequireVitalsService().NotifyHealing(this, actor, amount);
     }
 
     private ICharacterPerformanceQuery RequirePerformance() => performance
@@ -950,7 +1132,7 @@ public class CharacterStats :
     internal void NotifyAggregateInjurySeverity(float value)
     {
         injurySeverity = RequireVitalsService().NotifyInjurySeverity(
-            log,
+            actor,
             value);
     }
 
@@ -962,7 +1144,8 @@ public class CharacterStats :
 
     internal void NotifyAggregateDeath(
         CharacterDeathCauseCode cause,
-        string reasonCode)
+        string reasonCode,
+        string parentPublicationKey = "")
     {
         RequireVitalsService().NotifyDeath(
             this,
@@ -970,9 +1153,9 @@ public class CharacterStats :
             identity,
             visual,
             lifecycle,
-            log,
             cause,
-            reasonCode);
+            reasonCode,
+            parentPublicationKey);
     }
 
     public void RecalculateVitals(bool resetCurrentHealth)
@@ -1004,8 +1187,15 @@ public class CharacterStats :
         float savedCurrentHealth,
         float savedInjurySeverity,
         float savedBaseMood,
-        IReadOnlyList<CharacterMoodFactorSnapshot> savedInteractionMoodFactors)
+        IReadOnlyList<CharacterMoodFactorSnapshot> savedInteractionMoodFactors,
+        CharacterRestObservationSaveData savedRestObservation = null)
     {
+        if (restBusy) throw new InvalidOperationException("rest-restore-during-effect-or-notification");
+        savedRestObservation?.Validate(CharacterPersistentIdentity.Require(actor).Value);
+        restEffectRevision = checked(restEffectRevision + 1);
+        pendingRest = savedRestObservation?.Clone();
+        LastRestOutcomeResultKey = string.Empty;
+        nextRestRetry = 0f;
         stats = savedStats != null
             ? new Dictionary<CharacterCondition, float>(savedStats)
             : new Dictionary<CharacterCondition, float>();

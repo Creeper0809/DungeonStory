@@ -24,6 +24,29 @@ public sealed class FluidNodeState
     public InfrastructureStatus TransferStatus;
     public bool FrozenPipeLatched;
     public string FrozenPipeOccurrenceInstanceId = string.Empty;
+    public int NextAutonomousOutcomeSequence = 1;
+    public readonly List<FluidAutonomousOutcomeState>
+        PendingAutonomousOutcomes = new List<FluidAutonomousOutcomeState>();
+    public float LeakEpisodeStartCleanWater;
+    public float LeakEpisodeStartUnsafeWater;
+    public float LeakEpisodeStartFoulWater;
+    public float LeakEpisodeCleanLoss;
+    public float LeakEpisodeUnsafeLoss;
+    public float LeakEpisodeFoulLoss;
+    public float LeakEpisodeFilthAmount;
+    public readonly List<string> LeakEpisodeFilthIds = new List<string>();
+}
+
+public sealed class FluidAutonomousOutcomeState
+{
+    public int Sequence;
+    public IndustrialTransitionFactData Fact;
+
+    public FluidAutonomousOutcomeState DeepClone() => new()
+    {
+        Sequence = Sequence,
+        Fact = Fact?.Clone()
+    };
 }
 
 public sealed class ContainerWaterFeedState

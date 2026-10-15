@@ -67,7 +67,12 @@ public static class ClimateDurableEquipmentDebugScenarios
         Fixture fixture = new();
         ClimateDurableEquipmentRuntime runtime = fixture.CreateRuntime();
 
-        Require(runtime.TryMaintain(TowerId, TowerPosition, true),
+        Require(runtime.TryMaintain(
+                TowerId,
+                TowerPosition,
+                true,
+                out DurableFacilityEquipmentUseResult almanacUse,
+                out DurableFacilityEquipmentUseResult kitUse),
             "The paired climate observation wear did not commit.");
         Require(fixture.Use.Calls.Count == 2,
             "Climate observation did not wear exactly two requirements.");
@@ -82,8 +87,14 @@ public static class ClimateDurableEquipmentDebugScenarios
                 ClimateDurableEquipmentPolicySource.ObservationKitRequirementId
             && Math.Abs(kit.Wear
                 - ClimateDurableEquipmentRuntime.ObservationKitWearPerObservationDay)
-                <= 0.000001d,
-            "Climate observation wear order or amount drifted.");
+                <= 0.000001d
+            && almanacUse.CommittedContext != null
+            && kitUse.CommittedContext != null
+            && almanacUse.CommittedContext.Before.ItemId.Equals(
+                (ItemDefinitionId)DurableToolItemRules.SeasonalAlmanac)
+            && kitUse.CommittedContext.Before.ItemId.Equals(
+                (ItemDefinitionId)DurableToolItemRules.WeatherObservationKit),
+            "Climate observation did not return both exact wear contexts.");
     }
 
     private static void VerifySecondToolFailureRejectsObservation()
@@ -93,8 +104,15 @@ public static class ClimateDurableEquipmentDebugScenarios
             ClimateDurableEquipmentPolicySource.ObservationKitRequirementId;
         ClimateDurableEquipmentRuntime runtime = fixture.CreateRuntime();
 
-        Require(!runtime.TryMaintain(TowerId, TowerPosition, true)
-            && fixture.Use.Calls.Count == 2,
+        Require(!runtime.TryMaintain(
+                TowerId,
+                TowerPosition,
+                true,
+                out DurableFacilityEquipmentUseResult almanacUse,
+                out DurableFacilityEquipmentUseResult kitUse)
+            && fixture.Use.Calls.Count == 2
+            && almanacUse.CommittedContext == null
+            && kitUse.CommittedContext == null,
             "A failed observation-kit wear was reported as a completed pair.");
     }
 
@@ -436,7 +454,8 @@ public static class ClimateDurableEquipmentDebugScenarios
                 DurableFacilityEquipmentUseStatus.Applied,
                 slot,
                 before.StackId,
-                string.Empty);
+                string.Empty,
+                committedContext: context);
         }
 
         private static DurableFacilityEquipmentUseResult Failure(

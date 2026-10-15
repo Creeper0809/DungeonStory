@@ -96,7 +96,8 @@ public sealed class CharacterCombatCommandCollaborators
         CombatFallbackWeaponSelector fallbackWeapons,
         CombatCommandResultApplier resultApplier,
         CombatCommandParticipantQuery participants,
-        ICharacterCombatUiTextQuery uiText)
+        ICharacterCombatUiTextQuery uiText,
+        ICombatCommandProjectilePresentation projectiles)
     {
         AttackPositionPlanner = attackPositionPlanner
             ?? throw new ArgumentNullException(nameof(attackPositionPlanner));
@@ -107,6 +108,7 @@ public sealed class CharacterCombatCommandCollaborators
         Participants = participants
             ?? throw new ArgumentNullException(nameof(participants));
         UiText = uiText ?? throw new ArgumentNullException(nameof(uiText));
+        Projectiles = projectiles ?? throw new ArgumentNullException(nameof(projectiles));
     }
 
     public CombatAttackPositionPlanner AttackPositionPlanner { get; }
@@ -114,4 +116,5 @@ public sealed class CharacterCombatCommandCollaborators
     public CombatCommandResultApplier ResultApplier { get; }
     public CombatCommandParticipantQuery Participants { get; }
     public ICharacterCombatUiTextQuery UiText { get; }
+    public ICombatCommandProjectilePresentation Projectiles { get; }
 }

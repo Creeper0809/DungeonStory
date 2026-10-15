@@ -41,4 +41,8 @@ public sealed class ScheduledInvasionOperationState
     public string objectiveId = string.Empty;
     public int scheduledDay;
     public float intelligenceConfidence;
+    public string sourceOwnerId = string.Empty;
+    public int sourceAbsoluteDay;
+    public string startedInvasionRuntimeId = string.Empty;
+    public string startedPublicationKey = string.Empty;
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -12,8 +13,8 @@ internal sealed class WasteProcessingAggregateState
         new();
     internal int Version { get; set; }
     internal float NextTickAt { get; set; }
-    internal long NextOutcomeSequence { get; set; } = 1L;
-    internal WastePolicyOutcomeCommitSaveData PendingPolicyOutcome { get; set; }
+    internal long NextPolicySequence { get; set; } = 1L;
+    internal WastePolicyObservationSaveData PendingPolicyChange { get; set; }
 }
 
 public sealed class WasteProcessingMaterialDependencies
@@ -63,7 +64,10 @@ public sealed class WasteProcessingRuntime :
     private readonly IGameClock clock;
     private readonly IWasteProcessingRules rules;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
-    private readonly IWastePolicyGameplayOutcomeParticipant outcomeParticipant;
+    private readonly IDomainFactStagingPublisher observations;
+    private readonly IDomainFactRecoveryPublisher recovery;
+    private readonly IGameCalendar calendar;
+    private bool publishingPolicyObservation;
 
     private WasteProcessingAggregateState state
     {
@@ -80,7 +84,9 @@ public sealed class WasteProcessingRuntime :
         WasteProcessingMaterialDependencies materials,
         WasteProcessingOperationDependencies operations,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
-        IWastePolicyGameplayOutcomeParticipant outcomeParticipant = null)
+        IDomainFactStagingPublisher observations = null,
+        IDomainFactRecoveryPublisher recovery = null,
+        IGameCalendar calendar = null)
     {
         materials = materials ?? throw new ArgumentNullException(nameof(materials));
         operations = operations ?? throw new ArgumentNullException(nameof(operations));
@@ -91,7 +97,9 @@ public sealed class WasteProcessingRuntime :
         rules = operations.Rules;
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
-        this.outcomeParticipant = outcomeParticipant;
+        this.observations = observations;
+        this.recovery = recovery;
+        this.calendar = calendar;
         _ = state;
     }
 
@@ -104,9 +112,9 @@ public sealed class WasteProcessingRuntime :
 
     public void Tick()
     {
-        if (outcomeParticipant != null
-            && state.PendingPolicyOutcome != null)
-            TryReconcilePendingPolicyOutcome(out _);
+        AssertObservationIdle();
+        if (state.PendingPolicyChange != null)
+            TryReconcilePendingPolicyObservation(out _);
         if (clock.IsPaused
             || clock.DeltaTime <= 0f
             || clock.Time + 0.001f < state.NextTickAt)
@@ -130,141 +138,78 @@ public sealed class WasteProcessingRuntime :
 
     public WastePolicyCommandResult SetPolicy(WastePolicyData policy)
     {
+        AssertObservationIdle();
         if (policy == null || policy.origin == WasteOriginKind.Unknown)
-        {
-            return new WastePolicyCommandResult(
-                false,
-                new DomainFailure(FailureCode.WastePolicyInvalid));
-        }
-        if (!rules.IsSupported(policy.origin, policy.disposition)
-            || !IsFinite(policy.maximumFeedContamination)
-            || policy.maximumFeedContamination < 0f
+            return new WastePolicyCommandResult(false, new DomainFailure(FailureCode.WastePolicyInvalid));
+        if (!policies.ContainsKey(policy.origin) || !rules.IsSupported(policy.origin, policy.disposition)
+            || !IsFinite(policy.maximumFeedContamination) || policy.maximumFeedContamination < 0f
             || policy.maximumFeedContamination >= rules.ToxicThreshold)
-        {
-            return new WastePolicyCommandResult(
-                false,
-                new DomainFailure(
-                    FailureCode.WastePolicyUnsupported,
-                    policy.origin.ToString(),
-                    policy.disposition.ToString()));
-        }
+            return ObservationFailure("policy-unsupported", policy.origin.ToString());
+        if (observations == null || recovery == null || calendar == null)
+            return ObservationFailure("policy-observer-not-connected", string.Empty);
 
-        if (outcomeParticipant != null
-            && !TryReconcilePendingPolicyOutcome(out string reconcileFailure))
+        var pending = state.PendingPolicyChange;
+        if (!TryReconcilePendingPolicyObservation(out string recoveryFailure))
+            return ObservationFailure("policy-observation-pending", recoveryFailure);
+        // A caller retrying the same still-pending command receives its original result.
+        if (pending != null)
         {
-            return new WastePolicyCommandResult(
-                false,
-                new DomainFailure(
-                    FailureCode.WastePolicyUnsupported,
-                    "gameplay-outcome-pending",
-                    reconcileFailure));
+            var prior = new WastePolicyChangedFact(pending.fact);
+            if (WastePolicyChangedFact.SamePolicy(prior.AfterPolicy(), policy)) return Applied(prior);
         }
-
+        long revision = state.NextPolicySequence;
+        if (revision <= 0 || revision == long.MaxValue)
+            return ObservationFailure("policy-sequence-exhausted", revision.ToString());
         WastePolicyData before = policies[policy.origin].Clone();
         WastePolicyData after = policy.Clone();
-        if (outcomeParticipant == null)
+        var fact = new WastePolicyChangedFact(new WastePolicyChangedFactData
         {
+            operationId = WastePolicyChangedFact.OperationIdFor(policy.origin, revision),
+            ownerRevision = revision, absoluteDay = Math.Max(1, calendar.Day), origin = policy.origin,
+            beforeDisposition = before.disposition, beforeEnabled = before.enabled,
+            beforeMaximumFeedContamination = before.maximumFeedContamination,
+            afterDisposition = after.disposition, afterEnabled = after.enabled,
+            afterMaximumFeedContamination = after.maximumFeedContamination
+        });
+        IDomainFactStage stage = null;
+        publishingPolicyObservation = true;
+        try
+        {
+            if (!observations.TryStage(fact, out stage, out string failure) || stage == null)
+                return ObservationFailure("policy-observation-prepare", failure);
+            if (stage.IsReplay || stage.OwnerRevision != revision
+                || !DomainFactValueSyntax.IsText(stage.OperationKey, 4096, false)
+                || stage.OperationKey != stage.OperationKey.Trim())
+                return ObservationFailure("policy-observation-owner-conflict", stage.OperationKey);
+
+            int versionBefore = state.Version;
+            state.PendingPolicyChange = new WastePolicyObservationSaveData
+            { fact = fact.Snapshot(), publicationKey = stage.OperationKey };
             policies[policy.origin] = after;
             state.Version++;
-            return new WastePolicyCommandResult(true, DomainFailure.None);
+            state.NextPolicySequence = checked(revision + 1);
+            DomainFactDelivery delivered;
+            try { delivered = stage.Commit(); }
+            catch (Exception error) when (IsRecoverable(error))
+            { delivered = DomainFactDelivery.Uncertain("policy-observation-commit-exception:" + error.Message); }
+            if (delivered.Phase == DomainFactDeliveryPhase.Rejected)
+            {
+                policies[policy.origin] = before;
+                state.Version = versionBefore;
+                state.NextPolicySequence = revision;
+                state.PendingPolicyChange = null;
+                return ObservationFailure("policy-observation-rejected", delivered.Detail);
+            }
+            if (AcceptProof(state.PendingPolicyChange, delivered))
+            {
+                if (delivered.Completed) state.PendingPolicyChange = null;
+                return Applied(fact);
+            }
+            return ObservationFailure("policy-observation-unconfirmed", delivered.Detail);
         }
-
-        long ownerRevision;
-        try
-        {
-            ownerRevision = checked(state.NextOutcomeSequence);
-            if (ownerRevision <= 0L || ownerRevision == long.MaxValue)
-                throw new OverflowException("Waste-policy outcome sequence exhausted.");
-        }
-        catch (OverflowException exception)
-        {
-            return new WastePolicyCommandResult(
-                false,
-                new DomainFailure(
-                    FailureCode.WastePolicyUnsupported,
-                    "outcome-sequence",
-                    exception.Message));
-        }
-        string operationId = "waste-policy:"
-            + (int)policy.origin
-            + ":command:"
-            + ownerRevision.ToString(
-                System.Globalization.CultureInfo.InvariantCulture);
-        WastePolicyGameplayOutcomePreview preview = new(
-            operationId,
-            ownerRevision,
-            policy.origin,
-            before.disposition,
-            before.enabled,
-            before.maximumFeedContamination,
-            after.disposition,
-            after.enabled,
-            after.maximumFeedContamination,
-            FormatWasteOrigin(policy.origin) + " 정책");
-        if (!outcomeParticipant.TryPrepare(
-                preview,
-                out IPreparedWastePolicyGameplayOutcome prepared,
-                out string prepareFailure)
-            || prepared == null
-            || !prepared.ResultKey.IsValid)
-        {
-            prepared?.Cancel();
-            return new WastePolicyCommandResult(
-                false,
-                new DomainFailure(
-                    FailureCode.WastePolicyUnsupported,
-                    "gameplay-outcome-prepare",
-                    prepareFailure));
-        }
-
-        state.PendingPolicyOutcome = CreatePending(preview, prepared.ResultKey);
-        policies[policy.origin] = after;
-        state.Version++;
-        state.NextOutcomeSequence = checked(ownerRevision + 1L);
-
-        bool commitSucceeded;
-        bool canonicalCommitted = false;
-        WastePolicyOutcomeAttachment attachment = default;
-        string commitFailure = string.Empty;
-        try
-        {
-            commitSucceeded = prepared.TryCommit(
-                ownerRevision,
-                out attachment,
-                out canonicalCommitted,
-                out commitFailure);
-        }
-        catch (Exception exception) when (IsRecoverable(exception))
-        {
-            commitSucceeded = false;
-            commitFailure = "waste-policy-outcome-commit-exception:"
-                + exception.Message;
-        }
-        if (!canonicalCommitted)
-        {
-            prepared.Cancel();
-            policies[policy.origin] = before;
-            state.Version--;
-            state.NextOutcomeSequence = ownerRevision;
-            state.PendingPolicyOutcome = null;
-            return new WastePolicyCommandResult(
-                false,
-                new DomainFailure(
-                    FailureCode.WastePolicyUnsupported,
-                    "gameplay-outcome-commit",
-                    commitFailure));
-        }
-
-        PersistCanonicalAttachment(attachment);
-        if (attachment.AcknowledgementProven)
-            state.PendingPolicyOutcome = null;
-        return new WastePolicyCommandResult(
-            true,
-            DomainFailure.None,
-            operationId,
-            ownerRevision,
-            before,
-            after);
+        catch (Exception error) when (IsRecoverable(error))
+        { return ObservationFailure("policy-observation-failed", error.Message); }
+        finally { try { stage?.Cancel(); } finally { publishingPolicyObservation = false; } }
     }
 
     public WasteProcessingOverview CaptureOverview()
@@ -423,26 +368,27 @@ public sealed class WasteProcessingRuntime :
 
     public DungeonWasteProcessingSaveData Capture()
     {
+        AssertObservationIdle();
         return new DungeonWasteProcessingSaveData
         {
             policies = Policies.Select(policy => policy.Clone()).ToList(),
-            nextOutcomeSequence = state.NextOutcomeSequence,
-            pendingPolicyOutcome = state.PendingPolicyOutcome?.Clone()
+            nextPolicySequence = state.NextPolicySequence,
+            pendingPolicyChanges = state.PendingPolicyChange == null ? new()
+                : new() { state.PendingPolicyChange.Clone() }
         };
     }
 
     public WasteProcessingRestoreCandidate BuildRestore(
         DungeonWasteProcessingSaveData saveData)
     {
+        AssertObservationIdle();
         ValidateSaveData(saveData);
-        WastePolicyOutcomeCommitSaveData pendingPolicyOutcome =
-            NormalizePendingPolicyOutcome(saveData.pendingPolicyOutcome);
         WasteProcessingAggregateState restored = new()
         {
             Version = state.Version + 1,
             NextTickAt = clock.Time + rules.TickIntervalSeconds,
-            NextOutcomeSequence = saveData.nextOutcomeSequence,
-            PendingPolicyOutcome = pendingPolicyOutcome?.Clone()
+            NextPolicySequence = saveData.nextPolicySequence,
+            PendingPolicyChange = saveData.pendingPolicyChanges.SingleOrDefault()?.Clone()
         };
         foreach (WastePolicyData policy in saveData.policies)
         {
@@ -453,6 +399,7 @@ public sealed class WasteProcessingRuntime :
 
     public void Restore(WasteProcessingRestoreCandidate candidate)
     {
+        AssertObservationIdle();
         state = (candidate
             ?? throw new ArgumentNullException(nameof(candidate))).State;
     }
@@ -537,7 +484,7 @@ public sealed class WasteProcessingRuntime :
         {
             Version = version,
             NextTickAt = nextTickAt,
-            NextOutcomeSequence = 1L
+            NextPolicySequence = 1L
         };
         foreach (WasteOriginKind origin in rules.Origins)
         {
@@ -568,21 +515,21 @@ public sealed class WasteProcessingRuntime :
                 + $"actual={saveData.policies?.Count ?? -1}; "
                 + $"expected={rules.Origins.Count}.");
         }
-        if (saveData.nextOutcomeSequence <= 0L)
+        if (saveData.nextPolicySequence <= 0L || saveData.pendingPolicyChanges == null
+            || saveData.pendingPolicyChanges.Count > 1)
+            throw new InvalidOperationException("Waste-processing policy observation sequence/list is invalid.");
+        foreach (var pending in saveData.pendingPolicyChanges)
         {
-            throw new InvalidOperationException(
-                "Waste-processing next outcome sequence must be positive: "
-                + saveData.nextOutcomeSequence + ".");
-        }
-        WastePolicyOutcomeCommitSaveData pendingPolicyOutcome =
-            NormalizePendingPolicyOutcome(saveData.pendingPolicyOutcome);
-        if (!IsValidPendingPolicyOutcome(
-                pendingPolicyOutcome,
-                saveData.nextOutcomeSequence))
-        {
-            throw new InvalidOperationException(
-                "Waste-processing pending policy outcome is invalid for next sequence "
-                + saveData.nextOutcomeSequence + ".");
+            if (pending == null) throw new InvalidOperationException("Waste-policy pending fact is null.");
+            pending.Validate(saveData.nextPolicySequence);
+            var fact = new WastePolicyChangedFact(pending.fact);
+            if (!rules.IsSupported(fact.Origin, fact.BeforeDisposition)
+                || !rules.IsSupported(fact.Origin, fact.AfterDisposition)
+                || fact.BeforeMaximumFeedContamination >= rules.ToxicThreshold
+                || fact.AfterMaximumFeedContamination >= rules.ToxicThreshold
+                || !WastePolicyChangedFact.SamePolicy(fact.AfterPolicy(),
+                    saveData.policies.SingleOrDefault(policy => policy?.origin == fact.Origin)))
+                throw new InvalidOperationException("Waste-policy pending fact conflicts with its applied owner.");
         }
         WasteOriginKind[] expected = rules.Origins.OrderBy(origin => origin).ToArray();
         for (int index = 0; index < expected.Length; index++)
@@ -610,236 +557,55 @@ public sealed class WasteProcessingRuntime :
     private static int Manhattan(Vector2Int left, Vector2Int right) =>
         Mathf.Abs(left.x - right.x) + Mathf.Abs(left.y - right.y);
 
-    private bool TryReconcilePendingPolicyOutcome(out string failureReason)
+    private bool TryReconcilePendingPolicyObservation(out string failure)
     {
-        failureReason = string.Empty;
-        WastePolicyOutcomeCommitSaveData pending = state.PendingPolicyOutcome;
-        if (pending == null)
-            return true;
-        WastePolicyGameplayOutcomePreview preview = PreviewFromPending(pending);
-        if (!outcomeParticipant.TryPrepare(
-                preview,
-                out IPreparedWastePolicyGameplayOutcome prepared,
-                out failureReason)
-            || prepared == null
-            || !prepared.ResultKey.Equals(ExpectedResultKey(pending)))
-        {
-            prepared?.Cancel();
-            return false;
-        }
-        bool commitSucceeded;
-        bool canonicalCommitted = false;
-        WastePolicyOutcomeAttachment attachment = default;
+        AssertObservationIdle();
+        failure = string.Empty;
+        var pending = state.PendingPolicyChange;
+        if (pending == null) return true;
+        if (recovery == null) { failure = "policy-observer-not-connected"; return false; }
+        publishingPolicyObservation = true;
         try
         {
-            commitSucceeded = prepared.TryCommit(
-                pending.ownerRevision,
-                out attachment,
-                out canonicalCommitted,
-                out failureReason);
-        }
-        catch (Exception exception) when (IsRecoverable(exception))
-        {
-            failureReason = "waste-policy-outcome-reconcile-exception:"
-                + exception.Message;
-            return false;
-        }
-        if (!canonicalCommitted)
-            return false;
-        PersistCanonicalAttachment(attachment);
-        if (attachment.AcknowledgementProven)
-            state.PendingPolicyOutcome = null;
-        return commitSucceeded && state.PendingPolicyOutcome == null;
-    }
-
-    private void PersistCanonicalAttachment(
-        in WastePolicyOutcomeAttachment attachment)
-    {
-        WastePolicyOutcomeCommitSaveData pending = state.PendingPolicyOutcome;
-        if (pending == null || !attachment.IsValid)
-            return;
-        WastePolicyOutcomeKey expected = ExpectedResultKey(pending);
-        if (!attachment.ResultKey.Equals(expected))
-            throw new InvalidOperationException(
-                "Waste-policy gameplay outcome identity does not match its pending owner row.");
-        pending.phase = (int)(attachment.AcknowledgementProven
-            ? WastePolicyOutcomeCommitPhase.PublishedAcknowledged
-            : WastePolicyOutcomeCommitPhase.CanonicalOutcomeCommitted);
-        pending.gameplayOutcome = new WastePolicyGameplayOutcomeAttachmentSaveData
-        {
-            producerId = attachment.ResultKey.ProducerId,
-            operationId = attachment.ResultKey.OperationId,
-            commitRevision = attachment.ResultKey.CommitRevision,
-            localResultIndex = attachment.ResultKey.LocalResultIndex,
-            outcomeRunId = attachment.OutcomeRunId,
-            outcomeSequence = attachment.OutcomeSequence,
-            replayState = attachment.ReplayState,
-            canonicalPayloadHash = attachment.CanonicalPayloadHash
-        };
-    }
-
-    private static WastePolicyOutcomeCommitSaveData CreatePending(
-        in WastePolicyGameplayOutcomePreview preview,
-        WastePolicyOutcomeKey expected)
-    {
-        return new WastePolicyOutcomeCommitSaveData
-        {
-            phase = (int)WastePolicyOutcomeCommitPhase.DomainCommitted,
-            operationId = preview.OperationId,
-            ownerRevision = preview.OwnerRevision,
-            origin = preview.Origin,
-            beforeDisposition = preview.BeforeDisposition,
-            beforeEnabled = preview.BeforeEnabled,
-            beforeMaximumFeedContamination =
-                preview.BeforeMaximumFeedContamination,
-            afterDisposition = preview.AfterDisposition,
-            afterEnabled = preview.AfterEnabled,
-            afterMaximumFeedContamination =
-                preview.AfterMaximumFeedContamination,
-            displayName = preview.DisplayName,
-            expectedProducerId = expected.ProducerId,
-            expectedOperationId = expected.OperationId,
-            expectedCommitRevision = expected.CommitRevision,
-            expectedLocalResultIndex = expected.LocalResultIndex
-        };
-    }
-
-    private static WastePolicyGameplayOutcomePreview PreviewFromPending(
-        WastePolicyOutcomeCommitSaveData pending) => new(
-        pending.operationId,
-        pending.ownerRevision,
-        pending.origin,
-        pending.beforeDisposition,
-        pending.beforeEnabled,
-        pending.beforeMaximumFeedContamination,
-        pending.afterDisposition,
-        pending.afterEnabled,
-        pending.afterMaximumFeedContamination,
-        pending.displayName);
-
-    private static WastePolicyOutcomeKey ExpectedResultKey(
-        WastePolicyOutcomeCommitSaveData pending) => new(
-        pending.expectedProducerId,
-        pending.expectedOperationId,
-        pending.expectedCommitRevision,
-        pending.expectedLocalResultIndex);
-
-    private static bool IsValidPendingPolicyOutcome(
-        WastePolicyOutcomeCommitSaveData pending,
-        long nextOutcomeSequence)
-    {
-        if (pending == null)
+            var result = new DomainFactDelivery[1];
+            if (!recovery.ReplayBatch(new[] { DomainFactReplay.Create(pending.publicationKey,
+                    new WastePolicyChangedFact(pending.fact)) }, result, out failure)) return false;
+            if (!AcceptProof(pending, result[0]))
+            { failure = "policy-observation-unconfirmed:" + result[0].Detail; return false; }
+            if (!result[0].Completed)
+            { failure = "policy-observation-awaiting-delivery:" + result[0].Detail; return false; }
+            state.PendingPolicyChange = null;
             return true;
-        WastePolicyOutcomeCommitPhase phase =
-            (WastePolicyOutcomeCommitPhase)pending.phase;
-        if (phase is < WastePolicyOutcomeCommitPhase.DomainCommitted
-                or > WastePolicyOutcomeCommitPhase.PublishedAcknowledged
-            || pending.ownerRevision <= 0L
-            || pending.ownerRevision >= nextOutcomeSequence
-            || !IsCanonical(pending.operationId)
-            || pending.origin is < WasteOriginKind.Plant
-                or > WasteOriginKind.Forbidden
-            || !Enum.IsDefined(
-                typeof(WasteDispositionKind),
-                pending.beforeDisposition)
-            || !Enum.IsDefined(
-                typeof(WasteDispositionKind),
-                pending.afterDisposition)
-            || !IsFinite(pending.beforeMaximumFeedContamination)
-            || !IsFinite(pending.afterMaximumFeedContamination)
-            || pending.beforeMaximumFeedContamination < 0f
-            || pending.beforeMaximumFeedContamination > 100f
-            || pending.afterMaximumFeedContamination < 0f
-            || pending.afterMaximumFeedContamination > 100f
-            || string.IsNullOrWhiteSpace(pending.displayName)
-            || !string.Equals(
-                pending.displayName,
-                pending.displayName.Trim(),
-                StringComparison.Ordinal))
-            return false;
-        WastePolicyOutcomeKey expected = ExpectedResultKey(pending);
-        if (!expected.IsValid
-            || !string.Equals(
-                expected.OperationId,
-                pending.operationId,
-                StringComparison.Ordinal)
-            || expected.CommitRevision != pending.ownerRevision)
-            return false;
-        WastePolicyGameplayOutcomeAttachmentSaveData attachment =
-            pending.gameplayOutcome;
-        if (phase == WastePolicyOutcomeCommitPhase.DomainCommitted)
-            return attachment == null;
-        if (attachment == null)
-            return false;
-        WastePolicyOutcomeAttachment restoredAttachment = new(
-            new WastePolicyOutcomeKey(
-                attachment.producerId,
-                attachment.operationId,
-                attachment.commitRevision,
-                attachment.localResultIndex),
-            attachment.outcomeRunId,
-            attachment.outcomeSequence,
-            attachment.replayState,
-            attachment.replayState >= 6,
-            attachment.canonicalPayloadHash);
-        return restoredAttachment.IsValid
-            && restoredAttachment.ResultKey.Equals(expected)
-            && (phase != WastePolicyOutcomeCommitPhase.PublishedAcknowledged
-                || restoredAttachment.AcknowledgementProven);
+        }
+        catch (Exception error) when (IsRecoverable(error))
+        { failure = "policy-observation-recovery-exception:" + error.Message; return false; }
+        finally { publishingPolicyObservation = false; }
     }
 
-    private static WastePolicyOutcomeCommitSaveData
-        NormalizePendingPolicyOutcome(
-            WastePolicyOutcomeCommitSaveData pending)
+    private static bool AcceptProof(WastePolicyObservationSaveData pending, DomainFactDelivery delivery)
     {
-        if (pending == null)
-            return null;
-
-        // Unity's JsonUtility can inflate an explicitly serialized null nested
-        // reference into a field-default shell during a JSON round trip. Accept
-        // only that exact shell as the absence of an owner row; any populated
-        // phase or identity remains subject to the strict validation below.
-        bool emptyAttachment = pending.gameplayOutcome == null
-            || pending.gameplayOutcome.commitRevision == 0L
-                && pending.gameplayOutcome.localResultIndex == 0
-                && pending.gameplayOutcome.outcomeSequence == 0L
-                && pending.gameplayOutcome.replayState == 0
-                && string.IsNullOrEmpty(pending.gameplayOutcome.producerId)
-                && string.IsNullOrEmpty(pending.gameplayOutcome.operationId)
-                && string.IsNullOrEmpty(pending.gameplayOutcome.outcomeRunId)
-                && string.IsNullOrEmpty(
-                    pending.gameplayOutcome.canonicalPayloadHash);
-        bool empty = pending.phase == (int)WastePolicyOutcomeCommitPhase.None
-            && pending.ownerRevision == 0L
-            && pending.origin == WasteOriginKind.Unknown
-            && pending.beforeDisposition == default
-            && !pending.beforeEnabled
-            && pending.beforeMaximumFeedContamination == 0f
-            && pending.afterDisposition == default
-            && !pending.afterEnabled
-            && pending.afterMaximumFeedContamination == 0f
-            && pending.expectedCommitRevision == 0L
-            && pending.expectedLocalResultIndex == 0
-            && string.IsNullOrEmpty(pending.operationId)
-            && string.IsNullOrEmpty(pending.displayName)
-            && string.IsNullOrEmpty(pending.expectedProducerId)
-            && string.IsNullOrEmpty(pending.expectedOperationId)
-            && emptyAttachment;
-        return empty ? null : pending;
+        if (delivery.Phase is not (DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery)
+            || delivery.OperationKey != pending.publicationKey
+            || !DomainFactValueSyntax.IsText(delivery.PublicationId, 4096, false)
+            || delivery.PublicationId != delivery.PublicationId.Trim()
+            || !WastePolicyObservationSaveData.IsFingerprint(delivery.Fingerprint)
+            || pending.publicationId.Length > 0 && (pending.publicationId != delivery.PublicationId
+                || pending.publicationFingerprint != delivery.Fingerprint))
+            return false;
+        pending.publicationId = delivery.PublicationId;
+        pending.publicationFingerprint = delivery.Fingerprint;
+        return true;
     }
 
-    private static string FormatWasteOrigin(WasteOriginKind origin) => origin switch
+    private static WastePolicyCommandResult Applied(WastePolicyChangedFact fact) => new(true, DomainFailure.None,
+        fact.OperationId, fact.OwnerRevision, fact.BeforePolicy(), fact.AfterPolicy());
+    private static WastePolicyCommandResult ObservationFailure(string reason, string detail) => new(false,
+        new DomainFailure(FailureCode.WastePolicyUnsupported, reason, detail));
+    private void AssertObservationIdle()
     {
-        WasteOriginKind.Plant => "식물성 부패물",
-        WasteOriginKind.Animal => "동물성 부패물",
-        WasteOriginKind.Mixed => "혼합 부패물",
-        WasteOriginKind.Forbidden => "금기 부패물",
-        _ => throw new ArgumentOutOfRangeException(nameof(origin), origin, null)
-    };
-
-    private static bool IsCanonical(string value) =>
-        !string.IsNullOrWhiteSpace(value)
-        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+        if (publishingPolicyObservation)
+            throw new InvalidOperationException("waste-policy-observation-in-progress");
+    }
 
     private static bool IsRecoverable(Exception exception) =>
         exception is not OutOfMemoryException

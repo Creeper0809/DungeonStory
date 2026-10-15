@@ -700,6 +700,11 @@ public interface IWorldItemStackRuntime : IEquipmentPhysicalItemGateway
         string destinationId,
         Vector2Int destinationPosition,
         out string failureReason);
+    bool TryRestoreStackRoute(
+        WorldItemStackSnapshot original,
+        WorldItemStackState appliedState,
+        string appliedDestinationId,
+        out string failureReason);
     new bool DeleteStack(string stackId);
     new bool TrySetInstanceComponent(
         string stackId,

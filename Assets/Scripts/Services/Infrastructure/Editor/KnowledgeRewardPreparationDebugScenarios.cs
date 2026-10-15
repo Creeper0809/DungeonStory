@@ -60,7 +60,7 @@ public static class KnowledgeRewardPreparationDebugScenarios
         const string stack = "stack:knowledge-encoding";
         var source = new PhysicalItemDispositionSourceFact(stack,
             KnowledgeResidueDestinationAuthority.MemoryResidueItemId, "instance:knowledge-encoding", 1, 200,
-            new Vector2Int(4, 5), ResearchWorkOutcomeNames.Snapshot("residue", "기억 잔재"));
+            new Vector2Int(4, 5), "기억 잔재");
         var input = new PhysicalItemBatchDispositionReceipt(PhysicalItemDispositionKind.Sink, operation, reason,
             $"{(int)PhysicalItemDispositionKind.Sink}:{reason}:{stack}=1", new[] { stack }, 1, 200, 41, new[] { source });
         var key = new GameplayResultKey(KnowledgeCompletionOutcomeIds.ProducerId, new GameplayOperationId(operation), 41, 0);

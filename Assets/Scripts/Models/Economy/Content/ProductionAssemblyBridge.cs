@@ -252,7 +252,8 @@ public sealed class ProductionFacilityHandle
         ProductionFacilityProcessFluidCapacityProfile processFluidProfile = null,
         ProductionFacilityWorkstationLaneCapacityProfile
             workstationLaneProfile = null,
-        float automaticQualityScoreCeiling = 100f)
+        float automaticQualityScoreCeiling = 100f,
+        string displayName = "")
     {
         RuntimeObject = runtimeObject
             ?? throw new ArgumentNullException(nameof(runtimeObject));
@@ -284,6 +285,7 @@ public sealed class ProductionFacilityHandle
             || automaticQualityScoreCeiling < 50f || automaticQualityScoreCeiling > 100f)
             throw new ArgumentOutOfRangeException(nameof(automaticQualityScoreCeiling));
         AutomaticQualityScoreCeiling = automaticQualityScoreCeiling;
+        DisplayName = displayName ?? string.Empty;
     }
 
     public object RuntimeObject { get; }
@@ -297,6 +299,7 @@ public sealed class ProductionFacilityHandle
     public string WorkstationTag { get; }
     public int OutputBufferCycleCapacity { get; }
     public float AutomaticQualityScoreCeiling { get; }
+    public string DisplayName { get; }
     public ProductionFacilityProcessFluidCapacityProfile ProcessFluidProfile { get; }
     public ProductionFacilityWorkstationLaneCapacityProfile
         WorkstationLaneProfile { get; }
@@ -523,22 +526,23 @@ public enum ProductionWorkerAuthorityKind
 
 public sealed class ProductionWorkerHandle
 {
-    public ProductionWorkerHandle(object runtimeObject, string persistentId)
+    public ProductionWorkerHandle(object runtimeObject, string persistentId, string displayName = "")
         : this(
             runtimeObject,
             persistentId,
-            ProductionWorkerAuthorityKind.Actor)
+            ProductionWorkerAuthorityKind.Actor, displayName)
     {
     }
 
     private ProductionWorkerHandle(
         object runtimeObject,
         string persistentId,
-        ProductionWorkerAuthorityKind authorityKind)
+        ProductionWorkerAuthorityKind authorityKind, string displayName = "")
     {
         RuntimeObject = runtimeObject;
         PersistentId = persistentId?.Trim() ?? string.Empty;
         AuthorityKind = authorityKind;
+        DisplayName = displayName ?? string.Empty;
     }
 
     public static ProductionWorkerHandle AutomaticExecutor { get; } = new(
@@ -554,6 +558,7 @@ public sealed class ProductionWorkerHandle
     public object RuntimeObject { get; }
     public string PersistentId { get; }
     public ProductionWorkerAuthorityKind AuthorityKind { get; }
+    public string DisplayName { get; }
 }
 
 public enum ProductionSupportModifierKind

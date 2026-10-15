@@ -30,7 +30,12 @@ internal static class InfrastructureCommandOutcomeProducerPlayModeScenario
         IAutomationInfrastructureQuery automationQuery,
         IAutomationInfrastructureCommand automationCommands,
         IAutomationInfrastructurePersistence automationPersistence,
-        IInfrastructureCommandOutcomePersistence outcomePersistence,
+        IResourceEconomyContentCatalog productionCatalog,
+        IProductionBillOrderCommand productionOrders,
+        IProductionBillQuery productionQuery,
+        IProductionBillWorkExecution productionWork,
+        BlueprintResearchRuntime blueprintResearch,
+        IInfrastructureObservationPersistence outcomePersistence,
         IGameplayOutcomeQuery outcomeQuery,
         IWorldItemStackRuntime items,
         IItemTransferService itemTransfers,
@@ -50,6 +55,11 @@ internal static class InfrastructureCommandOutcomeProducerPlayModeScenario
                 && automationQuery != null
                 && automationCommands != null
                 && automationPersistence != null
+                && productionCatalog != null
+                && productionOrders != null
+                && productionQuery != null
+                && productionWork != null
+                && blueprintResearch != null
                 && outcomePersistence != null
                 && outcomeQuery != null
                 && items != null
@@ -468,13 +478,166 @@ internal static class InfrastructureCommandOutcomeProducerPlayModeScenario
             outcomeQuery);
         noOps++;
 
-        DungeonInfrastructureCommandOutcomeSaveData finalOwner =
+        Require(automationQuery is VContainer.Unity.ITickable,
+            "The live automation runtime does not expose its tick entry point.");
+        VContainer.Unity.ITickable automationTick =
+            (VContainer.Unity.ITickable)automationQuery;
+        EnsureAutomationFacilityPowered(
+            buildings,
+            powerQuery,
+            powerPersistence,
+            automationFacility);
+        ProductionBillId productionBillId = PrepareAutomationProductionProbe(
+            automationFacility,
+            productionCatalog,
+            productionOrders,
+            productionQuery,
+            productionWork,
+            blueprintResearch,
+            items);
+        automationSave = automationPersistence.Capture();
+        automationRow = automationSave.facilities.Single(value =>
+            string.Equals(
+                value.buildingInstanceId,
+                GetNodeId(automationFacility),
+                StringComparison.Ordinal));
+        automationRow.mode = AutomationMode.Automatic;
+        automationRow.maintenance = 100f;
+        automationRow.fault = 0f;
+        automationPersistence.Restore(
+            automationPersistence.PrepareRestore(automationSave));
+        ProductionBillSnapshot productionBefore = RequireProductionBill(
+            productionQuery,
+            automationFacility,
+            productionBillId);
+        TickUntilProductionProgress(
+            automationTick,
+            productionQuery,
+            automationFacility,
+            productionBillId,
+            productionBefore.CompletedWork);
+        ProductionBillSnapshot productionRunning = RequireProductionBill(
+            productionQuery,
+            automationFacility,
+            productionBillId);
+        Require(productionRunning.CompletedWork > productionBefore.CompletedWork,
+            "The authored automatic facility did not produce a real work result before its maintenance fault.");
+
+        automationSave = automationPersistence.Capture();
+        automationRow = automationSave.facilities.Single(value =>
+            string.Equals(
+                value.buildingInstanceId,
+                GetNodeId(automationFacility),
+                StringComparison.Ordinal));
+        automationRow.mode = AutomationMode.Automatic;
+        automationRow.maintenance = 0f;
+        automationRow.fault = 99.99f;
+        automationPersistence.Restore(
+            automationPersistence.PrepareRestore(automationSave));
+        float firstThresholdWork = ExecuteMaintenanceThresholdEntry(
+            "automation-maintenance-threshold-entry",
+            automationFacility,
+            automationTick,
+            automationQuery,
+            automationPersistence,
+            productionQuery,
+            productionBillId,
+            outcomePersistence,
+            outcomeQuery);
+        changed++;
+
+        DungeonAutomationSaveData enteredSave =
+            automationPersistence.Capture();
+        long revisionAfterFirstEntry = outcomePersistence.Capture()
+            .nextOwnerRevision;
+        automationPersistence.Restore(
+            automationPersistence.PrepareRestore(enteredSave));
+        TickMany(automationTick);
+        ProductionBillSnapshot productionAfterRestore = RequireProductionBill(
+            productionQuery,
+            automationFacility,
+            productionBillId);
+        Require(
+            outcomePersistence.Capture().nextOwnerRevision
+                == revisionAfterFirstEntry
+            && automationQuery.TryGetFacility(
+                automationFacility,
+                out AutomationFacilitySnapshot restoredThreshold)
+            && restoredThreshold.Status.Code
+                == InfrastructureStatusCode.MaintenanceRequired
+            && Mathf.Approximately(
+                productionAfterRestore.CompletedWork,
+                firstThresholdWork),
+            "Restoring a thresholded automation facility duplicated its entry outcome or lost its status.");
+
+        ExecuteChanged(
+            "automation-maintenance-threshold-repair",
+            InfrastructureCommandOutcomeKind.AutomationMaintained,
+            automationFacility,
+            () => automationCommands.Maintain(automationFacility, 20f),
+            outcomePersistence,
+            outcomeQuery);
+        changed++;
+
+        TickUntilProductionProgress(
+            automationTick,
+            productionQuery,
+            automationFacility,
+            productionBillId,
+            firstThresholdWork);
+        ProductionBillSnapshot productionResumed = RequireProductionBill(
+            productionQuery,
+            automationFacility,
+            productionBillId);
+        Require(productionResumed.CompletedWork > firstThresholdWork,
+            "Repairing the thresholded facility did not resume its real production result.");
+
+        automationSave = automationPersistence.Capture();
+        automationRow = automationSave.facilities.Single(value =>
+            string.Equals(
+                value.buildingInstanceId,
+                GetNodeId(automationFacility),
+                StringComparison.Ordinal));
+        automationRow.mode = AutomationMode.Automatic;
+        automationRow.maintenance = 0f;
+        automationRow.fault = 99.99f;
+        automationPersistence.Restore(
+            automationPersistence.PrepareRestore(automationSave));
+        float secondThresholdWork = ExecuteMaintenanceThresholdEntry(
+            "automation-maintenance-threshold-reentry",
+            automationFacility,
+            automationTick,
+            automationQuery,
+            automationPersistence,
+            productionQuery,
+            productionBillId,
+            outcomePersistence,
+            outcomeQuery);
+        changed++;
+
+        report.Add(
+            "automationMaintenanceProduction=PASS;facility="
+            + GetNodeId(automationFacility)
+            + ";bill=" + productionBillId.Value
+            + ";running="
+            + InvariantFloat(
+                productionRunning.CompletedWork)
+            + ";threshold="
+            + InvariantFloat(firstThresholdWork)
+            + ";resumed="
+            + InvariantFloat(
+                productionResumed.CompletedWork)
+            + ";reentry="
+            + InvariantFloat(secondThresholdWork)
+            + ";steadyDuplicate=0;restoreDuplicate=0");
+
+        DungeonInfrastructureObservationSaveData finalOwner =
             outcomePersistence.Capture();
-        Require(changed == 13
+        Require(changed == 16
                 && noOps == 13
                 && finalOwner.nextOwnerRevision
                     == firstOwnerRevision + changed
-                && finalOwner.pendingOutcomes.Count == 0,
+                && finalOwner.pending.Count == 0,
             "Infrastructure command producer coverage did not converge.");
         report.Add(
             "infrastructureCommandProducers=PASS;changed=" + changed
@@ -483,27 +646,306 @@ internal static class InfrastructureCommandOutcomeProducerPlayModeScenario
             + finalOwner.nextOwnerRevision);
     }
 
+    private static ProductionBillId PrepareAutomationProductionProbe(
+        BuildableObject facility,
+        IResourceEconomyContentCatalog catalog,
+        IProductionBillOrderCommand orders,
+        IProductionBillQuery query,
+        IProductionBillWorkExecution work,
+        BlueprintResearchRuntime research,
+        IWorldItemStackRuntime items)
+    {
+        BuildingProductionWorkstationAbility workstation = facility
+            .BuildingData
+            ?.GetProductionWorkstationAbility();
+        Require(workstation != null,
+            "The authored automation fixture has no production workstation.");
+        ProductionRecipeSO recipe = catalog.Recipes
+            .Where(candidate => IsProductionProbeCandidate(
+                facility.BuildingData,
+                candidate))
+            .OrderByDescending(candidate => candidate.RequiredWork)
+            .ThenBy(candidate => candidate.RecipeId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        Require(recipe != null,
+            "The authored automation fixture has no support-free physical production recipe.");
+        if (!string.IsNullOrWhiteSpace(recipe.RequiredResearchId)
+            && !research.State.Projects.IsCompleted(
+                new ResearchProjectId(recipe.RequiredResearchId)))
+        {
+            research.State.Projects.RestoreCompleted(
+                new ResearchProjectId(recipe.RequiredResearchId));
+        }
+
+        ProductionBillCommandResult added = orders.AddBill(
+            facility,
+            recipe.RecipeId,
+            ProductionOrderMode.RepeatCount,
+            1);
+        Require(added.Succeeded,
+            "Could not create the automation production probe: "
+            + added.Failure.Code);
+        ProductionBillSnapshot bill = RequireProductionBill(
+            query,
+            facility,
+            added.BillId);
+        foreach (ItemAmountDefinition input in bill.Inputs)
+        {
+            Require(items.SpawnItemAt(
+                    input.ItemId,
+                    input.Amount,
+                    facility.centerPos,
+                    WorldItemStackState.FacilityBuffer,
+                    bill.MaterialDestinationId,
+                    out int spawned)
+                && spawned == input.Amount,
+                "Could not publish exact automation production input: "
+                + input.ItemId);
+        }
+
+        ProductionWorkBeginResult begun = work.BeginWork(
+            null,
+            facility,
+            recipe.WorkTypeId);
+        Require(begun.Succeeded
+                && begun.Bill.BillId == added.BillId
+                && begun.Bill.MaterialsConsumed,
+            "The automation production probe did not consume its exact inputs: "
+            + begun.Failure.Code);
+        return added.BillId;
+    }
+
+    internal static bool IsProductionProbeCandidate(
+        BuildingSO facility,
+        ProductionRecipeSO candidate)
+    {
+        BuildingProductionWorkstationAbility workstation = facility
+            ?.GetProductionWorkstationAbility();
+        return workstation != null
+            && candidate != null
+            && candidate.ProcessKind == ProductionProcessKind.WorkOnly
+            && candidate.RequiredSupportTags.Count == 0
+            && candidate.CleanWaterPerCycle <= 0f
+            && candidate.Inputs.Count > 0
+            && candidate.Outputs.Count > 0
+            && candidate.Outputs.All(output => output != null
+                && ProductionOutputRoleRules.IsPhysical(output.Role))
+            && facility.Facility != null
+            && facility.Facility.SupportsWork(candidate.WorkTypeId)
+            && string.Equals(
+                workstation.WorkstationTag,
+                candidate.WorkstationTag,
+                StringComparison.Ordinal);
+    }
+
+    private static ProductionBillSnapshot RequireProductionBill(
+        IProductionBillQuery query,
+        BuildableObject facility,
+        ProductionBillId billId)
+    {
+        ProductionBillSnapshot result = query.GetBills(facility)
+            .SingleOrDefault(candidate => candidate.BillId == billId);
+        Require(result != null,
+            "The automation production probe bill disappeared: "
+            + billId.Value);
+        return result;
+    }
+
+    private static void TickUntilProductionProgress(
+        VContainer.Unity.ITickable automationTick,
+        IProductionBillQuery query,
+        BuildableObject facility,
+        ProductionBillId billId,
+        float completedBefore)
+    {
+        for (int attempt = 0; attempt < 512; attempt++)
+        {
+            automationTick.Tick();
+            if (RequireProductionBill(
+                    query,
+                    facility,
+                    billId).CompletedWork > completedBefore)
+            {
+                return;
+            }
+        }
+    }
+
+    private static void EnsureAutomationFacilityPowered(
+        IReadOnlyList<BuildableObject> buildings,
+        IPowerInfrastructureQuery powerQuery,
+        IPowerInfrastructurePersistence powerPersistence,
+        BuildableObject automationFacility)
+    {
+        Require(powerQuery is VContainer.Unity.ITickable,
+            "The live power runtime does not expose its tick entry point.");
+        DungeonPowerInfrastructureSaveData save = powerPersistence.Capture();
+        Dictionary<string, PowerNodeSaveData> rows = save.nodes
+            .ToDictionary(
+                value => value.buildingInstanceId,
+                StringComparer.Ordinal);
+        int poweredSources = 0;
+        foreach (BuildableObject building in buildings.Where(value =>
+                     value != null && !value.IsGridDestroyed))
+        {
+            string nodeId = GetNodeId(building);
+            if (!rows.TryGetValue(nodeId, out PowerNodeSaveData row))
+                continue;
+            row.connectionState = 1;
+            row.breakerTripped = false;
+            row.heat = 0f;
+            row.fault = 0f;
+            BuildingPowerProducerAbility producer = building.BuildingData
+                ?.GetAbility<BuildingPowerProducerAbility>();
+            if (producer != null)
+            {
+                if (producer.requiresFuel)
+                    row.fuelSeconds = Mathf.Max(row.fuelSeconds, 600f);
+                poweredSources++;
+            }
+            BuildingPowerStorageAbility storage = building.BuildingData
+                ?.GetAbility<BuildingPowerStorageAbility>();
+            if (storage != null)
+                row.storedPower = storage.capacity;
+        }
+        Require(poweredSources > 0,
+            "The live fixture has no authored power producer.");
+        powerPersistence.Restore(powerPersistence.PrepareRestore(save));
+        VContainer.Unity.ITickable powerTick =
+            (VContainer.Unity.ITickable)powerQuery;
+        for (int attempt = 0; attempt < 64; attempt++)
+            powerTick.Tick();
+        Require(
+            powerQuery.TryGetNode(
+                automationFacility,
+                out PowerNodeSnapshot automationPower)
+            && automationPower.Powered,
+            "The live automation facility did not receive authored network power.");
+    }
+
+    private static float ExecuteMaintenanceThresholdEntry(
+        string label,
+        BuildableObject facility,
+        VContainer.Unity.ITickable automationTick,
+        IAutomationInfrastructureQuery automationQuery,
+        IAutomationInfrastructurePersistence automationPersistence,
+        IProductionBillQuery productionQuery,
+        ProductionBillId productionBillId,
+        IInfrastructureObservationPersistence outcomePersistence,
+        IGameplayOutcomeQuery outcomeQuery)
+    {
+        DungeonInfrastructureObservationSaveData before =
+            outcomePersistence.Capture();
+        long revision = before.nextOwnerRevision;
+        TickUntilOwnerRevision(
+            automationTick,
+            outcomePersistence,
+            revision + 1L);
+        DungeonInfrastructureObservationSaveData after =
+            outcomePersistence.Capture();
+        Require(
+            after.nextOwnerRevision == revision + 1L
+            && after.pending.Count == 0,
+            label + " did not commit exactly one owner revision.");
+        Require(
+            automationQuery.TryGetFacility(
+                facility,
+                out AutomationFacilitySnapshot thresholded)
+            && thresholded.Fault >= 100f
+            && thresholded.Status.Code
+                == InfrastructureStatusCode.MaintenanceRequired,
+            label + " did not enter MaintenanceRequired at fault 100.");
+        AutomationFacilitySaveData saved = automationPersistence.Capture()
+            .facilities.Single(value => string.Equals(
+                value.buildingInstanceId,
+                GetNodeId(facility),
+                StringComparison.Ordinal));
+        Require(saved.fault >= 100f,
+            label + " did not persist its thresholded fault.");
+        ProductionBillSnapshot productionAtThreshold = RequireProductionBill(
+            productionQuery,
+            facility,
+            productionBillId);
+        Require(
+            TryFindOutcome(outcomeQuery, facility, revision, out var exact)
+            && exact.facts.Any(value =>
+                value.factId
+                    == InfrastructureCommandOutcomeIds.CommandKindFact.Value
+                && value.value
+                    == "automation-maintenance-required-entered")
+            && exact.facts.Any(value =>
+                value.factId
+                    == InfrastructureCommandOutcomeIds.BeforeValueFact.Value
+                && value.value.Contains("fault=99.99", StringComparison.Ordinal)
+                && value.value.Contains(
+                    "cause=continuous-wear",
+                    StringComparison.Ordinal))
+            && exact.facts.Any(value =>
+                value.factId
+                    == InfrastructureCommandOutcomeIds.AfterValueFact.Value
+                && value.value.Contains("fault=100", StringComparison.Ordinal)
+                && value.value.Contains(
+                    "status=MaintenanceRequired",
+                    StringComparison.Ordinal)),
+            label + " lost its typed cause or before/after state facts.");
+
+        long stableRevision = after.nextOwnerRevision;
+        TickMany(automationTick);
+        ProductionBillSnapshot productionAfterSteadyWear =
+            RequireProductionBill(
+                productionQuery,
+                facility,
+                productionBillId);
+        Require(
+            outcomePersistence.Capture().nextOwnerRevision == stableRevision
+            && Mathf.Approximately(
+                productionAfterSteadyWear.CompletedWork,
+                productionAtThreshold.CompletedWork),
+            label + " emitted repeatedly or advanced production while the facility stayed at the threshold.");
+        return productionAtThreshold.CompletedWork;
+    }
+
+    private static void TickUntilOwnerRevision(
+        VContainer.Unity.ITickable automationTick,
+        IInfrastructureObservationPersistence persistence,
+        long expectedRevision)
+    {
+        for (int attempt = 0;
+             attempt < 256
+             && persistence.Capture().nextOwnerRevision < expectedRevision;
+             attempt++)
+        {
+            automationTick.Tick();
+        }
+    }
+
+    private static void TickMany(VContainer.Unity.ITickable automationTick)
+    {
+        for (int attempt = 0; attempt < 64; attempt++)
+            automationTick.Tick();
+    }
+
     private static void ExecuteChanged(
         string label,
         InfrastructureCommandOutcomeKind kind,
         BuildableObject facility,
         Func<InfrastructureCommandResult> execute,
-        IInfrastructureCommandOutcomePersistence persistence,
+        IInfrastructureObservationPersistence persistence,
         IGameplayOutcomeQuery query)
     {
-        DungeonInfrastructureCommandOutcomeSaveData before =
+        DungeonInfrastructureObservationSaveData before =
             persistence.Capture();
         long revision = before.nextOwnerRevision;
         Require(!TryFindOutcome(query, facility, revision, out _),
             label + " fixture revision already exists in the ledger.");
         InfrastructureCommandResult result = execute();
-        DungeonInfrastructureCommandOutcomeSaveData after =
+        DungeonInfrastructureObservationSaveData after =
             persistence.Capture();
         Require(result.Succeeded,
             label + " failed: " + result.Failure.Code + ":"
             + string.Join(",", result.Failure.Parameters.ToArray()));
         Require(after.nextOwnerRevision == revision + 1L
-                && after.pendingOutcomes.Count == 0,
+                && after.pending.Count == 0,
             label + " did not commit exactly one shared owner revision.");
         Require(TryFindOutcome(query, facility, revision, out var exact)
                 && exact.facts.Any(value =>
@@ -521,10 +963,10 @@ internal static class InfrastructureCommandOutcomeProducerPlayModeScenario
         BuildableObject facility,
         Func<InfrastructureCommandResult> execute,
         Func<string> captureDomain,
-        IInfrastructureCommandOutcomePersistence persistence,
+        IInfrastructureObservationPersistence persistence,
         IGameplayOutcomeQuery query)
     {
-        DungeonInfrastructureCommandOutcomeSaveData before =
+        DungeonInfrastructureObservationSaveData before =
             persistence.Capture();
         long revision = before.nextOwnerRevision;
         string domainBefore = captureDomain();
@@ -532,13 +974,13 @@ internal static class InfrastructureCommandOutcomeProducerPlayModeScenario
             label + " fixture revision already exists in the ledger.");
         InfrastructureCommandResult result = execute();
         string domainAfter = captureDomain();
-        DungeonInfrastructureCommandOutcomeSaveData after =
+        DungeonInfrastructureObservationSaveData after =
             persistence.Capture();
         Require(result.Succeeded,
             label + " failed: " + result.Failure.Code + ":"
             + string.Join(",", result.Failure.Parameters.ToArray()));
         Require(after.nextOwnerRevision == revision
-                && after.pendingOutcomes.Count == before.pendingOutcomes.Count
+                && after.pending.Count == before.pending.Count
                 && string.Equals(
                     domainBefore,
                     domainAfter,
@@ -592,5 +1034,7 @@ internal static class InfrastructureCommandOutcomeProducerPlayModeScenario
         if (!condition)
             throw new InvalidOperationException(message);
     }
+    private static string InvariantFloat(float value) => value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+
 }
 #endif

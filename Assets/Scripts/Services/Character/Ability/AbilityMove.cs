@@ -21,6 +21,7 @@ public class AbilityMove : CharacterAbility
     private IGridPathSearchBroker pathSearchBroker;
     private IDefenseEngagementRuntime defenseEngagementRuntime;
     private ICaptivityRuntime captivityRuntime;
+    private ICharacterVisitorExitOutcomeRuntime visitorExitOutcomes;
     private IGameClock gameClock;
     private IRandomStream movementRandom;
     private IRandomStreamProvider randomStreamProvider;
@@ -177,6 +178,14 @@ public class AbilityMove : CharacterAbility
     {
         this.captivityRuntime = captivityRuntime
             ?? throw new ArgumentNullException(nameof(captivityRuntime));
+    }
+
+    [Inject]
+    public void ConstructVisitorExitOutcome(
+        ICharacterVisitorExitOutcomeRuntime visitorExitOutcomes)
+    {
+        this.visitorExitOutcomes = visitorExitOutcomes
+            ?? throw new ArgumentNullException(nameof(visitorExitOutcomes));
     }
 
     public override void Initializtion(CharacterSO data)
@@ -913,6 +922,26 @@ public class AbilityMove : CharacterAbility
         {
             actor.Brain?.ClearPathSearchCache();
             return;
+        }
+
+        if (!allowWorker && actor.characterType == CharacterType.Customer)
+        {
+            ICharacterVisitorExitOutcomeRuntime exitOutcomes =
+                visitorExitOutcomes
+                ?? throw new InvalidOperationException(
+                    $"{nameof(AbilityMove)} requires "
+                    + $"{nameof(ICharacterVisitorExitOutcomeRuntime)} injection.");
+            if (!exitOutcomes.BeginExit(
+                    actor,
+                    "ai.exit-dungeon",
+                    out string beginFailure))
+            {
+                FailExitAction(
+                    expectedAction,
+                    AIActionFailureKind.Unsupported,
+                    beginFailure);
+                return;
+            }
         }
 
         if (overrideKind != DoorAccessOverrideKind.None)
@@ -1950,6 +1979,10 @@ public class AbilityMove : CharacterAbility
             }
             activeSystemMoveDestination = null;
             activeSystemMoveOverride = DoorAccessOverrideKind.None;
+            visitorExitOutcomes?.TryFailExit(
+                actor,
+                VisitorDepartureTerminalKind.GridUnavailable,
+                "exit-dungeon-grid-unavailable");
             FailExitAction(expectedAction, AIActionFailureKind.NoGrid,
                 "exit-dungeon-grid-unavailable");
             yield break;
@@ -1967,6 +2000,10 @@ public class AbilityMove : CharacterAbility
 
             activeSystemMoveDestination = null;
             activeSystemMoveOverride = DoorAccessOverrideKind.None;
+            visitorExitOutcomes?.TryFailExit(
+                actor,
+                VisitorDepartureTerminalKind.DestinationUnavailable,
+                "exit-dungeon-spawner-unavailable");
             FailExitAction(expectedAction, AIActionFailureKind.NoDestination,
                 "exit-dungeon-spawner-unavailable");
             yield break;
@@ -2003,6 +2040,10 @@ public class AbilityMove : CharacterAbility
                         expectedAction,
                         AIActionFailureKind.PathSearchStarved,
                         $"exit path search remained deferred for {pathSearchDeferrals} attempts");
+                    visitorExitOutcomes?.TryFailExit(
+                        actor,
+                        VisitorDepartureTerminalKind.PathUnavailable,
+                        "exit-dungeon-path-search-starved");
                     activeSystemMoveDestination = null;
                     activeSystemMoveOverride = DoorAccessOverrideKind.None;
                     yield break;
@@ -2054,6 +2095,10 @@ public class AbilityMove : CharacterAbility
 
             activeSystemMoveDestination = null;
             activeSystemMoveOverride = DoorAccessOverrideKind.None;
+            visitorExitOutcomes?.TryFailExit(
+                actor,
+                VisitorDepartureTerminalKind.PathUnavailable,
+                "exit-dungeon-path-unreachable");
             FailExitAction(expectedAction, AIActionFailureKind.NoPath,
                 "exit-dungeon-path-unreachable");
             yield break;
@@ -2076,6 +2121,10 @@ public class AbilityMove : CharacterAbility
                 }
                 activeSystemMoveDestination = null;
                 activeSystemMoveOverride = DoorAccessOverrideKind.None;
+                visitorExitOutcomes?.TryFailExit(
+                    actor,
+                    VisitorDepartureTerminalKind.CaptiveBlocked,
+                    admissionFailure.Reason);
                 RejectExitDungeonAdmission(expectedAction, admissionFailure);
                 yield break;
             }
@@ -2121,6 +2170,10 @@ public class AbilityMove : CharacterAbility
             actor.SetLifecycleState(CharacterLifecycleState.Active);
         activeSystemMoveDestination = null;
         activeSystemMoveOverride = DoorAccessOverrideKind.None;
+        visitorExitOutcomes?.TryFailExit(
+            actor,
+            VisitorDepartureTerminalKind.DoorPassageFailed,
+            "exit-dungeon-world-passage-" + LastGridMoveFailureReason);
         FailExitAction(expectedAction, AIActionFailureKind.NoPath, "exit-dungeon-world-passage-" + LastGridMoveFailureReason);
         return true;
     }

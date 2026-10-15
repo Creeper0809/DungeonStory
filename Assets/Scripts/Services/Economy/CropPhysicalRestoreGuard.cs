@@ -28,122 +28,6 @@ public sealed class CropHarvestOwnerValidationSnapshot
     public CropHarvestOutputSaveData Owner { get; set; }
 }
 
-public static class CropHarvestCompletionDeliveryRestoreJoin
-{
-    public static void Validate(
-        IEnumerable<CropPlotSaveData> plots,
-        IEnumerable<WorkCompletionIdentityDeliveryCursorSaveData> deliveries)
-    {
-        WorkCompletionIdentityDeliveryCursorSaveData[] cursors =
-            WorkCompletionIdentityDeliveryLedger.ValidateAndClone(deliveries);
-        Dictionary<string, WorkCompletionIdentityDeliveryCursorSaveData>
-            byStream = cursors.ToDictionary(
-                value => value.producerStreamId,
-                StringComparer.Ordinal);
-        HashSet<string> cropStreams = new(StringComparer.Ordinal);
-        foreach (CropPlotSaveData plot in plots ?? Array.Empty<CropPlotSaveData>())
-        {
-            if (plot == null
-                || string.IsNullOrWhiteSpace(plot.buildingInstanceId)
-                || !string.Equals(
-                    plot.buildingInstanceId,
-                    plot.buildingInstanceId.Trim(),
-                    StringComparison.Ordinal))
-                throw new InvalidOperationException(
-                    "Crop completion delivery join contains an invalid plot.");
-            string streamId = CropPlotRuntime.HarvestCompletionStreamPrefix
-                + plot.buildingInstanceId;
-            if (!cropStreams.Add(streamId))
-                throw new InvalidOperationException(
-                    "Crop completion delivery join contains duplicate plot streams.");
-            byStream.TryGetValue(streamId, out WorkCompletionIdentityDeliveryCursorSaveData cursor);
-            CropHarvestOutputSaveData pending = plot.pendingHarvest;
-            if (pending == null || pending.phase == CropHarvestOutputPhase.None)
-            {
-                if (cursor != null
-                    && (plot.nextHarvestOperationSequence <= 0
-                        || cursor.operationSequence >=
-                            plot.nextHarvestOperationSequence
-                        || !string.Equals(
-                            cursor.deliveryId,
-                            CropPlotRuntime.HarvestCompletionDeliveryPrefix
-                                + CropPlotRuntime.FormatHarvestOperationId(
-                                    new BuildingInstanceId(
-                                        plot.buildingInstanceId),
-                                    cursor.operationSequence),
-                            StringComparison.Ordinal)))
-                    throw new InvalidOperationException(
-                        "Crop completion delivery cursor is ahead of its plot sequence.");
-                continue;
-            }
-            if (string.IsNullOrEmpty(pending.harvesterId))
-            {
-                if (!string.IsNullOrEmpty(pending.completionDeliveryId)
-                    || !string.IsNullOrEmpty(
-                        pending.completionDeliveryFingerprint))
-                    throw new InvalidOperationException(
-                        "Workerless crop owner has completion delivery provenance.");
-                if (cursor != null
-                    && (cursor.operationSequence >= pending.operationSequence
-                        || !MatchesHistoricalDeliveryId(
-                            plot.buildingInstanceId,
-                            cursor)))
-                    throw new InvalidOperationException(
-                        "Workerless crop owner has a current or invalid completion cursor.");
-                continue;
-            }
-
-            WorkCompletionIdentityDeliveryRequest request =
-                CropPlotRuntime.CreateHarvestCompletionDelivery(
-                    new BuildingInstanceId(plot.buildingInstanceId),
-                    pending);
-            bool exactCurrent = cursor != null
-                && cursor.operationSequence == request.OperationSequence
-                && string.Equals(
-                    cursor.deliveryId,
-                    request.DeliveryId,
-                    StringComparison.Ordinal)
-                && string.Equals(
-                    cursor.payloadFingerprint,
-                    request.PayloadFingerprint,
-                    StringComparison.Ordinal);
-            bool previous = cursor == null && request.OperationSequence == 0
-                || cursor != null
-                && cursor.operationSequence == request.OperationSequence - 1
-                && MatchesHistoricalDeliveryId(
-                    plot.buildingInstanceId,
-                    cursor);
-            if (pending.completionEventPublished ? !exactCurrent
-                : !exactCurrent && !previous)
-                throw new InvalidOperationException(
-                    "Crop completion owner and identity delivery cursor do not join.");
-        }
-
-        WorkCompletionIdentityDeliveryCursorSaveData orphan = cursors
-            .FirstOrDefault(value =>
-                value.producerStreamId.StartsWith(
-                    CropPlotRuntime.HarvestCompletionStreamPrefix,
-                    StringComparison.Ordinal)
-                && !cropStreams.Contains(value.producerStreamId));
-        if (orphan != null)
-            throw new InvalidOperationException(
-                "Crop completion delivery cursor has no owning crop plot: "
-                + orphan.producerStreamId);
-    }
-
-    private static bool MatchesHistoricalDeliveryId(
-        string plotId,
-        WorkCompletionIdentityDeliveryCursorSaveData cursor) =>
-        cursor != null
-        && string.Equals(
-            cursor.deliveryId,
-            CropPlotRuntime.HarvestCompletionDeliveryPrefix
-                + CropPlotRuntime.FormatHarvestOperationId(
-                    new BuildingInstanceId(plotId),
-                    cursor.operationSequence),
-            StringComparison.Ordinal);
-}
-
 /// <summary>
 /// Enforces the bidirectional restore join between crop-domain WIP owners and
 /// incoming pending physical disposition receipts.
@@ -475,17 +359,23 @@ public sealed class CropPhysicalRestoreGuard :
         if (treatment == null
             || treatment.phase is CropTreatmentOrderPhase.None
                 or CropTreatmentOrderPhase.WaitingForDelivery
-                or CropTreatmentOrderPhase.ReadyForWork
-                or CropTreatmentOrderPhase.Working
-                or CropTreatmentOrderPhase.OutcomePublished)
+                or CropTreatmentOrderPhase.ReadyForWork)
+            return;
+        string expected = treatment.phase is
+            CropTreatmentOrderPhase.OutcomePublished
+            or CropTreatmentOrderPhase.LedgerCommitted
+                ? treatment.ecologyAfterFingerprint
+                : treatment.ecologyBeforeFingerprint;
+        if (treatment.phase == CropTreatmentOrderPhase.Working
+            && string.IsNullOrEmpty(expected))
             return;
         string treatmentActual =
             CropPhysicalTransactionOutbox.CreateEcologyFingerprint(
                 ecologyPlots,
                 plotId);
-        if (string.IsNullOrWhiteSpace(treatment.ecologyBeforeFingerprint)
+        if (string.IsNullOrWhiteSpace(expected)
             || !string.Equals(
-                treatment.ecologyBeforeFingerprint,
+                expected,
                 treatmentActual,
                 StringComparison.Ordinal))
             throw new InvalidOperationException(

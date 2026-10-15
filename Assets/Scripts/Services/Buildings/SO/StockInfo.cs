@@ -53,46 +53,150 @@ public struct StockProductionRule
     }
 }
 
-[Serializable]
-public struct StockSupplyResult
+public sealed class StockSupplyDeliveryTransaction
 {
-    public bool success;
-    public StockCategory category;
-    public int requestedAmount;
-    public int deliveredAmount;
-    public int cost;
-    public string sourceLabel;
-    public string reason;
+    private readonly IGameMoneyAccount money;
+    private readonly IWorldItemStackRuntime itemStackRuntime;
+    private readonly DungeonPhysicalItemSaveData physicalBefore;
+    private readonly int balanceBefore;
+    private readonly EconomyTransactionContext rollbackContext;
+    private bool rolledBack;
+    private bool durablyCommitted;
 
-    public StockSupplyResult(
-        bool success,
-        StockCategory category,
-        int requestedAmount,
-        int deliveredAmount,
-        int cost,
-        string sourceLabel,
-        string reason)
+    internal StockSupplyDeliveryTransaction(
+        IGameMoneyAccount money,
+        IWorldItemStackRuntime itemStackRuntime,
+        DungeonPhysicalItemSaveData physicalBefore,
+        int balanceBefore,
+        string transactionIdentity)
     {
-        this.success = success;
-        this.category = category;
-        this.requestedAmount = Mathf.Max(0, requestedAmount);
-        this.deliveredAmount = Mathf.Max(0, deliveredAmount);
-        this.cost = Mathf.Max(0, cost);
-        this.sourceLabel = sourceLabel;
-        this.reason = reason;
+        this.money = money ?? throw new ArgumentNullException(nameof(money));
+        this.itemStackRuntime = itemStackRuntime
+            ?? throw new ArgumentNullException(nameof(itemStackRuntime));
+        this.physicalBefore = physicalBefore
+            ?? throw new ArgumentNullException(nameof(physicalBefore));
+        this.balanceBefore = Mathf.Max(0, balanceBefore);
+        rollbackContext = new EconomyTransactionContext(
+            EconomyTransactionKind.DebugAdjustment,
+            (transactionIdentity?.Trim() ?? string.Empty) + ":rollback",
+            "stock-delivery",
+            "stock delivery outcome rollback");
     }
 
-    public string ToSummaryText()
+    public bool IsDurablyCommitted => durablyCommitted;
+
+    internal void CaptureSpawnedStackEvidence(
+        string itemId,
+        ref StockSupplyResult result)
     {
-        string label = string.IsNullOrWhiteSpace(sourceLabel) ? "재고 수급" : sourceLabel;
-        if (success)
+        try
         {
-            string costText = cost > 0 ? $" / 비용 {cost}" : string.Empty;
-            return $"{label}: {category} {deliveredAmount}개 입고{costText}";
+            DungeonPhysicalItemSaveData after = itemStackRuntime.Capture()
+                ?? throw new InvalidOperationException(
+                    "Stock delivery physical capture returned no snapshot.");
+            var beforeByStackId = (physicalBefore.stacks
+                    ?? new List<WorldItemStackSaveData>())
+                .Where(stack => stack != null)
+                .ToDictionary(
+                    stack => stack.stackId ?? string.Empty,
+                    stack => Mathf.Max(0, stack.quantity),
+                    StringComparer.Ordinal);
+            var spawned = new List<string>();
+            int quantity = 0;
+            foreach (WorldItemStackSaveData stack in (after.stacks
+                         ?? new List<WorldItemStackSaveData>())
+                     .Where(stack => stack != null
+                         && string.Equals(
+                             stack.itemId,
+                             itemId?.Trim() ?? string.Empty,
+                             StringComparison.Ordinal))
+                     .OrderBy(stack => stack.stackId, StringComparer.Ordinal))
+            {
+                int beforeQuantity = beforeByStackId.TryGetValue(
+                    stack.stackId ?? string.Empty,
+                    out int observed)
+                        ? observed
+                        : 0;
+                int delta = Mathf.Max(0, stack.quantity - beforeQuantity);
+                if (delta <= 0)
+                    continue;
+                quantity += delta;
+                spawned.Add((stack.stackId ?? string.Empty) + ":" + delta);
+            }
+            result.AttachSpawnedStackEvidence(quantity, string.Join(",", spawned));
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            RollbackOrThrow();
+            throw new InvalidOperationException(
+                "Stock delivery could not capture its physical evidence.",
+                exception);
+        }
+    }
+
+    public void RollbackOrThrow()
+    {
+        if (durablyCommitted)
+        {
+            throw new InvalidOperationException(
+                "A durably committed stock delivery cannot be rolled back.");
+        }
+        if (rolledBack)
+        {
+            return;
         }
 
-        return $"{label}: {category} {requestedAmount}개 입고 실패 - {reason}";
+        try
+        {
+            itemStackRuntime.Restore(physicalBefore);
+            money.SetBalance(balanceBefore, rollbackContext);
+            if (money.Balance != balanceBefore
+                || !string.Equals(
+                    JsonUtility.ToJson(physicalBefore),
+                    JsonUtility.ToJson(itemStackRuntime.Capture()),
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Stock delivery rollback did not restore the saved money or physical state.");
+            }
+            rolledBack = true;
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            throw new InvalidOperationException(
+                "Stock delivery rollback failed after the delivery result was produced.",
+                exception);
+        }
     }
+
+    public void MarkDurablyCommitted()
+    {
+        if (rolledBack)
+        {
+            throw new InvalidOperationException(
+                "A rolled-back stock delivery cannot become durably committed.");
+        }
+        durablyCommitted = true;
+    }
+}
+
+public sealed class StockSupplyDeliveryException : Exception
+{
+    public StockSupplyDeliveryException(
+        StockSupplyResult result,
+        Exception innerException)
+        : base("Stock delivery execution failed after payment settlement.", innerException)
+    {
+        Result = result;
+    }
+
+    public StockSupplyResult Result { get; }
 }
 
 public struct StockSupplyEvent
@@ -162,16 +266,47 @@ public static class StockSupplyService
         out StockSupplyResult result,
         Action<StockSupplyResult> resultCallback = null)
     {
+        return TryPurchaseDelivery(
+            money,
+            warehouses,
+            itemStackRuntime,
+            offer,
+            debugRules,
+            out result,
+            out _,
+            resultCallback);
+    }
+
+    public static bool TryPurchaseDelivery(
+        IGameMoneyAccount money,
+        IEnumerable<IWarehouseFacility> warehouses,
+        IWorldItemStackRuntime itemStackRuntime,
+        StockDeliveryOffer offer,
+        IDungeonDebugRuleQuery debugRules,
+        out StockSupplyResult result,
+        out StockSupplyDeliveryTransaction deliveryTransaction,
+        Action<StockSupplyResult> resultCallback = null,
+        string transactionIdentity = null)
+    {
+        deliveryTransaction = null;
         if (!offer.IsValid)
         {
-            result = Fail(offer.category, offer.amount, offer.cost, offer.sourceLabel, "납품 정보가 올바르지 않습니다");
+            result = Fail(
+                offer.category,
+                offer.amount,
+                offer.sourceLabel,
+                "납품 정보가 올바르지 않습니다");
             resultCallback?.Invoke(result);
             return false;
         }
 
         if (money == null)
         {
-            result = Fail(offer.category, offer.amount, offer.cost, offer.sourceLabel, "자금 데이터가 없습니다");
+            result = Fail(
+                offer.category,
+                offer.amount,
+                offer.sourceLabel,
+                "자금 데이터가 없습니다");
             resultCallback?.Invoke(result);
             return false;
         }
@@ -181,7 +316,13 @@ public static class StockSupplyService
         if (!skipCosts
             && !money.CanSpend(offer.cost))
         {
-            result = Fail(offer.category, offer.amount, offer.cost, offer.sourceLabel, "자금 부족");
+            result = Fail(
+                offer.category,
+                offer.amount,
+                offer.sourceLabel,
+                "자금 부족",
+                balanceBefore: money.Balance,
+                balanceAfter: money.Balance);
             resultCallback?.Invoke(result);
             return false;
         }
@@ -191,18 +332,45 @@ public static class StockSupplyService
             result = Fail(
                 offer.category,
                 offer.amount,
-                offer.cost,
                 offer.sourceLabel,
-                "물리 아이템 런타임 없음");
+                "물리 아이템 런타임 없음",
+                balanceBefore: money.Balance,
+                balanceAfter: money.Balance);
             resultCallback?.Invoke(result);
             return false;
         }
 
-        if (!skipCosts && !TryPayDelivery(money, offer, out result))
+        int beforeBalance = money.Balance;
+        string identity = string.IsNullOrWhiteSpace(transactionIdentity)
+            ? CreateTransactionIdentity(offer)
+            : transactionIdentity.Trim();
+        deliveryTransaction = new StockSupplyDeliveryTransaction(
+            money,
+            itemStackRuntime,
+            itemStackRuntime.Capture(),
+            beforeBalance,
+            identity);
+        EconomyTransactionContext paymentContext = CreatePaymentContext(offer, identity);
+        EconomyTransactionContext refundContext = CreateRefundContext(offer, identity);
+        if (!skipCosts && !TryPayDelivery(money, offer, paymentContext, out string reason))
         {
+            result = Fail(
+                offer.category,
+                offer.amount,
+                offer.sourceLabel,
+                reason,
+                balanceBefore: beforeBalance,
+                balanceAfter: money.Balance,
+                paymentTransactionSource: paymentContext.sourceId,
+                refundTransactionSource: refundContext.sourceId);
+            deliveryTransaction.CaptureSpawnedStackEvidence(offer.itemId, ref result);
             resultCallback?.Invoke(result);
             return false;
         }
+
+        int paid = skipCosts
+            ? 0
+            : Mathf.Max(0, beforeBalance - money.Balance);
 
         bool spawnCompleted;
         int spawned;
@@ -214,13 +382,48 @@ public static class StockSupplyService
                 offer.sourceLabel,
                 out spawned);
         }
-        catch
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
         {
-            if (!skipCosts)
+            int refunded;
+            try
             {
-                RefundDelivery(money, offer, offer.cost, 0);
+                refunded = skipCosts
+                    ? 0
+                    : RefundDelivery(money, offer, paid, 0, refundContext);
             }
-            throw;
+            catch (Exception refundFailure) when (
+                refundFailure is not OutOfMemoryException
+                && refundFailure is not StackOverflowException
+                && refundFailure is not AccessViolationException)
+            {
+                deliveryTransaction.RollbackOrThrow();
+                throw new InvalidOperationException(
+                    "Stock delivery exception refund failed.",
+                    refundFailure);
+            }
+            result = new StockSupplyResult(
+                false,
+                offer.category,
+                offer.amount,
+                0,
+                Mathf.Max(0, beforeBalance - money.Balance),
+                offer.sourceLabel,
+                "물리 납품 생성 예외",
+                paid,
+                refunded,
+                Mathf.Max(0, beforeBalance - money.Balance),
+                beforeBalance,
+                money.Balance,
+                paymentContext.sourceId,
+                refundContext.sourceId,
+                exception.GetType().Name);
+            deliveryTransaction.CaptureSpawnedStackEvidence(offer.itemId, ref result);
+            result.deliveredAmount = result.spawnedStackQuantity;
+            deliveryTransaction.RollbackOrThrow();
+            throw new StockSupplyDeliveryException(result, exception);
         }
 
         int delivered = Mathf.Clamp(spawned, 0, offer.amount);
@@ -230,27 +433,64 @@ public static class StockSupplyService
                 offer.cost,
                 offer.amount,
                 delivered);
-        int refund = skipCosts ? 0 : Mathf.Max(0, offer.cost - settledCost);
-        if (refund > 0)
+        int requestedRefund = skipCosts
+            ? 0
+            : Mathf.Max(0, paid - settledCost);
+        int refundedAmount = 0;
+        if (requestedRefund > 0)
         {
-            RefundDelivery(money, offer, refund, delivered);
+            try
+            {
+                refundedAmount = RefundDelivery(
+                    money,
+                    offer,
+                    requestedRefund,
+                    delivered,
+                    refundContext);
+            }
+            catch (Exception exception) when (
+                exception is not OutOfMemoryException
+                && exception is not StackOverflowException
+                && exception is not AccessViolationException)
+            {
+                deliveryTransaction.RollbackOrThrow();
+                throw new InvalidOperationException(
+                    "Stock delivery refund failed after physical spawn.",
+                    exception);
+            }
         }
 
         bool stackSuccess = spawnCompleted && delivered == offer.amount;
+        int netCost = Mathf.Max(0, beforeBalance - money.Balance);
+        bool paymentSettled = skipCosts
+            ? netCost == 0
+            : paid == offer.cost
+                && refundedAmount == requestedRefund
+                && netCost == settledCost;
         result = new StockSupplyResult(
-            stackSuccess,
+            stackSuccess && paymentSettled,
             offer.category,
             offer.amount,
             delivered,
-            settledCost,
+            netCost,
             offer.sourceLabel,
-            stackSuccess
+            stackSuccess && paymentSettled
                 ? string.Empty
-                : delivered > 0
-                    ? "physical delivery interrupted"
-                    : "물리 납품 생성 실패");
+                : !paymentSettled
+                    ? "납품 결제 정산 불일치"
+                    : delivered > 0
+                        ? "physical delivery interrupted"
+                        : "물리 납품 생성 실패",
+            paid,
+            refundedAmount,
+            netCost,
+            beforeBalance,
+            money.Balance,
+            paymentContext.sourceId,
+            refundContext.sourceId);
+        deliveryTransaction.CaptureSpawnedStackEvidence(offer.itemId, ref result);
         resultCallback?.Invoke(result);
-        return stackSuccess;
+        return result.success;
     }
 
     public static int CalculateSettledDeliveryCost(
@@ -271,52 +511,64 @@ public static class StockSupplyService
         return Mathf.Clamp(proportional, 0, safeCost);
     }
 
-    private static void RefundDelivery(
+    private static int RefundDelivery(
         IGameMoneyAccount money,
         StockDeliveryOffer offer,
         int refund,
-        int deliveredAmount)
+        int deliveredAmount,
+        EconomyTransactionContext context)
     {
         if (refund <= 0)
         {
-            return;
+            return 0;
         }
 
+        int before = money.Balance;
         money.Add(
             refund,
-            new EconomyTransactionContext(
-                EconomyTransactionKind.ShopPurchaseRefund,
-                "stock-delivery",
-                offer.category.ToString(),
-                $"{offer.sourceLabel}: {deliveredAmount}/{offer.amount} delivered"));
+            context);
+        return Mathf.Max(0, money.Balance - before);
     }
 
     private static bool TryPayDelivery(
         IGameMoneyAccount money,
         StockDeliveryOffer offer,
-        out StockSupplyResult failure)
+        EconomyTransactionContext context,
+        out string reason)
     {
         if (money.TrySpend(
                 offer.cost,
-                new EconomyTransactionContext(
-                    EconomyTransactionKind.ShopPurchase,
-                    "stock-delivery",
-                    offer.category.ToString(),
-                    offer.sourceLabel),
-                out string reason))
+                context,
+                out reason))
         {
-            failure = default;
             return true;
         }
 
-        failure = Fail(
-            offer.category,
-            offer.amount,
-            offer.cost,
-            offer.sourceLabel,
-            reason);
         return false;
     }
+
+    private static EconomyTransactionContext CreatePaymentContext(
+        StockDeliveryOffer offer,
+        string transactionIdentity) => new(
+            EconomyTransactionKind.ShopPurchase,
+            transactionIdentity + ":payment",
+            offer.category.ToString(),
+            offer.sourceLabel);
+
+    private static EconomyTransactionContext CreateRefundContext(
+        StockDeliveryOffer offer,
+        string transactionIdentity) => new(
+            EconomyTransactionKind.ShopPurchaseRefund,
+            transactionIdentity + ":refund",
+            offer.category.ToString(),
+            offer.sourceLabel);
+
+    private static string CreateTransactionIdentity(StockDeliveryOffer offer) =>
+        "stock-delivery:category=" + offer.category
+        + ":item=" + (offer.itemId?.Trim() ?? string.Empty)
+        + ":amount=" + Mathf.Max(0, offer.amount)
+        + ":cost=" + Mathf.Max(0, offer.cost)
+        + ":source=" + (offer.sourceLabel?.Trim() ?? string.Empty);
 
     public static bool GrantReward(
         IEnumerable<IWarehouseFacility> warehouses,
@@ -330,7 +582,7 @@ public static class StockSupplyService
         int safeAmount = Mathf.Max(0, amount);
         if (safeAmount <= 0)
         {
-            result = Fail(category, safeAmount, 0, sourceLabel, "보상 수량이 없습니다");
+            result = Fail(category, safeAmount, sourceLabel, "보상 수량이 없습니다");
             resultCallback?.Invoke(result);
             return false;
         }
@@ -340,7 +592,6 @@ public static class StockSupplyService
             result = Fail(
                 category,
                 safeAmount,
-                0,
                 sourceLabel,
                 "물리 아이템 런타임 없음");
             resultCallback?.Invoke(result);
@@ -369,7 +620,6 @@ public static class StockSupplyService
         result = Fail(
             category,
             safeAmount,
-            0,
             sourceLabel,
             "물리 보상 생성 실패");
         resultCallback?.Invoke(result);
@@ -419,10 +669,24 @@ public static class StockSupplyService
     private static StockSupplyResult Fail(
         StockCategory category,
         int requestedAmount,
-        int cost,
         string sourceLabel,
-        string reason)
+        string reason,
+        int balanceBefore = 0,
+        int balanceAfter = 0,
+        string paymentTransactionSource = "",
+        string refundTransactionSource = "")
     {
-        return new StockSupplyResult(false, category, requestedAmount, 0, cost, sourceLabel, reason);
+        return new StockSupplyResult(
+            false,
+            category,
+            requestedAmount,
+            0,
+            0,
+            sourceLabel,
+            reason,
+            balanceBefore: balanceBefore,
+            balanceAfter: balanceAfter,
+            paymentTransactionSource: paymentTransactionSource,
+            refundTransactionSource: refundTransactionSource);
     }
 }

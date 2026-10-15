@@ -114,6 +114,14 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
 
         Require(
             result.Status == DurableFacilityEquipmentUseStatus.Applied
+            && result.CommittedContext != null
+            && string.Equals(
+                result.CommittedContext.Before.StackId,
+                "stack:atomic",
+                StringComparison.Ordinal)
+            && Nearly(ReadDurability(result.CommittedContext.Before), 40d)
+            && Nearly(ReadDurability(result.CommittedContext.After), 34d)
+            && Nearly(result.CommittedContext.WearAmount, 6d)
             && fixture.Physical.ReplaceCalls == 1
             && fixture.Physical.RestoreCalls == 0
             && effect.PreflightCalls == 1
@@ -207,6 +215,7 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
                 : DurableFacilityEquipmentUseStatus.Deferred;
         Require(
             result.Status == expected
+            && result.CommittedContext == null
             && fixture.Physical.ReplaceCalls == 1
             && fixture.Physical.RestoreCalls == 1
             && fixture.Physical.UnrelatedGlobalRevisionAdvances == 1
@@ -232,6 +241,9 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
         Require(
             result.Status ==
                 DurableFacilityEquipmentUseStatus.AppliedDrainPending
+            && result.CommittedContext != null
+            && Nearly(ReadDurability(result.CommittedContext.Before), 5d)
+            && Nearly(ReadDurability(result.CommittedContext.After), 0d)
             && fixture.Slot.CloseCalls == 1
             && string.Equals(
                 fixture.Slot.LastCloseReason,
@@ -393,6 +405,7 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
             result.Succeeded
             && result.Status == expectedStatus
             && string.Equals(result.StackId, stackId, StringComparison.Ordinal)
+            && result.CommittedContext != null
             && !string.IsNullOrWhiteSpace(result.PostCommitFaultCode)
             && effect.CommitCalls == 1
             && fixture.Physical.ReplaceCalls == 1
@@ -737,7 +750,7 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
             TryAdvancePending() => Array.Empty<DurableFacilityEquipmentSlotResult>();
     }
 
-    private sealed class FakePhysicalPort :
+    internal sealed class FakePhysicalPort :
         IDurableFacilityEquipmentPhysicalPort,
         IDurableFacilityEquipmentComponentMutationPort
     {

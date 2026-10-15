@@ -243,6 +243,36 @@ public static class Wim009SeasonalWildlifeArrivalDebugScenarios
                 SeasonalWildlifeArrivalRules.ValidateRestoreJoin(
                     saved,
                     Array.Empty<WildlifeActor>());
+                WildlifeSaveData[] savedWildlife = plan
+                    .Select(member => new WildlifeSaveData
+                    {
+                        wildlifeId = member.wildlifeId,
+                        speciesId = expected.SpeciesId,
+                        health = 100,
+                        state = WildlifeState.Idle,
+                        gridX = member.positionX,
+                        gridY = member.positionY
+                    })
+                    .ToArray();
+                SeasonalWildlifeArrivalRules.ValidateRestoreJoin(
+                    saved,
+                    savedWildlife);
+                WildlifeSaveData[] mismatchedWildlife = savedWildlife
+                    .Select(value => new WildlifeSaveData
+                    {
+                        wildlifeId = value.wildlifeId,
+                        speciesId = value.speciesId,
+                        health = value.health,
+                        state = value.state,
+                        gridX = value.gridX,
+                        gridY = value.gridY
+                    })
+                    .ToArray();
+                mismatchedWildlife[0].speciesId = "mismatched_species";
+                RequireThrows(() =>
+                    SeasonalWildlifeArrivalRules.ValidateRestoreJoin(
+                        saved,
+                        mismatchedWildlife));
 
                 SeasonalEventWorldSaveData malformed = JsonUtility
                     .FromJson<SeasonalEventWorldSaveData>(

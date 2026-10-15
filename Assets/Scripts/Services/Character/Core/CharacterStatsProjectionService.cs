@@ -290,7 +290,8 @@ public sealed class CharacterStatsProjectionService
     public float GetConsumptionMultiplier(
         CharacterStatsProjectionContext context) => RequirePerformance().Evaluate(
             context.Actor,
-            "performance:survival:food-consumption").Value;
+            "performance:survival:food-consumption",
+            effectContext: BuildCharacterEffectContext(context, null)).Value;
 
     private ICharacterPerformanceQuery RequirePerformance() => performance
         ?? throw new InvalidOperationException(
@@ -520,13 +521,21 @@ public sealed class NeutralCharacterSubstanceRuntime :
     public bool SuppressesPerceivedPain(CharacterActor actor) => false;
     public CharacterToxicityStatus GetToxicityStatus(CharacterActor actor) =>
         new(0f, false, false, "toxicity-zero");
-    public void SetPolicy(
+    public CharacterConsumablesPolicyChangeResult SetPolicy(
         CharacterActor actor,
         string substanceId,
         SubstancePolicyMode mode,
         float moodThreshold = 30f,
         int scheduledHour = 20)
     {
+        return new CharacterConsumablesPolicyChangeResult(
+            CharacterConsumablesPolicyChangeCode.InvalidRequest,
+            "character-substance",
+            substanceId,
+            string.Empty,
+            string.Empty,
+            0L,
+            "neutral-substance-runtime");
     }
     public bool TryConsume(
         CharacterActor actor,

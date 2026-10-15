@@ -77,6 +77,9 @@ internal static class AIBrainActionConfiguration
         AddSpecialAction<AIHunt>(actions, catalog, HuntActionPath, CharacterAiBranch.Work);
         AddSpecialAction<AISubstanceUse>(actions, catalog, SubstanceUseActionPath, CharacterAiBranch.Work);
         AddSpecialAction<AIDrink>(actions, catalog, DrinkActionPath, CharacterAiBranch.Drink);
+        // Off-duty staff can visit Training/Research/Mana under the existing
+        // visitor policy. Fresh staff must not depend on a customer catalog.
+        AddRequiredAction(actions, catalog, ShoppingActionPath, CharacterAiBranch.Shopping);
         return BindClocks(actions, clock);
     }
 

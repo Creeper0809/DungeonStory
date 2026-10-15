@@ -92,7 +92,6 @@ public sealed class BuildingAbilityRuntimeDispatcher :
                 building,
                 workTypeId,
                 approvedWork);
-        building.RecordCompletedWorkCycle();
         int totalProduced = 0;
         foreach (BuildingAbility ability in building.BuildingData.Abilities)
         {
@@ -124,6 +123,10 @@ public sealed class BuildingAbilityRuntimeDispatcher :
             totalProduced += Math.Max(0, fallback.Apply(context));
         }
 
+        // A completed cycle is a terminal fact, not an execution attempt. Keep
+        // it behind every ability/fallback effect so an unsupported command or
+        // thrown handler cannot leave a false completed-cycle mutation behind.
+        building.RecordCompletedWorkCycle();
         return totalProduced;
     }
 

@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
 using DungeonStory.Narrative.Korean;
 using UnityEngine;
@@ -43,6 +44,7 @@ public static class DungeonSpaceExpansionOutcomeDebugScenarios
     {
         using Fixture fixture = new();
         DungeonSpaceExpansionOutcomeReceipt exact = CreateReceipt(29);
+        fixture.CommitResearchParent(exact.ParentResearchResultKey);
         if (!fixture.Bridge.TryPrepare(
                 exact,
                 out PreparedDungeonSpaceExpansionOutcome prepared,
@@ -65,13 +67,13 @@ public static class DungeonSpaceExpansionOutcomeDebugScenarios
             DungeonSpaceExpansionOutcomeIds.MainDungeonSpace,
             OutcomeCursor.FirstPage(10),
             OutcomeFilter.All);
-        if (global.Items.Count != 1
+        if (global.Items.Count != 2
             || dungeonPage.Items.Count != 1
             || global.Items[0].Exact == null)
         {
             return false;
         }
-        GameplayOutcomeSnapshot snapshot = global.Items[0].Exact;
+        GameplayOutcomeSnapshot snapshot = dungeonPage.Items[0].Exact;
         GameplayOutcomeId outcomeId = new(
             new GameplayOutcomeRunId(snapshot.runId),
             snapshot.sequence);
@@ -125,17 +127,18 @@ public static class DungeonSpaceExpansionOutcomeDebugScenarios
             && conflictRejected
             && fixture.Ledger.GetGlobal(
                 OutcomeCursor.FirstPage(10),
-                OutcomeFilter.All).Items.Count == 1
-            && save.exactOutcomes.Count == 1
-            && restoredPage.Items.Count == 1
-            && restoredPage.Items[0].Exact?.immutablePayloadHash
-                == snapshot.immutablePayloadHash;
+                OutcomeFilter.All).Items.Count == 2
+            && save.exactOutcomes.Count == 2
+            && restoredPage.Items.Count == 2
+            && restoredPage.Items.Any(value =>
+                value.Exact?.immutablePayloadHash == snapshot.immutablePayloadHash);
     }
 
     private static bool VerifyDeliveryFaultRetainsOutbox()
     {
         using Fixture fixture = new(rejectDelivery: true);
         DungeonSpaceExpansionOutcomeReceipt exact = CreateReceipt(29);
+        fixture.CommitResearchParent(exact.ParentResearchResultKey);
         bool prepared = fixture.Bridge.TryPrepare(
             exact,
             out PreparedDungeonSpaceExpansionOutcome token,
@@ -149,7 +152,7 @@ public static class DungeonSpaceExpansionOutcomeDebugScenarios
             && committed.Phase == OwnerOutcomeCommitPhase.CommittedPendingDelivery
             && fixture.Ledger.GetGlobal(
                 OutcomeCursor.FirstPage(10),
-                OutcomeFilter.All).Items.Count == 0
+                OutcomeFilter.All).Items.Count == 1
             && outbox.Count == 1
             && outbox[0].Lifecycle ==
                 GameplayOutcomeRecordLifecycle.DeliveryFaultPending;
@@ -169,7 +172,13 @@ public static class DungeonSpaceExpansionOutcomeDebugScenarios
         68,
         3,
         17,
-        0);
+        0,
+        DungeonSpaceExpansionTrigger.ResearchCompletion,
+        new GameplayResultKey(
+            ResearchWorkOutcomeIds.ProducerId,
+            new GameplayOperationId("research-work:1"),
+            1L,
+            0));
 
     private sealed class Fixture : IDisposable
     {
@@ -186,12 +195,14 @@ public static class DungeonSpaceExpansionOutcomeDebugScenarios
             Registry = new GameplayOutcomeRegistry(
                 new IGameplayOutcomeDescriptor[]
                 {
+                    new ResearchWorkOutcomeDescriptor(),
                     rejectDelivery
                         ? new RejectingDeliveryDescriptor(descriptor)
                         : descriptor
                 },
                 new IGameplayOutcomeAdapterRegistration[]
                 {
+                    new ResearchWorkOutcomeAdapter(),
                     new DungeonSpaceExpansionOutcomeAdapter()
                 });
             Ledger = CreateLedger("run:dungeon-space-expansion-test");
@@ -206,6 +217,38 @@ public static class DungeonSpaceExpansionOutcomeDebugScenarios
         internal GameplayOutcomeLedger Ledger { get; }
         internal GameplayOutcomeRecorder Recorder { get; }
         internal DungeonSpaceExpansionGameplayOutcomeBridge Bridge { get; }
+
+        internal void CommitResearchParent(GameplayResultKey parentKey)
+        {
+            ResearchWorkOutcomeReceipt receipt = new(
+                parentKey,
+                0,
+                DungeonSpaceExpansionCatalog.QuarryResearchId,
+                "채석장",
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                0f,
+                1f,
+                1f,
+                true,
+                Array.Empty<BlueprintUnlockRecord>(),
+                ResearchWorkCause.ImmediateCompletion);
+            if (!Recorder.TryPrepare(
+                    receipt,
+                    out PreparedOutcomeToken prepared).Success
+                || !Recorder.CommitPrepared(
+                    prepared,
+                    parentKey.CommitRevision,
+                    out CommittedOutcomeToken committed).Success
+                || !Recorder.TryDeliver(committed).Published
+                || !Recorder.Acknowledge(committed).Success)
+            {
+                throw new InvalidOperationException(
+                    "Dungeon-space fixture could not commit its research parent.");
+            }
+        }
 
         internal GameplayOutcomeLedger CreateLedger(string runId) => new(
             Registry,

@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using DungeonStory.Narrative.Korean;
 using UnityEngine;
 
 public static class DefenseFacilityPhysicalTransactionFixture
@@ -14,21 +17,27 @@ public static class DefenseFacilityPhysicalTransactionFixture
 
     public static bool Run()
     {
-        IDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
-        if (!VerifyMissingInputAtomic(catalog)
-            || !VerifyMaintenanceSink(catalog))
-        {
-            return false;
-        }
+        RunOrThrow();
+        return true;
+    }
 
-        FixtureGateway gateway = new(catalog)
+    public static void RunOrThrow()
+    {
+        IDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
+        Require(VerifyMissingInputAtomic(catalog),
+            "partial delivery changed a stack or created a pending owner");
+        Require(VerifyMaintenanceSink(catalog),
+            "maintenance sink did not commit and acknowledge exactly once");
+
+        using FixtureGateway gateway = new(catalog)
         {
             FailNextAcknowledgement = true
         };
         DefenseFacilityState owner = NewState();
         string sourceA = gateway.Add(SupplyItemId, 2, SupplyDestination);
         string sourceB = gateway.Add(SupplyItemId, 2, SupplyDestination);
-        if (!DefenseFacilityPhysicalTransactionOutbox.TryCommitOrResume(
+        bool supplyCommitted =
+            DefenseFacilityPhysicalTransactionOutbox.TryCommitOrResume(
                 owner.pendingSupply,
                 DefenseFacilityPhysicalCommitKind.SupplyTransfer,
                 FacilityId,
@@ -40,24 +49,29 @@ public static class DefenseFacilityPhysicalTransactionFixture
                 4,
                 gateway,
                 out PhysicalItemBatchDispositionReceipt receipt,
-                out _)
-            || gateway.Quantity(sourceA) != 0
-            || gateway.Quantity(sourceB) != 0
-            || receipt.Kind != PhysicalItemDispositionKind.Transfer)
-        {
-            return false;
-        }
+                out string supplyFailure);
+        Require(supplyCommitted,
+            "multi-stack supply commit failed: " + supplyFailure);
+        Require(gateway.Quantity(sourceA) == 0,
+            "first supply stack was not fully consumed: "
+            + gateway.Quantity(sourceA));
+        Require(gateway.Quantity(sourceB) == 0,
+            "second supply stack was not fully consumed: "
+            + gateway.Quantity(sourceB));
+        Require(receipt.Kind == PhysicalItemDispositionKind.Transfer,
+            "supply receipt kind was not Transfer: " + receipt.Kind);
 
         owner.supply = owner.pendingSupply.supplyAfter;
         owner.pendingSupply.phase =
             DefenseFacilityPhysicalCommitPhase.OutcomePublished;
-        if (DefenseFacilityPhysicalTransactionOutbox.TryAcknowledgeOutcome(
+        Require(!DefenseFacilityPhysicalTransactionOutbox.TryAcknowledgeOutcome(
                 owner.pendingSupply,
                 gateway,
-                out _))
-        {
-            return false;
-        }
+                out string injectedAckFailure),
+            "injected acknowledgement failure unexpectedly succeeded");
+        Require(injectedAckFailure == "injected-acknowledgement-failure",
+            "injected acknowledgement failure code changed: "
+            + injectedAckFailure);
 
         PhysicalItemRestoreCandidateDispositionSnapshot candidate = ToCandidate(
             owner.pendingSupply,
@@ -75,12 +89,15 @@ public static class DefenseFacilityPhysicalTransactionFixture
         DefenseFacilityState restored = FromRecord(
             restoredPayload.facilities.Single());
         Validate(new[] { owner }, candidate);
-        if (!Reject(new[] { owner })
-            || !Reject(Array.Empty<DefenseFacilityState>(), candidate)
-            || !Reject(
+        Require(Reject(new[] { owner }),
+            "pending owner without physical candidate was accepted");
+        Require(Reject(Array.Empty<DefenseFacilityState>(), candidate),
+            "orphan physical candidate was accepted");
+        Require(Reject(
                 new[] { owner },
-                Copy(candidate, mass: candidate.InputMassGrams + 1L))
-            || !DefenseFacilityPhysicalTransactionOutbox.TryCommitOrResume(
+                Copy(candidate, mass: candidate.InputMassGrams + 1L)),
+            "physical candidate with altered mass was accepted");
+        Require(DefenseFacilityPhysicalTransactionOutbox.TryCommitOrResume(
                 restored.pendingSupply,
                 DefenseFacilityPhysicalCommitKind.SupplyTransfer,
                 FacilityId,
@@ -92,28 +109,30 @@ public static class DefenseFacilityPhysicalTransactionFixture
                 4,
                 gateway,
                 out _,
-                out _)
-            || !DefenseFacilityPhysicalTransactionOutbox.TryAcknowledgeOutcome(
+                out string resumeFailure),
+            "restored supply commit did not resume: " + resumeFailure);
+        Require(DefenseFacilityPhysicalTransactionOutbox.TryAcknowledgeOutcome(
                 restored.pendingSupply,
                 gateway,
-                out _))
-        {
-            return false;
-        }
+                out string restoredAckFailure),
+            "restored supply acknowledgement failed: " + restoredAckFailure);
 
         DefenseFacilityPhysicalTransactionOutbox.Clear(restored.pendingSupply);
         restored.nextSupplyOperationSequence++;
         Validate(new[] { restored });
-        return Reject(new[] { restored }, candidate)
-            && gateway.Quantity(sourceA) == 0
-            && gateway.Quantity(sourceB) == 0
-            && restored.supply == 5;
+        Require(Reject(new[] { restored }, candidate),
+            "acknowledged physical candidate was accepted without an owner");
+        Require(gateway.Quantity(sourceA) == 0
+                && gateway.Quantity(sourceB) == 0,
+            "restored retry duplicated or reversed physical consumption");
+        Require(restored.supply == 5,
+            "restored supply state changed: " + restored.supply);
     }
 
     private static bool VerifyMissingInputAtomic(
         IDungeonItemCatalogProvider catalog)
     {
-        FixtureGateway gateway = new(catalog);
+        using FixtureGateway gateway = new(catalog);
         DefenseFacilityState state = NewState();
         string source = gateway.Add(SupplyItemId, 3, SupplyDestination);
         return !DefenseFacilityPhysicalTransactionOutbox.TryCommitOrResume(
@@ -137,7 +156,7 @@ public static class DefenseFacilityPhysicalTransactionFixture
     private static bool VerifyMaintenanceSink(
         IDungeonItemCatalogProvider catalog)
     {
-        FixtureGateway gateway = new(catalog);
+        using FixtureGateway gateway = new(catalog);
         DefenseFacilityState state = NewState();
         string source = gateway.Add(
             DefenseFacilityPhysicalTransactionOutbox.MaintenanceItemId,
@@ -252,6 +271,13 @@ public static class DefenseFacilityPhysicalTransactionFixture
         }
     }
 
+    private static void Require(bool condition, string message)
+    {
+        if (!condition)
+            throw new InvalidOperationException(
+                "Defense physical fixture: " + message);
+    }
+
     private sealed class CandidateQuery : IPhysicalItemRestoreCandidateQuery
     {
         private readonly IReadOnlyList<PhysicalItemRestoreCandidateDispositionSnapshot>
@@ -278,29 +304,80 @@ public static class DefenseFacilityPhysicalTransactionFixture
         }
     }
 
-    private sealed class FixtureGateway : IDefenseFacilityPhysicalItemGateway
+    internal sealed class FixtureGateway : IDefenseFacilityPhysicalItemGateway,
+        IDisposable
     {
         private readonly WorldItemRepository repository;
         private readonly WorldItemQueryService query;
         private readonly IPhysicalItemBatchDispositionService dispositions;
+        private readonly DomainFactDispatcher facts;
 
         internal FixtureGateway(IDungeonItemCatalogProvider catalog)
+            : this(catalog, new DungeonRuntimeAggregateRootStore()) { }
+
+        internal FixtureGateway(IDungeonItemCatalogProvider catalog,
+            DungeonRuntimeAggregateRootStore root)
         {
             repository = new WorldItemRepository(
                 new GuidPersistentIdGenerator(),
-                new DungeonRuntimeAggregateRootStore());
+                root);
             PhysicalItemMassQuery mass = new(catalog);
             query = new WorldItemQueryService(
                 catalog,
                 mass,
                 repository,
                 EditorNullItemMarkerPresenter.Instance);
+            GameplayOutcomeRegistry registry = new(
+                new IGameplayOutcomeDescriptor[]
+                {
+                    new TradeInventoryOutcomeDescriptor(
+                        new KoreanJosaFormatter()),
+                    new DefenseFacilityServiceOutcomeDescriptor()
+                },
+                new IGameplayOutcomeAdapterRegistration[]
+                {
+                    new TradeInventoryOutcomeAdapter(),
+                    new DefenseFacilityServiceOutcomeAdapter()
+                });
+            GameplayOutcomeLedger ledger = new(
+                registry,
+                new GameplayOutcomeBufferLimits(64, 4, 256),
+                new GameplayOutcomeRunId("ui01-defense-physical"),
+                1L);
+            Ledger = ledger;
+            GameplayOutcomeRecorder recorder = new(
+                ledger,
+                registry,
+                new GameEventBus());
+            Registry = registry;
+            Recorder = recorder;
+            facts = new DomainFactDispatcher();
+            facts.Subscribe(
+                "physical-disposition",
+                new GameplayDomainFactObserver<
+                    PhysicalItemDisposedFact,
+                    TradeInventoryOutcomeReceipt>(
+                    PhysicalItemDispositionFactObservation.Capture,
+                    registry,
+                    ledger,
+                    recorder,
+                    new GameplayDomainFactCommitGroup(recorder, ledger)));
             dispositions = new PhysicalItemBatchDispositionService(
                 repository,
                 mass,
-                EditorNullItemMarkerPresenter.Instance);
+                EditorNullItemMarkerPresenter.Instance,
+                null,
+                catalog,
+                facts,
+                facts,
+                new GameplayDomainFactDeliveryQuery(recorder, ledger),
+                CharacterAiEditorTestDependencies.GameCalendar);
         }
 
+        internal GameplayOutcomeLedger Ledger { get; }
+        internal GameplayOutcomeRegistry Registry { get; }
+        internal GameplayOutcomeRecorder Recorder { get; }
+        internal DomainFactDispatcher Facts => facts;
         internal bool FailNextAcknowledgement { get; set; }
 
         internal string Add(string itemId, int quantity, string destinationId) =>
@@ -348,5 +425,7 @@ public static class DefenseFacilityPhysicalTransactionFixture
             }
             return dispositions.Acknowledge(commitId, out failureReason);
         }
+
+        public void Dispose() => facts.Dispose();
     }
 }

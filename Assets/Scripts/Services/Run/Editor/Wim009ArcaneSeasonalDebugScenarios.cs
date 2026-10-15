@@ -157,14 +157,18 @@ public static class Wim009ArcaneSeasonalDebugScenarios
             "Revealed seasonal offer restore/launch guards are missing.");
         Require(SeasonalEventWorldSaveData.CurrentVersion == 5
                 && OffenseWorldSaveData.CurrentVersion == 10
-                && DungeonOffenseSaveData.CurrentVersion == 5
-                && DungeonOffenseAggregateSaveData.CurrentVersion == 6,
-            "WIM-009 current-format schema versions drifted.");
+                && DungeonOffenseSaveData.CurrentVersion == 6
+                && DungeonOffenseAggregateSaveData.CurrentVersion == 11,
+            "WIM-009 current-format schema versions drifted: seasonal="
+            + SeasonalEventWorldSaveData.CurrentVersion
+            + "; world=" + OffenseWorldSaveData.CurrentVersion
+            + "; expedition=" + DungeonOffenseSaveData.CurrentVersion
+            + "; aggregate=" + DungeonOffenseAggregateSaveData.CurrentVersion);
 
         Debug.Log(
             "WIM009_ARCANE_SEASONAL=PASS; mana=running+energized+Heat/Fault+common-fire; "
             + "offers=occurrence-frozen+opt-in+physical-reward; deep-echo=no-wildlife+encounter31; "
-            + "current-format=seasonal5/world10/expedition5/aggregate6");
+            + "current-format=seasonal5/world10/expedition6/aggregate11");
     }
 
     private static SeasonalWorldEventDefinitionSO RequireAsset(string path) =>

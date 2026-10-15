@@ -1,6 +1,4 @@
 using System;
-using System.Buffers;
-using System.Collections.Generic;
 
 public sealed class DefaultPhysicalBatchDispositionOutcomeParticipant :
     IDefaultPhysicalItemBatchDispositionOutcomeParticipant
@@ -37,177 +35,20 @@ public sealed class DefaultPhysicalBatchDispositionOutcomeParticipant :
             return false;
         }
 
-        GameplayOutcomeParticipant[] participants =
-            ArrayPool<GameplayOutcomeParticipant>.Shared.Rent(sourceCount * 2);
-        GameplayOutcomeMetric[] metrics =
-            ArrayPool<GameplayOutcomeMetric>.Shared.Rent(5 + sourceCount * 4);
-        GameplayOutcomeSubjectLink[] subjects =
-            ArrayPool<GameplayOutcomeSubjectLink>.Shared.Rent(sourceCount * 2);
-        GameplayOutcomeTagId[] tags =
-            ArrayPool<GameplayOutcomeTagId>.Shared.Rent(2);
-        GameplayOutcomeProvenanceReference[] provenance =
-            ArrayPool<GameplayOutcomeProvenanceReference>.Shared.Rent(3);
-        GameplayOutcomeFact[] facts =
-            ArrayPool<GameplayOutcomeFact>.Shared.Rent(2);
-        int participantCount = 0;
-        int metricCount = 0;
-        int subjectCount = 0;
         try
         {
-            GameplayEntityId operationEntity = new(
-                TradeInventoryOutcomeIds.OperationKind,
-                exactReceipt.OperationId);
-            string slug = TradeInventoryOutcomeIds.Slug(
-                TradeInventoryOutcomeKind.PhysicalItemBatchDisposition);
-            metrics[metricCount++] = new GameplayOutcomeMetric(
-                TradeInventoryOutcomeIds.KindMetric,
-                (int)TradeInventoryOutcomeKind.PhysicalItemBatchDisposition,
-                TradeInventoryOutcomeIds.EnumUnit,
-                new GameplayEntityId(
-                    TradeInventoryOutcomeIds.OutcomeKind,
-                    slug));
-            metrics[metricCount++] = new GameplayOutcomeMetric(
-                TradeInventoryOutcomeIds.ResultRevisionMetric,
-                expectedOwnerRevision,
-                TradeInventoryOutcomeIds.RevisionUnit,
-                operationEntity);
-            metrics[metricCount++] = new GameplayOutcomeMetric(
-                TradeInventoryOutcomeIds.InputQuantityMetric,
-                exactReceipt.Quantity,
-                TradeInventoryOutcomeIds.CountUnit,
-                operationEntity);
-            metrics[metricCount++] = new GameplayOutcomeMetric(
-                TradeInventoryOutcomeIds.InputMassMetric,
-                exactReceipt.InputMassGrams,
-                TradeInventoryOutcomeIds.GramUnit,
-                operationEntity);
-            metrics[metricCount++] = new GameplayOutcomeMetric(
-                TradeInventoryOutcomeIds.DispositionMetric,
-                (int)exactReceipt.Kind,
-                TradeInventoryOutcomeIds.EnumUnit,
-                operationEntity);
-
-            bool samePosition = true;
-            UnityEngine.Vector2Int firstPosition =
-                exactReceipt.SourceFacts[0].SourcePosition;
             for (int index = 0; index < sourceCount; index++)
             {
-                PhysicalItemDispositionSourceFact source =
-                    exactReceipt.SourceFacts[index];
-                if (!source.IsValid)
+                if (!exactReceipt.SourceFacts[index].IsValid)
                 {
                     failureReason = "physical-outcome-source-fact-invalid";
                     return false;
                 }
-                GameplayEntityId stackEntity = new(
-                    TradeInventoryOutcomeIds.ItemStackKind,
-                    source.StackId);
-                GameplayEntityId itemEntity = source.ItemInstanceId.Length > 0
-                    ? new GameplayEntityId(
-                        TradeInventoryOutcomeIds.ItemInstanceKind,
-                        source.ItemInstanceId)
-                    : new GameplayEntityId(
-                        TradeInventoryOutcomeIds.ItemDefinitionKind,
-                        source.ItemDefinitionId);
-                participants[participantCount++] = new GameplayOutcomeParticipant(
-                    stackEntity,
-                    TradeInventoryOutcomeIds.SourceRole,
-                    GameplayParticipationKind.Direct,
-                    true,
-                    source.DisplayName);
-                subjects[subjectCount++] = new GameplayOutcomeSubjectLink(
-                    stackEntity,
-                    0.35f,
-                    NarrativeMemoryTier.Recent,
-                    false,
-                    false,
-                    0);
-                if (!HasParticipant(
-                        participants,
-                        participantCount,
-                        itemEntity,
-                        TradeInventoryOutcomeIds.ItemRole))
-                {
-                    participants[participantCount++] =
-                        new GameplayOutcomeParticipant(
-                            itemEntity,
-                            TradeInventoryOutcomeIds.ItemRole,
-                            GameplayParticipationKind.Direct,
-                            true,
-                            source.DisplayName);
-                    subjects[subjectCount++] = new GameplayOutcomeSubjectLink(
-                        itemEntity,
-                        0.55f,
-                        NarrativeMemoryTier.Recent,
-                        false,
-                        false,
-                        0);
-                }
-                metrics[metricCount++] = new GameplayOutcomeMetric(
-                    TradeInventoryOutcomeIds.QuantityMetric,
-                    source.Quantity,
-                    TradeInventoryOutcomeIds.CountUnit,
-                    stackEntity);
-                metrics[metricCount++] = new GameplayOutcomeMetric(
-                    TradeInventoryOutcomeIds.MassMetric,
-                    source.MassGrams,
-                    TradeInventoryOutcomeIds.GramUnit,
-                    stackEntity);
-                metrics[metricCount++] = new GameplayOutcomeMetric(
-                    TradeInventoryOutcomeIds.SourceXMetric,
-                    source.SourcePosition.x,
-                    TradeInventoryOutcomeIds.CellUnit,
-                    stackEntity);
-                metrics[metricCount++] = new GameplayOutcomeMetric(
-                    TradeInventoryOutcomeIds.SourceYMetric,
-                    source.SourcePosition.y,
-                    TradeInventoryOutcomeIds.CellUnit,
-                    stackEntity);
-                samePosition &= source.SourcePosition == firstPosition;
             }
 
-            tags[0] = TradeInventoryOutcomeIds.TradeInventoryTag;
-            tags[1] = TradeInventoryOutcomeIds.PhysicalTag;
-            provenance[0] = TradeInventoryOutcomeIds.RuntimeReceiptProvenance;
-            provenance[1] = new GameplayOutcomeProvenanceReference(
-                "source-receipt",
-                slug);
-            provenance[2] = new GameplayOutcomeProvenanceReference(
-                "domain-commit",
-                exactReceipt.CommitId);
-            facts[0] = new GameplayOutcomeFact(
-                TradeInventoryOutcomeIds.ReasonCodeFact,
-                exactReceipt.ReasonCode);
-            facts[1] = new GameplayOutcomeFact(
-                TradeInventoryOutcomeIds.RequestFingerprintFact,
-                exactReceipt.RequestFingerprint);
-            GameplayLocationReference location = samePosition
-                ? new GameplayLocationReference(
-                    "dungeon",
-                    string.Empty,
-                    firstPosition.x,
-                    firstPosition.y)
-                : default;
-            TradeInventoryOutcomeReceipt receipt = new(
-                TradeInventoryOutcomeKind.PhysicalItemBatchDisposition,
-                exactReceipt.OperationId,
-                expectedOwnerRevision,
-                expectedOwnerRevision,
-                Math.Max(1, calendar.Day),
-                GameplayOutcomeStatus.Succeeded,
-                participants,
-                participantCount,
-                metrics,
-                metricCount,
-                subjects,
-                subjectCount,
-                tags,
-                2,
-                provenance,
-                3,
-                facts,
-                2,
-                location);
+            TradeInventoryOutcomeReceipt receipt =
+                PhysicalItemDispositionFactObservation.Capture(
+                    new PhysicalItemDisposedFact(exactReceipt, calendar.Day));
             if (!committer.TryPrepare(
                     receipt,
                     out PreparedTradeInventoryOutcome preparedTrade,
@@ -227,40 +68,10 @@ public sealed class DefaultPhysicalBatchDispositionOutcomeParticipant :
                 + exception.Message;
             return false;
         }
-        finally
-        {
-            ArrayPool<GameplayOutcomeParticipant>.Shared.Return(
-                participants,
-                clearArray: true);
-            ArrayPool<GameplayOutcomeMetric>.Shared.Return(
-                metrics,
-                clearArray: true);
-            ArrayPool<GameplayOutcomeSubjectLink>.Shared.Return(
-                subjects,
-                clearArray: true);
-            ArrayPool<GameplayOutcomeTagId>.Shared.Return(tags, clearArray: true);
-            ArrayPool<GameplayOutcomeProvenanceReference>.Shared.Return(
-                provenance,
-                clearArray: true);
-            ArrayPool<GameplayOutcomeFact>.Shared.Return(facts, clearArray: true);
-        }
-    }
-
-    private static bool HasParticipant(
-        GameplayOutcomeParticipant[] participants,
-        int count,
-        GameplayEntityId entity,
-        GameplayRoleId role)
-    {
-        for (int index = 0; index < count; index++)
-            if (participants[index].EntityId.Equals(entity)
-                && participants[index].RoleId.Equals(role))
-                return true;
-        return false;
     }
 
     private sealed class PreparedPhysicalDispositionOutcome :
-        IPreparedPhysicalItemGameplayOutcome
+        IPreparedPhysicalItemGameplayOutcomeToken
     {
         private readonly ITradeInventoryOutcomeCommitter committer;
         private readonly IGameplayOutcomeDiagnosticsQuery diagnostics;
@@ -279,6 +90,7 @@ public sealed class DefaultPhysicalBatchDispositionOutcomeParticipant :
 
         public GameplayResultKey ResultKey => prepared.ResultKey;
         public bool IsCanonicalReplay => prepared.IsCanonicalReplay;
+        public PreparedOutcomeToken Token => prepared.Token;
 
         public bool TryCommit(
             long expectedOwnerRevision,

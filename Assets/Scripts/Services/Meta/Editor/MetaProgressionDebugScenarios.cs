@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.Operation;
 using System.Collections.Generic;
 using System.Linq;
@@ -245,6 +246,8 @@ public static class MetaProgressionDebugScenarios
         var runOutcomeFixture = new MigratedProducerOutcomeEditorFixture(
             "run:meta-strategy-variables",
             runRoot);
+        using DomainFactDispatcher runVariableFacts =
+            runOutcomeFixture.CreateRunVariableFacts();
         runVariables.Construct(
             new EmptyOwnerRunDataProvider(),
             EditorRuntimeReferenceFixtures.Invasion,
@@ -257,7 +260,8 @@ public static class MetaProgressionDebugScenarios
             authored,
             authored,
             runRoot,
-            runOutcomeFixture.Transaction);
+            runVariableFacts,
+            runVariableFacts);
         runVariables.StartRun(9405);
         RunVariableRuntimeReader runReader = new RunVariableRuntimeReader(
             runReferences,
@@ -601,9 +605,40 @@ public static class MetaProgressionDebugScenarios
         return building;
     }
 
+    private static DomainFactDispatcher CreateMetaFacts(
+        MigratedProducerOutcomeEditorFixture outcomes)
+    {
+        var dispatcher = new DomainFactDispatcher();
+        var commits = new GameplayDomainFactCommitGroup(
+            outcomes.Recorder,
+            outcomes.Ledger);
+        try
+        {
+            dispatcher.Subscribe(
+                "fixture:meta-upgrade-purchased",
+                new MigratedDomainFactObserver<MetaUpgradePurchaseDomainFact>(
+                    MetaProgressionFactMapping.Capture,
+                    outcomes.Transaction,
+                    commits));
+            dispatcher.Subscribe(
+                "fixture:meta-run-result",
+                new MigratedDomainFactObserver<MetaRunResultDomainFact>(
+                    MetaProgressionFactMapping.Capture,
+                    outcomes.Transaction,
+                    commits));
+            return dispatcher;
+        }
+        catch
+        {
+            dispatcher.Dispose();
+            throw;
+        }
+    }
+
     private sealed class ScenarioRuntime : IDisposable
     {
         private readonly GameObject runtimeObject;
+        private readonly DomainFactDispatcher domainFacts;
 
         public MetaProgressionRuntime Runtime { get; }
         public DungeonStory.Foundation.IGameEventBus GameEvents { get; }
@@ -632,18 +667,15 @@ public static class MetaProgressionDebugScenarios
                 gameClock,
                 CreateAuthoredMetaCatalog(),
                 aggregateRootStore);
-            var outcomeTransactions =
-                new MetaUpgradePurchaseOutcomeTransaction(
-                    outcomeFixture.Transaction);
-            Runtime.ConstructOutcomeTransactions(outcomeTransactions);
-            Runtime.ConstructRunResultOutcomeTransactions(
-                outcomeTransactions);
+            domainFacts = CreateMetaFacts(outcomeFixture);
+            Runtime.ConstructDomainFacts(domainFacts);
             Runtime.SetShowRunResultPanel(false);
             Runtime.StartNewRun();
         }
 
         public void Dispose()
         {
+            domainFacts.Dispose();
             foreach (BuildableObject facility in Object.FindObjectsByType<BuildableObject>(FindObjectsSortMode.None)
                          .Where((building) => building != null && building.name.Contains("발견 시설")))
             {

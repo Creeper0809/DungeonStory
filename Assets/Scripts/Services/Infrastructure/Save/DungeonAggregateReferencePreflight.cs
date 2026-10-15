@@ -85,6 +85,10 @@ public sealed class DungeonAggregateReferencePreflight :
             DungeonSaveSectionPayload.ReadOrNew<SeasonalEventWorldSaveData>(
                 saveData,
                 SeasonalWorldEventsSaveSection.Id);
+        DungeonWildlifeSaveData wildlife =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonWildlifeSaveData>(
+                saveData,
+                WildlifeSaveSection.Id);
         DungeonPhysicalItemSaveData items =
             DungeonSaveSectionPayload.ReadOrNew<DungeonPhysicalItemSaveData>(
                 saveData,
@@ -125,6 +129,10 @@ public sealed class DungeonAggregateReferencePreflight :
             DungeonSaveSectionPayload.ReadOrNew<DungeonMetaProgressionSaveData>(
                 saveData,
                 MetaProgressionSaveSection.Id);
+        DungeonRunFlowSaveData runFlow =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonRunFlowSaveData>(
+                saveData,
+                RunFlowSaveSection.Id);
         DungeonResearchSaveData research =
             DungeonSaveSectionPayload.ReadOrNew<DungeonResearchSaveData>(
                 saveData,
@@ -183,6 +191,64 @@ public sealed class DungeonAggregateReferencePreflight :
                 DungeonPowerInfrastructureSaveData>(
                 saveData,
                 PowerInfrastructureSaveSection.Id);
+        DungeonInfrastructureObservationSaveData infrastructureOutcomes =
+            DungeonSaveSectionPayload.ReadOrNew<
+                DungeonInfrastructureObservationSaveData>(
+                saveData,
+                InfrastructureCommandOutcomeSaveSection.Id);
+        GameplayOutcomeLedgerSaveData outcomeLedger =
+            DungeonSaveSectionPayload.ReadOrNew<
+                GameplayOutcomeLedgerSaveData>(
+                saveData,
+                GameplayOutcomeLedgerSaveSection.Id);
+        ValidateOutcomeCalendar(session, outcomeLedger, report);
+        try
+        {
+            AnimalHusbandryCompletionObservation.ValidateCompletionRestoreJoin(
+                DungeonSaveSectionPayload.ReadOrNew<DungeonAnimalHusbandrySaveData>(
+                    saveData, AnimalHusbandrySaveSection.Id).pendingOutcomes,
+                outcomeLedger);
+        }
+        catch (Exception exception)
+        {
+            report.AddError("Husbandry completion identity restore join is invalid: " + exception.Message);
+        }
+        try
+        {
+            SurgeryCompletionIdentityRestoreJoin.Validate(
+                DungeonSaveSectionPayload.ReadOrNew<DungeonSurgerySaveData>(
+                    saveData, SurgerySaveSection.Id).orders,
+                characterNarrative.workCompletionDeliveries, outcomeLedger);
+        }
+        catch (Exception exception)
+        {
+            report.AddError("Surgery completion identity restore join is invalid: " + exception.Message);
+        }
+        try
+        {
+            RepairWorkCompletionObservation.ValidateCompletionRestoreJoin(
+                DungeonSaveSectionPayload.ReadOrNew<DungeonWorkOrderSaveData>(
+                    saveData, WorkOrdersSaveSection.Id).repairOutcomes,
+                characterNarrative.workCompletionDeliveries, outcomeLedger,
+                DungeonSaveSectionPayload.ReadOrNew<DungeonMigratedProducerOutcomeSaveData>(
+                    saveData, MigratedProducerOutcomeSaveSection.Id));
+        }
+        catch (Exception exception)
+        {
+            report.AddError("Repair completion identity restore join is invalid: " + exception.Message);
+        }
+
+        try
+        {
+            EnvironmentalFireCompletionIdentity.ValidateRestoreJoin(
+                DungeonSaveSectionPayload.ReadOrNew<DungeonStory.Environment.DungeonEnvironmentalFireSaveData>(
+                    saveData, EnvironmentalFireSaveSection.Id),
+                characterNarrative.workCompletionDeliveries, outcomeLedger);
+        }
+        catch (Exception exception)
+        {
+            report.AddError("Fire completion identity restore join is invalid: " + exception.Message);
+        }
 
         // ReadOrNew deserializes detached DTO graphs. Normalize only the explicitly
         // typed early-V18 character-reference paths on those graphs before building
@@ -199,6 +265,8 @@ public sealed class DungeonAggregateReferencePreflight :
             ValidateCharacters(characters, report);
         AddActiveInvasionCharacterIds(invasion, characterReferences, report);
         HashSet<string> characterIds = characterReferences.KnownCharacterIds;
+        HashSet<string> combatCharacterIds = BuildCombatCharacterIds(
+            characterIds, offense?.expedition?.activeBattle, report);
         BuildingReferenceIndex buildingIds = ValidateBuildings(buildings, report);
         ValidateRetailStockJoins(buildings, physical, report);
         ValidateQualityRejectedSaleJoins(
@@ -206,15 +274,19 @@ public sealed class DungeonAggregateReferencePreflight :
             treasury,
             physical,
             report);
+        IndustrialTransitionFactObservation.ValidateSaveJoin(infrastructureOutcomes, outcomeLedger, report);
         ValidatePowerFuelPhysicalReceipts(
             powerInfrastructure,
             buildingIds.InstanceIds,
             physical,
+            infrastructureOutcomes,
+            outcomeLedger,
             report);
         ValidateOffenseMembers(offense, characterIds, report);
         ValidateOffenseReferences(
             offense,
             characterIds,
+            combatCharacterIds,
             physical,
             buildingIds.InstanceIds,
             report);
@@ -226,7 +298,7 @@ public sealed class DungeonAggregateReferencePreflight :
         ValidateOffenseArrivalResultJoins(offense, report);
         ValidateCombat(
             combat,
-            characterIds,
+            combatCharacterIds,
             physical,
             buildingIds.InstanceIds,
             research,
@@ -256,17 +328,19 @@ public sealed class DungeonAggregateReferencePreflight :
             buildingIds.InstanceIds,
             physical,
             report);
-        HashSet<string> retainedDeadExpeditionActorIds =
-            ValidateRetainedDeadExpeditionActors(
+        HashSet<string> retainedDeadActorIds =
+            ValidateRetainedDeadActors(
                 characters,
                 offense,
                 kinshipHouseholds,
+                meta,
+                runFlow,
                 report);
         KinshipReferenceIndex kinship = ValidateKinshipHouseholds(
             kinshipHouseholds,
             characterReferences.LivingCharacterIds,
             characterReferences.ActorIds,
-            retainedDeadExpeditionActorIds,
+            retainedDeadActorIds,
             buildingIds.InstanceIds,
             report);
         ValidateReproduction(
@@ -276,7 +350,9 @@ public sealed class DungeonAggregateReferencePreflight :
             report);
         ValidatePopulationHealth(
             populationHealth,
+            outcomeLedger,
             characterIds,
+            new HashSet<string>(kinship.AllCharacterIds.Concat(retainedDeadActorIds), StringComparer.Ordinal),
             buildingIds.InstanceIds,
             physical,
             report);
@@ -305,14 +381,76 @@ public sealed class DungeonAggregateReferencePreflight :
             cropEcology,
             cropPlots,
             characterNarrative,
+            outcomeLedger,
             buildingIds.InstanceIds,
             physical.SeedLots,
             report);
+        try
+        {
+            SeasonalWildlifeArrivalRules.ValidateRestoreJoin(
+                seasonal,
+                wildlife.wildlife);
+        }
+        catch (Exception exception)
+        {
+            report.AddError(
+                "Seasonal wildlife restore join is invalid: "
+                + exception.Message);
+        }
 
         foreach (string characterId in characterIds.Except(lifeCharacterIds))
         {
             report.AddError(
                 $"Character '{characterId}' has no V19 life record.");
+        }
+    }
+
+    public static void ValidateOutcomeCalendar(GameSessionSaveData session,
+        GameplayOutcomeLedgerSaveData ledger, DungeonGameRestoreReport report)
+    {
+        if (session == null || ledger == null || report == null)
+            throw new ArgumentNullException("Outcome/calendar join requires detached save sections.");
+        if (session.absoluteDay < 1 || session.hour < 0 || session.hour >= GameCalendarRules.HoursPerDay)
+        {
+            report.AddError("outcome-calendar-source-invalid");
+            return;
+        }
+        long capturedHour = GameplayOutcomeDeliveryTime.OccurrenceStartHour(session.absoluteDay) + session.hour;
+        ValidateRows(ledger.outbox);
+        ValidateRows(ledger.exactOutcomes);
+        if (ledger.tombstones == null)
+            report.AddError("outcome-calendar-tombstones-missing");
+        else
+            foreach (GameplayOutcomeTombstoneSnapshot tombstone in ledger.tombstones)
+            {
+                try { GameplayOutcomeDeliveryTime.RequireCapturedAt(tombstone, capturedHour, false); }
+                catch (InvalidOperationException error)
+                {
+                    report.AddError("outcome-calendar-tombstone-invalid: " + tombstone?.operationId + ": " + error.Message);
+                }
+            }
+        if (ledger.compactedMemories == null)
+            report.AddError("outcome-calendar-compacted-missing");
+        else
+            foreach (CompactedNarrativeMemorySnapshot memory in ledger.compactedMemories)
+            {
+                try { GameplayOutcomeDeliveryTime.RequireCapturedAt(memory, capturedHour); }
+                catch (InvalidOperationException error)
+                {
+                    report.AddError("outcome-calendar-compacted-invalid: " + memory?.memoryId + ": " + error.Message);
+                }
+            }
+        void ValidateRows(List<GameplayOutcomeSnapshot> rows)
+        {
+            if (rows == null) { report.AddError("outcome-calendar-rows-missing"); return; }
+            foreach (GameplayOutcomeSnapshot row in rows)
+            {
+                try { GameplayOutcomeDeliveryTime.RequireCapturedAt(row, capturedHour, false); }
+                catch (InvalidOperationException error)
+                {
+                    report.AddError("outcome-calendar-join-invalid: " + row?.operationId + ": " + error.Message);
+                }
+            }
         }
     }
 
@@ -452,6 +590,52 @@ public sealed class DungeonAggregateReferencePreflight :
 
             characterReferences.LivingCharacterIds.Add(characterId.Value);
         }
+    }
+
+    private static HashSet<string> BuildCombatCharacterIds(
+        ISet<string> worldCharacterIds,
+        OffenseBattlePersistenceState battle,
+        DungeonGameRestoreReport report)
+    {
+        // Battle-owned enemy individuals are not resident CharacterActors. Their
+        // equipment authority is admitted only by the persisted active roster,
+        // joined exactly to battle combatants; never by an ID prefix or fallback.
+        HashSet<string> owners = new(worldCharacterIds, StringComparer.Ordinal);
+        if (battle == null) return owners;
+        HashSet<string> combatants = new(StringComparer.Ordinal);
+        foreach (OffenseBattleCombatantPersistenceState combatant in battle.combatants
+                 ?? new List<OffenseBattleCombatantPersistenceState>())
+        {
+            string rawId = combatant?.persistentId;
+            string id = rawId?.Trim() ?? string.Empty;
+            if (combatant == null || id.Length == 0
+                || !string.Equals(rawId, id, StringComparison.Ordinal)
+                || !combatants.Add(id))
+                report.AddError($"Active offense battle has an invalid or duplicate combatant '{rawId ?? string.Empty}'.");
+        }
+        HashSet<string> enemies = new(StringComparer.Ordinal);
+        foreach (EnemyIndividualSaveData enemy in battle.enemyIndividuals
+                 ?? new List<EnemyIndividualSaveData>())
+        {
+            string rawId = enemy?.characterId;
+            CharacterId id = (CharacterId)rawId;
+            if (enemy == null || !id.IsValid
+                || !string.Equals(rawId, id.Value, StringComparison.Ordinal)
+                || !enemies.Add(id.Value))
+            {
+                report.AddError($"Active offense battle has an invalid or duplicate enemy individual '{rawId ?? string.Empty}'.");
+                continue;
+            }
+            if (worldCharacterIds.Contains(id.Value))
+                report.AddError($"Active offense battle enemy '{id.Value}' collides with a world character.");
+            else if (!combatants.Contains(id.Value))
+                report.AddError($"Active offense battle enemy '{id.Value}' has no matching combatant.");
+            else
+                owners.Add(id.Value);
+        }
+        // Authored objectives are combatants, not characters or equipment owners.
+        // Their composition remains the offense section's validation authority.
+        return owners;
     }
 
     private static void NormalizeEarlyV18CharacterReferences(
@@ -1026,8 +1210,11 @@ public sealed class DungeonAggregateReferencePreflight :
         {
             if (owner.phase == QualityRejectedSaleCommitPhase.Prepared)
             {
-                report.AddError(
-                    $"Quality-rejected sale '{owner.operationId}' was captured before physical commitment.");
+                if (physical.PendingBatchByOperation.ContainsKey(owner.operationId))
+                {
+                    report.AddError(
+                        $"Prepared quality-rejected sale '{owner.operationId}' unexpectedly owns a physical receipt.");
+                }
                 continue;
             }
             if (!physical.PendingBatchByOperation.TryGetValue(
@@ -1044,6 +1231,8 @@ public sealed class DungeonAggregateReferencePreflight :
                     StringComparison.Ordinal)
                 || receipt.quantity != owner.quantity
                 || receipt.inputMassGrams != owner.inputMassGrams
+                || receipt.ownerRevision
+                    != owner.physicalOutcomeOwnerRevision
                 || receipt.sourceStackIds == null
                 || receipt.sourceStackIds.Count != 1
                 || !string.Equals(
@@ -1056,7 +1245,7 @@ public sealed class DungeonAggregateReferencePreflight :
             }
 
             if (owner.requiresCombatAuthority
-                && owner.phase != QualityRejectedSaleCommitPhase.UniqueAuthorityReleased)
+                && owner.phase < QualityRejectedSaleCommitPhase.UniqueAuthorityReleased)
             {
                 if (!physical.EquipmentInstances.TryGetValue(
                         owner.itemInstanceId,
@@ -1089,8 +1278,7 @@ public sealed class DungeonAggregateReferencePreflight :
                 }
             }
             else if (owner.requiresCombatAuthority
-                && owner.phase
-                    == QualityRejectedSaleCommitPhase.UniqueAuthorityReleased
+                && owner.phase >= QualityRejectedSaleCommitPhase.UniqueAuthorityReleased
                 && physical.EquipmentInstances.ContainsKey(owner.itemInstanceId))
             {
                 report.AddError(
@@ -1099,7 +1287,9 @@ public sealed class DungeonAggregateReferencePreflight :
 
             bool expectsIncome = owner.phase is
                 QualityRejectedSaleCommitPhase.IncomePublished
-                or QualityRejectedSaleCommitPhase.UniqueAuthorityReleased;
+                or QualityRejectedSaleCommitPhase.LedgerCommitted
+                or QualityRejectedSaleCommitPhase.UniqueAuthorityReleased
+                or QualityRejectedSaleCommitPhase.Acknowledged;
             EconomyTransactionRecord[] income = (treasury?.transactionLedger?.records
                     ?? new List<EconomyTransactionRecord>())
                 .Where(value => value != null
@@ -1112,6 +1302,12 @@ public sealed class DungeonAggregateReferencePreflight :
                 .ToArray();
             if ((expectsIncome && (income.Length != 1
                     || income[0].amount != owner.proceeds
+                    || !string.Equals(
+                        income[0].transactionId,
+                        owner.economyTransactionId,
+                        StringComparison.Ordinal)
+                    || income[0].balanceBefore != owner.balanceBefore
+                    || income[0].balanceAfter != owner.balanceAfter
                     || !string.Equals(
                         income[0].targetId,
                         owner.itemId,
@@ -1132,8 +1328,7 @@ public sealed class DungeonAggregateReferencePreflight :
                     equipment.sourceStackId,
                     out QualityRejectedSalePending owner)
                 || !owner.requiresCombatAuthority
-                || owner.phase
-                    == QualityRejectedSaleCommitPhase.UniqueAuthorityReleased
+                || owner.phase >= QualityRejectedSaleCommitPhase.UniqueAuthorityReleased
                 || !string.Equals(
                     owner.itemInstanceId,
                     equipment.instanceId,
@@ -1370,6 +1565,7 @@ public sealed class DungeonAggregateReferencePreflight :
     private void ValidateOffenseReferences(
         DungeonOffenseAggregateSaveData source,
         ISet<string> characterIds,
+        ISet<string> combatCharacterIds,
         PhysicalReferenceIndex physical,
         ISet<string> buildingIds,
         DungeonGameRestoreReport report)
@@ -1518,7 +1714,7 @@ public sealed class DungeonAggregateReferencePreflight :
                 report);
             RequireReference(
                 thrown.ownerCharacterId,
-                characterIds,
+                combatCharacterIds,
                 $"Thrown equipment '{thrown.instanceId}' owner",
                 report);
         }
@@ -2189,6 +2385,19 @@ public sealed class DungeonAggregateReferencePreflight :
             }
         }
 
+        foreach (var row in source?.pendingDailyObservation?.entries ?? new List<CharacterLifeTransitionPublicationSaveData>())
+        {
+            if (row?.fact == null) { report.AddError("Character-life pending observation is null."); continue; }
+            RequireReference(row.fact.characterId, characterIds, "Pending life transition character", report);
+        }
+        foreach (var projection in source?.pendingAgeConditionAnatomyProjections ?? new List<AgeConditionAnatomyProjectionSaveData>())
+        {
+            if (projection == null) { report.AddError("Character-life body projection is null."); continue; }
+            RequireReference(projection.characterId, characterIds, "Age-condition body projection character", report);
+            try { _ = lifeDefinitions.RequireAgeCondition(projection.conditionId); }
+            catch (Exception) { report.AddError("Age-condition body projection definition is unavailable: " + projection.conditionId); }
+        }
+
         TemporalStasisMaintenanceCommitSaveData maintenance =
             source?.pendingTemporalStasisMaintenance;
         TemporalStasisMaintenanceCommitPhase phase =
@@ -2258,6 +2467,8 @@ public sealed class DungeonAggregateReferencePreflight :
         DungeonPowerInfrastructureSaveData source,
         ISet<string> buildingInstanceIds,
         PhysicalReferenceIndex physical,
+        DungeonInfrastructureObservationSaveData infrastructureOutcomes,
+        GameplayOutcomeLedgerSaveData outcomeLedger,
         DungeonGameRestoreReport report)
     {
         foreach (PowerNodeSaveData node in source?.nodes
@@ -2316,6 +2527,12 @@ public sealed class DungeonAggregateReferencePreflight :
                     && receipt.sourceStackIds.SequenceEqual(
                         pending.sourceStackIds,
                         StringComparer.Ordinal);
+                ValidatePowerFuelOutcomeJoin(
+                    node,
+                    pending,
+                    infrastructureOutcomes,
+                    outcomeLedger,
+                    report);
             }
             if (!exact)
             {
@@ -2325,10 +2542,17 @@ public sealed class DungeonAggregateReferencePreflight :
         }
     }
 
-    private static HashSet<string> ValidateRetainedDeadExpeditionActors(
+    internal static void ValidatePowerFuelOutcomeJoin(
+        PowerNodeSaveData node, PowerFuelCommitSaveData pending, DungeonInfrastructureObservationSaveData infrastructureOutcomes,
+        GameplayOutcomeLedgerSaveData outcomeLedger, DungeonGameRestoreReport report) =>
+        IndustrialTransitionFactObservation.ValidatePowerFuelJoin(node, pending, infrastructureOutcomes, outcomeLedger, report);
+
+    private static HashSet<string> ValidateRetainedDeadActors(
         DungeonCharacterWorldSaveData characters,
         DungeonOffenseAggregateSaveData offense,
         KinshipHouseholdWorldSaveData kinshipHouseholds,
+        DungeonMetaProgressionSaveData meta,
+        DungeonRunFlowSaveData runFlow,
         DungeonGameRestoreReport report)
     {
         HashSet<string> activeExpeditionActorIds =
@@ -2371,16 +2595,27 @@ public sealed class DungeonAggregateReferencePreflight :
                     $"Retained character actor '{actorId}' has inconsistent death lifecycle and health state.");
                 continue;
             }
-            if (!activeExpeditionActorIds.Contains(actorId))
+            bool terminalOwner = actor.isOwner
+                && string.Equals(actorId, CharacterId.Owner.Value, StringComparison.Ordinal)
+                && (meta?.ended == true && meta.hasLatestResult
+                    && meta.latestResult?.outcome == DungeonRunOutcome.Defeat
+                    // The exact completion fact is cross-validated by its
+                    // preflight before replay can deliver the settlement event.
+                    || meta?.ended == false && !meta.hasLatestResult
+                    && runFlow?.pendingCompletion?.fact?.ownerId == actorId
+                    && runFlow.pendingCompletion.fact.outcome == DungeonRunOutcome.Defeat)
+                && runFlow?.phase == DungeonRunPhase.Finished
+                && runFlow.outcome == DungeonRunOutcome.Defeat;
+            if (!terminalOwner && !activeExpeditionActorIds.Contains(actorId))
             {
                 report.AddError(
-                    $"Dead character actor '{actorId}' has no active-expedition ownership.");
+                    $"Dead character actor '{actorId}' has no exact terminal-owner or active-expedition ownership.");
                 continue;
             }
             if (!tombstoneIds.Contains(actorId))
             {
                 report.AddError(
-                    $"Active-expedition dead character '{actorId}' has no matching tombstone.");
+                    $"Retained dead character '{actorId}' has no matching tombstone.");
                 continue;
             }
 
@@ -2394,7 +2629,7 @@ public sealed class DungeonAggregateReferencePreflight :
         KinshipHouseholdWorldSaveData source,
         ISet<string> livingCharacterIds,
         ISet<string> actorIds,
-        ISet<string> retainedDeadExpeditionActorIds,
+        ISet<string> retainedDeadActorIds,
         ISet<string> buildingIds,
         DungeonGameRestoreReport report)
     {
@@ -2416,11 +2651,11 @@ public sealed class DungeonAggregateReferencePreflight :
                     $"Character '{tombstone.characterId}' is both living and archived as a tombstone.");
             }
             else if (actorIds.Contains(tombstone.characterId)
-                     && !retainedDeadExpeditionActorIds.Contains(
+                     && !retainedDeadActorIds.Contains(
                          tombstone.characterId))
             {
                 report.AddError(
-                    $"Character '{tombstone.characterId}' retains an archived actor without exact active-expedition death ownership.");
+                    $"Character '{tombstone.characterId}' retains an archived actor without exact terminal-owner or active-expedition death ownership.");
             }
             if (!new CharacterSpeciesId(tombstone.phenotypeSpeciesId).IsValid)
             {
@@ -2458,7 +2693,7 @@ public sealed class DungeonAggregateReferencePreflight :
         }
 
         HashSet<string> assignedCharacters = new(StringComparer.Ordinal);
-        HashSet<string> assignedBeds = new(StringComparer.Ordinal);
+        HashSet<string> assignedBedSlots = new(StringComparer.Ordinal);
         foreach (CharacterRoomAssignmentSaveData assignment in source?.households?.assignments
                      ?? new List<CharacterRoomAssignmentSaveData>())
         {
@@ -2480,12 +2715,70 @@ public sealed class DungeonAggregateReferencePreflight :
                 report.AddError(
                     $"Character '{assignment.characterId}' has multiple room assignments.");
             }
-            if (!assignedBeds.Add(assignment.bedBuildingId))
+            if (assignment.bedSlotIndex < 0)
             {
                 report.AddError(
-                    $"Bed '{assignment.bedBuildingId}' is assigned to multiple characters.");
+                    $"Bed '{assignment.bedBuildingId}' has invalid slot index {assignment.bedSlotIndex}.");
+            }
+            string bedSlotKey = assignment.bedBuildingId
+                + ":"
+                + assignment.bedSlotIndex;
+            if (!assignedBedSlots.Add(bedSlotKey))
+            {
+                report.AddError(
+                    $"Bed slot '{bedSlotKey}' is assigned to multiple characters.");
             }
             result.HouseholdIds.Add(assignment.householdId);
+        }
+
+        HashSet<string> pendingCharacters = new(StringComparer.Ordinal);
+        foreach (HouseholdPendingAssignmentSaveData pending in
+                 source?.households?.pendingAssignments
+                 ?? new List<HouseholdPendingAssignmentSaveData>())
+        {
+            if (pending == null)
+            {
+                report.AddError(
+                    "Household aggregate contains a null pending assignment.");
+                continue;
+            }
+            RequireReference(
+                pending.characterId,
+                livingCharacterIds,
+                "Pending household character",
+                report);
+            RequireReference(
+                pending.firstParentId,
+                result.AllCharacterIds,
+                "Pending household first parent",
+                report);
+            if (!string.IsNullOrWhiteSpace(pending.secondParentId))
+                RequireReference(
+                    pending.secondParentId,
+                    result.AllCharacterIds,
+                    "Pending household second parent",
+                    report);
+            if (!string.IsNullOrWhiteSpace(pending.carrierId))
+                RequireReference(
+                    pending.carrierId,
+                    result.AllCharacterIds,
+                    "Pending household carrier",
+                    report);
+            if (!string.IsNullOrWhiteSpace(pending.preferredHouseholdId)
+                && !new HouseholdId(pending.preferredHouseholdId).IsValid)
+                report.AddError(
+                    $"Pending household assignment for '{pending.characterId}' has invalid preferred household ID '{pending.preferredHouseholdId}'.");
+            if (!pendingCharacters.Add(pending.characterId)
+                || assignedCharacters.Contains(pending.characterId))
+                report.AddError(
+                    $"Character '{pending.characterId}' has conflicting household assignment state.");
+            if (pending.requestedAbsoluteDay < 1
+                || pending.attemptRevision < 1L
+                || string.IsNullOrWhiteSpace(pending.reasonCode))
+                report.AddError(
+                    $"Pending household assignment for '{pending.characterId}' has invalid request metadata.");
+            if (!string.IsNullOrWhiteSpace(pending.preferredHouseholdId))
+                result.HouseholdIds.Add(pending.preferredHouseholdId);
         }
 
         foreach (LineageSummarySaveData summary in source?.kinship?.lineageSummaries
@@ -2568,11 +2861,21 @@ public sealed class DungeonAggregateReferencePreflight :
 
     private void ValidatePopulationHealth(
         PopulationHealthWorldSaveData source,
+        GameplayOutcomeLedgerSaveData outcomeLedger,
         ISet<string> livingCharacterIds,
+        ISet<string> knownCharacterIds,
         ISet<string> buildingInstanceIds,
         PhysicalReferenceIndex physical,
         DungeonGameRestoreReport report)
     {
+        try
+        {
+            PopulationHealthSaveSection.RequireExposureLedgerRevision(source, outcomeLedger);
+        }
+        catch (InvalidOperationException exception)
+        {
+            report.AddError(exception.Message);
+        }
         HashSet<string> recordIds = new(StringComparer.Ordinal);
         foreach (CharacterPopulationHealthSaveData health in source?.characters
                      ?? new List<CharacterPopulationHealthSaveData>())
@@ -2602,6 +2905,30 @@ public sealed class DungeonAggregateReferencePreflight :
             }
             RequireReference(exposure.characterId, livingCharacterIds, "Disease exposure character", report);
             RequireDiseaseDefinition(exposure.diseaseId, report);
+        }
+        foreach (PopulationDiseaseExposurePendingFactSaveData fact in source?.pendingExposureFacts
+                     ?? new List<PopulationDiseaseExposurePendingFactSaveData>())
+        {
+            if (fact == null)
+            {
+                report.AddError("Population-health aggregate contains a null pending exposure fact.");
+                continue;
+            }
+            // This is an already-applied fact, not a new health target. Its
+            // actor may have died while delivery was pending.
+            RequireReference(fact.characterId, knownCharacterIds, "Pending disease-exposure fact character", report);
+            RequireDiseaseDefinition(fact.diseaseId, report);
+        }
+        foreach (var projection in source?.pendingAnatomyBurdenProjections
+            ?? new List<DiseaseAnatomyBurdenProjectionSaveData>())
+        {
+            if (projection == null)
+            { report.AddError("Population-health aggregate contains a null body projection."); continue; }
+            // Already-applied observations remain replayable after the actor dies.
+            RequireReference(projection.characterId,
+                projection.phase == (int)DiseaseAnatomyBurdenProjectionPhase.Pending ? livingCharacterIds : knownCharacterIds,
+                "Disease body projection character", report);
+            RequireDiseaseDefinition(projection.diseaseId, report);
         }
         foreach (EpidemicStateSaveData epidemic in source?.epidemics
                      ?? new List<EpidemicStateSaveData>())
@@ -2947,6 +3274,7 @@ public sealed class DungeonAggregateReferencePreflight :
         CropEcologyWorldSaveData source,
         DungeonCropPlotSaveData cropPlots,
         CharacterNarrativeWorldSaveData characterNarrative,
+        GameplayOutcomeLedgerSaveData outcomeLedger,
         ISet<string> buildingIds,
         IReadOnlyList<(string itemDefinitionId, SeedLotState state)> physicalSeedLots,
         DungeonGameRestoreReport report)
@@ -3025,7 +3353,8 @@ public sealed class DungeonAggregateReferencePreflight :
                     characterNarrative?.identityStates));
             CropHarvestCompletionDeliveryRestoreJoin.Validate(
                 cropPlots?.plots,
-                characterNarrative?.workCompletionDeliveries);
+                characterNarrative?.workCompletionDeliveries,
+                outcomeLedger);
         }
         catch (Exception exception)
         {

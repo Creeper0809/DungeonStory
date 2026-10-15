@@ -62,7 +62,8 @@ public interface ICharacterSummaryGeneratedView
         GameObject tabContent,
         Button tabButton,
         Button globalPolicyButton,
-        Button characterPermissionButton);
+        Button characterPermissionButton,
+        Button familyPlanningPolicyButton);
 
     void BindGeneratedGrowth(
         Slider experience,
@@ -159,21 +160,27 @@ public sealed class CharacterSummaryPopulationActions
 {
     private readonly Action toggleGlobalApprenticeship;
     private readonly Action toggleCharacterApprenticeship;
+    private readonly Action cycleFamilyPlanningPolicy;
 
     public CharacterSummaryPopulationActions(
         Action toggleGlobalApprenticeship,
-        Action toggleCharacterApprenticeship)
+        Action toggleCharacterApprenticeship,
+        Action cycleFamilyPlanningPolicy)
     {
         this.toggleGlobalApprenticeship = toggleGlobalApprenticeship
             ?? throw new ArgumentNullException(nameof(toggleGlobalApprenticeship));
         this.toggleCharacterApprenticeship = toggleCharacterApprenticeship
             ?? throw new ArgumentNullException(nameof(toggleCharacterApprenticeship));
+        this.cycleFamilyPlanningPolicy = cycleFamilyPlanningPolicy
+            ?? throw new ArgumentNullException(nameof(cycleFamilyPlanningPolicy));
     }
 
     public void ToggleGlobalApprenticeship() =>
         toggleGlobalApprenticeship();
     public void ToggleCharacterApprenticeship() =>
         toggleCharacterApprenticeship();
+    public void CycleFamilyPlanningPolicy() =>
+        cycleFamilyPlanningPolicy();
 }
 
 public sealed class CharacterSummaryHealthActions

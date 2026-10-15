@@ -5,6 +5,12 @@ using System.Linq;
 
 public static class MigratedProducerProductionEntry57E2EDebugScenarios
 {
+    public static void RunBatch()
+    {
+        Require(RunAll(),
+            "Migrated production-entry 72/72 batch returned false.");
+    }
+
     public static bool RunAll(bool throwOnFailure = true)
     {
         try
@@ -25,6 +31,33 @@ public static class MigratedProducerProductionEntry57E2EDebugScenarios
             Require(
                 MigratedProducerEconomyServiceEntryE2EDebugScenarios.RunAll(),
                 "Economy/service migrated production-entry scenarios failed.");
+            Require(
+                WorkOrderTerminalOutcomeProductionEntryE2EDebugScenarios.RunAll(),
+                "Work-order terminal migrated production-entry scenarios failed.");
+            Require(
+                SeasonalWildlifeArrivalOutcomeDebugScenarios.RunAll(),
+                "Seasonal wildlife arrival migrated production-entry scenarios failed.");
+            Require(
+                SeasonalDriftCargoOutcomeDebugScenarios.RunAll(),
+                "Seasonal drift-cargo migrated production-entry scenarios failed.");
+            Require(
+                ApparelWorkOrderOutcomeDebugScenarios.RunAll(),
+                "Apparel work-order migrated production-entry scenarios failed.");
+            Require(
+                CombatEquipmentCraftCompletionOutcomeDebugScenarios.RunAll(),
+                "Combat equipment craft completion migrated production-entry scenarios failed.");
+            Require(
+                RepairWorkOutcomeDebugScenarios.RunAll(),
+                "Repair work migrated production-entry scenarios failed.");
+            Require(
+                WorldResourceCycleOutcomeDebugScenarios.RunAll(),
+                "World resource migrated production-entry scenarios failed.");
+            Require(
+                AnimalHusbandryOutcomeDebugScenarios.RunAll(),
+                "Animal husbandry migrated production-entry scenarios failed.");
+            Require(
+                ResourceStockPolicySaleOutcomeE2EDebugScenarios.RunAll(),
+                "Stock-policy sale migrated production-entry scenarios failed.");
             return true;
         }
         catch
@@ -43,6 +76,16 @@ public static class MigratedProducerProductionEntry57E2EDebugScenarios
                 .Concat(MigratedProducerCharacterSurvivalEntryE2EDebugScenarios.CoveredKinds)
                 .Concat(MigratedProducerEconomyEntryExtendedE2EDebugScenarios.CoveredKinds)
                 .Concat(MigratedProducerEconomyServiceEntryE2EDebugScenarios.CoveredKinds)
+                .Concat(WorkOrderTerminalOutcomeProductionEntryE2EDebugScenarios.CoveredKinds)
+                .Concat(SeasonalWildlifeArrivalOutcomeDebugScenarios.CoveredKinds)
+                .Concat(SeasonalDriftCargoOutcomeDebugScenarios.CoveredKinds)
+                .Concat(ApparelWorkOrderOutcomeDebugScenarios.CoveredKinds)
+                .Concat(CombatEquipmentCraftCompletionOutcomeDebugScenarios
+                    .CoveredKinds)
+                .Concat(RepairWorkOutcomeDebugScenarios.CoveredKinds)
+                .Concat(WorldResourceCycleOutcomeDebugScenarios.CoveredKinds)
+                .Concat(AnimalHusbandryOutcomeDebugScenarios.CoveredKinds)
+                .Concat(ResourceStockPolicySaleOutcomeE2EDebugScenarios.CoveredKinds)
                 .ToArray();
         MigratedProducerOutcomeKind[] expected =
             MigratedProducerOutcomeCatalog.Definitions
@@ -63,14 +106,14 @@ public static class MigratedProducerProductionEntry57E2EDebugScenarios
             .OrderBy(kind => (int)kind)
             .ToArray();
 
-        if (observed.Length != 57
-            || expected.Length != 57
+        if (observed.Length != 72
+            || expected.Length != 72
             || duplicates.Length > 0
             || missing.Length > 0
             || unexpected.Length > 0)
         {
             throw new InvalidOperationException(
-                "Migrated production-entry coverage is not exactly 57/57: "
+                "Migrated production-entry coverage is not exactly 72/72: "
                 + "observed=" + observed.Length
                 + "; expected=" + expected.Length
                 + "; duplicates=" + Join(duplicates)

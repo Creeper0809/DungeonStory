@@ -42,6 +42,29 @@ The original narrative ledger is never deleted or reduced. Candidate generation 
 
 ## Capability formulas and optimization
 
+### Narrative primary allocation v1 (2026-09-20)
+
+New CharacterSkill module selections interpret `positiveModuleIds[0]` as the
+narrative primary; remaining selections are supports. Names and flavor must
+describe that primary. This preserves the six-field model response; the model
+does not supply numeric weights. Other domains currently accept one positive
+module, so this change does not expand their module cardinality.
+
+C# constrains the enhancement cost above authored parameter minima:
+`primaryEnhancementCost >= sum(supportingEnhancementCosts)`. Mandatory base,
+trigger, area and synergy costs remain unchanged and are not narrative shares.
+Unlike raw HP-versus-defense values, these costs use the existing authored
+balance units. A capped primary may leave `primary-prominence-cap` residual;
+the optimizer cannot spend that residual by making supports dominant.
+
+New skill snapshots persist `prominencePolicyVersion=1` and
+`primaryCapabilityId`; clone/save/restore preserve and validate the identity,
+module order and cost invariant. Historical snapshots missing both fields are
+policy 0 and are not reallocated. Source export v7, AI protocol v2 and resolution
+v4 expose the primary and enhancement-cost evidence. Older immutable exports
+retain their original schema/prompt. Free-form naming still needs editorial
+review; this invariant does not certify arbitrary prose or whole-game balance.
+
 ### Inseparable drawback credit
 
 An authored drawback may increase only the spendable positive-cost envelope of

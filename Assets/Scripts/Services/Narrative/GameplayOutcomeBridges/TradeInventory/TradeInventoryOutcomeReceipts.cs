@@ -337,7 +337,7 @@ public static class TradeInventoryOutcomeNames
         return new KoreanNameSnapshot(
             display,
             snapshotRevision,
-            KoreanPronunciationHint.AutoHangulDisplay(),
+            KoreanPronunciationHint.AutoHangulDisplay(snapshotRevision),
             "ko-KR");
     }
 }

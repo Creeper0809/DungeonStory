@@ -13907,6 +13907,7 @@ GameObject:
   - component: {fileID: 1687591093}
   - component: {fileID: 1687591092}
   - component: {fileID: 1687591091}
+  - component: {fileID: 1687591102}
   - component: {fileID: 1687591090}
   - component: {fileID: 1687591089}
   - component: {fileID: 1687591088}
@@ -13923,6 +13924,7 @@ GameObject:
   - component: {fileID: 1687591077}
   - component: {fileID: 1687591076}
   - component: {fileID: 1687591100}
+  - component: {fileID: 1687591101}
   m_Layer: 0
   m_Name: DungeonRuntimeSystems
   m_TagString: Untagged
@@ -13930,6 +13932,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &1687591101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1687591075}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3f080f6c1d44b49b10667bedc5aad52, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::FacilityAnnouncementObserver
+  raiseAlertOnRefresh: 1
+  raiseAlertOnEvolution: 1
 --- !u!114 &1687591076
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14014,7 +14030,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3d716abeba113f44b96f7fe633deb38, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FacilityEvolutionRuntime
-  raiseAlertOnEvolution: 1
   enableLlmProposals: 1
 --- !u!114 &1687591081
 MonoBehaviour:
@@ -14053,7 +14068,6 @@ MonoBehaviour:
   m_Script: {fileID: 630269413}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DailyFacilityShopRuntime
-  raiseAlertOnRefresh: 1
 --- !u!114 &1687591084
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14188,6 +14202,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunVariableRuntime
   runSeed: 0
+--- !u!114 &1687591102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1687591075}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cf48032ff374b1c93df553ea04d5ce9, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::RunVariableObservationObserver
   raiseAlerts: 1
 --- !u!114 &1687591092
 MonoBehaviour:

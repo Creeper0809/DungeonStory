@@ -571,6 +571,17 @@ public sealed class OffenseExpeditionReturnCoordinator :
         }
 
         if (expedition.ReturnFinalized || expedition.ReturnFinalizing) return;
+        if (resultFinalizer is IOffenseExpeditionFinalizationQuery appliedResults
+            && appliedResults.TryGetAppliedResult(expedition.ExpeditionId, out var appliedResult))
+        {
+            if (!expedition.ReturnPending || !expedition.ReturnResourcesCommitted
+                || expedition.ReturnProgress.Any(value => !value.IsTerminal)
+                || appliedResult.targetId != expedition.Target.id || appliedResult.success != expedition.ReturnSuccess)
+                throw new InvalidOperationException("Applied expedition result conflicts with its return state.");
+            expedition.ReturnFinalized = true;
+            stateChanged?.Invoke();
+            return;
+        }
         if (expedition.ReturnPending && expedition.ReturnProgress.Any(value => value.InFlight)
             && expedition.ReturnProgress.All(value => value.InFlight || value.IsTerminal)) return;
         expedition.BeginPhysicalReturn(success, message);

@@ -2159,9 +2159,9 @@ BuildingSO|building:1013,building:1013,constructionProficiency.primaryWeight,1,,
 BuildingSO|building:1013,building:1013,constructionProficiency.combinationMode,0,,,explicit-serialized
 BuildingSO|building:1013,building:1013,constructionProficiency.recommendedRank,1,,,explicit-serialized
 BuildingSO|building:1013,building:1013,constructionProficiency.minimumRiskRank,0,,,explicit-serialized
-BuildingSO|building:1013,building:1013,operationProficiency.primaryProficiencyId,,,,explicit-serialized
+BuildingSO|building:1013,building:1013,operationProficiency.primaryProficiencyId,proficiency:social,,,explicit-serialized
 BuildingSO|building:1013,building:1013,operationProficiency.secondaryProficiencyId,,,,explicit-serialized
-BuildingSO|building:1013,building:1013,operationProficiency.primaryWeight,0,,,explicit-serialized
+BuildingSO|building:1013,building:1013,operationProficiency.primaryWeight,1,,,explicit-serialized
 BuildingSO|building:1013,building:1013,operationProficiency.combinationMode,0,,,explicit-serialized
 BuildingSO|building:1013,building:1013,operationProficiency.recommendedRank,0,,,explicit-serialized
 BuildingSO|building:1013,building:1013,operationProficiency.minimumRiskRank,0,,,explicit-serialized
@@ -2311,9 +2311,9 @@ BuildingSO|building:1014,building:1014,constructionProficiency.primaryWeight,1,,
 BuildingSO|building:1014,building:1014,constructionProficiency.combinationMode,0,,,explicit-serialized
 BuildingSO|building:1014,building:1014,constructionProficiency.recommendedRank,1,,,explicit-serialized
 BuildingSO|building:1014,building:1014,constructionProficiency.minimumRiskRank,0,,,explicit-serialized
-BuildingSO|building:1014,building:1014,operationProficiency.primaryProficiencyId,,,,explicit-serialized
+BuildingSO|building:1014,building:1014,operationProficiency.primaryProficiencyId,proficiency:social,,,explicit-serialized
 BuildingSO|building:1014,building:1014,operationProficiency.secondaryProficiencyId,,,,explicit-serialized
-BuildingSO|building:1014,building:1014,operationProficiency.primaryWeight,0,,,explicit-serialized
+BuildingSO|building:1014,building:1014,operationProficiency.primaryWeight,1,,,explicit-serialized
 BuildingSO|building:1014,building:1014,operationProficiency.combinationMode,0,,,explicit-serialized
 BuildingSO|building:1014,building:1014,operationProficiency.recommendedRank,0,,,explicit-serialized
 BuildingSO|building:1014,building:1014,operationProficiency.minimumRiskRank,0,,,explicit-serialized

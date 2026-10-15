@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation.Facts;
 using System.Collections.Generic;
 
 public sealed partial class WildlifeCaptureRuntime
@@ -36,10 +37,27 @@ public sealed partial class WildlifeCaptureRuntime
             return false;
         }
 
+        if (!TryReserveCaptureCommand(
+                state,
+                "haul-assigned",
+                flagBefore: false,
+                flagAfter: true,
+                reasonCode: "haul-role-assigned",
+                relatedActor: null,
+                out WildlifeGameplayOutcomeSaveData outcome,
+                out DomainFactLease reserved,
+                out failureReason))
+        {
+            failureReason = "운반 역할 결과 관찰을 예약하지 못했습니다: "
+                + failureReason;
+            return false;
+        }
+
         state.capabilityState = CapturedWildlifeCapabilityStateCodec.CreateHaul(
             CapturedWildlifeHaulPhase.Idle,
             clock.Time + species.HaulRoleProfile.DecisionIntervalSeconds);
         state.lastCareStatus = "독립 운반 역할 배정";
+        CommitCaptureOutcome(outcome, reserved);
         return true;
     }
 
@@ -51,6 +69,27 @@ public sealed partial class WildlifeCaptureRuntime
             || !stateSession.TryGet(current.WildlifeId, out CapturedWildlifeState state))
         {
             failureReason = "독립 운반 역할이 배정되지 않았습니다.";
+            return false;
+        }
+
+        bool releasePending = current.Phase is
+            CapturedWildlifeHaulPhase.CargoOwned
+            or CapturedWildlifeHaulPhase.ReleasePending;
+        if (!TryReserveCaptureCommand(
+                state,
+                releasePending ? "haul-clear-requested" : "haul-cleared",
+                flagBefore: true,
+                flagAfter: releasePending,
+                reasonCode: releasePending
+                    ? "haul-role-release-pending"
+                    : "haul-role-cleared",
+                relatedActor: null,
+                out WildlifeGameplayOutcomeSaveData outcome,
+                out DomainFactLease reserved,
+                out failureReason))
+        {
+            failureReason = "운반 역할 해제 결과 관찰을 예약하지 못했습니다: "
+                + failureReason;
             return false;
         }
 
@@ -69,12 +108,14 @@ public sealed partial class WildlifeCaptureRuntime
                 state.capabilityState = ToState(pending);
             }
             state.lastCareStatus = "독립 운반 해제 대기 · 보유 화물 배송 중";
+            CommitCaptureOutcome(outcome, reserved);
             return true;
         }
 
         state.capabilityState = CapturedWildlifeCapabilityStateCodec.CreateNone();
         state.lastCareStatus = "독립 운반 역할 해제";
         state.nextCareAt = Math.Min(state.nextCareAt, clock.Time);
+        CommitCaptureOutcome(outcome, reserved);
         return true;
     }
 

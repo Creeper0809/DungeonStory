@@ -35,15 +35,23 @@ internal static class CircusStateCodec
 {
     internal static CircusSaveData Capture(
         CircusAggregateState state,
-        IEnumerable<CapturedWildlifeState> capturedWildlife)
+        IEnumerable<CapturedWildlifeState> capturedWildlife,
+        int nextWildlifeGameplayOutcomeSequence,
+        IEnumerable<WildlifeGameplayOutcomeSaveData> wildlifeGameplayOutcomes)
     {
         return new CircusSaveData
         {
             version = CircusSaveData.CurrentVersion,
             nextOrderSequence = state.NextOrderSequence,
+            nextWildlifeGameplayOutcomeSequence =
+                Math.Max(0, nextWildlifeGameplayOutcomeSequence),
             orders = state.Orders.Select(order => order.Clone()).ToList(),
             capturedWildlife = (capturedWildlife ?? Array.Empty<CapturedWildlifeState>())
                 .Select(item => item.Clone())
+                .ToList(),
+            wildlifeGameplayOutcomes = (wildlifeGameplayOutcomes
+                    ?? Array.Empty<WildlifeGameplayOutcomeSaveData>())
+                .Select(value => value?.Clone())
                 .ToList()
         };
     }

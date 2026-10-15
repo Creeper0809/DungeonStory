@@ -32,6 +32,7 @@ internal static class SurvivalFoodStatePersistence
         state.activeTreatmentPlans ??=
             new List<SurvivalTreatmentPlanSaveData>();
         state.completedTreatmentOperationIds ??= new List<string>();
+        state.missedMealCohorts ??= new List<SurvivalMealMissedCohortSaveData>();
     }
 
     public static DungeonSurvivalSaveData Restore(DungeonSurvivalSaveData saveData)
@@ -79,7 +80,9 @@ internal static class SurvivalFoodStatePersistence
             completedTreatmentOperationIds = state
                 .completedTreatmentOperationIds
                 .OrderBy(value => value, StringComparer.Ordinal)
-                .ToList()
+                .ToList(),
+            missedMealCohorts = state.missedMealCohorts.OrderBy(value => value.absoluteDay)
+                .Select(value => value.Clone()).ToList()
         };
     }
 
@@ -110,6 +113,7 @@ internal static class SurvivalFoodStatePersistence
         if (payload.health == null
             || payload.mealLedger == null
             || payload.activeTreatmentPlans == null
+            || payload.missedMealCohorts == null
             || payload.completedTreatmentOperationIds == null)
         {
             report.AddError(
@@ -118,9 +122,30 @@ internal static class SurvivalFoodStatePersistence
         }
 
         ValidateSummary(payload, report);
+        ValidateMissedMeals(payload, report);
         ValidateHealth(payload.health, report);
         ValidateMeals(payload, report, itemCatalog);
         ValidateTreatmentPlans(payload, report, itemCatalog);
+    }
+
+    private static void ValidateMissedMeals(DungeonSurvivalSaveData payload, DungeonGameRestoreReport report)
+    {
+        if (payload.missedMealCohorts.Count > SurvivalMealMissedCohortSaveData.MaximumCohorts)
+            report.AddError("Missed-meal cohort capacity exceeded.");
+        int previous = 0;
+        foreach (var row in payload.missedMealCohorts)
+        {
+            try
+            {
+                if (row == null) throw new InvalidOperationException("Missed-meal cohort is null.");
+                row.Validate();
+                if (row.absoluteDay <= previous || row.absoluteDay > payload.lastProcessedDay)
+                    throw new InvalidOperationException("Missed-meal cohort day is duplicate, unordered or unapplied.");
+                previous = row.absoluteDay;
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or OverflowException)
+            { report.AddError(exception.Message); }
+        }
     }
 
     public static long GetMealSequence(DungeonSurvivalSaveData payload)
@@ -212,6 +237,7 @@ internal static class SurvivalFoodStatePersistence
         if (state.health == null
             || state.mealLedger == null
             || state.activeTreatmentPlans == null
+            || state.missedMealCohorts == null
             || state.completedTreatmentOperationIds == null)
         {
             throw new InvalidOperationException(
@@ -239,7 +265,8 @@ internal static class SurvivalFoodStatePersistence
                 .Select(CloneTreatmentPlan)
                 .ToList(),
             completedTreatmentOperationIds = state
-                .completedTreatmentOperationIds.ToList()
+                .completedTreatmentOperationIds.ToList(),
+            missedMealCohorts = state.missedMealCohorts.Select(value => value.Clone()).ToList()
         };
     }
 

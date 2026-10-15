@@ -324,88 +324,6 @@ public sealed class FacilitySynthesisOutcomeAdapter :
         "facility-synthesis-write-failed");
 }
 
-public readonly struct PreparedFacilitySynthesisOutcome
-{
-    internal PreparedFacilitySynthesisOutcome(
-        PreparedOwnerOutcome prepared,
-        GameplayResultKey resultKey,
-        long ownerRevision,
-        bool isReplay)
-    {
-        Prepared = prepared;
-        ResultKey = resultKey;
-        OwnerRevision = ownerRevision;
-        IsReplay = isReplay;
-    }
-
-    internal PreparedOwnerOutcome Prepared { get; }
-    public GameplayResultKey ResultKey { get; }
-    public long OwnerRevision { get; }
-    public bool IsReplay { get; }
-    public bool IsValid => IsReplay ? ResultKey.IsValid : Prepared.IsValid;
-}
-
-public interface IFacilitySynthesisOutcomeCommitter
-{
-    bool TryPrepare(
-        in FacilitySynthesisOutcomeReceipt receipt,
-        out PreparedFacilitySynthesisOutcome prepared,
-        out string failureReason);
-    OwnerOutcomeCommitResult Commit(
-        in PreparedFacilitySynthesisOutcome prepared);
-    void Cancel(in PreparedFacilitySynthesisOutcome prepared);
-}
-
-public sealed class FacilitySynthesisGameplayOutcomeBridge :
-    IFacilitySynthesisOutcomeCommitter
-{
-    private readonly PreparedOutcomeOwnerTransaction transactions;
-
-    public FacilitySynthesisGameplayOutcomeBridge(
-        IGameplayOutcomeRecorder recorder,
-        IGameplayOutcomeDiagnosticsQuery diagnostics)
-    {
-        transactions = new PreparedOutcomeOwnerTransaction(
-            recorder ?? throw new ArgumentNullException(nameof(recorder)),
-            diagnostics ?? throw new ArgumentNullException(nameof(diagnostics)));
-    }
-
-    public bool TryPrepare(
-        in FacilitySynthesisOutcomeReceipt receipt,
-        out PreparedFacilitySynthesisOutcome prepared,
-        out string failureReason)
-    {
-        prepared = default;
-        if (!transactions.TryPrepare(
-                receipt,
-                out PreparedOwnerOutcome token,
-                out OwnerOutcomeCommitResult replay,
-                out _,
-                out failureReason))
-        {
-            return false;
-        }
-        prepared = new PreparedFacilitySynthesisOutcome(
-            token,
-            receipt.ResultKey,
-            receipt.OwnerRevision,
-            replay.DurablyCommitted);
-        return true;
-    }
-
-    public OwnerOutcomeCommitResult Commit(
-        in PreparedFacilitySynthesisOutcome prepared) =>
-        prepared.IsReplay
-            ? transactions.Reconcile(prepared.ResultKey)
-            : transactions.Commit(prepared.Prepared, prepared.OwnerRevision);
-
-    public void Cancel(in PreparedFacilitySynthesisOutcome prepared)
-    {
-        if (!prepared.IsReplay)
-            transactions.Cancel(prepared.Prepared);
-    }
-}
-
 internal sealed class FacilitySynthesisMemoryPolicy : IOutcomeMemoryPolicy
 {
     public int PolicyVersion => 1;
@@ -667,14 +585,13 @@ public static class FacilitySynthesisOutcomeRegistration
     public static void RegisterFacilitySynthesisGameplayOutcomes(
         this IContainerBuilder builder)
     {
-        builder.Register<FacilitySynthesisGameplayOutcomeBridge>(
+        builder.Register(resolver => FacilitySynthesisFactObserver.CreateBinding(
+                resolver.Resolve<IGameplayOutcomeRegistry>(),
+                resolver.Resolve<GameplayOutcomeLedger>(),
+                resolver.Resolve<IGameplayOutcomeRecorder>(),
+                resolver.Resolve<GameplayDomainFactCommitGroup>()),
                 Lifetime.Singleton)
-            .As<IFacilitySynthesisOutcomeCommitter>();
-        builder.Register<FacilitySynthesisOutcomeAdapter>(
-                Lifetime.Singleton)
-            .As<IGameplayOutcomeAdapterRegistration>();
-        builder.Register<FacilitySynthesisOutcomeDescriptor>(
-                Lifetime.Singleton)
-            .As<IGameplayOutcomeDescriptor>();
+            .As<DungeonStory.Foundation.Facts.IDomainFactObserverBinding>();
+        builder.RegisterGameplayActionLogs(nameof(FacilitySynthesisOutcomeAdapter));
     }
 }

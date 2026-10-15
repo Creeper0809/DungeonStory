@@ -57,6 +57,8 @@ public static class OffenseStrategicDebugScenarios
         Run("원정 보급 물리 집결", VerifyPhysicalExpeditionPacking, passed);
         Run("원정 정비 도구 물리 집결", VerifyPhysicalExpeditionToolPacking, passed);
         Run("Strategic 중간 상태 저장 왕복", VerifySaveRoundTrip, passed);
+        Run("Strategic 복원 트랜잭션 격리", VerifyRestoreTransactionIsolation, passed);
+        Run("Strategic owner 복원 격리", VerifyStrategicOwnerRestoreIsolation, passed);
         Run("사건 선택 실제 결과", VerifyDecisionEffects, passed);
         Run("전술 사슬 전달률", VerifyChainFallbacks, passed);
         Run("명령 덱과 적 의도 단일 실행", VerifyCommandBattle, passed);
@@ -2545,6 +2547,930 @@ public static class OffenseStrategicDebugScenarios
         finally
         {
             UnityEngine.Object.DestroyImmediate(stagingObject);
+        }
+    }
+
+    public static void VerifyRestoreTransactionIsolation()
+    {
+        EditorContentCatalog catalog = LoadCatalog();
+        Require(catalog.UrgentSites.Count >= 2,
+            "복원 트랜잭션 검증에 필요한 긴급 거점 정의가 부족합니다.");
+
+        OffenseHexWorldSimulation world = CreateWorld(catalog, 41821);
+        OffenseHexCoord aCoord = FindReachableEmptyCoord(world);
+        Require(
+            world.TrySpawnUrgentSite(
+                catalog.UrgentSites[0].urgentSiteId,
+                aCoord,
+                out string aUrgentId),
+            "A 월드의 긴급 거점을 생성하지 못했습니다.");
+        Require(world.TryMitigateUrgentSite(aUrgentId, 0.1f),
+            "A 월드의 긴급 거점을 완화하지 못했습니다.");
+        world.AdvanceHours(5.5f);
+
+        OffenseWorldSaveData aState = world.Capture();
+        string aJson = JsonUtility.ToJson(aState);
+        OffenseHexTileState aTile = world.Tiles
+            .OrderBy(value => value.Coord)
+            .First();
+        OffenseWorldSiteStateData aSite = world.Sites
+            .OrderBy(value => value.siteId, StringComparer.Ordinal)
+            .First();
+        Require(
+            world.TryGetUrgentSite(
+                aUrgentId,
+                out OffenseUrgentSiteStateData aUrgent),
+            "A 월드의 긴급 거점 참조를 찾지 못했습니다.");
+        Require(aState.tiles.Count > 0
+            && aState.sites.Count > 0
+            && aState.urgentSites.Count > 0,
+            "A 월드가 tile/site/urgent 경계를 모두 만들지 못했습니다.");
+
+        OffenseHexWorldSimulation bSource = CreateWorld(catalog, 92731);
+        OffenseHexCoord bCoord = FindReachableEmptyCoord(bSource);
+        Require(
+            bSource.TrySpawnUrgentSite(
+                catalog.UrgentSites[1].urgentSiteId,
+                bCoord,
+                out string bUrgentId),
+            "B 월드의 긴급 거점을 생성하지 못했습니다.");
+        Require(bSource.TryMitigateUrgentSite(bUrgentId, 0.2f),
+            "B 월드의 긴급 거점을 완화하지 못했습니다.");
+        bSource.AdvanceHours(36.25f);
+
+        OffenseWorldSaveData bState = bSource.Capture();
+        string bJson = JsonUtility.ToJson(bState);
+        Require(bState.tiles.Count > 0
+            && bState.sites.Count > 0
+            && bState.urgentSites.Count > 0
+            && bState.worldSeed != aState.worldSeed
+            && bState.worldDay != aState.worldDay
+            && !Mathf.Approximately(bState.worldHour, aState.worldHour)
+            && !string.Equals(aJson, bJson, StringComparison.Ordinal),
+            "A/B 월드가 seed/day/hour와 실제 전략 상태에서 분리되지 않았습니다.");
+
+        IDungeonRestoreTransactionParticipant participant = world;
+        Require(string.Equals(
+                participant.ParticipantId,
+                "offense.hex-world",
+                StringComparison.Ordinal),
+            "Offense world 복원 참가자 ID가 바뀌었습니다.");
+
+        participant.BeginRestoreCandidate();
+        world.Restore(bState);
+        Require(string.Equals(
+                JsonUtility.ToJson(world.Capture()),
+                aJson,
+                StringComparison.Ordinal)
+            && world.TryGetTile(aTile.Coord, out OffenseHexTileState stagedTile)
+            && ReferenceEquals(stagedTile, aTile)
+            && world.TryGetSite(aSite.siteId, out OffenseWorldSiteStateData stagedSite)
+            && ReferenceEquals(stagedSite, aSite)
+            && world.TryGetUrgentSite(aUrgentId, out OffenseUrgentSiteStateData stagedUrgent)
+            && ReferenceEquals(stagedUrgent, aUrgent),
+            "staged B 복원이 publish 전에 live A 또는 객체 참조를 변경했습니다.");
+        participant.DiscardRestoreCandidate();
+        Require(string.Equals(
+                JsonUtility.ToJson(world.Capture()),
+                aJson,
+                StringComparison.Ordinal)
+            && world.TryGetTile(aTile.Coord, out OffenseHexTileState discardedTile)
+            && ReferenceEquals(discardedTile, aTile)
+            && world.TryGetSite(aSite.siteId, out OffenseWorldSiteStateData discardedSite)
+            && ReferenceEquals(discardedSite, aSite)
+            && world.TryGetUrgentSite(aUrgentId, out OffenseUrgentSiteStateData discardedUrgent)
+            && ReferenceEquals(discardedUrgent, aUrgent),
+            "discard가 live A의 바이트 또는 객체 참조를 보존하지 못했습니다.");
+        Require(
+            world.TrySpawnUrgentSite(
+                catalog.UrgentSites[1].urgentSiteId,
+                FindReachableEmptyCoord(world),
+                out string discardNextUrgentId)
+            && string.Equals(
+                discardNextUrgentId,
+                $"urgent:{world.WorldDay}:1",
+                StringComparison.Ordinal),
+            "discard가 A의 다음 긴급 거점 ID sequence를 보존하지 못했습니다.");
+
+        world.Restore(aState);
+        aTile = world.Tiles.OrderBy(value => value.Coord).First();
+        aSite = world.Sites
+            .OrderBy(value => value.siteId, StringComparer.Ordinal)
+            .First();
+        Require(world.TryGetUrgentSite(aUrgentId, out aUrgent)
+            && string.Equals(
+                JsonUtility.ToJson(world.Capture()),
+                aJson,
+                StringComparison.Ordinal),
+            "sequence 관측 후 A 기준 상태를 복원하지 못했습니다.");
+
+        participant.BeginRestoreCandidate();
+        world.Restore(bState);
+        participant.PublishRestoreCandidate();
+        Require(string.Equals(
+                JsonUtility.ToJson(world.Capture()),
+                bJson,
+                StringComparison.Ordinal),
+            "publish가 staged B 전체 상태를 게시하지 못했습니다.");
+        participant.RollbackPublishedRestoreCandidate();
+        Require(string.Equals(
+                JsonUtility.ToJson(world.Capture()),
+                aJson,
+                StringComparison.Ordinal)
+            && world.TryGetTile(aTile.Coord, out OffenseHexTileState rolledBackTile)
+            && ReferenceEquals(rolledBackTile, aTile)
+            && world.TryGetSite(aSite.siteId, out OffenseWorldSiteStateData rolledBackSite)
+            && ReferenceEquals(rolledBackSite, aSite)
+            && world.TryGetUrgentSite(aUrgentId, out OffenseUrgentSiteStateData rolledBackUrgent)
+            && ReferenceEquals(rolledBackUrgent, aUrgent),
+            "rollback이 live A의 바이트 또는 원래 객체 참조를 복원하지 못했습니다.");
+        Require(
+            world.TrySpawnUrgentSite(
+                catalog.UrgentSites[1].urgentSiteId,
+                FindReachableEmptyCoord(world),
+                out string rollbackNextUrgentId)
+            && string.Equals(
+                rollbackNextUrgentId,
+                $"urgent:{world.WorldDay}:1",
+                StringComparison.Ordinal),
+            "rollback이 A의 다음 긴급 거점 ID sequence를 보존하지 못했습니다.");
+
+        participant.BeginRestoreCandidate();
+        world.Restore(bState);
+        participant.PublishRestoreCandidate();
+        OffenseHexTileState publishedBTile = world.Tiles
+            .OrderBy(value => value.Coord)
+            .First();
+        OffenseWorldSiteStateData publishedBSite = world.Sites
+            .OrderBy(value => value.siteId, StringComparer.Ordinal)
+            .First();
+        Require(
+            world.TryGetUrgentSite(
+                bUrgentId,
+                out OffenseUrgentSiteStateData publishedBUrgent),
+            "게시된 B 긴급 거점을 찾지 못했습니다.");
+        participant.CompleteRestoreCandidate();
+        Require(string.Equals(
+                JsonUtility.ToJson(world.Capture()),
+                bJson,
+                StringComparison.Ordinal)
+            && world.TryGetTile(
+                publishedBTile.Coord,
+                out OffenseHexTileState completedBTile)
+            && ReferenceEquals(completedBTile, publishedBTile)
+            && world.TryGetSite(
+                publishedBSite.siteId,
+                out OffenseWorldSiteStateData completedBSite)
+            && ReferenceEquals(completedBSite, publishedBSite)
+            && world.TryGetUrgentSite(
+                bUrgentId,
+                out OffenseUrgentSiteStateData completedBUrgent)
+            && ReferenceEquals(completedBUrgent, publishedBUrgent),
+            "complete가 게시된 B 전체 상태 또는 객체 참조를 유지하지 못했습니다.");
+
+        world.Restore(aState);
+        Require(string.Equals(
+                JsonUtility.ToJson(world.Capture()),
+                aJson,
+                StringComparison.Ordinal),
+            "트랜잭션 완료 후 standalone A 복원이 동작하지 않았습니다.");
+        Require(
+            world.TrySpawnUrgentSite(
+                catalog.UrgentSites[1].urgentSiteId,
+                FindReachableEmptyCoord(world),
+                out string nextUrgentId)
+            && string.Equals(
+                nextUrgentId,
+                $"urgent:{world.WorldDay}:1",
+                StringComparison.Ordinal),
+            "standalone 복원 후 긴급 거점 ID sequence가 이어지지 않았습니다.");
+    }
+
+    public static void VerifyStrategicOwnerRestoreIsolation()
+    {
+        EditorContentCatalog catalog = LoadCatalog();
+        VerifyCampaignOwnerRestoreIsolation();
+        VerifyRegionOwnerRestoreIsolation();
+        VerifyStrategicWorldOwnerRestoreIsolation(catalog);
+    }
+
+    private static void VerifyCampaignOwnerRestoreIsolation()
+    {
+        OffenseTargetDefinition[] targets =
+        {
+            new OffenseTargetDefinition
+            {
+                id = "restore-owner:campaign:target",
+                title = "복원 격리 대상",
+                campaignOrder = 1,
+                requiredMembers = 1,
+                durationSeconds = 10f
+            }
+        };
+        OffenseCampaignRuntime campaign = new OffenseCampaignRuntime();
+        campaign.ConfigureTargets(targets);
+        campaign.Reset(2);
+        DungeonOffenseCampaignSaveData aState = campaign.Capture();
+        OffenseCampaignRestoreCandidate aCandidate =
+            campaign.BuildRestoreCandidate(aState);
+        DungeonOffenseCampaignSaveData bState =
+            JsonUtility.FromJson<DungeonOffenseCampaignSaveData>(
+                JsonUtility.ToJson(aState));
+        bState.reconLevel = 7;
+        OffenseCampaignRestoreCandidate bCandidate =
+            campaign.BuildRestoreCandidate(bState);
+
+        VerifySingleOwnerRestoreIsolation(
+            "campaign",
+            campaign,
+            campaign.PublishRestoreCandidate,
+            aCandidate,
+            bCandidate,
+            () => JsonUtility.ToJson(campaign.Capture()),
+            () => new[] { ReadPrivateReference(campaign, "state") },
+            JsonUtility.ToJson(aState),
+            JsonUtility.ToJson(bState));
+    }
+
+    private static void VerifyRegionOwnerRestoreIsolation()
+    {
+        OffenseRegionRuntime regions = new OffenseRegionRuntime();
+        Require(
+            regions.TryApplyReconnaissance(
+                OffenseRegionRuntime.BorderTradeRegionId,
+                9f,
+                out float appliedA)
+            && appliedA > 0f,
+            "region A 상태를 만들지 못했습니다.");
+        DungeonOffenseRegionSaveData aState = regions.Capture();
+        OffenseRegionRestoreCandidate aCandidate =
+            regions.BuildRestoreCandidate(aState);
+
+        OffenseRegionRuntime bSource = new OffenseRegionRuntime();
+        Require(
+            bSource.TryApplyReconnaissance(
+                OffenseRegionRuntime.BorderTradeRegionId,
+                27f,
+                out float appliedB)
+            && appliedB > appliedA,
+            "region B 상태를 만들지 못했습니다.");
+        DungeonOffenseRegionSaveData bState = bSource.Capture();
+        OffenseRegionRestoreCandidate bCandidate =
+            regions.BuildRestoreCandidate(bState);
+
+        VerifySingleOwnerRestoreIsolation(
+            "regions",
+            regions,
+            regions.PublishRestoreCandidate,
+            aCandidate,
+            bCandidate,
+            () => JsonUtility.ToJson(regions.Capture()),
+            () => new[] { ReadPrivateReference(regions, "regions") },
+            JsonUtility.ToJson(aState),
+            JsonUtility.ToJson(bState));
+    }
+
+    private static void VerifyStrategicWorldOwnerRestoreIsolation(
+        EditorContentCatalog catalog)
+    {
+        const string expeditionId = "restore-owner:expedition";
+        OffenseUrgentSiteDefinitionSO mitigationDefinition = catalog.UrgentSites
+            .FirstOrDefault(value => value != null && value.mitigationWork > 0f);
+        Require(mitigationDefinition != null,
+            "mitigation 복원 격리에 필요한 authored 정의가 없습니다.");
+        OffenseHexWorldSimulation world = CreateWorld(catalog, 81923);
+        Require(
+            world.TrySpawnUrgentSite(
+                mitigationDefinition.urgentSiteId,
+                FindReachableEmptyCoord(world),
+                out string mitigationSiteId),
+            "mitigation 복원 격리 대상 긴급 거점을 만들지 못했습니다.");
+        OffenseReturnSafetyRuntime safety = new OffenseReturnSafetyRuntime(world);
+        OffenseFieldMedicalRuntime fieldMedical = new OffenseFieldMedicalRuntime();
+        OffenseTravelRuntime travel = CreateTravelRuntime(
+            world,
+            safety,
+            fieldMedical);
+        OffenseDecisionRuntime decisions = new OffenseDecisionRuntime(catalog, safety);
+        RecordingResolutionAdapter resolution = new RecordingResolutionAdapter
+        {
+            FinalizationFailuresRemaining = 1
+        };
+        OffenseBattleDirector battle = new OffenseBattleDirector(resolution);
+        RecordingUrgentMitigationInputOwnerRuntime mitigationInputs = new();
+        OffenseUrgentMitigationRuntime mitigation =
+            new OffenseUrgentMitigationRuntime(
+                world,
+                catalog,
+                new FixedBuildingWorldQuery(),
+                new RecordingProductionItemGateway(),
+                mitigationInputs,
+                new MutableGameClock(),
+                workforce: null,
+                facilityCandidates: null);
+        DungeonOffensePreparationService preparation = CreatePreparationService(
+            new EmptyWarehouseInventoryQuery(),
+            new RecordingProductionItemGateway(),
+            new FixedExteriorZoneQuery(null),
+            new FacilityBufferDestinationClaimRegistry(),
+            new RecordingOffenseSupplyPhysicalCustodyGateway(),
+            out _);
+        OffenseWorldStateSaveCodec codec = new OffenseWorldStateSaveCodec(
+            world,
+            travel,
+            safety,
+            decisions,
+            battle,
+            mitigation,
+            preparation,
+            EditorRuntimeReferenceFixtures.OffenseWithExpedition,
+            fieldMedical);
+
+        OffenseWorldSiteStateData destination = world.Sites
+            .Where(site => site != null && site.IsActive)
+            .OrderByDescending(site =>
+                world.GetMinimumStepDistance(world.DungeonCoord, site.Coord))
+            .First();
+        Require(travel.TryCreateExpedition(expeditionId, out string reason), reason);
+        Require(
+            travel.TrySetDestination(
+                expeditionId,
+                destination.Coord,
+                destination.siteId,
+                OffenseTravelProfile.Default,
+                startsSiteAttack: false,
+                out reason),
+            reason);
+        Require(
+            safety.GrantForObjective(
+                expeditionId,
+                destination.Coord,
+                world.DungeonCoord) > 0,
+            "return-safety A 상태를 만들지 못했습니다.");
+        safety.RecordProtectedDangerousEvent(expeditionId, forcedCombat: true);
+        Require(
+            decisions.TryCreateDecision(
+                new OffenseDecisionContext
+                {
+                    expeditionId = expeditionId,
+                    sequence = 4,
+                    stage = OffenseDecisionStage.Travel,
+                    protectedMovement = false,
+                    canGenerateForcedCombat = true
+                },
+                out _,
+                out reason),
+            reason);
+        Require(
+            fieldMedical.TryApplyStabilization(
+                expeditionId,
+                "restore-owner:casualty",
+                "leg:left",
+                "restore-owner:kit",
+                3,
+                out reason),
+            reason);
+        Require(
+            fieldMedical.TryAssignCarrier(
+                expeditionId,
+                "restore-owner:casualty",
+                "restore-owner:carrier",
+                50f,
+                5f,
+                100f,
+                0f,
+                out reason),
+            reason);
+        Require(
+            fieldMedical.TrySetStranded(
+                expeditionId,
+                destination.Coord,
+                2f,
+                12f,
+                "restore-owner-stranded"),
+            "field-medical stranded A 상태를 만들지 못했습니다.");
+        Require(
+            fieldMedical.TryDispatchRescue(
+                expeditionId,
+                "restore-owner:rescue",
+                new[] { "restore-owner:rescuer" },
+                out reason),
+            reason);
+
+        OffenseBattleMemberDeckSeed deck = CreateDeck(
+            "restore-owner:ally",
+            OffenseFormationPosition.FrontLeft);
+        OffenseEnemyIntentStateData intent = CreateIntent(
+            "restore-owner:intent",
+            "restore-owner:enemy",
+            deck.characterId);
+        Require(
+            battle.TryStartBattle(
+                "restore-owner:battle",
+                new[] { deck },
+                new[] { intent },
+                991,
+                out reason),
+            reason);
+        Require(battle.TryDrawTurn(out reason), reason);
+        Require(
+            battle.TryCommitCommand(
+                deck.characterId,
+                battle.State.decks[0].candidates[0].instanceId,
+                intent.intentId,
+                intent.enemyId,
+                out reason),
+            reason);
+        IReadOnlyList<OffenseResolvedCommand> failedResolution =
+            battle.ResolveTurn();
+        Require(
+            failedResolution.Count == 1
+            && !battle.LastTurnFinalization.Succeeded
+            && battle.State.commandQueue.Count == 1,
+            "battle-director pending A 상태를 만들지 못했습니다.");
+
+        OffenseWorldSaveData aState = codec.CaptureState();
+        OffenseWorldRuntimeRestoreCandidate aCandidate =
+            codec.BuildRestoreCandidate(aState, new DungeonGameRestoreReport());
+        OffenseWorldSaveData bState = JsonUtility.FromJson<OffenseWorldSaveData>(
+            JsonUtility.ToJson(aState));
+        bState.travelStates.Clear();
+        bState.returnSafety.Clear();
+        bState.decisions.Clear();
+        bState.battles.Clear();
+        bState.fieldStabilizations.Clear();
+        bState.casualtyCarries.Clear();
+        bState.strandedExpeditions.Clear();
+        bState.rescueConvoys.Clear();
+        bState.mitigationOrders = new List<OffenseUrgentMitigationOrderStateData>
+        {
+            new OffenseUrgentMitigationOrderStateData
+            {
+                orderId = "mitigation:restore-owner:7",
+                siteId = mitigationSiteId,
+                definitionId = mitigationDefinition.urgentSiteId,
+                facilityPersistentId = "facility:restore-owner",
+                facilityX = 4,
+                facilityY = 2,
+                destinationId = OffenseUrgentMitigationInputOwnerAuthority
+                    .BuildDestinationId("mitigation:restore-owner:7"),
+                inputBufferCapacityGrams = 3_000L,
+                inputMassAuthorityRevision = 1L,
+                inputCapacityFingerprint =
+                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                requiredWork = mitigationDefinition.mitigationWork,
+                completedWork = mitigationDefinition.mitigationWork * 0.25f,
+                status = OffenseUrgentMitigationOrderStatus.InProgress,
+                statusText = "복원 격리 작업 중"
+            }
+        };
+        OffenseWorldRuntimeRestoreCandidate bCandidate =
+            codec.BuildRestoreCandidate(bState, new DungeonGameRestoreReport());
+
+        IDungeonRestoreTransactionParticipant[] participants =
+        {
+            mitigation,
+            fieldMedical,
+            safety,
+            travel,
+            decisions,
+            battle
+        };
+        string[] expectedParticipantIds =
+        {
+            "offense.urgent-mitigation",
+            "offense.field-medical",
+            "offense.return-safety",
+            "offense.travel",
+            "offense.decisions",
+            "offense.battle-director"
+        };
+        Require(
+            participants.Select(value => value.ParticipantId)
+                .SequenceEqual(expectedParticipantIds, StringComparer.Ordinal),
+            "Strategic owner restore participant ID가 바뀌었습니다.");
+
+        _ = mitigation.Orders;
+        Dictionary<string, RestoreOwnerObservation> aObservations =
+            CaptureStrategicOwnerObservations(
+                mitigation,
+                fieldMedical,
+                safety,
+                travel,
+                decisions,
+                battle);
+        int decisionChanged = 0;
+        decisions.Changed += () => decisionChanged++;
+
+        BeginAll(participants);
+        codec.PublishRestoreCandidate(bCandidate);
+        AssertStrategicOwnerObservations(
+            aObservations,
+            CaptureStrategicOwnerObservations(
+                mitigation,
+                fieldMedical,
+                safety,
+                travel,
+                decisions,
+                battle),
+            requireSameReferences: true,
+            "stage");
+        Require(decisionChanged == 0,
+            "decision stage가 Changed를 발행했습니다.");
+        DiscardAll(participants);
+        AssertStrategicOwnerObservations(
+            aObservations,
+            CaptureStrategicOwnerObservations(
+                mitigation,
+                fieldMedical,
+                safety,
+                travel,
+                decisions,
+                battle),
+            requireSameReferences: true,
+            "discard");
+        Require(decisionChanged == 0,
+            "decision discard가 Changed를 발행했습니다.");
+
+        BeginAll(participants);
+        codec.PublishRestoreCandidate(bCandidate);
+        PublishAll(participants);
+        Dictionary<string, RestoreOwnerObservation> publishedB =
+            CaptureStrategicOwnerObservations(
+                mitigation,
+                fieldMedical,
+                safety,
+                travel,
+                decisions,
+                battle);
+        foreach (string owner in aObservations.Keys)
+        {
+            Require(
+                !string.Equals(
+                    aObservations[owner].PersistentValue,
+                    publishedB[owner].PersistentValue,
+                    StringComparison.Ordinal),
+                $"{owner} A/B 상태가 분리되지 않았습니다.");
+        }
+        Require(decisionChanged == 0,
+            "decision publish가 완료 hook 전에 Changed를 발행했습니다.");
+        RollbackAll(participants);
+        AssertStrategicOwnerObservations(
+            aObservations,
+            CaptureStrategicOwnerObservations(
+                mitigation,
+                fieldMedical,
+                safety,
+                travel,
+                decisions,
+                battle),
+            requireSameReferences: true,
+            "rollback");
+        Require(decisionChanged == 0,
+            "decision rollback이 Changed를 발행했습니다.");
+
+        OffenseRestorePublicationDebugScenarios.VerifyRegistryRollback(
+            "strategic-six-owners", participants,
+            () =>
+            {
+                mitigation.PublishRestore(bCandidate.Mitigation);
+                fieldMedical.PublishRestore(bCandidate.FieldMedical);
+                safety.PublishRestore(bCandidate.ReturnSafety);
+                travel.PublishRestore(bCandidate.Travel);
+                decisions.PublishRestore(bCandidate.Decisions);
+                battle.PublishPersistentState(bCandidate.BattleDirector);
+            },
+            () => AssertStrategicOwnerObservations(aObservations,
+                CaptureStrategicOwnerObservations(mitigation, fieldMedical,
+                    safety, travel, decisions, battle), true, "registry rollback"),
+            () => CaptureStrategicOwnerObservations(mitigation, fieldMedical,
+                safety, travel, decisions, battle).All(pair =>
+                    pair.Value.PersistentValue == publishedB[pair.Key].PersistentValue));
+        Require(decisionChanged == 0,
+            "실패한 registry 복원이 decision Changed를 발행했습니다.");
+
+        BeginAll(participants);
+        codec.PublishRestoreCandidate(bCandidate);
+        PublishAll(participants);
+        Dictionary<string, RestoreOwnerObservation> completingB =
+            CaptureStrategicOwnerObservations(
+                mitigation,
+                fieldMedical,
+                safety,
+                travel,
+                decisions,
+                battle);
+        CompleteAll(participants);
+        Require(decisionChanged == 0,
+            "decision Complete가 완료 hook 전에 Changed를 발행했습니다.");
+        decisions.OnRestoreCompleted();
+        Require(decisionChanged == 1,
+            "decision 완료 hook이 Changed를 정확히 한 번 발행하지 않았습니다.");
+        AssertStrategicOwnerObservations(
+            completingB,
+            CaptureStrategicOwnerObservations(
+                mitigation,
+                fieldMedical,
+                safety,
+                travel,
+                decisions,
+                battle),
+            requireSameReferences: true,
+            "complete");
+
+        decisionChanged = 0;
+        codec.PublishRestoreCandidate(aCandidate);
+        Require(decisionChanged == 1,
+            "standalone decision 복원이 Changed를 발행하지 않았습니다.");
+        AssertStrategicOwnerPersistentValues(
+            aObservations,
+            CaptureStrategicOwnerObservations(
+                mitigation,
+                fieldMedical,
+                safety,
+                travel,
+                decisions,
+                battle),
+            "standalone restore");
+    }
+
+    private static void VerifySingleOwnerRestoreIsolation<TCandidate>(
+        string label,
+        IDungeonRestoreTransactionParticipant participant,
+        Action<TCandidate> apply,
+        TCandidate aCandidate,
+        TCandidate bCandidate,
+        Func<string> captureValue,
+        Func<object[]> captureReferences,
+        string aValue,
+        string bValue)
+    {
+        object[] aReferences = captureReferences();
+        OffenseRestorePublicationDebugScenarios.VerifyRegistryRollback(
+            participant,
+            () => apply(bCandidate),
+            () => AssertOwnerState(label, aValue, aReferences, captureValue,
+                captureReferences, "registry rollback"),
+            () => string.Equals(captureValue(), bValue, StringComparison.Ordinal));
+
+        participant.BeginRestoreCandidate();
+        apply(bCandidate);
+        AssertOwnerState(label, aValue, aReferences, captureValue,
+            captureReferences, "stage");
+        participant.DiscardRestoreCandidate();
+        AssertOwnerState(label, aValue, aReferences, captureValue,
+            captureReferences, "discard");
+
+        participant.BeginRestoreCandidate();
+        apply(bCandidate);
+        participant.PublishRestoreCandidate();
+        Require(string.Equals(captureValue(), bValue, StringComparison.Ordinal),
+            $"{label} publish가 B 상태를 게시하지 않았습니다.");
+        participant.RollbackPublishedRestoreCandidate();
+        AssertOwnerState(label, aValue, aReferences, captureValue,
+            captureReferences, "rollback");
+
+        participant.BeginRestoreCandidate();
+        apply(bCandidate);
+        participant.PublishRestoreCandidate();
+        object[] bReferences = captureReferences();
+        participant.CompleteRestoreCandidate();
+        AssertOwnerState(label, bValue, bReferences, captureValue,
+            captureReferences, "complete");
+
+        apply(aCandidate);
+        Require(string.Equals(captureValue(), aValue, StringComparison.Ordinal),
+            $"{label} standalone 복원이 A 상태를 복원하지 않았습니다.");
+    }
+
+    private static void AssertOwnerState(
+        string label,
+        string expectedValue,
+        IReadOnlyList<object> expectedReferences,
+        Func<string> captureValue,
+        Func<object[]> captureReferences,
+        string phase)
+    {
+        object[] actualReferences = captureReferences();
+        Require(string.Equals(
+                captureValue(),
+                expectedValue,
+                StringComparison.Ordinal)
+            && expectedReferences.Count == actualReferences.Length
+            && expectedReferences.Zip(
+                    actualReferences,
+                    (expected, actual) => ReferenceEquals(expected, actual))
+                .All(value => value),
+            $"{label} {phase}가 값 또는 원래 객체 참조를 보존하지 못했습니다.");
+    }
+
+    private static Dictionary<string, RestoreOwnerObservation>
+        CaptureStrategicOwnerObservations(
+            OffenseUrgentMitigationRuntime mitigation,
+            OffenseFieldMedicalRuntime fieldMedical,
+            OffenseReturnSafetyRuntime safety,
+            OffenseTravelRuntime travel,
+            OffenseDecisionRuntime decisions,
+            OffenseBattleDirector battle)
+    {
+        _ = mitigation.Orders;
+        OffenseWorldSaveData medicalState = new OffenseWorldSaveData();
+        fieldMedical.Capture(medicalState);
+        string battleState = battle.Capture() != null
+            ? JsonUtility.ToJson(battle.Capture())
+            : "<null>";
+        string battleRuntime = battleState
+            + "|resolved=" + battle.LastResolvedTurn.Count
+            + "|enemy=" + battle.LastResolvedEnemyIntents.Count
+            + "|final=" + battle.LastTurnFinalization.Succeeded
+            + ":" + battle.LastTurnFinalization.FailureReason
+            + "|finalized=" + ReadPrivateReference(battle, "lastFinalizedDirectorTurn")
+            + "|pending=" + ReadPrivateReference(battle, "pendingFinalizationTurn");
+        return new Dictionary<string, RestoreOwnerObservation>(StringComparer.Ordinal)
+        {
+            ["urgent-mitigation"] = new RestoreOwnerObservation(
+                JsonUtility.ToJson(new OffenseWorldSaveData
+                {
+                    mitigationOrders = new List<OffenseUrgentMitigationOrderStateData>(
+                        mitigation.Capture())
+                }),
+                new[]
+                {
+                    ReadPrivateReference(mitigation, "orders"),
+                    ReadPrivateReference(mitigation, "boundFacilities"),
+                    ReadPrivateReference(mitigation, "ordersView")
+                },
+                JsonUtility.ToJson(new OffenseWorldSaveData
+                {
+                    mitigationOrders = new List<OffenseUrgentMitigationOrderStateData>(
+                        mitigation.Capture())
+                }) + "|version=" + mitigation.Version
+                    + "|next=" + ReadPrivateReference(mitigation, "nextOrderSequence")
+                    + "|time=" + ReadPrivateReference(mitigation, "nextEvaluationTime")),
+            ["field-medical"] = new RestoreOwnerObservation(
+                JsonUtility.ToJson(medicalState),
+                new[]
+                {
+                    ReadPrivateReference(fieldMedical, "stabilizations"),
+                    ReadPrivateReference(fieldMedical, "carries"),
+                    ReadPrivateReference(fieldMedical, "stranded"),
+                    ReadPrivateReference(fieldMedical, "convoys")
+                }),
+            ["return-safety"] = new RestoreOwnerObservation(
+                JsonUtility.ToJson(new OffenseWorldSaveData
+                {
+                    returnSafety = new List<OffenseReturnSafetyStateData>(
+                        safety.Capture())
+                }),
+                new[] { ReadPrivateReference(safety, "states") }),
+            ["travel"] = new RestoreOwnerObservation(
+                JsonUtility.ToJson(new OffenseWorldSaveData
+                {
+                    travelStates = new List<OffenseTravelStateData>(travel.Capture())
+                }),
+                new[] { ReadPrivateReference(travel, "states") }),
+            ["decisions"] = new RestoreOwnerObservation(
+                JsonUtility.ToJson(new OffenseWorldSaveData
+                {
+                    decisions = new List<OffenseDecisionStateData>(decisions.Capture())
+                }),
+                new[] { ReadPrivateReference(decisions, "active") }),
+            ["battle-director"] = new RestoreOwnerObservation(
+                battleState,
+                new[]
+                {
+                    battle.State,
+                    ReadPrivateReference(battle, "formations"),
+                    battle.LastResolvedTurn,
+                    battle.LastResolvedEnemyIntents,
+                    ReadPrivateReference(battle, "pendingResolvedTurn"),
+                    ReadPrivateReference(battle, "pendingResolvedEnemyIntents")
+                },
+                battleRuntime)
+        };
+    }
+
+    private static void AssertStrategicOwnerObservations(
+        IReadOnlyDictionary<string, RestoreOwnerObservation> expected,
+        IReadOnlyDictionary<string, RestoreOwnerObservation> actual,
+        bool requireSameReferences,
+        string phase)
+    {
+        foreach (KeyValuePair<string, RestoreOwnerObservation> pair in expected)
+        {
+            Require(actual.TryGetValue(pair.Key, out RestoreOwnerObservation value)
+                && string.Equals(
+                    pair.Value.RuntimeValue,
+                    value.RuntimeValue,
+                    StringComparison.Ordinal)
+                && (!requireSameReferences
+                    || pair.Value.SameReferences(value)),
+                $"{pair.Key} {phase}가 값 또는 원래 객체 참조를 보존하지 못했습니다.");
+        }
+    }
+
+    private static void AssertStrategicOwnerPersistentValues(
+        IReadOnlyDictionary<string, RestoreOwnerObservation> expected,
+        IReadOnlyDictionary<string, RestoreOwnerObservation> actual,
+        string phase)
+    {
+        foreach (KeyValuePair<string, RestoreOwnerObservation> pair in expected)
+        {
+            Require(actual.TryGetValue(pair.Key, out RestoreOwnerObservation value)
+                && string.Equals(
+                    pair.Value.PersistentValue,
+                    value.PersistentValue,
+                    StringComparison.Ordinal),
+                $"{pair.Key} {phase}가 저장 상태를 복원하지 못했습니다.");
+        }
+    }
+
+    private static object ReadPrivateReference(object owner, string fieldName)
+    {
+        System.Reflection.FieldInfo field = owner.GetType().GetField(
+            fieldName,
+            System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.NonPublic);
+        Require(field != null,
+            $"{owner.GetType().Name}.{fieldName} 참조 필드를 찾지 못했습니다.");
+        object value = field.GetValue(owner);
+        Require(value != null,
+            $"{owner.GetType().Name}.{fieldName} 참조가 null입니다.");
+        return value;
+    }
+
+    private static void BeginAll(
+        IEnumerable<IDungeonRestoreTransactionParticipant> participants)
+    {
+        foreach (IDungeonRestoreTransactionParticipant participant in participants)
+        {
+            participant.BeginRestoreCandidate();
+        }
+    }
+
+    private static void PublishAll(
+        IEnumerable<IDungeonRestoreTransactionParticipant> participants)
+    {
+        foreach (IDungeonRestoreTransactionParticipant participant in participants)
+        {
+            participant.PublishRestoreCandidate();
+        }
+    }
+
+    private static void RollbackAll(
+        IEnumerable<IDungeonRestoreTransactionParticipant> participants)
+    {
+        foreach (IDungeonRestoreTransactionParticipant participant in
+                 participants.Reverse())
+        {
+            participant.RollbackPublishedRestoreCandidate();
+        }
+    }
+
+    private static void DiscardAll(
+        IEnumerable<IDungeonRestoreTransactionParticipant> participants)
+    {
+        foreach (IDungeonRestoreTransactionParticipant participant in
+                 participants.Reverse())
+        {
+            participant.DiscardRestoreCandidate();
+        }
+    }
+
+    private static void CompleteAll(
+        IEnumerable<IDungeonRestoreTransactionParticipant> participants)
+    {
+        foreach (IDungeonRestoreTransactionParticipant participant in participants)
+        {
+            participant.CompleteRestoreCandidate();
+        }
+    }
+
+    private sealed class RestoreOwnerObservation
+    {
+        private readonly object[] references;
+
+        public RestoreOwnerObservation(
+            string persistentValue,
+            object[] references,
+            string runtimeValue = null)
+        {
+            PersistentValue = persistentValue ?? string.Empty;
+            RuntimeValue = runtimeValue ?? PersistentValue;
+            this.references = references ?? Array.Empty<object>();
+        }
+
+        public string PersistentValue { get; }
+        public string RuntimeValue { get; }
+
+        public bool SameReferences(RestoreOwnerObservation other)
+        {
+            return other != null
+                && references.Length == other.references.Length
+                && references.Zip(
+                        other.references,
+                        (expected, actual) => ReferenceEquals(expected, actual))
+                    .All(value => value);
         }
     }
 

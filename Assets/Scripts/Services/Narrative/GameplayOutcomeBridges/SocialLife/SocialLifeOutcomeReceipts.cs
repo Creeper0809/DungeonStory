@@ -146,7 +146,10 @@ public readonly struct ApologyOutcomeReceipt
         string offenseId,
         bool restitutionProvided,
         float committedMoodDelta,
-        int absoluteDay)
+        int absoluteDay,
+        GameplayOutcomeId offendingOutcomeId,
+        GameplayOperationId rootOperationId,
+        string causationRelationId)
     {
         OperationId = new GameplayOperationId(operationId);
         if (!offender.IsValid || !recipient.IsValid || offender.Equals(recipient))
@@ -157,6 +160,9 @@ public readonly struct ApologyOutcomeReceipt
         OffenseId = GameplayOutcomeStableIdSyntax.Require(offenseId, nameof(offenseId));
         if (!float.IsFinite(committedMoodDelta) || absoluteDay < 0)
             throw new ArgumentException("Apology result values are invalid.");
+        if (!offendingOutcomeId.IsValid || !rootOperationId.IsValid)
+            throw new ArgumentException(
+                "Apology requires an exact offending outcome and root operation.");
 
         Offender = offender;
         OffenderName = offenderName;
@@ -165,6 +171,11 @@ public readonly struct ApologyOutcomeReceipt
         RestitutionProvided = restitutionProvided;
         CommittedMoodDelta = committedMoodDelta;
         AbsoluteDay = absoluteDay;
+        OffendingOutcomeId = offendingOutcomeId;
+        RootOperationId = rootOperationId;
+        CausationRelationId = GameplayOutcomeStableIdSyntax.Require(
+            causationRelationId,
+            nameof(causationRelationId));
     }
 
     public GameplayOperationId OperationId { get; }
@@ -176,45 +187,12 @@ public readonly struct ApologyOutcomeReceipt
     public bool RestitutionProvided { get; }
     public float CommittedMoodDelta { get; }
     public int AbsoluteDay { get; }
+    public GameplayOutcomeId OffendingOutcomeId { get; }
+    public GameplayOperationId RootOperationId { get; }
+    public string CausationRelationId { get; }
     public GameplayResultKey ResultKey => new(
         SocialLifeOutcomeIds.ApologyProducerId,
         OperationId,
         0L,
         0);
-}
-
-public readonly struct ReservedSocialLifeOutcome
-{
-    internal ReservedSocialLifeOutcome(
-        PreparedOutcomeReservation reservation,
-        GameplayResultKey resultKey,
-        bool alreadyCommitted)
-    {
-        Reservation = reservation;
-        ResultKey = resultKey;
-        AlreadyCommitted = alreadyCommitted;
-    }
-
-    internal PreparedOutcomeReservation Reservation { get; }
-    public GameplayResultKey ResultKey { get; }
-    public bool AlreadyCommitted { get; }
-    public bool IsValid => AlreadyCommitted && ResultKey.IsValid || Reservation.IsValid;
-}
-
-public readonly struct PreparedSocialLifeOutcome
-{
-    internal PreparedSocialLifeOutcome(
-        PreparedOutcomeToken token,
-        GameplayResultKey resultKey,
-        bool alreadyCommitted)
-    {
-        Token = token;
-        ResultKey = resultKey;
-        AlreadyCommitted = alreadyCommitted;
-    }
-
-    internal PreparedOutcomeToken Token { get; }
-    public GameplayResultKey ResultKey { get; }
-    public bool AlreadyCommitted { get; }
-    public bool IsValid => AlreadyCommitted && ResultKey.IsValid || Token.IsValid;
 }

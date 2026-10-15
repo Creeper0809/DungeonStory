@@ -4,10 +4,11 @@ using System.Collections.Generic;
 [Serializable]
 public sealed class RoomEnvironmentOutcomeSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     public int version = CurrentVersion;
     public long nextOutcomeSequence = 1L;
     public List<RoomEnvironmentObservationSaveData> observations = new();
+    public List<RoomPendingFactSaveData> pendingFacts = new();
 }
 
 [Serializable]
@@ -21,13 +22,19 @@ public sealed class RoomEnvironmentOutcomeRestoreCandidate
 {
     public RoomEnvironmentOutcomeRestoreCandidate(
         long nextOutcomeSequence,
-        IReadOnlyDictionary<string, float> observations)
+        IReadOnlyDictionary<string, float> observations,
+        RoomEnvironmentExperienceFact pendingExperience = null,
+        RoomEnvironmentConditionFact pendingCondition = null)
     {
         NextOutcomeSequence = nextOutcomeSequence;
         Observations = observations;
+        PendingExperience = pendingExperience;
+        PendingCondition = pendingCondition;
     }
     public long NextOutcomeSequence { get; }
     public IReadOnlyDictionary<string, float> Observations { get; }
+    public RoomEnvironmentExperienceFact PendingExperience { get; }
+    public RoomEnvironmentConditionFact PendingCondition { get; }
 }
 
 public interface IRoomEnvironmentOutcomePersistence

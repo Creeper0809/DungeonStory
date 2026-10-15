@@ -31,38 +31,6 @@ internal static class SurvivalFacilityWorkRules
     public static bool CanDrawWater(BuildableObject building) =>
         building?.BuildingData?.GetAbility<BuildingWaterSourceAbility>() != null;
 
-    public static bool TryApplyRefuel(
-        IBuildingVisitorPort actor,
-        BuildableObject building,
-        SurvivalFoodStockRuntime stockRuntime,
-        out int amount,
-        out DomainFailure failure)
-    {
-        if (!stockRuntime.TryCommitFacilityFuel(building, out amount, out failure))
-        {
-            return false;
-        }
-
-        if (amount > 0)
-        {
-            actor?.RecordActivity(
-                building,
-                new BuildingActivitySnapshot(
-                    BuildingActivityKinds.Work,
-                    BuildingActivityOutcomes.Completed,
-                    $"{GetBuildingName(building)} refueled.",
-                    BuiltInWorkTypeIds.Refuel.Value,
-                    string.Empty,
-                    "survival-refueled",
-                    0f,
-                    amount,
-                    false));
-        }
-
-        failure = DomainFailure.None;
-        return true;
-    }
-
     public static bool IsEnvironmentalFuelConsumer(BuildableObject building) =>
         building != null
         && !building.isDestroy

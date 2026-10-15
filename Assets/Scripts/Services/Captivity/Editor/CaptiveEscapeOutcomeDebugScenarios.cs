@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.Narrative.Korean;
 using UnityEngine;
 
@@ -21,49 +22,48 @@ public static class CaptiveEscapeOutcomeDebugScenarios
         return true;
     }
 
+    public static bool RunCanonicalSaveRoundTrip()
+    {
+        VerifyCanonicalKinds();
+        return true;
+    }
+
     private static void VerifyCanonicalKinds()
     {
-        GameplayOutcomeRegistry registry = new(
-            new IGameplayOutcomeDescriptor[]
-            {
-                new CaptiveEscapeOutcomeDescriptor(new KoreanJosaFormatter())
-            },
-            new IGameplayOutcomeAdapterRegistration[]
-            {
-                new CaptiveEscapeOutcomeAdapter()
-            });
-        GameplayOutcomeLedger ledger = NewLedger(registry, "run:captive-escape");
-        CaptiveEscapeGameplayOutcomeBridge bridge = new(
-            new GameplayOutcomeRecorder(ledger, registry, new GameEventBus()),
-            ledger);
+        using EscapeFactAuthority authority = new("run:captive-escape");
+        GameplayOutcomeRegistry registry = authority.Registry;
+        GameplayOutcomeLedger ledger = authority.Ledger;
         GameEventBus eventBus = new();
         int legacyEventCount = 0;
         using IDisposable subscription = eventBus.Subscribe<CaptiveEscapedEvent>(
             _ => legacyEventCount++);
-        CaptiveEscapeOutcomeRuntime runtime = new(bridge, eventBus);
+        CaptiveEscapeOutcomeRuntime runtime = new(
+            authority.Facts,
+            authority.Facts,
+            eventBus);
         EscapeCase[] cases =
         {
             new(
                 "physical",
-                CaptiveEscapeOutcomeKind.PhysicalEscape,
+                CaptiveEscapeKind.PhysicalEscape,
                 CaptivityStatus.EscapeAttempt,
                 "감방 외벽 통과",
                 42f),
             new(
                 "arrival",
-                CaptiveEscapeOutcomeKind.ArrivalCustodyLoss,
+                CaptiveEscapeKind.ArrivalCustodyLoss,
                 CaptivityStatus.AwaitingCapture,
                 "귀환 수용 전 이탈",
                 37f),
             new(
                 "betrayal",
-                CaptiveEscapeOutcomeKind.FalseComplianceBetrayal,
+                CaptiveEscapeKind.FalseComplianceBetrayal,
                 CaptivityStatus.Labor,
                 "침공의 혼란",
                 66f),
             new(
                 "minion",
-                CaptiveEscapeOutcomeKind.MinionControlBreak,
+                CaptiveEscapeKind.MinionControlBreak,
                 CaptivityStatus.Minion,
                 "정착지 통제 거부",
                 58f)
@@ -80,29 +80,42 @@ public static class CaptiveEscapeOutcomeDebugScenarios
                     escapeCase.PreviousStatus,
                     escapeCase.Pressure,
                     12,
-                    out PreparedCaptiveEscapeOutcome prepared,
+                    out CaptiveEscapePublication prepared,
                     out long revision,
                     out string trigger,
                     out string failure),
                 escapeCase.Suffix + " prepare failed: " + failure);
-            Require(
-                revision == 1L
-                && trigger == escapeCase.Trigger
-                && !prepared.IsReplay,
-                escapeCase.Suffix + " prepare did not freeze canonical inputs");
-            state.status = CaptivityStatus.Escaped;
-            state.escapeOutcomeRevision = revision;
-            OwnerOutcomeCommitResult commit = runtime.Commit(prepared);
-            Require(
-                commit.DurablyCommitted,
-                escapeCase.Suffix + " commit was not durable: " + commit.DetailCode);
-            runtime.NotifyCommitted(
-                state,
-                trigger,
-                CaptiveEscapeOutcomeIds.IsBetrayal(escapeCase.Kind));
+            using (prepared)
+            {
+                Require(
+                    revision == 1L
+                    && trigger == escapeCase.Trigger
+                    && !prepared.IsReplay,
+                    escapeCase.Suffix + " prepare did not freeze canonical inputs");
+                state.status = CaptivityStatus.Escaped;
+                state.escapeOutcomeRevision = revision;
+                state.retaliationPressure = escapeCase.Pressure;
+                DomainFactDelivery commit = runtime.Commit(prepared);
+                Require(
+                    commit.Completed,
+                    escapeCase.Suffix + " commit was not delivered: " + commit.Detail);
+                runtime.NotifyCommitted(prepared);
+            }
         }
 
         Require(legacyEventCount == cases.Length, "legacy escape observer count drifted");
+        // This detached ledger has no PlayerLoop/day-boundary scheduler.
+        // Run the real bounded retention pipeline before expecting its policy
+        // to promote the mutable subject tier; the initial receipt stays Recent.
+        Require(ledger.TrySchedule(new GameplayOutcomeConsolidationRequest(
+                12, cases.Length, registry.ConsolidationPolicyVersion,
+                ledger.CurrentWorldEpoch), out string scheduleFailure),
+            "escape memory schedule failed: " + scheduleFailure);
+        int memorySlices = 0;
+        while (ledger.PendingJobCount > 0 && memorySlices++ < 8)
+            ledger.ProcessSlice(cases.Length, 0L);
+        Require(ledger.PendingJobCount == 0,
+            "four escape memory records did not finish bounded consolidation");
         GameplayOutcomeQueryPage global = ledger.GetGlobal(
             OutcomeCursor.FirstPage(10),
             OutcomeFilter.All);
@@ -132,6 +145,9 @@ public static class CaptiveEscapeOutcomeDebugScenarios
                     == escapeCase.Trigger,
                 escapeCase.Suffix + " exact receipt shape drifted");
             GameplayOutcomeSnapshot exact = character.Items[0].Exact;
+            Require(exact.subjects.Single().tier == NarrativeMemoryTier.Episodic
+                && exact.initialSubjects.Single().tier == NarrativeMemoryTier.Recent,
+                escapeCase.Suffix + " initial receipt or published memory tier differs from ledger/policy contract");
             GameplayOutcomeId outcomeId = new(
                 new GameplayOutcomeRunId(exact.runId),
                 exact.sequence);
@@ -160,29 +176,39 @@ public static class CaptiveEscapeOutcomeDebugScenarios
                 replayCase.PreviousStatus,
                 replayCase.Pressure,
                 12,
-                out PreparedCaptiveEscapeOutcome replay,
+                out CaptiveEscapePublication replay,
+                out long replayRevision,
                 out _,
-                out _,
-                out string replayFailure)
-            && replay.IsReplay
-            && runtime.Commit(replay).DurablyCommitted
-            && ledger.GetGlobal(
-                OutcomeCursor.FirstPage(10),
-                OutcomeFilter.All).Items.Count == cases.Length,
-            "canonical escape replay failed or duplicated: " + replayFailure);
+                out string replayFailure),
+            "canonical escape replay prepare failed: " + replayFailure);
+        using (replay)
+        {
+            replayState.status = CaptivityStatus.Escaped;
+            replayState.escapeOutcomeRevision = replayRevision;
+            replayState.retaliationPressure = replayCase.Pressure;
+            Require(
+                replay.IsReplay
+                && runtime.Commit(replay).Completed
+                && ledger.GetGlobal(
+                    OutcomeCursor.FirstPage(10),
+                    OutcomeFilter.All).Items.Count == cases.Length,
+                "canonical escape replay failed or duplicated: " + replayFailure);
+            runtime.NotifyCommitted(replay);
+        }
 
-        CaptiveEscapeOutcomeReceipt drifted = new(
-            Id(replayCase.Suffix),
-            Name(replayCase.Suffix),
-            replayCase.Kind,
-            "다른 탈출 원인",
-            false,
-            replayCase.PreviousStatus,
-            replayCase.Pressure,
-            1L,
-            12);
+        CaptiveEscapedFact drifted = new(new CaptiveEscapedFactData
+        {
+            captiveId = Id(replayCase.Suffix),
+            displayName = "가람",
+            kind = replayCase.Kind,
+            trigger = "다른 탈출 원인",
+            previousStatus = replayCase.PreviousStatus,
+            retaliationPressure = replayCase.Pressure,
+            revision = 1L,
+            absoluteDay = 12
+        });
         Require(
-            !bridge.TryPrepare(drifted, out _, out _),
+            !authority.Facts.Replay(drifted).MayBeCommitted,
             "same escape result key accepted a drifted receipt");
 
         GameplayOutcomeLedgerSaveData saved = ledger.CaptureGameplayOutcomes();
@@ -208,6 +234,28 @@ public static class CaptiveEscapeOutcomeDebugScenarios
         Require(
             beforeHashes.SequenceEqual(afterHashes),
             "escape outcomes changed across ledger save round trip");
+
+        GameplayOutcomeLedgerSaveData wrongTier = JsonUtility.FromJson<
+            GameplayOutcomeLedgerSaveData>(JsonUtility.ToJson(saved));
+        wrongTier.exactOutcomes[0].initialSubjects[0].tier = NarrativeMemoryTier.Episodic;
+        string beforeRejectedRestore = JsonUtility.ToJson(restored.CaptureGameplayOutcomes());
+        bool wrongTierRejected = false;
+        string wrongTierFailure = string.Empty;
+        try
+        {
+            restored.PrepareGameplayOutcomeRestore(wrongTier);
+        }
+        catch (InvalidOperationException exception)
+        {
+            wrongTierFailure = exception.Message;
+            wrongTierRejected = wrongTierFailure.Contains(
+                "invalid immutable initial subject link", StringComparison.Ordinal);
+        }
+        Require(wrongTierRejected,
+            "escape ledger did not reject mutation at the canonical initial-row guard: "
+                + wrongTierFailure);
+        Require(beforeRejectedRestore == JsonUtility.ToJson(restored.CaptureGameplayOutcomes()),
+            "rejected escape tier restore changed the live ledger");
     }
 
     private static void VerifyCommitBoundaries()
@@ -215,125 +263,177 @@ public static class CaptiveEscapeOutcomeDebugScenarios
         CaptiveState prepareFailed = State(
             "prepare-failed",
             CaptivityStatus.EscapeAttempt);
-        CaptiveEscapeOutcomeRuntime prepareRuntime = new(
-            new ConfigurableCommitter(
-                OwnerOutcomeCommitPhase.PublishedAcknowledged,
+        using (EscapeFactAuthority authority = new(
+                   "run:captive-escape-prepare-reject"))
+        {
+            ConfigurablePublisher publisher = new(
+                authority.Facts,
+                DomainFactDeliveryPhase.Delivered,
                 string.Empty,
-                prepareSucceeds: false),
-            new GameEventBus());
-        Require(
-            !prepareRuntime.TryPrepare(
-                prepareFailed,
-                CaptiveEscapeOutcomeKind.PhysicalEscape,
-                "외벽 통과",
-                CaptivityStatus.EscapeAttempt,
-                20f,
-                3,
-                out _,
-                out _,
-                out _,
-                out string prepareFailure)
-            && prepareFailure == "qa-prepare-rejected"
-            && prepareFailed.status == CaptivityStatus.EscapeAttempt
-            && prepareFailed.escapeOutcomeRevision == 0L,
-            "prepare failure changed captive state");
+                prepareSucceeds: false);
+            CaptiveEscapeOutcomeRuntime prepareRuntime = new(
+                publisher,
+                authority.Facts,
+                new GameEventBus());
+            Require(
+                !prepareRuntime.TryPrepare(
+                    prepareFailed,
+                    CaptiveEscapeKind.PhysicalEscape,
+                    "외벽 통과",
+                    CaptivityStatus.EscapeAttempt,
+                    20f,
+                    3,
+                    out _,
+                    out _,
+                    out _,
+                    out string prepareFailure)
+                && prepareFailure == "qa-prepare-rejected"
+                && prepareFailed.status == CaptivityStatus.EscapeAttempt
+                && prepareFailed.escapeOutcomeRevision == 0L,
+                "prepare failure changed captive state");
+        }
 
         CaptiveState rejected = State("rejected", CaptivityStatus.Labor);
-        CaptiveEscapeOutcomeRuntime rejectRuntime = new(
-            new ConfigurableCommitter(
-                OwnerOutcomeCommitPhase.Rejected,
-                "qa-definite-rejection"),
-            new GameEventBus());
-        Require(
-            rejectRuntime.TryPrepare(
-                rejected,
-                CaptiveEscapeOutcomeKind.FalseComplianceBetrayal,
-                "배신 기회",
-                CaptivityStatus.Labor,
-                55f,
-                4,
-                out PreparedCaptiveEscapeOutcome rejectedPrepared,
-                out _,
-                out _,
-                out string rejectPrepareFailure),
-            "rejection scenario prepare failed: " + rejectPrepareFailure);
-        OwnerOutcomeCommitResult rejectedCommit = rejectRuntime.Commit(
-            rejectedPrepared);
-        Require(
-            !rejectedCommit.DurablyCommitted
-            && rejectedCommit.DetailCode == "qa-definite-rejection"
-            && rejected.status == CaptivityStatus.Labor
-            && rejected.escapeOutcomeRevision == 0L,
-            "definite rejection was reported as durable or mutated state");
+        using (EscapeFactAuthority authority = new(
+                   "run:captive-escape-commit-reject"))
+        {
+            ConfigurablePublisher publisher = new(
+                authority.Facts,
+                DomainFactDeliveryPhase.Rejected,
+                "qa-definite-rejection");
+            CaptiveEscapeOutcomeRuntime rejectRuntime = new(
+                publisher,
+                authority.Facts,
+                new GameEventBus());
+            Require(
+                rejectRuntime.TryPrepare(
+                    rejected,
+                    CaptiveEscapeKind.FalseComplianceBetrayal,
+                    "배신 기회",
+                    CaptivityStatus.Labor,
+                    55f,
+                    4,
+                    out CaptiveEscapePublication rejectedPrepared,
+                    out long rejectedRevision,
+                    out _,
+                    out string rejectPrepareFailure),
+                "rejection scenario prepare failed: " + rejectPrepareFailure);
+            using (rejectedPrepared)
+            {
+                rejected.status = CaptivityStatus.Escaped;
+                rejected.escapeOutcomeRevision = rejectedRevision;
+                rejected.retaliationPressure = 55f;
+                DomainFactDelivery rejectedCommit = rejectRuntime.Commit(
+                    rejectedPrepared);
+                Require(
+                    !rejectedCommit.MayBeCommitted
+                    && rejectedCommit.Detail == "qa-definite-rejection"
+                    && !rejected.escapeObservation.HasFact,
+                    "definite rejection was reported as durable or retained observation state");
+                rejected.status = CaptivityStatus.Labor;
+                rejected.escapeOutcomeRevision = 0L;
+                rejected.retaliationPressure = 0f;
+            }
+            Require(
+                rejected.status == CaptivityStatus.Labor
+                && rejected.escapeOutcomeRevision == 0L,
+                "definite rejection owner rollback was not exact");
+        }
 
         GameEventBus pendingBus = new();
         int pendingEvents = 0;
         using IDisposable pendingSubscription =
             pendingBus.Subscribe<CaptiveEscapedEvent>(_ => pendingEvents++);
         CaptiveState pending = State("pending", CaptivityStatus.Minion);
-        CaptiveEscapeOutcomeRuntime pendingRuntime = new(
-            new ConfigurableCommitter(
-                OwnerOutcomeCommitPhase.CommittedPendingDelivery,
-                "qa-delivery-pending"),
-            pendingBus);
-        Require(
-            pendingRuntime.TryPrepare(
-                pending,
-                CaptiveEscapeOutcomeKind.MinionControlBreak,
-                "통제 거부",
-                CaptivityStatus.Minion,
-                48f,
-                5,
-                out PreparedCaptiveEscapeOutcome pendingPrepared,
-                out long pendingRevision,
-                out string pendingTrigger,
-                out string pendingFailure),
-            "pending scenario prepare failed: " + pendingFailure);
-        OwnerOutcomeCommitResult pendingCommit = pendingRuntime.Commit(
-            pendingPrepared);
-        Require(
-            pendingCommit.DurablyCommitted
-            && pendingCommit.Phase
-                == OwnerOutcomeCommitPhase.CommittedPendingDelivery,
-            "durable pending delivery was treated as rejection");
-        pending.status = CaptivityStatus.Escaped;
-        pending.escapeOutcomeRevision = pendingRevision;
-        pendingRuntime.NotifyCommitted(pending, pendingTrigger, betrayal: true);
-        Require(pendingEvents == 1, "pending delivery suppressed post-commit observer");
+        using (EscapeFactAuthority authority = new(
+                   "run:captive-escape-delivery-pending"))
+        {
+            ConfigurablePublisher publisher = new(
+                authority.Facts,
+                DomainFactDeliveryPhase.AcceptedPendingDelivery,
+                "qa-delivery-pending");
+            CaptiveEscapeOutcomeRuntime pendingRuntime = new(
+                publisher,
+                authority.Facts,
+                pendingBus);
+            Require(
+                pendingRuntime.TryPrepare(
+                    pending,
+                    CaptiveEscapeKind.MinionControlBreak,
+                    "통제 거부",
+                    CaptivityStatus.Minion,
+                    48f,
+                    5,
+                    out CaptiveEscapePublication pendingPrepared,
+                    out long pendingRevision,
+                    out _,
+                    out string pendingFailure),
+                "pending scenario prepare failed: " + pendingFailure);
+            using (pendingPrepared)
+            {
+                pending.status = CaptivityStatus.Escaped;
+                pending.escapeOutcomeRevision = pendingRevision;
+                pending.retaliationPressure = 48f;
+                DomainFactDelivery pendingCommit = pendingRuntime.Commit(
+                    pendingPrepared);
+                Require(
+                    pendingCommit.Phase
+                        == DomainFactDeliveryPhase.AcceptedPendingDelivery
+                    && pending.escapeObservation.pending,
+                    "durable pending delivery was treated as rejection");
+                pendingRuntime.NotifyCommitted(pendingPrepared);
+                Require(
+                    pendingEvents == 0,
+                    "pending delivery notified observers before recovery");
+            }
+            Require(
+                pendingRuntime.Recover(pending, out string recoveryFailure)
+                && recoveryFailure.Length == 0
+                && !pending.escapeObservation.pending
+                && pendingEvents == 1
+                && pendingRuntime.Recover(pending, out _)
+                && pendingEvents == 1,
+                "pending delivery did not recover and notify exactly once");
+        }
 
         CaptiveState observerFault = State(
             "observer-fault",
             CaptivityStatus.AwaitingCapture);
-        CaptiveEscapeOutcomeRuntime observerRuntime = new(
-            new ConfigurableCommitter(
-                OwnerOutcomeCommitPhase.PublishedAcknowledged,
-                string.Empty),
-            new ThrowingEventBus());
-        Require(
-            observerRuntime.TryPrepare(
-                observerFault,
-                CaptiveEscapeOutcomeKind.ArrivalCustodyLoss,
-                "귀환 수용 전 이탈",
-                CaptivityStatus.AwaitingCapture,
-                33f,
-                6,
-                out PreparedCaptiveEscapeOutcome observerPrepared,
-                out long observerRevision,
-                out string observerTrigger,
-                out string observerPrepareFailure),
-            "observer scenario prepare failed: " + observerPrepareFailure);
-        Require(
-            observerRuntime.Commit(observerPrepared).DurablyCommitted,
-            "observer scenario did not commit");
-        observerFault.status = CaptivityStatus.Escaped;
-        observerFault.escapeOutcomeRevision = observerRevision;
-        observerRuntime.NotifyCommitted(
-            observerFault,
-            observerTrigger,
-            betrayal: false);
-        Require(
-            observerFault.escapeOutcomeRevision == 1L,
-            "observer exception escaped or rolled back a durable result");
+        using (EscapeFactAuthority authority = new(
+                   "run:captive-escape-observer-fault"))
+        {
+            CaptiveEscapeOutcomeRuntime observerRuntime = new(
+                authority.Facts,
+                authority.Facts,
+                new ThrowingEventBus());
+            Require(
+                observerRuntime.TryPrepare(
+                    observerFault,
+                    CaptiveEscapeKind.ArrivalCustodyLoss,
+                    "귀환 수용 전 이탈",
+                    CaptivityStatus.AwaitingCapture,
+                    33f,
+                    6,
+                    out CaptiveEscapePublication observerPrepared,
+                    out long observerRevision,
+                    out _,
+                    out string observerPrepareFailure),
+                "observer scenario prepare failed: " + observerPrepareFailure);
+            using (observerPrepared)
+            {
+                observerFault.status = CaptivityStatus.Escaped;
+                observerFault.escapeOutcomeRevision = observerRevision;
+                observerFault.retaliationPressure = 33f;
+                Require(
+                    observerRuntime.Commit(observerPrepared).Completed,
+                    "observer scenario did not commit");
+                observerRuntime.NotifyCommitted(observerPrepared);
+            }
+            Require(
+                observerFault.escapeOutcomeRevision == 1L
+                && !observerFault.escapeObservation.observersPending,
+                "observer exception escaped or rolled back a durable result");
+        }
     }
 
     private static void VerifyProductionOwners()
@@ -341,7 +441,7 @@ public static class CaptiveEscapeOutcomeDebugScenarios
         using (OwnerFixture physical = new(
                    "owner-physical",
                    CaptivityStatus.EscapeAttempt,
-                   OwnerOutcomeCommitPhase.Rejected,
+                   DomainFactDeliveryPhase.Rejected,
                    "qa-physical-rejected"))
         {
             physical.State.restrained = true;
@@ -363,8 +463,8 @@ public static class CaptiveEscapeOutcomeDebugScenarios
                 && physical.EventCount == 0,
                 "physical escape rejection did not restore exact owner state");
 
-            ConfigurableCommitter pending = new(
-                OwnerOutcomeCommitPhase.CommittedPendingDelivery,
+            ConfigurablePublisher pending = physical.NewPublisher(
+                DomainFactDeliveryPhase.AcceptedPendingDelivery,
                 "qa-physical-pending");
             CaptivityEscapeCompletionRuntime retry = physical.NewCompletion(pending);
             Require(
@@ -373,22 +473,31 @@ public static class CaptiveEscapeOutcomeDebugScenarios
                     physical.Actor,
                     "외벽 통과",
                     out string retryFailure)
-                && retryFailure.Length == 0
+                && retryFailure.StartsWith(
+                    "captive-escape-delivery-pending:",
+                    StringComparison.Ordinal)
                 && physical.State.status == CaptivityStatus.Escaped
                 && physical.State.escapeOutcomeRevision == 1L
                 && physical.Actor.characterType == CharacterType.Intruder
                 && !physical.Actor.IsAiPaused()
                 && !physical.Doors.IsCaptive(physical.Id)
-                && physical.EventCount == 1
-                && pending.LastReceipt.Kind
-                    == CaptiveEscapeOutcomeKind.PhysicalEscape,
-                "persisted physical escape did not retry into one durable result");
+                && physical.State.escapeObservation.pending
+                && physical.EventCount == 0
+                && pending.LastFact.Snapshot().kind
+                    == CaptiveEscapeKind.PhysicalEscape,
+                "pending physical escape did not retain its applied owner state");
+            Require(
+                physical.Recover(out string recoveryFailure)
+                && recoveryFailure.Length == 0
+                && !physical.State.escapeObservation.pending
+                && physical.EventCount == 1,
+                "persisted physical escape did not recover one durable result");
         }
 
         using (OwnerFixture arrival = new(
                    "owner-arrival",
                    CaptivityStatus.AwaitingCapture,
-                   OwnerOutcomeCommitPhase.PublishedAcknowledged,
+                   DomainFactDeliveryPhase.Delivered,
                    string.Empty))
         {
             Require(
@@ -398,15 +507,15 @@ public static class CaptiveEscapeOutcomeDebugScenarios
                     "귀환 수용 전 이탈",
                     out string failure)
                 && failure.Length == 0
-                && arrival.Committer.LastReceipt.Kind
-                    == CaptiveEscapeOutcomeKind.ArrivalCustodyLoss,
+                && arrival.Publisher.LastFact.Snapshot().kind
+                    == CaptiveEscapeKind.ArrivalCustodyLoss,
                 "arrival custody loss did not use its distinct receipt kind");
         }
 
         using (OwnerFixture betrayalRejected = new(
                    "owner-betrayal-rejected",
                    CaptivityStatus.Labor,
-                   OwnerOutcomeCommitPhase.Rejected,
+                   DomainFactDeliveryPhase.Rejected,
                    "qa-betrayal-rejected"))
         {
             betrayalRejected.State.falseCompliance = true;
@@ -432,7 +541,7 @@ public static class CaptiveEscapeOutcomeDebugScenarios
         using (OwnerFixture betrayalPending = new(
                    "owner-betrayal-pending",
                    CaptivityStatus.Performer,
-                   OwnerOutcomeCommitPhase.CommittedPendingDelivery,
+                   DomainFactDeliveryPhase.AcceptedPendingDelivery,
                    "qa-betrayal-pending"))
         {
             betrayalPending.State.falseCompliance = true;
@@ -442,19 +551,27 @@ public static class CaptiveEscapeOutcomeDebugScenarios
                     betrayalPending.Id,
                     "무대 뒤 혼란",
                     out string failure)
-                && failure.Length == 0
+                && failure.StartsWith(
+                    "captive-escape-delivery-pending:",
+                    StringComparison.Ordinal)
                 && betrayalPending.State.status == CaptivityStatus.Escaped
                 && betrayalPending.State.escapeOutcomeRevision == 1L
-                && betrayalPending.Committer.LastReceipt.Kind
-                    == CaptiveEscapeOutcomeKind.FalseComplianceBetrayal
+                && betrayalPending.Publisher.LastFact.Snapshot().kind
+                    == CaptiveEscapeKind.FalseComplianceBetrayal
+                && betrayalPending.State.escapeObservation.pending
+                && betrayalPending.EventCount == 0,
+                "durable pending betrayal did not retain applied state");
+            Require(
+                betrayalPending.Recover(out string recoveryFailure)
+                && recoveryFailure.Length == 0
                 && betrayalPending.EventCount == 1,
-                "durable pending betrayal did not remain committed");
+                "durable pending betrayal did not recover exactly once");
         }
 
         using (OwnerFixture minionRejected = new(
                    "owner-minion-rejected",
                    CaptivityStatus.Minion,
-                   OwnerOutcomeCommitPhase.Rejected,
+                   DomainFactDeliveryPhase.Rejected,
                    "qa-minion-rejected"))
         {
             minionRejected.Population.Standing = CharacterSettlementStanding.Minion;
@@ -484,7 +601,7 @@ public static class CaptiveEscapeOutcomeDebugScenarios
         using (OwnerFixture minionPending = new(
                    "owner-minion-pending",
                    CaptivityStatus.Minion,
-                   OwnerOutcomeCommitPhase.CommittedPendingDelivery,
+                   DomainFactDeliveryPhase.AcceptedPendingDelivery,
                    "qa-minion-pending"))
         {
             minionPending.Population.Standing = CharacterSettlementStanding.Minion;
@@ -494,7 +611,9 @@ public static class CaptiveEscapeOutcomeDebugScenarios
                     minionPending.Id,
                     "통제에서 벗어남",
                     out string failure)
-                && failure.Length == 0
+                && failure.StartsWith(
+                    "captive-escape-delivery-pending:",
+                    StringComparison.Ordinal)
                 && minionPending.State.status == CaptivityStatus.Escaped
                 && minionPending.State.escapeOutcomeRevision == 1L
                 && minionPending.Actor.characterType == CharacterType.Intruder
@@ -506,17 +625,37 @@ public static class CaptiveEscapeOutcomeDebugScenarios
                 && minionPending.Population.RollbackCount == 0
                 && minionPending.Employment.Standing
                     == CharacterSettlementStanding.PreparedCandidate
-                && minionPending.Committer.LastReceipt.Kind
-                    == CaptiveEscapeOutcomeKind.MinionControlBreak
-                && minionPending.EventCount == 1,
+                && minionPending.Publisher.LastFact.Snapshot().kind
+                    == CaptiveEscapeKind.MinionControlBreak
+                && minionPending.State.escapeObservation.pending
+                && minionPending.EventCount == 0,
                 "durable pending minion defection did not commit every owner");
+            Require(
+                minionPending.Recover(out string recoveryFailure)
+                && recoveryFailure.Length == 0
+                && minionPending.EventCount == 1,
+                "durable pending minion defection did not recover exactly once");
         }
     }
 
     private static void VerifyCaptivitySaveCompatibility()
     {
-        CaptiveState committed = State("save", CaptivityStatus.Escaped);
-        committed.escapeOutcomeRevision = 1L;
+        CaptiveState committed;
+        using (OwnerFixture fixture = new(
+                   "save",
+                   CaptivityStatus.AwaitingCapture,
+                   DomainFactDeliveryPhase.Delivered,
+                   string.Empty))
+        {
+            Require(
+                fixture.Completion.CompleteEscape(
+                    fixture.Id,
+                    fixture.Actor,
+                    "귀환 수용 전 이탈",
+                    out string failure),
+                "escape save fixture failed: " + failure);
+            committed = fixture.State.Clone();
+        }
         CaptivitySaveData source = Save(committed);
         CaptivitySaveData roundTrip = JsonUtility.FromJson<CaptivitySaveData>(
             JsonUtility.ToJson(source));
@@ -524,17 +663,18 @@ public static class CaptiveEscapeOutcomeDebugScenarios
         CaptivitySaveValidation.Validate(roundTrip, roundTripReport);
         Require(
             roundTripReport.Success
-            && roundTrip.captives.Single().escapeOutcomeRevision == 1L,
+            && roundTrip.captives.Single().escapeOutcomeRevision == 1L
+            && roundTrip.captives.Single().escapeObservation.HasFact
+            && !roundTrip.captives.Single().escapeObservation.pending,
             "captivity save round trip lost escape revision: "
             + string.Join(" | ", roundTripReport.Errors));
 
-        CaptiveState legacy = State("legacy", CaptivityStatus.Escaped);
-        DungeonGameRestoreReport legacyReport = new();
-        CaptivitySaveValidation.Validate(Save(legacy), legacyReport);
+        CaptiveState missingFact = State("missing-fact", CaptivityStatus.Escaped);
+        DungeonGameRestoreReport missingFactReport = new();
+        CaptivitySaveValidation.Validate(Save(missingFact), missingFactReport);
         Require(
-            legacyReport.Success,
-            "legacy escaped state with revision zero was rejected: "
-            + string.Join(" | ", legacyReport.Errors));
+            !missingFactReport.Success,
+            "escaped state without its frozen transition fact was accepted");
 
         CaptiveState negative = committed.Clone();
         negative.escapeOutcomeRevision = -1L;
@@ -591,18 +731,6 @@ public static class CaptiveEscapeOutcomeDebugScenarios
 
     private static string Id(string suffix) => CaptiveIdPrefix + suffix;
 
-    private static KoreanNameSnapshot Name(string suffix)
-    {
-        string id = Id(suffix);
-        return new KoreanNameSnapshot(
-            "가람",
-            "captivity-escape-display-v1:"
-                + NarrativeInferenceHash.ComputeSha256Utf8(id + "|가람"),
-            KoreanPronunciationHint.AutoHangulDisplay(
-                "captivity-escape-pronunciation-v1:" + id),
-            "ko-KR");
-    }
-
     private static string Fact(GameplayOutcomeSnapshot snapshot, string factId) =>
         snapshot.facts.Single(value => value.factId == factId).value;
 
@@ -616,7 +744,7 @@ public static class CaptiveEscapeOutcomeDebugScenarios
     {
         public EscapeCase(
             string suffix,
-            CaptiveEscapeOutcomeKind kind,
+            CaptiveEscapeKind kind,
             CaptivityStatus previousStatus,
             string trigger,
             float pressure)
@@ -629,7 +757,7 @@ public static class CaptiveEscapeOutcomeDebugScenarios
         }
 
         public string Suffix { get; }
-        public CaptiveEscapeOutcomeKind Kind { get; }
+        public CaptiveEscapeKind Kind { get; }
         public CaptivityStatus PreviousStatus { get; }
         public string Trigger { get; }
         public float Pressure { get; }
@@ -641,12 +769,13 @@ public static class CaptiveEscapeOutcomeDebugScenarios
         private readonly IDisposable subscription;
         private readonly CaptivityActorAccess actors;
         private readonly CaptivityActorRuntimeLookup actorRuntime;
-        private readonly FakeClock clock = new();
+        private readonly FakeCalendar calendar = new();
+        private readonly EscapeFactAuthority authority;
 
         public OwnerFixture(
             string suffix,
             CaptivityStatus status,
-            OwnerOutcomeCommitPhase phase,
+            DomainFactDeliveryPhase phase,
             string detail)
         {
             Id = CaptiveIdPrefix + suffix;
@@ -662,10 +791,12 @@ public static class CaptiveEscapeOutcomeDebugScenarios
             Doors.SetCaptive(Id, State.IsInCustody);
             Population = new FakePopulationStandingPort();
             Employment = new FakeEmploymentStanding();
-            Committer = new ConfigurableCommitter(phase, detail);
             Events = new GameEventBus();
+            authority = new EscapeFactAuthority(
+                "run:captive-escape:" + suffix);
+            Publisher = NewPublisher(phase, detail);
             subscription = Events.Subscribe<CaptiveEscapedEvent>(_ => EventCount++);
-            Completion = NewCompletion(Committer);
+            Completion = NewCompletion(Publisher);
             Defection = new CaptivityDefectionRuntime(
                 actors,
                 actorRuntime,
@@ -673,8 +804,11 @@ public static class CaptiveEscapeOutcomeDebugScenarios
                 Doors,
                 Population,
                 Employment,
-                clock,
-                new CaptiveEscapeOutcomeRuntime(Committer, Events));
+                calendar,
+                new CaptiveEscapeOutcomeRuntime(
+                    Publisher,
+                    authority.Facts,
+                    Events));
         }
 
         public string Id { get; }
@@ -683,23 +817,37 @@ public static class CaptiveEscapeOutcomeDebugScenarios
         public FakeDoorSubjects Doors { get; }
         public FakePopulationStandingPort Population { get; }
         public FakeEmploymentStanding Employment { get; }
-        public ConfigurableCommitter Committer { get; }
+        public ConfigurablePublisher Publisher { get; }
         public GameEventBus Events { get; }
         public CaptivityEscapeCompletionRuntime Completion { get; }
         public CaptivityDefectionRuntime Defection { get; }
         public int EventCount { get; private set; }
 
         public CaptivityEscapeCompletionRuntime NewCompletion(
-            ICaptiveEscapeOutcomeCommitter committer) => new(
+            IDomainFactStagingPublisher publisher) => new(
             actors,
             actorRuntime,
             Doors,
-            clock,
-            new CaptiveEscapeOutcomeRuntime(committer, Events));
+            calendar,
+            new CaptiveEscapeOutcomeRuntime(
+                publisher,
+                authority.Facts,
+                Events));
+
+        public ConfigurablePublisher NewPublisher(
+            DomainFactDeliveryPhase phase,
+            string detail) => new(authority.Facts, phase, detail);
+
+        public bool Recover(out string failureReason) =>
+            new CaptiveEscapeOutcomeRuntime(
+                authority.Facts,
+                authority.Facts,
+                Events).Recover(State, out failureReason);
 
         public void Dispose()
         {
             subscription?.Dispose();
+            authority.Dispose();
             foreach (UnityEngine.Object value in cleanup.Where(value => value != null))
                 UnityEngine.Object.DestroyImmediate(value);
         }
@@ -765,12 +913,25 @@ public static class CaptiveEscapeOutcomeDebugScenarios
         }
     }
 
-    private sealed class FakeClock : IGameClock
+    private sealed class FakeCalendar : IGameCalendar
     {
-        public float DeltaTime => 0.02f;
-        public float Time => GameCalendarRules.SecondsPerDay * 9f;
-        public int FrameCount => 100;
-        public bool IsPaused => false;
+        public int Day => 10;
+        public int Hour => 0;
+        public int Year => Current.Year;
+        public int DayOfYear => Current.DayOfYear;
+        public Season Season => Current.Season;
+        public int DayOfSeason => Current.DayOfSeason;
+        public long AbsoluteHour => Current.AbsoluteHour;
+        public float ElapsedSeconds => 0f;
+        public TimeOfDay TimeOfDay => default;
+        public bool IsRunning { get; private set; }
+        public CalendarDateTime Current => GameCalendarRules.Project(Day, Hour);
+        public CalendarDateTime GetRegionalTime(int utcOffsetHours) =>
+            GameCalendarRules.ProjectRegional(Day, Hour, utcOffsetHours);
+        public void Start() => IsRunning = true;
+        public void SetDateTime(int day, int hour)
+        {
+        }
     }
 
     private sealed class AlwaysChanceRandom : IRandomStream
@@ -857,56 +1018,134 @@ public static class CaptiveEscapeOutcomeDebugScenarios
         }
     }
 
-    private sealed class ConfigurableCommitter : ICaptiveEscapeOutcomeCommitter
+    private sealed class EscapeFactAuthority : IDisposable
     {
-        private readonly OwnerOutcomeCommitPhase phase;
+        private readonly IDisposable observation;
+
+        public EscapeFactAuthority(string runId)
+        {
+            Registry = new GameplayOutcomeRegistry(
+                new IGameplayOutcomeDescriptor[]
+                {
+                    new CaptiveEscapeOutcomeDescriptor(
+                        new KoreanJosaFormatter())
+                },
+                new IGameplayOutcomeAdapterRegistration[]
+                {
+                    new CaptiveEscapeOutcomeAdapter()
+                });
+            Ledger = NewLedger(Registry, runId);
+            GameplayOutcomeRecorder recorder = new(
+                Ledger,
+                Registry,
+                new GameEventBus());
+            Facts = new DomainFactDispatcher();
+            observation = Facts.Subscribe(
+                "captive-escape:fixture",
+                new GameplayDomainFactObserver<
+                    CaptiveEscapedFact,
+                    CaptiveEscapeOutcomeReceipt>(
+                    CaptiveEscapeFactMapping.Capture,
+                    Registry,
+                    Ledger,
+                    recorder,
+                    new GameplayDomainFactCommitGroup(recorder, Ledger)));
+        }
+
+        public GameplayOutcomeRegistry Registry { get; }
+        public GameplayOutcomeLedger Ledger { get; }
+        public DomainFactDispatcher Facts { get; }
+
+        public void Dispose()
+        {
+            observation.Dispose();
+            Facts.Dispose();
+        }
+    }
+
+    private sealed class ConfigurablePublisher :
+        IDomainFactStagingPublisher
+    {
+        private readonly IDomainFactStagingPublisher inner;
+        private readonly DomainFactDeliveryPhase phase;
         private readonly string detail;
         private readonly bool prepareSucceeds;
 
-        public ConfigurableCommitter(
-            OwnerOutcomeCommitPhase phase,
+        public ConfigurablePublisher(
+            IDomainFactStagingPublisher inner,
+            DomainFactDeliveryPhase phase,
             string detail,
             bool prepareSucceeds = true)
         {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
             this.phase = phase;
             this.detail = detail ?? string.Empty;
             this.prepareSucceeds = prepareSucceeds;
         }
 
-        public CaptiveEscapeOutcomeReceipt LastReceipt { get; private set; }
+        public CaptiveEscapedFact LastFact { get; private set; }
 
-        public bool TryPrepare(
-            in CaptiveEscapeOutcomeReceipt receipt,
-            out PreparedCaptiveEscapeOutcome prepared,
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
             out string failureReason)
         {
+            if (fact is CaptiveEscapedFact escaped)
+                LastFact = escaped;
             if (!prepareSucceeds)
             {
-                prepared = default;
+                stage = null;
                 failureReason = "qa-prepare-rejected";
                 return false;
             }
-            LastReceipt = receipt;
-            prepared = new PreparedCaptiveEscapeOutcome(
-                default,
-                receipt.ResultKey,
-                receipt.OwnerRevision,
-                false);
-            failureReason = string.Empty;
+            if (!inner.TryStage(fact, out stage, out failureReason))
+                return false;
+            stage = new ConfigurableStage(stage, phase, detail);
             return true;
         }
+    }
 
-        public OwnerOutcomeCommitResult Commit(
-            in PreparedCaptiveEscapeOutcome prepared) => new(
-            phase,
-            prepared.ResultKey,
-            default,
-            string.Empty,
-            detail);
+    private sealed class ConfigurableStage : IDomainFactStage
+    {
+        private readonly IDomainFactStage inner;
+        private readonly DomainFactDeliveryPhase phase;
+        private readonly string detail;
 
-        public void Cancel(in PreparedCaptiveEscapeOutcome prepared)
+        public ConfigurableStage(
+            IDomainFactStage inner,
+            DomainFactDeliveryPhase phase,
+            string detail)
         {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            this.phase = phase;
+            this.detail = detail ?? string.Empty;
         }
+
+        public string OperationKey => inner.OperationKey;
+        public long OwnerRevision => inner.OwnerRevision;
+        public bool IsReplay => inner.IsReplay;
+        public bool IsActive => inner.IsActive;
+
+        public DomainFactDelivery Commit()
+        {
+            if (phase == DomainFactDeliveryPhase.Rejected)
+            {
+                inner.Cancel();
+                return DomainFactDelivery.Reject(detail);
+            }
+            DomainFactDelivery delivery = inner.Commit();
+            return phase == DomainFactDeliveryPhase.Delivered
+                || !delivery.MayBeCommitted
+                    ? delivery
+                    : new DomainFactDelivery(
+                        phase,
+                        delivery.OperationKey,
+                        delivery.PublicationId,
+                        delivery.Fingerprint,
+                        detail);
+        }
+
+        public void Cancel() => inner.Cancel();
     }
 
     private sealed class ThrowingEventBus : IGameEventBus

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -86,8 +87,8 @@ public interface IMemoryErasureSealBossAwardService
 
 /// <summary>
 /// Converts a persisted per-region first-boss claim into one exact loose
-/// physical stack. Publication is deterministic by region operation ID, so a
-/// retry validates the same stack and cannot mint another seal.
+/// physical stack. After its exact receipt returns, the saved domain journal
+/// retries only observation delivery; an already-used seal is never minted again.
 /// </summary>
 public sealed class MemoryErasureSealBossAwardService :
     IMemoryErasureSealBossAwardService,
@@ -100,8 +101,8 @@ public sealed class MemoryErasureSealBossAwardService :
     private readonly IOffenseWorldSimulation world;
     private readonly IPhysicalItemSourcePublicationService physicalSources;
     private readonly IWorldDropZoneQuery dropZones;
-    private readonly IMemoryErasureBossAwardOutcomeCommitter outcomeCommitter;
-    private readonly IGameClock gameClock;
+    private readonly MemoryErasureBossAwardPublicationRuntime publications;
+    private readonly IGameCalendar calendar;
     private bool reconciliationPending;
     private float nextReconciliationAt;
 
@@ -112,7 +113,7 @@ public sealed class MemoryErasureSealBossAwardService :
         IPhysicalItemSourcePublicationService physicalSources,
         IWorldDropZoneQuery dropZones) =>
         throw new InvalidOperationException(
-            "Memory-erasure boss awards require their mandatory gameplay outcome committer and game clock.");
+            "Memory-erasure boss awards require their domain observation journal and game calendar.");
 #endif
 
     [Inject]
@@ -121,8 +122,8 @@ public sealed class MemoryErasureSealBossAwardService :
         IOffenseWorldSimulation world,
         IPhysicalItemSourcePublicationService physicalSources,
         IWorldDropZoneQuery dropZones,
-        IMemoryErasureBossAwardOutcomeCommitter outcomeCommitter,
-        IGameClock gameClock)
+        MemoryErasureBossAwardPublicationRuntime publications,
+        IGameCalendar calendar)
     {
         this.regions = regions
             ?? throw new ArgumentNullException(nameof(regions));
@@ -131,9 +132,9 @@ public sealed class MemoryErasureSealBossAwardService :
             ?? throw new ArgumentNullException(nameof(physicalSources));
         this.dropZones = dropZones
             ?? throw new ArgumentNullException(nameof(dropZones));
-        this.outcomeCommitter = outcomeCommitter
-            ?? throw new ArgumentNullException(nameof(outcomeCommitter));
-        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.publications = publications
+            ?? throw new ArgumentNullException(nameof(publications));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
     }
 
     [GameplayInternalOnly(
@@ -210,11 +211,17 @@ public sealed class MemoryErasureSealBossAwardService :
             regionId = expedition.Target?.regionId?.Trim() ?? string.Empty;
         }
 
-        if (!GameplayOutcomeStableIdSyntax.IsValid(regionId))
+        if (!DomainFactValueSyntax.IsIdentity(regionId))
         {
             return Result(
                 MemoryErasureSealBossAwardStatus.Failed,
                 detail: "memory-erasure-seal-boss-region-missing");
+        }
+        if (publications.IsBusy || publications.IsRestoring)
+        {
+            reconciliationPending = true;
+            return Result(MemoryErasureSealBossAwardStatus.Failed, regionId,
+                detail: "memory-erasure-seal-publication-active");
         }
         if (!regions.TryBeginMemoryErasureSealAward(
                 regionId,
@@ -230,6 +237,10 @@ public sealed class MemoryErasureSealBossAwardService :
         }
         if (alreadyPublished)
         {
+            var observed = publications.CaptureForRegion(regionId);
+            if (observed == null || !observed.delivered || observed.fact.operationId != operationId)
+                return Result(MemoryErasureSealBossAwardStatus.Failed, regionId, operationId,
+                    detail: "memory-erasure-seal-completed-observation-missing");
             return Result(
                 MemoryErasureSealBossAwardStatus.AlreadyAwarded,
                 regionId,
@@ -245,6 +256,12 @@ public sealed class MemoryErasureSealBossAwardService :
     public bool TryReconcilePendingAwards(out string failureReason)
     {
         failureReason = string.Empty;
+        if (publications.IsBusy || publications.IsRestoring)
+        {
+            reconciliationPending = true;
+            failureReason = "memory-erasure-seal-publication-active";
+            return false;
+        }
         IReadOnlyList<string> pending = regions
             .CapturePendingMemoryErasureSealAwardRegionIds();
         foreach (string regionId in pending)
@@ -288,115 +305,77 @@ public sealed class MemoryErasureSealBossAwardService :
         string regionDisplayName,
         string operationId)
     {
-        if (!dropZones.TryGetExpeditionLootDropoff(out Vector2Int dropoff))
+        if (!publications.TryBegin(regionId, out string beginFailure))
         {
             reconciliationPending = true;
-            return Result(
-                MemoryErasureSealBossAwardStatus.Failed,
-                regionId,
-                operationId,
-                detail: "memory-erasure-seal-loot-dropoff-missing");
+            return Result(MemoryErasureSealBossAwardStatus.Failed, regionId, operationId, detail: beginFailure);
         }
-
-        int absoluteDay = Mathf.Max(
-            0,
-            Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
-        if (!outcomeCommitter.TryReserve(
-                operationId,
-                absoluteDay,
-                out ReservedEvolutionOutcome reservedOutcome,
-                out string reserveFailure))
+        try
         {
-            reconciliationPending = true;
-            return Result(
-                MemoryErasureSealBossAwardStatus.Failed,
-                regionId,
-                operationId,
-                detail: "memory-erasure-seal-outcome-reserve:" + reserveFailure);
-        }
-
-        IReadOnlyDictionary<string, int> exactOutput =
-            new Dictionary<string, int>(StringComparer.Ordinal)
+            MemoryErasureBossAwardPublicationData observation = publications.CaptureForRegion(regionId);
+            if (observation == null)
             {
-                [MemoryErasureSealItemRules.ItemId] =
-                    MemoryErasureSealItemRules.UseQuantity
-            };
-        if (!physicalSources.TryEnsureLooseOutputs(
-                exactOutput,
-                dropoff,
-                operationId,
-                MemoryErasureSealBossAwardRules.PublicationReason,
-                out PhysicalItemSourcePublicationReceipt receipt,
-                out string publicationFailure)
-            || !receipt.IsCommitted
-            || receipt.OutputQuantity != MemoryErasureSealItemRules.UseQuantity
-            || receipt.OutputCommitIds.Count != 1)
-        {
-            outcomeCommitter.Cancel(reservedOutcome);
-            reconciliationPending = true;
-            return Result(
-                MemoryErasureSealBossAwardStatus.Failed,
-                regionId,
-                operationId,
-                detail: publicationFailure.Length > 0
-                    ? publicationFailure
-                        : "memory-erasure-seal-physical-receipt-invalid");
-        }
-        MemoryErasureSealBossAwardResult awarded = Result(
-            MemoryErasureSealBossAwardStatus.Awarded,
-            regionId,
-            operationId,
-            receipt.OutputCommitIds[0],
-            "exactly one physical memory-erasure seal was published");
-        MemoryErasureBossAwardOutcomeReceipt outcomeReceipt = new(
-            awarded,
-            regionDisplayName,
-            absoluteDay);
-        if (!outcomeCommitter.TryWriteReserved(
-                outcomeReceipt,
-                reservedOutcome,
-                out PreparedEvolutionOutcome preparedOutcome,
-                out string writeFailure))
-        {
-            reconciliationPending = true;
-            return Result(
-                MemoryErasureSealBossAwardStatus.Failed,
-                regionId,
-                operationId,
-                receipt.OutputCommitIds[0],
-                "memory-erasure-seal-outcome-write:" + writeFailure);
-        }
-        if (!outcomeCommitter.TryCommit(
-                preparedOutcome,
-                out string outcomeCommitFailure))
-        {
-            reconciliationPending = true;
-            return Result(
-                MemoryErasureSealBossAwardStatus.Failed,
-                regionId,
-                operationId,
-                receipt.OutputCommitIds[0],
-                "memory-erasure-seal-outcome-commit:" + outcomeCommitFailure);
-        }
-        if (!regions.TryCompleteMemoryErasureSealAward(
-                regionId,
-                operationId,
-                out string completionFailure))
-        {
-            reconciliationPending = true;
-            return Result(
-                MemoryErasureSealBossAwardStatus.Failed,
-                regionId,
-                operationId,
-                receipt.OutputCommitIds.Count == 1
-                    ? receipt.OutputCommitIds[0]
-                    : string.Empty,
-                completionFailure);
-        }
+                if (!dropZones.TryGetExpeditionLootDropoff(out Vector2Int dropoff))
+                {
+                    reconciliationPending = true;
+                    return Result(MemoryErasureSealBossAwardStatus.Failed, regionId, operationId,
+                        detail: "memory-erasure-seal-loot-dropoff-missing");
+                }
+                observation = publications.Prepare(regionId, operationId, regionDisplayName,
+                    calendar.Day, dropoff.x, dropoff.y);
+            }
+            if (observation.fact.operationId != operationId)
+                throw new InvalidOperationException("memory-erasure-seal-observation-operation-conflict");
 
-        reconciliationPending = regions
-            .CapturePendingMemoryErasureSealAwardRegionIds().Count > 0;
-        return awarded;
+            // Once an exact physical receipt has returned, future retries never create or query the item again.
+            // The player may already have hauled, equipped, or consumed it while observation delivery waits.
+            if (observation.fact.physicalCommitId.Length == 0)
+            {
+                int appliedDay = calendar.Day;
+                var physicalFact = observation.fact.Clone();
+                physicalFact.regionDisplayName = regionDisplayName;
+                physicalFact.absoluteDay = appliedDay;
+                physicalFact.Validate(requirePhysical: false);
+                IReadOnlyDictionary<string, int> exactOutput = new Dictionary<string, int>(StringComparer.Ordinal)
+                { [MemoryErasureSealItemRules.ItemId] = MemoryErasureSealItemRules.UseQuantity };
+                if (!physicalSources.TryEnsureLooseOutputs(exactOutput,
+                        new Vector2Int(observation.dropoffX, observation.dropoffY), operationId,
+                        MemoryErasureSealBossAwardRules.PublicationReason,
+                        out PhysicalItemSourcePublicationReceipt receipt, out string physicalFailure))
+                {
+                    reconciliationPending = true;
+                    return Result(MemoryErasureSealBossAwardStatus.Failed, regionId, operationId,
+                        detail: "memory-erasure-seal-physical-publication-pending:" + physicalFailure);
+                }
+                publications.RecordPhysical(regionId, receipt, regionDisplayName, appliedDay);
+                observation = publications.CaptureForRegion(regionId);
+            }
+
+            if (!publications.TryDeliver(regionId, out string deliveryFailure))
+            {
+                reconciliationPending = true;
+                return Result(MemoryErasureSealBossAwardStatus.Failed, regionId, operationId,
+                    observation.fact.physicalCommitId, "physical award applied; observation pending: " + deliveryFailure);
+            }
+            if (!regions.TryCompleteMemoryErasureSealAward(regionId, operationId, out string completionFailure))
+            {
+                reconciliationPending = true;
+                return Result(MemoryErasureSealBossAwardStatus.Failed, regionId, operationId,
+                    observation.fact.physicalCommitId, "physical award and observation applied; claim completion pending: " + completionFailure);
+            }
+            reconciliationPending = regions.CapturePendingMemoryErasureSealAwardRegionIds().Count > 0;
+            return Result(MemoryErasureSealBossAwardStatus.Awarded, regionId, operationId,
+                observation.fact.physicalCommitId, "exactly one physical memory-erasure seal was published");
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            and not StackOverflowException and not AccessViolationException)
+        {
+            reconciliationPending = true;
+            string commit = publications.CaptureForRegion(regionId)?.fact.physicalCommitId ?? string.Empty;
+            return Result(MemoryErasureSealBossAwardStatus.Failed, regionId, operationId, commit,
+                "memory-erasure-seal-publication-pending:" + exception.Message);
+        }
+        finally { publications.End(regionId); }
     }
 
     private static MemoryErasureSealBossAwardResult Result(

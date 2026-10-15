@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation.Facts;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
@@ -26,18 +27,42 @@ public sealed partial class WildlifeCaptureRuntime
             failureReason = "현재 동물 역할 상태를 동행 역할로 바꿀 수 없습니다.";
             return false;
         }
-        if (!CanAssignCompanion(state, ownerId, out _, out failureReason))
+        if (!CanAssignCompanion(
+                state,
+                ownerId,
+                out CharacterActor owner,
+                out failureReason))
         {
             return false;
         }
 
         WildlifeCompanionRoleProfile profile =
             RequireCompanionProfile(state.speciesId);
+        bool wasCompanion = currentRole.Equals(
+            CapturedWildlifeRoleIds.Companion);
+        if (!TryReserveCaptureCommand(
+                state,
+                "companion-assigned",
+                flagBefore: wasCompanion,
+                flagAfter: true,
+                reasonCode: wasCompanion
+                    ? "companion-role-reassigned"
+                    : "companion-role-assigned",
+                relatedActor: owner,
+                out WildlifeGameplayOutcomeSaveData outcome,
+                out DomainFactLease reserved,
+                out failureReason))
+        {
+            failureReason = "동행 역할 결과 관찰을 예약하지 못했습니다: "
+                + failureReason;
+            return false;
+        }
         state.capabilityState =
             CapturedWildlifeCapabilityStateCodec.CreateCompanion(
                 ownerId,
                 clock.Time + profile.AttackCooldownSeconds);
         state.lastCareStatus = "동행 역할 배정 · 초기 공격 준비 중";
+        CommitCaptureOutcome(outcome, reserved);
         return true;
     }
 
@@ -66,7 +91,30 @@ public sealed partial class WildlifeCaptureRuntime
             return false;
         }
 
+        CapturedWildlifeCapabilityStateCodec.TryReadCompanion(
+            state.capabilityState,
+            out CharacterId ownerId,
+            out _,
+            out _);
+        CharacterActor owner = FindOwner(ownerId);
+        if (!TryReserveCaptureCommand(
+                state,
+                "companion-cleared",
+                flagBefore: true,
+                flagAfter: false,
+                reasonCode: "companion-role-cleared",
+                relatedActor: owner,
+                out WildlifeGameplayOutcomeSaveData outcome,
+                out DomainFactLease reserved,
+                out failureReason))
+        {
+            failureReason = "동행 역할 해제 결과 관찰을 예약하지 못했습니다: "
+                + failureReason;
+            return false;
+        }
+
         ClearCompanionRole(state, "동행 역할 해제");
+        CommitCaptureOutcome(outcome, reserved);
         return true;
     }
 

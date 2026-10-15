@@ -224,6 +224,10 @@ public sealed class ApologyOutcomeAdapter :
             && GameplayOutcomeLedger.IsValidDisplayNameSnapshot(receipt.OffenderName)
             && GameplayOutcomeLedger.IsValidDisplayNameSnapshot(receipt.RecipientName)
             && GameplayOutcomeStableIdSyntax.IsValid(receipt.OffenseId)
+            && receipt.OffendingOutcomeId.IsValid
+            && receipt.RootOperationId.IsValid
+            && GameplayOutcomeStableIdSyntax.IsValid(
+                receipt.CausationRelationId)
             && float.IsFinite(receipt.CommittedMoodDelta)
             && receipt.AbsoluteDay >= 0;
         return valid
@@ -285,7 +289,11 @@ public sealed class ApologyOutcomeAdapter :
                 offense))
             && builder.AddTag(SocialLifeOutcomeIds.RelationshipTag)
             && builder.AddTag(SocialLifeOutcomeIds.MoodTag)
-            && builder.AddProvenance(SocialLifeOutcomeIds.ApologySource);
+            && builder.AddProvenance(SocialLifeOutcomeIds.ApologySource)
+            && builder.SetCausation(new GameplayOutcomeCausation(
+                receipt.OffendingOutcomeId,
+                receipt.RootOperationId,
+                receipt.CausationRelationId));
         return written
             ? OutcomePrepareResult.Prepared()
             : new OutcomePrepareResult(

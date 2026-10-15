@@ -79,14 +79,15 @@ public sealed class CharacterStatsVitalsService
 
     public void NotifyDamage(
         CharacterStats owner,
-        CharacterLog log,
+        CharacterActor actor,
         float amount,
         string reason,
         bool died,
         CharacterDeathCauseCode deathCause) =>
         CharacterVitalsSideEffectAdapter.NotifyDamage(
             owner,
-            log,
+            actor,
+            gameEventBus,
             amount,
             reason,
             died,
@@ -97,9 +98,9 @@ public sealed class CharacterStatsVitalsService
 
     public void NotifyHealing(
         CharacterStats owner,
-        CharacterLog log,
+        CharacterActor actor,
         float amount) =>
-        CharacterVitalsSideEffectAdapter.NotifyHealing(owner, log, amount);
+        CharacterVitalsSideEffectAdapter.NotifyHealing(owner, actor, gameEventBus, amount);
 
     public void ScaleMaximumHealth(CharacterActor actor, float multiplier) =>
         bodyHealthCommands.ScaleLegacyVitals(actor, multiplier);
@@ -107,8 +108,8 @@ public sealed class CharacterStatsVitalsService
     public void SetInjurySeverity(CharacterActor actor, float value) =>
         bodyHealthCommands.SetLegacyInjurySeverity(actor, value);
 
-    public float NotifyInjurySeverity(CharacterLog log, float value) =>
-        CharacterVitalsSideEffectAdapter.NotifyInjurySeverity(log, value);
+    public float NotifyInjurySeverity(CharacterActor actor, float value) =>
+        CharacterVitalsSideEffectAdapter.NotifyInjurySeverity(actor, gameEventBus, value);
 
     public void Kill(CharacterActor actor, string reason) =>
         bodyHealthCommands.Kill(actor, reason);
@@ -125,21 +126,21 @@ public sealed class CharacterStatsVitalsService
         CharacterIdentity identity,
         CharacterVisual visual,
         CharacterLifecycle lifecycle,
-        CharacterLog log,
         CharacterDeathCauseCode cause,
-        string reasonCode) =>
+        string reasonCode,
+        string parentPublicationKey = "") =>
         CharacterVitalsSideEffectAdapter.NotifyDeath(
             owner,
             actor,
             identity,
             visual,
             lifecycle,
-            log,
             gameEventBus,
             deathEventFactory,
             ownerRunLifecycle,
             cause,
-            reasonCode);
+            reasonCode,
+            parentPublicationKey);
 
     public void RestoreProjection(
         CharacterActor actor,

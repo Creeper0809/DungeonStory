@@ -179,11 +179,11 @@ internal sealed class CaptivityInterrogationInformationRuntime
                 terminal.codexPublicationCompleted = true;
             }
 
-            if (!terminal.noticePublicationCompleted)
+            if (!terminal.factPublicationCompleted)
             {
-                gameEventBus.Publish(new EventAlertRequestedEvent(
-                    CreateNotice(captiveId, terminal)));
-                terminal.noticePublicationCompleted = true;
+                gameEventBus.Publish(new CaptivityInterrogationInformationResolvedFact(
+                    captiveId, terminal));
+                terminal.factPublicationCompleted = true;
             }
             return true;
         }
@@ -200,46 +200,7 @@ internal sealed class CaptivityInterrogationInformationRuntime
             ? "심문 성공"
             : "심문 종료 — 추가 정보 없음";
 
-    private static EventAlertRequest CreateNotice(
-        string captiveId,
-        CaptivityInterrogationTerminalState terminal)
-    {
-        string title = GetResultTitle(terminal);
-        string detail;
-        if (terminal.hasInformation)
-        {
-            detail =
-                $"대상 포로: {terminal.subjectDisplayName}\n"
-                + $"정보 대상: {terminal.enemyDisplayName} "
-                + $"({terminal.originEnemyArchetypeId})\n"
-                + $"소속 세력: {terminal.originFactionId}\n"
-                + "주제: 출신 부대의 전열·전술\n"
-                + $"획득 내용: 전열·전술 표식 "
-                + $"'{terminal.formationTag}'\n"
-                + "검증 상태: 미확인 진술";
-            if (terminal.highFearCaution)
-            {
-                detail +=
-                    "\n주의: 공포도가 높은 상태의 진술이며, "
-                    + "진실 또는 거짓으로 판정되지 않았습니다.";
-            }
-        }
-        else
-        {
-            detail =
-                $"대상 포로: {terminal.subjectDisplayName}\n"
-                + "추가로 기록할 수 있는 실제 출신 부대의 "
-                + "전열·전술 진술이 없습니다.";
-        }
 
-        return new EventAlertRequest(
-            title,
-            detail,
-            EventAlertImportance.Medium,
-            "포로",
-            sourceId: CaptivityInterrogationAttemptIdentity
-                .FormatNoticeSourceId(captiveId, terminal.attemptId));
-    }
 }
 
 public sealed class CaptivityInterrogationCodexAdapter :

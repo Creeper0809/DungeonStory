@@ -212,6 +212,68 @@ public sealed class ArcaneOverchargeRuntimeState
     public string activationId = string.Empty;
     public float activeUntilSeconds;
     public float aftermathUntilSeconds;
+    public string equipmentInstanceId = string.Empty;
+    public float selfDamageFraction;
+    public float equipmentDurabilityFraction;
+    public bool selfDamageApplied;
+    public float healthBefore;
+    public float healthAfter;
+    public bool equipmentDurabilityApplied;
+    public float durabilityBefore;
+    public float durabilityAfter;
+    public bool effectsCompleted;
+    public int failureCount;
+    public string lastFailureCode = string.Empty;
+}
+
+public readonly struct ArcaneOverchargeOperationSnapshot
+{
+    public ArcaneOverchargeOperationSnapshot(
+        string activationId,
+        string equipmentInstanceId,
+        float selfDamageFraction,
+        float equipmentDurabilityFraction,
+        bool selfDamageApplied,
+        float healthBefore,
+        float healthAfter,
+        bool equipmentDurabilityApplied,
+        float durabilityBefore,
+        float durabilityAfter,
+        bool effectsCompleted,
+        int failureCount,
+        string lastFailureCode)
+    {
+        ActivationId = activationId ?? string.Empty;
+        EquipmentInstanceId = equipmentInstanceId ?? string.Empty;
+        SelfDamageFraction = selfDamageFraction;
+        EquipmentDurabilityFraction = equipmentDurabilityFraction;
+        SelfDamageApplied = selfDamageApplied;
+        HealthBefore = healthBefore;
+        HealthAfter = healthAfter;
+        EquipmentDurabilityApplied = equipmentDurabilityApplied;
+        DurabilityBefore = durabilityBefore;
+        DurabilityAfter = durabilityAfter;
+        EffectsCompleted = effectsCompleted;
+        FailureCount = Mathf.Max(0, failureCount);
+        LastFailureCode = lastFailureCode ?? string.Empty;
+    }
+
+    public string ActivationId { get; }
+    public string EquipmentInstanceId { get; }
+    public float SelfDamageFraction { get; }
+    public float EquipmentDurabilityFraction { get; }
+    public bool SelfDamageApplied { get; }
+    public float HealthBefore { get; }
+    public float HealthAfter { get; }
+    public bool EquipmentDurabilityApplied { get; }
+    public float DurabilityBefore { get; }
+    public float DurabilityAfter { get; }
+    public bool EffectsCompleted { get; }
+    public int FailureCount { get; }
+    public string LastFailureCode { get; }
+    public bool IsValid => !string.IsNullOrWhiteSpace(ActivationId)
+        && SelfDamageFraction > 0f
+        && EquipmentDurabilityFraction > 0f;
 }
 
 public sealed class ExtremeTraitRuntime :
@@ -893,11 +955,196 @@ public sealed class ExtremeTraitRuntime :
         state.activeUntilSeconds = now + Mathf.Max(1, rule.durationSeconds);
         state.aftermathUntilSeconds = state.activeUntilSeconds
             + DaysToSeconds(rule.aftermathDays);
+        ResetArcaneOperation(state);
+        state.selfDamageFraction = rule.selfDamageFraction;
+        state.equipmentDurabilityFraction =
+            rule.equipmentDurabilityFraction;
+        state.effectsCompleted = true;
         activation = new ArcaneOverchargeActivation(
             rule.selfDamageFraction,
             rule.equipmentDurabilityFraction);
         Write(actor, trait, ArcaneOverchargeRuleId, state);
         return true;
+    }
+
+    [GameplayInternalOnly(
+        "Arcane command owns the resumable self-damage and equipment-durability operation.",
+        "ArcaneOverchargeCommandRuntime")]
+    public bool TryBeginOrResumeArcaneOvercharge(
+        CharacterActor actor,
+        string activationId,
+        string equipmentInstanceId,
+        float manaRatio,
+        float elapsedSeconds,
+        out ArcaneOverchargeOperationSnapshot operation)
+    {
+        operation = default;
+        ArcaneOverchargeRule rule = ResolveRule<ArcaneOverchargeRule>(
+            actor, 306, ArcaneOverchargeRuleId, out CharacterTraitSO trait);
+        if (rule == null)
+            return false;
+
+        string equipmentId = equipmentInstanceId?.Trim() ?? string.Empty;
+        if (equipmentId.Length == 0)
+            return false;
+
+        ArcaneOverchargeRuntimeState state = Read<ArcaneOverchargeRuntimeState>(
+            actor, trait, ArcaneOverchargeRuleId);
+        if (IsPendingArcaneOperation(state))
+        {
+            if (!string.Equals(
+                    state.equipmentInstanceId,
+                    equipmentId,
+                    StringComparison.Ordinal))
+                return false;
+            operation = CaptureArcaneOperation(state);
+            return true;
+        }
+
+        float now = Mathf.Max(0f, elapsedSeconds);
+        if (Mathf.Clamp01(manaRatio) >= rule.manaThreshold
+            || state.activeUntilSeconds > now
+            || state.aftermathUntilSeconds > now)
+            return false;
+
+        state.activationId = Required(activationId, nameof(activationId));
+        state.activeUntilSeconds = now + Mathf.Max(1, rule.durationSeconds);
+        state.aftermathUntilSeconds = state.activeUntilSeconds
+            + DaysToSeconds(rule.aftermathDays);
+        ResetArcaneOperation(state);
+        state.equipmentInstanceId = equipmentId;
+        state.selfDamageFraction = rule.selfDamageFraction;
+        state.equipmentDurabilityFraction =
+            rule.equipmentDurabilityFraction;
+        Write(actor, trait, ArcaneOverchargeRuleId, state);
+        operation = CaptureArcaneOperation(state);
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "Arcane command records an explicit rejected effect before returning failure.",
+        "ArcaneOverchargeCommandRuntime")]
+    public bool TryRecordArcaneOverchargeFailure(
+        CharacterActor actor,
+        string activationId,
+        string failureCode)
+    {
+        if (!TryReadArcaneOperation(
+                actor,
+                activationId,
+                out CharacterTraitSO trait,
+                out ArcaneOverchargeRuntimeState state)
+            || state.effectsCompleted)
+            return false;
+        string code = failureCode?.Trim() ?? string.Empty;
+        if (code.Length == 0)
+            return false;
+        state.failureCount++;
+        state.lastFailureCode = code;
+        Write(actor, trait, ArcaneOverchargeRuleId, state);
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "Arcane command records the exact body-health mutation before publishing observers.",
+        "ArcaneOverchargeCommandRuntime")]
+    public bool TryRecordArcaneOverchargeSelfDamage(
+        CharacterActor actor,
+        string activationId,
+        float healthBefore,
+        float healthAfter)
+    {
+        if (!TryReadArcaneOperation(
+                actor,
+                activationId,
+                out CharacterTraitSO trait,
+                out ArcaneOverchargeRuntimeState state)
+            || state.effectsCompleted
+            || state.equipmentDurabilityApplied
+            || !FiniteNonNegative(healthAfter)
+            || !FinitePositive(healthBefore)
+            || healthAfter >= healthBefore)
+            return false;
+        if (state.selfDamageApplied)
+            return Mathf.Approximately(state.healthBefore, healthBefore)
+                && Mathf.Approximately(state.healthAfter, healthAfter);
+        state.selfDamageApplied = true;
+        state.healthBefore = healthBefore;
+        state.healthAfter = healthAfter;
+        Write(actor, trait, ArcaneOverchargeRuleId, state);
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "Arcane command records the exact equipment mutation before completing the lease.",
+        "ArcaneOverchargeCommandRuntime")]
+    public bool TryRecordArcaneOverchargeDurability(
+        CharacterActor actor,
+        string activationId,
+        float durabilityBefore,
+        float durabilityAfter)
+    {
+        if (!TryReadArcaneOperation(
+                actor,
+                activationId,
+                out CharacterTraitSO trait,
+                out ArcaneOverchargeRuntimeState state)
+            || state.effectsCompleted
+            || !state.selfDamageApplied
+            || !FiniteNonNegative(durabilityAfter)
+            || !FinitePositive(durabilityBefore)
+            || durabilityAfter >= durabilityBefore)
+            return false;
+        if (state.equipmentDurabilityApplied)
+            return Mathf.Approximately(
+                    state.durabilityBefore,
+                    durabilityBefore)
+                && Mathf.Approximately(
+                    state.durabilityAfter,
+                    durabilityAfter);
+        state.equipmentDurabilityApplied = true;
+        state.durabilityBefore = durabilityBefore;
+        state.durabilityAfter = durabilityAfter;
+        Write(actor, trait, ArcaneOverchargeRuleId, state);
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "Arcane command completes only after both authoritative effects are recorded.",
+        "ArcaneOverchargeCommandRuntime")]
+    public bool TryCompleteArcaneOvercharge(
+        CharacterActor actor,
+        string activationId)
+    {
+        if (!TryReadArcaneOperation(
+                actor,
+                activationId,
+                out CharacterTraitSO trait,
+                out ArcaneOverchargeRuntimeState state)
+            || state.effectsCompleted
+            || !state.selfDamageApplied
+            || !state.equipmentDurabilityApplied)
+            return false;
+        state.effectsCompleted = true;
+        Write(actor, trait, ArcaneOverchargeRuleId, state);
+        return true;
+    }
+
+    public bool TryGetArcaneOverchargeOperation(
+        CharacterActor actor,
+        out ArcaneOverchargeOperationSnapshot operation)
+    {
+        operation = default;
+        ArcaneOverchargeRule rule = ResolveRule<ArcaneOverchargeRule>(
+            actor, 306, ArcaneOverchargeRuleId, out CharacterTraitSO trait);
+        if (rule == null)
+            return false;
+        ArcaneOverchargeRuntimeState state = Read<ArcaneOverchargeRuntimeState>(
+            actor, trait, ArcaneOverchargeRuleId);
+        if (string.IsNullOrWhiteSpace(state.activationId))
+            return false;
+        operation = CaptureArcaneOperation(state);
+        return operation.IsValid;
     }
 
     public IReadOnlyList<string> GetActiveConditionIds(
@@ -1043,6 +1290,68 @@ public sealed class ExtremeTraitRuntime :
 
     private static bool FinitePositive(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value) && value > 0f;
+
+    private static bool FiniteNonNegative(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0f;
+
+    private bool TryReadArcaneOperation(
+        CharacterActor actor,
+        string activationId,
+        out CharacterTraitSO trait,
+        out ArcaneOverchargeRuntimeState state)
+    {
+        state = null;
+        ArcaneOverchargeRule rule = ResolveRule<ArcaneOverchargeRule>(
+            actor, 306, ArcaneOverchargeRuleId, out trait);
+        if (rule == null)
+            return false;
+        state = Read<ArcaneOverchargeRuntimeState>(
+            actor, trait, ArcaneOverchargeRuleId);
+        return IsPendingArcaneOperation(state)
+            && string.Equals(
+                state.activationId,
+                activationId?.Trim(),
+                StringComparison.Ordinal);
+    }
+
+    private static bool IsPendingArcaneOperation(
+        ArcaneOverchargeRuntimeState state) => state != null
+        && !state.effectsCompleted
+        && !string.IsNullOrWhiteSpace(state.activationId)
+        && !string.IsNullOrWhiteSpace(state.equipmentInstanceId);
+
+    private static ArcaneOverchargeOperationSnapshot CaptureArcaneOperation(
+        ArcaneOverchargeRuntimeState state) => new(
+        state.activationId,
+        state.equipmentInstanceId,
+        state.selfDamageFraction,
+        state.equipmentDurabilityFraction,
+        state.selfDamageApplied,
+        state.healthBefore,
+        state.healthAfter,
+        state.equipmentDurabilityApplied,
+        state.durabilityBefore,
+        state.durabilityAfter,
+        state.effectsCompleted,
+        state.failureCount,
+        state.lastFailureCode);
+
+    private static void ResetArcaneOperation(
+        ArcaneOverchargeRuntimeState state)
+    {
+        state.equipmentInstanceId = string.Empty;
+        state.selfDamageFraction = 0f;
+        state.equipmentDurabilityFraction = 0f;
+        state.selfDamageApplied = false;
+        state.healthBefore = 0f;
+        state.healthAfter = 0f;
+        state.equipmentDurabilityApplied = false;
+        state.durabilityBefore = 0f;
+        state.durabilityAfter = 0f;
+        state.effectsCompleted = false;
+        state.failureCount = 0;
+        state.lastFailureCode = string.Empty;
+    }
 
     private static string CapturePreparedFingerprint(
         string operationId,

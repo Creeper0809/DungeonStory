@@ -1,111 +1,137 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DungeonStory.Narrative.Korean;
+using DungeonStory.Foundation.Facts;
+using UnityEngine;
 
 internal sealed class CaptivityInteractionOutcomeRuntime
 {
     public const string OutputReasonCode = "captivity-interaction-output";
-
-    private readonly ICaptivityInteractionOutcomeCommitter outcomes;
+    private readonly IDomainFactStagingPublisher publisher;
+    private readonly IDomainFactRecoveryPublisher recovery;
     private readonly IPhysicalItemSourcePublicationService physicalSources;
-
-    public CaptivityInteractionOutcomeRuntime(
-        ICaptivityInteractionOutcomeCommitter outcomes,
-        IPhysicalItemSourcePublicationService physicalSources)
+    private CaptivityInteractionPublication active;
+    private bool recovering;
+    public CaptivityInteractionOutcomeRuntime(IDomainFactStagingPublisher publisher,
+        IDomainFactRecoveryPublisher recovery, IPhysicalItemSourcePublicationService physicalSources)
     {
-        this.outcomes = outcomes
-            ?? throw new ArgumentNullException(nameof(outcomes));
-        this.physicalSources = physicalSources
-            ?? throw new ArgumentNullException(nameof(physicalSources));
+        this.publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
+        this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
+        this.physicalSources = physicalSources ?? throw new ArgumentNullException(nameof(physicalSources));
     }
 
-    public bool TryPrepare(
-        CaptiveState state,
-        int absoluteDay,
-        out PreparedCaptivityInteractionOutcome prepared,
-        out long ownerRevision,
-        out string failureReason)
+    public bool TryPrepare(CaptiveState state, out CaptivityInteractionPublication prepared,
+        out long ownerRevision, out string failureReason)
     {
-        prepared = default;
-        ownerRevision = 0L;
-        failureReason = string.Empty;
-        CaptivityInteractionTerminalState terminal = state?.interactionTerminal;
-        if (state == null || terminal?.HasOutcome != true)
-        {
-            failureReason = "기록할 포로 상호작용 결과가 없습니다.";
-            return false;
-        }
-        if (terminal.outcomeRevision > 0L)
-        {
-            ownerRevision = terminal.outcomeRevision;
-            if (state.interactionOutcomeRevision != ownerRevision)
-            {
-                failureReason = "포로 상호작용 원장 리비전이 저장 상태와 다릅니다.";
-                return false;
-            }
-        }
-        else
-        {
-            try
-            {
-                ownerRevision = checked(state.interactionOutcomeRevision + 1L);
-            }
-            catch (OverflowException)
-            {
-                failureReason = "포로 상호작용 원장 리비전이 범위를 초과했습니다.";
-                return false;
-            }
-        }
-
-        CaptivityInteractionOutcomeReceipt receipt;
+        prepared = null; ownerRevision = 0L; failureReason = string.Empty;
+        if (active != null || recovering) { failureReason = "captivity-interaction-command-active"; return false; }
+        var terminal = state?.interactionTerminal;
+        if (terminal?.HasOutcome != true || terminal.HasCommittedOutcome || terminal.deliveryPending
+            || terminal.publicationKey != string.Empty)
+        { failureReason = "captivity-interaction-unapplied-result-required"; return false; }
+        IDomainFactStage stage = null;
         try
         {
-            receipt = new CaptivityInteractionOutcomeReceipt(
-                state.captiveId,
-                Name("captive", state.captiveId, state.displayName),
-                terminal.wardenId,
-                Name("warden", terminal.wardenId, terminal.wardenDisplayName),
-                terminal.facilityId,
-                Name("facility", terminal.facilityId,
-                    terminal.facilityDisplayName),
-                terminal.resultGridX,
-                terminal.resultGridY,
-                terminal.interactionId,
-                terminal.interactionKind,
-                terminal.interactionDisplayName,
-                terminal.success,
-                terminal.message,
-                terminal.willAfter - terminal.willBefore,
-                terminal.fearAfter - terminal.fearBefore,
-                terminal.trustAfter - terminal.trustBefore,
-                terminal.grudgeAfter - terminal.grudgeBefore,
-                terminal.corruptionAfter - terminal.corruptionBefore,
-                terminal.bodyDamageAmount,
-                terminal.bodyHealthBefore,
-                terminal.bodyHealthAfter,
-                terminal.outputItemId,
-                terminal.outputAmount,
-                terminal.attemptId,
-                ownerRevision,
-                absoluteDay);
+            ownerRevision = checked(state.interactionOutcomeRevision + 1L);
+            var fact = new CaptivityInteractionResolvedFact(state.captiveId, terminal, ownerRevision);
+            if (!publisher.TryStage(fact, out stage, out failureReason)) return false;
+            if (stage == null || !stage.IsActive || string.IsNullOrWhiteSpace(stage.OperationKey) || stage.OwnerRevision != ownerRevision)
+            { failureReason = "captivity-interaction-stage-invalid"; return false; }
+            // A canonical result cannot authorize applying the same owner effects again.
+            // Applied terminals recover through TryEnsureDelivered, never this path.
+            if (stage.IsReplay)
+            { failureReason = "captivity-interaction-unapplied-replay-conflict"; return false; }
+            active = prepared = new CaptivityInteractionPublication(this, state, fact, stage);
+            stage = null; return true;
         }
-        catch (Exception exception) when (exception is ArgumentException
-                                           or InvalidOperationException)
-        {
-            failureReason = "포로 상호작용 영수증을 만들 수 없습니다: "
-                + exception.Message;
-            return false;
-        }
-        return outcomes.TryPrepare(receipt, out prepared, out failureReason);
+        catch (Exception exception) when (Recoverable(exception))
+        { failureReason = "captivity-interaction-prepare:" + exception.GetType().Name + ":" + exception.Message; return false; }
+        finally { CancelStage(stage); }
     }
 
-    public OwnerOutcomeCommitResult Commit(
-        in PreparedCaptivityInteractionOutcome prepared) =>
-        outcomes.Commit(prepared);
-
-    public void Cancel(in PreparedCaptivityInteractionOutcome prepared) =>
-        outcomes.Cancel(prepared);
+    public DomainFactDelivery Commit(CaptivityInteractionPublication prepared)
+    {
+        if (prepared == null || prepared != active) return DomainFactDelivery.Reject("captivity-interaction-publication-inactive");
+        if (prepared.HandedOff) return DomainFactDelivery.Uncertain("captivity-interaction-already-handed-off");
+        var state = prepared.State;
+        var terminal = state.interactionTerminal;
+        var expected = prepared.Fact.Snapshot();
+        if (state.interactionOutcomeRevision != prepared.Fact.OwnerRevision || terminal == null
+            || terminal.outcomeRevision != prepared.Fact.OwnerRevision
+            || state.will != expected.willAfter || state.fear != expected.fearAfter || state.trust != expected.trustAfter
+            || state.grudge != expected.grudgeAfter || state.corruption != expected.corruptionAfter)
+            return DomainFactDelivery.Reject("captivity-interaction-applied-state-conflict");
+        try
+        {
+            if (new CaptivityInteractionResolvedFact(state.captiveId, terminal, terminal.outcomeRevision).ComputeSemanticDigest()
+                != prepared.Fact.ComputeSemanticDigest())
+                return DomainFactDelivery.Reject("captivity-interaction-result-changed");
+        }
+        catch (ArgumentException) { return DomainFactDelivery.Reject("captivity-interaction-applied-result-invalid"); }
+        terminal.publicationKey = prepared.Stage.OperationKey;
+        terminal.deliveryPending = true;
+        prepared.HandedOff = true;
+        DomainFactDelivery result;
+        try { result = prepared.Stage.Commit(); }
+        catch (Exception exception) when (Recoverable(exception))
+        { result = DomainFactDelivery.Uncertain("captivity-interaction-commit:" + exception.GetType().Name); }
+        if (!result.MayBeCommitted) { terminal.publicationKey = string.Empty; terminal.deliveryPending = false; }
+        else if (Delivered(terminal.publicationKey, result)) terminal.deliveryPending = false;
+        return result;
+    }
+    public bool TryEnsureDelivered(CaptiveState state, out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (active != null || recovering) { failureReason = "captivity-interaction-command-active"; return false; }
+        var terminal = state?.interactionTerminal;
+        if (terminal?.HasCommittedOutcome != true || terminal.outcomeRevision != state.interactionOutcomeRevision
+            || string.IsNullOrWhiteSpace(terminal.publicationKey))
+        { failureReason = "captivity-interaction-applied-publication-missing"; return false; }
+        if (!terminal.deliveryPending) return true;
+        recovering = true;
+        try
+        {
+            var fact = new CaptivityInteractionResolvedFact(state.captiveId, terminal, terminal.outcomeRevision);
+            var results = new DomainFactDelivery[1];
+            if (!recovery.ReplayBatch(new[] { DomainFactReplay.Create(terminal.publicationKey, fact) }, results, out failureReason)
+                || !Delivered(terminal.publicationKey, results[0]))
+            {
+                failureReason = "captivity-interaction-delivery-pending:" + failureReason + ":" + results[0].Detail;
+                return false;
+            }
+            terminal.deliveryPending = false;
+            return true;
+        }
+        catch (Exception exception) when (Recoverable(exception))
+        { failureReason = "captivity-interaction-recovery:" + exception.GetType().Name + ":" + exception.Message; return false; }
+        finally { recovering = false; }
+    }
+    public void ValidateBeforeCapture()
+    { if (active != null || recovering) throw new InvalidOperationException("captivity-interaction-command-active"); }
+    public void Cancel(CaptivityInteractionPublication prepared)
+    { if (prepared == active) CancelStage(prepared?.Stage); }
+    internal void Release(CaptivityInteractionPublication prepared)
+    {
+        if (prepared != active) return;
+        try { CancelStage(prepared.Stage); }
+        finally { active = null; }
+    }
+    private static void CancelStage(IDomainFactStage stage)
+    {
+        try { stage?.Cancel(); }
+        catch (Exception exception) when (Recoverable(exception))
+        { Debug.LogWarning("captivity-interaction-cancel:" + exception); }
+    }
+    private static bool Delivered(string key, DomainFactDelivery value)
+    {
+        if (!value.Completed || value.OperationKey != key || string.IsNullOrWhiteSpace(value.PublicationId)
+            || value.Fingerprint.Length != 64) return false;
+        foreach (char c in value.Fingerprint)
+            if (!(c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F')) return false;
+        return true;
+    }
+    private static bool Recoverable(Exception value) => value is not OutOfMemoryException
+        && value is not StackOverflowException && value is not AccessViolationException;
 
     public bool TryEnsureOutput(
         CaptiveState state,
@@ -113,7 +139,7 @@ internal sealed class CaptivityInteractionOutcomeRuntime
     {
         failureReason = string.Empty;
         CaptivityInteractionTerminalState terminal = state?.interactionTerminal;
-        if (terminal?.HasCommittedOutcome != true)
+        if (terminal?.HasDeliveredOutcome != true)
         {
             failureReason = "확정된 포로 상호작용 출력 상태가 없습니다.";
             return false;
@@ -178,11 +204,19 @@ internal sealed class CaptivityInteractionOutcomeRuntime
         return true;
     }
 
-    private static KoreanNameSnapshot Name(
-        string role,
-        string id,
-        string display) => CaptivityInteractionOutcomeNames.Snapshot(
-        role,
-        id,
-        string.IsNullOrWhiteSpace(display) ? id : display);
+
+}
+
+internal sealed class CaptivityInteractionPublication : IDisposable
+{
+    private readonly CaptivityInteractionOutcomeRuntime owner;
+    internal CaptivityInteractionPublication(CaptivityInteractionOutcomeRuntime owner, CaptiveState state,
+        CaptivityInteractionResolvedFact fact, IDomainFactStage stage)
+    { this.owner = owner; State = state; Fact = fact; Stage = stage; }
+    internal CaptiveState State { get; }
+    internal CaptivityInteractionResolvedFact Fact { get; }
+    internal IDomainFactStage Stage { get; }
+    internal bool HandedOff { get; set; }
+    public bool IsReplay => Stage.IsReplay;
+    public void Dispose() => owner.Release(this);
 }

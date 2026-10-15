@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using DungeonStory.Narrative.Korean;
 using VContainer;
 
@@ -13,10 +14,14 @@ public static class DungeonSpaceExpansionOutcomeIds
         new("dungeon-space");
     public static readonly GameplayEntityKindId ResearchProjectKind =
         new("research-project");
+    public static readonly GameplayEntityKindId InitializationKind =
+        new("run-initialization");
     public static readonly GameplayRoleId ExpandedSpaceRole =
         new("expanded-space");
     public static readonly GameplayRoleId UnlockingResearchRole =
         new("unlocking-research");
+    public static readonly GameplayRoleId InitializationRole =
+        new("initialization-source");
     public static readonly GameplayMetricId OwnerRevisionMetric =
         new("dungeon-space.owner-revision");
     public static readonly GameplayMetricId TierMetric =
@@ -38,6 +43,18 @@ public static class DungeonSpaceExpansionOutcomeIds
         new("dungeon-space-expansion");
     public static readonly GameplayOutcomeFactId ResearchProjectIdFact =
         new("dungeon-space.research-project-id");
+    public static readonly GameplayOutcomeFactId InitializationIdFact =
+        new("dungeon-space.initialization-id");
+    public static readonly GameplayOutcomeFactId TriggerFact =
+        new("dungeon-space.trigger");
+    public static readonly GameplayOutcomeFactId ParentProducerFact =
+        new("dungeon-space.parent-research-producer");
+    public static readonly GameplayOutcomeFactId ParentOperationFact =
+        new("dungeon-space.parent-research-operation");
+    public static readonly GameplayOutcomeFactId ParentRevisionFact =
+        new("dungeon-space.parent-research-revision");
+    public static readonly GameplayOutcomeFactId ParentLocalIndexFact =
+        new("dungeon-space.parent-research-local-index");
 
     public static GameplayEntityId MainDungeonSpace => new(
         DungeonSpaceKind,
@@ -84,7 +101,7 @@ public readonly struct DungeonSpaceExpansionOutcomeReceipt
 {
     public DungeonSpaceExpansionOutcomeReceipt(
         string researchProjectId,
-        KoreanNameSnapshot researchDisplayName,
+        KoreanNameSnapshot sourceDisplayName,
         long ownerRevision,
         int tier,
         int previousInteriorColumns,
@@ -93,12 +110,15 @@ public readonly struct DungeonSpaceExpansionOutcomeReceipt
         int currentGridWidth,
         int absoluteDay,
         int entranceX,
-        int entranceY)
+        int entranceY,
+        DungeonSpaceExpansionTrigger trigger,
+        GameplayResultKey parentResearchResultKey = default,
+        GameplayOutcomeId parentOutcomeId = default)
     {
         ResearchProjectId = GameplayOutcomeStableIdSyntax.Require(
             researchProjectId,
             nameof(researchProjectId));
-        RequireName(researchDisplayName, nameof(researchDisplayName));
+        RequireName(sourceDisplayName, nameof(sourceDisplayName));
         if (ownerRevision <= 0L)
             throw new ArgumentOutOfRangeException(nameof(ownerRevision));
         if (tier < 0)
@@ -120,8 +140,37 @@ public readonly struct DungeonSpaceExpansionOutcomeReceipt
             throw new ArgumentOutOfRangeException(nameof(currentGridWidth));
         if (absoluteDay < 0)
             throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        if (trigger == DungeonSpaceExpansionTrigger.NewRunInitialization)
+        {
+            if (tier != 0
+                || !string.Equals(
+                    researchProjectId,
+                    DungeonSpaceExpansionCatalog.TierZeroInitializationId,
+                    StringComparison.Ordinal)
+                || parentResearchResultKey.IsValid
+                || parentOutcomeId.IsValid)
+            {
+                throw new ArgumentException(
+                    "New-run expansion must have Tier 0 and no research parent.");
+            }
+        }
+        else if (trigger == DungeonSpaceExpansionTrigger.ResearchCompletion)
+        {
+            if (tier <= 0
+                || !DungeonSpaceExpansionCatalog.TryGet(
+                    researchProjectId, out _)
+                || !IsResearchParentKey(parentResearchResultKey))
+            {
+                throw new ArgumentException(
+                    "Research expansion requires its committed research result key.");
+            }
+        }
+        else
+        {
+            throw new ArgumentOutOfRangeException(nameof(trigger));
+        }
 
-        ResearchDisplayName = researchDisplayName;
+        SourceDisplayName = sourceDisplayName;
         OwnerRevision = ownerRevision;
         Tier = tier;
         PreviousInteriorColumns = previousInteriorColumns;
@@ -131,10 +180,13 @@ public readonly struct DungeonSpaceExpansionOutcomeReceipt
         AbsoluteDay = absoluteDay;
         EntranceX = entranceX;
         EntranceY = entranceY;
+        Trigger = trigger;
+        ParentResearchResultKey = parentResearchResultKey;
+        ParentOutcomeId = parentOutcomeId;
     }
 
     public string ResearchProjectId { get; }
-    public KoreanNameSnapshot ResearchDisplayName { get; }
+    public KoreanNameSnapshot SourceDisplayName { get; }
     public long OwnerRevision { get; }
     public int Tier { get; }
     public int PreviousInteriorColumns { get; }
@@ -146,10 +198,44 @@ public readonly struct DungeonSpaceExpansionOutcomeReceipt
     public int AbsoluteDay { get; }
     public int EntranceX { get; }
     public int EntranceY { get; }
+    public DungeonSpaceExpansionTrigger Trigger { get; }
+    public GameplayResultKey ParentResearchResultKey { get; }
+    public GameplayOutcomeId ParentOutcomeId { get; }
     public GameplayResultKey ResultKey =>
         DungeonSpaceExpansionOutcomeIds.ResultKey(
             ResearchProjectId,
             OwnerRevision);
+
+    internal DungeonSpaceExpansionOutcomeReceipt WithParentOutcomeId(
+        GameplayOutcomeId parentOutcomeId) => new(
+        ResearchProjectId,
+        SourceDisplayName,
+        OwnerRevision,
+        Tier,
+        PreviousInteriorColumns,
+        CurrentInteriorColumns,
+        PreviousGridWidth,
+        CurrentGridWidth,
+        AbsoluteDay,
+        EntranceX,
+        EntranceY,
+        Trigger,
+        ParentResearchResultKey,
+        parentOutcomeId);
+
+    public static bool IsResearchParentKey(GameplayResultKey key) =>
+        key.IsValid
+        && string.Equals(
+            key.ProducerId,
+            ResearchWorkOutcomeIds.ProducerId,
+            StringComparison.Ordinal)
+        && key.CommitRevision > 0L
+        && key.LocalResultIndex == 0
+        && string.Equals(
+            key.OperationId.Value,
+            "research-work:" + key.CommitRevision.ToString(
+                CultureInfo.InvariantCulture),
+            StringComparison.Ordinal);
 
     private static void RequireName(
         KoreanNameSnapshot value,
@@ -180,7 +266,11 @@ public sealed class DungeonSpaceExpansionOutcomeAdapter :
         requirements = default;
         if (!receipt.ResultKey.IsValid
             || receipt.OwnerRevision != receipt.CurrentInteriorColumns
-            || receipt.AddedInteriorColumns <= 0)
+            || receipt.AddedInteriorColumns <= 0
+            || receipt.Trigger == DungeonSpaceExpansionTrigger.ResearchCompletion
+                && (!DungeonSpaceExpansionOutcomeReceipt.IsResearchParentKey(
+                        receipt.ParentResearchResultKey)
+                    || !receipt.ParentOutcomeId.IsValid))
         {
             return new OutcomePrepareResult(
                 OutcomePrepareCode.InvalidReceipt,
@@ -199,7 +289,8 @@ public sealed class DungeonSpaceExpansionOutcomeAdapter :
             tagCount: 1,
             anchorCount: 0,
             provenanceCount: 2,
-            factCount: 1);
+            factCount: receipt.Trigger ==
+                DungeonSpaceExpansionTrigger.ResearchCompletion ? 6 : 2);
         return OutcomePrepareResult.Prepared();
     }
 
@@ -208,8 +299,12 @@ public sealed class DungeonSpaceExpansionOutcomeAdapter :
         ref OutcomeWriteBuilder builder)
     {
         GameplayEntityId dungeon = DungeonSpaceExpansionOutcomeIds.MainDungeonSpace;
-        GameplayEntityId research = new(
-            DungeonSpaceExpansionOutcomeIds.ResearchProjectKind,
+        bool researchCompletion = receipt.Trigger ==
+            DungeonSpaceExpansionTrigger.ResearchCompletion;
+        GameplayEntityId source = new(
+            researchCompletion
+                ? DungeonSpaceExpansionOutcomeIds.ResearchProjectKind
+                : DungeonSpaceExpansionOutcomeIds.InitializationKind,
             receipt.ResearchProjectId);
         if (!builder.AddParticipant(new GameplayOutcomeParticipant(
                 dungeon,
@@ -218,11 +313,13 @@ public sealed class DungeonSpaceExpansionOutcomeAdapter :
                 true,
                 DungeonSpaceExpansionOutcomeNames.DungeonSpace))
             || !builder.AddParticipant(new GameplayOutcomeParticipant(
-                research,
-                DungeonSpaceExpansionOutcomeIds.UnlockingResearchRole,
+                source,
+                researchCompletion
+                    ? DungeonSpaceExpansionOutcomeIds.UnlockingResearchRole
+                    : DungeonSpaceExpansionOutcomeIds.InitializationRole,
                 GameplayParticipationKind.Direct,
                 true,
-                receipt.ResearchDisplayName))
+                receipt.SourceDisplayName))
             || !builder.AddSubject(new GameplayOutcomeSubjectLink(
                 dungeon,
                 0.78f,
@@ -231,7 +328,7 @@ public sealed class DungeonSpaceExpansionOutcomeAdapter :
                 false,
                 0))
             || !builder.AddSubject(new GameplayOutcomeSubjectLink(
-                research,
+                source,
                 0.64f,
                 NarrativeMemoryTier.Recent,
                 false,
@@ -248,7 +345,7 @@ public sealed class DungeonSpaceExpansionOutcomeAdapter :
                 DungeonSpaceExpansionOutcomeIds.TierMetric,
                 receipt.Tier,
                 DungeonSpaceExpansionOutcomeIds.TierUnit,
-                research)
+                source)
             || !Metric(
                 ref builder,
                 DungeonSpaceExpansionOutcomeIds.PreviousInteriorColumnsMetric,
@@ -287,8 +384,32 @@ public sealed class DungeonSpaceExpansionOutcomeAdapter :
                 "domain-commit",
                 receipt.ResultKey.OperationId.Value))
             || !builder.AddFact(new GameplayOutcomeFact(
-                DungeonSpaceExpansionOutcomeIds.ResearchProjectIdFact,
+                researchCompletion
+                    ? DungeonSpaceExpansionOutcomeIds.ResearchProjectIdFact
+                    : DungeonSpaceExpansionOutcomeIds.InitializationIdFact,
                 receipt.ResearchProjectId))
+            || !builder.AddFact(new GameplayOutcomeFact(
+                DungeonSpaceExpansionOutcomeIds.TriggerFact,
+                receipt.Trigger.ToString()))
+            || researchCompletion
+                && (!builder.AddFact(new GameplayOutcomeFact(
+                        DungeonSpaceExpansionOutcomeIds.ParentProducerFact,
+                        receipt.ParentResearchResultKey.ProducerId))
+                    || !builder.AddFact(new GameplayOutcomeFact(
+                        DungeonSpaceExpansionOutcomeIds.ParentOperationFact,
+                        receipt.ParentResearchResultKey.OperationId.Value))
+                    || !builder.AddFact(new GameplayOutcomeFact(
+                        DungeonSpaceExpansionOutcomeIds.ParentRevisionFact,
+                        receipt.ParentResearchResultKey.CommitRevision.ToString(
+                            CultureInfo.InvariantCulture)))
+                    || !builder.AddFact(new GameplayOutcomeFact(
+                        DungeonSpaceExpansionOutcomeIds.ParentLocalIndexFact,
+                        receipt.ParentResearchResultKey.LocalResultIndex.ToString(
+                            CultureInfo.InvariantCulture)))
+                    || !builder.SetCausation(new GameplayOutcomeCausation(
+                        receipt.ParentOutcomeId,
+                        receipt.ParentResearchResultKey.OperationId,
+                        "research-completion-expands-dungeon")))
             || !builder.SetLocation(new GameplayLocationReference(
                 "dungeon",
                 string.Empty,
@@ -346,14 +467,17 @@ public sealed class DungeonSpaceExpansionGameplayOutcomeBridge :
     IDungeonSpaceExpansionOutcomeCommitter
 {
     private readonly PreparedOutcomeOwnerTransaction transactions;
+    private readonly IGameplayOutcomeDiagnosticsQuery diagnostics;
 
     public DungeonSpaceExpansionGameplayOutcomeBridge(
         IGameplayOutcomeRecorder recorder,
         IGameplayOutcomeDiagnosticsQuery diagnostics)
     {
+        this.diagnostics = diagnostics
+            ?? throw new ArgumentNullException(nameof(diagnostics));
         transactions = new PreparedOutcomeOwnerTransaction(
             recorder ?? throw new ArgumentNullException(nameof(recorder)),
-            diagnostics ?? throw new ArgumentNullException(nameof(diagnostics)));
+            this.diagnostics);
     }
 
     public bool TryPrepare(
@@ -362,8 +486,23 @@ public sealed class DungeonSpaceExpansionGameplayOutcomeBridge :
         out string failureReason)
     {
         prepared = default;
+        DungeonSpaceExpansionOutcomeReceipt linkedReceipt = receipt;
+        if (receipt.Trigger == DungeonSpaceExpansionTrigger.ResearchCompletion)
+        {
+            if (!diagnostics.TryGetResultIdentity(
+                    receipt.ParentResearchResultKey,
+                    out GameplayOutcomeReplayIdentity parent)
+                || parent.State < GameplayOutcomeReplayState.Committed
+                || !parent.OutcomeId.IsValid
+                || !parent.HasCanonicalPayloadHash)
+            {
+                failureReason = "dungeon-space-parent-research-uncommitted";
+                return false;
+            }
+            linkedReceipt = receipt.WithParentOutcomeId(parent.OutcomeId);
+        }
         if (!transactions.TryPrepare(
-                receipt,
+                linkedReceipt,
                 out PreparedOwnerOutcome token,
                 out OwnerOutcomeCommitResult replay,
                 out _,
@@ -448,7 +587,9 @@ internal sealed class DungeonSpaceExpansionPerspectiveProjector :
         GameplayOutcomeParticipant dungeon = FindParticipant(
             outcome,
             DungeonSpaceExpansionOutcomeIds.ExpandedSpaceRole);
-        GameplayOutcomeParticipant research = FindParticipant(
+        bool newRun = (int)Metric(
+            outcome, DungeonSpaceExpansionOutcomeIds.TierMetric) == 0;
+        GameplayOutcomeParticipant research = newRun ? default : FindParticipant(
             outcome,
             DungeonSpaceExpansionOutcomeIds.UnlockingResearchRole);
         int before = (int)Metric(
@@ -463,9 +604,11 @@ internal sealed class DungeonSpaceExpansionPerspectiveProjector :
         KoreanJosaFormatResult topic = josa.Format(new KoreanJosaRequest(
             dungeon.DisplayName,
             KoreanJosaKind.Topic));
-        string text = topic.RequiresNeutralFrame
-            ? $"던전 구역 확장: {research.DisplayName.DisplayText} 연구 · 내부 폭 {before}칸 → {after}칸 (+{added}칸)."
-            : $"{topic.Text} {research.DisplayName.DisplayText} 연구에 따라 내부 폭이 {before}칸에서 {after}칸으로 {added}칸 넓어졌다.";
+        string text = newRun
+            ? $"새 게임 초기 던전 정비로 내부 폭이 {before}칸에서 {after}칸으로 {added}칸 넓어졌다."
+            : topic.RequiresNeutralFrame
+                ? $"던전 구역 확장: {research.DisplayName.DisplayText} 연구 · 내부 폭 {before}칸 → {after}칸 (+{added}칸)."
+                : $"{topic.Text} {research.DisplayName.DisplayText} 연구에 따라 내부 폭이 {before}칸에서 {after}칸으로 {added}칸 넓어졌다.";
         return new NarrativeView(
             outcome.OutcomeId,
             perspective.Kind,
@@ -522,7 +665,8 @@ public sealed class DungeonSpaceExpansionOutcomeDescriptor :
 
     public bool IsKnownRole(GameplayRoleId roleId) =>
         roleId.Equals(DungeonSpaceExpansionOutcomeIds.ExpandedSpaceRole)
-        || roleId.Equals(DungeonSpaceExpansionOutcomeIds.UnlockingResearchRole);
+        || roleId.Equals(DungeonSpaceExpansionOutcomeIds.UnlockingResearchRole)
+        || roleId.Equals(DungeonSpaceExpansionOutcomeIds.InitializationRole);
 
     public bool IsKnownMetric(
         GameplayMetricId metricId,
@@ -542,6 +686,7 @@ public sealed class DungeonSpaceExpansionOutcomeDescriptor :
     {
         int expandedSpaces = 0;
         int researchProjects = 0;
+        int initializations = 0;
         for (int index = 0; index < outcome.ParticipantCount; index++)
         {
             GameplayRoleId role = outcome.GetParticipant(index).RoleId;
@@ -549,16 +694,74 @@ public sealed class DungeonSpaceExpansionOutcomeDescriptor :
                 expandedSpaces++;
             if (role.Equals(DungeonSpaceExpansionOutcomeIds.UnlockingResearchRole))
                 researchProjects++;
+            if (role.Equals(DungeonSpaceExpansionOutcomeIds.InitializationRole))
+                initializations++;
         }
+        bool legacy = outcome.FactCount == 1;
+        bool newRun = outcome.FactCount == 2
+            && outcome.GetFact(1).FactId.Equals(
+                DungeonSpaceExpansionOutcomeIds.TriggerFact)
+            && string.Equals(
+                outcome.GetFact(1).Value,
+                DungeonSpaceExpansionTrigger.NewRunInitialization.ToString(),
+                StringComparison.Ordinal)
+            && outcome.GetMetric(1).Value == 0d
+            && !outcome.Causation.HasParent;
+        bool research = outcome.FactCount == 6
+            && outcome.GetFact(1).FactId.Equals(
+                DungeonSpaceExpansionOutcomeIds.TriggerFact)
+            && string.Equals(
+                outcome.GetFact(1).Value,
+                DungeonSpaceExpansionTrigger.ResearchCompletion.ToString(),
+                StringComparison.Ordinal)
+            && outcome.GetFact(2).FactId.Equals(
+                DungeonSpaceExpansionOutcomeIds.ParentProducerFact)
+            && string.Equals(
+                outcome.GetFact(2).Value,
+                ResearchWorkOutcomeIds.ProducerId,
+                StringComparison.Ordinal)
+            && outcome.GetFact(3).FactId.Equals(
+                DungeonSpaceExpansionOutcomeIds.ParentOperationFact)
+            && outcome.GetFact(4).FactId.Equals(
+                DungeonSpaceExpansionOutcomeIds.ParentRevisionFact)
+            && outcome.GetFact(5).FactId.Equals(
+                DungeonSpaceExpansionOutcomeIds.ParentLocalIndexFact)
+            && long.TryParse(
+                outcome.GetFact(4).Value,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out long parentRevision)
+            && parentRevision > 0L
+            && string.Equals(
+                outcome.GetFact(3).Value,
+                "research-work:" + parentRevision.ToString(
+                    CultureInfo.InvariantCulture),
+                StringComparison.Ordinal)
+            && string.Equals(
+                outcome.GetFact(5).Value,
+                "0",
+                StringComparison.Ordinal)
+            && string.Equals(
+                outcome.GetFact(3).Value,
+                outcome.Causation.RootOperationId.Value,
+                StringComparison.Ordinal)
+            && outcome.Causation.HasParent
+            && outcome.GetMetric(1).Value > 0d;
         bool shape = outcome.OutcomeTypeId == OutcomeTypeId
             && expandedSpaces == 1
-            && researchProjects == 1
+            && (legacy && researchProjects == 1 && initializations == 0
+                || newRun && initializations == 1 && researchProjects == 0
+                || research && researchProjects == 1 && initializations == 0)
             && outcome.ParticipantCount == 2
             && outcome.SubjectCount == 2
             && outcome.MetricCount == 7
             && outcome.TagCount == 1
             && outcome.ProvenanceCount == 2
-            && outcome.FactCount == 1;
+            && (legacy || newRun || research)
+            && outcome.GetFact(0).FactId.Equals(
+                newRun
+                    ? DungeonSpaceExpansionOutcomeIds.InitializationIdFact
+                    : DungeonSpaceExpansionOutcomeIds.ResearchProjectIdFact);
         return shape
             ? OutcomeValidationResult.Accepted
             : OutcomeValidationResult.Reject(
@@ -571,14 +774,15 @@ public static class DungeonSpaceExpansionOutcomeRegistration
     public static void RegisterDungeonSpaceExpansionGameplayOutcomes(
         this IContainerBuilder builder)
     {
-        builder.Register<DungeonSpaceExpansionGameplayOutcomeBridge>(
+        builder.Register(resolver => new GameplayDomainFactObserverBinding<
+                DungeonSpaceExpandedFact, DungeonSpaceExpansionOutcomeReceipt>(
+                "infrastructure.space-expansion-observer",
+                fact => DungeonSpaceExpansionFactObservation.Capture(fact,
+                    resolver.Resolve<IGameplayOutcomeDiagnosticsQuery>()),
+                resolver.Resolve<IGameplayOutcomeRegistry>(), resolver.Resolve<GameplayOutcomeLedger>(),
+                resolver.Resolve<IGameplayOutcomeRecorder>(), resolver.Resolve<GameplayDomainFactCommitGroup>()),
                 Lifetime.Singleton)
-            .As<IDungeonSpaceExpansionOutcomeCommitter>();
-        builder.Register<DungeonSpaceExpansionOutcomeAdapter>(
-                Lifetime.Singleton)
-            .As<IGameplayOutcomeAdapterRegistration>();
-        builder.Register<DungeonSpaceExpansionOutcomeDescriptor>(
-                Lifetime.Singleton)
-            .As<IGameplayOutcomeDescriptor>();
+            .As<DungeonStory.Foundation.Facts.IDomainFactObserverBinding>();
+        builder.RegisterGameplayActionLogs(nameof(DungeonSpaceExpansionOutcomeAdapter));
     }
 }

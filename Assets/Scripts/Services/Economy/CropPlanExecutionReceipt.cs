@@ -46,6 +46,11 @@ public sealed class CropPlanExecutionReceipt
                 input.sourceStackId,
                 input.quantity))
             .ToArray());
+        SowContributions = Array.AsReadOnly((source.sowContributions
+                ?? new List<CraftContributionSaveData>())
+            .OrderBy(value => value.characterId, StringComparer.Ordinal)
+            .Select(value => value.Clone())
+            .ToArray());
         Outputs = Array.AsReadOnly((source.outputs
                 ?? new List<ProductionDomainPublishedStackSaveData>())
             .OrderBy(output => output.outputLineId, StringComparer.Ordinal)
@@ -64,10 +69,31 @@ public sealed class CropPlanExecutionReceipt
                         ? source.harvestCapability.fingerprint
                         : source.seedCapability.fingerprint))
             .ToArray());
+        HarvestContributions = Array.AsReadOnly((source.harvestContributions
+                ?? new List<CraftContributionSaveData>())
+            .OrderBy(value => value.characterId, StringComparer.Ordinal)
+            .Select(value => value.Clone())
+            .ToArray());
+        WaterBefore = source.waterBefore;
+        WaterAfter = source.waterAfter;
+        IrrigationChildResultKeys = Array.AsReadOnly((source
+                .irrigationChildResultKeys ?? new List<string>())
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray());
+        HarvesterId = source.harvesterId;
+        EcologyBeforeFingerprint = source.ecologyBeforeFingerprint;
+        EcologyAfterFingerprint = source.ecologyAfterFingerprint;
+        GoldenPrepared = source.goldenPrepared;
+        GoldenTraitDefinitionId = source.goldenTraitDefinitionId;
+        GoldenOutcomeFingerprint = source.goldenOutcomeFingerprint;
+        GoldenOutcome = source.goldenOutcome;
+        GoldenPrimaryMultiplier = source.goldenPrimaryMultiplier;
+        GoldenSecondaryMultiplier = source.goldenSecondaryMultiplier;
+        GoldenRollHash = source.goldenRollHash;
         RuntimeReceiptDigest = source.sourceDigest;
 
         CanonicalSemanticDigestBuilder digest = new();
-        digest.Append("crop-plan-execution-receipt@2");
+        digest.Append("crop-plan-execution-receipt@4");
         digest.Append(ActionId);
         digest.Append(RuntimeReceiptDigest);
         SourceDigest = digest.ComputeSha256();
@@ -88,6 +114,7 @@ public sealed class CropPlanExecutionReceipt
     public string InputVectorDigest { get; }
     public string SowRequestFingerprint { get; }
     public IReadOnlyList<CropPlanExecutionInputWitness> Inputs { get; }
+    public IReadOnlyList<CraftContributionSaveData> SowContributions { get; }
     public string HarvestOperationId { get; }
     public string OutputBatchCommitId { get; }
     public long OutputMassGrams { get; }
@@ -95,6 +122,20 @@ public sealed class CropPlanExecutionReceipt
     public string OutputOutcomeFingerprint { get; }
     public string PlannedOutputFingerprint { get; }
     public IReadOnlyList<CropPlanExecutionOutputWitness> Outputs { get; }
+    public IReadOnlyList<CraftContributionSaveData> HarvestContributions { get; }
+    public float WaterBefore { get; }
+    public float WaterAfter { get; }
+    public IReadOnlyList<string> IrrigationChildResultKeys { get; }
+    public string HarvesterId { get; }
+    public string EcologyBeforeFingerprint { get; }
+    public string EcologyAfterFingerprint { get; }
+    public bool GoldenPrepared { get; }
+    public string GoldenTraitDefinitionId { get; }
+    public string GoldenOutcomeFingerprint { get; }
+    public ExtremeRiskOutcome GoldenOutcome { get; }
+    public float GoldenPrimaryMultiplier { get; }
+    public float GoldenSecondaryMultiplier { get; }
+    public ulong GoldenRollHash { get; }
     public string RuntimeReceiptDigest { get; }
     public string SourceDigest { get; }
 
@@ -181,8 +222,8 @@ public interface ICropCycleExecutionCorrelationCommand
 public static class CropPlanExecutionReceiptAuthority
 {
     private const string InputSchema = "crop-cycle-input-receipt@1";
-    private const string OutputSchema = "crop-cycle-output-receipt@2";
-    private const string ReceiptSchema = "crop-cycle-execution-receipt@2";
+    private const string OutputSchema = "crop-cycle-output-receipt@3";
+    private const string ReceiptSchema = "crop-cycle-execution-receipt@4";
 
     public static CropPlanExecutionReceipt ProjectTerminal(
         string actionId,
@@ -193,7 +234,8 @@ public static class CropPlanExecutionReceiptAuthority
         bool explicitCorrelation,
         string plotId,
         bool indoor,
-        CropPhysicalCommitSaveData sow)
+        CropPhysicalCommitSaveData sow,
+        float initialWater = 0f)
     {
         RequireCanonical(correlationId, nameof(correlationId));
         RequireCanonical(plotId, nameof(plotId));
@@ -209,7 +251,9 @@ public static class CropPlanExecutionReceiptAuthority
             || !sow.hasSeedLot
             || sow.seedLot == null
             || sow.inputs == null
-            || sow.inputs.Count == 0)
+            || sow.inputs.Count == 0
+            || !float.IsFinite(initialWater)
+            || initialWater < 0f)
         {
             throw new InvalidOperationException(
                 "Completed crop sow provenance is invalid.");
@@ -230,6 +274,8 @@ public static class CropPlanExecutionReceiptAuthority
             inputQuantity = sow.inputQuantity,
             inputMassGrams = sow.inputMassGrams,
             inputSeedLot = sow.seedLot.Clone(),
+            waterBefore = initialWater,
+            waterAfter = initialWater,
             inputs = sow.inputs
                 .OrderBy(input => input.itemId, StringComparer.Ordinal)
                 .ThenBy(input => input.sourceStackId, StringComparer.Ordinal)
@@ -244,7 +290,8 @@ public static class CropPlanExecutionReceiptAuthority
 
     public static CropCycleExecutionReceiptSaveData Complete(
         CropCycleExecutionReceiptSaveData inputReceipt,
-        CropHarvestOutputSaveData harvest)
+        CropHarvestOutputSaveData harvest,
+        float finalWater = float.NaN)
     {
         Validate(inputReceipt, requireCompleted: false);
         if (inputReceipt.completed
@@ -272,7 +319,10 @@ public static class CropPlanExecutionReceiptAuthority
             || !Digest(harvest.harvestCapability.fingerprint)
             || harvest.seedCapability == null
             || harvest.seedCapability.IsEmpty
-            || !Digest(harvest.seedCapability.fingerprint))
+            || !Digest(harvest.seedCapability.fingerprint)
+            || !Canonical(harvest.harvesterId)
+            || !Digest(harvest.ecologyBeforeFingerprint)
+            || !Digest(harvest.ecologyAfterFingerprint))
         {
             throw new InvalidOperationException(
                 "Completed crop harvest provenance is invalid.");
@@ -295,11 +345,93 @@ public static class CropPlanExecutionReceiptAuthority
             .OrderBy(output => output.outputLineId, StringComparer.Ordinal)
             .Select(output => output.Clone())
             .ToList();
+        value.waterAfter = float.IsFinite(finalWater)
+            ? finalWater
+            : value.waterAfter;
+        value.harvesterId = harvest.harvesterId;
+        value.ecologyBeforeFingerprint = harvest.ecologyBeforeFingerprint;
+        value.ecologyAfterFingerprint = harvest.ecologyAfterFingerprint;
+        value.goldenPrepared = harvest.goldenPrepared;
+        value.goldenTraitDefinitionId = harvest.goldenTraitDefinitionId;
+        value.goldenOutcomeFingerprint = harvest.goldenOutcomeFingerprint;
+        value.goldenOutcome = harvest.goldenOutcome;
+        value.goldenPrimaryMultiplier = harvest.goldenPrimaryMultiplier;
+        value.goldenSecondaryMultiplier = harvest.goldenSecondaryMultiplier;
+        value.goldenRollHash = harvest.goldenRollHash;
         value.outputVectorDigest = CaptureOutputVectorDigest(value);
         value.completed = true;
         value.status = CropCycleExecutionReceiptStatus.Completed;
         value.sourceDigest = CaptureReceiptDigest(value);
         Validate(value, requireCompleted: true);
+        return value;
+    }
+
+    public static CropCycleExecutionReceiptSaveData RecordWaterSupply(
+        CropCycleExecutionReceiptSaveData inputReceipt,
+        float waterBefore,
+        float waterAfter,
+        string childResultKey)
+    {
+        Validate(inputReceipt, requireCompleted: false);
+        string child = childResultKey?.Trim() ?? string.Empty;
+        if (inputReceipt.status != CropCycleExecutionReceiptStatus.Active
+            || inputReceipt.completed
+            || !float.IsFinite(waterBefore)
+            || !float.IsFinite(waterAfter)
+            || waterBefore < 0f
+            || waterAfter <= waterBefore
+            || !Canonical(child))
+            throw new InvalidOperationException(
+                "Crop water supply requires an active receipt and exact child key.");
+
+        CropCycleExecutionReceiptSaveData value = inputReceipt.DeepClone();
+        if ((value.irrigationChildResultKeys ?? new List<string>())
+                .Contains(child, StringComparer.Ordinal))
+        {
+            if (Math.Abs(value.waterAfter - waterAfter) > 0.0001f)
+                throw new InvalidOperationException(
+                    "Crop water supply replay conflicts with the cycle receipt.");
+            return value;
+        }
+        value.waterAfter = waterAfter;
+        value.irrigationChildResultKeys ??= new List<string>();
+        if (!value.irrigationChildResultKeys.Contains(child, StringComparer.Ordinal))
+            value.irrigationChildResultKeys.Add(child);
+        value.irrigationChildResultKeys.Sort(StringComparer.Ordinal);
+        value.sourceDigest = CaptureReceiptDigest(value);
+        Validate(value, requireCompleted: false);
+        return value;
+    }
+
+    public static CropCycleExecutionReceiptSaveData RecordContribution(
+        CropCycleExecutionReceiptSaveData inputReceipt,
+        string characterId,
+        float acceptedWork,
+        bool harvest)
+    {
+        Validate(inputReceipt, requireCompleted: false);
+        if (inputReceipt == null
+            || inputReceipt.status != CropCycleExecutionReceiptStatus.Active
+            || inputReceipt.completed
+            || acceptedWork <= 0f
+            || !float.IsFinite(acceptedWork))
+        {
+            throw new InvalidOperationException(
+                "Crop work contribution requires an active cycle receipt.");
+        }
+        string contributor = characterId?.Trim() ?? string.Empty;
+        if (contributor.Length == 0)
+            return inputReceipt.DeepClone();
+        CropCycleExecutionReceiptSaveData value = inputReceipt.DeepClone();
+        List<CraftContributionSaveData> target = harvest
+            ? value.harvestContributions
+            : value.sowContributions;
+        CraftContributionAccumulator accumulator = new(target);
+        accumulator.Add(contributor, acceptedWork, 0f);
+        target.Clear();
+        target.AddRange(accumulator.Capture());
+        value.sourceDigest = CaptureReceiptDigest(value);
+        Validate(value, requireCompleted: false);
         return value;
     }
 
@@ -385,6 +517,23 @@ public static class CropPlanExecutionReceiptAuthority
             .OrderBy(input => input?.itemId, StringComparer.Ordinal)
             .ThenBy(input => input?.sourceStackId, StringComparer.Ordinal)
             .ToArray();
+        ValidateContributions(value.sowContributions, "sow");
+        ValidateContributions(value.harvestContributions, "harvest");
+        string[] irrigationChildren = (value.irrigationChildResultKeys
+                ?? new List<string>())
+            .OrderBy(child => child, StringComparer.Ordinal)
+            .ToArray();
+        if (!float.IsFinite(value.waterBefore)
+            || !float.IsFinite(value.waterAfter)
+            || value.waterBefore < 0f
+            || value.waterAfter < 0f
+            || irrigationChildren.Any(child => !Canonical(child))
+            || irrigationChildren.Distinct(StringComparer.Ordinal).Count()
+                != irrigationChildren.Length)
+        {
+            throw new InvalidOperationException(
+                "Crop execution water provenance is invalid.");
+        }
         bool preSowFailure = value.status
                 == CropCycleExecutionReceiptStatus.FailedPlotDestroyed
             && value.explicitCorrelation
@@ -523,7 +672,26 @@ public static class CropPlanExecutionReceiptAuthority
                 && string.Equals(
                     value.outputVectorDigest,
                     CaptureOutputVectorDigest(value),
-                    StringComparison.Ordinal);
+                    StringComparison.Ordinal)
+                && Canonical(value.harvesterId)
+                && Digest(value.ecologyBeforeFingerprint)
+                && Digest(value.ecologyAfterFingerprint)
+                && (!value.goldenPrepared
+                    ? string.IsNullOrEmpty(value.goldenTraitDefinitionId)
+                        && string.IsNullOrEmpty(value.goldenOutcomeFingerprint)
+                        && value.goldenOutcome == ExtremeRiskOutcome.Normal
+                        && value.goldenPrimaryMultiplier == 1f
+                        && value.goldenSecondaryMultiplier == 1f
+                        && value.goldenRollHash == 0UL
+                    : Canonical(value.goldenTraitDefinitionId)
+                        && Digest(value.goldenOutcomeFingerprint)
+                        && Enum.IsDefined(
+                            typeof(ExtremeRiskOutcome),
+                            value.goldenOutcome)
+                        && float.IsFinite(value.goldenPrimaryMultiplier)
+                        && value.goldenPrimaryMultiplier > 0f
+                        && float.IsFinite(value.goldenSecondaryMultiplier)
+                        && value.goldenSecondaryMultiplier > 0f);
             if (!outputValid)
                 throw new InvalidOperationException(
                     "Crop execution output receipt is invalid.");
@@ -603,6 +771,17 @@ public static class CropPlanExecutionReceiptAuthority
         digest.Append(value.outputMassGrams);
         digest.Append(SeedLotItemStateCodec.Encode(value.returnedSeedLot)
             .ToCanonicalString());
+        digest.Append(value.harvesterId);
+        digest.Append(value.ecologyBeforeFingerprint);
+        digest.Append(value.ecologyAfterFingerprint);
+        digest.Append(value.goldenPrepared);
+        digest.Append(value.goldenTraitDefinitionId);
+        digest.Append(value.goldenOutcomeFingerprint);
+        digest.Append((int)value.goldenOutcome);
+        digest.AppendFloat(value.goldenPrimaryMultiplier);
+        digest.AppendFloat(value.goldenSecondaryMultiplier);
+        digest.Append(value.goldenRollHash.ToString(
+            System.Globalization.CultureInfo.InvariantCulture));
         ProductionDomainPublishedStackSaveData[] outputs = value.outputs
             .OrderBy(output => output.outputLineId, StringComparer.Ordinal)
             .ToArray();
@@ -631,7 +810,57 @@ public static class CropPlanExecutionReceiptAuthority
         digest.Append(value.inputVectorDigest);
         digest.Append(value.completed);
         digest.Append(value.outputVectorDigest);
+        digest.AppendFloat(value.waterBefore);
+        digest.AppendFloat(value.waterAfter);
+        string[] irrigationChildren = (value.irrigationChildResultKeys
+                ?? new List<string>())
+            .OrderBy(child => child, StringComparer.Ordinal)
+            .ToArray();
+        digest.Append(irrigationChildren.Length);
+        foreach (string child in irrigationChildren)
+            digest.Append(child);
+        AppendContributions(digest, value.sowContributions);
+        AppendContributions(digest, value.harvestContributions);
         return digest.ComputeSha256();
+    }
+
+    private static void AppendContributions(
+        CanonicalSemanticDigestBuilder digest,
+        IEnumerable<CraftContributionSaveData> source)
+    {
+        CraftContributionSaveData[] values = (source
+                ?? Array.Empty<CraftContributionSaveData>())
+            .OrderBy(value => value.characterId, StringComparer.Ordinal)
+            .ToArray();
+        digest.Append(values.Length);
+        foreach (CraftContributionSaveData value in values)
+        {
+            digest.Append(value.characterId);
+            digest.AppendFloat(value.contributedWork);
+            digest.AppendFloat(value.relevantSkill);
+        }
+    }
+
+    private static void ValidateContributions(
+        IReadOnlyList<CraftContributionSaveData> source,
+        string label)
+    {
+        CraftContributionSaveData[] values = (source
+                ?? Array.Empty<CraftContributionSaveData>())
+            .ToArray();
+        if (values.Length > 16
+            || values.Any(value => value == null
+                || !Canonical(value.characterId)
+                || value.contributedWork <= 0f
+                || !float.IsFinite(value.contributedWork)
+                || value.relevantSkill < 0f
+                || !float.IsFinite(value.relevantSkill))
+            || values.Select(value => value.characterId)
+                .Distinct(StringComparer.Ordinal).Count() != values.Length)
+        {
+            throw new InvalidOperationException(
+                "Crop " + label + " contribution provenance is invalid.");
+        }
     }
 
     private static bool Canonical(string value) =>

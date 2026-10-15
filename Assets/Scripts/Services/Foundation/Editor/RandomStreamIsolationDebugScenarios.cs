@@ -22,6 +22,7 @@ public static class RandomStreamIsolationDebugScenarios
         VerifyActorSpawnDespawnIsolation();
         VerifyCausalConeIsolation();
         VerifyDiagnosticDrawCountsAndRestore();
+        VerifyRegistryRestoreStagingIsolatesRandomStreams();
         VerifyKeyAddressedEventOrderIndependence();
         VerifyDuplicateEventKeyFails();
         VerifyLegacyGlobalStreamsFail();
@@ -34,6 +35,7 @@ public static class RandomStreamIsolationDebugScenarios
             + "PASS RNG_DUPLICATE_EVENT_KEY_REJECTED\n"
             + "PASS RNG_SAVE_RESTORE_NEXT_DRAW_EXACT\n"
             + "PASS RNG_DIAGNOSTIC_DRAW_COUNT_RESTORED_TO_ZERO\n"
+            + "PASS RNG_REGISTRY_RESTORE_STAGE_MUTATION_TRANSACTIONAL\n"
             + "PASS RNG_DUPLICATE_CHARACTER_ID_REJECTED\n"
             + "PASS RNG_CAUSAL_CONE_OUTSIDE_STREAMS_UNCHANGED\n"
             + "PASS RNG_LEGACY_GLOBAL_CHARACTER_STREAMS_REJECTED\n";
@@ -143,6 +145,139 @@ public static class RandomStreamIsolationDebugScenarios
             "Saved random state did not reproduce the next draw.");
     }
 
+    private static void VerifyRegistryRestoreStagingIsolatesRandomStreams()
+    {
+        VerifyRegistryRestoreStagingCase(
+            RandomStreamStageBehavior.ThrowDuringStage,
+            expectSuccess: false);
+        VerifyRegistryRestoreStagingCase(
+            RandomStreamStageBehavior.ThrowDuringCommit,
+            expectSuccess: false);
+        VerifyRegistryRestoreStagingCase(
+            RandomStreamStageBehavior.Succeed,
+            expectSuccess: true);
+    }
+
+    private static void VerifyRegistryRestoreStagingCase(
+        RandomStreamStageBehavior behavior,
+        bool expectSuccess)
+    {
+        DungeonRuntimeAggregateRootStore root = new();
+        RandomStreamProvider provider = new(root);
+        IRandomStream existing = provider.Get("qa:existing");
+        existing.Restore(0x123456789ABCDEF0UL);
+        existing.NextInt(0, 1000);
+
+        RandomStreamStageMutationSection section = new(
+            provider,
+            root,
+            behavior);
+        DungeonSaveSectionRegistry registry = new(
+            new IDungeonSaveSection[] { section },
+            root,
+            new IDungeonRestoreTransactionParticipant[] { provider });
+        List<DungeonSaveSectionEnvelope> envelopes = registry.CaptureAll();
+        IReadOnlyList<RandomStreamStateSnapshot> statesBefore =
+            provider.CaptureStates();
+        IReadOnlyList<RandomStreamDiagnosticSnapshot> diagnosticsBefore =
+            provider.Capture();
+        int revisionBefore = root.PublishedRestoreRevision;
+        DungeonGameRestoreReport report = new();
+
+        bool restored = registry.RestoreAll(envelopes, report);
+
+        Require(section.ObservedRestoreStaging,
+            $"Random stream {behavior} stage ran outside aggregate restore staging.");
+        Require(section.StageMutationCompleted,
+            $"Random stream {behavior} stage did not exercise both stream mutations.");
+        Require(!root.IsRestoreStaging,
+            $"Random stream {behavior} restore left aggregate staging active.");
+        if (!expectSuccess)
+        {
+            Require(!restored && !report.Success,
+                $"Random stream {behavior} restore unexpectedly succeeded.");
+            Require(root.PublishedRestoreRevision == revisionBefore,
+                $"Random stream {behavior} failure published an aggregate root.");
+            Require(SameStates(statesBefore, provider.CaptureStates()),
+                $"Random stream {behavior} failure changed persisted stream IDs or states.");
+            Require(SameDiagnostics(diagnosticsBefore, provider.Capture()),
+                $"Random stream {behavior} failure changed diagnostic stream state.");
+            return;
+        }
+
+        Require(restored && report.Success,
+            "Successful random stream restore-stage mutation was rejected: "
+            + string.Join(" | ", report.Errors));
+        Require(root.PublishedRestoreRevision == revisionBefore + 1,
+            "Successful random stream restore-stage mutation did not publish its root.");
+        Require(section.StagedStates.Count == 2
+                && string.Equals(
+                    section.StagedStates[0].StreamId,
+                    "qa:existing",
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    section.StagedStates[1].StreamId,
+                    "qa:staged",
+                    StringComparison.Ordinal)
+                && section.StagedStates[0].State != statesBefore[0].State,
+            "Successful random stream stage did not change the existing stream and add the staged stream.");
+        Require(SameStates(section.StagedStates, provider.CaptureStates()),
+            "Successful random stream stage states were not published exactly.");
+        Require(SameDiagnostics(
+                section.StagedDiagnostics,
+                provider.Capture()),
+            "Successful random stream stage diagnostics were not published exactly.");
+    }
+
+    private static bool SameStates(
+        IReadOnlyList<RandomStreamStateSnapshot> expected,
+        IReadOnlyList<RandomStreamStateSnapshot> actual)
+    {
+        if (expected == null || actual == null || expected.Count != actual.Count)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < expected.Count; index++)
+        {
+            if (!string.Equals(
+                    expected[index].StreamId,
+                    actual[index].StreamId,
+                    StringComparison.Ordinal)
+                || expected[index].State != actual[index].State)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool SameDiagnostics(
+        IReadOnlyList<RandomStreamDiagnosticSnapshot> expected,
+        IReadOnlyList<RandomStreamDiagnosticSnapshot> actual)
+    {
+        if (expected == null || actual == null || expected.Count != actual.Count)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < expected.Count; index++)
+        {
+            if (!string.Equals(
+                    expected[index].StreamId,
+                    actual[index].StreamId,
+                    StringComparison.Ordinal)
+                || expected[index].State != actual[index].State
+                || expected[index].DrawCount != actual[index].DrawCount)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static void VerifyKeyAddressedEventOrderIndependence()
     {
         CounterfactualRandomKey a = new(
@@ -238,6 +373,107 @@ public static class RandomStreamIsolationDebugScenarios
 
     private static string Movement(CharacterId actor) =>
         "character-movement:" + actor.Value;
+
+    private enum RandomStreamStageBehavior
+    {
+        ThrowDuringStage,
+        ThrowDuringCommit,
+        Succeed
+    }
+
+    private sealed class RandomStreamStageMutationSection :
+        IDungeonSaveSection,
+        IDungeonSaveSectionPreflight,
+        IDungeonStagedSaveSection,
+        IDungeonRollbackFreeSaveSection
+    {
+        private readonly RandomStreamProvider provider;
+        private readonly DungeonRuntimeAggregateRootStore root;
+        private readonly RandomStreamStageBehavior behavior;
+
+        public RandomStreamStageMutationSection(
+            RandomStreamProvider provider,
+            DungeonRuntimeAggregateRootStore root,
+            RandomStreamStageBehavior behavior)
+        {
+            this.provider = provider
+                ?? throw new ArgumentNullException(nameof(provider));
+            this.root = root
+                ?? throw new ArgumentNullException(nameof(root));
+            this.behavior = behavior;
+        }
+
+        public string SectionId => "qa.random-stream-stage-mutation";
+        public int SectionVersion => 1;
+        public DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.RuntimeState;
+        public IReadOnlyList<string> DependsOn => Array.Empty<string>();
+        public bool ObservedRestoreStaging { get; private set; }
+        public bool StageMutationCompleted { get; private set; }
+        public IReadOnlyList<RandomStreamStateSnapshot> StagedStates { get; private set; } =
+            Array.Empty<RandomStreamStateSnapshot>();
+        public IReadOnlyList<RandomStreamDiagnosticSnapshot> StagedDiagnostics { get; private set; } =
+            Array.Empty<RandomStreamDiagnosticSnapshot>();
+
+        public string Capture() => "{}";
+
+        public void ValidatePayload(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            if (sectionVersion != SectionVersion
+                || !string.Equals(payloadJson, "{}", StringComparison.Ordinal))
+            {
+                report.AddError("Invalid random stream stage-mutation payload.");
+            }
+        }
+
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            ValidatePayload(payloadJson, sectionVersion, report);
+            ObservedRestoreStaging = root.IsRestoreStaging;
+            provider.Get("qa:existing").NextInt(0, 1000);
+            provider.Get("qa:staged").NextInt(0, 1000);
+            StagedStates = provider.CaptureStates();
+            StagedDiagnostics = provider.Capture();
+            StageMutationCompleted = true;
+            if (behavior == RandomStreamStageBehavior.ThrowDuringStage)
+            {
+                throw new InvalidOperationException(
+                    "Expected random stream stage failure.");
+            }
+
+            return new DungeonDelegateSaveRestoreStage(
+                SectionId,
+                _ =>
+                {
+                    if (behavior == RandomStreamStageBehavior.ThrowDuringCommit)
+                    {
+                        throw new InvalidOperationException(
+                            "Expected random stream commit failure.");
+                    }
+                });
+        }
+
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            IDungeonSaveRestoreStage stage = StageRestore(
+                payloadJson,
+                sectionVersion,
+                report);
+            if (report.Success)
+            {
+                stage.Commit(report);
+            }
+        }
+    }
 
     private static void Require(bool condition, string message)
     {

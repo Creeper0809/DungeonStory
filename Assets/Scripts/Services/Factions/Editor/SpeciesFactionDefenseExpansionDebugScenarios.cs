@@ -514,15 +514,44 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
         RequiredDependencyStubSection items = new(
             PhysicalItemsSaveSection.Id,
             DungeonSaveRestorePhase.Items);
+        RequiredDependencyStubSection gameplayOutcomes = new(
+            GameplayOutcomeLedgerSaveSection.Id,
+            DungeonSaveRestorePhase.LateRuntimeState);
+        RequiredDependencyStubSection migratedOutcomes = new(
+            MigratedProducerOutcomeSaveSection.Id,
+            DungeonSaveRestorePhase.LateRuntimeState);
         FinalFailingSection finalFailure = new(section.SectionId);
         IDungeonSaveSection[] sections =
         {
             items,
             offense,
+            gameplayOutcomes,
+            migratedOutcomes,
             section,
             finalFailure
         };
         DungeonSaveSectionRegistry registry = new(sections, store);
+        string[] orderedSectionIds = registry.OrderedSections
+            .Select(candidate => candidate.SectionId)
+            .ToArray();
+        int factionIndex = Array.IndexOf(
+            orderedSectionIds,
+            section.SectionId);
+        int gameplayOutcomeIndex = Array.IndexOf(
+            orderedSectionIds,
+            gameplayOutcomes.SectionId);
+        int migratedOutcomeIndex = Array.IndexOf(
+            orderedSectionIds,
+            migratedOutcomes.SectionId);
+        if (gameplayOutcomeIndex < 0
+            || migratedOutcomeIndex < 0
+            || factionIndex < 0
+            || gameplayOutcomeIndex >= factionIndex
+            || migratedOutcomeIndex >= factionIndex)
+        {
+            errors.Add(
+                "Faction restore ordering no longer publishes gameplay outcome ledgers before faction state.");
+        }
         string before = section.Capture();
         int revisionBefore = store.PublishedRestoreRevision;
         DungeonFactionSaveData incoming =

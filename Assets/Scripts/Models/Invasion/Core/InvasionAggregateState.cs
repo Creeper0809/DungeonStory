@@ -126,7 +126,11 @@ public sealed class InvasionCampaignAggregateState
             participatingBranchIds = source.participatingBranchIds.ToList(),
             objectiveId = source.objectiveId,
             scheduledDay = source.scheduledDay,
-            intelligenceConfidence = source.intelligenceConfidence
+            intelligenceConfidence = source.intelligenceConfidence,
+            sourceOwnerId = source.sourceOwnerId,
+            sourceAbsoluteDay = source.sourceAbsoluteDay,
+            startedInvasionRuntimeId = source.startedInvasionRuntimeId,
+            startedPublicationKey = source.startedPublicationKey
         };
     }
 }

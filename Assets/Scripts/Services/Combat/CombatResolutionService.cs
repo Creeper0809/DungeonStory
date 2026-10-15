@@ -786,6 +786,7 @@ public sealed class CombatResolutionService :
         Vector2Int cell = actor != null ? actor.GetNowXY() : default;
         return new GameplayNarrativeEventContext
         {
+            eventInstanceId = request.EventId,
             chainId = "combat:" + (actorId?.Trim() ?? string.Empty),
             locationId = actor != null ? $"cell:{cell.x}:{cell.y}" : string.Empty,
             locationDisplayName = actor != null ? $"던전 {cell.x},{cell.y} 구역" : "전투 현장",
@@ -1175,13 +1176,19 @@ public sealed class CombatResolutionService :
             : overclock?.GetPerformanceMultiplier(
                 OverclockTargetKind.Equipment,
                 weapon.InstanceId) ?? 1f;
-        return Mathf.Max(1f, (verb.baseDamage + statDamage)
+        float rawDamage = Mathf.Max(1f, (verb.baseDamage + statDamage)
             * rangeDamage
             * quality
             * weapon.MaterialDamageMultiplier
             * overclockMultiplier
             * Mathf.Max(0.01f, request.Attacker.HealthMultiplier)
             * Mathf.Max(0.01f, request.AttackPowerMultiplier));
+        // Editor-only observation of the real request consumed here. This
+        // diagnostic call is removed from player builds and changes no result.
+        CharacterPerformanceExecutionTrace.Record(
+            "combat:raw-damage", "CombatResolutionService.CalculateRawDamage",
+            request.AttackPowerMultiplier, rawDamage, request.EventId);
+        return rawDamage;
     }
 
     private static float GetSuppressionOnMiss(CombatAttackRequest request, CombatAttackVerb verb)

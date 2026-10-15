@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using DungeonStory.Characters;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -292,7 +294,10 @@ public sealed class CharacterAcquiredTraitSpecialReactionRuntime : IStartable, I
     private readonly ICharacterWorldQuery world;
     private readonly IGameEventBus events;
     private readonly CharacterMoodPolicyService moods;
-    private readonly IAcquiredTraitReactionOutcomeCommitter outcomeCommitter;
+    private readonly IDomainFactPublisher facts;
+    private readonly CharacterTraitReactionPublicationRuntime publications;
+    private bool started;
+    public string LastFailure { get; private set; } = string.Empty;
     private readonly List<IDisposable> subscriptions = new();
     private CharacterAcquiredTraitSettingsSO settings;
     private CharacterAcquiredTraitModuleSO[] modules = Array.Empty<CharacterAcquiredTraitModuleSO>();
@@ -304,18 +309,20 @@ public sealed class CharacterAcquiredTraitSpecialReactionRuntime : IStartable, I
         ICharacterWorldQuery world,
         IGameEventBus events,
         CharacterMoodPolicyService moods,
-        IAcquiredTraitReactionOutcomeCommitter outcomeCommitter)
+        IDomainFactPublisher facts,
+        CharacterTraitReactionPublicationRuntime publications)
     {
         this.content = content ?? throw new ArgumentNullException(nameof(content));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.moods = moods ?? throw new ArgumentNullException(nameof(moods));
-        this.outcomeCommitter = outcomeCommitter
-            ?? throw new ArgumentNullException(nameof(outcomeCommitter));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.publications = publications ?? throw new ArgumentNullException(nameof(publications));
     }
 
     public void Start()
     {
+        if (started) return;
         settings = content.RequireSingle<CharacterAcquiredTraitSettingsSO>()
             ?? throw new InvalidOperationException("Acquired-trait settings are missing.");
         modules = (content.GetAll<CharacterAcquiredTraitModuleSO>()
@@ -334,6 +341,7 @@ public sealed class CharacterAcquiredTraitSpecialReactionRuntime : IStartable, I
         subscriptions.Add(events.Subscribe<CharacterInjuredIdentityEvent>(OnCharacterInjured));
         subscriptions.Add(events.Subscribe<ExpeditionOutcomeEvent>(OnExpeditionOutcome));
         subscriptions.Add(events.Subscribe<ApologyEvent>(OnApology));
+        started = true;
     }
 
     public void Dispose()
@@ -341,6 +349,7 @@ public sealed class CharacterAcquiredTraitSpecialReactionRuntime : IStartable, I
         foreach (IDisposable subscription in subscriptions)
             subscription?.Dispose();
         subscriptions.Clear();
+        started = false;
     }
 
     private void OnWorkCompleted(WorkCompletedIdentityEvent value) => Process(
@@ -384,6 +393,9 @@ public sealed class CharacterAcquiredTraitSpecialReactionRuntime : IStartable, I
         int absoluteDay,
         Func<CharacterAcquiredTraitSpecialReactionDefinition, bool> condition)
     {
+        if (!publications.RecoverPending(out string recoveryFailure))
+        { LastFailure = recoveryFailure; return; }
+        LastFailure = string.Empty;
         CharacterActor actor = world.Characters.FirstOrDefault(value => value != null
             && string.Equals(value.Identity?.PersistentId, ownerId.Value,
                 StringComparison.Ordinal));
@@ -457,81 +469,137 @@ public sealed class CharacterAcquiredTraitSpecialReactionRuntime : IStartable, I
             instance, module);
         float actionValue = CharacterAcquiredTraitSpecialReactionMath.ResolveActionValue(
             reaction, scale);
-        int committedRevision = checked(current.revision + 1);
-        CharacterId characterId = actor.BuildingCharacterId;
-        string outcomeOperationId = "trait-reaction:"
-            + characterId.Value
-            + ":revision:"
-            + committedRevision.ToString("D8");
-        AcquiredTraitReactionOutcomeReceipt outcomeReceipt = new(
-            outcomeOperationId,
-            committedRevision,
-            characterId,
-            instanceId,
-            reaction.ReactionId,
-            reaction.Action,
-            actionValue,
-            absoluteDay);
-        if (!outcomeCommitter.TryPrepare(
-                outcomeReceipt,
-                out PreparedEvolutionOutcome preparedOutcome,
-                out string outcomePrepareFailure))
-        {
-            Debug.LogError(
-                "Acquired-trait reaction outcome pre-reserve failed: "
-                + outcomePrepareFailure);
-            return false;
-        }
+        int beforeLevel = progression.Level;
+        int beforeExperience = progression.CurrentExperience;
+        bool experience = reaction.Action == CharacterAcquiredTraitReactionAction.GrantExperience;
+        if (experience && (actionValue >= int.MaxValue || actionValue > int.MaxValue - beforeExperience))
+        { LastFailure = "trait-reaction-experience-overflow"; return false; }
+        CharacterProgressionTransition transition = CharacterProgressionRules.AddExperience(
+            beforeLevel, beforeExperience, experience ? (int)actionValue : 0);
+        int beforeRevision = current.revision;
+        int committedRevision = checked(beforeRevision + 1);
+        string characterId = actor.BuildingCharacterId.Value;
+        var previous = progression.CaptureAcquiredTraitState();
+        int beforeTriggerDay = state.lastTriggerAbsoluteDay;
+        int beforeDailyCount = state.triggersOnLastDay;
+        int beforeTotalCount = state.totalTriggerCount;
         state.triggersOnLastDay = state.lastTriggerAbsoluteDay == absoluteDay
-            ? checked(state.triggersOnLastDay + 1)
-            : 1;
+            ? checked(state.triggersOnLastDay + 1) : 1;
         state.lastTriggerAbsoluteDay = absoluteDay;
         state.totalTriggerCount = checked(state.totalTriggerCount + 1);
         current.formatVersion = CharacterAcquiredTraitAggregateState.CurrentFormatVersion;
-        current.revision = checked(current.revision + 1);
-        if (!progression.TryCommitAcquiredTraitState(
-                current,
-                current.revision - 1,
-                settings,
-                modules,
-                out _))
+        current.revision = committedRevision;
+        if (actor.Stats == null)
+        { LastFailure = "trait-reaction-stats-unavailable"; return false; }
+        if (!publications.TryBegin(characterId, out string failure))
+        { LastFailure = failure; return false; }
+        DomainFactLease lease = default;
+        CharacterMoodDeliveryTransactionSnapshot moodBefore = null;
+        bool moodTouched = false, ownerApplied = false, ownerRestored = false, retained = false, moodApplied = false;
+        float appliedValue = actionValue;
+        string moodEvent = "acquired-trait:" + reaction.ReactionId;
+        bool Rollback()
         {
-            outcomeCommitter.Cancel(preparedOutcome);
-            return false;
+            // Projection reads made by the stats owner need the unpublished state.
+            // No callbacks are emitted during rollback; restore the guard on failure.
+            bool restored = false;
+            progression.SetTraitReactionRecoveryBlocked(false);
+            try
+            {
+                if (ownerApplied && !ownerRestored)
+                {
+                    if (!progression.TryRollbackAcquiredTraitReaction(previous, committedRevision,
+                            beforeLevel, beforeExperience, transition.Level, transition.CurrentExperience)) return false;
+                    ownerRestored = true;
+                }
+                if (moodTouched) actor.Stats.RestoreMoodDeliveryTransactionState(moodBefore, publish: false);
+                restored = true;
+                return true;
+            }
+            catch (Exception error) when (Recoverable(error)) { return false; }
+            finally { if (!restored) progression.SetTraitReactionRecoveryBlocked(true); }
         }
-
-        switch (reaction.Action)
+        try
         {
-            case CharacterAcquiredTraitReactionAction.GrantExperience:
-                progression.AddExperience(Mathf.Max(1, Mathf.RoundToInt(actionValue)));
-                break;
-            case CharacterAcquiredTraitReactionAction.ApplyMoodImpulse:
-                moods.Apply(actor,
-                    "acquired-trait:" + reaction.ReactionId,
-                    actionValue,
-                    reaction.DurationDays,
-                    reaction.DisplayLabel);
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
+            float previousMood = actor.Stats.GetConditionValue(CharacterCondition.MOOD);
+            if (!experience)
+            {
+                moodBefore = actor.Stats.CaptureMoodDeliveryTransactionState();
+                moodTouched = true;
+                float resolved = moods.ApplyDaysWithoutNotification(actor, moodEvent, actionValue,
+                    reaction.DurationDays, reaction.DisplayLabel, out moodApplied);
+                appliedValue = moodApplied ? resolved : 0f;
+            }
+            else
+            {
+                int accepted = transition.CurrentExperience - beforeExperience;
+                for (int level = beforeLevel; level < transition.Level; level++)
+                    accepted = checked(accepted + CharacterProgressionRules.GetExperienceRequired(level));
+                appliedValue = accepted;
+            }
+            var fact = new CharacterTraitReactionFact(new CharacterTraitReactionFactData
+            {
+                characterId = characterId, characterDisplayName = actor.Identity.DisplayName,
+                traitInstanceId = instanceId, reactionId = reaction.ReactionId, action = reaction.Action,
+                beforeRevision = beforeRevision, afterRevision = committedRevision, absoluteDay = absoluteDay,
+                requestedValue = actionValue, appliedValue = appliedValue, durationDays = reaction.DurationDays,
+                beforeLevel = beforeLevel, beforeExperience = beforeExperience,
+                afterLevel = transition.Level, afterExperience = transition.CurrentExperience,
+                moodBefore = previousMood, moodAfter = actor.Stats.GetConditionValue(CharacterCondition.MOOD),
+                beforeTriggerDay = beforeTriggerDay, beforeDailyCount = beforeDailyCount, beforeTotalCount = beforeTotalCount,
+                afterDailyCount = state.triggersOnLastDay, afterTotalCount = state.totalTriggerCount
+            });
+            if (!facts.TryReserve(fact, out lease, out failure))
+            { LastFailure = failure; return false; }
+            if (!progression.TryStageAcquiredTraitReaction(current, beforeRevision, settings, modules,
+                    experience ? (int)actionValue : 0, out transition, out failure))
+            { LastFailure = failure; return false; }
+            ownerApplied = true;
+            DomainFactDelivery delivered = publications.PublishApplied(fact, lease);
+            retained = delivered.MayBeCommitted;
+            if (!retained) { LastFailure = delivered.Detail; return false; }
+            if (!delivered.Completed) LastFailure = delivered.Detail;
         }
-        if (!outcomeCommitter.TryCommit(
-                preparedOutcome,
-                committedRevision,
-                out string outcomeCommitFailure))
+        catch (Exception error) when (Recoverable(error))
+        { LastFailure = "trait-reaction-command:" + error.Message; return false; }
+        finally
         {
-            Debug.LogError(
-                "Acquired-trait reaction outcome commit failed after its domain commit: "
-                + outcomeCommitFailure);
-            return false;
+            try
+            {
+                if (!retained && !Rollback())
+                {
+                    progression.SetTraitReactionRecoveryBlocked(true);
+                    publications.RetainRollback(characterId, Rollback);
+                    LastFailure = "trait-reaction-effect-rollback-pending:" + LastFailure;
+                }
+            }
+            finally
+            {
+                try { if (lease.IsValid) facts.Cancel(lease); }
+                finally { publications.End(characterId); }
+            }
         }
-        events.Publish(new CharacterAcquiredTraitReactionExecutedEvent(
-            characterId.Value,
-            instanceId,
-            reaction.ReactionId,
-            reaction.Action,
-            actionValue,
-            absoluteDay));
+        // These are notifications of an already applied reaction. They are never
+        // rerun by durable fact recovery and cannot turn it into a fresh action.
+        Notify(() => progression.PublishAcquiredTraitReaction(transition, experience));
+        if (moodApplied)
+            Notify(() => actor.Stats.PublishCommittedMoodFactor("identity:" + moodEvent, appliedValue, absoluteDay));
+        Notify(() => events.Publish(new CharacterAcquiredTraitReactionExecutedEvent(
+            characterId, instanceId, reaction.ReactionId, reaction.Action, appliedValue, absoluteDay)));
         return true;
     }
+
+    private void Notify(Action callback)
+    {
+        try { callback(); }
+        catch (Exception error) when (Recoverable(error))
+        {
+            LastFailure = (LastFailure.Length == 0 ? string.Empty : LastFailure + " | ")
+                + "trait-reaction-notification:" + error.Message;
+            Debug.LogException(error);
+        }
+    }
+
+    private static bool Recoverable(Exception error) => error is not OutOfMemoryException
+        && error is not StackOverflowException && error is not AccessViolationException;
 }

@@ -470,7 +470,10 @@ public sealed class DefenseCombatPresentation : MonoBehaviour
         text.fontStyle = FontStyles.Bold;
         text.color = color;
         ApplyKoreanFont(text);
-        if (text.fontSharedMaterial != null)
+        // TMP outline setters instantiate a renderer material. That is correct for an
+        // isolated runtime presentation, but leaks editor-only material instances when
+        // production diagnostics construct actors outside play mode.
+        if (Application.isPlaying && text.fontSharedMaterial != null)
         {
             text.outlineColor = new Color(0.02f, 0.01f, 0.01f, 0.95f);
             text.outlineWidth = 0.2f;

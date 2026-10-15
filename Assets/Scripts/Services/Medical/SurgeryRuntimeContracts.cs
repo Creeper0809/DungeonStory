@@ -299,6 +299,12 @@ public interface ISurgeryWorkCommand
         CharacterActor doctor,
         out SurgeryOrder order,
         out DomainFailure failure);
+    bool TryReserveWork(
+        BuildableObject facility,
+        CharacterActor doctor,
+        CharacterCommandOrigin origin,
+        out SurgeryOrder order,
+        out DomainFailure failure);
     bool ApplyWork(
         string orderId,
         CharacterActor doctor,

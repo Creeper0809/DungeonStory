@@ -7,6 +7,7 @@ using System.Reflection;
 using BehaviorDesigner.Runtime;
 using DG.Tweening;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -1633,7 +1634,7 @@ public static class FullGameManualQaRuntimeProbe
             return;
         }
 
-        shop.Refresh(7, true);
+        shop.Refresh(7, FacilityShopRefreshCause.Manual);
         int dailyOffers = shop.CurrentDailyOffers.Count;
         int basicOffers = shop.CurrentBasicPurchaseOffers.Count;
         int beforeMoney = gameData != null && gameData.holdingMoney != null ? gameData.holdingMoney.Value : -1;
@@ -3268,6 +3269,9 @@ public static class FullGameManualQaRuntimeProbe
             InvasionIntruderRuntime runtime = intruder.gameObject.AddComponent<InvasionIntruderRuntime>();
             if (context != null && defenseStatus != null)
             {
+                InvasionFactPublicationRuntime invasionPublications =
+                    ResolveFromLifetimeScope<InvasionFactPublicationRuntime>();
+                IGameCalendar calendar = ResolveFromLifetimeScope<IGameCalendar>();
                 runtime.Initialize(
                     context,
                     defenseStatus,
@@ -3277,16 +3281,18 @@ public static class FullGameManualQaRuntimeProbe
                         ?? CharacterAiEditorTestDependencies.GameEvents,
                     ResolveFromLifetimeScope<ITreasuryDefenseRuntime>(),
                     ResolveFromLifetimeScope<ICharacterPerformanceQuery>(),
-                    ResolveFromLifetimeScope<IMigratedProducerOutcomeTransaction>());
+                    invasionPublications,
+                    calendar);
                 runtimeInitialized = true;
+                var threat = new InvasionThreatSnapshot(
+                    125f,
+                    InvasionThreatStage.Candidate,
+                    new InvasionThreatFactors(4f, 3f, 7f, 2f),
+                    0f,
+                    0f);
                 runtime.PrepareBegin(
                     intruderData != null ? intruderData : intruder.Identity.Data,
-                    new InvasionThreatSnapshot(
-                        125f,
-                        InvasionThreatStage.Candidate,
-                        new InvasionThreatFactors(4f, 3f, 7f, 2f),
-                        0f,
-                        0f),
+                    threat,
                     new InvasionIntruderSettings
                     {
                         secondsToFullFocus = 0.1f,
@@ -3296,6 +3302,11 @@ public static class FullGameManualQaRuntimeProbe
                         finalCombatWindupSeconds = 0f
                     },
                     intruder.transform.position);
+                PublishQaInvasionStart(
+                    runtime,
+                    invasionPublications,
+                    threat,
+                    calendar.Day);
                 runtime.StartPrepared(
                     intruder.transform.position,
                     grid != null ? grid.GetXY(intruder.transform.position) : Vector2Int.zero);
@@ -3312,6 +3323,61 @@ public static class FullGameManualQaRuntimeProbe
         }
 
         lines.Add($"INVASION-FINAL-COMBAT grid={grid != null}; context={context != null}; defenseStatus={defenseStatus != null}; intruderData={intruderData != null}; directPath={directPath}; pathSteps={pathCount}; pathReachedOwner={pathReachedOwner}; runtimeInitialized={runtimeInitialized}; finalCombatApplied={finalCombatApplied}; ownerHealth={ownerHealthBefore:0.###}->{ownerHealthAfter:0.###}; exception={CompactText(exception)}");
+    }
+
+    private static void PublishQaInvasionStart(
+        InvasionIntruderRuntime runtime,
+        InvasionFactPublicationRuntime publications,
+        InvasionThreatSnapshot threat,
+        int absoluteDay)
+    {
+        CharacterActor actor = runtime?.IntruderActor
+            ?? throw new ArgumentNullException(nameof(runtime));
+        CharacterId characterId = CharacterPersistentIdentity.Require(actor);
+        var source = new InvasionLifecycleFactData
+        {
+            runtimeId = runtime.RuntimeId,
+            intruderId = characterId.Value,
+            intruderName = actor.Identity?.DisplayName ?? actor.name,
+            absoluteDay = absoluteDay,
+            damageIndexBefore = 0,
+            damageIndexAfter = 0,
+            cellX = 0,
+            cellY = 0,
+            stage = InvasionLifecycleStage.Started,
+            stateBefore = InvasionIntruderState.None,
+            stateAfter = InvasionIntruderState.Rallying,
+            riskBefore = 0f,
+            riskAfter = Mathf.Max(0f, threat.threat),
+            targetKind = InvasionLifecycleTargetKind.None,
+            targetId = string.Empty,
+            targetName = string.Empty,
+            reason = string.Empty,
+            resolution = InvasionResolutionKind.None,
+            sourceOwnerId = string.Empty
+        };
+        if (!publications.TryBegin(
+                source,
+                out InvasionFactPublicationRuntime.Preparation prepared,
+                out string failure))
+        {
+            throw new InvalidOperationException(
+                "QA invasion-start reservation failed: " + failure);
+        }
+        using (prepared)
+        {
+            prepared.SetRollback(() => { });
+            DomainFactDelivery delivered = prepared.PublishApplied(
+                prepared.Snapshot());
+            if (!delivered.Completed)
+            {
+                throw new InvalidOperationException(
+                    "QA invasion-start publication failed: "
+                    + delivered.Detail);
+            }
+            runtime.InitializeInvasionPublicationLineage(
+                prepared.PublicationKey);
+        }
     }
 
     private static IEnumerator RunTimedInvasionCoroutine(

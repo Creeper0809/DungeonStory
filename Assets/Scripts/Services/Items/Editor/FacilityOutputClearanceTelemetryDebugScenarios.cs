@@ -16,6 +16,7 @@ public static class FacilityOutputClearanceTelemetryDebugScenarios
     {
         VerifyFixedPointClock();
         VerifyDisabledRuntimeIsNoOp();
+        VerifyObservationFailureLifecycle();
         VerifyPartialPickupCompletesExactlyOnce();
         VerifyRecoveryReplayIsIdempotent();
         VerifyRollbackRemovesUncommittedSample();
@@ -35,11 +36,47 @@ public static class FacilityOutputClearanceTelemetryDebugScenarios
             "slice:qa:clearance:disabled",
             100L,
             1L));
+        telemetry.RecordObservationFailure(
+            "qa-disabled-observation-must-be-no-op");
         FacilityOutputClearanceTelemetrySnapshot snapshot = telemetry.Capture();
         Require(snapshot.ActiveBatchCount == 0
             && snapshot.Completed.Count == 0
+            && snapshot.ConflictingPublicationCount == 0
+            && string.IsNullOrEmpty(snapshot.LastObservationFailure)
             && snapshot.IsClean,
             "Player runtime must remain a no-op until an audit session is explicit.");
+    }
+
+    private static void VerifyObservationFailureLifecycle()
+    {
+        const string failure = "qa-active-observation-failure";
+        FacilityOutputClearanceTelemetryRuntime telemetry = new();
+        telemetry.BeginCapture("qa:clearance:observation-failure");
+        telemetry.RecordObservationFailure(failure);
+        FacilityOutputClearanceTelemetrySnapshot failed = telemetry.Capture();
+        Require(!failed.IsClean
+                && failed.ConflictingPublicationCount == 1
+                && string.Equals(
+                    failed.LastObservationFailure,
+                    failure,
+                    StringComparison.Ordinal),
+            "Active observation failure was not retained as an explicit conflict.");
+        FacilityOutputClearanceTelemetrySnapshot ended = telemetry.EndCapture();
+        Require(!ended.IsClean
+                && ended.ConflictingPublicationCount == 1
+                && string.Equals(
+                    ended.LastObservationFailure,
+                    failure,
+                    StringComparison.Ordinal),
+            "Ending capture disguised an observation failure as a clean sample.");
+
+        telemetry.BeginCapture("qa:clearance:observation-failure-reset");
+        FacilityOutputClearanceTelemetrySnapshot reset = telemetry.Capture();
+        Require(reset.IsClean
+                && reset.ConflictingPublicationCount == 0
+                && string.IsNullOrEmpty(reset.LastObservationFailure),
+            "A new capture did not reset prior observation failure state.");
+        telemetry.EndCapture();
     }
 
     private static void VerifyFixedPointClock()

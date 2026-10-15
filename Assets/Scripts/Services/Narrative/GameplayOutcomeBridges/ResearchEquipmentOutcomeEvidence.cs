@@ -1,58 +1,5 @@
 using System;
 using System.Globalization;
-using System.Linq;
-
-/// <summary>Exact physical wear observed inside the durable-use rollback boundary.</summary>
-public sealed class ResearchEquipmentOutcomeEvidence
-{
-    public ResearchEquipmentOutcomeEvidence(DurableFacilityEquipmentUseContext context)
-    {
-        if (context == null) throw new ArgumentNullException(nameof(context));
-        StackId = context.Before.StackId;
-        ItemId = context.Before.ItemId.Value;
-        FacilityId = context.Slot.OwnerFacilityId.Value;
-        AssignmentSequence = context.Slot.AssignmentSequence;
-        RevisionBefore = context.Before.ContentRevision;
-        RevisionAfter = context.After.ContentRevision;
-        Before = Read(context.Before, "current");
-        After = Read(context.After, "current");
-        RequestedWear = context.WearAmount;
-        double maximum = Read(context.Before, "maximum");
-        if (!GameplayOutcomeStableIdSyntax.IsValid(StackId)
-            || !GameplayOutcomeStableIdSyntax.IsValid(ItemId)
-            || !GameplayOutcomeStableIdSyntax.IsValid(FacilityId)
-            || !string.Equals(context.Requirement.ItemId.Value, ItemId, StringComparison.Ordinal)
-            || context.Before.Quantity != context.After.Quantity
-            || AssignmentSequence <= 0 || RevisionBefore < 0 || RevisionAfter <= RevisionBefore
-            || !double.IsFinite(maximum) || maximum <= 0 || maximum != Read(context.After, "maximum")
-            || !double.IsFinite(Before) || !double.IsFinite(After) || !double.IsFinite(RequestedWear)
-            || Before <= 0 || Before > maximum || After < 0 || After > Before || RequestedWear <= 0
-            || Math.Abs(After - Math.Max(0, Before - RequestedWear)) > 0.0000001d)
-            throw new ArgumentException("research-equipment-wear-context-invalid", nameof(context));
-    }
-
-    public string StackId { get; }
-    public string ItemId { get; }
-    public string FacilityId { get; }
-    public long AssignmentSequence { get; }
-    public long RevisionBefore { get; }
-    public long RevisionAfter { get; }
-    public double Before { get; }
-    public double After { get; }
-    public double RequestedWear { get; }
-    public double Spent => Before - After;
-
-    private static double Read(DurableFacilityEquipmentUseSubject subject, string key)
-    {
-        var component = subject.Components.SingleOrDefault(value =>
-            value.ComponentTypeId == ItemInstanceComponentIds.Durability)
-            ?? throw new ArgumentException("research-equipment-durability-missing");
-        var values = component.Values.Where(value => value.Key == key).ToArray();
-        if (values.Length != 1 || values[0].Kind != ItemStateValueKind.Decimal)
-            throw new ArgumentException("research-equipment-durability-invalid:" + key);
-        return values[0].DecimalValue;
-    }
-}
 
 internal static class ResearchEquipmentOutcomeEncoding
 {
@@ -75,7 +22,7 @@ internal static class ResearchEquipmentOutcomeEncoding
     public static bool IsMetric(GameplayMetricId id, GameplayMetricUnitId unit) => unit.Equals(Unit)
         && (id.Equals(Before) || id.Equals(After) || id.Equals(Spent) || id.Equals(Requested));
 
-    public static bool Write(in ResearchEquipmentOutcomeEvidence equipment, ref OutcomeWriteBuilder builder)
+    public static bool Write(in ResearchEquipmentUseSnapshot equipment, ref OutcomeWriteBuilder builder)
     {
         GameplayEntityId id = new(Kind, equipment.StackId);
         return builder.AddParticipant(new GameplayOutcomeParticipant(id, Role, GameplayParticipationKind.Direct,
@@ -87,7 +34,7 @@ internal static class ResearchEquipmentOutcomeEncoding
             && builder.AddMetric(new GameplayOutcomeMetric(Requested, equipment.RequestedWear, Unit, id));
     }
 
-    public static bool WriteFacts(in ResearchEquipmentOutcomeEvidence equipment, ref OutcomeWriteBuilder builder) =>
+    public static bool WriteFacts(in ResearchEquipmentUseSnapshot equipment, ref OutcomeWriteBuilder builder) =>
         builder.AddFact(new GameplayOutcomeFact(Definition, equipment.ItemId))
         && builder.AddFact(new GameplayOutcomeFact(SlotSequence, equipment.AssignmentSequence.ToString(CultureInfo.InvariantCulture)))
         && builder.AddFact(new GameplayOutcomeFact(RevisionBefore, equipment.RevisionBefore.ToString(CultureInfo.InvariantCulture)))

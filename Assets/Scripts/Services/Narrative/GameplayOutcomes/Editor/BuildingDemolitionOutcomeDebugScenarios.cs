@@ -8,6 +8,13 @@ using UnityEngine;
 
 public static class BuildingDemolitionOutcomeDebugScenarios
 {
+    public static void RunOrThrow()
+    {
+        if (!RunAll(true))
+            throw new InvalidOperationException(
+                "B0 G05 building demolition outcome scenarios failed.");
+    }
+
     public static bool RunAll(bool logSuccess = false)
     {
         GameplayOutcomeRegistry outcomeRegistry = new(
@@ -80,7 +87,16 @@ public static class BuildingDemolitionOutcomeDebugScenarios
         Require(
             committed.Status ==
                 ProductionFacilityDestructiveDrainStepStatus.Applied,
-            "demolition outcome did not commit");
+            "demolition drain owner did not commit its pre-removal marker");
+        GameplayEntityId facility = new(
+            BuildingDemolitionOutcomeIds.FacilityKind,
+            facilityId.Value);
+        Require(
+            ledger.GetForEntity(
+                facility,
+                OutcomeCursor.FirstPage(10),
+                OutcomeFilter.All).Items.Count == 0,
+            "demolition outcome committed before world removal");
 
         ProductionFacilityDestructiveDrainOwnerSaveData awaiting =
             plannedOwner.Clone();
@@ -100,11 +116,68 @@ public static class BuildingDemolitionOutcomeDebugScenarios
         Require(
             acknowledged.Status ==
                 ProductionFacilityDestructiveDrainStepStatus.Applied,
-            "demolition outcome acknowledgement did not converge");
+            "demolition drain owner acknowledgement did not converge");
+        Require(
+            ledger.GetForEntity(
+                facility,
+                OutcomeCursor.FirstPage(10),
+                OutcomeFilter.All).Items.Count == 0,
+            "demolition outcome committed before acknowledged world removal");
 
-        GameplayEntityId facility = new(
-            BuildingDemolitionOutcomeIds.FacilityKind,
-            facilityId.Value);
+        ProductionFacilityDestructiveDrainOwnerSaveData acknowledgedOwner =
+            awaiting.Clone();
+        acknowledgedOwner.phase =
+            ProductionFacilityDestructiveDrainStepPhase.OwnerAcknowledged;
+        var terminalEntry = new ProductionFacilityDestructiveDrainEntrySaveData
+        {
+            operationId = operationId.Value,
+            cause = ProductionFacilityDestructiveDrainCause.ExplicitDemolition,
+            facilityId = facilityId.Value,
+            destinationId = ProductionOutputDestinationId
+                .FromFacility(facilityId).Value,
+            phase = ProductionFacilityDestructiveDrainPhase
+                .AwaitingWorldRemoval,
+            outcomeSnapshotVersion = snapshot.Version,
+            outcomeBuildingDefinitionId = snapshot.BuildingDefinitionId,
+            outcomeBuildingDisplayName = snapshot.BuildingDisplayName,
+            outcomePositionX = snapshot.PositionX,
+            outcomePositionY = snapshot.PositionY,
+            outcomeAbsoluteDay = snapshot.AbsoluteDay,
+            outcomeOwnerRevision = snapshot.OwnerRevision,
+            participants = new List<
+                ProductionFacilityDestructiveDrainParticipantSaveData>
+            {
+                new()
+                {
+                    participantId = demolition.ParticipantId,
+                    contractVersion = demolition.ContractVersion,
+                    preparedContributionFingerprint = contribution,
+                    expectedCurrentContributionFingerprint = contribution,
+                    planFingerprint = plan.PlanFingerprint,
+                    owners = new List<
+                        ProductionFacilityDestructiveDrainOwnerSaveData>
+                    {
+                        acknowledgedOwner
+                    }
+                }
+            }
+        };
+        var gcContext = new ProductionFacilityDestructiveDrainCheckpointGcContext(
+            1, new string('a', 64), "qa-demolition");
+        var gcEntry = JsonUtility.FromJson<ProductionFacilityDestructiveDrainEntrySaveData>(
+            JsonUtility.ToJson(terminalEntry));
+        gcEntry.phase = ProductionFacilityDestructiveDrainPhase.WorldRemovedAwaitingCheckpointGc;
+        Require(demolition.PrepareCheckpointGarbageCollection(gcContext, new[] { gcEntry },
+                out var prematureCandidate).Status == ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred
+                && prematureCandidate == null,
+            "GC accepted a demolition operation whose durable receipt is still prepared");
+        Require(
+            demolition.TryFinalizeAfterWorldRemoval(
+                terminalEntry,
+                out string finalizeFailure),
+            "demolition outcome did not finalize after world removal: "
+                + finalizeFailure);
+
         GameplayOutcomeQueryPage facilityPage = ledger.GetForEntity(
             facility,
             OutcomeCursor.FirstPage(10),
@@ -135,13 +208,18 @@ public static class BuildingDemolitionOutcomeDebugScenarios
             "demolition canonical replay prepare failed: " + replayFailure);
         ProductionFacilityDestructiveDrainStepResult replay =
             demolition.TryCommit(planned);
+        string replayFinalizeFailure = string.Empty;
         Require(
             replay.Status == ProductionFacilityDestructiveDrainStepStatus.Applied
+            && demolition.TryFinalizeAfterWorldRemoval(
+                terminalEntry,
+                out replayFinalizeFailure)
             && ledger.GetForEntity(
                 facility,
                 OutcomeCursor.FirstPage(10),
                 OutcomeFilter.All).Items.Count == 1,
-            "demolition replay duplicated or rejected the canonical result");
+            "demolition replay duplicated or rejected the canonical result: "
+                + replayFinalizeFailure);
 
         ProductionFacilityDestructiveDrainOutcomeSnapshot driftedSnapshot = new(
             "building-definition:qa-smithy",
@@ -185,7 +263,9 @@ public static class BuildingDemolitionOutcomeDebugScenarios
             demolition,
             prepareContext,
             snapshot);
+        VerifyPostRemovalCommitFailureRetry();
 
+        VerifyCheckpointGc(demolition, bridge, planned, terminalEntry, gcContext, gcEntry, ledger);
         GameplayOutcomeLedgerSaveData saved = ledger.CaptureGameplayOutcomes();
         GameplayOutcomeLedger restored = new(
             outcomeRegistry,
@@ -209,6 +289,164 @@ public static class BuildingDemolitionOutcomeDebugScenarios
         if (logSuccess)
             Debug.Log("[Building Demolition Outcome] PASS");
         return true;
+    }
+
+    private static void VerifyPostRemovalCommitFailureRetry()
+    {
+        GameplayOutcomeRegistry registry = new(
+            new IGameplayOutcomeDescriptor[]
+            {
+                new BuildingDemolitionOutcomeDescriptor(
+                    new KoreanJosaFormatter())
+            },
+            new IGameplayOutcomeAdapterRegistration[]
+            {
+                new BuildingDemolitionOutcomeAdapter()
+            });
+        GameplayOutcomeLedger ledger = new(
+            registry,
+            new GameplayOutcomeBufferLimits(),
+            new GameplayOutcomeRunId(
+                "run:building-demolition-post-removal-retry"),
+            1L);
+        GameplayOutcomeRecorder recorder = new(
+            ledger,
+            registry,
+            new GameEventBus());
+        var committer = new RejectOnceBuildingDemolitionOutcomeCommitter(
+            new BuildingDemolitionGameplayOutcomeBridge(recorder, ledger));
+        BuildingDemolitionDestructiveDrainParticipant participant = new(
+            committer);
+        BuildingInstanceId facilityId =
+            (BuildingInstanceId)"building:qa-demolition-outcome-retry";
+        ProductionFacilityDestructiveDrainOperationId operationId =
+            ProductionFacilityDestructiveDrainOperationId.FromFacility(
+                facilityId);
+        ProductionFacilityDestructiveDrainOutcomeSnapshot snapshot = new(
+            "building-definition:qa-smithy-retry",
+            "재시도 대장간",
+            9,
+            6,
+            18,
+            2L);
+        string contribution = BuildingDemolitionOutcomeLifecycle
+            .ProjectContribution(facilityId);
+        ProductionFacilityDestructiveDrainPrepareContext prepare = new(
+            operationId,
+            ProductionFacilityDestructiveDrainCause.ExplicitDemolition,
+            facilityId,
+            ProductionOutputDestinationId.FromFacility(facilityId),
+            ProductionFacilityDestructiveDrainCanonical.ComputeFingerprint(
+                "qa:demolition-post-removal-retry"),
+            snapshot);
+        ProductionFacilityDestructiveDrainParticipantPlan plan =
+            participant.Prepare(prepare);
+        ProductionFacilityDestructiveDrainOwnerSaveData owner = Owner(
+            operationId,
+            participant.ParticipantId,
+            plan.Owners.Single());
+        ProductionFacilityDestructiveDrainStepContext planned = new(
+            operationId,
+            facilityId,
+            participant.ParticipantId,
+            owner,
+            contribution,
+            snapshot);
+        Require(
+            participant.TryPrepareDurable(planned, out string prepareFailure),
+            "post-removal retry durable prepare failed: " + prepareFailure);
+        ProductionFacilityDestructiveDrainStepResult committed =
+            participant.TryCommit(planned);
+        Require(
+            committed.Status ==
+                ProductionFacilityDestructiveDrainStepStatus.Applied,
+            "post-removal retry pre-removal marker did not commit");
+
+        ProductionFacilityDestructiveDrainOwnerSaveData awaiting =
+            owner.Clone();
+        awaiting.phase = ProductionFacilityDestructiveDrainStepPhase
+            .EffectCommittedAwaitingOwnerAck;
+        awaiting.commitId = committed.CommitId;
+        awaiting.receiptFingerprint = committed.ReceiptFingerprint;
+        ProductionFacilityDestructiveDrainStepContext awaitingContext = new(
+            operationId,
+            facilityId,
+            participant.ParticipantId,
+            awaiting,
+            contribution,
+            snapshot);
+        Require(
+            participant.TryAcknowledge(awaitingContext).Status ==
+                ProductionFacilityDestructiveDrainStepStatus.Applied,
+            "post-removal retry pre-removal marker did not acknowledge");
+        ProductionFacilityDestructiveDrainOwnerSaveData acknowledged =
+            awaiting.Clone();
+        acknowledged.phase =
+            ProductionFacilityDestructiveDrainStepPhase.OwnerAcknowledged;
+        var terminal = new ProductionFacilityDestructiveDrainEntrySaveData
+        {
+            operationId = operationId.Value,
+            cause = ProductionFacilityDestructiveDrainCause.ExplicitDemolition,
+            facilityId = facilityId.Value,
+            destinationId = ProductionOutputDestinationId
+                .FromFacility(facilityId).Value,
+            phase = ProductionFacilityDestructiveDrainPhase
+                .AwaitingWorldRemoval,
+            outcomeSnapshotVersion = snapshot.Version,
+            outcomeBuildingDefinitionId = snapshot.BuildingDefinitionId,
+            outcomeBuildingDisplayName = snapshot.BuildingDisplayName,
+            outcomePositionX = snapshot.PositionX,
+            outcomePositionY = snapshot.PositionY,
+            outcomeAbsoluteDay = snapshot.AbsoluteDay,
+            outcomeOwnerRevision = snapshot.OwnerRevision,
+            participants = new List<
+                ProductionFacilityDestructiveDrainParticipantSaveData>
+            {
+                new()
+                {
+                    participantId = participant.ParticipantId,
+                    contractVersion = participant.ContractVersion,
+                    preparedContributionFingerprint = contribution,
+                    expectedCurrentContributionFingerprint = contribution,
+                    planFingerprint = plan.PlanFingerprint,
+                    owners = new List<
+                        ProductionFacilityDestructiveDrainOwnerSaveData>
+                    {
+                        acknowledged
+                    }
+                }
+            }
+        };
+        GameplayEntityId entity = new(
+            BuildingDemolitionOutcomeIds.FacilityKind,
+            facilityId.Value);
+        committer.RejectNextCommit = true;
+        Require(
+            !participant.TryFinalizeAfterWorldRemoval(
+                terminal,
+                out string rejectedFailure)
+            && rejectedFailure ==
+                "w02-injected-post-removal-ledger-rejection"
+            && committer.CommitAttemptCount == 1
+            && committer.SuccessfulCommitCount == 0
+            && ledger.GetForEntity(
+                entity,
+                OutcomeCursor.FirstPage(10),
+                OutcomeFilter.All).Items.Count == 0,
+            "post-removal ledger rejection created a false demolition result");
+        Require(
+            participant.TryFinalizeAfterWorldRemoval(
+                terminal,
+                out string retryFailure)
+            && string.IsNullOrEmpty(retryFailure)
+            && committer.CommitAttemptCount == 2
+            && committer.SuccessfulCommitCount == 1
+            && ledger.GetForEntity(
+                entity,
+                OutcomeCursor.FirstPage(10),
+                OutcomeFilter.All).Items.Count == 1,
+            "post-removal ledger retry did not commit exactly once: "
+                + retryFailure);
     }
 
     private static void VerifyJournalRoundTripAndLegacyMigration(
@@ -394,10 +632,122 @@ public static class BuildingDemolitionOutcomeDebugScenarios
             demolition
         };
 
+    private static void VerifyCheckpointGc(
+        BuildingDemolitionDestructiveDrainParticipant participant,
+        IBuildingDemolitionOutcomeCommitter bridge,
+        ProductionFacilityDestructiveDrainStepContext planned,
+        ProductionFacilityDestructiveDrainEntrySaveData terminal,
+        ProductionFacilityDestructiveDrainCheckpointGcContext context,
+        ProductionFacilityDestructiveDrainEntrySaveData eligible,
+        GameplayOutcomeLedger ledger)
+    {
+        string before = JsonUtility.ToJson(ledger.CaptureGameplayOutcomes());
+        var invalid = new IReadOnlyList<ProductionFacilityDestructiveDrainEntrySaveData>[]
+        {
+            null, new ProductionFacilityDestructiveDrainEntrySaveData[] { null },
+            new[] { terminal }, new[] { eligible, eligible },
+            new[] { new ProductionFacilityDestructiveDrainEntrySaveData
+                { phase = ProductionFacilityDestructiveDrainPhase.WorldRemovedAwaitingCheckpointGc } }
+        };
+        foreach (var entries in invalid)
+            Require(participant.PrepareCheckpointGarbageCollection(context, entries, out var rejected).Status
+                    == ProductionFacilityDestructiveDrainCheckpointGcStatus.Corruption && rejected == null,
+                "GC accepted a malformed or nonterminal demolition entry");
+        Require(participant.PrepareCheckpointGarbageCollection(context, new[] { eligible }, out var candidate).Status
+                == ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied
+                && candidate.ParticipantId == participant.ParticipantId
+                && candidate.OperationIds.SequenceEqual(new[] { eligible.operationId }),
+            "GC did not capture the exact demolition candidate");
+        Require(participant.PrepareCheckpointGarbageCollection(context, new[] { eligible }, out var overlap).Status
+                == ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred && overlap == null,
+            "GC replaced an active candidate");
+        bool foreignRejected = false;
+        try { new BuildingDemolitionDestructiveDrainParticipant(bridge).PublishCheckpointGarbageCollection(candidate); }
+        catch (InvalidOperationException) { foreignRejected = true; }
+        Require(foreignRejected, "Another participant instance accepted a foreign GC candidate");
+        Require(participant.PublishCheckpointGarbageCollection(candidate).Status
+                == ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied, "GC publication failed");
+        participant.RollbackCheckpointGarbageCollection(candidate);
+        participant.CompleteCheckpointGarbageCollection(candidate);
+        bool staleRejected = false;
+        try { participant.PublishCheckpointGarbageCollection(candidate); }
+        catch (InvalidOperationException) { staleRejected = true; }
+        Require(staleRejected && JsonUtility.ToJson(ledger.CaptureGameplayOutcomes()) == before,
+            "GC accepted a stale candidate or changed canonical demolition history");
+
+        Require(participant.PrepareCheckpointGarbageCollection(context, new[] { eligible }, out candidate).Status
+                == ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied, "GC could not retry after rollback");
+        Require(participant.TryPrepareDurable(planned, out _), "Could not create a late live receipt for GC rejection");
+        Require(participant.PublishCheckpointGarbageCollection(candidate).Status
+                == ProductionFacilityDestructiveDrainCheckpointGcStatus.Deferred,
+            "GC publication ignored a newly prepared live demolition receipt");
+        participant.RollbackCheckpointGarbageCollection(candidate);
+        participant.CompleteCheckpointGarbageCollection(candidate);
+        Require(participant.TryFinalizeAfterWorldRemoval(terminal, out _), "Late receipt could not complete its canonical replay");
+        Require(participant.PrepareCheckpointGarbageCollection(context,
+                Array.Empty<ProductionFacilityDestructiveDrainEntrySaveData>(), out candidate).Status
+                == ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied, "Empty GC checkpoint was rejected");
+        Require(participant.PublishCheckpointGarbageCollection(candidate).Status
+                == ProductionFacilityDestructiveDrainCheckpointGcStatus.Applied, "Empty GC checkpoint publication failed");
+        participant.CompleteCheckpointGarbageCollection(candidate);
+        Require(JsonUtility.ToJson(ledger.CaptureGameplayOutcomes()) == before,
+            "GC or canonical late receipt replay changed the durable demolition history");
+    }
+
     private static void Require(bool condition, string message)
     {
         if (!condition)
             throw new InvalidOperationException(message);
+    }
+
+    private sealed class RejectOnceBuildingDemolitionOutcomeCommitter :
+        IBuildingDemolitionOutcomeCommitter
+    {
+        private readonly IBuildingDemolitionOutcomeCommitter inner;
+
+        internal RejectOnceBuildingDemolitionOutcomeCommitter(
+            IBuildingDemolitionOutcomeCommitter inner)
+        {
+            this.inner = inner
+                ?? throw new ArgumentNullException(nameof(inner));
+        }
+
+        internal bool RejectNextCommit { get; set; }
+        internal int CommitAttemptCount { get; private set; }
+        internal int SuccessfulCommitCount { get; private set; }
+
+        public bool TryPrepare(
+            in BuildingDemolitionOutcomeReceipt receipt,
+            out PreparedBuildingDemolitionOutcome prepared,
+            out string failureReason) =>
+            inner.TryPrepare(receipt, out prepared, out failureReason);
+
+        public OwnerOutcomeCommitResult Commit(
+            in PreparedBuildingDemolitionOutcome prepared)
+        {
+            CommitAttemptCount++;
+            if (RejectNextCommit)
+            {
+                RejectNextCommit = false;
+                return new OwnerOutcomeCommitResult(
+                    OwnerOutcomeCommitPhase.Rejected,
+                    prepared.ResultKey,
+                    default,
+                    string.Empty,
+                    "w02-injected-post-removal-ledger-rejection");
+            }
+
+            OwnerOutcomeCommitResult result = inner.Commit(prepared);
+            if (result.DurablyCommitted)
+                SuccessfulCommitCount++;
+            return result;
+        }
+
+        public OwnerOutcomeCommitResult Reconcile(
+            GameplayResultKey resultKey) => inner.Reconcile(resultKey);
+
+        public void Cancel(in PreparedBuildingDemolitionOutcome prepared) =>
+            inner.Cancel(prepared);
     }
 
     private sealed class FakeParticipant :

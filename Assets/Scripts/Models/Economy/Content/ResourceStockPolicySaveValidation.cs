@@ -217,11 +217,6 @@ public static class ResourceStockPolicySaveValidation
                 report.AddError(
                     $"Quality-rejected sale '{pending?.operationId}' is non-canonical.");
             }
-            else if (pending.phase == QualityRejectedSaleCommitPhase.Prepared)
-            {
-                report.AddError(
-                    $"Quality-rejected sale '{pending.operationId}' was captured before physical commitment.");
-            }
             if (pending.sequence >= data.nextSaleSequence)
             {
                 report.AddError(

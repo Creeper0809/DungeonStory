@@ -9,6 +9,11 @@ public sealed class CharacterAcquiredTraitPendingRequestState
     public string targetPersistentId = string.Empty;
     public string requestId = string.Empty;
     public string requestKey = string.Empty;
+    public CharacterNarrativeRequestOwnerBinding ownerBinding;
+    // 0 is an older request reconstructed under the existing strict identity
+    // check. New live requests freeze their public, request-time context as v1.
+    public int publicContextVersion;
+    public NarrativePublicContextMaterialSnapshot publicContext;
     public string candidatePacketHash = string.Empty;
     public string submissionAuditId = string.Empty;
     public int manifestationMilestone;
@@ -24,6 +29,8 @@ public sealed class CharacterAcquiredTraitPendingRequestState
     public int narrativeBudget;
     public bool drawbackEvidenceQualified;
     public string moduleSelectionId = string.Empty;
+    public List<CharacterNarrativeFact> moduleSelectionLocalFacts = new();
+    public string moduleSelectionLocalFactsHash = string.Empty;
     public List<string> offeredBenefitModuleIds = new();
     public List<string> offeredDrawbackModuleIds = new();
     public List<CharacterAcquiredTraitModuleOfferState> moduleOffers = new();
@@ -40,6 +47,10 @@ public sealed class CharacterAcquiredTraitPendingRequestState
     {
         CharacterAcquiredTraitPendingRequestState clone =
             (CharacterAcquiredTraitPendingRequestState)MemberwiseClone();
+        clone.ownerBinding = ownerBinding?.Clone();
+        clone.publicContext = publicContext?.Clone();
+        clone.moduleSelectionLocalFacts = moduleSelectionLocalFacts?
+            .Select(value => value?.Clone()).ToList();
         clone.evidenceFactIds = (evidenceFactIds ?? new List<string>()).ToList();
         clone.evidenceBindings = (evidenceBindings
                 ?? new List<GameplayOutcomeEvidenceBindingSnapshot>())
@@ -55,6 +66,32 @@ public sealed class CharacterAcquiredTraitPendingRequestState
         clone.effectOverrides = (effectOverrides ?? new List<CharacterAcquiredTraitEffectOverride>())
             .Where(value => value != null).Select(value => value.Clone()).ToList();
         return clone;
+    }
+
+    public NarrativePublicContextMaterial RestorePublicContext()
+    {
+        // Unity's inline serializer can materialize a null reference as an
+        // empty object. Only that empty v0 representation is legacy absence.
+        if (publicContextVersion == 0 && (publicContext == null
+            || string.IsNullOrEmpty(publicContext.semanticHash)
+                && string.IsNullOrEmpty(publicContext.profileId) && string.IsNullOrEmpty(publicContext.subjectId)
+                && string.IsNullOrEmpty(publicContext.cultureStyleId) && string.IsNullOrEmpty(publicContext.selectionPolicyId)
+                && !publicContext.requireCharacterFact && !publicContext.requireMotif
+                && publicContext.availableFactCount == 0 && publicContext.omittedFactCount == 0
+                && (publicContext.entities?.Count ?? 0) == 0 && (publicContext.publicFacts?.Count ?? 0) == 0
+                && (publicContext.events?.Count ?? 0) == 0 && (publicContext.motifs?.Count ?? 0) == 0
+                && (publicContext.backgroundFactIds?.Count ?? 0) == 0 && (publicContext.relationshipFactIds?.Count ?? 0) == 0
+                && (publicContext.memoryFactIds?.Count ?? 0) == 0 && (publicContext.priorHistoryFactIds?.Count ?? 0) == 0)) return null;
+        if (publicContextVersion != 1 || publicContext == null)
+            throw new InvalidOperationException("Acquired-trait public context version/snapshot is invalid.");
+        NarrativePublicContextMaterial material = NarrativePublicContextFactory.Restore(publicContext);
+        if (material.ProfileId != LocalLlmRequestProfiles.AcquiredTrait.Id
+            || material.SubjectKind != NarrativePublicSubjectKind.Character
+            || material.SubjectId != targetPersistentId
+            || evidenceFactIds == null || evidenceFactIds.Count == 0
+            || evidenceFactIds.Any(id => !material.Events.Any(value => value.FactId == id)))
+            throw new InvalidOperationException("Acquired-trait frozen public context does not own its profile, target and evidence.");
+        return material;
     }
 }
 
@@ -196,22 +233,38 @@ public sealed class CharacterAcquiredTraitInstanceState
 }
 
 [Serializable]
+public sealed class CharacterAcquiredTraitRequestInvalidationState
+{
+    public string requestId = string.Empty;
+    public string requestKey = string.Empty;
+    public string reason = string.Empty;
+    public int registeredRevision;
+    public int invalidatedRevision;
+    public bool HasData => !string.IsNullOrEmpty(requestId) || !string.IsNullOrEmpty(requestKey)
+        || !string.IsNullOrEmpty(reason) || registeredRevision != 0 || invalidatedRevision != 0;
+    public CharacterAcquiredTraitRequestInvalidationState Clone() =>
+        (CharacterAcquiredTraitRequestInvalidationState)MemberwiseClone();
+}
+
+[Serializable]
 public sealed class CharacterAcquiredTraitAggregateState
 {
     public const int LegacyFormatVersion = 1;
     public const int FormulaFormatVersion = 2;
-    public const int CurrentFormatVersion = 3;
+    public const int CurrentFormatVersion = 4;
 
     public int formatVersion = CurrentFormatVersion;
     public int revision;
     public List<CharacterAcquiredTraitInstanceState> instances = new();
     public List<int> processedMilestones = new();
     public List<CharacterAcquiredTraitPendingRequestState> pendingRequests = new();
+    public CharacterAcquiredTraitRequestInvalidationState lastRequestInvalidation;
 
     public int ActiveCount => (instances ?? new List<CharacterAcquiredTraitInstanceState>())
         .Count(value => value != null && !value.erased);
 
     public bool HasPersistentData => revision != 0
+        || lastRequestInvalidation?.HasData == true
         || (instances?.Count ?? 0) != 0
         || (processedMilestones?.Count ?? 0) != 0
         || (pendingRequests?.Count ?? 0) != 0;
@@ -239,6 +292,7 @@ public sealed class CharacterAcquiredTraitAggregateState
         {
             formatVersion = formatVersion,
             revision = revision,
+            lastRequestInvalidation = lastRequestInvalidation?.Clone(),
             instances = sourceInstances
                 .Select(value => value?.Clone())
                 .ToList(),

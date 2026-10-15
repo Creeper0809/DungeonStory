@@ -123,6 +123,97 @@ public sealed class EquipmentEvolutionPresentationRequest
         EquipmentEvolutionPresentationState.PresentationPending;
     public List<string> evidenceIds = new();
     public List<GameplayOutcomeEvidenceBindingSnapshot> gameplayOutcomeEvidence = new();
+    public int publicContextVersion;
+    public string publicContextHash = string.Empty;
+    public NarrativePublicContextMaterialSnapshot publicContext;
+
+    // An uncaptured (including old V4) request binds on its first dispatch. Once
+    // captured, retries and save restoration must never read the current world.
+    public NarrativePublicContextMaterial RestorePublicContext()
+    {
+        if (publicContextVersion == 0 && string.IsNullOrEmpty(publicContextHash)
+            && IsUncapturedContext(publicContext)) return null;
+        if (publicContextVersion != 1 || publicContext == null
+            || !string.Equals(publicContextHash, ComputePublicContextHash(publicContext.semanticHash),
+                StringComparison.Ordinal))
+            throw new InvalidOperationException("Equipment frozen public context version or request binding is invalid.");
+        NarrativePublicContextMaterial material = NarrativePublicContextFactory.Restore(publicContext);
+        ValidatePublicContextOwner(material);
+        return material;
+    }
+
+    public void ValidatePublicContext() => RestorePublicContext();
+
+    public void ValidateFrozenNodeBinding(EvolutionNode node)
+    {
+        if (node == null || node.nodeId != nodeId || node.presentationId != presentationId
+            || evidenceIds == null || node.evidenceIds == null
+            || !evidenceIds.SequenceEqual(node.evidenceIds, StringComparer.Ordinal)
+            || !FrozenBindingPayloads(gameplayOutcomeEvidence)
+                .SequenceEqual(FrozenBindingPayloads(node.gameplayOutcomeEvidence), StringComparer.Ordinal))
+            throw new InvalidOperationException("Equipment presentation and effect node do not share the same frozen evidence.");
+    }
+
+    public void BindPublicContext(NarrativePublicContextMaterial material)
+    {
+        if (material == null) throw new ArgumentNullException(nameof(material));
+        ValidatePublicContextOwner(material);
+        NarrativePublicContextMaterial previous = RestorePublicContext();
+        if (previous != null)
+        {
+            if (!string.Equals(previous.SemanticHash, material.SemanticHash, StringComparison.Ordinal))
+                throw new InvalidOperationException("Equipment request public context is already frozen.");
+            return;
+        }
+        publicContext = material.CaptureSnapshot();
+        publicContextHash = ComputePublicContextHash(material.SemanticHash);
+        publicContextVersion = 1;
+    }
+
+    private void ValidatePublicContextOwner(NarrativePublicContextMaterial material)
+    {
+        if (material.ProfileId != "EvolutionHistory"
+            || material.SubjectKind != NarrativePublicSubjectKind.Equipment
+            || material.SubjectId != targetPersistentId
+            || evidenceIds == null || evidenceIds.Count == 0
+            || !material.Events.Select(value => value.EvidenceId).Distinct(StringComparer.Ordinal)
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .SequenceEqual(evidenceIds.OrderBy(value => value, StringComparer.Ordinal), StringComparer.Ordinal))
+            throw new InvalidOperationException("Equipment frozen public context profile, owner or evidence differs from its request.");
+    }
+
+    private string ComputePublicContextHash(string semanticHash) => NarrativeInferenceHash.ComputeSha256Utf8(
+        "equipment-request-context-v1:" + string.Concat(new[]
+        {
+            presentationId, nodeId, targetPersistentId, historyHash, attunementOwnerPersistentId,
+            reforgeOrderId, targetGeneration.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            masteryCost.ToString("R", System.Globalization.CultureInfo.InvariantCulture), semanticHash
+        }.Concat(new[] { (evidenceIds?.Count ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture) })
+        .Concat(evidenceIds ?? new List<string>())
+        .Concat(FrozenBindingPayloads(gameplayOutcomeEvidence)).Select(value =>
+            (value ?? string.Empty).Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + ":" + (value ?? string.Empty))));
+
+    // These are copies of one frozen input, not independently recomputed facts.
+    // Compare the full serialized DTO; semantic validity remains the evidence authority's job.
+    private static IEnumerable<string> FrozenBindingPayloads(List<GameplayOutcomeEvidenceBindingSnapshot> values)
+    {
+        if (values == null) return Array.Empty<string>();
+        if (values.Any(value => value == null))
+            throw new InvalidOperationException("Equipment presentation contains a null frozen evidence binding.");
+        return values.OrderBy(value => value.publicFactId, StringComparer.Ordinal)
+            .Select(value => JsonUtility.ToJson(value));
+    }
+
+    private static bool IsUncapturedContext(NarrativePublicContextMaterialSnapshot value) => value == null
+        || string.IsNullOrEmpty(value.semanticHash) && string.IsNullOrEmpty(value.profileId)
+        && string.IsNullOrEmpty(value.subjectId) && string.IsNullOrEmpty(value.cultureStyleId)
+        && string.IsNullOrEmpty(value.selectionPolicyId) && !value.requireCharacterFact && !value.requireMotif
+        && value.availableFactCount == 0 && value.omittedFactCount == 0
+        && (value.entities?.Count ?? 0) == 0 && (value.publicFacts?.Count ?? 0) == 0
+        && (value.events?.Count ?? 0) == 0 && (value.motifs?.Count ?? 0) == 0
+        && (value.backgroundFactIds?.Count ?? 0) == 0 && (value.relationshipFactIds?.Count ?? 0) == 0
+        && (value.memoryFactIds?.Count ?? 0) == 0 && (value.priorHistoryFactIds?.Count ?? 0) == 0;
 
     public EquipmentEvolutionPresentationRequest Clone() => new()
     {
@@ -137,6 +228,9 @@ public sealed class EquipmentEvolutionPresentationRequest
         failureCount = Mathf.Max(0, failureCount),
         lastFailureReason = lastFailureReason ?? string.Empty,
         state = state,
+        publicContextVersion = publicContextVersion,
+        publicContextHash = publicContextHash ?? string.Empty,
+        publicContext = publicContext?.Clone(),
         evidenceIds = evidenceIds?
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => value.Trim())
@@ -210,6 +304,7 @@ public sealed class EquipmentEvolutionState
 {
     public int generation;
     public float mastery;
+    public long moduleSelectionRevision;
     public UsageLedger usageLedger = new UsageLedger();
     public List<EvolutionNode> evolutionNodes = new List<EvolutionNode>();
     public List<AttunementRecord> attunements = new List<AttunementRecord>();
@@ -234,6 +329,7 @@ public sealed class EquipmentEvolutionState
         {
             generation = Mathf.Max(0, generation),
             mastery = Mathf.Max(0f, mastery),
+            moduleSelectionRevision = Math.Max(0L, moduleSelectionRevision),
             usageLedger = usageLedger?.Clone() ?? new UsageLedger(),
             evolutionNodes = evolutionNodes?
                 .Where(node => node != null)

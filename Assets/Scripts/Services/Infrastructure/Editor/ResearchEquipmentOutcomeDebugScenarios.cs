@@ -25,7 +25,7 @@ public static class ResearchEquipmentOutcomeDebugScenarios
     private static void VerifyNormalPositiveWear()
     {
         Fixture fixture = new("run:research-equipment-normal");
-        ResearchEquipmentOutcomeEvidence evidence = new(
+        ResearchEquipmentUseSnapshot evidence = new(
             CreateContext(before: 80d, after: 76.5d, requestedWear: 3.5d));
         GameplayOutcomeId outcomeId = Publish(
             fixture,
@@ -40,7 +40,7 @@ public static class ResearchEquipmentOutcomeDebugScenarios
     private static void VerifyFinalClampedWear()
     {
         Fixture fixture = new("run:research-equipment-final");
-        ResearchEquipmentOutcomeEvidence evidence = new(
+        ResearchEquipmentUseSnapshot evidence = new(
             CreateContext(before: 2d, after: 0d, requestedWear: 5d));
         GameplayOutcomeId outcomeId = Publish(
             fixture,
@@ -57,7 +57,7 @@ public static class ResearchEquipmentOutcomeDebugScenarios
     private static void VerifyInvalidEvidenceRejection()
     {
         RequireThrows<ArgumentException>(
-            () => _ = new ResearchEquipmentOutcomeEvidence(CreateContext(
+            () => _ = new ResearchEquipmentUseSnapshot(CreateContext(
                 before: 20d,
                 after: 19d,
                 requestedWear: 1d,
@@ -72,7 +72,7 @@ public static class ResearchEquipmentOutcomeDebugScenarios
                 afterRevision: 7L),
             "Non-advancing equipment revision produced a use context.");
         RequireThrows<ArgumentException>(
-            () => _ = new ResearchEquipmentOutcomeEvidence(CreateContext(
+            () => _ = new ResearchEquipmentUseSnapshot(CreateContext(
                 before: 20d,
                 after: 17d,
                 requestedWear: 1d)),
@@ -82,7 +82,7 @@ public static class ResearchEquipmentOutcomeDebugScenarios
     private static void VerifyEquipmentQueryAndPerspective()
     {
         Fixture fixture = new("run:research-equipment-perspective");
-        ResearchEquipmentOutcomeEvidence evidence = new(
+        ResearchEquipmentUseSnapshot evidence = new(
             CreateContext(before: 40d, after: 38d, requestedWear: 2d));
         GameplayOutcomeId outcomeId = Publish(
             fixture,
@@ -120,7 +120,7 @@ public static class ResearchEquipmentOutcomeDebugScenarios
     private static void VerifyPendingOutboxJsonRestore()
     {
         Fixture fixture = new("run:research-equipment-outbox");
-        ResearchEquipmentOutcomeEvidence evidence = new(
+        ResearchEquipmentUseSnapshot evidence = new(
             CreateContext(before: 15d, after: 12d, requestedWear: 3d));
         ResearchWorkOutcomeReceipt receipt = CreateReceipt(
             revision: 4L,
@@ -194,7 +194,7 @@ public static class ResearchEquipmentOutcomeDebugScenarios
         float after,
         float required,
         bool completed,
-        ResearchEquipmentOutcomeEvidence evidence) => new(
+        ResearchEquipmentUseSnapshot evidence) => new(
         resultKey: new GameplayResultKey(
             ResearchWorkOutcomeIds.ProducerId,
             new GameplayOperationId(
@@ -312,7 +312,7 @@ public static class ResearchEquipmentOutcomeDebugScenarios
 
     private static void RequireEvidenceSnapshot(
         GameplayOutcomeSnapshot snapshot,
-        ResearchEquipmentOutcomeEvidence evidence,
+        ResearchEquipmentUseSnapshot evidence,
         double workBefore,
         double workAfter,
         double workRequired,

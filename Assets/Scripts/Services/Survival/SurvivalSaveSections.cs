@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 
 public sealed class SurvivalResourcesSaveSection :
     DungeonStrictJsonSaveSection<
@@ -45,6 +46,37 @@ public sealed class SurvivalResourcesSaveSection :
 
     protected override DungeonSurvivalSaveData CapturePayload() =>
         runtime.Capture();
+
+    protected override void ValidateRawPayload(string payloadJson) => ValidateMissedMealShape(payloadJson);
+
+    public static void ValidateMissedMealShape(string json)
+    {
+        var root = JObject.Parse(json);
+        if (root["missedMealCohorts"] is not JArray cohorts)
+            throw new InvalidOperationException("Survival current schema requires missedMealCohorts.");
+        foreach (var cohort in cohorts)
+        {
+            RequireFields(cohort, typeof(SurvivalMealMissedCohortSaveData));
+            foreach (var member in (JArray)cohort["members"])
+            {
+                RequireFields(member, typeof(SurvivalMealMissedPublicationSaveData));
+                RequireFields(member["fact"], typeof(SurvivalMealMissedData));
+            }
+        }
+        static void RequireFields(JToken token, Type type)
+        {
+            if (token is not JObject data) throw new InvalidOperationException("Missed-meal state requires an object.");
+            foreach (var field in type.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+            {
+                var expected = field.FieldType == typeof(string) ? JTokenType.String
+                    : field.FieldType == typeof(bool) ? JTokenType.Boolean
+                    : field.FieldType == typeof(int) ? JTokenType.Integer
+                    : field.FieldType == typeof(SurvivalMealMissedData) ? JTokenType.Object : JTokenType.Array;
+                if (data[field.Name]?.Type != expected)
+                    throw new InvalidOperationException("Missing or invalid missed-meal field: " + field.Name);
+            }
+        }
+    }
 
     protected override void NormalizeRestorePayload(
         DungeonSurvivalSaveData payload,
@@ -203,6 +235,8 @@ public sealed class SurvivalResourcesSaveSection :
             bool facilityHasSession = facilityLive
                 && facility.GetServiceHubAbility() != null;
             bool planHasSession = !string.IsNullOrEmpty(plan.serviceSessionId);
+            if (planHasSession && plan.operationId != SurvivalFoodRuntime.TreatmentOperationPrefix + plan.serviceSessionId)
+                throw new InvalidOperationException("Survival treatment operation/session identity mismatch: " + plan.operationId);
             if (!ownerLost && facilityHasSession != planHasSession)
             {
                 throw new InvalidOperationException(
@@ -321,6 +355,91 @@ public sealed class DarkSurvivalSaveSection :
 
     protected override DungeonDarkSurvivalSaveData CapturePayload() =>
         runtime.Capture();
+
+    protected override void ValidateRawPayload(string payloadJson)
+    {
+        JObject root = JObject.Parse(payloadJson);
+        if (root["characters"] is not JArray primitiveCharacters
+            || root["pendingPrimitivePublications"] is not JArray retiredPrimitives)
+            throw new InvalidOperationException("primitive-survival-current-characters-missing");
+        foreach (JToken value in primitiveCharacters.Select(character => character?["primitiveSurvivalPending"])
+            .Concat(retiredPrimitives))
+        {
+            if (value is not JObject primitive)
+                throw new InvalidOperationException("primitive-survival-current-pending-missing");
+            foreach (string name in new[] { "version", "actionId", "operationId", "characterId", "characterName",
+                "publicationKey", "waterStackId", "restPublicationKey", "rollbackBlocked", "rollbackFailure", "absoluteDay", "recovery",
+                "physicalItemCount", "sleepAfter", "hygieneAfter", "excretionAfter", "targetGridX", "targetGridY",
+                "wasteFilthId", "wasteAmountAfter", "stainFilthId", "stainAmountAfter" })
+                if (primitive[name] == null || primitive[name].Type == JTokenType.Null)
+                    throw new InvalidOperationException("primitive-survival-current-field-missing:" + name);
+            if (primitive["restObservations"] is not JArray rests || rests.Count > 1)
+                throw new InvalidOperationException("primitive-survival-rest-collection-invalid");
+            foreach (JToken rest in rests)
+                foreach (string name in new[] { "fact", "publicationKey", "observationCommitted", "deliveryCompleted",
+                    "notificationsAttempted", "rollbackBlocked", "rollbackFailure" })
+                    if (rest is not JObject || rest[name] == null || rest[name].Type == JTokenType.Null)
+                        throw new InvalidOperationException("primitive-survival-rest-field-missing:" + name);
+        }
+        RequireCorpsePublicationShape(payloadJson);
+        RequireWaterPublicationShape(payloadJson);
+    }
+
+    internal static void RequireWaterPublicationShape(string payloadJson)
+    {
+        DungeonStrictJsonShape.RequireTopLevelArrays(
+            Id,
+            payloadJson,
+            new[] { "pendingWaterPublications" });
+        foreach (JToken pending in JObject.Parse(payloadJson)["pendingWaterPublications"])
+        {
+            Require(pending, "publicationKey", "fact", "notificationDispatched");
+            Require(pending["fact"], "characterId", "characterName", "sourceId", "pathogenDiseaseId",
+                "sourceKind", "quality", "absoluteDay", "consumed", "thirstBefore", "thirstAfter",
+                "healthBefore", "healthAfter", "hygieneBefore", "hygieneAfter", "infectionBefore",
+                "infectionAfter", "moodBefore", "moodAfter");
+        }
+        static void Require(JToken token, params string[] fields)
+        {
+            if (token is not JObject row
+                || fields.Any(field => row[field] == null || row[field].Type == JTokenType.Null))
+                throw new InvalidOperationException("water-publication-required-field-missing");
+        }
+    }
+
+    internal static void RequireCorpsePublicationShape(string payloadJson)
+    {
+        DungeonStrictJsonShape.RequireTopLevelArrays(
+            Id,
+            payloadJson,
+            new[] { "pendingCorpsePublications" });
+        foreach (JToken pending in JObject.Parse(payloadJson)["pendingCorpsePublications"])
+        {
+            Require(pending, "publicationKey", "fact");
+            JToken fact = pending["fact"];
+            Require(fact, "experience", "physical");
+            Require(fact["experience"], "characterId", "characterName", "victimId", "victimName",
+                "victimSpecies", "deathReason", "memory", "sameSpecies", "absoluteDay",
+                "memoriesBefore", "memoriesAfter", "hungerBefore", "hungerAfter", "hygieneBefore",
+                "hygieneAfter", "infectionBefore", "infectionAfter", "moodBefore", "moodAfter");
+            Require(fact["physical"], "kind", "operationId", "reasonCode", "requestFingerprint",
+                "sourceStackIds", "quantity", "inputMassGrams", "commitId", "ownerRevision",
+                "publicationExpected", "publicationKey", "publicationId", "publicationFingerprint",
+                "publicationDelivered", "defaultObservationDay", "sourceFacts");
+            if (fact["physical"]["sourceFacts"] is not JArray sources
+                || fact["physical"]["sourceStackIds"] is not JArray)
+                throw new InvalidOperationException("corpse-publication-physical-arrays-missing");
+            foreach (JToken source in sources)
+                Require(source, "stackId", "itemDefinitionId", "itemInstanceId", "quantity",
+                    "massGrams", "sourceX", "sourceY", "displayText");
+        }
+        static void Require(JToken token, params string[] fields)
+        {
+            if (token is not JObject row
+                || fields.Any(field => row[field] == null || row[field].Type == JTokenType.Null))
+                throw new InvalidOperationException("corpse-publication-required-field-missing");
+        }
+    }
 
     protected override void NormalizeRestorePayload(
         DungeonDarkSurvivalSaveData payload,

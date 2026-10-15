@@ -131,6 +131,9 @@ public static class CaptivitySaveValidation
         }
         CaptiveState captive = source.Clone();
         captive.interactionTerminal ??= new CaptivityInteractionTerminalState();
+        captive.rehabilitationTerminal ??=
+            new CaptivityRehabilitationTerminalState();
+        captive.releaseTerminal ??= new CaptivityReleaseTerminalState();
         if (captive.status == CaptivityStatus.Interaction
             && !string.IsNullOrWhiteSpace(captive.currentInteractionId)
             && captive.currentInteractionAttemptId == 0)
@@ -198,6 +201,8 @@ public static class CaptivitySaveValidation
             || !policyIds.Contains(captive.policyId)
             || captive.interactionTerminal == null
             || captive.interrogationTerminal == null
+            || captive.rehabilitationTerminal == null
+            || captive.releaseTerminal == null
             || HasNullString(captive))
         {
             report.AddError(
@@ -276,6 +281,8 @@ public static class CaptivitySaveValidation
              || captive.finalContractOutcomeRevision < 0L
              || captive.escapeOutcomeRevision < 0L
              || captive.ransomOutcomeRevision < 0L
+             || captive.rehabilitationOutcomeRevision < 0L
+             || captive.releaseOutcomeRevision < 0L
              || captive.ransomAcceptedAmount < 0
             || captive.failedEscapeAttempts < 0
             || captive.interactionAttemptSequence < 0
@@ -303,11 +310,15 @@ public static class CaptivitySaveValidation
         }
 
         if (captive.escapeOutcomeRevision > 0L
-            && captive.status != CaptivityStatus.Escaped)
+            && captive.status is not (CaptivityStatus.Escaped or CaptivityStatus.Dead))
         {
             report.AddError(
                 $"Captive '{captiveId}' has an escape outcome revision without an escaped terminal state.");
         }
+        if (captive.status == CaptivityStatus.Escaped && captive.escapeOutcomeRevision == 0L)
+            report.AddError($"Captive '{captiveId}' escaped without its frozen transition fact.");
+        if (!HasValidEscapeObservation(captive))
+            report.AddError($"Captive '{captiveId}' has invalid frozen escape observation state.");
 
         bool hasRansomOutcome = captive.ransomOutcomeRevision > 0L;
         bool ransomStateValid = captive.status is CaptivityStatus.Ransom
@@ -328,12 +339,16 @@ public static class CaptivitySaveValidation
         }
 
         bool hasInteraction = captive.currentInteractionId.Length > 0;
+        if (!HasValidRansomObservation(captive)
+            || (captive.status == CaptivityStatus.Ransom && !hasRansomOutcome))
+            report.AddError($"Captive '{captiveId}' has invalid frozen ransom observation state.");
         bool hasActiveInterrogation = string.Equals(
             captive.currentInteractionId,
             CaptivityInterrogationAttemptIdentity.InteractionId,
             StringComparison.Ordinal);
         if (hasInteraction !=
-                (captive.status == CaptivityStatus.Interaction)
+                (captive.status == CaptivityStatus.Interaction
+                    || captive.status == CaptivityStatus.Dead && captive.interactionTerminal.HasCommittedOutcome)
             || (hasInteraction
                 && (captive.reservedWardenId.Length == 0
                     || captive.housingBuildingId.Length == 0
@@ -452,6 +467,8 @@ public static class CaptivitySaveValidation
             report);
         ValidateInteractionTerminal(captive, report);
         ValidateInterrogationTerminal(captive, report);
+        ValidateRehabilitationTerminal(captive, report);
+        ValidateReleaseTerminal(captive, report);
         if (captive.finalContractPending
             && captive.resolvedMilestoneChoice
                 != CaptivePerformerMilestoneChoice.None)
@@ -515,6 +532,40 @@ public static class CaptivitySaveValidation
         }
     }
 
+    private static bool HasValidRansomObservation(CaptiveState captive)
+    {
+        var observation = captive.ransomObservation;
+        var fact = observation?.fact;
+        if (fact == null || observation.publicationKey == null) return false;
+        if (captive.ransomOutcomeRevision == 0L)
+            return !observation.pending && observation.publicationKey.Length == 0
+                && fact.revision == 0L && fact.captiveId == string.Empty && fact.displayName == string.Empty
+                && fact.decisionMakerId == string.Empty && fact.previousStatus == CaptivityStatus.None
+                && fact.amount == 0 && fact.retaliationPressure == 0f && fact.absoluteDay == 0;
+        try { _ = new CaptiveRansomAcceptedFact(fact); }
+        catch (ArgumentException) { return false; }
+        return fact.captiveId == captive.captiveId && fact.revision == captive.ransomOutcomeRevision
+            && fact.amount == captive.ransomAcceptedAmount
+            && (!observation.pending || (!captive.ransomIncomeCredited && captive.status == CaptivityStatus.Ransom))
+            && DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(observation.publicationKey, 1024, false);
+    }
+
+    private static bool HasValidEscapeObservation(CaptiveState captive)
+    {
+        var observation = captive.escapeObservation;
+        var fact = observation?.fact;
+        if (fact == null || observation.publicationKey == null) return false;
+        if (captive.escapeOutcomeRevision == 0L)
+            return !observation.pending && !observation.observersPending && observation.publicationKey.Length == 0
+                && fact.revision == 0L && fact.captiveId == string.Empty && fact.displayName == string.Empty
+                && fact.trigger == string.Empty && fact.kind == 0 && fact.previousStatus == CaptivityStatus.None
+                && fact.retaliationPressure == 0f && fact.absoluteDay == 0;
+        try { _ = new CaptiveEscapedFact(fact); }
+        catch (ArgumentException) { return false; }
+        return fact.captiveId == captive.captiveId && fact.revision == captive.escapeOutcomeRevision
+            && DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(observation.publicationKey, 1024, false);
+    }
+
     private static bool HasValidPerformerMilestoneRevisions(CaptiveState captive)
     {
         long highWater = captive.performerMilestoneOutcomeRevision;
@@ -523,7 +574,7 @@ public static class CaptivitySaveValidation
         long final = captive.finalContractOutcomeRevision;
         if (care > highWater || staff > highWater || final > highWater)
             return false;
-        if ((care > 0L && !captive.carePriorityUnlocked)
+        if ((care > 0L && !captive.carePriorityUnlocked && captive.IsInCustody)
             || (staff > 0L && !captive.staffContractUnlocked)
             || (final > 0L
                 && !captive.finalContractPending
@@ -542,7 +593,26 @@ public static class CaptivitySaveValidation
                 return false;
             previous = revision;
         }
-        return highWater == previous;
+        if (highWater != previous || captive.performerMilestones == null
+            || captive.performerMilestones.Count > 3) return false;
+        int count = 0;
+        foreach (long revision in new[] { care, staff, final }) if (revision > 0L) count++;
+        if (captive.performerMilestones.Count != count) return false;
+        long prior = 0L;
+        foreach (var observation in captive.performerMilestones)
+        {
+            if (observation?.fact == null
+                || !DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(observation.publicationKey, 1024, false)
+                || observation.observersPending && !observation.pending) return false;
+            try { _ = new CaptivePerformerMilestoneUnlockedFact(observation.fact); }
+            catch (ArgumentException) { return false; }
+            var fact = observation.fact;
+            long expected = fact.threshold == 50 ? care : fact.threshold == 75 ? staff : final;
+            if (fact.captiveId != captive.captiveId || fact.revision != expected || fact.revision <= prior
+                || observation.pending && fact.revision != highWater) return false;
+            prior = fact.revision;
+        }
+        return true;
     }
 
     private static void ValidateInteractionTerminal(
@@ -554,6 +624,9 @@ public static class CaptivitySaveValidation
             || terminal.attemptId > captive.interactionAttemptSequence
             || terminal.outcomeRevision < 0L
             || terminal.outcomeRevision > captive.interactionOutcomeRevision
+            || terminal.captiveDisplayName == null
+            || terminal.absoluteDay < 0
+            || terminal.publicationKey == null
             || terminal.interactionId == null
             || terminal.interactionDisplayName == null
             || terminal.wardenId == null
@@ -591,6 +664,10 @@ public static class CaptivitySaveValidation
         if (!terminal.HasOutcome)
         {
             if (terminal.outcomeRevision != 0L
+                || terminal.captiveDisplayName.Length > 0
+                || terminal.absoluteDay != 0
+                || terminal.publicationKey.Length > 0
+                || terminal.deliveryPending
                 || terminal.interactionId.Length > 0
                 || terminal.interactionDisplayName.Length > 0
                 || terminal.wardenId.Length > 0
@@ -630,10 +707,21 @@ public static class CaptivitySaveValidation
             return;
         }
 
+        try
+        {
+            _ = new CaptivityInteractionResolvedFact(captive.captiveId, terminal,
+                terminal.HasCommittedOutcome ? terminal.outcomeRevision : checked(captive.interactionOutcomeRevision + 1L));
+        }
+        catch (Exception exception) when (exception is ArgumentException or OverflowException)
+        {
+            report.AddError($"Captive '{captive.captiveId}' has invalid frozen interaction fact: " + exception.Message);
+            return;
+        }
         bool hasOutput = terminal.outputAmount > 0;
         bool hasDamage = terminal.bodyDamageAmount > 0f;
         bool committed = terminal.outcomeRevision > 0L;
-        bool activeShape = captive.status == CaptivityStatus.Interaction
+        bool activeShape = (captive.status == CaptivityStatus.Interaction
+                || committed && captive.status == CaptivityStatus.Dead)
             && captive.currentInteractionAttemptId == terminal.attemptId
             && string.Equals(
                 captive.currentInteractionId,
@@ -704,13 +792,12 @@ public static class CaptivitySaveValidation
                 && !hasDamage);
         bool ownerShape = committed
             ? terminal.outcomeRevision == captive.interactionOutcomeRevision
-                && Approximately(captive.will, terminal.willAfter)
-                && Approximately(captive.fear, terminal.fearAfter)
-                && Approximately(captive.trust, terminal.trustAfter)
-                && Approximately(captive.grudge, terminal.grudgeAfter)
-                && Approximately(captive.corruption, terminal.corruptionAfter)
+                && IsCanonicalNonEmpty(terminal.publicationKey)
+                && (!terminal.deliveryPending || !terminal.outputPublished)
             : !terminal.outputPublished
                 && !terminal.bodyObserversPending
+                && !terminal.deliveryPending
+                && terminal.publicationKey.Length == 0
                 && Approximately(captive.will, terminal.willBefore)
                 && Approximately(captive.fear, terminal.fearBefore)
                 && Approximately(captive.trust, terminal.trustBefore)
@@ -763,7 +850,7 @@ public static class CaptivitySaveValidation
                 || terminal.informationText.Length > 0
                 || terminal.highFearCaution
                 || terminal.codexPublicationCompleted
-                || terminal.noticePublicationCompleted
+                || terminal.factPublicationCompleted
                 || (captive.currentInterrogationAttemptId > 0
                     && captive.completedInteractionWork + 0.001f
                         >= captive.requiredInteractionWork))
@@ -781,7 +868,7 @@ public static class CaptivitySaveValidation
             && captive.completedInteractionWork + 0.001f
                 >= captive.requiredInteractionWork;
         if (!IsCanonicalNonEmpty(terminal.subjectDisplayName)
-            || (terminal.noticePublicationCompleted
+            || (terminal.factPublicationCompleted
                 && !terminal.codexPublicationCompleted)
             || (terminalMatchesActiveAttempt
                 && captive.completedInteractionWork + 0.001f
@@ -869,6 +956,179 @@ public static class CaptivitySaveValidation
             || captive.betrayalTrigger == null;
     }
 
+    private static void ValidateRehabilitationTerminal(
+        CaptiveState captive,
+        DungeonGameRestoreReport report)
+    {
+        CaptivityRehabilitationTerminalState terminal =
+            captive.rehabilitationTerminal;
+        if (terminal.outcomeRevision < 0L
+            || terminal.publicationKey == null
+            || terminal.outcomeRevision > captive.rehabilitationOutcomeRevision
+                && (captive.rehabilitationOutcomeRevision == long.MaxValue
+                    || terminal.outcomeRevision != captive.rehabilitationOutcomeRevision + 1L)
+            || terminal.captiveDisplayName == null
+            || terminal.wardenId == null
+            || terminal.wardenDisplayName == null
+            || terminal.facilityId == null
+            || terminal.facilityDisplayName == null
+            || terminal.absoluteDay < 0
+            || !IsFiniteAtLeast(terminal.approvedWork, 0f)
+            || !IsFiniteAtLeast(terminal.workBefore, 0f)
+            || !IsFiniteAtLeast(terminal.workAfter, 0f)
+            || terminal.rehabilitationDaysBefore < 0
+            || terminal.rehabilitationDaysAfter < 0
+            || terminal.foodConsumed < 0
+            || !IsPercentage(terminal.trustBefore)
+            || !IsPercentage(terminal.trustAfter)
+            || !IsPercentage(terminal.grudgeBefore)
+            || !IsPercentage(terminal.grudgeAfter)
+            || !IsPercentage(terminal.corruptionBefore)
+            || !IsPercentage(terminal.corruptionAfter))
+        {
+            report.AddError(
+                $"Minion '{captive.captiveId}' has invalid rehabilitation outcome state.");
+            return;
+        }
+        if (!terminal.HasOutcome)
+        {
+            if (terminal.outcomePending || terminal.publicationKey.Length > 0 || captive.rehabilitationOutcomeRevision != 0L)
+            {
+                report.AddError(
+                    $"Minion '{captive.captiveId}' has a pending rehabilitation result without a revision.");
+            }
+            return;
+        }
+        try { _ = new CaptivityRehabilitationProgressedFact(captive.captiveId, terminal); }
+        catch (ArgumentException exception)
+        {
+            report.AddError($"Minion '{captive.captiveId}' has an invalid frozen rehabilitation fact: " + exception.Message);
+            return;
+        }
+        if (!IsCanonicalNonEmpty(terminal.captiveDisplayName)
+            || !DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(terminal.publicationKey, 1024, false)
+            || !IsCanonicalCharacterId(terminal.wardenId)
+            || !IsCanonicalNonEmpty(terminal.wardenDisplayName)
+            || !IsCanonicalBuildingId(terminal.facilityId)
+            || !IsCanonicalNonEmpty(terminal.facilityDisplayName)
+            || terminal.approvedWork <= 0f
+            || (!terminal.completedDay
+                && (Math.Abs(
+                        terminal.workAfter
+                        - (terminal.workBefore + terminal.approvedWork))
+                    > 0.001f
+                    || terminal.workAfter + 0.001f
+                        >= CaptivityStateTransitionRules.RehabilitationRequiredWork
+                    || terminal.trustAfter != terminal.trustBefore
+                    || terminal.grudgeAfter != terminal.grudgeBefore
+                    || terminal.corruptionAfter != terminal.corruptionBefore))
+            || (terminal.completedDay
+                ? terminal.foodConsumed
+                    != CaptivityStateTransitionRules.RehabilitationFoodCost
+                    || terminal.workAfter != 0f
+                    || Math.Abs(
+                            terminal.workBefore + terminal.approvedWork
+                            - CaptivityStateTransitionRules.RehabilitationRequiredWork)
+                        > 0.001f
+                    || terminal.rehabilitationDaysAfter
+                        != terminal.rehabilitationDaysBefore + 1
+                    || terminal.trustAfter < terminal.trustBefore
+                    || terminal.grudgeAfter > terminal.grudgeBefore
+                    || terminal.corruptionAfter > terminal.corruptionBefore
+                : terminal.foodConsumed != 0
+                    || terminal.rehabilitationDaysAfter
+                        != terminal.rehabilitationDaysBefore)
+            || (terminal.outcomePending
+                ? captive.rehabilitationOutcomeRevision == long.MaxValue || terminal.outcomeRevision
+                    != captive.rehabilitationOutcomeRevision + 1L
+                : terminal.outcomeRevision
+                    != captive.rehabilitationOutcomeRevision))
+        {
+            report.AddError(
+                $"Minion '{captive.captiveId}' has incoherent rehabilitation outcome state.");
+        }
+    }
+
+    private static void ValidateReleaseTerminal(
+        CaptiveState captive,
+        DungeonGameRestoreReport report)
+    {
+        CaptivityReleaseTerminalState terminal = captive.releaseTerminal;
+        if (terminal.outcomeRevision < 0L
+            || terminal.outcomeRevision > 1L
+            || terminal.publicationKey == null
+            || terminal.captiveDisplayName == null
+            || terminal.deciderId == null
+            || terminal.deciderDisplayName == null
+            || terminal.facilityId == null
+            || terminal.facilityDisplayName == null
+            || terminal.actorTypeBefore == null
+            || terminal.actorTypeAfter == null
+            || terminal.lifecycleBefore == null
+            || terminal.lifecycleAfter == null
+            || terminal.absoluteDay < 0
+            || !Enum.IsDefined(typeof(CaptivityStatus), terminal.statusBefore)
+            || !Enum.IsDefined(typeof(CaptivityStatus), terminal.statusAfter))
+        {
+            report.AddError(
+                $"Captive '{captive.captiveId}' has invalid release outcome state.");
+            return;
+        }
+        if (!terminal.HasOutcome)
+        {
+            if (terminal.outcomePending || terminal.observersPending || terminal.effectsApplied
+                || terminal.decisionPublished || terminal.publicationKey.Length > 0 || captive.releaseOutcomeRevision != 0L)
+            {
+                report.AddError(
+                    $"Captive '{captive.captiveId}' has release delivery state without a result.");
+            }
+            return;
+        }
+        try { _ = new CaptivityReleasedFact(captive.captiveId, terminal); }
+        catch (ArgumentException exception)
+        {
+            report.AddError($"Captive '{captive.captiveId}' has an invalid frozen release fact: " + exception.Message);
+            return;
+        }
+        bool committed = captive.releaseOutcomeRevision == terminal.outcomeRevision;
+        if (!IsCanonicalNonEmpty(terminal.captiveDisplayName)
+            || !DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(terminal.publicationKey, 1024, false)
+            || !IsCanonicalCharacterId(terminal.deciderId)
+            || !IsCanonicalNonEmpty(terminal.deciderDisplayName)
+            || !IsOptionalBuildingId(terminal.facilityId)
+            || (terminal.facilityId.Length == 0
+                ? terminal.facilityDisplayName.Length != 0
+                : !IsCanonicalNonEmpty(terminal.facilityDisplayName))
+            || !IsInCustodyStatus(terminal.statusBefore)
+            || terminal.statusAfter != CaptivityStatus.Released
+            || terminal.inCustodyAfter
+            || terminal.restrainedAfter
+            || !IsCanonicalNonEmpty(terminal.actorTypeBefore)
+            || !string.Equals(
+                terminal.actorTypeAfter,
+                "Intruder",
+                StringComparison.Ordinal)
+            || !IsCanonicalNonEmpty(terminal.lifecycleBefore)
+            || !string.Equals(
+                terminal.lifecycleAfter,
+                "Active",
+                StringComparison.Ordinal)
+            || terminal.aiPausedAfter
+            || terminal.doorCaptiveAfter
+            || !terminal.physicalInputsReturned
+            || terminal.outcomePending == committed
+            || !terminal.effectsApplied && (!terminal.outcomePending || terminal.decisionPublished)
+            || terminal.decisionPublished && terminal.outcomePending
+            || !terminal.observersPending && !terminal.decisionPublished
+            || (terminal.effectsApplied
+                ? captive.status != CaptivityStatus.Released && captive.status != CaptivityStatus.Dead
+                : captive.status != terminal.statusBefore && captive.status != CaptivityStatus.Released))
+        {
+            report.AddError(
+                $"Captive '{captive.captiveId}' has incoherent release outcome state.");
+        }
+    }
+
     private static bool IsCanonicalNonEmpty(string value)
     {
         return !string.IsNullOrWhiteSpace(value)
@@ -945,6 +1205,22 @@ public static class CaptivitySaveValidation
             && !float.IsInfinity(value)
             && value >= minimum;
     }
+
+    private static bool IsCanonicalBuildingId(string value)
+    {
+        return IsCanonicalNonEmpty(value) && ((BuildingInstanceId)value).IsValid;
+    }
+
+    private static bool IsInCustodyStatus(CaptivityStatus status) => status is
+        CaptivityStatus.Stabilizing
+        or CaptivityStatus.AwaitingEscort
+        or CaptivityStatus.Escorting
+        or CaptivityStatus.Confined
+        or CaptivityStatus.Labor
+        or CaptivityStatus.Interaction
+        or CaptivityStatus.Performer
+        or CaptivityStatus.EscapeAttempt
+        or CaptivityStatus.Ransom;
 
     private static bool Approximately(float left, float right) =>
         Math.Abs(left - right) <= 0.001f;

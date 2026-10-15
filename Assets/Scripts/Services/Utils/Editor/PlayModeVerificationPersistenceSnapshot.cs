@@ -38,6 +38,8 @@ public static class PlayModeVerificationPersistenceSnapshot
 
     public static void CaptureCurrent(string snapshotId)
     {
+        if (DungeonPersistencePaths.IsIsolatedVerification)
+            throw new InvalidOperationException("Isolated batch verification must not snapshot player persistence.");
         string id = ValidateId(snapshotId);
         string snapshotPath = GetSnapshotPath(id);
         if (Directory.Exists(snapshotPath))
@@ -103,6 +105,8 @@ public static class PlayModeVerificationPersistenceSnapshot
 
     public static bool Restore(string snapshotId)
     {
+        if (DungeonPersistencePaths.IsIsolatedVerification)
+            throw new InvalidOperationException("Isolated batch verification must not restore player persistence.");
         string id = ValidateId(snapshotId);
         string snapshotPath = GetSnapshotPath(id);
         string manifestPath = Path.Combine(snapshotPath, "manifest.json");
@@ -356,6 +360,8 @@ public static class PlayModeVerificationPersistenceSnapshot
 
     private static void RestoreStaleSnapshots()
     {
+        if (DungeonPersistencePaths.IsIsolatedVerification)
+            return;
         if (EditorApplication.isPlayingOrWillChangePlaymode || !Directory.Exists(SnapshotRoot))
         {
             return;

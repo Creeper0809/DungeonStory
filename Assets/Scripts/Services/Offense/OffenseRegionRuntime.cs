@@ -152,7 +152,8 @@ public sealed class OffenseRegionRestoreCandidate
 
 public sealed class OffenseRegionRuntime :
     IOffenseRegionRuntime,
-    IOffenseRegionMemoryErasureSealAwardAuthority
+    IOffenseRegionMemoryErasureSealAwardAuthority,
+    IDungeonRestoreTransactionParticipant
 {
     public const string BorderTradeRegionId = "border-trade";
     public const string RivalOutpostRegionId = "rival-outpost";
@@ -163,6 +164,7 @@ public sealed class OffenseRegionRuntime :
 
     private const float FactionSpilloverWeight = 0.25f;
     private List<OffenseRegionState> regions = new List<OffenseRegionState>();
+    private readonly DungeonRestorePublication restorePublication = new();
 
     public OffenseRegionRuntime()
     {
@@ -541,13 +543,36 @@ public sealed class OffenseRegionRuntime :
 
     internal void PublishRestore(OffenseRegionRestoreCandidate candidate)
     {
-        regions = (candidate ?? throw new ArgumentNullException(nameof(candidate)))
-            .Regions;
+        candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        if (restorePublication.TryStage(
+                () => ApplyRestore(candidate),
+                CaptureRestoreRollback))
+        {
+            return;
+        }
+
+        ApplyRestore(candidate);
+    }
+
+    private void ApplyRestore(OffenseRegionRestoreCandidate candidate) =>
+        regions = candidate.Regions;
+
+    private Action CaptureRestoreRollback()
+    {
+        List<OffenseRegionState> previousRegions = regions;
+        return () => regions = previousRegions;
     }
 
     public void PublishRestoreCandidate(
         OffenseRegionRestoreCandidate candidate) =>
         PublishRestore(candidate);
+
+    public string ParticipantId => "offense.regions";
+    public void BeginRestoreCandidate() => restorePublication.Begin();
+    public void PublishRestoreCandidate() => restorePublication.Publish();
+    public void RollbackPublishedRestoreCandidate() => restorePublication.Discard();
+    public void DiscardRestoreCandidate() => restorePublication.Discard();
+    public void CompleteRestoreCandidate() => restorePublication.Complete();
 
     private static bool IsPressure(float value)
     {

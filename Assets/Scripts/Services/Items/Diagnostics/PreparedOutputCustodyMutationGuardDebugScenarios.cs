@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using DungeonStory.Narrative.Korean;
 using UnityEditor;
 using UnityEngine;
 
@@ -330,7 +332,7 @@ public static class PreparedOutputCustodyMutationGuardDebugScenarios
             components: custody);
         WorldItemStackRecord source = repository.RecordsById[stackId];
         string signature = ItemStackSignature.Create(source.itemId, source.components);
-        DeterministicPhysicalItemRelocationOutcomeFixture outcomeFixture = new();
+        using DeterministicPhysicalItemRelocationOutcomeFixture outcomeFixture = new();
         IPhysicalItemRelocationService relocation = outcomeFixture.CreateService(
             repository,
             mass,
@@ -561,21 +563,57 @@ public static class PreparedOutputCustodyMutationGuardDebugScenarios
 }
 
 /// <summary>
-/// Deterministic Editor-only joint-outcome fixture for physical relocation
-/// tests. It models a real prepared/commit/diagnostics contract; callers never
-/// replace mandatory outcome capture with a null or no-op participant.
+/// Deterministic Editor-only fact-observer fixture for physical relocation
+/// tests. It keeps the real registry, ledger, recorder, and typed observer;
+/// callers never replace mandatory outcome capture with a null publisher.
 /// </summary>
-public sealed class DeterministicPhysicalItemRelocationOutcomeFixture :
-    IPhysicalItemRelocationOutcomeParticipant,
-    IGameplayOutcomeRecorder,
-    IGameplayOutcomeDiagnosticsQuery
+public sealed class DeterministicPhysicalItemRelocationOutcomeFixture : IDisposable
 {
-    private readonly Dictionary<GameplayResultKey, GameplayOutcomeReplayIdentity>
-        identities = new();
-    private long nextSequence = 1L;
+    private readonly GameplayOutcomeLedger ledger;
+    private readonly DomainFactDispatcher dispatcher;
+    private readonly CountingStagingPublisher publisher;
 
-    public int PreparedCount { get; private set; }
-    public int CommittedCount { get; private set; }
+    public DeterministicPhysicalItemRelocationOutcomeFixture()
+    {
+        GameplayOutcomeRegistry registry = new(
+            new IGameplayOutcomeDescriptor[]
+            {
+                new TradeInventoryOutcomeDescriptor(new KoreanJosaFormatter())
+            },
+            new IGameplayOutcomeAdapterRegistration[]
+            {
+                new TradeInventoryOutcomeAdapter()
+            });
+        ledger = new GameplayOutcomeLedger(
+            registry,
+            GameplayOutcomeBufferLimits.Default);
+        GameplayOutcomeRecorder recorder = new(
+            ledger,
+            registry,
+            new GameEventBus());
+        dispatcher = new DomainFactDispatcher();
+        dispatcher.Subscribe(
+            "physical-relocation",
+            new GameplayDomainFactObserver<
+                PhysicalItemRelocatedFact,
+                TradeInventoryOutcomeReceipt>(
+                PhysicalItemRelocationFactObservation.Capture,
+                registry,
+                ledger,
+                recorder,
+                new GameplayDomainFactCommitGroup(recorder, ledger)));
+        publisher = new CountingStagingPublisher(dispatcher);
+    }
+
+    public int PreparedCount => publisher.StageCount;
+    public int CommittedCount
+    {
+        get
+        {
+            var saved = ledger.CaptureGameplayOutcomes();
+            return saved.outbox.Count + saved.exactOutcomes.Count + saved.tombstones.Count;
+        }
+    }
 
     public IPhysicalItemRelocationService CreateService(
         WorldItemRepository repository,
@@ -588,192 +626,53 @@ public sealed class DeterministicPhysicalItemRelocationOutcomeFixture :
             mass,
             catalog,
             markers),
-        this,
-        this,
-        this);
+        publisher,
+        dispatcher,
+        new RelocationFixtureCalendar());
 
-    public bool TryPrepare(
-        in PreparedPhysicalItemRelocationPreview preview,
-        out IPreparedPhysicalItemGameplayOutcome prepared,
-        out string failureReason)
+    public void Dispose() => dispatcher.Dispose();
+
+    // This diagnostic lives in the runtime assembly under UNITY_EDITOR, so it
+    // cannot reference a test double from Assembly-CSharp-Editor.
+    private sealed class RelocationFixtureCalendar : IGameCalendar
     {
-        prepared = null;
-        failureReason = string.Empty;
-        if (!preview.IsValid)
+        public int Day { get; private set; } = 1;
+        public int Hour { get; private set; }
+        public CalendarDateTime Current => GameCalendarRules.Project(Day, Hour);
+        public int Year => Current.Year;
+        public int DayOfYear => Current.DayOfYear;
+        public Season Season => Current.Season;
+        public int DayOfSeason => Current.DayOfSeason;
+        public long AbsoluteHour => Current.AbsoluteHour;
+        public float ElapsedSeconds => 0f;
+        public TimeOfDay TimeOfDay => default;
+        public bool IsRunning { get; private set; }
+        public CalendarDateTime GetRegionalTime(int offset) => GameCalendarRules.ProjectRegional(Day, Hour, offset);
+        public void Start() => IsRunning = true;
+        public void SetDateTime(int day, int hour)
         {
-            failureReason = "qa-physical-relocation-preview-invalid";
-            return false;
+            if (day < 1 || hour < 0 || hour >= GameCalendarRules.HoursPerDay) throw new ArgumentOutOfRangeException(nameof(day));
+            Day = day; Hour = hour;
         }
-
-        GameplayResultKey resultKey = new(
-            "qa.physical-item-relocation",
-            new GameplayOperationId(preview.Receipt.OperationId),
-            preview.OwnerRevision,
-            0);
-        string payloadHash = NarrativeInferenceHash.ComputeSha256Utf8(
-            FormattableString.Invariant(
-                $"{preview.Receipt.OperationId}|{preview.Receipt.SourceStackId}|{preview.Receipt.DestinationStackId}|{preview.Receipt.Quantity}|{preview.Receipt.MassGrams}|{preview.OwnerRevision}"));
-        PreparedCount++;
-        prepared = new PreparedOutcome(
-            this,
-            resultKey,
-            preview.OwnerRevision,
-            payloadHash,
-            identities.ContainsKey(resultKey));
-        return true;
     }
 
-    private bool TryCommit(
-        GameplayResultKey resultKey,
-        long ownerRevision,
-        string payloadHash,
-        long expectedOwnerRevision,
-        out PhysicalGameplayOutcomeAttachment attachment,
-        out string failureReason)
+    private sealed class CountingStagingPublisher : IDomainFactStagingPublisher
     {
-        attachment = default;
-        failureReason = string.Empty;
-        if (expectedOwnerRevision != ownerRevision)
+        private readonly IDomainFactStagingPublisher inner;
+
+        internal CountingStagingPublisher(IDomainFactStagingPublisher inner) =>
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+
+        internal int StageCount { get; private set; }
+
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
+            out string failure)
         {
-            failureReason = "qa-physical-relocation-owner-revision-mismatch";
-            return false;
+            StageCount++;
+            return inner.TryStage(fact, out stage, out failure);
         }
-        if (!identities.TryGetValue(
-                resultKey,
-                out GameplayOutcomeReplayIdentity identity))
-        {
-            identity = new GameplayOutcomeReplayIdentity(
-                resultKey,
-                new GameplayOutcomeId(
-                    new GameplayOutcomeRunId(
-                        "run:qa-physical-item-relocation"),
-                    nextSequence++),
-                GameplayOutcomeReplayState.PublishedAcknowledged,
-                payloadHash);
-            identities.Add(resultKey, identity);
-            CommittedCount++;
-        }
-        else if (!string.Equals(
-                     identity.CanonicalPayloadHash,
-                     payloadHash,
-                     StringComparison.Ordinal))
-        {
-            failureReason = "qa-physical-relocation-replay-conflict";
-            return false;
-        }
-
-        attachment = new PhysicalGameplayOutcomeAttachment(
-            identity.ResultKey,
-            identity.OutcomeId,
-            identity.State,
-            identity.CanonicalPayloadHash);
-        return attachment.IsValid;
-    }
-
-    public GameplayOutcomeLedgerDiagnostics GetDiagnostics() => default;
-
-    public IReadOnlyList<GameplayOutcomeOutboxSnapshot> GetOutboxSnapshot() =>
-        Array.Empty<GameplayOutcomeOutboxSnapshot>();
-
-    public bool TryGetResultIdentity(
-        GameplayResultKey resultKey,
-        out GameplayOutcomeReplayIdentity identity) =>
-        identities.TryGetValue(resultKey, out identity);
-
-    public int RetryPendingDeliveries(int maximumCount) => 0;
-
-    public OutcomePrepareResult TryPrepare<TReceipt>(
-        in TReceipt receipt,
-        out PreparedOutcomeToken prepared) =>
-        throw DirectRecorderUse();
-
-    public OutcomePrepareResult TryReserve(
-        in OutcomeWriteRequirements requirements,
-        out PreparedOutcomeReservation reservation) =>
-        throw DirectRecorderUse();
-
-    public OutcomePrepareResult TryWriteReserved<TReceipt>(
-        in TReceipt receipt,
-        in PreparedOutcomeReservation reservation,
-        out PreparedOutcomeToken prepared) =>
-        throw DirectRecorderUse();
-
-    public void CancelReservation(
-        in PreparedOutcomeReservation reservation) =>
-        throw DirectRecorderUse();
-
-    public void CancelPrepared(in PreparedOutcomeToken prepared) =>
-        throw DirectRecorderUse();
-
-    public OutcomeCommitResult CommitPrepared(
-        in PreparedOutcomeToken prepared,
-        long expectedOwnerRevision,
-        out CommittedOutcomeToken committed) =>
-        throw DirectRecorderUse();
-
-    public OutcomeCommitResult CommitPreparedBatch(
-        PreparedOutcomeToken[] prepared,
-        long[] expectedOwnerRevisions,
-        CommittedOutcomeToken[] committed) =>
-        throw DirectRecorderUse();
-
-    public OutcomeDeliveryResult TryDeliver(
-        in CommittedOutcomeToken committed) =>
-        throw DirectRecorderUse();
-
-    public OutcomeAcknowledgeResult Acknowledge(
-        in CommittedOutcomeToken committed) =>
-        throw DirectRecorderUse();
-
-    private static InvalidOperationException DirectRecorderUse() => new(
-        "The deterministic relocation fixture must capture outcomes through its typed participant.");
-
-    private sealed class PreparedOutcome :
-        IPreparedPhysicalItemGameplayOutcome
-    {
-        private readonly DeterministicPhysicalItemRelocationOutcomeFixture owner;
-        private readonly long ownerRevision;
-        private readonly string payloadHash;
-        private bool terminal;
-
-        internal PreparedOutcome(
-            DeterministicPhysicalItemRelocationOutcomeFixture owner,
-            GameplayResultKey resultKey,
-            long ownerRevision,
-            string payloadHash,
-            bool replay)
-        {
-            this.owner = owner;
-            ResultKey = resultKey;
-            this.ownerRevision = ownerRevision;
-            this.payloadHash = payloadHash;
-            IsCanonicalReplay = replay;
-        }
-
-        public GameplayResultKey ResultKey { get; }
-        public bool IsCanonicalReplay { get; }
-
-        public bool TryCommit(
-            long expectedOwnerRevision,
-            out PhysicalGameplayOutcomeAttachment attachment,
-            out bool canonicalCommitted,
-            out string failureReason)
-        {
-            if (terminal)
-                throw new InvalidOperationException(
-                    "The deterministic relocation outcome is already terminal.");
-            canonicalCommitted = owner.TryCommit(
-                ResultKey,
-                ownerRevision,
-                payloadHash,
-                expectedOwnerRevision,
-                out attachment,
-                out failureReason);
-            terminal = canonicalCommitted;
-            return canonicalCommitted;
-        }
-
-        public void Cancel() => terminal = true;
     }
 }
 #endif

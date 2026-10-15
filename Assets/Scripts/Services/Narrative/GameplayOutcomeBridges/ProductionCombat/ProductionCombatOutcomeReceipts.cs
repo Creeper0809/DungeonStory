@@ -329,14 +329,51 @@ public readonly struct CombatDamageOutcomeReceipt
         CombatBodyPart bodyPart,
         float actualDamage,
         int absoluteDay,
-        Vector2Int victimCell)
+        Vector2Int victimCell,
+        GameplayOutcomeCausation causation = default)
+        : this(
+            attackOperationId,
+            attackRevision,
+            ProductionCombatOutcomeIds.CharacterKind,
+            attackerId.Value,
+            attackerDisplayName,
+            victimId,
+            victimDisplayName,
+            damageType,
+            bodyPart,
+            actualDamage,
+            absoluteDay,
+            victimCell,
+            causation)
+    {
+    }
+
+    public CombatDamageOutcomeReceipt(
+        string attackOperationId,
+        long attackRevision,
+        GameplayEntityKindId attackerEntityKind,
+        string attackerEntityId,
+        KoreanNameSnapshot attackerDisplayName,
+        CharacterId victimId,
+        KoreanNameSnapshot victimDisplayName,
+        CombatDamageType damageType,
+        CombatBodyPart bodyPart,
+        float actualDamage,
+        int absoluteDay,
+        Vector2Int victimCell,
+        GameplayOutcomeCausation causation = default)
     {
         if (!GameplayOutcomeStableIdSyntax.IsValid(attackOperationId))
             throw new ArgumentException("A canonical attack operation ID is required.", nameof(attackOperationId));
         if (attackRevision < 0L)
             throw new ArgumentOutOfRangeException(nameof(attackRevision));
-        if (!attackerId.IsValid)
-            throw new ArgumentException("A valid attacker ID is required.", nameof(attackerId));
+        if (!attackerEntityKind.IsValid
+            || !GameplayOutcomeStableIdSyntax.IsValid(attackerEntityId))
+        {
+            throw new ArgumentException(
+                "A valid attacker entity kind and ID are required.",
+                nameof(attackerEntityId));
+        }
         if (!victimId.IsValid)
             throw new ArgumentException("A valid victim ID is required.", nameof(victimId));
         if (!float.IsFinite(actualDamage) || actualDamage <= 0f)
@@ -346,7 +383,14 @@ public readonly struct CombatDamageOutcomeReceipt
 
         AttackOperationId = attackOperationId;
         AttackRevision = attackRevision;
-        AttackerId = attackerId;
+        AttackerEntityKind = attackerEntityKind;
+        AttackerEntityId = attackerEntityId.Trim();
+        AttackerId = string.Equals(
+                attackerEntityKind.Value,
+                ProductionCombatOutcomeIds.CharacterKind.Value,
+                StringComparison.Ordinal)
+            ? new CharacterId(AttackerEntityId)
+            : default;
         AttackerDisplayName = attackerDisplayName;
         VictimId = victimId;
         VictimDisplayName = victimDisplayName;
@@ -355,10 +399,13 @@ public readonly struct CombatDamageOutcomeReceipt
         ActualDamage = actualDamage;
         AbsoluteDay = absoluteDay;
         VictimCell = victimCell;
+        Causation = causation;
     }
 
     public string AttackOperationId { get; }
     public long AttackRevision { get; }
+    public GameplayEntityKindId AttackerEntityKind { get; }
+    public string AttackerEntityId { get; }
     public CharacterId AttackerId { get; }
     public KoreanNameSnapshot AttackerDisplayName { get; }
     public CharacterId VictimId { get; }
@@ -368,6 +415,7 @@ public readonly struct CombatDamageOutcomeReceipt
     public float ActualDamage { get; }
     public int AbsoluteDay { get; }
     public Vector2Int VictimCell { get; }
+    public GameplayOutcomeCausation Causation { get; }
     public GameplayOperationId OperationId => new GameplayOperationId(AttackOperationId);
     public GameplayResultKey ResultKey => new GameplayResultKey(
         ProductionCombatOutcomeIds.CombatProducerId,
@@ -408,39 +456,6 @@ public readonly struct ReservedCombatDamageOutcome
             attackOutcome);
 }
 
-public readonly struct CombatOutcomeApplyResult
-{
-    private CombatOutcomeApplyResult(bool succeeded, string failureReason)
-    {
-        Succeeded = succeeded;
-        FailureReason = failureReason ?? string.Empty;
-    }
-
-    public bool Succeeded { get; }
-    public string FailureReason { get; }
-    public static CombatOutcomeApplyResult Success() =>
-        new CombatOutcomeApplyResult(true, string.Empty);
-    public static CombatOutcomeApplyResult Failed(string failureReason) =>
-        new CombatOutcomeApplyResult(false, failureReason);
-}
-
-public readonly struct CombatOutcomeMechanicalMutation
-{
-    public CombatOutcomeMechanicalMutation(
-        Func<string> apply,
-        Action rollback,
-        Action complete)
-    {
-        Apply = apply ?? throw new ArgumentNullException(nameof(apply));
-        Rollback = rollback ?? throw new ArgumentNullException(nameof(rollback));
-        Complete = complete ?? throw new ArgumentNullException(nameof(complete));
-    }
-
-    public Func<string> Apply { get; }
-    public Action Rollback { get; }
-    public Action Complete { get; }
-    public bool IsValid => Apply != null && Rollback != null && Complete != null;
-}
 
 public static class ProductionCombatOutcomeIds
 {

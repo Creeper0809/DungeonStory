@@ -37,6 +37,14 @@ public interface IAnimalHusbandryCommand
         AnimalHusbandryWorkKind kind,
         float amount,
         out bool completed);
+    bool ApplyWork(
+        BuildableObject pen,
+        CharacterActor worker,
+        WildlifeInstanceId animalId,
+        AnimalHusbandryWorkKind kind,
+        float amount,
+        WorkExecutionContext executionContext,
+        out bool completed);
 }
 
 public interface IAnimalHusbandryPersistence

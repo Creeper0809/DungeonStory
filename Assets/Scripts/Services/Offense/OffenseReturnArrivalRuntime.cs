@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
@@ -40,6 +41,7 @@ public sealed class OffenseReturnArrivalState
     public int settledMaterializedAmount;
     public int settledSecuredAmount;
     public int settledEscapedAmount;
+    public OffenseArrivalSettlementObservationData settlement = new();
 
     public OffenseReturnArrivalState Clone()
     {
@@ -69,7 +71,8 @@ public sealed class OffenseReturnArrivalState
             lastStatus = lastStatus ?? string.Empty,
             settledMaterializedAmount = Mathf.Max(0, settledMaterializedAmount),
             settledSecuredAmount = Mathf.Max(0, settledSecuredAmount),
-            settledEscapedAmount = Mathf.Max(0, settledEscapedAmount)
+            settledEscapedAmount = Mathf.Max(0, settledEscapedAmount),
+            settlement = settlement.Clone()
         };
     }
 }
@@ -92,7 +95,7 @@ public sealed class OffensePrisonerCandidatePoolState
 [Serializable]
 public sealed class DungeonOffenseReturnArrivalSaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     public int version = CurrentVersion;
     public int nextArrivalSequence = 1;
@@ -156,7 +159,7 @@ public sealed class OffenseReturnArrivalRuntime :
     private readonly IGameClock clock;
     private readonly IGameCalendar calendar;
     private readonly IGameEventBus eventBus;
-    private readonly IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private readonly OffenseArrivalSettlementRuntime settlements;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
 
     private OffenseReturnArrivalAggregateState aggregateState =>
@@ -183,6 +186,7 @@ public sealed class OffenseReturnArrivalRuntime :
         set => writableAggregateState.NextRetryAt = value;
     }
 
+    [VContainer.Inject]
     public OffenseReturnArrivalRuntime(
         OffenseReturnArrivalWorldServices world,
         OffenseReturnArrivalDomainServices domain)
@@ -211,7 +215,7 @@ public sealed class OffenseReturnArrivalRuntime :
         clock = requiredDomain.Clock;
         calendar = requiredDomain.Calendar;
         eventBus = requiredDomain.EventBus;
-        outcomeTransactions = requiredDomain.OutcomeTransactions;
+        settlements = requiredDomain.Settlements;
     }
 
     internal OffenseReturnArrivalRuntime(
@@ -219,18 +223,19 @@ public sealed class OffenseReturnArrivalRuntime :
         IGameClock clock,
         IGameCalendar calendar,
         IGameEventBus eventBus,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        OffenseArrivalSettlementRuntime settlements)
     {
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.settlements = settlements
+            ?? throw new ArgumentNullException(nameof(settlements));
     }
 
     public IReadOnlyList<OffenseReturnArrivalState> Arrivals => arrivals;
+    public string LastPublicationFailure => settlements.LastFailure;
     public IReadOnlyList<OffenseExpeditionArrivalReceipt> GetSettlementReceipts(
         string expeditionId)
     {
@@ -260,8 +265,15 @@ public sealed class OffenseReturnArrivalRuntime :
             return;
         }
 
+        settlements.RequireIdle();
         foreach (OffenseReturnArrivalState arrival in arrivals)
         {
+            if (arrival.settlement.hasFact)
+            {
+                if (arrival.settlement.pending) settlements.Recover(arrival, out _);
+                if (arrival.settlement.projectionPending) PublishSettlementProjection(arrival);
+                continue;
+            }
             if (arrival.stage != OffenseReturnArrivalStage.AwaitingContainment)
             {
                 continue;
@@ -349,7 +361,9 @@ public sealed class OffenseReturnArrivalRuntime :
         OffenseReturnBarrier barrier = GetOrCreateBarrier(normalized);
         barrier.Sealed = true;
         ForEachWaiting(normalized, state => state.returnSealed = true);
-        MaterializeReadyArrivals();
+        // Sealing participates in the result transaction. Its saved state can be
+        // rolled back, but spawned actors cannot. Materialize on the next tick,
+        // after the caller has committed (or restored) the result and rewards.
     }
 
     public void RegisterBattlePrisonerCandidates(
@@ -467,6 +481,7 @@ public sealed class OffenseReturnArrivalRuntime :
 
     public DungeonOffenseReturnArrivalSaveData Capture()
     {
+        settlements.RequireIdle();
         return new DungeonOffenseReturnArrivalSaveData
         {
             version = DungeonOffenseReturnArrivalSaveData.CurrentVersion,
@@ -539,6 +554,7 @@ public sealed class OffenseReturnArrivalRuntime :
         DungeonOffenseReturnArrivalSaveData saveData,
         DungeonGameRestoreReport report)
     {
+        settlements.RequireIdle();
         OffenseReturnArrivalSaveValidation.Validate(saveData, report);
         if (report.Success)
         {
@@ -592,6 +608,7 @@ public sealed class OffenseReturnArrivalRuntime :
     public void PublishRestoreCandidate(
         OffenseReturnArrivalRestoreCandidate candidate)
     {
+        settlements.RequireIdle();
         aggregateRootStore.Replace(
             (candidate ?? throw new ArgumentNullException(nameof(candidate)))
             .State);
@@ -667,11 +684,8 @@ public sealed class OffenseReturnArrivalRuntime :
         status = arrival.kind == OffenseReturnArrivalKind.Prisoner
             ? $"포로 {arrival.materializedIds.Count}명이 하차장에 도착했습니다."
             : $"특수 동물 {arrival.materializedIds.Count}마리가 하차장에 도착했습니다.";
-        eventBus.RaiseAlert(
-            "원정 귀환 대상 도착",
-            status,
-            EventAlertImportance.High,
-            "오펜스");
+        PublishActivity(new OffenseArrivalActivityFact(arrival.arrivalId, arrival.kind,
+            OffenseArrivalActivity.Materialized, arrival.materializedIds.Count, status));
         TryAutomaticContainment(arrival);
         return true;
     }
@@ -828,141 +842,27 @@ public sealed class OffenseReturnArrivalRuntime :
 
     private bool TryFinalizeResolvedArrival(OffenseReturnArrivalState arrival)
     {
-        if (arrival.materializedIds.Count < arrival.requestedAmount)
-        {
-            return false;
-        }
-
+        if (arrival.materializedIds.Count < arrival.requestedAmount) return false;
         int secured = CountCurrentlySecuredArrivalSubjects(arrival);
-        int escaped = arrival.escapedIds.Count(id =>
-            arrival.materializedIds.Contains(id, StringComparer.Ordinal));
-        if (secured + escaped < arrival.materializedIds.Count)
-        {
-            return false;
-        }
-
-        GameplayOutcomeStatus status = escaped == 0
-            ? GameplayOutcomeStatus.Succeeded
-            : secured > 0
-                ? GameplayOutcomeStatus.PartiallySucceeded
-                : GameplayOutcomeStatus.Failed;
-        int absoluteDay = calendar.Day;
-        if (!outcomeTransactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.OffenseExpeditionArrivalReceipt,
-                arrival.arrivalId,
-                absoluteDay,
-                status,
-                out PreparedMigratedProducerOutcome prepared,
-                out _))
-        {
-            // All subjects are already terminal. Keep the arrival pending and
-            // retry the reservation next tick without advancing escape work.
-            return true;
-        }
-
-        ArrivalTerminalSnapshot before = new ArrivalTerminalSnapshot(arrival);
-        try
-        {
-            arrival.stage = escaped > 0
-                ? OffenseReturnArrivalStage.Escaped
-                : OffenseReturnArrivalStage.Secured;
-            arrival.settledMaterializedAmount = arrival.materializedIds.Count;
-            arrival.settledSecuredAmount = secured;
-            arrival.settledEscapedAmount = escaped;
-            arrival.escapeRisk = 0f;
-            arrival.lastStatus = escaped > 0
-                ? $"{escaped}개 대상이 수용 전에 달아났습니다."
-                : "수용 절차가 완료되었습니다.";
-
-            OffenseExpeditionArrivalReceipt receipt =
-                CreateSettlementReceipt(arrival);
-            MigratedProducerOutcomeCommitResult committed =
-                outcomeTransactions.CommitSingleSubject(
-                    prepared,
-                    new MigratedProducerOutcomeSubject(
-                        MigratedProducerOutcomeIds.ExpeditionKind,
-                        arrival.expeditionId,
-                        arrival.expeditionId,
-                        MigratedProducerOutcomeIds.ExpeditionRole),
-                    BuildArrivalOutcomeSummary(receipt));
-            if (!committed.DurablyCommitted)
-            {
-                RestoreArrival(arrival, before);
-                // The ledger rejected the terminal owner mutation. Preserve
-                // the exact before-state and retry without further mutation.
-                return true;
-            }
-        }
-        catch
-        {
-            outcomeTransactions.Cancel(prepared);
-            RestoreArrival(arrival, before);
-            throw;
-        }
-
-        try
-        {
-            eventBus.Publish(new OffenseExpeditionArrivalResolvedEvent(
-                arrival.expeditionId,
-                GetSettlementReceipts(arrival.expeditionId)));
-        }
-        catch (Exception exception)
-        {
-            Debug.LogException(exception);
-        }
+        int escaped = arrival.escapedIds.Count(id => arrival.materializedIds.Contains(id, StringComparer.Ordinal));
+        if (secured + escaped < arrival.materializedIds.Count) return false;
+        DomainFactDelivery result = settlements.Settle(arrival, secured, escaped, calendar.Day);
+        if (result.MayBeCommitted) PublishSettlementProjection(arrival);
+        // The actual subjects have already reached terminal containment/escape.
+        // A record failure must not repeat that world work.
         return true;
     }
 
-    private static string BuildArrivalOutcomeSummary(
-        OffenseExpeditionArrivalReceipt receipt) =>
-        "원정대 귀환 도착: arrival=" + receipt.arrivalId
-        + "; kind=" + receipt.kind
-        + "; requested=" + receipt.requestedAmount
-        + "; materialized=" + receipt.materializedAmount
-        + "; secured=" + receipt.securedAmount
-        + "; escaped=" + receipt.escapedAmount
-        + "; resolution=" + receipt.resolution;
+    private void PublishSettlementProjection(OffenseReturnArrivalState arrival) =>
+        settlements.DeliverProjection(arrival, () => eventBus.Publish(new OffenseExpeditionArrivalResolvedEvent(
+            arrival.expeditionId, GetSettlementReceipts(arrival.expeditionId))));
 
-    private static void RestoreArrival(
-        OffenseReturnArrivalState target,
-        ArrivalTerminalSnapshot snapshot)
+    private void PublishActivity(OffenseArrivalActivityFact fact)
     {
-        if (target == null)
-        {
-            throw new ArgumentNullException(nameof(target));
-        }
-        target.stage = snapshot.Stage;
-        target.settledMaterializedAmount =
-            snapshot.SettledMaterializedAmount;
-        target.settledSecuredAmount = snapshot.SettledSecuredAmount;
-        target.settledEscapedAmount = snapshot.SettledEscapedAmount;
-        target.escapeRisk = snapshot.EscapeRisk;
-        target.lastStatus = snapshot.LastStatus;
-    }
-
-    private readonly struct ArrivalTerminalSnapshot
-    {
-        public ArrivalTerminalSnapshot(OffenseReturnArrivalState source)
-        {
-            if (source == null)
-            {
-                throw new ArgumentNullException(nameof(source));
-            }
-
-            Stage = source.stage;
-            SettledMaterializedAmount = source.settledMaterializedAmount;
-            SettledSecuredAmount = source.settledSecuredAmount;
-            SettledEscapedAmount = source.settledEscapedAmount;
-            EscapeRisk = source.escapeRisk;
-            LastStatus = source.lastStatus;
-        }
-
-        public OffenseReturnArrivalStage Stage { get; }
-        public int SettledMaterializedAmount { get; }
-        public int SettledSecuredAmount { get; }
-        public int SettledEscapedAmount { get; }
-        public float EscapeRisk { get; }
-        public string LastStatus { get; }
+        try { eventBus.Publish(fact); }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
+        { Debug.LogException(exception); }
     }
 
     private OffenseExpeditionArrivalReceipt CreateSettlementReceipt(
@@ -1048,17 +948,8 @@ public sealed class OffenseReturnArrivalRuntime :
             return;
         }
 
-        string subject = arrival.kind == OffenseReturnArrivalKind.Prisoner
-            ? "귀환 포로"
-            : "특수 동물";
-        string countedSubject = arrival.kind == OffenseReturnArrivalKind.Prisoner
-            ? $"{escaped}명이"
-            : $"{escaped}마리가";
-        eventBus.RaiseAlert(
-            $"{subject} 이탈",
-            $"수용 준비가 늦어 {subject} {countedSubject} 하차장에서 달아났습니다.",
-            EventAlertImportance.High,
-            "오펜스");
+        PublishActivity(new OffenseArrivalActivityFact(arrival.arrivalId, arrival.kind,
+            OffenseArrivalActivity.Escaped, escaped, string.Empty));
     }
 
     private bool HasCompletedPrisonerContainment(string captiveId)

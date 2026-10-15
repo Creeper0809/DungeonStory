@@ -25,6 +25,7 @@ public class InvasionDirectorRuntime : MonoBehaviour
     private IInvasionIntruderFactory intruderFactory;
     private IDefenseStatusRuntimeService defenseStatusRuntimeService;
     private IGameClock gameClock;
+    private IGameCalendar calendar;
     private IGameEventBus gameEventBus;
     private IRandomStreamProvider randomStreamProvider;
     private IOffenseRegionRuntime offenseRegionRuntime;
@@ -33,10 +34,11 @@ public class InvasionDirectorRuntime : MonoBehaviour
     private IInvasionCampaignRuntime campaignRuntime;
     private IEnemyArchetypeCatalog enemyArchetypes;
     private IEnemyIndividualFactory enemyIndividuals;
+    private ICombatEquipmentRuntime combatEquipment;
     private IFacilityCapabilityQuery facilityCapabilities;
     private InvasionSignalHornDurableEquipmentRuntime signalHornEquipment;
     private ICharacterPerformanceQuery performance;
-    private IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private InvasionFactPublicationRuntime publications;
     private IDisposable invasionCandidateSubscription;
     private bool nextInvasionIsBoss;
     private float nextBossHealthMultiplier = 1f;
@@ -108,7 +110,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
         IFacilityCapabilityQuery facilityCapabilities,
         InvasionSignalHornDurableEquipmentRuntime signalHornEquipment,
         ICharacterPerformanceQuery performance,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        InvasionFactPublicationRuntime publications,
+        IGameCalendar calendar)
     {
         this.invasionContext = invasionContext
             ?? throw new ArgumentNullException(nameof(invasionContext));
@@ -120,6 +123,7 @@ public class InvasionDirectorRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(defenseStatusRuntimeService));
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.randomStreamProvider = randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider));
         this.gameEventBus = gameEventBus
@@ -136,8 +140,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(signalHornEquipment));
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.publications = publications
+            ?? throw new ArgumentNullException(nameof(publications));
         SubscribeToScopedEvents();
     }
 
@@ -155,6 +159,13 @@ public class InvasionDirectorRuntime : MonoBehaviour
     private void OnInvasionCandidate(InvasionCandidateEvent eventType)
     {
         TrySpawnIntruder(eventType.snapshot, out _);
+    }
+
+    [Inject]
+    public void ConfigureEquipment(ICombatEquipmentRuntime combatEquipment)
+    {
+        this.combatEquipment = combatEquipment
+            ?? throw new ArgumentNullException(nameof(combatEquipment));
     }
 
     public string LastSpawnFailureReason { get; private set; } = string.Empty;
@@ -186,8 +197,7 @@ public class InvasionDirectorRuntime : MonoBehaviour
         InvasionCampaignSaveData campaignSnapshot = null;
         int randomRootSeed = 0;
         IReadOnlyList<RandomStreamStateSnapshot> randomSnapshots = null;
-        PreparedMigratedProducerOutcome preparedOutcome = default;
-        bool outcomeReserved = false;
+        InvasionFactPublicationRuntime.Preparation prepared = null;
         try
         {
         runtime = factory.Create(intruderPrefab, entry.OutsidePosition);
@@ -199,7 +209,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
             gameEventBus,
             treasuryDefenseRuntime,
             performance,
-            outcomeTransactions);
+            publications,
+            calendar);
         CharacterActor preparedIntruder = runtime.IntruderActor;
         string individualRuntimeId = $"invasion:{Guid.NewGuid():N}";
         EnemyArchetypeDefinitionSO enemyArchetype = SelectEnemyArchetype(
@@ -212,35 +223,51 @@ public class InvasionDirectorRuntime : MonoBehaviour
             "defense:" + snapshot.threat.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
         EnemyIndividualBlueprint individual = ResolveEnemyIndividuals()
             .RequireBlueprint(individualData);
-        int absoluteDay = Mathf.Max(
-            0,
-            Mathf.FloorToInt(
-                gameClock.Time / GameCalendarRules.SecondsPerDay));
-        if (!outcomeTransactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.InvasionStartedEvent,
-                individualRuntimeId,
-                absoluteDay,
-                GameplayOutcomeStatus.Succeeded,
-                out preparedOutcome,
-                out string outcomeReserveFailure))
-        {
-            throw new InvalidOperationException(
-                "Invasion-start outcome reservation failed: "
-                + outcomeReserveFailure);
-        }
-        outcomeReserved = true;
-        bool isBoss = nextInvasionIsBoss;
-        bool isRehearsal = nextInvasionIsRehearsal;
+        int absoluteDay = calendar.Day;
         randomRootSeed = randomStreamProvider.RootSeed;
         randomSnapshots = randomStreamProvider.CaptureStates();
         influenceSnapshot = externalInfluence?.Capture();
         campaignSnapshot = campaignRuntime?.Capture();
+        ScheduledInvasionOperationState operation =
+            campaignRuntime?.ClaimOrScheduleNextOperation(snapshot.threat);
+        bool milestonePressureOperation = IsMilestonePressureOperation(
+            operation);
+        BuildableObject signalPost = facilityCapabilities
+            .FindOperational(FacilityCapabilityKind.Security)
+            .FirstOrDefault();
+        bool signalHornReady = signalPost != null
+            && signalHornEquipment.TryEnsureReady(
+                signalPost.RequirePersistentInstanceId(),
+                signalPost.centerPos,
+                out _);
+        var startFact = new InvasionLifecycleFactData
+        {
+            runtimeId = individualRuntimeId, intruderId = individual.SaveData.characterId,
+            intruderName = individual.SaveData.displayName, absoluteDay = absoluteDay,
+            stage = InvasionLifecycleStage.Started, stateBefore = InvasionIntruderState.None,
+            stateAfter = InvasionIntruderState.Rallying, riskAfter = Mathf.Max(0f, snapshot.threat),
+            milestonePressure = milestonePressureOperation, hornExpected = signalHornReady,
+            targetKind = milestonePressureOperation ? InvasionLifecycleTargetKind.ScheduledOperation : InvasionLifecycleTargetKind.None,
+            targetId = milestonePressureOperation ? operation.operationId : string.Empty,
+            targetName = milestonePressureOperation ? operation.operationId : string.Empty,
+            sourceOwnerId = milestonePressureOperation ? operation.sourceOwnerId : string.Empty
+        };
+        if (!publications.TryBegin(startFact, out prepared, out string publicationFailure))
+            throw new InvalidOperationException("Invasion-start observation reservation failed: " + publicationFailure);
+        prepared.SetRollback(() =>
+        {
+            var failures = CleanupFailedSpawn(factory, runtime, registered, influenceSnapshot,
+                campaignSnapshot, randomRootSeed, randomSnapshots);
+            if (failures.Count > 0)
+                throw new AggregateException("Invasion spawn rollback is pending.", failures);
+        });
+        startFact = prepared.Snapshot();
+        bool isBoss = nextInvasionIsBoss;
+        bool isRehearsal = nextInvasionIsRehearsal;
         bool dreadDefense =
             externalInfluence?.BeginInvasionDread(isBoss) == true;
         InvasionIntruderSettings effectiveSettings = context.ApplyRunVariables(intruderSettings);
         ApplyStrategicPressure(effectiveSettings);
-        ScheduledInvasionOperationState operation =
-            campaignRuntime?.ScheduleNextOperation(snapshot.threat);
         ApplyCampaignOperation(effectiveSettings, operation);
         if (isRehearsal)
         {
@@ -265,14 +292,6 @@ public class InvasionDirectorRuntime : MonoBehaviour
         {
             effectiveSettings.rallyDurationSeconds += isBoss ? 5f : 10f;
         }
-        BuildableObject signalPost = facilityCapabilities
-            .FindOperational(FacilityCapabilityKind.Security)
-            .FirstOrDefault();
-        bool signalHornReady = signalPost != null
-            && signalHornEquipment.TryEnsureReady(
-                signalPost.RequirePersistentInstanceId(),
-                signalPost.centerPos,
-                out _);
         if (signalHornReady)
         {
             effectiveSettings.rallyDurationSeconds += 6f;
@@ -303,6 +322,7 @@ public class InvasionDirectorRuntime : MonoBehaviour
         Vector2Int? finalDefenseTarget = null;
 
         CharacterActor committedIntruder = null;
+        DurableEquipmentUseFactData hornEquipment = null;
         bool CommitPreparedSpawn()
         {
             runtime.PrepareBegin(
@@ -325,22 +345,14 @@ public class InvasionDirectorRuntime : MonoBehaviour
             InvasionIntruderPatternDefinition pattern = runtime.Pattern;
             committedIntruder = preparedIntruder;
 
-            MigratedProducerOutcomeCommitResult outcomeCommitted =
-                outcomeTransactions.CommitSingleSubject(
-                    preparedOutcome,
-                    new MigratedProducerOutcomeSubject(
-                        MigratedProducerOutcomeIds.OperationKind,
-                        individualRuntimeId,
-                        individual.SaveData.displayName,
-                        MigratedProducerOutcomeIds.ActorRole),
-                    $"{individual.SaveData.displayName}의 침공이 위협 {snapshot.threat:0.##}로 시작됐다.");
-            if (!outcomeCommitted.DurablyCommitted)
-            {
-                throw new InvalidOperationException(
-                    "Invasion-start outcome commit failed: "
-                    + outcomeCommitted.DetailCode);
-            }
-            outcomeReserved = false;
+            startFact.stateAfter = runtime.State;
+            startFact.horn = hornEquipment;
+            runtime.InitializeInvasionPublicationLineage(prepared.PublicationKey);
+            if (operation != null)
+                campaignRuntime.RecordOperationStarted(operation.operationId, runtime.RuntimeId, prepared.PublicationKey);
+            var delivery = prepared.PublishApplied(startFact);
+            if (!delivery.MayBeCommitted)
+                throw new InvalidOperationException("Invasion-start observation rejected: " + delivery.Detail);
             nextInvasionIsBoss = false;
             nextBossHealthMultiplier = 1f;
             nextBossDamageMultiplier = 1f;
@@ -379,7 +391,13 @@ public class InvasionDirectorRuntime : MonoBehaviour
             spawnCommitted = signalHornEquipment.TryCommitRally(
                 signalPost.RequirePersistentInstanceId(),
                 signalPost.centerPos,
-                CommitPreparedSpawn,
+                context =>
+                {
+                    hornEquipment =
+                        DurableEquipmentUseFactData.Capture(context);
+                    return CommitPreparedSpawn();
+                },
+                out _,
                 out hornFailure);
         }
         else
@@ -398,27 +416,31 @@ public class InvasionDirectorRuntime : MonoBehaviour
         }
         catch (Exception exception)
         {
-            if (outcomeReserved)
+            LastSpawnFailureReason = $"{exception.GetType().Name}: {exception.Message}";
+            if (prepared?.MayBeApplied == true)
             {
-                outcomeTransactions.Cancel(preparedOutcome);
-                outcomeReserved = false;
+                // The actor and horn wear are real even if later notification/cleanup failed.
+                // Never destroy a committed/uncertain spawn because its acknowledgement was lost.
+                intruder = runtime.IntruderActor;
+                Debug.LogError("invasion-spawn-applied-with-fault:" + LastSpawnFailureReason);
+                return true;
             }
             intruder = null;
-            LastSpawnFailureReason = $"{exception.GetType().Name}: {exception.Message}";
-            List<Exception> cleanupFailures = CleanupFailedSpawn(
-                factory,
-                runtime,
-                registered,
-                influenceSnapshot,
-                campaignSnapshot,
-                randomRootSeed,
-                randomSnapshots);
-            if (cleanupFailures.Count > 0)
+            if (prepared != null)
             {
-                cleanupFailures.Insert(0, exception);
-                throw new AggregateException(
-                    "Invasion spawn failed and could not be rolled back completely.",
-                    cleanupFailures);
+                prepared.Dispose();
+                if (publications.IsBusy)
+                    throw new InvalidOperationException("Invasion spawn rollback remains pending: " + publications.LastFailure, exception);
+            }
+            else
+            {
+                List<Exception> cleanupFailures = CleanupFailedSpawn(factory, runtime, registered,
+                    influenceSnapshot, campaignSnapshot, randomRootSeed, randomSnapshots);
+                if (cleanupFailures.Count > 0)
+                {
+                    cleanupFailures.Insert(0, exception);
+                    throw new AggregateException("Invasion spawn failed and could not be rolled back completely.", cleanupFailures);
+                }
             }
 
             gameEventBus.RaiseInvasionResult(
@@ -426,6 +448,7 @@ public class InvasionDirectorRuntime : MonoBehaviour
                 EventAlertImportance.High);
             return false;
         }
+        finally { prepared?.Dispose(); }
     }
 
     private List<Exception> CleanupFailedSpawn(
@@ -581,6 +604,14 @@ public class InvasionDirectorRuntime : MonoBehaviour
         }
     }
 
+    private static bool IsMilestonePressureOperation(
+        ScheduledInvasionOperationState operation) =>
+        operation != null
+        && !string.IsNullOrWhiteSpace(operation.sourceOwnerId)
+        && operation.sourceOwnerId.StartsWith(
+            "milestone-pressure:",
+            StringComparison.Ordinal);
+
     private static string BuildRallyDescription(
         InvasionIntruderRuntime runtime,
         ScheduledInvasionOperationState operation)
@@ -654,7 +685,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
                 gameEventBus,
                 treasuryDefenseRuntime,
                 performance,
-                outcomeTransactions),
+                publications,
+                calendar),
             runtime => ResolveIntruderFactory().DestroyDetached(runtime));
 
     public void PublishRestoreCandidates() => restoreCoordinator.Publish();
@@ -706,8 +738,19 @@ public class InvasionDirectorRuntime : MonoBehaviour
         InvasionIntruderRuntime[] withdrawing = activeIntruders
             .Where(runtime => runtime != null)
             .ToArray();
+        // Validate the whole departure set before changing any equipment or
+        // actor lifetime. Restore-only retirement deliberately skips this.
+        if (withdrawing.Length > 0
+            && (combatEquipment == null
+                || withdrawing.Any(runtime => string.IsNullOrWhiteSpace(
+                    runtime.IntruderActor?.Identity?.PersistentId))))
+        {
+            throw new InvalidOperationException(
+                "Invasion withdrawal requires equipment injection and character IDs.");
+        }
         foreach (InvasionIntruderRuntime runtime in withdrawing)
         {
+            RetireIntruderEquipment(runtime);
             runtime.OnFinished -= OnIntruderFinished;
             runtime.ReleaseForPersistentRestore();
         }
@@ -832,7 +875,27 @@ public class InvasionDirectorRuntime : MonoBehaviour
                     runtime.EnemyIndividual));
         }
 
+        else if (runtime.IntruderActor != null
+                 && runtime.IntruderActor.CurrentLifecycleState
+                     == CharacterLifecycleState.Despawned)
+        {
+            RetireIntruderEquipment(runtime);
+        }
+
         runtime.OnFinished -= OnIntruderFinished;
         activeIntruders.Remove(runtime);
+    }
+
+    private void RetireIntruderEquipment(InvasionIntruderRuntime runtime)
+    {
+        string characterId = runtime?.IntruderActor?.Identity?.PersistentId;
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            throw new InvalidOperationException(
+                "An intruder leaving the saved world requires a character ID.");
+        }
+        (combatEquipment ?? throw new InvalidOperationException(
+            "Invasion equipment retirement requires equipment injection."))
+            .RetireCharacterEquipment(characterId);
     }
 }

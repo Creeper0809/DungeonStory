@@ -156,7 +156,7 @@ public static class ProductionFacilityDestructiveDrainPlannedOwnerSaveProjection
                     .EnvironmentalFireDamageOutcome] = ProjectUnique(
                         (fire?.damageOperations
                                 ?? new List<
-                                    EnvironmentalFireDamageOutcomeSaveRecord>())
+                                    EnvironmentalFireDamageRecord>())
                             .Where(value => value != null
                                 && value.targetKind ==
                                     (int)EnvironmentalFireTargetKind.Building
@@ -165,8 +165,8 @@ public static class ProductionFacilityDestructiveDrainPlannedOwnerSaveProjection
                                     facilityId.Value,
                                     StringComparison.Ordinal)
                                 && value.phase !=
-                                    EnvironmentalFireDamageOutcomePhase
-                                        .OutcomeCommitted)
+                                    EnvironmentalFireDamagePhase
+                                        .Delivered)
                             .Select(value =>
                                 ProductionFacilityDestructiveDrainOwnerStableIds
                                     .EnvironmentalFireDamage(

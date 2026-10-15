@@ -196,8 +196,8 @@ internal static class CombatEquipmentRestoreBuilder
                     includeMaximum: true)
                 || !string.Equals(
                     order.materialDestinationId,
-                    WorldItemStackRuntime.FacilityInputDestinationPrefix
-                        + order.orderId,
+                    CombatEquipmentCraftInputDestinationAuthority
+                        .FormatDestinationId(order.orderId),
                     StringComparison.Ordinal)
                 || !Enum.IsDefined(
                     typeof(CraftsmanshipQualityTier),
@@ -319,7 +319,7 @@ internal static class CombatEquipmentRestoreBuilder
             CombatEquipmentCraftOrderSaveData frozenOrder;
             try
             {
-                frozenOrder = JsonUtility.FromJson<
+                frozenOrder = DungeonSaveJson.Deserialize<
                     CombatEquipmentCraftOrderSaveData>(row.frozenSourcePayload);
             }
             catch (Exception exception)
@@ -422,7 +422,7 @@ internal static class CombatEquipmentRestoreBuilder
                     value.orderId, row.sourceId, StringComparison.Ordinal));
             if (removed == (live != null)
                 || live != null
-                    && !string.Equals(JsonUtility.ToJson(live),
+                    && !string.Equals(CombatEquipmentSaveJson.SerializeOrder(live),
                         row.frozenSourcePayload, StringComparison.Ordinal)
                 || !restored.CraftTerminalEffects.TryAdd(
                     row.sourceId, row.Clone()))
@@ -650,7 +650,8 @@ internal static class CombatEquipmentRestoreBuilder
                 && order.resolvedAbsoluteDay == 0
                 && !order.completionEffectsPublished
                 && order.qualityOutcomeSchemaVersion == 0
-                && !order.qualityOutcomeCommitted;
+                && !order.qualityOutcomeCommitted
+                && order.completionFact?.IsEmpty == true;
         }
 
         bool ammunition = CombatEquipmentCraftingRuntime.IsAmmunitionRecipe(
@@ -702,8 +703,19 @@ internal static class CombatEquipmentRestoreBuilder
                                     .itemInstanceId,
                                 order.outputInstanceId,
                                 StringComparison.Ordinal));
+            bool observationValid;
+            try
+            {
+                observationValid = committed
+                    ? CombatEquipmentCraftCompletedFact.Restore(order) != null
+                    : order.completionFact?.IsEmpty == true && !order.outputPublication.observationExpected;
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or OverflowException)
+            { observationValid = false; }
             return order.materialsReady
-                && order.completionEffectsPublished
+                && observationValid
+                && (!(order.completionEffectsPublished || order.materialTransferAcknowledged || order.outputMarketRouted)
+                    || order.outputPublication.observationDelivered)
                 && ValidateQualityOutcomeShape(order)
                 && crafting.TryValidateResolvedOutputCapability(order, out _)
                 && Enum.IsDefined(
@@ -769,13 +781,9 @@ internal static class CombatEquipmentRestoreBuilder
     private static bool ValidateQualityOutcomeShape(
         CombatEquipmentCraftOrderSaveData order)
     {
-        if (order.qualityOutcomeSchemaVersion == 0)
-            return !order.qualityOutcomeCommitted;
-        return order.qualityOutcomeSchemaVersion == 1
-            && GameplayOutcomeStableIdSyntax.IsValid(
-                order.resolvedMakerCharacterId)
-            && !string.IsNullOrWhiteSpace(order.resolvedMakerDisplayName)
-            && order.resolvedAbsoluteDay >= 0;
+        try { CombatEquipmentQualityResolvedFact.ValidateOwner(order); return true; }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        { return false; }
     }
 
     private static bool ValidateMaterial(

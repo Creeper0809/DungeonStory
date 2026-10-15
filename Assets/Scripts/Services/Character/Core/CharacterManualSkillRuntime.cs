@@ -70,6 +70,7 @@ public static class CharacterManualSkillRuntime
         ICharacterAiWorldRegistry world,
         IRoomLayoutCache rooms,
         long absoluteHour,
+        ICharacterSkillActivationTransaction activationTransactions,
         out string message)
     {
         message = string.Empty;
@@ -91,6 +92,11 @@ public static class CharacterManualSkillRuntime
         if (world == null || rooms == null)
         {
             message = "대상 탐색 시스템이 준비되지 않았습니다.";
+            return false;
+        }
+        if (activationTransactions == null)
+        {
+            message = "능력 결과 기록 시스템이 준비되지 않았습니다.";
             return false;
         }
 
@@ -123,9 +129,9 @@ public static class CharacterManualSkillRuntime
             source,
             skill,
             recipients,
-            sourceLimits,
-            existing,
             absoluteHour,
+            CharacterSkillActivationKind.ManualDungeon,
+            activationTransactions,
             out message);
     }
 
@@ -136,6 +142,7 @@ public static class CharacterManualSkillRuntime
         IReadOnlyList<CharacterActor> livingPartyMembers,
         Func<CharacterActor, int> formationRank,
         long absoluteHour,
+        ICharacterSkillActivationTransaction activationTransactions,
         out string message)
     {
         message = string.Empty;
@@ -157,6 +164,11 @@ public static class CharacterManualSkillRuntime
         if (livingPartyMembers == null || formationRank == null)
         {
             message = "원정대 대상 탐색 시스템이 준비되지 않았습니다.";
+            return false;
+        }
+        if (activationTransactions == null)
+        {
+            message = "능력 결과 기록 시스템이 준비되지 않았습니다.";
             return false;
         }
 
@@ -199,9 +211,9 @@ public static class CharacterManualSkillRuntime
             source,
             skill,
             recipients,
-            sourceLimits,
-            existing,
             absoluteHour,
+            CharacterSkillActivationKind.ManualExpedition,
+            activationTransactions,
             out message);
     }
 
@@ -427,54 +439,30 @@ public static class CharacterManualSkillRuntime
         CharacterActor source,
         CharacterSkillInstance skill,
         CharacterActor[] recipients,
-        CharacterSkillUseLimitState sourceLimits,
-        CharacterManualSkillCooldownState existing,
         long absoluteHour,
+        CharacterSkillActivationKind activationKind,
+        ICharacterSkillActivationTransaction activationTransactions,
         out string message)
     {
-        string sourceId = CharacterPersistentIdentity.Require(source).Value;
-        long expires = checked(absoluteHour + skill.manualDurationHours);
-        foreach (CharacterActor recipient in recipients)
+        var request = new CharacterSkillActivationRequest(
+            source,
+            skill,
+            recipients,
+            activationKind,
+            absoluteHour);
+        if (!activationTransactions.TryCommit(
+                request,
+                out _,
+                out string failureReason))
         {
-            CharacterSkillUseLimitState targetLimits =
-                RequireLimits(recipient.Progression);
-            targetLimits.manualSkillBuffs ??=
-                new List<CharacterManualSkillBuffState>();
-            targetLimits.manualSkillBuffs.RemoveAll(value => value == null
-                || value.expiresAbsoluteHour <= absoluteHour
-                || (string.Equals(value.sourceCharacterId, sourceId,
-                        StringComparison.Ordinal)
-                    && string.Equals(value.skillId, skill.id,
-                        StringComparison.Ordinal)));
-            targetLimits.manualSkillBuffs.Add(new CharacterManualSkillBuffState
-            {
-                sourceCharacterId = sourceId,
-                skillId = skill.id,
-                expiresAbsoluteHour = expires,
-                frozenSkill = skill.Clone()
-            });
-            CharacterSkillRuntimeEffects.ExecuteSkill(
-                new CharacterSkillExecutionContext(
-                    source,
-                    CharacterSkillTrigger.ManualWork,
-                    eventId: $"manual-work:{sourceId}:{skill.id}:{absoluteHour}",
-                    targetActor: recipient),
-                skill);
+            message = "능력 발동을 확정하지 못했습니다: " + failureReason;
+            return false;
         }
-
-        sourceLimits.manualSkillCooldowns ??=
-            new List<CharacterManualSkillCooldownState>();
-        CharacterManualSkillCooldownState cooldown = existing
-            ?? new CharacterManualSkillCooldownState { skillId = skill.id };
-        if (existing == null)
-            sourceLimits.manualSkillCooldowns.Add(cooldown);
-        cooldown.useCount = checked(cooldown.useCount + 1);
-        cooldown.readyAbsoluteHour = checked(
-            absoluteHour
-            + (long)skill.manualCooldownDays * GameCalendarRules.HoursPerDay);
         message = recipients.Length == 1
             ? $"{skill.displayName}: {recipients[0].name}에게 발동"
             : $"{skill.displayName}: 대상 {recipients.Length}명에게 발동";
+        if (!string.IsNullOrEmpty(failureReason))
+            message += " (효과 적용됨, 기록 전달 대기: " + failureReason + ")";
         return true;
     }
 

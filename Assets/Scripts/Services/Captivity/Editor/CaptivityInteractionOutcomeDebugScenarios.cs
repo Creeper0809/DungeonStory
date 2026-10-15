@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.Narrative.Korean;
 using DungeonStory.Operation;
 using UnityEditor;
@@ -26,17 +27,171 @@ public static class CaptivityInteractionOutcomeDebugScenarios
         return true;
     }
 
+    public static void RunPresentationForBatch()
+    {
+        VerifyInterrogationComposition();
+        VerifyInterrogationFrozenInformation();
+        VerifyInterrogationOwnerDeliveryRestore();
+        Debug.Log("B129_INTERROGATION_FACT_DELIVERY=PASS");
+    }
+
+    private static void VerifyInterrogationFrozenInformation()
+    {
+        var events = new GameEventBus();
+        var output = new List<EventAlertRequest>();
+        var facts = new List<CaptivityInterrogationInformationResolvedFact>();
+        using var capture = events.Subscribe<EventAlertRequestedEvent>(value => output.Add(value.request));
+        using var factCapture = events.Subscribe<CaptivityInterrogationInformationResolvedFact>(facts.Add);
+        using var observer = new CaptivityInterrogationPresentationObserver(events);
+        observer.Initialize(); observer.Initialize();
+        var terminal = new CaptivityInterrogationTerminalState
+        {
+            attemptId = 2, subjectDisplayName = "검증 포로", hasInformation = true,
+            codexEntryId = "monster:b129", codexEntryTitle = "검증 부대",
+            originEnemyArchetypeId = "enemy:b129", originFactionId = "faction:b129",
+            enemyDisplayName = "검증 부대", formationTag = "pike-line",
+            informationText = CaptivityInterrogationAttemptIdentity.FormatInformationText(
+                "enemy:b129", "faction:b129", "pike-line"),
+            highFearCaution = true, codexPublicationCompleted = true
+        };
+        var frozen = new CaptivityInterrogationInformationResolvedFact("character:b129", terminal);
+        terminal.subjectDisplayName = "changed"; terminal.formationTag = "changed";
+        events.Publish(frozen);
+        Require(output.Count == 1 && facts.Count == 1
+            && output[0].Title == "심문 성공" && output[0].Category == "포로"
+            && output[0].Importance == EventAlertImportance.Medium
+            && output[0].SourceId == CaptivityInterrogationAttemptIdentity.FormatNoticeSourceId("character:b129", 2)
+            && output[0].Detail.Contains("검증 포로")
+            && output[0].Detail.Contains("'pike-line'")
+            && output[0].Detail.Contains("미확인 진술")
+            && output[0].Detail.Contains("진실 또는 거짓으로 판정되지 않았습니다.")
+            && !output[0].Detail.Contains("changed"),
+            "Interrogation fact was mutable or its knowledge/caution projection changed.");
+        observer.Dispose(); observer.Dispose();
+        events.Publish(frozen);
+        Require(output.Count == 1 && facts.Count == 2, "Disposed presentation lost domain delivery or emitted.");
+        observer.Initialize();
+        events.Publish(frozen);
+        Require(output.Count == 2, "Reinitialized interrogation observer did not receive facts.");
+
+        var codex = new RecordingCodex();
+        var owner = new CaptivityInterrogationInformationRuntime(
+            new EmptyNarrativeQuery(), new EmptyEnemyCatalog(), codex, events);
+        var pending = new CaptivityInterrogationTerminalState
+        {
+            attemptId = 3, subjectDisplayName = "검증 포로", hasInformation = true,
+            codexEntryId = frozen.CodexEntryId, codexEntryTitle = frozen.CodexEntryTitle,
+            originEnemyArchetypeId = frozen.OriginEnemyArchetypeId,
+            originFactionId = frozen.OriginFactionId, enemyDisplayName = frozen.EnemyDisplayName,
+            formationTag = frozen.FormationTag, informationText = frozen.InformationText,
+            highFearCaution = true
+        };
+        using (events.Subscribe<EventAlertRequestedEvent>(_ =>
+            throw new InvalidOperationException("b129-deliberate-required-information-delivery-failure")))
+        {
+            Require(!owner.TryPublish("character:b129", pending, out string failure)
+                && failure.Contains("b129-deliberate") && pending.codexPublicationCompleted
+                && !pending.factPublicationCompleted && pending.HasPendingPublication
+                && codex.PublishCount == 1, "Required delivery failure discarded frozen knowledge or acknowledged it.");
+        }
+        var restored = JsonUtility.FromJson<CaptivityInterrogationTerminalState>(JsonUtility.ToJson(pending));
+        var freshOwner = new CaptivityInterrogationInformationRuntime(
+            new EmptyNarrativeQuery(), new EmptyEnemyCatalog(), codex, events);
+        Require(freshOwner.TryPublish("character:b129", restored, out _)
+            && !restored.HasPendingPublication && restored.factPublicationCompleted
+            && codex.PublishCount == 1 && facts.Last().InformationText == frozen.InformationText,
+            "Fresh information owner replay duplicated knowledge or changed the frozen attempt.");
+        int count = facts.Count;
+        Require(freshOwner.TryPublish("character:b129", restored, out _) && facts.Count == count,
+            "Completed information delivery replayed a fact.");
+    }
+
+    private static void VerifyInterrogationOwnerDeliveryRestore()
+    {
+        FixedHandler Handler() => new(CaptivityInterrogationAttemptIdentity.InteractionId,
+            CaptiveInteractionKind.Interrogation,
+            new CaptivityInteractionResult(true, "기존 심문 효과", willDelta: -8f,
+                fearDelta: 9f, trustDelta: -4f, grudgeDelta: 7f),
+            CaptivityBodyDamagePolicy.None, "심문");
+        var events = new GameEventBus();
+        var facts = new List<CaptivityInterrogationInformationResolvedFact>();
+        using var factCapture = events.Subscribe<CaptivityInterrogationInformationResolvedFact>(facts.Add);
+        using var observer = new CaptivityInterrogationPresentationObserver(events);
+        observer.Initialize();
+        using var fixture = new OwnerFixture("interrogation-replay", Handler(),
+            DomainFactDeliveryPhase.Delivered, string.Empty, eventBus: events);
+        using (events.Subscribe<EventAlertRequestedEvent>(_ =>
+            throw new InvalidOperationException("b129-deliberate-required-owner-delivery-failure")))
+        {
+            Require(fixture.Runtime.Advance(fixture.State.captiveId, fixture.Warden, 1f, out _)
+                && fixture.State.interrogationTerminal.HasPendingPublication
+                && fixture.State.status == CaptivityStatus.Interaction
+                && fixture.Handler.ExecuteCount == 1 && fixture.Publisher.CommitCount == 1,
+                "Actual interrogation owner did not retain pending delivery after one effect commit.");
+        }
+        CaptivitySaveData payload = Save(fixture.State.Clone());
+        string json = JsonUtility.ToJson(payload);
+        var section = new CaptivitySaveSection(new UnusedCaptivityPersistence());
+        section.ValidatePayload(json, CaptivitySaveData.CurrentVersion, new DungeonGameRestoreReport());
+        var missing = Newtonsoft.Json.Linq.JObject.Parse(json);
+        ((Newtonsoft.Json.Linq.JObject)missing["captives"][0]["interrogationTerminal"])
+            .Remove("factPublicationCompleted");
+        RequireFails(() => section.ValidatePayload(missing.ToString(),
+            CaptivitySaveData.CurrentVersion, new DungeonGameRestoreReport()),
+            "Missing interrogation delivery acknowledgement passed preflight.");
+        RequireFails(() => section.ValidatePayload(json, CaptivitySaveData.CurrentVersion - 1,
+            new DungeonGameRestoreReport()), "Previous captivity schema was silently migrated.");
+        CaptivitySaveData restored = JsonUtility.FromJson<CaptivitySaveData>(json);
+        JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(restored.captives.Single()), fixture.State);
+        Require(fixture.Runtime.Advance(fixture.State.captiveId, fixture.Warden, 0f, out _)
+            && fixture.State.status == CaptivityStatus.Confined
+            && !fixture.State.interrogationTerminal.HasPendingPublication
+            && fixture.Handler.ExecuteCount == 1 && fixture.Publisher.CommitCount == 1
+            && fixture.Materials.CloseCount == 1
+            && Mathf.Approximately(fixture.State.will, 62f)
+            && Mathf.Approximately(fixture.State.fear, 29f)
+            && Mathf.Approximately(fixture.State.trust, 26f)
+            && Mathf.Approximately(fixture.State.grudge, 47f)
+            && facts.Count == 2 && facts[0].AttemptId == facts[1].AttemptId,
+            "Restored required-delivery retry reran effects, consumed again or changed attempt identity.");
+
+        observer.Dispose();
+        using var independent = new OwnerFixture("interrogation-observer-off", Handler(),
+            DomainFactDeliveryPhase.Delivered, string.Empty, eventBus: events);
+        int before = facts.Count;
+        Require(independent.Runtime.Advance(independent.State.captiveId, independent.Warden, 1f, out _)
+            && independent.State.status == CaptivityStatus.Confined
+            && independent.State.interrogationTerminal.factPublicationCompleted
+            && independent.Handler.ExecuteCount == 1 && facts.Count == before + 1,
+            "Interrogation gameplay required the presentation observer.");
+        Debug.Log("B129_INTERROGATION_ACTUAL_OWNER_RESTORE=PASS");
+    }
+
+    private static void RequireFails(Action action, string message)
+    {
+        try { action(); }
+        catch (InvalidOperationException) { return; }
+        throw new InvalidOperationException(message);
+    }
+
+    private sealed class UnusedCaptivityPersistence : ICaptivityPersistence
+    {
+        public CaptivitySaveData Capture() => throw new NotSupportedException("Preflight must not capture live state.");
+        public CaptivityRestoreCandidate BuildRestore(CaptivitySaveData data) =>
+            throw new NotSupportedException("DTO preflight must not build live state.");
+        public void PublishRestoreCandidate(CaptivityRestoreCandidate candidate) =>
+            throw new NotSupportedException("Preflight must not publish state.");
+    }
+
     private static void VerifyCanonicalOutcome()
     {
-        GameplayOutcomeRegistry registry = Registry();
-        GameplayOutcomeLedger ledger = NewLedger(
-            registry,
+        using InteractionFactAuthority authority = new(
             "run:captivity-interaction-canonical");
-        CaptivityInteractionGameplayOutcomeBridge bridge = new(
-            new GameplayOutcomeRecorder(ledger, registry, new GameEventBus()),
-            ledger);
+        GameplayOutcomeRegistry registry = authority.Registry;
+        GameplayOutcomeLedger ledger = authority.Ledger;
         CaptivityInteractionOutcomeRuntime runtime = new(
-            bridge,
+            authority.Facts,
+            authority.Facts,
             new FakePhysicalSource());
         CaptiveState state = PendingState("canonical");
         state.interactionTerminal = Terminal(
@@ -46,25 +201,31 @@ public static class CaptivityInteractionOutcomeDebugScenarios
             outputAmount: 1,
             bodyDamage: 12f,
             bodyBefore: 80f,
-            bodyAfter: 68f);
+            bodyAfter: 68f,
+            absoluteDay: 14);
 
         Require(
             runtime.TryPrepare(
                 state,
-                14,
-                out PreparedCaptivityInteractionOutcome prepared,
+                out CaptivityInteractionPublication prepared,
                 out long revision,
                 out string failure)
             && revision == 1L
             && !prepared.IsReplay,
             "canonical interaction prepare failed: " + failure);
-        OwnerOutcomeCommitResult committed = runtime.Commit(prepared);
+        using (prepared)
+        {
+            ApplyTerminalState(state, revision);
+            DomainFactDelivery committed = runtime.Commit(prepared);
+            Require(
+                committed.Completed,
+                "canonical interaction commit was not delivered: "
+                + committed.Detail);
+        }
         Require(
-            committed.DurablyCommitted,
-            "canonical interaction commit was not durable: "
-            + committed.DetailCode);
-        state.interactionOutcomeRevision = revision;
-        state.interactionTerminal.outcomeRevision = revision;
+            runtime.TryEnsureDelivered(state, out string deliveryFailure),
+            "canonical interaction delivery proof was not retained: "
+            + deliveryFailure);
 
         GameplayEntityId captive = new(
             CaptivityInteractionOutcomeIds.CharacterKind,
@@ -114,31 +275,50 @@ public static class CaptivityInteractionOutcomeDebugScenarios
             && view.Text.Contains("가람", StringComparison.Ordinal),
             "canonical interaction Korean projection lost its josa contract");
 
+        CaptiveState replayState = PendingState("canonical");
+        replayState.interactionTerminal = Terminal(
+            replayState,
+            attemptId: 1,
+            outputItemId: CaptivityItemDefinitions.ExtractedBloodItemId,
+            outputAmount: 1,
+            bodyDamage: 12f,
+            bodyBefore: 80f,
+            bodyAfter: 68f,
+            absoluteDay: 14);
         Require(
-            runtime.TryPrepare(
-                state,
-                14,
-                out PreparedCaptivityInteractionOutcome replay,
-                out long replayRevision,
+            !runtime.TryPrepare(
+                replayState,
+                out CaptivityInteractionPublication replay,
+                out _,
                 out string replayFailure)
-            && replayRevision == 1L
-            && replay.IsReplay
-            && runtime.Commit(replay).DurablyCommitted
+            && replay == null
+            && replayFailure
+                == "captivity-interaction-unapplied-replay-conflict",
+            "an unapplied stale interaction was allowed to replay: "
+            + replayFailure);
+
+        CaptiveState recoveryState = state.Clone();
+        string recoveryKey = recoveryState.interactionTerminal.publicationKey;
+        recoveryState.interactionTerminal.deliveryPending = true;
+        Require(
+            runtime.TryEnsureDelivered(
+                recoveryState,
+                out string recoveryFailure)
+            && recoveryState.interactionTerminal.HasDeliveredOutcome
+            && recoveryState.interactionTerminal.publicationKey == recoveryKey
             && ledger.GetGlobal(
                 OutcomeCursor.FirstPage(10),
                 OutcomeFilter.All).Items.Count == 1,
-            "canonical interaction replay failed or duplicated: "
-            + replayFailure);
+            "applied interaction recovery failed or duplicated its row: "
+            + recoveryFailure);
 
-        CaptiveState drifted = state.Clone();
-        drifted.interactionTerminal.message = "같은 키의 다른 결과";
+        CaptivityInteractionTerminalState drifted = state.interactionTerminal.Clone();
+        drifted.message = "같은 키의 다른 결과";
         Require(
-            !runtime.TryPrepare(
+            !authority.Facts.Replay(new CaptivityInteractionResolvedFact(
+                state.captiveId,
                 drifted,
-                14,
-                out _,
-                out _,
-                out _),
+                1L)).MayBeCommitted,
             "same interaction result key accepted a drifted payload");
 
         GameplayOutcomeLedgerSaveData saved = ledger.CaptureGameplayOutcomes();
@@ -163,13 +343,9 @@ public static class CaptivityInteractionOutcomeDebugScenarios
     private static void VerifyAllAuthoredHandlers()
     {
         ICaptivityInteractionHandler[] handlers = AuthoredHandlers();
-        GameplayOutcomeRegistry registry = Registry();
-        GameplayOutcomeLedger ledger = NewLedger(
-            registry,
+        using InteractionFactAuthority authority = new(
             "run:captivity-interaction-authored-handlers");
-        CaptivityInteractionGameplayOutcomeBridge bridge = new(
-            new GameplayOutcomeRecorder(ledger, registry, new GameEventBus()),
-            ledger);
+        GameplayOutcomeLedger ledger = authority.Ledger;
         CaptiveState state = PendingState("authored");
         state.status = CaptivityStatus.Confined;
         CaptivityInteractionContext context = new(
@@ -189,40 +365,98 @@ public static class CaptivityInteractionOutcomeDebugScenarios
             CaptivityBodyDamageProjection damage = handler.BodyDamage.HasDamage
                 ? handler.BodyDamage.Project(100f, 100f)
                 : default;
-            CaptivityInteractionOutcomeReceipt receipt = new(
+            int attempt = index + 1;
+            string outputItem = result.Success
+                ? result.OutputItemId?.Trim() ?? string.Empty
+                : string.Empty;
+            int outputAmount = result.Success && outputItem.Length > 0
+                ? result.OutputAmount
+                : 0;
+            string message = result.Message?.Trim() ?? string.Empty;
+            if (message.Length == 0)
+            {
+                message = handler.DisplayName
+                    + (result.Success ? " 완료" : " 실패");
+            }
+            CaptivityInteractionTerminalState terminal = new()
+            {
+                captiveDisplayName = state.displayName,
+                absoluteDay = 20,
+                attemptId = attempt,
+                interactionId = handler.InteractionId,
+                interactionKind = handler.Kind,
+                interactionDisplayName = handler.DisplayName,
+                wardenId = "character:qa-captivity-warden-authored",
+                wardenDisplayName = "도윤",
+                facilityId = state.housingBuildingId,
+                facilityDisplayName = "감방 구속대",
+                resultGridX = 7,
+                resultGridY = 9,
+                success = result.Success,
+                message = message,
+                willBefore = state.will,
+                willAfter = result.Success
+                    ? Mathf.Clamp(state.will + result.WillDelta, 0f, 100f)
+                    : state.will,
+                fearBefore = state.fear,
+                fearAfter = result.Success
+                    ? Mathf.Clamp(state.fear + result.FearDelta, 0f, 100f)
+                    : state.fear,
+                trustBefore = state.trust,
+                trustAfter = result.Success
+                    ? Mathf.Clamp(state.trust + result.TrustDelta, 0f, 100f)
+                    : state.trust,
+                grudgeBefore = state.grudge,
+                grudgeAfter = result.Success
+                    ? Mathf.Clamp(state.grudge + result.GrudgeDelta, 0f, 100f)
+                    : state.grudge,
+                corruptionBefore = state.corruption,
+                corruptionAfter = result.Success
+                    ? Mathf.Clamp(
+                        state.corruption + result.CorruptionDelta,
+                        0f,
+                        100f)
+                    : state.corruption,
+                outputItemId = outputItem,
+                outputAmount = outputAmount,
+                outputOperationId = outputAmount > 0
+                    ? CaptivityInteractionAttemptIdentity.FormatOutputOperationId(
+                        state.captiveId,
+                        attempt)
+                    : string.Empty,
+                bodyDamageAmount = result.Success && handler.BodyDamage.HasDamage
+                    ? damage.DamageAmount
+                    : 0f,
+                bodyHealthBefore = result.Success && handler.BodyDamage.HasDamage
+                    ? damage.CurrentHealth
+                    : 0f,
+                bodyHealthAfter = result.Success && handler.BodyDamage.HasDamage
+                    ? damage.ExpectedHealth
+                    : 0f,
+                bodyMaximumHealth = result.Success && handler.BodyDamage.HasDamage
+                    ? damage.MaximumHealth
+                    : 0f
+            };
+            CaptivityInteractionResolvedFact fact = new(
                 state.captiveId,
-                Name("captive", state.captiveId, state.displayName),
-                "character:qa-captivity-warden-authored",
-                Name(
-                    "warden",
-                    "character:qa-captivity-warden-authored",
-                    "도윤"),
-                state.housingBuildingId,
-                Name("facility", state.housingBuildingId, "감방 구속대"),
-                7,
-                9,
-                handler.InteractionId,
-                handler.Kind,
-                handler.DisplayName,
-                result.Success,
-                result.Message,
-                result.WillDelta,
-                result.FearDelta,
-                result.TrustDelta,
-                result.GrudgeDelta,
-                result.CorruptionDelta,
-                damage.DamageAmount,
-                handler.BodyDamage.HasDamage ? damage.CurrentHealth : 0f,
-                handler.BodyDamage.HasDamage ? damage.ExpectedHealth : 0f,
-                result.OutputItemId,
-                result.OutputAmount,
-                index + 1,
-                index + 1L,
-                20);
-            Require(
-                bridge.TryPrepare(receipt, out var prepared, out string failure)
-                && bridge.Commit(prepared).DurablyCommitted,
-                $"authored handler '{handler.InteractionId}' could not record: {failure}");
+                terminal,
+                attempt);
+            Require(authority.Facts.TryStage(
+                    fact,
+                    out IDomainFactStage stage,
+                    out string stageFailure),
+                $"authored handler '{handler.InteractionId}' could not stage: "
+                + stageFailure);
+            try
+            {
+                Require(
+                    stage.Commit().Completed,
+                    $"authored handler '{handler.InteractionId}' could not record");
+            }
+            finally
+            {
+                stage.Cancel();
+            }
         }
 
         GameplayOutcomeQueryPage page = ledger.GetGlobal(
@@ -256,7 +490,7 @@ public static class CaptivityInteractionOutcomeDebugScenarios
                        CaptiveInteractionKind.Coercion,
                        effect,
                        new CaptivityBodyDamagePolicy(20f)),
-                   OwnerOutcomeCommitPhase.Rejected,
+                   DomainFactDeliveryPhase.Rejected,
                    "qa-interaction-rejected"))
         {
             float will = rejected.State.will;
@@ -275,6 +509,8 @@ public static class CaptivityInteractionOutcomeDebugScenarios
                 && rejected.State.interactionOutcomeRevision == 0L
                 && rejected.State.interactionTerminal.HasOutcome
                 && !rejected.State.interactionTerminal.HasCommittedOutcome
+                && rejected.State.interactionTerminal.publicationKey.Length == 0
+                && !rejected.State.interactionTerminal.deliveryPending
                 && rejected.Body.ApplyCount == 1
                 && rejected.Body.RestoreCount == 1
                 && rejected.Body.CompleteCount == 0
@@ -287,7 +523,7 @@ public static class CaptivityInteractionOutcomeDebugScenarios
                     1f,
                     out _)
                 && rejected.Handler.ExecuteCount == 1
-                && rejected.Committer.CommitCount == 2,
+                && rejected.Publisher.CommitCount == 2,
                 "a rejected frozen interaction reran its handler");
         }
 
@@ -298,7 +534,7 @@ public static class CaptivityInteractionOutcomeDebugScenarios
                        CaptiveInteractionKind.Branding,
                        effect,
                        new CaptivityBodyDamagePolicy(8f)),
-                   OwnerOutcomeCommitPhase.CommittedPendingDelivery,
+                   DomainFactDeliveryPhase.AcceptedPendingDelivery,
                    "qa-ledger-delivery-pending"))
         {
             Require(
@@ -310,8 +546,10 @@ public static class CaptivityInteractionOutcomeDebugScenarios
                 && status == effect.Message
                 && pending.State.status == CaptivityStatus.Confined
                 && pending.State.interactionOutcomeRevision == 1L
+                && pending.State.currentInteractionId.Length == 0
+                && !pending.State.interactionTerminal.HasOutcome
                 && pending.Handler.ExecuteCount == 1
-                && pending.Committer.CommitCount == 1
+                && pending.Publisher.CommitCount == 1
                 && pending.Body.ApplyCount == 1
                 && pending.Body.CompleteCount == 1
                 && Mathf.Approximately(pending.Body.CurrentHealth, 92f),
@@ -331,7 +569,7 @@ public static class CaptivityInteractionOutcomeDebugScenarios
                        CaptiveInteractionKind.BloodExtraction,
                        extraction,
                        new CaptivityBodyDamagePolicy(10f)),
-                   OwnerOutcomeCommitPhase.PublishedAcknowledged,
+                   DomainFactDeliveryPhase.Delivered,
                    string.Empty,
                    outputFailures: 1))
         {
@@ -344,9 +582,10 @@ public static class CaptivityInteractionOutcomeDebugScenarios
                 && firstStatus.Contains("출력 전달을 재시도", StringComparison.Ordinal)
                 && retry.State.status == CaptivityStatus.Interaction
                 && retry.State.interactionTerminal.HasCommittedOutcome
+                && retry.State.interactionTerminal.HasDeliveredOutcome
                 && !retry.State.interactionTerminal.outputPublished
                 && retry.Handler.ExecuteCount == 1
-                && retry.Committer.CommitCount == 1
+                && retry.Publisher.CommitCount == 1
                 && retry.Body.ApplyCount == 1
                 && retry.Body.CompleteCount == 0
                 && Mathf.Approximately(retry.Body.CurrentHealth, 90f),
@@ -360,7 +599,7 @@ public static class CaptivityInteractionOutcomeDebugScenarios
                 && secondStatus == extraction.Message
                 && retry.State.status == CaptivityStatus.Confined
                 && retry.Handler.ExecuteCount == 1
-                && retry.Committer.CommitCount == 1
+                && retry.Publisher.CommitCount == 1
                 && retry.Physical.CallCount == 2
                 && retry.Physical.SuccessfulPublicationCount == 1
                 && retry.Body.ApplyCount == 1
@@ -379,12 +618,12 @@ public static class CaptivityInteractionOutcomeDebugScenarios
                            outputItemId: CaptivityItemDefinitions.MemoryResidueItemId,
                            outputAmount: 1),
                        new CaptivityBodyDamagePolicy(100f)),
-                   OwnerOutcomeCommitPhase.PublishedAcknowledged,
+                   DomainFactDeliveryPhase.Delivered,
                    string.Empty,
                    outputFailures: 1,
                    startingHealth: 10f))
         {
-            lethal.Committer.BeforeReturn = () => Require(
+            lethal.Publisher.BeforeReturn = () => Require(
                 lethal.Body.ApplyCount == 1
                 && lethal.Body.CompleteCount == 0
                 && !lethal.Captive.IsDead,
@@ -396,6 +635,7 @@ public static class CaptivityInteractionOutcomeDebugScenarios
                     1f,
                     out _)
                 && lethal.State.interactionTerminal.HasCommittedOutcome
+                && lethal.State.interactionTerminal.HasDeliveredOutcome
                 && lethal.Body.CompleteCount == 0,
                 "lethal output fault did not retain the committed terminal");
             lethal.Captive.Die(
@@ -427,13 +667,15 @@ public static class CaptivityInteractionOutcomeDebugScenarios
             CaptivityBodyDamagePolicy.None,
             "심문");
         GameEventBus events = new();
+        using var observer = new CaptivityInterrogationPresentationObserver(events);
+        observer.Initialize();
         int notices = 0;
         using IDisposable subscription = events.Subscribe<EventAlertRequestedEvent>(
             _ => notices++);
         using OwnerFixture fixture = new(
             "interrogation",
             interrogation,
-            OwnerOutcomeCommitPhase.PublishedAcknowledged,
+            DomainFactDeliveryPhase.Delivered,
             string.Empty,
             eventBus: events);
 
@@ -445,7 +687,7 @@ public static class CaptivityInteractionOutcomeDebugScenarios
                 out string status)
             && status == "심문 종료 — 추가 정보 없음"
             && fixture.Handler.ExecuteCount == 1
-            && fixture.Committer.LastReceipt.InteractionKind
+            && fixture.Publisher.LastFact.Snapshot().interactionKind
                 == CaptiveInteractionKind.Interrogation
             && notices == 1
             && fixture.State.status == CaptivityStatus.Confined
@@ -454,38 +696,14 @@ public static class CaptivityInteractionOutcomeDebugScenarios
             && fixture.State.currentInterrogationAttemptId == 0
             && fixture.State.interrogationTerminal.HasOutcome
             && fixture.State.interrogationTerminal.codexPublicationCompleted
-            && fixture.State.interrogationTerminal.noticePublicationCompleted
+            && fixture.State.interrogationTerminal.factPublicationCompleted
             && !fixture.State.interrogationTerminal.HasPendingPublication,
             "interrogation outcome and publication were not composed exactly once");
     }
 
     private static void VerifySaveCompatibility()
     {
-        CaptiveState committed = PendingState("save-roundtrip");
-        committed.currentInteractionId = "captivity:memory-extraction";
-        committed.interactionAttemptSequence = 3;
-        committed.currentInteractionAttemptId = 3;
-        committed.interactionOutcomeRevision = 2L;
-        committed.completedInteractionWork = 10f;
-        committed.requiredInteractionWork = 10f;
-        committed.interactionTerminal = Terminal(
-            committed,
-            attemptId: 3,
-            outcomeRevision: 2L,
-            interactionId: committed.currentInteractionId,
-            kind: CaptiveInteractionKind.MemoryExtraction,
-            display: "기억 추출",
-            outputItemId: CaptivityItemDefinitions.MemoryResidueItemId,
-            outputAmount: 1,
-            bodyDamage: 10f,
-            bodyBefore: 100f,
-            bodyAfter: 90f,
-            bodyObserversPending: true);
-        committed.will = committed.interactionTerminal.willAfter;
-        committed.fear = committed.interactionTerminal.fearAfter;
-        committed.trust = committed.interactionTerminal.trustAfter;
-        committed.grudge = committed.interactionTerminal.grudgeAfter;
-        committed.corruption = committed.interactionTerminal.corruptionAfter;
+        CaptiveState committed = PublishedInteractionState();
 
         CaptivitySaveData roundTrip = JsonUtility.FromJson<CaptivitySaveData>(
             JsonUtility.ToJson(Save(committed)));
@@ -494,7 +712,8 @@ public static class CaptivityInteractionOutcomeDebugScenarios
         Require(
             valid.Success
             && roundTrip.captives.Single().interactionTerminal.attemptId == 3
-            && roundTrip.captives.Single().interactionOutcomeRevision == 2L,
+            && roundTrip.captives.Single().interactionOutcomeRevision == 2L
+            && roundTrip.captives.Single().interactionTerminal.HasDeliveredOutcome,
             "valid interaction terminal failed save round trip: "
             + string.Join(" | ", valid.Errors));
 
@@ -511,23 +730,11 @@ public static class CaptivityInteractionOutcomeDebugScenarios
         driftedDamage.interactionTerminal.bodyHealthAfter = 80f;
         RequireInvalidSave(driftedDamage, "drifted frozen body projection was accepted");
 
-        CaptiveState legacy = PendingState("legacy-active");
-        legacy.interactionAttemptSequence = 0;
-        legacy.currentInteractionAttemptId = 0;
-        legacy.completedInteractionWork = 2f;
-        legacy.requiredInteractionWork = 10f;
-        legacy.interactionTerminal = new CaptivityInteractionTerminalState();
-        DungeonGameRestoreReport legacyReport = new();
-        CaptivitySaveValidation.Validate(Save(legacy), legacyReport);
-        CaptiveState normalized = CaptivitySaveValidation
-            .CreateRestoredCaptive(legacy);
-        Require(
-            legacyReport.Success
-            && normalized.currentInteractionAttemptId == 1
-            && normalized.interactionAttemptSequence == 1
-            && !normalized.interactionTerminal.HasOutcome,
-            "legacy active interaction was not normalized safely: "
-            + string.Join(" | ", legacyReport.Errors));
+        CaptiveState missingPublication = committed.Clone();
+        missingPublication.interactionTerminal.publicationKey = string.Empty;
+        RequireInvalidSave(
+            missingPublication,
+            "committed interaction without its V9 publication key was accepted");
     }
 
     private static void RequireInvalidSave(CaptiveState state, string message)
@@ -605,7 +812,6 @@ public static class CaptivityInteractionOutcomeDebugScenarios
     private static CaptivityInteractionTerminalState Terminal(
         CaptiveState state,
         int attemptId,
-        long outcomeRevision = 0L,
         string interactionId = "captivity:persuasion",
         CaptiveInteractionKind kind = CaptiveInteractionKind.Persuasion,
         string display = "회유",
@@ -614,10 +820,12 @@ public static class CaptivityInteractionOutcomeDebugScenarios
         float bodyDamage = 0f,
         float bodyBefore = 0f,
         float bodyAfter = 0f,
-        bool bodyObserversPending = false) => new()
+        bool bodyObserversPending = false,
+        int absoluteDay = 21) => new()
     {
+        captiveDisplayName = state.displayName,
+        absoluteDay = absoluteDay,
         attemptId = attemptId,
-        outcomeRevision = outcomeRevision,
         interactionId = interactionId,
         interactionKind = kind,
         interactionDisplayName = display,
@@ -653,6 +861,18 @@ public static class CaptivityInteractionOutcomeDebugScenarios
         bodyObserversPending = bodyObserversPending
     };
 
+    private static void ApplyTerminalState(CaptiveState state, long revision)
+    {
+        CaptivityInteractionTerminalState terminal = state.interactionTerminal;
+        state.will = terminal.willAfter;
+        state.fear = terminal.fearAfter;
+        state.trust = terminal.trustAfter;
+        state.grudge = terminal.grudgeAfter;
+        state.corruption = terminal.corruptionAfter;
+        state.interactionOutcomeRevision = revision;
+        terminal.outcomeRevision = revision;
+    }
+
     private static CaptivitySaveData Save(CaptiveState state) => new()
     {
         captives = new List<CaptiveState> { state },
@@ -666,13 +886,50 @@ public static class CaptivityInteractionOutcomeDebugScenarios
         }
     };
 
-    private static KoreanNameSnapshot Name(
-        string role,
-        string id,
-        string display) => CaptivityInteractionOutcomeNames.Snapshot(
-        role,
-        id,
-        display);
+    private static CaptiveState PublishedInteractionState()
+    {
+        using InteractionFactAuthority authority = new(
+            "run:captivity-interaction-save-roundtrip");
+        CaptivityInteractionOutcomeRuntime runtime = new(
+            authority.Facts,
+            authority.Facts,
+            new FakePhysicalSource());
+        CaptiveState state = PendingState("save-roundtrip");
+        state.currentInteractionId = "captivity:memory-extraction";
+        state.interactionAttemptSequence = 3;
+        state.currentInteractionAttemptId = 3;
+        state.interactionOutcomeRevision = 1L;
+        state.completedInteractionWork = 10f;
+        state.requiredInteractionWork = 10f;
+        state.interactionTerminal = Terminal(
+            state,
+            attemptId: 3,
+            interactionId: state.currentInteractionId,
+            kind: CaptiveInteractionKind.MemoryExtraction,
+            display: "기억 추출",
+            outputItemId: CaptivityItemDefinitions.MemoryResidueItemId,
+            outputAmount: 1,
+            bodyDamage: 10f,
+            bodyBefore: 100f,
+            bodyAfter: 90f,
+            bodyObserversPending: true);
+        Require(
+            runtime.TryPrepare(
+                state,
+                out CaptivityInteractionPublication prepared,
+                out long revision,
+                out string prepareFailure),
+            "interaction save fact prepare failed: " + prepareFailure);
+        using (prepared)
+        {
+            ApplyTerminalState(state, revision);
+            state.interactionTerminal.bodyObserversPending = true;
+            Require(
+                runtime.Commit(prepared).Completed,
+                "interaction save fact was not delivered");
+        }
+        return state.Clone();
+    }
 
     private static string Fact(GameplayOutcomeSnapshot snapshot, string factId) =>
         snapshot.facts.Single(value => value.factId == factId).value;
@@ -686,11 +943,12 @@ public static class CaptivityInteractionOutcomeDebugScenarios
     private sealed class OwnerFixture : IDisposable
     {
         private readonly List<UnityEngine.Object> cleanup = new();
+        private readonly InteractionFactAuthority authority;
 
         public OwnerFixture(
             string suffix,
             FixedHandler handler,
-            OwnerOutcomeCommitPhase phase,
+            DomainFactDeliveryPhase phase,
             string detail,
             int outputFailures = 0,
             float startingHealth = 100f,
@@ -733,7 +991,12 @@ public static class CaptivityInteractionOutcomeDebugScenarios
                 startingHealth,
                 startingHealth);
             Physical = new FakePhysicalSource(outputFailures);
-            Committer = new ConfigurableCommitter(phase, detail);
+            authority = new InteractionFactAuthority(
+                "run:captivity-interaction:" + suffix);
+            Publisher = new ConfigurablePublisher(
+                authority.Facts,
+                phase,
+                detail);
             Materials = new FakeMaterials();
             IGameEventBus events = eventBus ?? new GameEventBus();
             CaptivityInterrogationInformationRuntime interrogation = new(
@@ -748,8 +1011,11 @@ public static class CaptivityInteractionOutcomeDebugScenarios
                 interrogation,
                 Body,
                 Body,
-                new CaptivityInteractionOutcomeRuntime(Committer, Physical),
-                new FakeClock(),
+                new CaptivityInteractionOutcomeRuntime(
+                    Publisher,
+                    authority.Facts,
+                    Physical),
+                new FakeCalendar(),
                 Materials,
                 TryGetHousing);
         }
@@ -761,12 +1027,13 @@ public static class CaptivityInteractionOutcomeDebugScenarios
         public CaptiveState State { get; }
         public FakeBodyHealth Body { get; }
         public FakePhysicalSource Physical { get; }
-        public ConfigurableCommitter Committer { get; }
+        public ConfigurablePublisher Publisher { get; }
         public FakeMaterials Materials { get; }
         public CaptivityInteractionRuntime Runtime { get; }
 
         public void Dispose()
         {
+            authority.Dispose();
             foreach (UnityEngine.Object value in cleanup.Where(value => value != null))
                 UnityEngine.Object.DestroyImmediate(value);
         }
@@ -884,57 +1151,125 @@ public static class CaptivityInteractionOutcomeDebugScenarios
         }
     }
 
-    private sealed class ConfigurableCommitter :
-        ICaptivityInteractionOutcomeCommitter
+    private sealed class InteractionFactAuthority : IDisposable
     {
-        private readonly OwnerOutcomeCommitPhase phase;
+        private readonly IDisposable observation;
+
+        public InteractionFactAuthority(string runId)
+        {
+            Registry = CaptivityInteractionOutcomeDebugScenarios.Registry();
+            Ledger = NewLedger(Registry, runId);
+            GameplayOutcomeRecorder recorder = new(
+                Ledger,
+                Registry,
+                new GameEventBus());
+            Facts = new DomainFactDispatcher();
+            observation = Facts.Subscribe(
+                "captivity-interaction:fixture",
+                new GameplayDomainFactObserver<
+                    CaptivityInteractionResolvedFact,
+                    CaptivityInteractionOutcomeReceipt>(
+                    CaptivityInteractionFactMapping.Capture,
+                    Registry,
+                    Ledger,
+                    recorder,
+                    new GameplayDomainFactCommitGroup(recorder, Ledger)));
+        }
+
+        public GameplayOutcomeRegistry Registry { get; }
+        public GameplayOutcomeLedger Ledger { get; }
+        public DomainFactDispatcher Facts { get; }
+
+        public void Dispose()
+        {
+            observation.Dispose();
+            Facts.Dispose();
+        }
+    }
+
+    private sealed class ConfigurablePublisher : IDomainFactStagingPublisher
+    {
+        private readonly IDomainFactStagingPublisher inner;
+        private readonly DomainFactDeliveryPhase phase;
         private readonly string detail;
 
-        public ConfigurableCommitter(
-            OwnerOutcomeCommitPhase phase,
+        public ConfigurablePublisher(
+            IDomainFactStagingPublisher inner,
+            DomainFactDeliveryPhase phase,
             string detail)
         {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
             this.phase = phase;
             this.detail = detail ?? string.Empty;
         }
 
-        public CaptivityInteractionOutcomeReceipt LastReceipt { get; private set; }
+        public CaptivityInteractionResolvedFact LastFact { get; private set; }
         public int PrepareCount { get; private set; }
-        public int CommitCount { get; private set; }
+        public int CommitCount { get; set; }
         public Action BeforeReturn { get; set; }
 
-        public bool TryPrepare(
-            in CaptivityInteractionOutcomeReceipt receipt,
-            out PreparedCaptivityInteractionOutcome prepared,
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
             out string failureReason)
         {
             PrepareCount++;
-            LastReceipt = receipt;
-            prepared = new PreparedCaptivityInteractionOutcome(
-                default,
-                receipt.ResultKey,
-                receipt.OwnerRevision,
-                false);
-            failureReason = string.Empty;
+            if (fact is CaptivityInteractionResolvedFact interaction)
+                LastFact = interaction;
+            if (!inner.TryStage(fact, out stage, out failureReason))
+                return false;
+            stage = new ConfigurableStage(this, stage, phase, detail);
             return true;
         }
+    }
 
-        public OwnerOutcomeCommitResult Commit(
-            in PreparedCaptivityInteractionOutcome prepared)
+    private sealed class ConfigurableStage : IDomainFactStage
+    {
+        private readonly ConfigurablePublisher owner;
+        private readonly IDomainFactStage inner;
+        private readonly DomainFactDeliveryPhase phase;
+        private readonly string detail;
+
+        public ConfigurableStage(
+            ConfigurablePublisher owner,
+            IDomainFactStage inner,
+            DomainFactDeliveryPhase phase,
+            string detail)
         {
-            CommitCount++;
-            BeforeReturn?.Invoke();
-            return new OwnerOutcomeCommitResult(
-                phase,
-                prepared.ResultKey,
-                default,
-                string.Empty,
-                detail);
+            this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            this.phase = phase;
+            this.detail = detail ?? string.Empty;
         }
 
-        public void Cancel(in PreparedCaptivityInteractionOutcome prepared)
+        public string OperationKey => inner.OperationKey;
+        public long OwnerRevision => inner.OwnerRevision;
+        public bool IsReplay => inner.IsReplay;
+        public bool IsActive => inner.IsActive;
+
+        public DomainFactDelivery Commit()
         {
+            owner.CommitCount++;
+            if (phase == DomainFactDeliveryPhase.Rejected)
+            {
+                inner.Cancel();
+                owner.BeforeReturn?.Invoke();
+                return DomainFactDelivery.Reject(detail);
+            }
+            DomainFactDelivery delivery = inner.Commit();
+            owner.BeforeReturn?.Invoke();
+            return phase == DomainFactDeliveryPhase.Delivered
+                || !delivery.MayBeCommitted
+                    ? delivery
+                    : new DomainFactDelivery(
+                        phase,
+                        delivery.OperationKey,
+                        delivery.PublicationId,
+                        delivery.Fingerprint,
+                        detail);
         }
+
+        public void Cancel() => inner.Cancel();
     }
 
     private sealed class FakePhysicalSource :
@@ -1071,6 +1406,16 @@ public static class CaptivityInteractionOutcomeDebugScenarios
             CharacterActor actor,
             CombatAttackResult result,
             string reason) => throw new NotSupportedException();
+        public void ApplyPreparedMedicalStabilization(
+            CharacterActor actor) => throw new NotSupportedException();
+        public void ApplyPreparedMedicalTreatment(
+            CharacterActor actor,
+            float partHealthAmount,
+            float bloodLossReduction) => throw new NotSupportedException();
+        public void CompletePreparedMedicalMutation(
+            CharacterActor actor,
+            in CharacterBodyHealthMutationSnapshot before) =>
+            throw new NotSupportedException();
         public void CompletePreparedCombatMutation(
             CharacterActor actor,
             in CharacterBodyHealthMutationSnapshot before,
@@ -1187,21 +1532,36 @@ public static class CaptivityInteractionOutcomeDebugScenarios
 
     private sealed class RecordingCodex : ICaptivityInterrogationCodexPort
     {
+        public int PublishCount { get; private set; }
         public bool HasInformation(string entryId, string informationText) => false;
         public void PublishInformation(
             string entryId,
             string fallbackTitle,
             string informationText)
         {
+            PublishCount++;
         }
     }
 
-    private sealed class FakeClock : IGameClock
+    private sealed class FakeCalendar : IGameCalendar
     {
-        public float DeltaTime => 0.02f;
-        public float Time => GameCalendarRules.SecondsPerDay * 20f;
-        public int FrameCount => 200;
-        public bool IsPaused => false;
+        public int Day => 21;
+        public int Hour => 0;
+        public int Year => Current.Year;
+        public int DayOfYear => Current.DayOfYear;
+        public Season Season => Current.Season;
+        public int DayOfSeason => Current.DayOfSeason;
+        public long AbsoluteHour => Current.AbsoluteHour;
+        public float ElapsedSeconds => 0f;
+        public TimeOfDay TimeOfDay => default;
+        public bool IsRunning { get; private set; }
+        public CalendarDateTime Current => GameCalendarRules.Project(Day, Hour);
+        public CalendarDateTime GetRegionalTime(int utcOffsetHours) =>
+            GameCalendarRules.ProjectRegional(Day, Hour, utcOffsetHours);
+        public void Start() => IsRunning = true;
+        public void SetDateTime(int day, int hour)
+        {
+        }
     }
 }
 #endif

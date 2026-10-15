@@ -258,7 +258,8 @@ public abstract class EnvironmentOutcomeDescriptor : IGameplayOutcomeDescriptor
             || outcome.SubjectCount == 0
             || outcome.TagCount != 1
             || !outcome.GetTag(0).Equals(requiredTag)
-            || outcome.AnchorCount != 0
+            // Evidence retention anchors can be added after this receipt commits.
+            || outcome.InitialAnchorCount != 0
             || outcome.ProvenanceCount == 0
             || outcome.FactCount != facts.Length)
             return OutcomeValidationResult.Reject(
@@ -376,8 +377,8 @@ public sealed class CropPlanOutcomeDescriptor : EnvironmentOutcomeDescriptor
         GameplayOutcomeStatus.Succeeded, GameplayOutcomeStatus.Failed,
         EnvironmentOutcomeIds.AgricultureTag,
         new[] { EnvironmentOutcomeIds.FacilityRole, EnvironmentOutcomeIds.CropRole },
-        new[] { Metric(EnvironmentOutcomeIds.InputQuantityMetric, EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true), Metric(EnvironmentOutcomeIds.InputMassMetric, EnvironmentOutcomeIds.GramUnit, 0d, long.MaxValue, true), Metric(EnvironmentOutcomeIds.OutputQuantityMetric, EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true), Metric(EnvironmentOutcomeIds.OutputMassMetric, EnvironmentOutcomeIds.GramUnit, 0d, long.MaxValue, true), Metric(EnvironmentOutcomeIds.StatusMetric, EnvironmentOutcomeIds.EnumUnit, 2d, 4d, true) },
-        new[] { EnvironmentOutcomeIds.ReceiptKindFact, EnvironmentOutcomeIds.SourceDigestFact, EnvironmentOutcomeIds.InputDigestFact, EnvironmentOutcomeIds.OutputDigestFact, EnvironmentOutcomeIds.CommitFact, EnvironmentOutcomeIds.FingerprintFact, EnvironmentOutcomeIds.IndoorFact, EnvironmentOutcomeIds.CorrelationFact, EnvironmentOutcomeIds.SummaryFact }) { }
+        new[] { Metric(EnvironmentOutcomeIds.InputQuantityMetric, EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true), Metric(EnvironmentOutcomeIds.InputMassMetric, EnvironmentOutcomeIds.GramUnit, 0d, long.MaxValue, true), Metric(EnvironmentOutcomeIds.OutputQuantityMetric, EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true), Metric(EnvironmentOutcomeIds.OutputMassMetric, EnvironmentOutcomeIds.GramUnit, 0d, long.MaxValue, true), Metric(EnvironmentOutcomeIds.StatusMetric, EnvironmentOutcomeIds.EnumUnit, 2d, 4d, true), Metric(EnvironmentOutcomeIds.WaterBeforeMetric, EnvironmentOutcomeIds.PointUnit, 0d), Metric(EnvironmentOutcomeIds.WaterAfterMetric, EnvironmentOutcomeIds.PointUnit, 0d) },
+        new[] { EnvironmentOutcomeIds.ReceiptKindFact, EnvironmentOutcomeIds.SourceDigestFact, EnvironmentOutcomeIds.InputDigestFact, EnvironmentOutcomeIds.OutputDigestFact, EnvironmentOutcomeIds.CommitFact, EnvironmentOutcomeIds.FingerprintFact, EnvironmentOutcomeIds.IndoorFact, EnvironmentOutcomeIds.CorrelationFact, EnvironmentOutcomeIds.SowOperationFact, EnvironmentOutcomeIds.HarvestOperationFact, EnvironmentOutcomeIds.SowContributorsFact, EnvironmentOutcomeIds.HarvestContributorsFact, EnvironmentOutcomeIds.HarvesterFact, EnvironmentOutcomeIds.EcologyBeforeFact, EnvironmentOutcomeIds.EcologyAfterFact, EnvironmentOutcomeIds.GoldenTraitFact, EnvironmentOutcomeIds.GoldenOutcomeFact, EnvironmentOutcomeIds.GoldenMultipliersFact, EnvironmentOutcomeIds.GoldenRollHashFact, EnvironmentOutcomeIds.IrrigationChildrenFact, EnvironmentOutcomeIds.SummaryFact }) { }
     public override GameplayOutcomeTypeId OutcomeTypeId => EnvironmentOutcomeIds.CropPlanTerminal;
 
     protected override OutcomeValidationResult ValidateAdditional(
@@ -406,16 +407,534 @@ public sealed class CropIrrigationSupplyOutcomeDescriptor : EnvironmentOutcomeDe
         new[]
         {
             Metric(EnvironmentOutcomeIds.WaterUnitsMetric, EnvironmentOutcomeIds.PointUnit, double.Epsilon),
-            Metric(EnvironmentOutcomeIds.WaterQualityMetric, EnvironmentOutcomeIds.EnumUnit, 0d, int.MaxValue, true)
+            Metric(EnvironmentOutcomeIds.WaterQualityMetric, EnvironmentOutcomeIds.EnumUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.WaterBeforeMetric, EnvironmentOutcomeIds.PointUnit, 0d),
+            Metric(EnvironmentOutcomeIds.WaterAfterMetric, EnvironmentOutcomeIds.PointUnit, 0d),
+            Metric(EnvironmentOutcomeIds.NetworkWaterBeforeMetric, EnvironmentOutcomeIds.PointUnit, 0d),
+            Metric(EnvironmentOutcomeIds.NetworkWaterAfterMetric, EnvironmentOutcomeIds.PointUnit, 0d)
         },
         new[]
         {
             EnvironmentOutcomeIds.ReceiptKindFact,
             EnvironmentOutcomeIds.CorrelationFact,
+            EnvironmentOutcomeIds.NetworkIdFact,
             EnvironmentOutcomeIds.SummaryFact
         }) { }
     public override GameplayOutcomeTypeId OutcomeTypeId =>
         EnvironmentOutcomeIds.CropIrrigationSupplied;
+}
+
+public sealed class CropSelectionCommandOutcomeDescriptor : EnvironmentOutcomeDescriptor
+{
+    public CropSelectionCommandOutcomeDescriptor(IKoreanJosaFormatter josa) : base(
+        josa, "재배 작물 지정", EnvironmentOutcomeIds.FacilityRole,
+        KoreanJosaKind.Topic, " 재배 작물을 바꿨다.", "재배 작물을 바꿨다.",
+        GameplayOutcomeStatus.Succeeded, GameplayOutcomeStatus.Succeeded,
+        EnvironmentOutcomeIds.AgricultureTag,
+        new[] { EnvironmentOutcomeIds.FacilityRole, EnvironmentOutcomeIds.CropRole },
+        new[]
+        {
+            Metric(EnvironmentOutcomeIds.SequenceMetric, EnvironmentOutcomeIds.RevisionUnit, 1d, long.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.WaterBeforeMetric, EnvironmentOutcomeIds.PointUnit, 0d),
+            Metric(EnvironmentOutcomeIds.WaterAfterMetric, EnvironmentOutcomeIds.PointUnit, 0d)
+        },
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.CorrelationFact,
+            EnvironmentOutcomeIds.PreviousCropFact,
+            EnvironmentOutcomeIds.SelectedCropFact,
+            EnvironmentOutcomeIds.SummaryFact
+        }) { }
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.CropSelectionChanged;
+}
+
+public sealed class GoldenHarvestScheduleOutcomeDescriptor : EnvironmentOutcomeDescriptor
+{
+    public GoldenHarvestScheduleOutcomeDescriptor(IKoreanJosaFormatter josa) : base(
+        josa, "황금 수확 예약", EnvironmentOutcomeIds.ActorRole,
+        KoreanJosaKind.Topic, " 황금 수확을 예약했다.", "황금 수확을 예약했다.",
+        GameplayOutcomeStatus.Succeeded, GameplayOutcomeStatus.Succeeded,
+        EnvironmentOutcomeIds.AgricultureTag,
+        new[] { EnvironmentOutcomeIds.ActorRole, EnvironmentOutcomeIds.FacilityRole, EnvironmentOutcomeIds.CropRole },
+        new[]
+        {
+            Metric(EnvironmentOutcomeIds.SequenceMetric, EnvironmentOutcomeIds.RevisionUnit, 1d, long.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.AttemptBeforeMetric, EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.AttemptAfterMetric, EnvironmentOutcomeIds.CountUnit, 1d, int.MaxValue, true)
+        },
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.CorrelationFact,
+            EnvironmentOutcomeIds.PreviousHarvesterFact,
+            EnvironmentOutcomeIds.HarvesterFact,
+            EnvironmentOutcomeIds.SummaryFact
+        }) { }
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.GoldenHarvestScheduled;
+}
+
+public sealed class CropManualWaterRefillOutcomeDescriptor : EnvironmentOutcomeDescriptor
+{
+    public CropManualWaterRefillOutcomeDescriptor(IKoreanJosaFormatter josa) : base(
+        josa, "수동 급수", EnvironmentOutcomeIds.ActorRole,
+        KoreanJosaKind.Topic, " 농지에 물을 보충했다.", "농지에 물을 보충했다.",
+        GameplayOutcomeStatus.Succeeded, GameplayOutcomeStatus.Succeeded,
+        EnvironmentOutcomeIds.AgricultureTag,
+        new[] { EnvironmentOutcomeIds.ActorRole, EnvironmentOutcomeIds.FacilityRole, EnvironmentOutcomeIds.ItemRole },
+        new[]
+        {
+            Metric(EnvironmentOutcomeIds.InputQuantityMetric, EnvironmentOutcomeIds.CountUnit, 1d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.InputMassMetric, EnvironmentOutcomeIds.GramUnit, 1d, long.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.WaterBeforeMetric, EnvironmentOutcomeIds.PointUnit, 0d),
+            Metric(EnvironmentOutcomeIds.WaterAfterMetric, EnvironmentOutcomeIds.PointUnit, double.Epsilon),
+            Metric(EnvironmentOutcomeIds.SequenceMetric, EnvironmentOutcomeIds.RevisionUnit, 1d, long.MaxValue, true)
+        },
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.CorrelationFact,
+            EnvironmentOutcomeIds.CommitFact,
+            EnvironmentOutcomeIds.SourceStackFact,
+            EnvironmentOutcomeIds.ChildResultKeyFact,
+            EnvironmentOutcomeIds.WorkContributorsFact,
+            EnvironmentOutcomeIds.SummaryFact
+        }) { }
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.CropManualWaterRefilled;
+}
+
+public sealed class EnvironmentalControlCommandOutcomeDescriptor :
+    EnvironmentOutcomeDescriptor
+{
+    public EnvironmentalControlCommandOutcomeDescriptor(IKoreanJosaFormatter josa) : base(
+        josa, "환경 제어", EnvironmentOutcomeIds.FacilityRole,
+        KoreanJosaKind.Topic, " 목표 온도를 조정했다.", "목표 온도를 조정했다.",
+        GameplayOutcomeStatus.Succeeded, GameplayOutcomeStatus.Succeeded,
+        EnvironmentOutcomeIds.EnvironmentTag,
+        new[] { EnvironmentOutcomeIds.FacilityRole },
+        new[]
+        {
+            Metric(EnvironmentOutcomeIds.RequestedTargetMetric, EnvironmentOutcomeIds.PointUnit, -1000d, 1000d),
+            Metric(EnvironmentOutcomeIds.AppliedTargetMetric, EnvironmentOutcomeIds.PointUnit, -50d, 80d),
+            Metric(EnvironmentOutcomeIds.MinimumTargetMetric, EnvironmentOutcomeIds.PointUnit, -50d, 80d),
+            Metric(EnvironmentOutcomeIds.MaximumTargetMetric, EnvironmentOutcomeIds.PointUnit, -50d, 80d),
+            Metric(EnvironmentOutcomeIds.TargetBeforeMetric, EnvironmentOutcomeIds.PointUnit, -50d, 80d),
+            Metric(EnvironmentOutcomeIds.TargetAfterMetric, EnvironmentOutcomeIds.PointUnit, -50d, 80d)
+        },
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.CorrelationFact,
+            EnvironmentOutcomeIds.CommandSourceFact,
+            EnvironmentOutcomeIds.ReasonFact,
+            EnvironmentOutcomeIds.SummaryFact
+        }) { }
+
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.EnvironmentalControlChanged;
+
+    protected override OutcomeValidationResult ValidateAdditional(
+        in GameplayOutcomeReadView outcome)
+    {
+        double minimum = FindMetric(outcome, EnvironmentOutcomeIds.MinimumTargetMetric);
+        double maximum = FindMetric(outcome, EnvironmentOutcomeIds.MaximumTargetMetric);
+        double applied = FindMetric(outcome, EnvironmentOutcomeIds.AppliedTargetMetric);
+        double before = FindMetric(outcome, EnvironmentOutcomeIds.TargetBeforeMetric);
+        double after = FindMetric(outcome, EnvironmentOutcomeIds.TargetAfterMetric);
+        return minimum <= maximum
+            && applied >= minimum
+            && applied <= maximum
+            && applied == after
+            && before != after
+                ? OutcomeValidationResult.Accepted
+                : OutcomeValidationResult.Reject(
+                    OutcomeTypeId.Value + "-control-transition-invalid");
+    }
+}
+
+public sealed class EnvironmentalExposureThresholdOutcomeDescriptor :
+    EnvironmentOutcomeDescriptor
+{
+    public EnvironmentalExposureThresholdOutcomeDescriptor(IKoreanJosaFormatter josa) : base(
+        josa, "환경 노출", EnvironmentOutcomeIds.ActorRole,
+        KoreanJosaKind.Topic, " 환경 노출 임계 상태가 변했다.", "환경 노출 임계 상태가 변했다.",
+        GameplayOutcomeStatus.Succeeded, GameplayOutcomeStatus.Failed,
+        EnvironmentOutcomeIds.EnvironmentTag,
+        new[] { EnvironmentOutcomeIds.ActorRole },
+        new[]
+        {
+            Metric(EnvironmentOutcomeIds.TemperatureMetric, EnvironmentOutcomeIds.PointUnit, -50d, 80d),
+            Metric(EnvironmentOutcomeIds.AirQualityMetric, EnvironmentOutcomeIds.PointUnit, 0d, 100d),
+            Metric(EnvironmentOutcomeIds.LightLevelMetric, EnvironmentOutcomeIds.PointUnit, 0d, 100d),
+            Metric(EnvironmentOutcomeIds.ColdBeforeMetric, EnvironmentOutcomeIds.PointUnit, 0d, 100d),
+            Metric(EnvironmentOutcomeIds.ColdAfterMetric, EnvironmentOutcomeIds.PointUnit, 0d, 100d),
+            Metric(EnvironmentOutcomeIds.HeatBeforeMetric, EnvironmentOutcomeIds.PointUnit, 0d, 100d),
+            Metric(EnvironmentOutcomeIds.HeatAfterMetric, EnvironmentOutcomeIds.PointUnit, 0d, 100d),
+            Metric(EnvironmentOutcomeIds.AirborneBeforeMetric, EnvironmentOutcomeIds.PointUnit, 0d, 100d),
+            Metric(EnvironmentOutcomeIds.AirborneAfterMetric, EnvironmentOutcomeIds.PointUnit, 0d, 100d),
+            Metric(EnvironmentOutcomeIds.BandBeforeMetric, EnvironmentOutcomeIds.EnumUnit, 0d, 4d, true),
+            Metric(EnvironmentOutcomeIds.BandAfterMetric, EnvironmentOutcomeIds.EnumUnit, 0d, 4d, true),
+            Metric(EnvironmentOutcomeIds.DamageMetric, EnvironmentOutcomeIds.PointUnit, 0d),
+            Metric(EnvironmentOutcomeIds.HealthBeforeMetric, EnvironmentOutcomeIds.PointUnit, 0d),
+            Metric(EnvironmentOutcomeIds.HealthAfterMetric, EnvironmentOutcomeIds.PointUnit, 0d)
+        },
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.CorrelationFact,
+            EnvironmentOutcomeIds.EventKindFact,
+            EnvironmentOutcomeIds.BodyPartFact,
+            EnvironmentOutcomeIds.EnvironmentSourceFact,
+            EnvironmentOutcomeIds.ReasonFact,
+            EnvironmentOutcomeIds.SummaryFact
+        }) { }
+
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.EnvironmentalExposureThreshold;
+
+    protected override OutcomeValidationResult ValidateAdditional(
+        in GameplayOutcomeReadView outcome)
+    {
+        double damage = FindMetric(outcome, EnvironmentOutcomeIds.DamageMetric);
+        double healthBefore = FindMetric(outcome, EnvironmentOutcomeIds.HealthBeforeMetric);
+        double healthAfter = FindMetric(outcome, EnvironmentOutcomeIds.HealthAfterMetric);
+        double bandBefore = FindMetric(outcome, EnvironmentOutcomeIds.BandBeforeMetric);
+        double bandAfter = FindMetric(outcome, EnvironmentOutcomeIds.BandAfterMetric);
+        bool damageEvent = damage > 0d;
+        bool valid = damageEvent
+            ? outcome.Status == GameplayOutcomeStatus.Failed
+                && healthAfter <= healthBefore
+            : outcome.Status == GameplayOutcomeStatus.Succeeded
+                && bandBefore != bandAfter
+                && healthBefore == healthAfter;
+        return valid
+            ? OutcomeValidationResult.Accepted
+            : OutcomeValidationResult.Reject(
+                OutcomeTypeId.Value + "-exposure-transition-invalid");
+    }
+}
+
+public sealed class CropTreatmentOutcomeDescriptor : EnvironmentOutcomeDescriptor
+{
+    public CropTreatmentOutcomeDescriptor(IKoreanJosaFormatter josa) : base(
+        josa, "작물 처리", EnvironmentOutcomeIds.FacilityRole,
+        KoreanJosaKind.Topic, " 작물 처리를 마쳤다.", "작물 처리를 마쳤다.",
+        GameplayOutcomeStatus.Succeeded, GameplayOutcomeStatus.Succeeded,
+        EnvironmentOutcomeIds.AgricultureTag,
+        new[]
+        {
+            EnvironmentOutcomeIds.ActorRole,
+            EnvironmentOutcomeIds.FacilityRole,
+            EnvironmentOutcomeIds.ItemRole
+        },
+        new[]
+        {
+            Metric(EnvironmentOutcomeIds.InputQuantityMetric, EnvironmentOutcomeIds.CountUnit, 1d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.InputMassMetric, EnvironmentOutcomeIds.GramUnit, 1d, long.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.EffectAmountMetric, EnvironmentOutcomeIds.PointUnit, double.Epsilon, 100d),
+            Metric(EnvironmentOutcomeIds.PestPressureBeforeMetric, EnvironmentOutcomeIds.PointUnit, 0d, 100d),
+            Metric(EnvironmentOutcomeIds.PestPressureAfterMetric, EnvironmentOutcomeIds.PointUnit, 0d, 100d),
+            Metric(EnvironmentOutcomeIds.DiseasePressureBeforeMetric, EnvironmentOutcomeIds.PointUnit, 0d, 100d),
+            Metric(EnvironmentOutcomeIds.DiseasePressureAfterMetric, EnvironmentOutcomeIds.PointUnit, 0d, 100d),
+            Metric(EnvironmentOutcomeIds.CooldownBeforeDayMetric, EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.CooldownAfterDayMetric, EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.OutputQuantityMetric, EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.OutputMassMetric, EnvironmentOutcomeIds.GramUnit, 0d, long.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.SequenceMetric, EnvironmentOutcomeIds.RevisionUnit, 1d, long.MaxValue, true)
+        },
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.CorrelationFact,
+            EnvironmentOutcomeIds.TreatmentKindFact,
+            EnvironmentOutcomeIds.CommitFact,
+            EnvironmentOutcomeIds.SourceStackFact,
+            EnvironmentOutcomeIds.EcologyBeforeFact,
+            EnvironmentOutcomeIds.EcologyAfterFact,
+            EnvironmentOutcomeIds.TareCommitFact,
+            EnvironmentOutcomeIds.TreatmentContributorsFact,
+            EnvironmentOutcomeIds.ItemDefinitionFact,
+            EnvironmentOutcomeIds.SummaryFact
+        }) { }
+
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.CropTreatmentApplied;
+
+    protected override OutcomeValidationResult ValidateAdditional(
+        in GameplayOutcomeReadView outcome)
+    {
+        double pestBefore = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.PestPressureBeforeMetric);
+        double pestAfter = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.PestPressureAfterMetric);
+        double diseaseBefore = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.DiseasePressureBeforeMetric);
+        double diseaseAfter = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.DiseasePressureAfterMetric);
+        double cooldownBefore = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.CooldownBeforeDayMetric);
+        double cooldownAfter = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.CooldownAfterDayMetric);
+        bool pressureReduced = pestAfter < pestBefore
+            && diseaseAfter == diseaseBefore
+            || diseaseAfter < diseaseBefore
+            && pestAfter == pestBefore;
+        bool valid = pressureReduced && cooldownAfter >= cooldownBefore;
+        return valid
+            ? OutcomeValidationResult.Accepted
+            : OutcomeValidationResult.Reject(
+                OutcomeTypeId.Value + "-state-transition-invalid");
+    }
+}
+
+public sealed class WildlifeFoodRaidOutcomeDescriptor : EnvironmentOutcomeDescriptor
+{
+    public WildlifeFoodRaidOutcomeDescriptor(IKoreanJosaFormatter josa) : base(
+        josa,
+        "야생동물 식량 습격",
+        EnvironmentOutcomeIds.ActorRole,
+        KoreanJosaKind.Subject,
+        " 식량을 훔쳤다.",
+        "식량을 훔쳤다.",
+        GameplayOutcomeStatus.Succeeded,
+        GameplayOutcomeStatus.Succeeded,
+        EnvironmentOutcomeIds.WildlifeTag,
+        new[]
+        {
+            EnvironmentOutcomeIds.ActorRole,
+            EnvironmentOutcomeIds.SpeciesRole,
+            EnvironmentOutcomeIds.TargetRole,
+            EnvironmentOutcomeIds.ItemRole
+        },
+        new[]
+        {
+            Metric(EnvironmentOutcomeIds.RequestedQuantityMetric,
+                EnvironmentOutcomeIds.CountUnit, 1d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.StolenQuantityMetric,
+                EnvironmentOutcomeIds.CountUnit, 1d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.MassMetric,
+                EnvironmentOutcomeIds.GramUnit, 1d, long.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.SourceXMetric,
+                EnvironmentOutcomeIds.CellUnit, int.MinValue, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.SourceYMetric,
+                EnvironmentOutcomeIds.CellUnit, int.MinValue, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.DestinationXMetric,
+                EnvironmentOutcomeIds.CellUnit, int.MinValue, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.DestinationYMetric,
+                EnvironmentOutcomeIds.CellUnit, int.MinValue, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.StartedTimeMetric,
+                EnvironmentOutcomeIds.SecondUnit, 0d, float.MaxValue),
+            Metric(EnvironmentOutcomeIds.CompletedTimeMetric,
+                EnvironmentOutcomeIds.SecondUnit, 0d, float.MaxValue),
+            Metric(EnvironmentOutcomeIds.StartedDayMetric,
+                EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.CompletedDayMetric,
+                EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.SequenceMetric,
+                EnvironmentOutcomeIds.RevisionUnit, 1d, long.MaxValue, true)
+        },
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.RaidIdFact,
+            EnvironmentOutcomeIds.CorrelationFact,
+            EnvironmentOutcomeIds.CommitFact,
+            EnvironmentOutcomeIds.SourceStackFact,
+            EnvironmentOutcomeIds.ItemDefinitionFact,
+            EnvironmentOutcomeIds.TerminalStateFact,
+            EnvironmentOutcomeIds.ReasonFact,
+            EnvironmentOutcomeIds.ChildResultKeyFact,
+            EnvironmentOutcomeIds.SummaryFact,
+            new GameplayOutcomeFactId(
+                "wildlife-food-raid-context-sha256")
+        }) { }
+
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.WildlifeFoodRaidCompleted;
+
+    protected override OutcomeValidationResult ValidateAdditional(
+        in GameplayOutcomeReadView outcome)
+    {
+        double requested = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.RequestedQuantityMetric);
+        double stolen = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.StolenQuantityMetric);
+        double started = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.StartedTimeMetric);
+        double completed = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.CompletedTimeMetric);
+        double startedDay = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.StartedDayMetric);
+        double completedDay = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.CompletedDayMetric);
+        bool valid = stolen <= requested
+            && completed >= started
+            && completedDay >= startedDay
+            && outcome.Causation.HasParent
+            && outcome.Causation.RootOperationId.IsValid
+            && string.Equals(
+                outcome.Causation.RelationId,
+                "physical-theft-consumption",
+                StringComparison.Ordinal);
+        return valid
+            ? OutcomeValidationResult.Accepted
+            : OutcomeValidationResult.Reject(
+                OutcomeTypeId.Value + "-state-transition-invalid");
+    }
+}
+
+public sealed class WildlifeCommandOutcomeDescriptor : EnvironmentOutcomeDescriptor
+{
+    public WildlifeCommandOutcomeDescriptor(IKoreanJosaFormatter josa) : base(
+        josa,
+        "야생동물 명령",
+        EnvironmentOutcomeIds.WildlifeRole,
+        KoreanJosaKind.Topic,
+        "에게 새 명령이 내려졌다.",
+        "새 명령을 받았다.",
+        GameplayOutcomeStatus.Succeeded,
+        GameplayOutcomeStatus.Succeeded,
+        EnvironmentOutcomeIds.WildlifeTag,
+        new[] { EnvironmentOutcomeIds.WildlifeRole },
+        new[]
+        {
+            Metric(EnvironmentOutcomeIds.StateBeforeMetric,
+                EnvironmentOutcomeIds.EnumUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.StateAfterMetric,
+                EnvironmentOutcomeIds.EnumUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.FlagBeforeMetric,
+                EnvironmentOutcomeIds.EnumUnit, 0d, 1d, true),
+            Metric(EnvironmentOutcomeIds.FlagAfterMetric,
+                EnvironmentOutcomeIds.EnumUnit, 0d, 1d, true),
+            Metric(EnvironmentOutcomeIds.PriorityBeforeMetric,
+                EnvironmentOutcomeIds.EnumUnit, 0d, 1d, true),
+            Metric(EnvironmentOutcomeIds.PriorityAfterMetric,
+                EnvironmentOutcomeIds.EnumUnit, 0d, 1d, true),
+            Metric(EnvironmentOutcomeIds.SequenceMetric,
+                EnvironmentOutcomeIds.RevisionUnit, 1d, long.MaxValue, true)
+        },
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.CorrelationFact,
+            EnvironmentOutcomeIds.EventKindFact,
+            EnvironmentOutcomeIds.FacilityFact,
+            EnvironmentOutcomeIds.RelatedActorFact,
+            EnvironmentOutcomeIds.ReasonFact,
+            EnvironmentOutcomeIds.SummaryFact,
+            new GameplayOutcomeFactId("wildlife-context-sha256")
+        }) { }
+
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.WildlifeCommand;
+}
+
+public sealed class WildlifeActionOutcomeDescriptor : EnvironmentOutcomeDescriptor
+{
+    public WildlifeActionOutcomeDescriptor(IKoreanJosaFormatter josa) : base(
+        josa,
+        "야생동물 행동 결과",
+        EnvironmentOutcomeIds.ActorRole,
+        KoreanJosaKind.Topic,
+        " 야생동물 행동을 수행했다.",
+        "야생동물 행동을 수행했다.",
+        GameplayOutcomeStatus.Succeeded,
+        GameplayOutcomeStatus.Failed,
+        EnvironmentOutcomeIds.WildlifeTag,
+        new[]
+        {
+            EnvironmentOutcomeIds.ActorRole,
+            EnvironmentOutcomeIds.WildlifeRole
+        },
+        new[]
+        {
+            Metric(EnvironmentOutcomeIds.StateBeforeMetric,
+                EnvironmentOutcomeIds.EnumUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.StateAfterMetric,
+                EnvironmentOutcomeIds.EnumUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.HealthBeforeMetric,
+                EnvironmentOutcomeIds.PointUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.HealthAfterMetric,
+                EnvironmentOutcomeIds.PointUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.DamageMetric,
+                EnvironmentOutcomeIds.PointUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.AmmunitionBeforeMetric,
+                EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.AmmunitionConsumedMetric,
+                EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.AmmunitionAfterMetric,
+                EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.HitMetric,
+                EnvironmentOutcomeIds.EnumUnit, 0d, 1d, true),
+            Metric(EnvironmentOutcomeIds.KilledMetric,
+                EnvironmentOutcomeIds.EnumUnit, 0d, 1d, true),
+            Metric(EnvironmentOutcomeIds.OutputQuantityMetric,
+                EnvironmentOutcomeIds.CountUnit, 0d, int.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.OutputMassMetric,
+                EnvironmentOutcomeIds.GramUnit, 0d, long.MaxValue, true),
+            Metric(EnvironmentOutcomeIds.SequenceMetric,
+                EnvironmentOutcomeIds.RevisionUnit, 1d, long.MaxValue, true)
+        },
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.CorrelationFact,
+            EnvironmentOutcomeIds.EventKindFact,
+            EnvironmentOutcomeIds.WeaponDefinitionFact,
+            EnvironmentOutcomeIds.WeaponInstanceFact,
+            EnvironmentOutcomeIds.AmmunitionItemFact,
+            EnvironmentOutcomeIds.BodyPartFact,
+            EnvironmentOutcomeIds.CoverSourceFact,
+            EnvironmentOutcomeIds.CarcassStackFact,
+            EnvironmentOutcomeIds.FacilityFact,
+            EnvironmentOutcomeIds.ChildResultKeyFact,
+            EnvironmentOutcomeIds.ReasonFact,
+            EnvironmentOutcomeIds.SummaryFact,
+            new GameplayOutcomeFactId("wildlife-context-sha256")
+        }) { }
+
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.WildlifeAction;
+
+    protected override OutcomeValidationResult ValidateAdditional(
+        in GameplayOutcomeReadView outcome)
+    {
+        double before = FindMetric(outcome, EnvironmentOutcomeIds.HealthBeforeMetric);
+        double after = FindMetric(outcome, EnvironmentOutcomeIds.HealthAfterMetric);
+        double damage = FindMetric(outcome, EnvironmentOutcomeIds.DamageMetric);
+        double ammunitionBefore = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.AmmunitionBeforeMetric);
+        double ammunitionConsumed = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.AmmunitionConsumedMetric);
+        double ammunitionAfter = FindMetric(
+            outcome,
+            EnvironmentOutcomeIds.AmmunitionAfterMetric);
+        bool valid = after <= before
+            && damage == before - after
+            && ammunitionAfter <= ammunitionBefore
+            && ammunitionConsumed == ammunitionBefore - ammunitionAfter;
+        return valid
+            ? OutcomeValidationResult.Accepted
+            : OutcomeValidationResult.Reject(
+                OutcomeTypeId.Value + "-state-transition-invalid");
+    }
 }
 
 public sealed class FireIgnitionOutcomeDescriptor : EnvironmentOutcomeDescriptor
@@ -462,7 +981,11 @@ public sealed class FireSuppressionOutcomeDescriptor : EnvironmentOutcomeDescrip
             EnvironmentOutcomeIds.ReceiptKindFact,
             EnvironmentOutcomeIds.CorrelationFact,
             EnvironmentOutcomeIds.ReasonFact,
-            EnvironmentOutcomeIds.SummaryFact
+            EnvironmentOutcomeIds.SummaryFact,
+            new GameplayOutcomeFactId("fire-completion-target"),
+            new GameplayOutcomeFactId("fire-completion-origin"),
+            new GameplayOutcomeFactId("fire-completion-work"),
+            new GameplayOutcomeFactId("fire-completion-required")
         }) { }
     public override GameplayOutcomeTypeId OutcomeTypeId =>
         EnvironmentOutcomeIds.FireSuppression;
@@ -544,7 +1067,19 @@ public sealed class ProcessAccidentOutcomeDescriptor : EnvironmentOutcomeDescrip
         EnvironmentOutcomeIds.DisasterTag,
         new[] { EnvironmentOutcomeIds.ActorRole, EnvironmentOutcomeIds.FacilityRole },
         new[] { Metric(EnvironmentOutcomeIds.DamageMetric, EnvironmentOutcomeIds.PointUnit, double.Epsilon) },
-        new[] { EnvironmentOutcomeIds.ReceiptKindFact, EnvironmentOutcomeIds.WorkTypeFact, EnvironmentOutcomeIds.AnatomyNodeFact, EnvironmentOutcomeIds.ReasonFact, EnvironmentOutcomeIds.SummaryFact }) { }
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.WorkTypeFact,
+            EnvironmentOutcomeIds.AnatomyNodeFact,
+            EnvironmentOutcomeIds.ReasonFact,
+            EnvironmentOutcomeIds.SummaryFact,
+            EnvironmentOutcomeIds.ProcessRiskMultiplierFact,
+            EnvironmentOutcomeIds.ProcessCommandOriginFact,
+            EnvironmentOutcomeIds.ProcessFireEligibleFact,
+            EnvironmentOutcomeIds.ProcessFireIntensityFact,
+            EnvironmentOutcomeIds.ProcessFireTargetNameFact
+        }) { }
     public override GameplayOutcomeTypeId OutcomeTypeId => EnvironmentOutcomeIds.ProcessAccident;
 }
 
@@ -601,6 +1136,35 @@ public sealed class SpeciesIncidentOutcomeDescriptor : EnvironmentOutcomeDescrip
         new[] { Metric(EnvironmentOutcomeIds.SequenceMetric, EnvironmentOutcomeIds.RevisionUnit, 1d, long.MaxValue, true) },
         new[] { EnvironmentOutcomeIds.ReceiptKindFact, EnvironmentOutcomeIds.IncidentFact, EnvironmentOutcomeIds.SummaryFact }) { }
     public override GameplayOutcomeTypeId OutcomeTypeId => EnvironmentOutcomeIds.SpeciesIncidentTriggered;
+}
+
+public sealed class GolemUpkeepOutcomeDescriptor : EnvironmentOutcomeDescriptor
+{
+    public GolemUpkeepOutcomeDescriptor(IKoreanJosaFormatter josa) : base(
+        josa, "골렘 상태 변화", EnvironmentOutcomeIds.ActorRole,
+        KoreanJosaKind.Topic, " 골렘 상태가 변했다.", "골렘 상태가 변했다.",
+        GameplayOutcomeStatus.Succeeded, GameplayOutcomeStatus.Succeeded,
+        EnvironmentOutcomeIds.SpeciesTag,
+        new[] { EnvironmentOutcomeIds.ActorRole, EnvironmentOutcomeIds.SpeciesRole },
+        new[]
+        {
+            Metric(EnvironmentOutcomeIds.SequenceMetric,
+                EnvironmentOutcomeIds.RevisionUnit, 1d, long.MaxValue, true)
+        },
+        new[]
+        {
+            EnvironmentOutcomeIds.ReceiptKindFact,
+            EnvironmentOutcomeIds.EpisodeKindFact,
+            EnvironmentOutcomeIds.StateBeforeFact,
+            EnvironmentOutcomeIds.StateAfterFact,
+            EnvironmentOutcomeIds.PhysicalChildFact,
+            EnvironmentOutcomeIds.WorkChildFact,
+            EnvironmentOutcomeIds.BodyChildFact,
+            EnvironmentOutcomeIds.SummaryFact
+        }) { }
+
+    public override GameplayOutcomeTypeId OutcomeTypeId =>
+        EnvironmentOutcomeIds.GolemUpkeepEpisode;
 }
 
 public sealed class HarpyGaleRelocationOutcomeDescriptor :

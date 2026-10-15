@@ -33,9 +33,27 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
         VerifyMaximumMassProofDriftRejectsBeforeMutation();
         VerifyPartialPublicationRetryKeepsFrozenOutcome();
         VerifyNoRawSpawnOrDeleteRollback();
+        VerifyZeroRecoveryHasRealCompletedFact();
         Debug.Log(
             "[V27 Rejected Apparel Planned Transaction] PASS: capacity/source, "
             + "pending/publication/ack, restore replay, atomic retry, raw mutation.");
+    }
+
+    private static void VerifyZeroRecoveryHasRealCompletedFact()
+    {
+        using Fixture fixture = new("zero-recovery");
+        var order = fixture.CreateOrder();
+        order.rejectedMaterialAmount = 0;
+        var result = fixture.Execute(order);
+        Require(result.IsCompleted && result.InputMassGrams > 0 && result.OutputMassGrams == 0
+            && result.OutputStackId == string.Empty && fixture.RecoveryQuantity == 0,
+            "Zero recovery did not consume the rejected garment without creating material: " + result.FailureReason);
+        var journal = fixture.OutcomeFixture.ApparelPhysicalPublications.Capture();
+        Require(journal.observations.Count == 1 && !journal.observations[0].pending
+            && journal.observations[0].fact.completed && journal.observations[0].fact.outputMassGrams == 0,
+            "Zero recovery lost its actual completed fact.");
+        ApparelPhysicalCompletedFactPreflight.ValidateJournal(journal, fixture.OutcomeFixture.Ledger.CaptureGameplayOutcomes());
+        ApparelPhysicalCompletedFactPreflight.ValidateOwners(journal, new[] { order });
     }
 
     private static void VerifyCapacityFailurePreservesRejectedGarment()
@@ -102,6 +120,11 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
             && fixture.Repository.GetEditorPendingBatchDispositionCount() == 0
             && order.rejectedRecoveryOutputAcknowledged,
             "Input/output terminal acknowledgements did not both close.");
+        ApparelPhysicalPublicationSaveData observations =
+            fixture.OutcomeFixture.ApparelPhysicalPublications.Capture();
+        Require(observations.observations.Count == 1
+                && !observations.observations[0].pending,
+            "Completed rejected-apparel recovery did not retain one delivered physical fact.");
         Require(
             fixture.RecoveryStacks.All(value =>
                 value.State == WorldItemStackState.FacilityOutputBuffer
@@ -373,8 +396,8 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
                     apparelCapability
                 }),
                 maximumMassRegistry,
-                OutcomeFixture.Bridge,
-                OutcomeFixture.Clock);
+                OutcomeFixture.ApparelPhysicalPublications,
+                OutcomeFixture.Calendar);
         }
 
         internal FixedCatalog Catalog { get; }
@@ -495,6 +518,7 @@ public static class ApparelRejectedDismantlePhysicalTransactionDebugScenarios
 
         public void Dispose()
         {
+            OutcomeFixture?.Dispose();
             WorldItems?.Dispose();
             if (facilityObject != null)
                 UnityEngine.Object.DestroyImmediate(facilityObject);

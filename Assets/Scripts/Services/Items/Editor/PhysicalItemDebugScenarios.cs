@@ -365,6 +365,51 @@ public static class PhysicalItemDebugScenarios
         }
     }
 
+    [MenuItem("DungeonStory/Debug/Items/Run Safe-Drink Restore Reservation")]
+    public static void RunSafeDrinkRestoreFromMenu()
+    {
+        string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output) || !Path.IsPathRooted(output))
+            throw new InvalidOperationException("Safe-drink verification requires an explicit isolated evidence directory.");
+        Directory.CreateDirectory(output);
+        string focusedReportPath = Path.Combine(output, "safe-drink-restore-reservation.tsv");
+        List<string> lines = new() { "case\tresult\tdetails" };
+        List<string> errors = new();
+        Run(
+            "safe_drink_restored_action_reservation_retirement",
+            VerifySafeDrinkRestoredActionReservations,
+            lines,
+            errors);
+        Run(
+            "reservation_grandfather_restore",
+            VerifyReservationGrandfatherRestore,
+            lines,
+            errors);
+        using (var stream = new FileStream(focusedReportPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
+        using (var writer = new StreamWriter(stream))
+            foreach (string line in lines) writer.WriteLine(line);
+        if (errors.Count > 0)
+        {
+            Debug.LogError(
+                "Safe-drink restore reservation FAIL ("
+                + errors.Count
+                + "): "
+                + string.Join(" | ", errors)
+                + ". Report: "
+                + focusedReportPath);
+            throw new InvalidOperationException(
+                "Safe-drink restore reservation failed ("
+                + errors.Count
+                + "). See "
+                + focusedReportPath
+                + ".");
+        }
+
+        Debug.Log(
+            "Safe-drink restore reservation PASS. Report: "
+            + focusedReportPath);
+    }
+
     [MenuItem("DungeonStory/Debug/Items/Run Combat Rejected Recovery Runtime Restore")]
     public static void RunCombatRejectedRecoveryRuntimeRestore()
     {
@@ -2723,6 +2768,296 @@ public static class PhysicalItemDebugScenarios
         return $"intents={intents.Count}; restored=2; stack={stackId}";
     }
 
+    private static string VerifySafeDrinkRestoredActionReservations()
+    {
+        const string itemId = "item:buffer";
+        const string safeActorA = "character:qa-safe-drink-a";
+        const string safeActorB = "character:qa-safe-drink-b";
+        string safeOwnerA = CharacterSafeDrinkPlanner.ItemReservationOwnerId(
+            safeActorA,
+            42L);
+        string safeOwnerB = CharacterSafeDrinkPlanner.ItemReservationOwnerId(
+            safeActorB,
+            43L);
+        WorldItemStackRuntime source = CreateRuntime(
+            out WorldItemRepository sourceRepository,
+            out _,
+            out ItemQuantityReservationService sourceReservations,
+            out _);
+        WorldItemStackRuntime restored = null;
+        try
+        {
+            Dictionary<string, string> stackByOwner =
+                new(StringComparer.Ordinal);
+            string signature = ItemStackSignature.Create(
+                itemId,
+                Array.Empty<ItemInstanceComponentSaveData>());
+
+            void Reserve(
+                string ownerOperationId,
+                string ownerCharacterId,
+                ItemReservationPurpose purpose,
+                string cohort)
+            {
+                string stackId = sourceRepository.AddEditorTestStack(
+                    itemId,
+                    1,
+                    WorldItemStackState.Loose);
+                Require(sourceReservations.TryReserve(
+                        ownerOperationId,
+                        ownerCharacterId,
+                        purpose,
+                        cohort,
+                        new ItemQuantityReservationRequest(
+                            new ItemStackId(stackId),
+                            1,
+                            signature),
+                        out _,
+                        out DomainFailure failure),
+                    $"safe-drink restore fixture reserve failed for "
+                    + ownerOperationId
+                    + ": "
+                    + failure);
+                stackByOwner.Add(ownerOperationId, stackId);
+            }
+
+            Reserve(
+                safeOwnerA,
+                safeActorA,
+                ItemReservationPurpose.PersonalConsumption,
+                "safe-drink:" + safeActorA);
+            Reserve(
+                safeOwnerB,
+                safeActorB,
+                ItemReservationPurpose.PersonalConsumption,
+                "safe-drink:" + safeActorB);
+
+            const string mealOwner = "meal:qa-safe-drink-restore";
+            const string substanceOwner = "substance:qa-safe-drink-restore";
+            const string productionOwner = "production:qa-safe-drink-restore";
+            const string nearPrefixActor = "character:qa-safe-drink-near";
+            const string nearPrefixOwner =
+                "safe-drink:character:qa-safe-drink-nearby:0000000000000044";
+            const string wrongPurposeActor = "character:qa-safe-drink-wrong-purpose";
+            const string wrongCohortActor = "character:qa-safe-drink-wrong-cohort";
+            const string wrongOwnerActor = "character:qa-safe-drink-wrong-owner";
+            const string nonCanonicalActor = "character:qa-safe-drink-noncanonical";
+            string wrongPurposeOwner = CharacterSafeDrinkPlanner.ItemReservationOwnerId(
+                wrongPurposeActor,
+                45L);
+            string wrongCohortOwner = CharacterSafeDrinkPlanner.ItemReservationOwnerId(
+                wrongCohortActor,
+                46L);
+            string wrongOwnerOperation = CharacterSafeDrinkPlanner.ItemReservationOwnerId(
+                "character:qa-safe-drink-other-owner",
+                47L);
+            const string nonCanonicalOwner =
+                "safe-drink:character:qa-safe-drink-noncanonical:48";
+
+            Reserve(
+                mealOwner,
+                "character:qa-meal",
+                ItemReservationPurpose.Meal,
+                "meal:facility:qa:item:buffer");
+            Reserve(
+                substanceOwner,
+                "character:qa-substance",
+                ItemReservationPurpose.PersonalConsumption,
+                "substance:qa-safe-drink-restore");
+            Reserve(
+                productionOwner,
+                "character:qa-production",
+                ItemReservationPurpose.ProductionInput,
+                "production:qa-safe-drink-restore");
+            Reserve(
+                nearPrefixOwner,
+                nearPrefixActor,
+                ItemReservationPurpose.PersonalConsumption,
+                "safe-drink:" + nearPrefixActor);
+            Reserve(
+                wrongPurposeOwner,
+                wrongPurposeActor,
+                ItemReservationPurpose.Meal,
+                "safe-drink:" + wrongPurposeActor);
+            Reserve(
+                wrongCohortOwner,
+                wrongCohortActor,
+                ItemReservationPurpose.PersonalConsumption,
+                "safe-drink:character:qa-safe-drink-other-cohort");
+            Reserve(
+                wrongOwnerOperation,
+                wrongOwnerActor,
+                ItemReservationPurpose.PersonalConsumption,
+                "safe-drink:" + wrongOwnerActor);
+            Reserve(
+                nonCanonicalOwner,
+                nonCanonicalActor,
+                ItemReservationPurpose.PersonalConsumption,
+                "safe-drink:" + nonCanonicalActor);
+
+            string beforeBarrierJson = SerializeReservationIntents(
+                sourceReservations.CaptureReservationIntents());
+            using (sourceReservations.EnterCaptureBarrier())
+            {
+                Require(RejectsInvalidOperation(() =>
+                    {
+                        _ = CharacterSafeDrinkPlanner
+                            .ReleaseRestoredActionReservations(
+                                source.GetAllStacks(),
+                                sourceReservations);
+                    }),
+                    "safe-drink restore cleanup mutated under the capture barrier");
+                Require(beforeBarrierJson == SerializeReservationIntents(
+                        sourceReservations.CaptureReservationIntents()),
+                    "capture-barrier cleanup attempt changed leases");
+            }
+            using (sourceReservations.EnterRestoreBarrier())
+            {
+                Require(RejectsInvalidOperation(() =>
+                    {
+                        _ = CharacterSafeDrinkPlanner
+                            .ReleaseRestoredActionReservations(
+                                source.GetAllStacks(),
+                                sourceReservations);
+                    }),
+                    "safe-drink restore cleanup mutated under the restore barrier");
+                Require(beforeBarrierJson == SerializeReservationIntents(
+                        sourceReservations.CaptureReservationIntents()),
+                    "restore-barrier cleanup attempt changed leases");
+            }
+
+            string serialized = JsonUtility.ToJson(source.Capture());
+            DungeonPhysicalItemSaveData saved = JsonUtility.FromJson<
+                DungeonPhysicalItemSaveData>(serialized);
+            Require(saved != null
+                    && saved.reservationIntents != null
+                    && saved.reservationIntents.Count == 10,
+                "safe-drink restore fixture did not JSON-capture every reservation");
+            string allSavedIntentJson = SerializeReservationIntents(
+                saved.reservationIntents);
+            HashSet<string> retiredOwners = new(StringComparer.Ordinal)
+            {
+                safeOwnerA,
+                safeOwnerB
+            };
+            string preservedIntentJson = SerializeReservationIntents(
+                saved.reservationIntents.Where(intent =>
+                    intent != null
+                    && !retiredOwners.Contains(intent.ownerOperationId)));
+            int sourceQuantity = source.GetAllStacks().Sum(stack => stack.Quantity);
+
+            restored = CreateRuntime(
+                out _,
+                out _,
+                out ItemQuantityReservationService restoredReservations,
+                out _);
+            restored.Restore(JsonUtility.FromJson<DungeonPhysicalItemSaveData>(
+                serialized));
+            Require(allSavedIntentJson == SerializeReservationIntents(
+                    restored.Capture().reservationIntents),
+                "fresh physical restore changed reservation intent JSON before cleanup");
+            Require(stackByOwner.All(pair => restoredReservations
+                    .GetLeasesForStack(new ItemStackId(pair.Value))
+                    .Any(lease => lease.ownerOperationId == pair.Key)),
+                "fresh reservation ledger did not expose every restored owner by stack");
+
+            string quantityBeforeCleanup = CapturePhysicalQuantityFingerprint(
+                restored.GetAllStacks());
+            Require(sourceQuantity == restored.GetAllStacks().Sum(stack => stack.Quantity),
+                "fresh physical restore changed stack quantity");
+            int released = CharacterSafeDrinkPlanner.ReleaseRestoredActionReservations(
+                restored.GetAllStacks(),
+                restoredReservations);
+            Require(released == retiredOwners.Count,
+                $"safe-drink restore cleanup released {released}, expected {retiredOwners.Count}");
+            Require(retiredOwners.All(owner => !restoredReservations
+                    .TryGetLeasesByOwner(owner, out IReadOnlyList<ItemQuantityLease> retiredLeases)
+                    || retiredLeases.Count == 0),
+                "canonical safe-drink action lease survived restore cleanup");
+
+            string[] preservedOwners = stackByOwner.Keys
+                .Where(owner => !retiredOwners.Contains(owner))
+                .OrderBy(owner => owner, StringComparer.Ordinal)
+                .ToArray();
+            Require(preservedOwners.All(owner => restoredReservations
+                    .TryGetLeasesByOwner(owner, out IReadOnlyList<ItemQuantityLease> preservedLeases)
+                    && preservedLeases.Count == 1),
+                "restore cleanup released a meal, substance, production, or malformed safe-drink lease");
+            Require(preservedIntentJson == SerializeReservationIntents(
+                    restored.Capture().reservationIntents),
+                "restore cleanup changed retained reservation intent JSON");
+            Require(quantityBeforeCleanup == CapturePhysicalQuantityFingerprint(
+                    restored.GetAllStacks()),
+                "restore cleanup changed physical stack quantities");
+            Require(CharacterSafeDrinkPlanner.ReleaseRestoredActionReservations(
+                    restored.GetAllStacks(),
+                    restoredReservations) == 0,
+                "repeated safe-drink restore cleanup released another lease");
+            Require(preservedIntentJson == SerializeReservationIntents(
+                    restored.Capture().reservationIntents),
+                "repeated restore cleanup changed retained reservation intent JSON");
+
+            string retryOwner = CharacterSafeDrinkPlanner.ItemReservationOwnerId(
+                safeActorA,
+                99L);
+            string retryStackId = stackByOwner[safeOwnerA];
+            Require(restoredReservations.TryReserve(
+                    retryOwner,
+                    safeActorA,
+                    ItemReservationPurpose.PersonalConsumption,
+                    "safe-drink:" + safeActorA,
+                    new ItemQuantityReservationRequest(
+                        new ItemStackId(retryStackId),
+                        1,
+                        signature),
+                    out ItemQuantityLease retryLease,
+                    out DomainFailure retryFailure)
+                && retryLease != null
+                && retryLease.ownerOperationId == retryOwner,
+                "released safe-drink stack could not accept a new drink reservation: "
+                + retryFailure);
+            Require(quantityBeforeCleanup == CapturePhysicalQuantityFingerprint(
+                    restored.GetAllStacks()),
+                "new safe-drink reservation changed physical stack quantity");
+
+            return "saved=10; released=2; retained=8; barriers=2; freshRestore=true; "
+                + "quantityInvariant=true; retry=true";
+        }
+        finally
+        {
+            restored?.Dispose();
+            source.Dispose();
+        }
+    }
+
+    private static string SerializeReservationIntents(
+        IEnumerable<ItemReservationIntentSaveData> intents)
+    {
+        return JsonUtility.ToJson(new ReservationIntentEnvelope
+        {
+            reservationIntents = (intents ?? Array.Empty<ItemReservationIntentSaveData>())
+                .Where(intent => intent != null)
+                .ToList()
+        });
+    }
+
+    private static string CapturePhysicalQuantityFingerprint(
+        IEnumerable<WorldItemStackSnapshot> stacks)
+    {
+        return string.Join(
+            "|",
+            (stacks ?? Array.Empty<WorldItemStackSnapshot>())
+                .Where(stack => stack != null)
+                .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+                .Select(stack => stack.StackId + ":" + stack.Quantity));
+    }
+
+    [Serializable]
+    private sealed class ReservationIntentEnvelope
+    {
+        public List<ItemReservationIntentSaveData> reservationIntents = new();
+    }
+
     private static string VerifyCarriedReservationGrandfatherRestore()
     {
         WorldItemStackRuntime runtime = CreateRuntime(
@@ -2961,6 +3296,39 @@ public static class PhysicalItemDebugScenarios
             out destinationClaims,
             gridProvider: gridProvider
                 ?? throw new ArgumentNullException(nameof(gridProvider)));
+        PhysicalItemBatchDispositionService dispositions = new(
+            repository,
+            runtime.MassQuery,
+            EditorNullItemMarkerPresenter.Instance,
+            quantityReservations);
+        reservedBatch = dispositions;
+        batch = dispositions;
+        return runtime;
+    }
+
+    internal static WorldItemStackRuntime CreateDeliveryRuntimeForCrossDomainFixture(
+        IGridSystemProvider gridProvider,
+        out WorldItemRepository repository,
+        out ItemQuantityReservationService quantityReservations,
+        out IReservedItemTransferService reservedTransfer,
+        out IReservedPhysicalItemBatchDispositionService reservedBatch,
+        out IPhysicalItemBatchDispositionService batch,
+        out FacilityBufferDestinationClaimRegistry destinationClaims,
+        out IDungeonRestoreTransactionParticipant exactRouteRestoreParticipant)
+    {
+        IDungeonRestoreTransactionParticipant captured = null;
+        WorldItemStackRuntime runtime = CreateRuntime(
+            out repository,
+            out _,
+            out quantityReservations,
+            out reservedTransfer,
+            out destinationClaims,
+            gridProvider: gridProvider
+                ?? throw new ArgumentNullException(nameof(gridProvider)),
+            exactRouteRestoreParticipantObserver: value => captured = value);
+        exactRouteRestoreParticipant = captured
+            ?? throw new InvalidOperationException(
+                "Cross-domain delivery fixture did not expose its exact-route restore participant.");
         PhysicalItemBatchDispositionService dispositions = new(
             repository,
             runtime.MassQuery,
@@ -3481,7 +3849,10 @@ public static class PhysicalItemDebugScenarios
         out IReservedItemTransferService reservedTransfer,
         out IReservedPhysicalItemBatchDispositionService reservedBatch,
         out IPhysicalItemBatchDispositionService batch,
-        out IDungeonRestoreTransactionParticipant exactRouteRestoreParticipant)
+        out IDungeonRestoreTransactionParticipant exactRouteRestoreParticipant,
+        IPersistentIdGenerator persistentIdGenerator = null,
+        Func<WorldItemRepository, IPhysicalItemMassQuery, ItemQuantityReservationService,
+            PhysicalItemBatchDispositionService> batchDispositionFactory = null)
     {
         if (itemCatalog == null)
         {
@@ -3492,6 +3863,7 @@ public static class PhysicalItemDebugScenarios
             aggregateRootStore = new DungeonRuntimeAggregateRootStore();
         }
         IDungeonRestoreTransactionParticipant captured = null;
+        PhysicalItemBatchDispositionService sharedDispositions = null;
         WorldItemStackRuntime runtime = CreateRuntime(
             out repository,
             out equipmentRuntime,
@@ -3500,8 +3872,11 @@ public static class PhysicalItemDebugScenarios
             out _,
             itemCatalogOverride: itemCatalog,
             aggregateRootStoreOverride: aggregateRootStore,
-            exactRouteRestoreParticipantObserver: value => captured = value);
-        PhysicalItemBatchDispositionService service = new(
+            persistentIdGeneratorOverride: persistentIdGenerator,
+            exactRouteRestoreParticipantObserver: value => captured = value,
+            batchDispositionFactory: batchDispositionFactory == null ? null
+                : (r, m, q) => sharedDispositions = batchDispositionFactory(r, m, q));
+        PhysicalItemBatchDispositionService service = sharedDispositions ?? new(
             repository,
             runtime.MassQuery,
             EditorNullItemMarkerPresenter.Instance,
@@ -3553,8 +3928,11 @@ public static class PhysicalItemDebugScenarios
         bool enableRejectedRecovery = false,
         ICraftQualityResolver craftQualityResolver = null,
         ICharacterWorldQuery characterWorld = null,
+        IPersistentIdGenerator persistentIdGeneratorOverride = null,
         Action<IDungeonRestoreTransactionParticipant>
-            exactRouteRestoreParticipantObserver = null)
+            exactRouteRestoreParticipantObserver = null,
+        Func<WorldItemRepository, IPhysicalItemMassQuery, ItemQuantityReservationService,
+            PhysicalItemBatchDispositionService> batchDispositionFactory = null)
     {
         IGameContentCatalog gameContent = new ResourceGameContentCatalog(
             new UnityGameContentRootLoader());
@@ -3574,7 +3952,7 @@ public static class PhysicalItemDebugScenarios
         ICharacterAiWorldRegistry worldRegistry =
             CharacterAiEditorTestDependencies.WorldRegistry;
         repository = new WorldItemRepository(
-            new GuidPersistentIdGenerator(),
+            persistentIdGeneratorOverride ?? new GuidPersistentIdGenerator(),
             aggregateRootStoreOverride
             ?? new DungeonRuntimeAggregateRootStore());
         destinationClaims = new FacilityBufferDestinationClaimRegistry();
@@ -3639,6 +4017,7 @@ public static class PhysicalItemDebugScenarios
             materialCatalog: economyCatalog,
             evolutionModules: EmptyEvolutionModuleRegistry.Instance,
             itemStackRuntime: equipmentItemGateway,
+            calendar: new EditorFixedGameCalendar(137, 9),
             rejectedRecoveryProjector: rejectedRecoveryProjector,
             characterWorld: characterWorld,
             qualityResolver: craftQualityResolver);
@@ -3716,7 +4095,8 @@ public static class PhysicalItemDebugScenarios
             itemTransferService: itemTransferService,
             performanceRecorder: new EditorCharacterAiPerformanceRecorder(),
             reservationPersistence: quantityReservations,
-            exactRouteOutboxPersistence: exactRouteAuthority);
+            exactRouteOutboxPersistence: exactRouteAuthority,
+            batchDispositionOverride: batchDispositionFactory?.Invoke(repository, massQuery, quantityReservations));
         equipmentItemGateway.Attach(runtime);
         return runtime;
     }
@@ -4023,6 +4403,11 @@ public static class PhysicalItemDebugScenarios
                     sequence: 1,
                     delivered,
                     proceeds: 1,
+                    unitPrice: 1,
+                    saleRateBasisPoints: 10000,
+                    quality: CraftsmanshipQualityTier.Normal,
+                    absoluteDay: 1,
+                    outcomeResultKey: "fixture.quality-sale|fixture-operation|1|0",
                     target,
                     requiresCombatAuthority: true);
             Require(equipment.TryBeginMarketSale(

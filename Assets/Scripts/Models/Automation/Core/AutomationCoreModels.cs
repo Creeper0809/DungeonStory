@@ -337,7 +337,12 @@ public sealed class AutomationStateSession
                         ? saved.mode
                         : AutomationMode.Manual,
                     Maintenance = Math.Max(0f, Math.Min(100f, saved.maintenance)),
-                    Fault = Math.Max(0f, Math.Min(100f, saved.fault))
+                    Fault = Math.Max(0f, Math.Min(100f, saved.fault)),
+                    Status = saved.fault >= 100f
+                        ? new InfrastructureStatus(
+                            InfrastructureStatusCode.MaintenanceRequired,
+                            "100")
+                        : InfrastructureStatus.None
                 };
         }
         return new AutomationRestoreCandidate(restored);

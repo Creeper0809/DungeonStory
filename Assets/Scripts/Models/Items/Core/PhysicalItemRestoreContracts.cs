@@ -26,6 +26,9 @@ public sealed class PhysicalItemRestoreCandidateDispositionSnapshot
         Quantity = quantity;
         InputMassGrams = inputMassGrams;
         CommitId = commitId;
+        PublicationKey = string.Empty;
+        PublicationId = string.Empty;
+        PublicationFingerprint = string.Empty;
     }
 
     public PhysicalItemRestoreCandidateDispositionSnapshot(PhysicalItemBatchDispositionSaveData source)
@@ -33,25 +36,12 @@ public sealed class PhysicalItemRestoreCandidateDispositionSnapshot
             source.operationId, source.reasonCode, source.requestFingerprint,
             source.sourceStackIds, source.quantity, source.inputMassGrams, source.commitId)
     {
-        OutcomeExpected = source.gameplayOutcomeExpected;
-        OutcomeProducerId = source.expectedOutcomeProducerId;
-        OutcomeOperationId = source.expectedOutcomeOperationId;
-        OutcomeCommitRevision = source.expectedOutcomeCommitRevision;
-        OutcomeLocalResultIndex = source.expectedOutcomeLocalResultIndex;
-        OwnerRevision = source.outcomeOwnerRevision;
-        HasMatchingOutcomeAttachment = source.gameplayOutcome != null
-            && string.Equals(
-                source.gameplayOutcome.producerId,
-                source.expectedOutcomeProducerId,
-                StringComparison.Ordinal)
-            && string.Equals(
-                source.gameplayOutcome.operationId,
-                source.expectedOutcomeOperationId,
-                StringComparison.Ordinal)
-            && source.gameplayOutcome.commitRevision
-                == source.expectedOutcomeCommitRevision
-            && source.gameplayOutcome.localResultIndex
-                == source.expectedOutcomeLocalResultIndex;
+        OwnerRevision = source.ownerRevision;
+        PublicationExpected = source.publicationExpected;
+        PublicationKey = source.publicationKey;
+        PublicationId = source.publicationId;
+        PublicationFingerprint = source.publicationFingerprint;
+        PublicationDelivered = source.publicationDelivered;
     }
 
     public PhysicalItemDispositionKind Kind { get; }
@@ -62,13 +52,12 @@ public sealed class PhysicalItemRestoreCandidateDispositionSnapshot
     public int Quantity { get; }
     public long InputMassGrams { get; }
     public string CommitId { get; }
-    public bool OutcomeExpected { get; }
-    public string OutcomeProducerId { get; }
-    public string OutcomeOperationId { get; }
-    public long OutcomeCommitRevision { get; }
-    public int OutcomeLocalResultIndex { get; }
     public long OwnerRevision { get; }
-    public bool HasMatchingOutcomeAttachment { get; }
+    public bool PublicationExpected { get; }
+    public string PublicationKey { get; }
+    public string PublicationId { get; }
+    public string PublicationFingerprint { get; }
+    public bool PublicationDelivered { get; }
 }
 
 public interface IPhysicalItemRestoreCandidateQuery
@@ -119,6 +108,8 @@ public interface IPhysicalItemRestoreCandidateStackQuery
     bool IsCandidateAvailable { get; }
     bool TryGetStack(
         ItemInstanceId itemInstanceId,
+        out PhysicalItemRestoreCandidateStackSnapshot stack);
+    bool TryGetStackById(string stackId,
         out PhysicalItemRestoreCandidateStackSnapshot stack);
 }
 
@@ -318,6 +309,9 @@ public interface IFacilityBufferPlannedOutputRestoreCandidateQuery
 public interface IFacilityBufferAcknowledgedOutputRestoreCandidateQuery
 {
     bool IsCandidateAvailable { get; }
+    // Intact exact vectors only. Released/split/consumed provenance remains on
+    // physical items as history, not as a reconstructable producer lease.
+    // A retained owner must reject an absent batch; it must not recreate it.
     IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot> Batches { get; }
     bool TryGetBatch(
         string batchCommitId,

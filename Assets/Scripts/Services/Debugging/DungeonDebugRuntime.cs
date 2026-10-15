@@ -378,6 +378,40 @@ public sealed class DungeonDebugRuleRuntime : IDungeonDebugRuleRuntime
 {
     private readonly IDungeonDebugModeService modeService;
     private int commandExecutionDepth;
+#if UNITY_EDITOR
+    private bool debugIsolatedPreparationInstantWork;
+    private int debugPreparationInstantWorkQueries;
+    public bool DebugIsolatedPreparationInstantWorkHeld => debugIsolatedPreparationInstantWork;
+    public int DebugPreparationInstantWorkQueries => debugPreparationInstantWorkQueries;
+
+    // Reuses only the existing work-speed cheat during isolated preparation.
+    // It does not enable developer mode, change user settings or enter a save.
+    public IDisposable DebugHoldInstantWorkForIsolatedPreparation()
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification
+                || Environment.GetEnvironmentVariable("DUNGEONSTORY_SKILL_PREPARATION_INSTANT_WORK_FIXTURE") != "1")
+            throw new InvalidOperationException("Instant work preparation requires its explicit isolated batch opt-in.");
+        if (debugIsolatedPreparationInstantWork)
+            throw new InvalidOperationException("Instant work preparation already has an owner.");
+        if (modeService.IsCheatEnabled(DungeonDebugCheat.InstantWork))
+            throw new InvalidOperationException("An existing InstantWork cheat cannot be claimed as a preparation fixture.");
+        debugIsolatedPreparationInstantWork = true;
+        debugPreparationInstantWorkQueries = 0;
+        return new IsolatedPreparationInstantWorkHold(this);
+    }
+
+    private sealed class IsolatedPreparationInstantWorkHold : IDisposable
+    {
+        private DungeonDebugRuleRuntime owner;
+        public IsolatedPreparationInstantWorkHold(DungeonDebugRuleRuntime owner) => this.owner = owner;
+        public void Dispose()
+        {
+            if (owner == null) return;
+            owner.debugIsolatedPreparationInstantWork = false;
+            owner = null;
+        }
+    }
+#endif
 
     public DungeonDebugRuleRuntime(IDungeonDebugModeService modeService)
     {
@@ -389,6 +423,13 @@ public sealed class DungeonDebugRuleRuntime : IDungeonDebugRuleRuntime
 
     public bool IsEnabled(DungeonDebugCheat cheat)
     {
+#if UNITY_EDITOR
+        if (cheat == DungeonDebugCheat.InstantWork && debugIsolatedPreparationInstantWork)
+        {
+            debugPreparationInstantWorkQueries++;
+            return true;
+        }
+#endif
         return modeService.IsCheatEnabled(cheat);
     }
 

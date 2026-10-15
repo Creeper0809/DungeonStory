@@ -2,6 +2,7 @@ using System;
 using DungeonStory.Operation;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -504,6 +505,7 @@ public static class RunVariableDebugScenarios
     {
         private readonly GameObject runtimeObject;
         private readonly MigratedProducerOutcomeEditorFixture outcomeFixture;
+        private readonly DomainFactDispatcher runVariableFacts;
 
         public RunVariableRuntime Runtime { get; }
         public DungeonStory.Foundation.IGameEventBus GameEvents { get; }
@@ -522,8 +524,11 @@ public static class RunVariableDebugScenarios
             {
                 outcomeFixture = new MigratedProducerOutcomeEditorFixture(
                     "run:run-variable-debug");
+                runVariableFacts = outcomeFixture.CreateRunVariableFacts();
                 Runtime = runtimeObject.AddComponent<RunVariableRuntime>();
                 GameEvents = new DungeonStory.Foundation.GameEventBus();
+                runtimeObject.AddComponent<RunVariableObservationObserver>()
+                    .Construct(GameEvents);
                 Runtime.Construct(
                     new TestOwnerRunDataProvider(),
                     EditorRuntimeReferenceFixtures.Invasion,
@@ -533,11 +538,13 @@ public static class RunVariableDebugScenarios
                     variableCatalog,
                     doctrineCatalog,
                     outcomeFixture.AggregateRootStore,
-                    outcomeFixture.Transaction);
+                    runVariableFacts,
+                    runVariableFacts);
                 Runtime.StartRun(999, null, InvasionThreatDifficulty.Normal);
             }
             catch
             {
+                runVariableFacts?.Dispose();
                 Object.DestroyImmediate(runtimeObject);
                 throw;
             }
@@ -545,6 +552,7 @@ public static class RunVariableDebugScenarios
 
         public void Dispose()
         {
+            runVariableFacts.Dispose();
             Object.DestroyImmediate(runtimeObject);
         }
     }

@@ -6,10 +6,8 @@ using VContainer;
 
 /// <summary>
 /// Immutable truth captured by a committed research command, including zero-delta risk attempts.
-/// The result key is allocated by the state transaction that owns the saved outcome sequence.
+/// The result key is allocated by the observer from the saved domain revision.
 /// </summary>
-public enum ResearchWorkCause { Work, ForbiddenLeap, ImmediateCompletion, KnowledgeProgress }
-
 public readonly struct ResearchWorkOutcomeReceipt
 {
     public ResearchWorkOutcomeReceipt(
@@ -29,7 +27,7 @@ public readonly struct ResearchWorkOutcomeReceipt
         ResearchWorkCause cause = ResearchWorkCause.Work,
         ExtremeRiskResolution leap = default,
         float aftermathUntilSeconds = 0f,
-        ResearchEquipmentOutcomeEvidence equipment = null)
+        ResearchEquipmentUseSnapshot equipment = null)
     {
         if (unlocks == null)
             throw new ArgumentNullException(nameof(unlocks));
@@ -76,7 +74,7 @@ public readonly struct ResearchWorkOutcomeReceipt
     public ResearchWorkCause Cause { get; }
     public ExtremeRiskResolution Leap { get; }
     public float AftermathUntilSeconds { get; }
-    public ResearchEquipmentOutcomeEvidence Equipment { get; }
+    public ResearchEquipmentUseSnapshot Equipment { get; }
     internal int SpecialFactCount => Cause == ResearchWorkCause.Work ? 0
         : Cause == ResearchWorkCause.ForbiddenLeap ? 5 : 1;
 
@@ -141,10 +139,9 @@ public static class ResearchWorkOutcomeRegistration
         if (builder == null)
             throw new ArgumentNullException(nameof(builder));
 
-        builder.Register<ResearchWorkOutcomeAdapter>(Lifetime.Singleton)
-            .As<IGameplayOutcomeAdapterRegistration>();
-        builder.Register<ResearchWorkOutcomeDescriptor>(Lifetime.Singleton)
-            .As<IGameplayOutcomeDescriptor>();
+        builder.RegisterGameplayActionLogs(nameof(ResearchWorkOutcomeAdapter));
+        builder.RegisterGameplayDomainFact<ResearchWorkAppliedFact, ResearchWorkOutcomeReceipt>(
+            "research.work-observer", ResearchWorkFactObservation.Capture);
     }
 }
 
@@ -762,9 +759,10 @@ internal sealed class ResearchWorkOutcomeMemoryPolicy : IOutcomeMemoryPolicy
     {
         bool completed = ResearchWorkOutcomeFacts.IsCompleted(outcome);
         float salience = completed ? 1f : 0.55f;
+        int age = Math.Max(0, evaluationDay - outcome.AbsoluteDay);
         NarrativeMemoryTier tier = completed
             ? NarrativeMemoryTier.Core
-            : priorMatchingCount > 0
+            : age >= 30 || priorMatchingCount > 0
                 ? NarrativeMemoryTier.Compacted
                 : NarrativeMemoryTier.Episodic;
         return new OutcomeMemoryEvaluation(

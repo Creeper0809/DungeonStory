@@ -11,11 +11,11 @@
   <Project Path="DungeonStory.Items.csproj" />
   <Project Path="DungeonStory.Buildings.csproj" />
   <Project Path="DungeonStory.Content.csproj" />
+  <Project Path="DungeonStory.Species.csproj" />
   <Project Path="DungeonStory.Evolution.csproj" />
   <Project Path="VContainer.Editor.csproj" />
   <Project Path="DungeonStory.Research.csproj" />
   <Project Path="DungeonStory.AI.csproj" />
-  <Project Path="DungeonStory.Species.csproj" />
   <Project Path="DungeonStory.Production.csproj" />
   <Project Path="DungeonStory.Wildlife.csproj" />
   <Project Path="DamageNumbersPro.csproj" />
@@ -29,10 +29,10 @@
   <Project Path="Assembly-CSharp-firstpass.csproj" />
   <Project Path="DungeonStory.Operation.csproj" />
   <Project Path="DungeonStory.Medical.csproj" />
+  <Project Path="DungeonStory.CoreSession.csproj" />
   <Project Path="DungeonStory.Rooms.csproj" />
   <Project Path="DungeonStory.Architecture.Tests.csproj" />
   <Project Path="DungeonStory.Characters.csproj" />
-  <Project Path="DungeonStory.CoreSession.csproj" />
   <Project Path="DungeonStory.Grid.csproj" />
   <Project Path="DungeonStory.Environment.csproj" />
   <Project Path="Assembly-CSharp-Editor-firstpass.csproj" />
@@ -48,9 +48,9 @@
   <Project Path="DungeonStory.FacilityShop.Editor.csproj" />
   <Project Path="DungeonStory.Defense.csproj" />
   <Project Path="DungeonStory.FacilityShop.csproj" />
+  <Project Path="DungeonStory.Recruitment.csproj" />
   <Project Path="DungeonStory.Synthesis.Editor.csproj" />
   <Project Path="DungeonStory.Foundation.Tests.csproj" />
   <Project Path="DungeonStory.Buildings.Editor.csproj" />
   <Project Path="DungeonStory.ServiceRooms.csproj" />
-  <Project Path="DungeonStory.Recruitment.csproj" />
 </Solution>

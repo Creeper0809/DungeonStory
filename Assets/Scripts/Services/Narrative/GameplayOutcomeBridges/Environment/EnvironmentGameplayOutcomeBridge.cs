@@ -245,15 +245,25 @@ public sealed class EnvironmentGameplayOutcomeBridge : IEnvironmentGameplayOutco
             // reconciliation must win over domain rollback.
             EnvironmentOutcomeCommitResult reconciled = Reconcile(
                 prepared.ResultKey);
-            return reconciled.DurablyCommitted
-                ? reconciled
-                : new EnvironmentOutcomeCommitResult(
-                    EnvironmentOutcomeCommitPhase.CommittedPendingDelivery,
-                    prepared.ResultKey,
-                    default,
-                    string.Empty,
-                    "environment-outcome-commit-exception-ambiguous:"
+            if (reconciled.DurablyCommitted)
+            {
+                return new EnvironmentOutcomeCommitResult(
+                    reconciled.Phase,
+                    reconciled.ResultKey,
+                    reconciled.OutcomeId,
+                    reconciled.CanonicalDigest,
+                    "environment-outcome-commit-exception-reconciled:"
                     + exception.GetType().Name);
+            }
+            // A prepared page is still pre-commit. It must not be reported as
+            // durable merely because it has a canonical preview hash.
+            recorder.CancelPrepared(prepared.Token);
+            return Rejected(
+                prepared.ResultKey,
+                "environment-outcome-commit-exception-before-commit:"
+                + exception.GetType().Name
+                + ":"
+                + reconciled.DetailCode);
         }
         if (!commit.Success)
         {
@@ -331,8 +341,18 @@ public sealed class EnvironmentGameplayOutcomeBridge : IEnvironmentGameplayOutco
                     EnvironmentOutcomeCommitPhase.PublishedAcknowledged,
                 GameplayOutcomeReplayState.PublishedAwaitingAcknowledgement =>
                     EnvironmentOutcomeCommitPhase.PublishedAwaitingAcknowledgement,
-                _ => EnvironmentOutcomeCommitPhase.CommittedPendingDelivery
+                GameplayOutcomeReplayState.Committed or
+                    GameplayOutcomeReplayState.DeliveryFaultPending =>
+                    EnvironmentOutcomeCommitPhase.CommittedPendingDelivery,
+                _ => EnvironmentOutcomeCommitPhase.Rejected
             };
+            if (phase == EnvironmentOutcomeCommitPhase.Rejected)
+            {
+                return Rejected(
+                    resultKey,
+                    "environment-reconcile-result-not-committed:"
+                    + identity.State);
+            }
             return new EnvironmentOutcomeCommitResult(
                 phase,
                 resultKey,

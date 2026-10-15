@@ -4,10 +4,29 @@ using System.Linq;
 
 public static class CharacterWorldSaveValidation
 {
+    internal static void ValidateVisitorBindings(IEnumerable<DungeonCharacterSaveData> actors,
+        IEnumerable<WorldCharacterProfile> profiles, DungeonGameRestoreReport report)
+    {
+        DungeonCharacterSaveData[] savedActors = actors.Where(value => value != null).ToArray();
+        foreach (WorldCharacterProfile profile in profiles.Where(value => value != null))
+        {
+            DungeonCharacterSaveData[] matches = savedActors.Where(value =>
+                string.Equals(value.persistentId, profile.persistentId, StringComparison.Ordinal)).ToArray();
+            bool customer = matches.Any(value => value.characterType == CharacterType.Customer);
+            if (!profile.isVisiting && !customer) continue;
+            if (matches.Length != 1 || !profile.isVisiting || !profile.isAlive || profile.isStaff
+                || matches[0].characterType != CharacterType.Customer
+                || matches[0].dataId != profile.characterDataId
+                || matches[0].lifecycleState == CharacterLifecycleState.Despawned)
+                report.AddError($"Visitor population/actor owner mismatch: {profile.persistentId}");
+        }
+    }
+
     public static void ValidateActor(
         DungeonCharacterSaveData actor,
         string persistentId,
-        DungeonGameRestoreReport report)
+        DungeonGameRestoreReport report,
+        CharacterSO definition = null)
     {
         if (actor == null)
         {
@@ -20,12 +39,23 @@ public static class CharacterWorldSaveValidation
         }
 
         string label = $"Character '{persistentId}'";
+        if (definition != null && definition.id != actor.dataId)
+            report.AddError($"{label} skill definition does not match saved character data ID.");
+        if (actor.lifecycleRevision < 0)
+            report.AddError($"{label} has an incomplete or invalid lifecycle revision.");
         ValidateConditions(actor.conditions, label, report);
         ValidateMoodFactors(actor.moodFactors, label, report);
+        try { actor.restObservation?.Validate(persistentId); }
+        catch (ArgumentException exception) { report.AddError(label + ":" + exception.Message); }
         ValidateWorkPriorities(actor.workPriorities, label, report);
         ValidateStringIds(actor.learnedSkillIds, "learned skill", label, report);
         ValidateStringIds(actor.equippedSkillIds, "equipped skill", label, report);
         ValidateLogs(actor.recentLogEntries, label, report);
+        ValidatePendingRetailPurchases(
+            actor.pendingRetailPurchases,
+            persistentId,
+            label,
+            report);
 
         if (actor.visitCount < 0
             || actor.lookAroundCount < 0
@@ -36,7 +66,13 @@ public static class CharacterWorldSaveValidation
             report.AddError($"{label} contains a negative counter or invalid level.");
         }
 
-        ValidateGrowth(actor.growth, actor.isOwner, label, report);
+        ValidateGrowth(
+            actor.growth,
+            actor.isOwner,
+            persistentId,
+            label,
+            report,
+            definition);
         ValidateNarrative(actor.narrative, label, report);
         ValidateAcquiredTraits(actor.acquiredTraits, actor.narrative, label, report);
         ValidateSocialMemory(actor.socialMemory, label, report);
@@ -44,6 +80,34 @@ public static class CharacterWorldSaveValidation
         ValidateCarryInventory(actor.carryInventory, label, report);
         ValidateHaulDeliveryIntent(actor, label, report);
         ValidateSocietyResponseMovement(actor, label, report);
+    }
+
+    private static void ValidatePendingRetailPurchases(
+        List<RetailPurchaseRecoverySaveData> pending,
+        string persistentId,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        if (pending == null)
+        {
+            report.AddError($"{label} retail purchase recovery collection is missing.");
+            return;
+        }
+        HashSet<string> operations = new HashSet<string>(StringComparer.Ordinal);
+        foreach (RetailPurchaseRecoverySaveData row in pending)
+        {
+            bool valid = row != null && operations.Add(row.operationId)
+                && string.Equals(row.buyerId, persistentId, StringComparison.Ordinal)
+                && new BuildingInstanceId(row.facilityId).IsValid;
+            try { row?.Validate(); }
+            catch (ArgumentException) { valid = false; }
+            if (!valid)
+            {
+                report.AddError(
+                    $"{label} contains an invalid or duplicate retail purchase recovery row.");
+                return;
+            }
+        }
     }
 
     private static void ValidateSocietyResponseMovement(
@@ -92,7 +156,8 @@ public static class CharacterWorldSaveValidation
 
     public static void ValidatePopulationProfiles(
         IEnumerable<WorldCharacterProfile> profiles,
-        DungeonGameRestoreReport report)
+        DungeonGameRestoreReport report,
+        IReadOnlyDictionary<int, CharacterSO> definitions = null)
     {
         if (profiles == null)
         {
@@ -107,6 +172,10 @@ public static class CharacterWorldSaveValidation
             }
 
             string label = $"Population profile '{profile.persistentId}'";
+            CharacterSO definition = null;
+            definitions?.TryGetValue(profile.characterDataId, out definition);
+            if (definition != null && definition.id != profile.characterDataId)
+                report.AddError($"{label} skill definition does not match saved character data ID.");
             if (profile.level < 1
                 || profile.currentExperience < 0
                 || profile.visitCount < 0)
@@ -114,9 +183,120 @@ public static class CharacterWorldSaveValidation
                 report.AddError($"{label} contains a negative counter or invalid level.");
             }
 
-            ValidateGrowth(profile.growth, profile.isOwner, label, report);
+            ValidateGrowth(
+                profile.growth,
+                profile.isOwner,
+                profile.persistentId,
+                label,
+                report,
+                definition);
             ValidateNarrative(profile.narrative, label, report);
             ValidateSocialMemory(profile.socialMemory, label, report);
+            ValidateVisitorExit(profile, label, report);
+        }
+    }
+
+    internal static void ValidateVisitorExit(
+        WorldCharacterProfile profile,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        CharacterVisitorExitOperationSaveData operation =
+            profile.visitorExitOperation;
+        if (operation == null)
+        {
+            report.AddError($"{label} visitor-exit owner is missing.");
+            return;
+        }
+
+        bool hasOperation = !string.IsNullOrWhiteSpace(operation.operationId);
+        if (!hasOperation)
+        {
+            bool defaultProjection = operation.ownerRevision == 0L
+                && operation.phase == CharacterVisitorExitPhase.None
+                && string.IsNullOrEmpty(operation.sourceMacro)
+                && operation.absoluteDay == 0
+                && operation.lifecycleBefore == default
+                && !operation.visitingBefore
+                && operation.visitCountBefore == 0
+                && operation.equipmentCountBefore == 0
+                && string.IsNullOrEmpty(operation.theftPublicationKey)
+                && string.IsNullOrEmpty(operation.departurePublicationKey)
+                && string.IsNullOrEmpty(operation.terminalKind)
+                && string.IsNullOrEmpty(operation.failureReason);
+            if (!defaultProjection || profile.nextVisitorExitSequence != 1L)
+            {
+                report.AddError(
+                    $"{label} has visitor-exit fields without an operation owner.");
+            }
+            return;
+        }
+
+        bool valid = DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsIdentity(operation.operationId)
+            && operation.operationId == "visitor-exit:" + profile.persistentId + ":"
+                + operation.ownerRevision.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            && operation.ownerRevision > 0L
+            && profile.nextVisitorExitSequence > operation.ownerRevision
+            && operation.absoluteDay > 0
+            && Enum.IsDefined(typeof(CharacterVisitorExitPhase), operation.phase)
+            && operation.phase != CharacterVisitorExitPhase.None
+            && Enum.IsDefined(
+                typeof(CharacterLifecycleState),
+                operation.lifecycleBefore)
+            && operation.visitCountBefore >= 0
+            && operation.equipmentCountBefore >= 0
+            && IsCanonicalRequired(operation.sourceMacro)
+            && operation.theftPublicationKey != null
+            && operation.departurePublicationKey != null
+            && operation.terminalKind != null
+            && operation.failureReason != null;
+        if (!valid)
+        {
+            report.AddError($"{label} has an invalid visitor-exit owner.");
+            return;
+        }
+
+        bool theftValid = DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(operation.theftPublicationKey, 1024, true);
+        bool terminalValid = DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(operation.departurePublicationKey, 1024, true);
+        bool phaseValid = operation.phase switch
+        {
+            CharacterVisitorExitPhase.ExitPending =>
+                operation.theftPublicationKey.Length == 0
+                && operation.departurePublicationKey.Length == 0
+                && operation.terminalKind.Length == 0
+                && operation.failureReason.Length == 0,
+            CharacterVisitorExitPhase.TheftCommitted =>
+                operation.theftPublicationKey.Length > 0
+                && operation.departurePublicationKey.Length == 0
+                && operation.terminalKind.Length == 0
+                && operation.failureReason.Length == 0,
+            CharacterVisitorExitPhase.Departed =>
+                operation.departurePublicationKey.Length > 0
+                && string.Equals(
+                    operation.terminalKind,
+                    VisitorDepartureTerminalKind.Departed.ToString(),
+                    StringComparison.Ordinal)
+                && operation.failureReason.Length == 0
+                && !profile.isVisiting
+                && (long)profile.visitCount == (long)operation.visitCountBefore + 1,
+            CharacterVisitorExitPhase.ExitFailed =>
+                operation.departurePublicationKey.Length > 0
+                && Enum.TryParse(
+                    operation.terminalKind,
+                    false,
+                    out VisitorDepartureTerminalKind terminal)
+                && Enum.IsDefined(typeof(VisitorDepartureTerminalKind), terminal)
+                && terminal is not VisitorDepartureTerminalKind.None
+                    and not VisitorDepartureTerminalKind.Departed
+                && operation.failureReason.Length > 0
+                && profile.isVisiting == operation.visitingBefore
+                && profile.visitCount == operation.visitCountBefore,
+            _ => false
+        };
+        if (!theftValid || !terminalValid || !phaseValid)
+        {
+            report.AddError(
+                $"{label} has an incoherent visitor-exit phase or result identity.");
         }
     }
 
@@ -294,8 +474,10 @@ public static class CharacterWorldSaveValidation
     private static void ValidateGrowth(
         CharacterGrowthState growth,
         bool isOwner,
+        string persistentId,
         string label,
-        DungeonGameRestoreReport report)
+        DungeonGameRestoreReport report,
+        CharacterSO definition)
     {
         if (growth == null)
         {
@@ -311,7 +493,8 @@ public static class CharacterWorldSaveValidation
                 == CharacterTraitSelectionAuthorityOrigin.None
             || growth.traitSelectionAuthorityVersion
                 != CharacterGrowthState.CurrentTraitSelectionAuthorityVersion
-            || growth.skillGenerationRevision < 0)
+            || growth.skillGenerationRevision < 0
+            || growth.skillAcquisitionRevision < 0L)
         {
             report.AddError($"{label} growth state contains an invalid enum or counter.");
         }
@@ -331,6 +514,25 @@ public static class CharacterWorldSaveValidation
 
         try
         {
+            growth.useLimits.ValidatePersistentState(
+                persistentId,
+                growth.activeSkills
+                    .Concat(growth.passiveSkills)
+                    // Fixed skills are immutable authored definitions, not
+                    // learned skills duplicated into mutable growth state.
+                    .Concat(CharacterOwnerFixedSkillUtility.GetSkills(definition))
+                    .Concat(growth.ultimate == null
+                        ? Array.Empty<CharacterSkillInstance>()
+                        : new[] { growth.ultimate }));
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException)
+        {
+            report.AddError($"{label} {exception.Message}");
+        }
+
+        try
+        {
             CharacterStartingProficiencyRules.Validate(
                 growth.startingProficiencies);
         }
@@ -340,6 +542,13 @@ public static class CharacterWorldSaveValidation
         }
 
         ValidateStartingProfile(growth, label, report);
+
+        foreach (CharacterSkillDraft draft in growth.drafts.Where(value => value != null))
+        {
+            try { draft.RestoreRequestPublicContext(); }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            { report.AddError($"{label} {exception.Message}"); }
+        }
 
         if (growth.activeSkills.Any(item => item == null)
             || growth.passiveSkills.Any(item => item == null)
@@ -514,13 +723,20 @@ public static class CharacterWorldSaveValidation
         {
             if (!Enum.IsDefined(typeof(SocialRumorType), rumor.type)
                 || !Enum.IsDefined(typeof(SocialRumorTargetType), rumor.targetType)
+                || !IsFinite(rumor.baseSentiment)
                 || !IsFinite(rumor.sentiment)
                 || !IsFinite(rumor.spreadChance)
                 || !IsFinite(rumor.trustImpact)
                 || !IsFinite(rumor.remainingSeconds)
                 || rumor.spreadChance < 0f
                 || rumor.spreadChance > 1f
-                || rumor.remainingSeconds < 0f)
+                || rumor.remainingSeconds < 0f
+                || string.IsNullOrWhiteSpace(
+                    rumor.relationshipSkillModifierProvenance)
+                || !GameplayOutcomeLedger.IsValidBoundedUtf16(
+                    rumor.relationshipSkillModifierProvenance,
+                    GameplayOutcomeBufferLimits.MaximumFactValueUtf16Length,
+                    allowEmpty: false))
             {
                 report.AddError($"{label} contains an invalid rumor snapshot.");
             }

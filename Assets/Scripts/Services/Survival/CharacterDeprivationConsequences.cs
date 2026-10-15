@@ -1,29 +1,44 @@
 using System;
 using System.Collections.Generic;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 internal sealed class CharacterDeprivationConsequences
 {
     private readonly CharacterDeprivationStateStore stateStore;
     private readonly ICharacterAiWorldRegistry worldRegistry;
+    private readonly IGameCalendar calendar;
+    private readonly IDomainFactPublisher notifications;
 
     public CharacterDeprivationConsequences(
         CharacterDeprivationStateStore stateStore,
-        ICharacterAiWorldRegistry worldRegistry)
+        ICharacterAiWorldRegistry worldRegistry,
+        IGameCalendar calendar,
+        IDomainFactPublisher notifications)
     {
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
         this.worldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.notifications = notifications ?? throw new ArgumentNullException(nameof(notifications));
     }
 
     public void RecordTaboo(CharacterActor actor, string memory)
+    {
+        RecordTabooBeforeOutcomeCommit(actor, memory);
+        PublishCommittedTaboo(actor, memory, string.Empty);
+    }
+
+    internal void RecordTabooBeforeOutcomeCommit(CharacterActor actor, string memory)
     {
         if (actor == null || string.IsNullOrWhiteSpace(memory))
         {
             return;
         }
 
+        if (calendar.Day < 0)
+            throw new ArgumentOutOfRangeException("absoluteDay");
         CharacterDeprivationState state = stateStore.Ensure(actor);
         state.tabooMemories ??= new List<string>();
         string normalized = memory.Trim();
@@ -36,12 +51,19 @@ internal sealed class CharacterDeprivationConsequences
             }
         }
 
-        actor.Progression?.RecordNarrative(
-            CharacterNarrativeDomain.Survival,
-            "survival/taboo",
-            string.Empty,
-            normalized,
-            1f);
+    }
+
+    internal void PublishCommittedTaboo(
+        CharacterActor actor, string memory, string subjectId)
+    {
+        if (actor == null || string.IsNullOrWhiteSpace(memory))
+            return;
+        int absoluteDay = calendar.Day;
+        if (absoluteDay < 0)
+            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        NotifyExperience(new CharacterDeprivationExperienceFact(
+            CharacterDeprivationExperienceKind.PersonalTaboo, actor,
+            subjectId ?? string.Empty, memory.Trim(), 1f, absoluteDay));
     }
 
     public void ApplyWitnessMood(
@@ -51,6 +73,9 @@ internal sealed class CharacterDeprivationConsequences
         float mood,
         bool permanentMemory = false)
     {
+        int absoluteDay = calendar.Day;
+        if (absoluteDay < 0)
+            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
         IReadOnlyList<CharacterActor> characters = worldRegistry.Characters;
         for (int index = 0; index < characters.Count; index++)
         {
@@ -69,13 +94,11 @@ internal sealed class CharacterDeprivationConsequences
                 label,
                 mood,
                 360f,
-                1);
-            witness.Progression?.RecordNarrative(
-                CharacterNarrativeDomain.Relationship,
-                "survival/taboo-witness",
-                sourceId,
-                label,
-                mood);
+                1,
+                absoluteDay);
+            NotifyExperience(new CharacterDeprivationExperienceFact(
+                CharacterDeprivationExperienceKind.WitnessedTaboo, witness,
+                sourceId, label, mood, absoluteDay));
             if (permanentMemory)
             {
                 witness.SocialMemory?.RememberCharacterExperience(
@@ -85,6 +108,20 @@ internal sealed class CharacterDeprivationConsequences
                     durationSeconds: 0f);
             }
         }
+    }
+
+    private void NotifyExperience(in CharacterDeprivationExperienceFact fact)
+    {
+        DomainFactLease lease = default;
+        try
+        {
+            if (!notifications.TryReserve(fact, out lease, out string failure))
+                throw new InvalidOperationException("deprivation-experience-observer-unavailable:" + failure);
+            DomainFactDelivery delivery = notifications.Publish(lease, fact);
+            if (!delivery.Completed)
+                throw new InvalidOperationException("deprivation-experience-publication-failed:" + delivery.Detail);
+        }
+        finally { if (lease.IsValid) notifications.Cancel(lease); }
     }
 
     public void AddInfection(CharacterActor actor, float amount)

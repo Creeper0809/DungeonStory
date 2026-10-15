@@ -1,0 +1,21 @@
+{
+    "version": 4,
+    "windowMode": 1,
+    "resolutionWidth": 1920,
+    "resolutionHeight": 1080,
+    "masterVolume": 0.800000011920929,
+    "musicVolume": 0.550000011920929,
+    "effectsVolume": 0.800000011920929,
+    "uiVolume": 0.800000011920929,
+    "cameraSpeed": 1.0,
+    "edgeScroll": false,
+    "cameraControls": 0,
+    "uiScale": 1.0,
+    "textScale": 1.0,
+    "maxCarryMultiplier": 1.5,
+    "highContrast": false,
+    "reducedMotion": false,
+    "developerMode": false,
+    "pauseOnResearchTree": false,
+    "defenseTimeResponse": 0
+}

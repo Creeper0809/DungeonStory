@@ -36,6 +36,7 @@ public sealed class WildlifeRuntime :
     private readonly WildlifeDiseaseVectorRuntime diseaseVectorRuntime;
     private WildlifeHuntRuntime huntRuntime;
     private WildlifeBehaviorRuntime behaviorRuntime;
+    private WildlifeGameplayOutcomeRuntime gameplayOutcomeRuntime;
     private WildlifePopulationState population = new WildlifePopulationState();
 
     private List<WildlifeActor> wildlife => population.Actors;
@@ -47,6 +48,11 @@ public sealed class WildlifeRuntime :
     {
         get => population.NextSequence;
         set => population.NextSequence = value;
+    }
+    private int nextGameplayOutcomeSequence
+    {
+        get => population.NextGameplayOutcomeSequence;
+        set => population.NextGameplayOutcomeSequence = value;
     }
     private int lastDiseaseVectorAbsoluteDay
     {
@@ -116,13 +122,19 @@ public sealed class WildlifeRuntime :
 
     private void RebuildPopulationRuntimes()
     {
+        gameplayOutcomeRuntime = new WildlifeGameplayOutcomeRuntime(
+            population,
+            worldServices.Facts,
+            worldServices.FactRecovery,
+            worldServices.Calendar);
         huntRuntime = new WildlifeHuntRuntime(
             worldServices,
             combatServices,
             executionServices,
             wildlife,
             CancelFoodRaidForActor,
-            worldRuntime.DestroyActor);
+            worldRuntime.DestroyActor,
+            gameplayOutcomeRuntime);
         behaviorRuntime = new WildlifeBehaviorRuntime(
             worldServices,
             combatServices,
@@ -160,6 +172,7 @@ public sealed class WildlifeRuntime :
     }
     private void TickRuntime()
     {
+        gameplayOutcomeRuntime.AdvancePending();
         if (executionServices.DebugRules.IsEnabled(DungeonDebugCheat.PauseWildlifeAi))
         {
             return;
@@ -285,6 +298,9 @@ public sealed class WildlifeRuntime :
     void IWildlifeRestorePort.ReconcilePendingFoodRaids() =>
         behaviorRuntime.ReconcilePendingFoodRaids();
 
+    void IWildlifeRestorePort.ReconcilePendingGameplayOutcomes() =>
+        gameplayOutcomeRuntime.AdvancePending();
+
     public DungeonWildlifeSaveData Capture()
     {
         return new DungeonWildlifeSaveData
@@ -300,9 +316,17 @@ public sealed class WildlifeRuntime :
                 .ToList(),
             carcasses = carcassService?.CaptureFreshness().ToList()
                 ?? new List<WildlifeCarcassFreshnessSaveData>(),
+            carcassProcessing = carcassService.CaptureProcessing().ToList(),
             ecosystem = ecosystemRuntime?.Capture() ?? new DungeonWildlifeEcosystemSaveData(),
             foodRaidOrders = foodRaidOrders
                 .Select(WildlifeBehaviorRuntime.CloneFoodRaidOrder)
+                .ToList(),
+            nextGameplayOutcomeSequence = Math.Max(
+                0,
+                nextGameplayOutcomeSequence),
+            gameplayOutcomes = population.GameplayOutcomes
+                .OrderBy(value => value.ownerRevision)
+                .Select(WildlifeGameplayOutcomeRuntime.Clone)
                 .ToList()
         };
     }

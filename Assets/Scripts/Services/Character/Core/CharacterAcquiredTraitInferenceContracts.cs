@@ -211,7 +211,8 @@ public sealed class CharacterAcquiredTraitSubmissionCommand
         IEnumerable<string> evidenceFactIds,
         IEnumerable<GameplayOutcomeEvidenceBindingSnapshot> evidenceBindings,
         int expectedRevision,
-        NarrativeInferenceTimestamp timestamp)
+        NarrativeInferenceTimestamp timestamp,
+        NarrativePublicContextMaterial publicContext = null)
     {
         TargetPersistentId = targetPersistentId?.Trim() ?? string.Empty;
         RequestId = requestId?.Trim() ?? string.Empty;
@@ -223,6 +224,7 @@ public sealed class CharacterAcquiredTraitSubmissionCommand
             .Where(value => value != null).Select(value => value.Clone()).ToArray();
         ExpectedRevision = expectedRevision;
         Timestamp = timestamp;
+        PublicContext = publicContext;
     }
 
     public string TargetPersistentId { get; }
@@ -231,6 +233,7 @@ public sealed class CharacterAcquiredTraitSubmissionCommand
     public int ManifestationMilestone { get; }
     public IReadOnlyList<string> EvidenceFactIds { get; }
     public IReadOnlyList<GameplayOutcomeEvidenceBindingSnapshot> EvidenceBindings { get; }
+    public NarrativePublicContextMaterial PublicContext { get; }
     public int ExpectedRevision { get; }
     public NarrativeInferenceTimestamp Timestamp { get; }
 }

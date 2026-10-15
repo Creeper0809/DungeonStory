@@ -378,7 +378,8 @@ namespace DungeonStory.Content.CoreSession
                 CurrentDay = source.CurrentDay,
                 BossCycle = source.BossCycle,
                 BossArmed = source.BossArmed,
-                BossActive = source.BossActive
+                BossActive = source.BossActive,
+                PendingCompletion = source.PendingCompletion?.Clone()
             };
         }
 

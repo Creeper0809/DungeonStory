@@ -108,6 +108,21 @@ public sealed class ProductionBillRecord
         mutableResolvedOutputs;
     public ProductionPreparedOutputBatchSaveData preparedOutput { get; internal set; } =
         ProductionPreparedOutputBatchSaveData.Unresolved();
+    internal List<ProductionCompletionObservationSaveData> completionObservations = new();
+    public ProductionCompletionObservationSaveData CompletionObservation => completionObservations.SingleOrDefault()?.Clone();
+    public bool IsCompletionPublishing { get; private set; }
+    public void BeginCompletionPublication()
+    {
+        if (IsCompletionPublishing) throw new InvalidOperationException("production-completion-publication-reentry");
+        IsCompletionPublishing = true;
+    }
+    public void EndCompletionPublication() => IsCompletionPublishing = false;
+    public void SetCompletionObservation(ProductionCompletionObservationSaveData value)
+    {
+        value.Validate(billId.Value, cycleSequence, recipeId, buildingInstanceId.Value);
+        completionObservations.Clear(); completionObservations.Add(value.Clone());
+    }
+    public void ClearCompletionObservation() => completionObservations.Clear();
     public bool processFluidConsumed { get; internal set; }
     public long processCleanWaterMassGrams { get; internal set; }
     public long processWastewaterMassGrams { get; internal set; }
@@ -216,7 +231,8 @@ public sealed class ProductionBillRecord
 
     public void SetOrderMode(ProductionOrderMode value) => mode = value;
     public void SetMaterialsConsumed(bool value) => materialsConsumed = value;
-    public void AdvanceCycleSequence() => cycleSequence = checked(cycleSequence + 1);
+    public void AdvanceCycleSequence()
+    { cycleSequence = checked(cycleSequence + 1); completionObservations.Clear(); }
     public void SetWipInput(ProductionWipInputReceipt receipt)
     {
         if (!receipt.IsCommitted)
@@ -618,8 +634,8 @@ public sealed class ProductionBillRecord
 internal sealed class ProductionAggregateState
 {
     internal List<ProductionBillRecord> Bills { get; } = new();
-    internal SortedDictionary<long, ProductionCommandOutcomeOutboxSaveData>
-        PendingCommandOutcomesByOwnerRevision { get; } = new();
+    internal SortedDictionary<long, ProductionCommandObservationSaveData>
+        PendingCommandObservationsByOwnerRevision { get; } = new();
     internal List<ProductionWipTerminalReceiptSaveData> WipTerminalReceipts { get; } =
         new();
     internal HashSet<string> InstalledStockSensorFacilityIds { get; } =
@@ -636,7 +652,7 @@ internal sealed class ProductionAggregateState
         PendingStockSensorRemovalsByFacilityId { get; } =
             new(StringComparer.Ordinal);
     internal int NextBillSequence { get; set; } = 1;
-    internal long NextCommandOutcomeSequence { get; set; } = 1L;
+    internal long NextCommandSequence { get; set; } = 1L;
     internal int BillVersion { get; set; }
     internal int StockSensorVersion { get; set; }
 }
@@ -655,9 +671,9 @@ public sealed class ProductionAggregateStateSession
         rootStore.GetOrCreate(() => new ProductionAggregateState());
 
     public IReadOnlyList<ProductionBillRecord> Bills => Current.Bills;
-    public IReadOnlyCollection<ProductionCommandOutcomeOutboxSaveData>
-        PendingCommandOutcomes =>
-            Current.PendingCommandOutcomesByOwnerRevision.Values;
+    public IReadOnlyCollection<ProductionCommandObservationSaveData>
+        PendingCommandObservations =>
+            Current.PendingCommandObservationsByOwnerRevision.Values;
     public IReadOnlyList<ProductionWipTerminalReceiptSaveData> WipTerminalReceipts =>
         Current.WipTerminalReceipts;
     public int NextBillSequence
@@ -665,10 +681,10 @@ public sealed class ProductionAggregateStateSession
         get => Current.NextBillSequence;
         set => Current.NextBillSequence = Math.Max(1, value);
     }
-    public long NextCommandOutcomeSequence
+    public long NextCommandSequence
     {
-        get => Current.NextCommandOutcomeSequence;
-        set => Current.NextCommandOutcomeSequence = Math.Max(1L, value);
+        get => Current.NextCommandSequence;
+        set => Current.NextCommandSequence = Math.Max(1L, value);
     }
     public int BillVersion => Current.BillVersion;
     public int StockSensorVersion => Current.StockSensorVersion;
@@ -689,24 +705,24 @@ public sealed class ProductionAggregateStateSession
     public void AddBill(ProductionBillRecord bill) =>
         Current.Bills.Add(bill ?? throw new ArgumentNullException(nameof(bill)));
     public bool RemoveBill(ProductionBillRecord bill) => Current.Bills.Remove(bill);
-    public void SetPendingCommandOutcome(
-        ProductionCommandOutcomeOutboxSaveData pending)
+    public void SetPendingCommandObservation(
+        ProductionCommandObservationSaveData pending)
     {
-        if (pending == null || pending.ownerRevision <= 0L)
+        if (pending?.fact == null || pending.fact.ownerRevision <= 0L)
             throw new ArgumentException(
                 "Pending production command outcome must have an owner revision.",
                 nameof(pending));
-        Current.PendingCommandOutcomesByOwnerRevision[pending.ownerRevision] =
+        Current.PendingCommandObservationsByOwnerRevision[pending.fact.ownerRevision] =
             pending.Clone();
     }
-    public bool TryGetPendingCommandOutcome(
+    public bool TryGetPendingCommandObservation(
         long ownerRevision,
-        out ProductionCommandOutcomeOutboxSaveData pending) =>
-        Current.PendingCommandOutcomesByOwnerRevision.TryGetValue(
+        out ProductionCommandObservationSaveData pending) =>
+        Current.PendingCommandObservationsByOwnerRevision.TryGetValue(
             ownerRevision,
             out pending);
-    public bool RemovePendingCommandOutcome(long ownerRevision) =>
-        Current.PendingCommandOutcomesByOwnerRevision.Remove(ownerRevision);
+    public bool RemovePendingCommandObservation(long ownerRevision) =>
+        Current.PendingCommandObservationsByOwnerRevision.Remove(ownerRevision);
     public bool AddWipTerminalReceipt(ProductionWipTerminalReceiptSaveData receipt)
     {
         if (receipt == null || string.IsNullOrEmpty(receipt.commitId))
@@ -866,19 +882,19 @@ public sealed class ProductionAggregateStateSession
         ProductionAggregateState restored = new()
         {
             NextBillSequence = snapshot.nextBillSequence,
-            NextCommandOutcomeSequence = Math.Max(
+            NextCommandSequence = Math.Max(
                 1L,
-                snapshot.nextCommandOutcomeSequence),
+                snapshot.nextCommandSequence),
             BillVersion = billVersion,
             StockSensorVersion = stockSensorVersion
         };
         restored.InstalledStockSensorFacilityIds.UnionWith(
             snapshot.installedStockSensorFacilityIds);
-        foreach (ProductionCommandOutcomeOutboxSaveData pending in
-                 snapshot.pendingCommandOutcomes)
+        foreach (ProductionCommandObservationSaveData pending in
+                 snapshot.pendingCommandObservations)
         {
-            restored.PendingCommandOutcomesByOwnerRevision.Add(
-                pending.ownerRevision,
+            restored.PendingCommandObservationsByOwnerRevision.Add(
+                pending.fact.ownerRevision,
                 pending.Clone());
         }
         restored.AcknowledgedStockSensorFacilityIds.UnionWith(
@@ -925,6 +941,7 @@ public sealed class ProductionAggregateStateSession
                 wipInputQuantity = saved.wipInputQuantity,
                 wipInputMassGrams = saved.wipInputMassGrams,
                 outputOutcomeResolved = saved.outputOutcomeResolved,
+                completionObservations = saved.completionObservations.Select(value => value.Clone()).ToList(),
                 preparedOutput = saved.preparedOutput?.Clone()
                     ?? throw new InvalidOperationException(
                         $"Production bill '{saved.billId}' has no prepared-output payload."),

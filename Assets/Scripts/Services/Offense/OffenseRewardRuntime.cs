@@ -26,8 +26,9 @@ internal sealed class OffenseRewardTransactionSnapshot
     internal OffenseRewardContext Context;
 }
 
-public class OffenseRewardRuntime : MonoBehaviour
+public class OffenseRewardRuntime : MonoBehaviour, IDungeonRestoreTransactionParticipant
 {
+    private readonly DungeonRestorePublication restorePublication = new();
     private OffenseRewardState state = new OffenseRewardState();
     private readonly OffenseRewardDebugContext debugContext = new OffenseRewardDebugContext();
     private IOffenseRewardContextBuilder contextBuilder;
@@ -144,8 +145,26 @@ public class OffenseRewardRuntime : MonoBehaviour
 
     internal void PublishPersistentState(OffenseRewardState candidate)
     {
-        state = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        if (restorePublication.TryStage(() => state = candidate, CaptureRestoreRollback)) return;
+        state = candidate;
     }
+
+    private Action CaptureRestoreRollback()
+    {
+        var previous0 = state;
+        return () =>
+        {
+            state = previous0;
+        };
+    }
+
+    public string ParticipantId => "offense.reward";
+    public void BeginRestoreCandidate() => restorePublication.Begin();
+    public void PublishRestoreCandidate() => restorePublication.Publish();
+    public void RollbackPublishedRestoreCandidate() => restorePublication.Discard();
+    public void DiscardRestoreCandidate() => restorePublication.Discard();
+    public void CompleteRestoreCandidate() => restorePublication.Complete();
 
     public void PublishRestoreCandidate(
         OffenseRewardRestoreCandidate candidate) =>

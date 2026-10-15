@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.Narrative.Korean;
 using UnityEngine;
 
@@ -13,6 +14,7 @@ public static class WorkCompletionIdentityOutcomeDebugScenarios
     public static bool RunAll(bool logSuccess = false)
     {
         VerifyDirectSequenceAndRestore();
+        VerifyReferencedRequestIdentityAndRestore();
 
         GameplayOutcomeRegistry registry = new(
             new IGameplayOutcomeDescriptor[]
@@ -28,7 +30,7 @@ public static class WorkCompletionIdentityOutcomeDebugScenarios
             registry,
             new GameplayOutcomeBufferLimits(
                 smallPageCount: 8,
-                largePageCount: 0,
+                largePageCount: 1,
                 knownResultKeyCapacity: 128),
             new GameplayOutcomeRunId("run:work-identity-editor"),
             1L);
@@ -39,13 +41,17 @@ public static class WorkCompletionIdentityOutcomeDebugScenarios
         WorkCompletionIdentityGameplayOutcomeBridge bridge = new(
             recorder,
             ledger,
-            new FixedDisplayNames());
+            new FixedDisplayNames(),
+            ledger);
         WorkCompletionIdentityDeliveryRequest request = Request(
             "identity-event:qa-work-identity:000000",
             "qa-work-identity:stream",
             0,
             BuiltInWorkTypeIds.Harvest.Value,
-            "item:qa-harvest");
+            "item:qa-harvest",
+            "source=passive|skill=skill:qa-harvest|module=output"
+                + "|value=0.25|mechanicsSha256="
+                + new string('a', 64));
 
         Require(
             bridge.TryPrepare(
@@ -95,7 +101,12 @@ public static class WorkCompletionIdentityOutcomeDebugScenarios
             && exact.facts.Any(value =>
                 value.factId
                     == WorkCompletionIdentityOutcomeIds.ReactionFact.Value
-                && value.value == "completed-work"),
+                && value.value == "completed-work")
+            && exact.facts.Any(value =>
+                value.factId
+                    == WorkCompletionIdentityOutcomeIds
+                        .SkillModifierProvenanceFact.Value
+                && value.value == request.SkillModifierProvenance),
             "work identity outcome lost frozen receipt data");
 
         GameplayOutcomeId outcomeId = new(
@@ -133,7 +144,8 @@ public static class WorkCompletionIdentityOutcomeDebugScenarios
             request.ProducerStreamId,
             request.OperationSequence,
             "work:craft",
-            request.ProductId);
+            request.ProductId,
+            request.SkillModifierProvenance);
         Require(
             !bridge.TryPrepare(
                 drifted,
@@ -147,7 +159,7 @@ public static class WorkCompletionIdentityOutcomeDebugScenarios
             registry,
             new GameplayOutcomeBufferLimits(
                 smallPageCount: 8,
-                largePageCount: 0,
+                largePageCount: 1,
                 knownResultKeyCapacity: 128),
             new GameplayOutcomeRunId("run:work-identity-restore"),
             1L);
@@ -164,6 +176,10 @@ public static class WorkCompletionIdentityOutcomeDebugScenarios
                 OutcomeFilter.All).Items.Single().Exact.immutablePayloadHash
             == exact.immutablePayloadHash,
             "work identity outcome changed across save round trip");
+
+        GameplayOutcomeLedgerDebugScenarios.VerifyTypedEvidenceAnchorRoundTrip(
+            ledger, registry, character, outcomeId,
+            exact.immutablePayloadHash);
 
         if (logSuccess)
             Debug.Log("[Work Completion Identity Outcome] PASS");
@@ -187,14 +203,15 @@ public static class WorkCompletionIdentityOutcomeDebugScenarios
             && first.ProducerStreamId
                 == WorkCompletionIdentityDeliveryLedger.DirectEventStreamId,
             "direct work identity sequence did not begin canonically");
-        Require(
-            ledger.Commit(
+        ledger.CommitObservation(
+            new WorkIdentityAppliedFact(
                 first,
-                out string commitFailure,
-                WorkCompletionIdentityDeliveryDisposition
-                    .EffectsAppliedWithOutcome)
-                == WorkCompletionIdentityDeliveryStatus.Applied,
-            "direct work identity cursor commit failed: " + commitFailure);
+                "가람",
+                requiresTerminalDelivery: false),
+            WorkCompletionIdentityOutcomeIds.ResultKey(first).ToString(),
+            "unit:work-identity-direct/1",
+            new string('a', 64),
+            complete: true);
         Require(
             ledger.TryGetCommittedDisposition(first, out var disposition)
             && disposition == WorkCompletionIdentityDeliveryDisposition
@@ -213,12 +230,280 @@ public static class WorkCompletionIdentityOutcomeDebugScenarios
             "direct work identity sequence did not survive restore");
     }
 
+    private static void VerifyReferencedRequestIdentityAndRestore()
+    {
+        GameplayResultKey childKey = new(
+            "medical.surgery",
+            new GameplayOperationId(
+                "surgery-terminal:surgery:qa-referenced"),
+            1L,
+            0);
+        WorkCompletedIdentityEvent source = ReferencedEvent(
+            Character,
+            childKey.OperationId.Value,
+            childKey.ToString());
+        WorkCompletionIdentityDeliveryRequest request =
+            WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(
+                source);
+        WorkCompletionIdentityDeliveryRequest same =
+            WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(
+                source);
+        Require(
+            request.OperationSequence == 0
+            && request.DeliveryId == same.DeliveryId
+            && request.ProducerStreamId == same.ProducerStreamId
+            && request.PayloadFingerprint == same.PayloadFingerprint,
+            "referenced work identity request was not stable for one child and worker");
+
+        WorkCompletionIdentityDeliveryLedger ledger = new();
+        ledger.CommitObservation(
+            new WorkIdentityAppliedFact(
+                request,
+                "가람",
+                requiresTerminalDelivery: true),
+            WorkCompletionIdentityOutcomeIds.ResultKey(request).ToString(),
+            "unit:work-identity-referenced/1",
+            new string('b', 64),
+            complete: true);
+        Require(
+            ledger.Inspect(same, out _) ==
+                WorkCompletionIdentityDeliveryStatus.AlreadyApplied,
+            "same referenced work identity was not replay-safe");
+
+        RequireReferencedConflict(
+            ledger,
+            request,
+            ReferencedEvent(
+                Character,
+                childKey.OperationId.Value,
+                childKey.ToString(),
+                workId: "work:qa-referenced-alternate"),
+            "work");
+        RequireReferencedConflict(
+            ledger,
+            request,
+            ReferencedEvent(
+                Character,
+                childKey.OperationId.Value,
+                childKey.ToString(),
+                productId: "item:qa-referenced-alternate"),
+            "product");
+        RequireReferencedConflict(
+            ledger,
+            request,
+            ReferencedEvent(
+                Character,
+                childKey.OperationId.Value,
+                childKey.ToString(),
+                origin: CharacterCommandOrigin.DirectPlayerOrder),
+            "origin");
+        RequireReferencedConflict(
+            ledger,
+            request,
+            ReferencedEvent(
+                Character,
+                childKey.OperationId.Value,
+                childKey.ToString(),
+                day: 9),
+            "day");
+        RequireReferencedConflict(
+            ledger,
+            request,
+            ReferencedEvent(
+                Character,
+                childKey.OperationId.Value,
+                childKey.ToString(),
+                terminalOwnerId: "medical.surgery-secondary"),
+            "terminal owner");
+        RequireReferencedConflict(
+            ledger,
+            request,
+            ReferencedEvent(
+                Character,
+                childKey.OperationId.Value,
+                childKey.ToString(),
+                targetEntityId: "building:qa-referenced-alternate"),
+            "target");
+        RequireReferencedConflict(
+            ledger,
+            request,
+            ReferencedEvent(
+                Character,
+                childKey.OperationId.Value,
+                childKey.ToString(),
+                contributionWorkUnits: 9.5f),
+            "contribution");
+
+        GameplayResultKey otherChildKey = new(
+            "medical.surgery",
+            new GameplayOperationId(
+                "surgery-terminal:surgery:qa-referenced-other"),
+            1L,
+            0);
+        WorkCompletionIdentityDeliveryRequest otherChild =
+            WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(
+                ReferencedEvent(
+                    Character,
+                    otherChildKey.OperationId.Value,
+                    otherChildKey.ToString()));
+        WorkCompletionIdentityDeliveryRequest otherWorker =
+            WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(
+                ReferencedEvent(
+                    new CharacterId("character:qa-work-identity-other"),
+                    childKey.OperationId.Value,
+                    childKey.ToString()));
+        WorkCompletionIdentityDeliveryRequest other =
+            WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(
+                ReferencedEvent(
+                    new CharacterId("character:qa-work-identity-other"),
+                    otherChildKey.OperationId.Value,
+                    otherChildKey.ToString()));
+        Require(
+            otherChild.DeliveryId != request.DeliveryId
+            && otherChild.ProducerStreamId != request.ProducerStreamId
+            && otherWorker.DeliveryId != request.DeliveryId
+            && otherWorker.ProducerStreamId != request.ProducerStreamId
+            && other.DeliveryId != request.DeliveryId
+            && other.ProducerStreamId != request.ProducerStreamId,
+            "referenced child or worker reused a delivery identity");
+
+        CursorEnvelope roundTrip = JsonUtility.FromJson<CursorEnvelope>(
+            JsonUtility.ToJson(new CursorEnvelope
+            {
+                cursors = ledger.Capture().ToArray()
+            }));
+        WorkCompletionIdentityDeliveryLedger restored = new();
+        restored.Restore(roundTrip.cursors);
+        Require(
+            restored.Inspect(same, out _) ==
+                WorkCompletionIdentityDeliveryStatus.AlreadyApplied,
+            "referenced work identity cursor changed across JSON restore");
+
+        WorkCompletionIdentityDeliveryRequest direct =
+            ledger.CreateNextDirectRequest(new WorkCompletedIdentityEvent(
+                Character,
+                "work:craft",
+                string.Empty,
+                CharacterCommandOrigin.DirectPlayerOrder,
+                4));
+        Require(
+            direct.OperationSequence == 0
+            && direct.ProducerStreamId
+                == WorkCompletionIdentityDeliveryLedger.DirectEventStreamId
+            && direct.DeliveryId
+                == WorkCompletionIdentityDeliveryLedger
+                    .DirectEventDeliveryPrefix + "0",
+            "referenced work identity changed the direct delivery stream");
+
+        RequireArgumentException(
+            () => RequireReferencedChild(
+                ReferencedEvent(
+                    Character,
+                    childKey.OperationId.Value,
+                    "medical.surgery-not-a-result-key")),
+            "invalid referenced child syntax was accepted");
+        RequireArgumentException(
+            () => RequireReferencedChild(
+                ReferencedEvent(
+                    Character,
+                    childKey.OperationId.Value,
+                    "medical.surgery|surgery-terminal:surgery:qa-referenced|01|0")),
+            "noncanonical referenced child integer was accepted");
+        RequireArgumentException(
+            () => RequireReferencedChild(
+                ReferencedEvent(
+                    Character,
+                    "surgery-terminal:surgery:qa-referenced-mismatch",
+                    childKey.ToString())),
+            "referenced child operation mismatch was accepted");
+        RequireArgumentException(
+            () => RequireReferencedChild(
+                ReferencedEvent(
+                    Character,
+                    childKey.OperationId.Value,
+                    childKey.ToString(),
+                    terminalOwnerId:
+                        WorkCompletionIdentityReferenceDefaults
+                            .LegacyTerminalOwner)),
+            "default referenced terminal owner was accepted");
+    }
+
+    private static GameplayResultKey RequireReferencedChild(
+        WorkCompletedIdentityEvent source)
+    {
+        WorkCompletionIdentityDeliveryRequest request =
+            WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(
+                source);
+        return WorkCompletionChildReference.Require(
+            request.OperationId,
+            request.TerminalOwnerId,
+            request.ChildResultKey);
+    }
+
+    private static WorkCompletedIdentityEvent ReferencedEvent(
+        CharacterId character,
+        string operationId,
+        string childResultKey,
+        string workId = "work:qa-referenced",
+        string productId = "item:qa-referenced",
+        CharacterCommandOrigin origin = CharacterCommandOrigin.Autonomous,
+        int day = 8,
+        string terminalOwnerId = "medical.surgery",
+        string targetEntityId = "building:qa-referenced",
+        float contributionWorkUnits = 8.5f) => new(
+        character,
+        workId,
+        productId,
+        origin,
+        day,
+        operationId,
+        terminalOwnerId,
+        childResultKey,
+        targetEntityId,
+        contributionWorkUnits);
+
+    private static void RequireReferencedConflict(
+        WorkCompletionIdentityDeliveryLedger ledger,
+        WorkCompletionIdentityDeliveryRequest expected,
+        WorkCompletedIdentityEvent changed,
+        string changedField)
+    {
+        WorkCompletionIdentityDeliveryRequest request =
+            WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(
+                changed);
+        Require(
+            request.DeliveryId == expected.DeliveryId
+            && request.ProducerStreamId == expected.ProducerStreamId
+            && request.OperationSequence == expected.OperationSequence
+            && ledger.Inspect(request, out _)
+                == WorkCompletionIdentityDeliveryStatus.Conflict,
+            "referenced work identity did not reject same-child "
+                + changedField + " drift");
+    }
+
+    private static void RequireArgumentException(
+        Action action,
+        string message)
+    {
+        try
+        {
+            action();
+        }
+        catch (ArgumentException)
+        {
+            return;
+        }
+        throw new InvalidOperationException(message);
+    }
+
     private static WorkCompletionIdentityDeliveryRequest Request(
         string deliveryId,
         string producerStreamId,
         int sequence,
         string workId,
-        string productId) => new(
+        string productId,
+        string skillModifierProvenance =
+            WorkCompletionIdentityReferenceDefaults.None) => new(
         deliveryId,
         producerStreamId,
         sequence,
@@ -226,12 +511,25 @@ public static class WorkCompletionIdentityOutcomeDebugScenarios
         workId,
         productId,
         CharacterCommandOrigin.Autonomous,
-        8);
+        8,
+        WorkCompletionIdentityReferenceDefaults.None,
+        WorkCompletionIdentityReferenceDefaults.LegacyTerminalOwner,
+        WorkCompletionIdentityReferenceDefaults.None,
+        WorkCompletionIdentityReferenceDefaults.None,
+        0f,
+        skillModifierProvenance);
 
     private static void Require(bool condition, string message)
     {
         if (!condition)
             throw new InvalidOperationException(message);
+    }
+
+    [Serializable]
+    private sealed class CursorEnvelope
+    {
+        public WorkCompletionIdentityDeliveryCursorSaveData[] cursors =
+            Array.Empty<WorkCompletionIdentityDeliveryCursorSaveData>();
     }
 
     private sealed class FixedDisplayNames :
@@ -260,5 +558,42 @@ public static class WorkCompletionIdentityOutcomeDebugScenarios
             return false;
         }
     }
+}
+
+internal sealed class WorkIdentityAppliedFactEditorFixture : IDisposable
+{
+    internal WorkIdentityAppliedFactEditorFixture(
+        IGameplayOutcomeRegistry registry,
+        GameplayOutcomeLedger ledger,
+        IGameplayOutcomeRecorder recorder)
+    {
+        Facts = new DomainFactDispatcher();
+        try
+        {
+            Mapping = new WorkIdentityAppliedFactMapping(ledger, ledger);
+            Facts.Subscribe(
+                WorkIdentityAppliedFactMapping.ObserverId,
+                new GameplayDomainFactObserver<
+                    WorkIdentityAppliedFact,
+                    WorkCompletionIdentityOutcomeReceipt>(
+                        Mapping.Capture,
+                        registry,
+                        ledger,
+                        recorder,
+                        new GameplayDomainFactCommitGroup(recorder, ledger)));
+            DeliveryQuery = new GameplayDomainFactDeliveryQuery(recorder, ledger);
+        }
+        catch
+        {
+            Facts.Dispose();
+            throw;
+        }
+    }
+
+    internal DomainFactDispatcher Facts { get; }
+    internal WorkIdentityAppliedFactMapping Mapping { get; }
+    internal GameplayDomainFactDeliveryQuery DeliveryQuery { get; }
+
+    public void Dispose() => Facts.Dispose();
 }
 #endif

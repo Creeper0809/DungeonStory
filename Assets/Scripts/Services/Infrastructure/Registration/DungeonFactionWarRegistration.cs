@@ -35,5 +35,6 @@ public static class DungeonFactionWarRegistration
             .As<IInvasionCampaignRuntime>();
         builder.RegisterEntryPoint<MilestonePressureApplicationAdapter>(
             Lifetime.Singleton);
+        builder.RegisterEntryPoint<MilestonePressurePresentationObserver>(Lifetime.Singleton);
     }
 }

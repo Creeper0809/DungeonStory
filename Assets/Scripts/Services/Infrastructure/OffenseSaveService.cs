@@ -25,7 +25,7 @@ public sealed class OffenseExpeditionRestoreCandidate
 [Serializable]
 public sealed class DungeonOffenseSaveData
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
 
     public int version = CurrentVersion;
     public DungeonOffenseRewardSaveData rewards = new DungeonOffenseRewardSaveData();
@@ -221,6 +221,8 @@ public sealed class DungeonOffenseRewardGrantSaveData
     public bool success;
     public string detail = string.Empty;
     public List<DungeonOffenseRewardPhysicalItemSaveData> physicalItems = new();
+    public bool hasStockSupply;
+    public OffenseStockRewardReceiptData stockSupply = new();
 }
 
 [Serializable]
@@ -518,8 +520,10 @@ public sealed class OffenseSaveService : IOffenseSaveService
                     savedRun.worldObjectiveCompleted,
                     savedRun.worldObjectiveBattleActive,
                     phase);
-                restoredRun.RestoreDepartureState(departureCompleted);
             }
+            // Publish the same effective departure state used to restore the
+            // member lifecycle for both authored and strategic expeditions.
+            restoredRun.RestoreDepartureState(departureCompleted);
 
             Dictionary<string, DungeonOffenseExpeditionMemberStateSaveData> memberStateById =
                 savedRun.memberStates.ToDictionary(
@@ -757,7 +761,7 @@ public sealed class OffenseSaveService : IOffenseSaveService
         };
     }
 
-    private static DungeonOffenseExpeditionResultSaveData CaptureResult(OffenseExpeditionResult result)
+    internal static DungeonOffenseExpeditionResultSaveData CaptureResult(OffenseExpeditionResult result)
     {
         return new DungeonOffenseExpeditionResultSaveData
         {
@@ -790,6 +794,8 @@ public sealed class OffenseSaveService : IOffenseSaveService
                     grantedAmount = value.grantedAmount,
                     success = value.success,
                     detail = value.detail,
+                    hasStockSupply = value.stockSupply != null,
+                    stockSupply = value.stockSupply?.Snapshot() ?? new OffenseStockRewardReceiptData(),
                     physicalItems = value.physicalItems.Select(item =>
                         new DungeonOffenseRewardPhysicalItemSaveData
                         {
@@ -822,7 +828,7 @@ public sealed class OffenseSaveService : IOffenseSaveService
         };
     }
 
-    private static OffenseExpeditionResult RestoreResult(DungeonOffenseExpeditionResultSaveData source)
+    internal static OffenseExpeditionResult RestoreResult(DungeonOffenseExpeditionResultSaveData source)
     {
         return new OffenseExpeditionResult(
             source.expeditionId,
@@ -852,7 +858,8 @@ public sealed class OffenseSaveService : IOffenseSaveService
                 value.physicalItems.Select(item =>
                     new OffenseRewardPhysicalItemGrant(
                         item.itemId,
-                        item.quantity)).ToList())).ToList(),
+                        item.quantity)).ToList(),
+                value.hasStockSupply ? new OffenseStockRewardReceipt(value.stockSupply) : null)).ToList(),
             source.itemReceipts.Select(RestoreItemReceipt).ToList(),
             source.treatmentReceipts.Select(RestoreTreatmentReceipt).ToList(),
             source.arrivalReceipts.Select(value => new OffenseExpeditionArrivalReceipt(

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 
 internal static class WorkOrderSaveValidation
 {
@@ -32,6 +33,14 @@ internal static class WorkOrderSaveValidation
         if (snapshot.nextOrderSequence < 1)
         {
             report.AddError("Work-order next sequence must be positive.");
+        }
+        try { WorkAccidentObservationSaveData.ValidateAll(snapshot); }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or OverflowException)
+        { report.AddError("work-accident-state:" + exception.Message); }
+        if (snapshot.nextRepairOutcomeSequence < 1)
+        {
+            report.AddError(
+                "Repair-work outcome next sequence must be positive.");
         }
 
         if (snapshot.orders == null)
@@ -142,6 +151,9 @@ internal static class WorkOrderSaveValidation
             }
 
             ValidateWorkerPolicy(order, orderId, report);
+            try { ConstructionWorkEndedData.ValidateOwner(order); }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            { report.AddError($"Work order '{orderId}' terminal fact: {exception.Message}"); }
             ValidateCraftState(order, orderId, report);
             ValidateDestructiveDrainLink(
                 order,
@@ -210,6 +222,9 @@ internal static class WorkOrderSaveValidation
                     $"Construction order '{orderId}' has invalid exact input-owner projection.");
             }
 
+
+            ValidateConstructionTerminal(order, orderId, building, report);
+
             string targetKey =
                 $"{order.targetBuildingId}:{order.gridX}:{order.gridY}";
             if (!constructionTargets.Add(targetKey))
@@ -226,6 +241,162 @@ internal static class WorkOrderSaveValidation
         }
 
         ValidateQualityPipelines(snapshot, report);
+        ValidateRepairOutcomes(snapshot, report);
+    }
+
+    private static void ValidateRepairOutcomes(
+        DungeonWorkOrderSaveData snapshot,
+        DungeonGameRestoreReport report)
+    {
+        if (snapshot.repairOutcomes == null)
+        {
+            report.AddError("Work-order payload has no repair outcome list.");
+            return;
+        }
+        if (snapshot.repairOutcomes.Count > RepairWorkOutcomeValidation.MaxPending)
+        {
+            report.AddError(
+                $"Repair-work outcome payload exceeds the {RepairWorkOutcomeValidation.MaxPending}-row limit.");
+        }
+
+        HashSet<string> ids = new(StringComparer.Ordinal);
+        HashSet<string> activeTargets = new(StringComparer.Ordinal);
+        string previous = string.Empty;
+        int highestSequence = 0;
+        for (int index = 0; index < snapshot.repairOutcomes.Count; index++)
+        {
+            RepairWorkOutcomeSaveData owner = snapshot.repairOutcomes[index];
+            if (!RepairWorkOutcomeValidation.IsValid(
+                    owner,
+                    requireTerminal: false,
+                    out string failureReason)
+                || !RepairWorkOutcomeValidation.TryParseSequence(
+                    owner?.operationId,
+                    out int sequence)
+                || !ids.Add(owner.operationId))
+            {
+                report.AddError(
+                    $"Repair-work outcome {index} is invalid: {failureReason}.");
+                continue;
+            }
+
+            if (previous.Length > 0
+                && string.CompareOrdinal(previous, owner.operationId) >= 0)
+            {
+                report.AddError(
+                    "Repair-work outcomes must use canonical ascending operation order.");
+            }
+            previous = owner.operationId;
+            highestSequence = Math.Max(highestSequence, sequence);
+            string targetKey = ((int)owner.kind).ToString(
+                    System.Globalization.CultureInfo.InvariantCulture)
+                + "|" + owner.facilityId + "|" + owner.targetEntityId;
+            if (!activeTargets.Add(targetKey))
+            {
+                report.AddError(
+                    $"Repair-work outcome '{owner.operationId}' duplicates an active target owner.");
+            }
+        }
+
+        if (snapshot.nextRepairOutcomeSequence <= highestSequence)
+        {
+            report.AddError(
+                $"Repair-work outcome next sequence {snapshot.nextRepairOutcomeSequence} does not exceed existing sequence {highestSequence}.");
+        }
+    }
+
+    private static void ValidateConstructionTerminal(
+        WorkOrderSaveData order,
+        string orderId,
+        BuildingSO building,
+        DungeonGameRestoreReport report)
+    {
+        if (!Enum.IsDefined(typeof(WorkOrderTerminalPhase), order.terminalPhase)
+            || !Enum.IsDefined(typeof(WorkOrderTerminalKind), order.terminalKind)
+            || order.terminalPhase == WorkOrderTerminalPhase.OutcomeCommitted)
+        {
+            report.AddError(
+                $"Construction order '{orderId}' has invalid terminal phase.");
+            return;
+        }
+
+        string operation = order.placementOperationId ?? string.Empty;
+        string[] supports = order.supportBuildingIds?.ToArray() ?? Array.Empty<string>();
+        bool supportShapeValid = order.supportBuildingIds != null && supports.All(
+                DomainFactValueSyntax.IsIdentity)
+            && supports.Distinct(StringComparer.Ordinal).Count()
+                == supports.Length
+            && supports.SequenceEqual(
+                supports.OrderBy(value => value, StringComparer.Ordinal),
+                StringComparer.Ordinal)
+            && !supports.Contains(order.constructionSitePersistentId, StringComparer.Ordinal);
+        if (!supportShapeValid
+            || (operation.Length > 0
+                && !string.Equals(operation, WorkOrderPlacementIdentity.ForOrder(orderId),
+                    StringComparison.Ordinal))
+            || (supports.Length > 0 && operation.Length == 0))
+        {
+            report.AddError(
+                $"Construction order '{orderId}' has invalid placement identity.");
+        }
+
+        if (order.terminalPhase == WorkOrderTerminalPhase.None)
+        {
+            if (order.terminalKind != WorkOrderTerminalKind.None
+                || !string.IsNullOrEmpty(order.finalFacilityId)
+                || !string.IsNullOrEmpty(order.finalFacilityDefinitionId)
+                || !string.IsNullOrEmpty(order.replacedFacilityId)
+                || !string.IsNullOrEmpty(order.replacedFacilityDefinitionId))
+            {
+                report.AddError(
+                    $"Construction order '{orderId}' has terminal data before effects were applied.");
+            }
+            return;
+        }
+
+        if (!DomainFactValueSyntax.IsIdentity(operation)
+            || order.terminalKind == WorkOrderTerminalKind.None)
+        {
+            report.AddError(
+                $"Construction order '{orderId}' has incomplete pending terminal identity.");
+            return;
+        }
+
+        string expectedDefinition = !string.IsNullOrWhiteSpace(building.ContentDefinitionId)
+            ? building.ContentDefinitionId.Trim() : "building:" + building.id;
+        if (order.terminalFact?.buildingDefinitionId != expectedDefinition)
+            report.AddError($"Construction order '{orderId}' frozen definition conflicts with its target.");
+        if (order.terminalKind == WorkOrderTerminalKind.Completed)
+        {
+            if (!DomainFactValueSyntax.IsIdentity(order.finalFacilityId)
+                || !string.Equals(order.finalFacilityDefinitionId, expectedDefinition, StringComparison.Ordinal)
+                || string.Equals(order.finalFacilityId, order.constructionSitePersistentId, StringComparison.Ordinal)
+                || supports.Contains(order.finalFacilityId, StringComparer.Ordinal)
+                || (!string.IsNullOrEmpty(order.replacedFacilityId)
+                    && (string.Equals(order.replacedFacilityId, order.finalFacilityId, StringComparison.Ordinal)
+                        || string.Equals(order.replacedFacilityId, order.constructionSitePersistentId, StringComparison.Ordinal)
+                        || supports.Contains(order.replacedFacilityId, StringComparer.Ordinal)))
+                || (string.IsNullOrEmpty(order.replacedFacilityId)
+                    != string.IsNullOrEmpty(
+                        order.replacedFacilityDefinitionId))
+                || (!string.IsNullOrEmpty(order.replacedFacilityId)
+                    && (!DomainFactValueSyntax.IsIdentity(
+                            order.replacedFacilityId)
+                        || !DomainFactValueSyntax.IsIdentity(
+                            order.replacedFacilityDefinitionId))))
+            {
+                report.AddError(
+                    $"Construction order '{orderId}' has invalid completed placement receipt.");
+            }
+        }
+        else if (!string.IsNullOrEmpty(order.finalFacilityId)
+                 || !string.IsNullOrEmpty(order.finalFacilityDefinitionId)
+                 || !string.IsNullOrEmpty(order.replacedFacilityId)
+                 || !string.IsNullOrEmpty(order.replacedFacilityDefinitionId))
+        {
+            report.AddError(
+                $"Construction order '{orderId}' cancellation contains placement effects.");
+        }
     }
 
     private static void ValidateQualityPipelines(

@@ -9,6 +9,7 @@ internal interface IWildlifeRestorePort
     void ReplacePopulation(WildlifePopulationState replacement);
     void RebuildPopulationRuntimes();
     void ReconcilePendingFoodRaids();
+    void ReconcilePendingGameplayOutcomes();
 }
 
 internal sealed class WildlifeRestoreCoordinator
@@ -82,7 +83,7 @@ internal sealed class WildlifeRestoreCoordinator
         WildlifeSaveValidation.ValidateWorldReferences(
             saveData,
             restoreGrid,
-            itemRuntime,
+            restoreServices.PhysicalItems,
             speciesCatalog,
             report);
         if (!report.Success)
@@ -181,11 +182,12 @@ internal sealed class WildlifeRestoreCoordinator
             ecosystemRuntime.ApplyRestoreCandidate(published.Ecosystem);
         publication.FreshnessTransaction =
             carcassService.ApplyFreshnessRestoreCandidate(
-                published.Carcasses);
+                published.Carcasses, published.Processing);
         port.ReplacePopulation(published.Population);
         publication.PopulationPublished = true;
         port.RebuildPopulationRuntimes();
         port.ReconcilePendingFoodRaids();
+        port.ReconcilePendingGameplayOutcomes();
         foreach (WildlifeActor actor in published.Population.Actors)
         {
             actor.PublishDetachedRestore();

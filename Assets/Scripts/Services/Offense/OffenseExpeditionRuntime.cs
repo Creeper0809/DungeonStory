@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
@@ -23,8 +24,10 @@ public sealed class OffenseExpeditionRuntimeRestoreCandidate
 
 public class OffenseExpeditionRuntime :
     MonoBehaviour,
-    IOffenseStrategicExpeditionHost
+    IOffenseStrategicExpeditionHost,
+    IDungeonRestoreTransactionParticipant
 {
+    private readonly DungeonRestorePublication restorePublication = new();
     private const int MaxResultHistory = 20;
     private readonly OffenseExpeditionLaunchService launchService = new();
     private readonly OffenseExpeditionDecisionService decisionService = new();
@@ -61,7 +64,8 @@ public class OffenseExpeditionRuntime :
     private IOffenseFieldMobilityService fieldMobility;
     private ICharacterPerformanceQuery performance;
     private ICharacterSettlementStandingQuery settlementStandings;
-    private IMigratedProducerOutcomeTransaction outcomeTransactions;
+    private OffenseNodePublicationRuntime nodePublications;
+    private ICharacterSkillActivationTransaction skillActivationTransactions;
     private IDisposable arrivalResolvedSubscription;
     private BlueprintResearchRuntime expeditionResearchRuntime;
     private BlueprintResearchState expeditionResearchState;
@@ -72,14 +76,24 @@ public class OffenseExpeditionRuntime :
     public IReadOnlyList<OffenseExpeditionResult> ResultHistory =>
         resultHistoryView ??= resultHistory.AsReadOnly();
     public event Action StateChanged;
+    public string LastNodePublicationFailure => nodePublications?.LastFailure ?? string.Empty;
 
-    internal void ConstructOutcomeTransaction(
+    internal void ConstructNodePublications(
         IGameCalendar calendar,
-        IMigratedProducerOutcomeTransaction outcomeTransactions)
+        OffenseNodePublicationRuntime nodePublications)
     {
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
-        this.outcomeTransactions = outcomeTransactions
-            ?? throw new ArgumentNullException(nameof(outcomeTransactions));
+        this.nodePublications = nodePublications
+            ?? throw new ArgumentNullException(nameof(nodePublications));
+    }
+
+    [Inject]
+    public void ConstructSkillActivationTransactions(
+        ICharacterSkillActivationTransaction skillActivationTransactions)
+    {
+        this.skillActivationTransactions = skillActivationTransactions
+            ?? throw new ArgumentNullException(
+                nameof(skillActivationTransactions));
     }
 
     public void Construct(
@@ -102,6 +116,9 @@ public class OffenseExpeditionRuntime :
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.resultFinalizer = resultFinalizer
             ?? throw new ArgumentNullException(nameof(resultFinalizer));
+        arrivalResolvedSubscription?.Dispose();
+        arrivalResolvedSubscription = this.gameEventBus.Subscribe<
+            OffenseExpeditionArrivalResolvedEvent>(OnExpeditionArrivalResolved);
     }
 
     public void Construct(
@@ -158,7 +175,7 @@ public class OffenseExpeditionRuntime :
         IOffenseFieldMedicalRuntime fieldMedical,
         IOffenseFieldMobilityService fieldMobility,
         IGameCalendar calendar,
-        IMigratedProducerOutcomeTransaction outcomeTransactions = null,
+        OffenseNodePublicationRuntime nodePublications = null,
         ICharacterPerformanceQuery performance = null,
         ICharacterSettlementStandingQuery settlementStandings = null)
     {
@@ -182,7 +199,7 @@ public class OffenseExpeditionRuntime :
             ?? throw new ArgumentNullException(nameof(fieldMobility));
         this.calendar = calendar
             ?? throw new ArgumentNullException(nameof(calendar));
-        this.outcomeTransactions = outcomeTransactions;
+        this.nodePublications = nodePublications;
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
         this.settlementStandings = settlementStandings
@@ -215,9 +232,6 @@ public class OffenseExpeditionRuntime :
         this.strategicTravel.StepCompleted += OnStrategicTravelStepCompleted;
         this.strategicTravel.DecisionRequired += OnStrategicDecisionRequired;
         this.strategicTravel.SiteReached += OnStrategicSiteReached;
-        arrivalResolvedSubscription?.Dispose();
-        arrivalResolvedSubscription = this.gameEventBus.Subscribe<
-            OffenseExpeditionArrivalResolvedEvent>(OnExpeditionArrivalResolved);
     }
 
     private void OnDestroy()
@@ -518,61 +532,38 @@ public class OffenseExpeditionRuntime :
         }
 
         OffenseRouteNode resolvedNode = expedition.CurrentNode;
-        if (outcomeTransactions == null || calendar == null)
+        if (expedition.Phase != OffenseExpeditionPhase.ResolvingNode || resolvedNode == null)
         {
-            throw new InvalidOperationException(
-                "Offense expedition-node outcome transaction is unavailable.");
+            result = null; message = "선택으로 해결할 원정 노드가 아닙니다."; return false;
         }
-        if (!outcomeTransactions.TryReserveSingleSubject(
-                MigratedProducerOutcomeKind.OffenseExpeditionNodeResult,
-                "offense-expedition-node:" + expedition.ExpeditionId,
-                Math.Max(1, calendar.Day),
-                GameplayOutcomeStatus.Succeeded,
-                out PreparedMigratedProducerOutcome prepared,
-                out string reservationFailure))
+        if (nodePublications == null || calendar == null)
+            throw new InvalidOperationException("Offense node publication owner is unavailable.");
+        var proposal = OffenseNodeResolutionFact.Capture(expedition, resolvedNode, calendar.Day,
+            nodePublications.NextSequence(expedition.ExpeditionId), useSupply);
+        if (!nodePublications.TryBegin(proposal, out string reservationFailure))
+            throw new InvalidOperationException("Offense node publication reservation failed: " + reservationFailure);
+        OffenseExpeditionRun.NodeResolutionSnapshot nodeBefore = null;
+        bool applied = false;
+        try
         {
-            throw new InvalidOperationException(
-                "Offense expedition-node outcome reservation failed: "
-                + reservationFailure);
-        }
-        OffenseExpeditionRun.NodeResolutionSnapshot nodeBefore =
-            expedition.CaptureNodeResolutionSnapshot();
-        bool resolved = expedition.TryResolveCurrentNode(useSupply, out result, out message);
-        if (resolved)
-        {
-            try
-            {
-                MigratedProducerOutcomeCommitResult committed =
-                    outcomeTransactions.CommitSingleSubject(
-                        prepared,
-                        new MigratedProducerOutcomeSubject(
-                            MigratedProducerOutcomeIds.ExpeditionKind,
-                            expedition.ExpeditionId,
-                            expedition.Target?.title ?? expedition.ExpeditionId,
-                            MigratedProducerOutcomeIds.ExpeditionRole),
-                        $"node={resolvedNode?.Id}; kind={resolvedNode?.Kind}; usedSupply={result?.UsedSupply == true}; gainedLoot={result?.GainedLoot == true}; message={result?.Message}");
-                if (!committed.DurablyCommitted)
-                {
-                    throw new InvalidOperationException(
-                        "Offense expedition-node outcome commit failed: "
-                        + committed.DetailCode);
-                }
-            }
-            catch
-            {
-                expedition.RestoreNodeResolutionSnapshot(nodeBefore);
-                outcomeTransactions.Cancel(prepared);
-                throw;
-            }
-            ExperienceRules.AwardNodeExperience(expedition, resolvedNode);
+            nodeBefore = expedition.CaptureNodeResolutionSnapshot();
+            if (!expedition.TryResolveCurrentNode(useSupply, out result, out message)) return false;
+            DomainFactDelivery delivered = nodePublications.PublishApplied(proposal.Resolve(result));
+            if (!delivered.MayBeCommitted)
+                throw new InvalidOperationException("Offense node publication rejected: " + delivered.Detail);
+            applied = true;
+            ExperienceRules.AwardNodeExperience(expedition, resolvedNode, nodePublications.RecordExperience);
             StateChanged?.Invoke();
         }
-        else
+        catch (Exception exception)
         {
-            outcomeTransactions.Cancel(prepared);
+            if (!applied && nodeBefore != null) expedition.RestoreNodeResolutionSnapshot(nodeBefore);
+            else if (applied) nodePublications.RecordFollowupFailure(exception);
+            throw;
         }
-
-        return resolved;
+        finally { nodePublications.End(); }
+        nodePublications.RecoverPending(out _);
+        return true;
     }
 
     public bool TryUseSupply(
@@ -653,6 +644,11 @@ public class OffenseExpeditionRuntime :
             message = "게임 시간이 준비되지 않았습니다.";
             return false;
         }
+        if (skillActivationTransactions == null)
+        {
+            message = "능력 결과 기록 시스템이 준비되지 않았습니다.";
+            return false;
+        }
         if (sourceMemberIndex < 0
             || sourceMemberIndex >= expedition.MemberStates.Count)
         {
@@ -698,6 +694,7 @@ public class OffenseExpeditionRuntime :
             living.Select(value => value.Actor).ToArray(),
             actor => formationRanks[actor],
             calendar.AbsoluteHour,
+            skillActivationTransactions,
             out message);
         if (activated)
             StateChanged?.Invoke();
@@ -732,15 +729,50 @@ public class OffenseExpeditionRuntime :
         List<OffenseExpeditionRun> activeCandidate,
         List<OffenseExpeditionResult> historyCandidate)
     {
-        activeExpeditions = activeCandidate
-            ?? throw new ArgumentNullException(nameof(activeCandidate));
-        resultHistory = historyCandidate
-            ?? throw new ArgumentNullException(nameof(historyCandidate));
+        if (activeCandidate == null) throw new ArgumentNullException(nameof(activeCandidate));
+        if (historyCandidate == null) throw new ArgumentNullException(nameof(historyCandidate));
+        if (restorePublication.TryStage(
+                () => ApplyPersistentState(activeCandidate, historyCandidate),
+                CaptureRestoreRollback)) return;
+        ApplyPersistentState(activeCandidate, historyCandidate);
+    }
+
+    private void ApplyPersistentState(
+        List<OffenseExpeditionRun> activeCandidate,
+        List<OffenseExpeditionResult> historyCandidate)
+    {
+        activeExpeditions = activeCandidate;
+        resultHistory = historyCandidate;
         activeExpeditionsView = null;
         resultHistoryView = null;
         resumeRestoredWorldStatePending = activeExpeditions.Any(run =>
             run != null && run.UsesWorldTravel);
     }
+
+
+    private Action CaptureRestoreRollback()
+    {
+        var previous0 = activeExpeditions;
+        var previous1 = resultHistory;
+        var previous2 = activeExpeditionsView;
+        var previous3 = resultHistoryView;
+        var previous4 = resumeRestoredWorldStatePending;
+        return () =>
+        {
+            activeExpeditions = previous0;
+            resultHistory = previous1;
+            activeExpeditionsView = previous2;
+            resultHistoryView = previous3;
+            resumeRestoredWorldStatePending = previous4;
+        };
+    }
+
+    public string ParticipantId => "offense.expedition";
+    public void BeginRestoreCandidate() => restorePublication.Begin();
+    public void PublishRestoreCandidate() => restorePublication.Publish();
+    public void RollbackPublishedRestoreCandidate() => restorePublication.Discard();
+    public void DiscardRestoreCandidate() => restorePublication.Discard();
+    public void CompleteRestoreCandidate() => restorePublication.Complete();
 
     public OffenseExpeditionRuntimeRestoreCandidate BuildRestoreCandidate(
         IEnumerable<OffenseExpeditionRun> restoredActiveExpeditions,
@@ -812,11 +844,9 @@ public class OffenseExpeditionRuntime :
 
             if (departureService == null)
             {
-                gameEventBus?.RaiseAlert(
-                    "출정 복원 실패",
-                    "출정 집결 서비스를 찾을 수 없어 원정대가 대기합니다.",
-                    EventAlertImportance.High,
-                    "expedition");
+                gameEventBus?.Publish(new OffenseExpeditionActivityFact(
+                    OffenseExpeditionActivity.DepartureRestorationFailed,
+                    expedition.ExpeditionId));
                 continue;
             }
 
@@ -834,11 +864,10 @@ public class OffenseExpeditionRuntime :
                                 restoredExpedition.ExpeditionId,
                                 out string packingMessage))
                         {
-                            gameEventBus?.RaiseAlert(
-                                "출정 보급 오류",
-                                packingMessage,
-                                EventAlertImportance.High,
-                                "expedition");
+                            gameEventBus?.Publish(new OffenseExpeditionActivityFact(
+                                OffenseExpeditionActivity.PackingResumptionFailed,
+                                restoredExpedition.ExpeditionId,
+                                message: packingMessage));
                             return;
                         }
 
@@ -849,11 +878,10 @@ public class OffenseExpeditionRuntime :
                     },
                     out string departureMessage))
             {
-                gameEventBus?.RaiseAlert(
-                    "출정 복원 실패",
-                    departureMessage,
-                    EventAlertImportance.High,
-                    "expedition");
+                gameEventBus?.Publish(new OffenseExpeditionActivityFact(
+                    OffenseExpeditionActivity.DepartureResumptionFailed,
+                    restoredExpedition.ExpeditionId,
+                    message: departureMessage));
             }
         }
     }

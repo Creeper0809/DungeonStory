@@ -37,6 +37,20 @@ public static class Wim040ObservedIncidentDebugScenarios
         return string.Join("\n", lines);
     }
 
+    public static void RunObserverChecks()
+    {
+        var lines = new List<string>();
+        var catalog = new V20StoryContentCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        RunNonIncidentJsonRoundTrip(catalog, lines);
+        RunCaptureAndRestore(catalog, lines);
+        RunShopliftingReceiptFreeze(lines);
+        RunShopliftingCaptureAndRestore(catalog, lines);
+        RunBrawlCaptureAndRestore(catalog, lines);
+        RunCulturalConflictCaptureAndRestore(catalog, lines);
+        Debug.Log("B114_INCIDENT_SHAPES=PASS");
+    }
+
     private static void RunNonIncidentJsonRoundTrip(V20StoryContentCatalog catalog, List<string> lines)
     {
         var campaign = new V20CampaignRuntime(new DungeonRuntimeAggregateRootStore(), catalog);
@@ -67,7 +81,10 @@ public static class Wim040ObservedIncidentDebugScenarios
 
     private static void RunCaptureAndRestore(V20StoryContentCatalog catalog, List<string> lines)
     {
-        var campaign = new V20CampaignRuntime(new DungeonRuntimeAggregateRootStore(), catalog);
+        using var factFixture = new ObservedIncidentFactFixture(
+            catalog,
+            "wim040-forbidden-meal");
+        V20CampaignRuntime campaign = factFixture.Campaign;
         var command = (ISocietyObservedMealIncidentCommand)campaign;
         var owned = (ISocietyIncidentOwnedCharacterIdQuery)campaign;
         var context = new V20DailyEventContext { AbsoluteDay = 42, RunSeed = 157181, Season = Season.Spring };
@@ -132,7 +149,10 @@ public static class Wim040ObservedIncidentDebugScenarios
             "Pruning resolved UI history reopened the same consumed operation.");
         lines.Add("PASS death terminal releases owner without effects; durable operation replay remains blocked after recent-history pruning");
 
-        var medical = new V20CampaignRuntime(new DungeonRuntimeAggregateRootStore(), catalog);
+        using var medicalFacts = new ObservedIncidentFactFixture(
+            catalog,
+            "wim040-medical-collapse");
+        V20CampaignRuntime medical = medicalFacts.Campaign;
         var medicalResult = ((ISocietyObservedMealIncidentCommand)medical)
             .CaptureObservedMealIncident(Evidence("both", downed: true), context);
         Require(medicalResult.Created && medicalResult.IncidentKind == ServiceIncidentKind.MedicalCollapse
@@ -144,7 +164,10 @@ public static class Wim040ObservedIncidentDebugScenarios
             && medical.ActiveSocietyEvents.Single().observedMealIncident.observedCause.Contains("쓰러")
             && !medical.ActiveSocietyEvents.Single().observedMealIncident.observedCause.Contains("식중독"),
             "Downed priority duplicated one meal or invented a food-poisoning diagnosis.");
-        var blocked = new V20CampaignRuntime(new DungeonRuntimeAggregateRootStore(), catalog);
+        using var blockedFacts = new ObservedIncidentFactFixture(
+            catalog,
+            "wim040-blocked-incident");
+        V20CampaignRuntime blocked = blockedFacts.Campaign;
         var blockedState = new SocietyEventWorldSaveData();
         blockedState.cooldowns.Add(new V20EventCooldownSaveData
         { definitionId = catalog.ServiceIncidents.Single(x => x.kind == ServiceIncidentKind.ForbiddenMeal).StableId, availableAbsoluteDay = 999 });
@@ -161,9 +184,10 @@ public static class Wim040ObservedIncidentDebugScenarios
         V20StoryContentCatalog catalog,
         List<string> lines)
     {
-        var campaign = new V20CampaignRuntime(
-            new DungeonRuntimeAggregateRootStore(),
-            catalog);
+        using var factFixture = new ObservedIncidentFactFixture(
+            catalog,
+            "wim040-shoplifting");
+        V20CampaignRuntime campaign = factFixture.Campaign;
         var command = (ISocietyObservedMealIncidentCommand)campaign;
         var owned = (ISocietyIncidentOwnedCharacterIdQuery)campaign;
         var context = new V20DailyEventContext
@@ -280,9 +304,10 @@ public static class Wim040ObservedIncidentDebugScenarios
         V20StoryContentCatalog catalog,
         List<string> lines)
     {
-        var campaign = new V20CampaignRuntime(
-            new DungeonRuntimeAggregateRootStore(),
-            catalog);
+        using var factFixture = new ObservedIncidentFactFixture(
+            catalog,
+            "wim040-brawl");
+        V20CampaignRuntime campaign = factFixture.Campaign;
         var command = (ISocietyObservedMealIncidentCommand)campaign;
         var owned = (ISocietyIncidentOwnedCharacterIdQuery)campaign;
         var context = new V20DailyEventContext
@@ -345,6 +370,68 @@ public static class Wim040ObservedIncidentDebugScenarios
                 .SequenceEqual(new[] { evidence.TargetCharacterId.Value }),
             "Brawl JSON restore changed evidence or Customer ownership.");
         lines.Add("PASS committed Brawl evidence freezes attack/damage/participants/facility; current JSON and replay/conflict boundaries hold");
+    }
+
+    private static void RunCulturalConflictCaptureAndRestore(
+        V20StoryContentCatalog catalog,
+        List<string> lines)
+    {
+        using var factFixture = new ObservedIncidentFactFixture(
+            catalog,
+            "wim040-cultural-conflict");
+        V20CampaignRuntime campaign = factFixture.Campaign;
+        ISocietyObservedMealIncidentCommand command = campaign;
+        var context = new V20DailyEventContext
+        {
+            AbsoluteDay = 42,
+            RunSeed = 157181,
+            Season = Season.Spring
+        };
+        var source = new ObservedCulturalConflictIncidentSnapshot(
+            "social-conflict-operation:wim040:cultural",
+            new CharacterId("character:wim040:cultural:worker"),
+            new CharacterId("character:wim040:cultural:customer"),
+            new CharacterId("character:wim040:cultural:customer"),
+            new SpeciesCultureId("culture:wim040:worker"),
+            new SpeciesCultureId("culture:wim040:customer"),
+            new BuildingInstanceId("building:wim040:visitor-service"),
+            new CoreGridCell(8, 9),
+            42);
+
+        ObservedMealIncidentCaptureResult created =
+            command.CaptureObservedCulturalConflictIncident(source, context);
+        ObservedMealIncidentCaptureResult replay =
+            command.CaptureObservedCulturalConflictIncident(source, context);
+        ObservedMealIncidentEvidenceSaveData frozen = campaign
+            .ActiveSocietyEvents.Single().observedMealIncident;
+        Require(
+            created.Created
+            && created.IncidentKind == ServiceIncidentKind.CulturalInsult
+            && replay.Disposition
+                == ObservedMealIncidentCaptureDisposition.ExactReplay
+            && frozen.sourceKind == ObservedIncidentSourceKind.SocialConflict
+            && frozen.operationId == source.OperationId
+            && frozen.instigatorCharacterId
+                == source.InstigatorCharacterId.Value
+            && frozen.targetCharacterId == source.CustomerCharacterId.Value
+            && frozen.otherParticipantCharacterId
+                == source.InstigatorCharacterId.Value
+            && frozen.instigatorCultureId == source.InstigatorCultureId.Value
+            && frozen.targetCultureId == source.TargetCultureId.Value
+            && frozen.facilityInstanceId == source.FacilityInstanceId.Value
+            && frozen.locationX == 8
+            && frozen.locationY == 9
+            && frozen.absoluteDay == 42,
+            "Cultural-conflict capture lost its exact receipt shape or replay.");
+
+        string saved = JsonUtility.ToJson(campaign.CaptureSociety());
+        campaign.PublishSociety(campaign.PrepareSociety(
+            JsonUtility.FromJson<SocietyEventWorldSaveData>(saved)));
+        Require(
+            JsonUtility.ToJson(campaign.CaptureSociety()) == saved
+            && factFixture.NativeExactCount == 1,
+            "Cultural-conflict JSON restore changed state or duplicated its native observation.");
+        lines.Add("PASS cultural conflict freezes exact identities/cultures/facility; exact replay and current JSON retain one native observation");
     }
 
     private static ObservedMealIncidentSnapshot Evidence(string suffix, bool violation = true, bool downed = false,
@@ -429,6 +516,44 @@ public static class Wim040ObservedIncidentDebugScenarios
         Directory.CreateDirectory(Path.GetDirectoryName(ReportPath));
         File.WriteAllLines(ReportPath, lines);
         return string.Join("\n", lines);
+    }
+
+    private sealed class ObservedIncidentFactFixture : IDisposable
+    {
+        private readonly SocialRitualFactEditorFixture facts;
+
+        internal ObservedIncidentFactFixture(
+            V20StoryContentCatalog catalog,
+            string runId)
+        {
+            var store = new DungeonRuntimeAggregateRootStore();
+            var outcomes = new MigratedProducerOutcomeEditorFixture(
+                "run:b114:" + runId,
+                store);
+            Outcomes = outcomes;
+            facts = new SocialRitualFactEditorFixture(outcomes);
+            try
+            {
+                Campaign = new V20CampaignRuntime(
+                    store,
+                    catalog,
+                    null,
+                    null,
+                    facts.Journal);
+            }
+            catch
+            {
+                facts.Dispose();
+                throw;
+            }
+        }
+
+        internal V20CampaignRuntime Campaign { get; }
+        internal MigratedProducerOutcomeEditorFixture Outcomes { get; }
+        internal int NativeExactCount => Outcomes.Ledger
+            .CaptureGameplayOutcomes().exactOutcomes.Count;
+
+        public void Dispose() => facts.Dispose();
     }
 
     private static void Require(bool condition, string reason)

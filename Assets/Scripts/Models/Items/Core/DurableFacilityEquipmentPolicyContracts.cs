@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using UnityEngine;
 
@@ -366,6 +367,128 @@ public sealed class DurableFacilityEquipmentUseContext
     public double WearAmount { get; }
 }
 
+/// <summary>
+/// Immutable, owner-facing projection of one committed durable-tool wear.
+/// Quantity is retained explicitly so owner outcomes cannot confuse wear with
+/// consumable-item removal.
+/// </summary>
+public sealed class DurableFacilityEquipmentUseEvidence
+{
+    public DurableFacilityEquipmentUseEvidence(
+        DurableFacilityEquipmentUseContext context)
+    {
+        if (context == null)
+            throw new ArgumentNullException(nameof(context));
+        StackId = context.Before.StackId;
+        ItemId = context.Before.ItemId.Value;
+        FacilityId = context.Slot.OwnerFacilityId.Value;
+        RequirementId = context.Requirement.RequirementId;
+        AssignmentSequence = context.Slot.AssignmentSequence;
+        RevisionBefore = context.Before.ContentRevision;
+        RevisionAfter = context.After.ContentRevision;
+        QuantityBefore = context.Before.Quantity;
+        QuantityAfter = context.After.Quantity;
+        DurabilityBefore = ReadDurability(context.Before, "current");
+        DurabilityAfter = ReadDurability(context.After, "current");
+        MaximumDurability = ReadDurability(context.Before, "maximum");
+        RequestedWear = context.WearAmount;
+
+        if (!Canonical(StackId)
+            || !Canonical(ItemId)
+            || !Canonical(FacilityId)
+            || !Canonical(RequirementId)
+            || !string.Equals(
+                context.Requirement.ItemId.Value,
+                ItemId,
+                StringComparison.Ordinal)
+            || AssignmentSequence <= 0L
+            || RevisionBefore < 0L
+            || RevisionAfter <= RevisionBefore
+            || QuantityBefore <= 0
+            || QuantityAfter != QuantityBefore
+            || !double.IsFinite(DurabilityBefore)
+            || !double.IsFinite(DurabilityAfter)
+            || !double.IsFinite(MaximumDurability)
+            || !double.IsFinite(RequestedWear)
+            || DurabilityBefore <= 0d
+            || MaximumDurability <= 0d
+            || DurabilityBefore > MaximumDurability
+            || DurabilityAfter < 0d
+            || DurabilityAfter > DurabilityBefore
+            || RequestedWear <= 0d
+            || Math.Abs(DurabilityAfter
+                - Math.Max(0d, DurabilityBefore - RequestedWear))
+                > 0.0000001d)
+        {
+            throw new ArgumentException(
+                "Durable equipment use evidence is invalid.",
+                nameof(context));
+        }
+    }
+
+    public string StackId { get; }
+    public string ItemId { get; }
+    public string FacilityId { get; }
+    public string RequirementId { get; }
+    public long AssignmentSequence { get; }
+    public long RevisionBefore { get; }
+    public long RevisionAfter { get; }
+    public int QuantityBefore { get; }
+    public int QuantityAfter { get; }
+    public double DurabilityBefore { get; }
+    public double DurabilityAfter { get; }
+    public double MaximumDurability { get; }
+    public double RequestedWear { get; }
+    public double Spent => DurabilityBefore - DurabilityAfter;
+
+    public string ToCanonicalString() => string.Concat(
+        "semantics=wear;item=", ItemId,
+        ";stack=", StackId,
+        ";facility=", FacilityId,
+        ";requirement=", RequirementId,
+        ";slotSequence=", AssignmentSequence.ToString(CultureInfo.InvariantCulture),
+        ";revision=", RevisionBefore.ToString(CultureInfo.InvariantCulture),
+        "->", RevisionAfter.ToString(CultureInfo.InvariantCulture),
+        ";quantity=", QuantityBefore.ToString(CultureInfo.InvariantCulture),
+        "->", QuantityAfter.ToString(CultureInfo.InvariantCulture),
+        ";durability=", Format(DurabilityBefore),
+        "->", Format(DurabilityAfter),
+        ";maximum=", Format(MaximumDurability),
+        ";requestedWear=", Format(RequestedWear),
+        ";spent=", Format(Spent));
+
+    private static double ReadDurability(
+        DurableFacilityEquipmentUseSubject subject,
+        string key)
+    {
+        DurableFacilityEquipmentComponentSnapshot component = subject.Components
+            .SingleOrDefault(value => string.Equals(
+                value.ComponentTypeId,
+                ItemInstanceComponentIds.Durability,
+                StringComparison.Ordinal));
+        DurableFacilityEquipmentComponentValueSnapshot[] values = component
+            ?.Values.Where(value => string.Equals(
+                value.Key,
+                key,
+                StringComparison.Ordinal)).ToArray()
+            ?? Array.Empty<DurableFacilityEquipmentComponentValueSnapshot>();
+        if (values.Length != 1
+            || values[0].Kind != ItemStateValueKind.Decimal)
+        {
+            throw new ArgumentException(
+                "Durable equipment use evidence is missing durability " + key + ".");
+        }
+        return values[0].DecimalValue;
+    }
+
+    private static string Format(double value) =>
+        value.ToString("R", CultureInfo.InvariantCulture);
+
+    private static bool Canonical(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+}
+
 public interface IDurableFacilityEquipmentEffectCommit
 {
     string EffectKind { get; }
@@ -398,7 +521,8 @@ public readonly struct DurableFacilityEquipmentUseResult
         DurableFacilityEquipmentSlotSnapshot slot,
         string stackId,
         string failureReason,
-        string postCommitFaultCode = "")
+        string postCommitFaultCode = "",
+        DurableFacilityEquipmentUseContext committedContext = null)
     {
         bool applied = status is DurableFacilityEquipmentUseStatus.Applied
             or DurableFacilityEquipmentUseStatus.AppliedDrainPending;
@@ -413,7 +537,16 @@ public readonly struct DurableFacilityEquipmentUseResult
                 || reason.Length != 0))
             || (failed && ((stackId ?? string.Empty).Length != 0
                 || !Canonical(reason)))
-            || (postCommitFault.Length != 0 && (!applied || !Canonical(postCommitFault))))
+            || (postCommitFault.Length != 0 && (!applied || !Canonical(postCommitFault)))
+            || (committedContext != null
+                && (!applied
+                    || !string.Equals(
+                        committedContext.Before.StackId,
+                        stackId,
+                        StringComparison.Ordinal)
+                    || !committedContext.Slot.Key.Equals(slot.Key)
+                    || committedContext.Slot.AssignmentSequence
+                        != slot.AssignmentSequence)))
         {
             throw new ArgumentException(
                 "Durable equipment use result is incoherent.");
@@ -423,6 +556,7 @@ public readonly struct DurableFacilityEquipmentUseResult
         StackId = stackId ?? string.Empty;
         FailureReason = reason;
         PostCommitFaultCode = postCommitFault;
+        CommittedContext = committedContext;
     }
 
     public DurableFacilityEquipmentUseStatus Status { get; }
@@ -431,6 +565,11 @@ public readonly struct DurableFacilityEquipmentUseResult
     public string FailureReason { get; }
     /// <summary>Wear/effect are committed; retry only finalization, never the gameplay effect.</summary>
     public string PostCommitFaultCode { get; }
+    /// <summary>
+    /// Exact before/after wear context for a committed use. Failed uses do not
+    /// expose a context because their physical mutation was rolled back.
+    /// </summary>
+    public DurableFacilityEquipmentUseContext CommittedContext { get; }
     public bool Succeeded => Status is DurableFacilityEquipmentUseStatus.Applied
         or DurableFacilityEquipmentUseStatus.AppliedDrainPending;
 

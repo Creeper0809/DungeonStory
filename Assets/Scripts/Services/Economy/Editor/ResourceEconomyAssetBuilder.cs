@@ -1905,6 +1905,13 @@ public static class ResourceEconomyAssetBuilder
         public bool SetForbidden(string stackId, bool forbidden) => false;
         public bool PrioritizeHaul(string stackId) => false;
         public bool TryRouteStackToDestination(string stackId, WorldItemStackState state, string destinationId, Vector2Int destinationPosition, out string failureReason) { failureReason = string.Empty; return false; }
+        public bool TryRestoreStackRoute(WorldItemStackSnapshot original,
+            WorldItemStackState appliedState, string appliedDestinationId,
+            out string failureReason)
+        {
+            failureReason = "unsupported-null-runtime-route-restore";
+            return false;
+        }
         public bool DeleteStack(string stackId) => false;
         public bool TryConsumeStackQuantity(string stackId, int quantity, out WorldItemStackSnapshot consumed) { consumed = null; return false; }
         public bool TrySetInstanceComponent(string stackId, ItemInstanceComponentSaveData component) => false;

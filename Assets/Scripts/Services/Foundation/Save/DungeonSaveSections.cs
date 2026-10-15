@@ -2,6 +2,21 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+// Opt-in Editor diagnostics only; release call sites (including label construction) are omitted.
+public static class DungeonSaveEditorTrace
+{
+#if UNITY_EDITOR
+    public static Action<string> Observer;
+#endif
+    [System.Diagnostics.Conditional("UNITY_EDITOR")]
+    public static void Record(string phase)
+    {
+#if UNITY_EDITOR
+        Observer?.Invoke(phase);
+#endif
+    }
+}
+
 [Serializable]
 public sealed class DungeonSaveSectionEnvelope
 {
@@ -622,10 +637,14 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         List<DungeonSaveSectionEnvelope> rollbackImage = rollbackFree
             ? null
             : CaptureAll();
+        // Stage construction can initialize detached actors and consume their
+        // random streams. Those writes belong to the candidate too, not live.
+        aggregateRootStore.BeginRestoreStaging();
         if (!TryBeginTransactionParticipants(
                 preStageTransactionParticipants,
                 report))
         {
+            aggregateRootStore.DiscardRestoreStaging();
             return false;
         }
 
@@ -635,6 +654,7 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
             DiscardTransactionParticipants(
                 preStageTransactionParticipants,
                 report);
+            aggregateRootStore.DiscardRestoreStaging();
             return false;
         }
 
@@ -646,10 +666,10 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
             DiscardTransactionParticipants(
                 preStageTransactionParticipants,
                 report);
+            aggregateRootStore.DiscardRestoreStaging();
             return false;
         }
 
-        aggregateRootStore.BeginRestoreStaging();
         bool committed = CommitStages(stages, report);
         if (committed)
         {
@@ -660,17 +680,17 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
                 RollbackTransactionParticipants(
                     publishAttemptCount,
                     report);
-                aggregateRootStore.DiscardRestoreStaging();
                 DiscardStages(stages, report);
+                aggregateRootStore.DiscardRestoreStaging();
                 return false;
             }
 
             aggregateRootStore.PublishRestoreStaging();
             return TryCompleteTransactionParticipants(report);
         }
-        aggregateRootStore.DiscardRestoreStaging();
         DiscardStages(stages, report);
         DiscardTransactionParticipants(report);
+        aggregateRootStore.DiscardRestoreStaging();
         if (rollbackFree)
         {
             return false;
@@ -684,6 +704,7 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
             out Dictionary<string, DungeonSaveSectionEnvelope> rollbackById);
         if (rollbackPrepared)
         {
+            aggregateRootStore.BeginRestoreStaging();
             rollbackPrepared = TryBeginTransactionParticipants(
                 preStageTransactionParticipants,
                 rollbackReport);
@@ -719,7 +740,6 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
 
         if (rollbackPrepared)
         {
-            aggregateRootStore.BeginRestoreStaging();
             rollbackCommitted = CommitStages(rollbackStages, rollbackReport);
             if (rollbackCommitted)
             {
@@ -742,13 +762,14 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
             }
             else
             {
-                aggregateRootStore.DiscardRestoreStaging();
                 DiscardTransactionParticipants(rollbackReport);
+                aggregateRootStore.DiscardRestoreStaging();
             }
         }
 
         if (!rollbackPrepared || !rollbackCommitted)
         {
+            aggregateRootStore.DiscardRestoreStaging();
             report.AddError("Restore failed and the live-world rollback image could not be reapplied.");
             foreach (string rollbackError in rollbackReport.Errors)
             {
@@ -801,6 +822,7 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
             {
                 participants[begunCount]
                     .BeginRestoreCandidate();
+                DungeonSaveEditorTrace.Record("begin-participant:" + participants[begunCount].ParticipantId);
             }
 
             return true;
@@ -835,7 +857,9 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
             publishAttemptCount = index + 1;
             try
             {
+                DungeonSaveEditorTrace.Record("publish.before:" + participant.ParticipantId);
                 participant.PublishRestoreCandidate();
+                DungeonSaveEditorTrace.Record("publish.after:" + participant.ParticipantId);
             }
             catch (Exception exception)
             {
@@ -863,7 +887,9 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
                 transactionParticipants[index];
             try
             {
+                DungeonSaveEditorTrace.Record("complete.before:" + participant.ParticipantId);
                 participant.CompleteRestoreCandidate();
+                DungeonSaveEditorTrace.Record("complete.after:" + participant.ParticipantId);
             }
             catch (Exception exception)
             {
@@ -1006,7 +1032,9 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
             {
                 try
                 {
+                    DungeonSaveEditorTrace.Record("section-preflight.before:" + section.SectionId);
                     preflight.ValidatePayload(envelope.payloadJson, envelope.sectionVersion, report);
+                    DungeonSaveEditorTrace.Record("section-preflight.after:" + section.SectionId);
                 }
                 catch (Exception exception)
                 {
@@ -1034,7 +1062,9 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         {
             try
             {
+                DungeonSaveEditorTrace.Record("registry-preflight.before:" + validator.GetType().Name);
                 validator.Validate(savedById, report);
+                DungeonSaveEditorTrace.Record("registry-preflight.after:" + validator.GetType().Name);
             }
             catch (Exception exception)
             {
@@ -1082,11 +1112,13 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
 
             try
             {
+                DungeonSaveEditorTrace.Record("stage.before:" + section.SectionId);
                 IDungeonSaveRestoreStage stage =
                     ((IDungeonStagedSaveSection)section).StageRestore(
                         envelope.payloadJson,
                         envelope.sectionVersion,
                         report);
+                DungeonSaveEditorTrace.Record("stage.after:" + section.SectionId);
                 if (stage == null)
                 {
                     report.AddError(
@@ -1130,7 +1162,9 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         {
             try
             {
+                DungeonSaveEditorTrace.Record("commit.before:" + stage.SectionId);
                 stage.Commit(report);
+                DungeonSaveEditorTrace.Record("commit.after:" + stage.SectionId);
             }
             catch (Exception exception)
             {

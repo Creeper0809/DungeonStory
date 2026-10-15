@@ -34,7 +34,8 @@ public static class MinionIntegrationRules
     public const float MinionApprovedWorkExperienceMultiplier = 0.5f;
     public const float RehabilitationRequiredWork =
         CaptivityStateTransitionRules.RehabilitationRequiredWork;
-    public const int RehabilitationFoodCost = 1;
+    public const int RehabilitationFoodCost =
+        CaptivityStateTransitionRules.RehabilitationFoodCost;
     public const float RehabilitationTrustDelta = 5f;
     public const float RehabilitationGrudgeDelta = -3f;
     public const float RehabilitationCorruptionDelta = -6f;
