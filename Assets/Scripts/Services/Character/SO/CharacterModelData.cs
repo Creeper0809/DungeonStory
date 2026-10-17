@@ -9,6 +9,7 @@ public sealed class CharacterRuntimeProfile
     private readonly IReadOnlyList<string> expressedTraitIds;
     private readonly IReadOnlyList<string> latentTraitIds;
     private readonly IReadOnlyList<string> traitDisplayNames;
+    private readonly IReadOnlyList<CharacterCombatAbilityDefinition> speciesCombatAbilities;
     private readonly IReadOnlyDictionary<string, float> behaviorUtilityDeltas;
     private readonly IReadOnlyDictionary<string, float> eventWeightMultipliers;
     private readonly IReadOnlyDictionary<string, int> innateAptitudes;
@@ -75,6 +76,8 @@ public sealed class CharacterRuntimeProfile
         incidentName = species.IncidentDisplayName;
         incidentDescription = species.IncidentDescription;
         anatomyProfileId = species.anatomyProfileId?.Trim() ?? string.Empty;
+        speciesCombatAbilities = Array.AsReadOnly((species.combatAbilities?.Abilities
+            ?? Array.Empty<CharacterCombatAbilityDefinition>()).ToArray());
         shortDescription = species.shortDescription?.Trim() ?? string.Empty;
     }
 
@@ -242,6 +245,9 @@ public sealed class CharacterRuntimeProfile
     {
         return anatomyProfileId;
     }
+
+    public IReadOnlyList<CharacterCombatAbilityDefinition> GetSpeciesCombatAbilities() =>
+        speciesCombatAbilities;
 
     public bool UsesMechanicalMaintenance()
     {

@@ -18,12 +18,12 @@ public sealed class ResourceClimateDefinitionCatalog : IClimateDefinitionCatalog
         fronts = content.GetAll<WeatherFrontDefinitionSO>()
             .Select(value => value.CreateRuntimeDefinition())
             .ToDictionary(value => value.Id, StringComparer.Ordinal);
-        if (zones.Count != 5 || fronts.Count != 6
+        if (!zones.ContainsKey(ClimateRuntime.DefaultClimateZoneId) || fronts.Count == 0
             || zones.Values.Any(value => !value.IsValid)
             || fronts.Values.Any(value => !value.IsValid))
         {
             throw new InvalidOperationException(
-                $"V19 climate content requires exactly 5 zones and 6 fronts; "
+                $"Climate content requires the default zone, valid zones and at least one valid front; "
                 + $"found {zones.Count} zones and {fronts.Count} fronts.");
         }
         for (int season = 0; season < 4; season++)
@@ -150,12 +150,7 @@ public sealed class ClimateRuntime :
 
     private void MaintainForecastEquipment(bool wear)
     {
-        BuildableObject tower = facilities.FindOperational(
-                FacilityCapabilityKind.None,
-                "building:8851")
-            .OrderBy(value => value.PersistentInstanceId.Value, StringComparer.Ordinal)
-            .FirstOrDefault();
-        if (tower == null)
+        if (!TryResolveObservationTower(out BuildableObject tower))
         {
             return;
         }
@@ -168,9 +163,8 @@ public sealed class ClimateRuntime :
 
     private bool TryResolveObservationTower(out BuildableObject tower)
     {
-        tower = facilities.FindOperational(
-                FacilityCapabilityKind.None,
-                "building:8851")
+        tower = facilities.FindOperational(FacilityCapabilityKind.None)
+            .Where(ClimateDurableEquipmentLifecycleRuntime.IsWeatherObservationTower)
             .OrderBy(value => value.PersistentInstanceId.Value, StringComparer.Ordinal)
             .FirstOrDefault();
         return tower != null;

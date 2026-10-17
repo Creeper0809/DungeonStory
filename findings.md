@@ -1,5 +1,19 @@
 # DungeonStory Current Findings
 
+## SO 모듈 확장 — 최종 설계 판정 (2026-10-17)
+
+전수 타입별 판정은 `Artifacts/QA/SoModularity-20261017/audit-final.json`, 설명은 `docs/dev/so-modularity-audit-20261017.md`가 소유한다. 기존 메커니즘의 조합/추가 정의가 실제로 거절되거나 소비에서 버려지는 경계만 고친다. 단순 enum·고정 스키마·새 메커니즘의 등록은 결함이 아니다. 미정의 유전 효과4계열과 설명용 species tags/미구현 incident semantics는 기능 공백으로 남기며 구현 완료로 세지 않는다.
+
+SO는 정의, runtime은 변경 권위, DTO는 저장 표현을 유지한다. 장비/의복/토큰의 기존 에셋 값을 옮겼고, 과거 영수증을 현재 콘텐츠 역할로 재분류하지 않는다. 복원한 anatomy ID는 저장 권위이며 조회가 actor species로 덮지 않는다. ID가 먼저 준비되는 실제 staff/owner/restore/exterior 생성 경로에서는 profile 전 DI/조회가 임시 humanoid를 만들지 않아야 한다. 기존 AnatomyNodeDefinition의 명시적 legacy 부위 매핑을 소비하며 Slime/Quadruped의 미작성 호환 별칭은 유지한다. 추가 생산 타입 분할 없이 기존 계약/등록/소비자를 수정했다.
+
+
+## SO 모듈 확장 조사 — 판정 경계
+
+검토 대상은 first-party SO와 그 실제 조립·상태/저장·소비 경로다. 외부 패키지 구현은 별도 표시하고 확장 계약에 영향을 주는 접점만 확인한다. 데이터/SO 변형·기존 capability 조합·새 capability 구현을 구별한다. 고정 enum, 큰 SO 또는 public authoring setter의 존재만으로 결함을 선언하지 않는다. 기존 콘텐츠의 추가/조합을 실제로 막는 호출/등록/상태 소유권 근거가 있어야 수정 대상으로 삼는다.
+
+건물은 SerializeReference 능력 목록→등록 factory→runtime capability/state module, 장비는 GameplayEffectBinding 조합, 캐릭터는 원형/종족/특성→runtime profile 경로가 이미 있다. 이것을 재사용하며 새 추상화 도입의 근거로 삼지 않는다.
+
+
 ## 최종 통합에서 확인한 수명·현재 root 계약
 
 공식 pending world 복원 직후 이전 actor의 Unity Destroy가 지연되어 같은 stable ID가 lifetime query에 두 번 남는 실제 결함을 재현했다. authority handoff가 성공한 뒤 retirement에서 기존 runtime bridge 등록만 즉시 반납하고 deferred OnDestroy는 idempotent하게 유지했다. 생명/사망 효과나 새 actor의 등록을 지우지 않는다.

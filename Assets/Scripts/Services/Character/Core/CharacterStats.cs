@@ -206,7 +206,7 @@ public class CharacterStats :
     {
         this.vitalsService = vitalsService
             ?? throw new ArgumentNullException(nameof(vitalsService));
-        if (actor != null && CharacterPersistentIdentity.TryGet(actor, out _))
+        if (actor != null && actor.Identity?.Profile != null && CharacterPersistentIdentity.TryGet(actor, out _))
         {
             vitalsService.Configure(actor, maxHealth, resetCurrentHealth: false);
         }

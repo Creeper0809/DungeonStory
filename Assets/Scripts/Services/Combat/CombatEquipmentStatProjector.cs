@@ -47,7 +47,9 @@ public sealed class CombatEquipmentStatProjector
             (material?.DamageMultiplier ?? 1f) * (definition?.BaseStatMultiplier ?? 1f) * GetEvolutionMultiplier(instance, "combat.damage"),
             (material?.PenetrationDefenseMultiplier ?? 1f) * (definition?.BaseStatMultiplier ?? 1f) * GetEvolutionMultiplier(instance, "combat.defense"),
             (material?.ValueMultiplier ?? 1f) * GetEvolutionMultiplier(instance, "combat.value"),
-            material?.Tint ?? Color.white);
+            material?.Tint ?? Color.white,
+            definition?.RoleFlags ?? CombatEquipmentRoleFlags.None,
+            definition?.ArcaneManaCost ?? 0f);
     }
 
     public PhysicalMassGrams GetPhysicalMass(

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using VContainer;
 using VContainer.Unity;
 
@@ -154,6 +156,14 @@ public static class DungeonWorkRegistration
             .As<IBuildingAbilityWorkCompletedHandler>();
         builder.Register<ExteriorMaintenanceBuildingAbilityHandler>(Lifetime.Singleton)
             .As<IBuildingAbilityWorkCompletedHandler>();
+        builder.RegisterBuildingAbilityRuntime();
+    }
+
+    public static void RegisterBuildingAbilityRuntime(this IContainerBuilder builder)
+    {
+        builder.Register(resolver => BuildingAbilityRuntimeCatalog.CreateBuiltIns(
+                resolver.Resolve<IReadOnlyList<IBuildingAbilityRuntimeFactory>>().ToArray()),
+                Lifetime.Singleton);
         builder.Register<BuildingAbilityRuntimeDispatcher>(Lifetime.Singleton)
             .As<IBuildingAbilityRuntimeDispatcher>();
         builder.RegisterFactory<IBuildingAbilityRuntimeDispatcher>(

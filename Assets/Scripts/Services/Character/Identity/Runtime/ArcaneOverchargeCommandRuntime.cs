@@ -223,7 +223,7 @@ public sealed class ArcaneOverchargeCommandRuntime : IArcaneOverchargeCommand
             || !equipment.TryGetDerivedStats(
                 instanceId,
                 out CombatEquipmentDerivedStats stats)
-            || !CharacterArcaneWeaponRules.IsArcane(stats.DefinitionId))
+            || !CharacterArcaneWeaponRules.IsArcane(stats))
         {
             failureReason = "시전자가 실제 착용한 마력 장비가 필요합니다.";
             return false;

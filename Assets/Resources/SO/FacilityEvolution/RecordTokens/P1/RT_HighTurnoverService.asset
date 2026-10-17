@@ -26,6 +26,7 @@ MonoBehaviour:
   displayName: "\uBE60\uB978 \uD68C\uC804 \uC11C\uBE44\uC2A4"
   description: "\uB9CE\uC740 \uC190\uB2D8\uC744 \uBE60\uB974\uAC8C \uCC98\uB9AC\uD55C
     \uAE30\uB85D\uC774\uB2E4."
+  generationTrigger: 3
   sourceMetric: TurnoverRate
   threshold: 0.65
   decayPolicy: daily

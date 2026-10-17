@@ -16,13 +16,13 @@ public sealed class V20StoryContentCatalog :
     public V20StoryContentCatalog(IGameContentDefinitionSource content)
     {
         if (content == null) throw new ArgumentNullException(nameof(content));
-        LifeEvents = Exact(content.GetAll<LifeEventDefinitionSO>(), 32, "life events");
-        GuestRequests = Exact(content.GetAll<GuestRequestDefinitionSO>(), 13, "guest requests");
-        ServiceIncidents = Exact(content.GetAll<ServiceIncidentDefinitionSO>(), 8, "service incidents");
-        Arcs = Exact(content.GetAll<FactionArcDefinitionSO>(), 6, "faction arcs");
-        Chapters = Exact(content.GetAll<FactionChapterDefinitionSO>(), 36, "faction chapters");
-        Contracts = Exact(content.GetAll<FactionContractDefinitionSO>(), 24, "faction contracts");
-        SeasonalEvents = Exact(content.GetAll<SeasonalWorldEventDefinitionSO>(), 28, "seasonal events");
+        LifeEvents = LoadDefinitions(content.GetAll<LifeEventDefinitionSO>(), "life events");
+        GuestRequests = LoadDefinitions(content.GetAll<GuestRequestDefinitionSO>(), "guest requests");
+        ServiceIncidents = LoadDefinitions(content.GetAll<ServiceIncidentDefinitionSO>(), "service incidents");
+        Arcs = LoadDefinitions(content.GetAll<FactionArcDefinitionSO>(), "faction arcs");
+        Chapters = LoadDefinitions(content.GetAll<FactionChapterDefinitionSO>(), "faction chapters");
+        Contracts = LoadDefinitions(content.GetAll<FactionContractDefinitionSO>(), "faction contracts");
+        SeasonalEvents = LoadDefinitions(content.GetAll<SeasonalWorldEventDefinitionSO>(), "seasonal events");
         EndlessCrisisPolicyDefinitionSO[] endlessPolicies = (content
                 .GetAll<EndlessCrisisPolicyDefinitionSO>()
                 ?? Array.Empty<EndlessCrisisPolicyDefinitionSO>())
@@ -43,7 +43,7 @@ public sealed class V20StoryContentCatalog :
                 && !string.IsNullOrWhiteSpace(value.stableId))
             .Select(value => value.stableId)
             .ToHashSet(StringComparer.Ordinal);
-        All = Exact(content.GetAll<EndingDefinitionSO>(), 9, "milestones");
+        All = LoadDefinitions(content.GetAll<EndingDefinitionSO>(), "milestones");
         Encounters = content.GetAll<OffenseEncounterSO>()
             .Where(value => value != null)
             .OrderBy(value => value.encounterId, StringComparer.Ordinal)
@@ -115,11 +115,11 @@ public sealed class V20StoryContentCatalog :
     private V20AuthoredContentSO RequireAny(string id) => byId.TryGetValue(Normalize(id), out V20AuthoredContentSO value)
         ? value
         : throw new KeyNotFoundException($"Unknown V20 story definition '{id}'.");
-    private static IReadOnlyList<T> Exact<T>(IEnumerable<T> source, int count, string label) where T : V20AuthoredContentSO
+    private static IReadOnlyList<T> LoadDefinitions<T>(IEnumerable<T> source, string label) where T : V20AuthoredContentSO
     {
         T[] values = (source ?? Array.Empty<T>()).Where(value => value != null).OrderBy(value => value.StableId, StringComparer.Ordinal).ToArray();
         List<string> errors = values.SelectMany(value => value.ValidateDefinition()).ToList();
-        if (values.Length != count) errors.Add($"Expected {count} {label}, found {values.Length}.");
+        if (values.Length == 0) errors.Add($"At least one definition is required for {label}.");
         if (values.Select(value => value.StableId).Distinct(StringComparer.Ordinal).Count() != values.Length) errors.Add($"Duplicate {label} ids.");
         if (errors.Count > 0) throw new InvalidOperationException(string.Join(" | ", errors));
         return values;

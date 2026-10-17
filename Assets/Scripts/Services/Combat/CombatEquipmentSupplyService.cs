@@ -208,8 +208,8 @@ internal sealed class CombatEquipmentSupplyService
                 out CombatEquipmentInstance instance)
             || CombatEquipmentWorldStateRules.IsExternalCustody(
                 instance.worldState)
-            || (CombatEquipmentRoleRules.For(instance.definitionId)
-                & CombatEquipmentRoleFlags.Powered) == 0
+            || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
+            || (definition.RoleFlags & CombatEquipmentRoleFlags.Powered) == 0
             || instance.powerCharge <= 0f)
         {
             return false;
@@ -232,8 +232,8 @@ internal sealed class CombatEquipmentSupplyService
                 out CombatEquipmentInstance instance)
             || CombatEquipmentWorldStateRules.IsExternalCustody(
                 instance.worldState)
-            || (CombatEquipmentRoleRules.For(instance.definitionId)
-                & CombatEquipmentRoleFlags.Powered) == 0)
+            || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
+            || (definition.RoleFlags & CombatEquipmentRoleFlags.Powered) == 0)
         {
             return false;
         }

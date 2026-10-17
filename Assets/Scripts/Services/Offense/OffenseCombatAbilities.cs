@@ -54,6 +54,13 @@ public static class CharacterCombatAbilityCatalog
         CharacterProgression progression = actor?.Progression;
         if (progression != null)
         {
+            if (progression.Level >= 3)
+            {
+                abilities.AddRange(progression.ResolveSelectedTraits()
+                    .Where(trait => trait != null)
+                    .SelectMany(trait => trait.combatAbilities?.Abilities
+                        ?? Array.Empty<CharacterCombatAbilityDefinition>()));
+            }
             abilities.AddRange(progression.ActiveSkills
                 .Select(skill => CharacterSkillRuntimeEffects.ToCombatAbility(
                     skill,
@@ -84,20 +91,27 @@ public static class CharacterCombatAbilityCatalog
     {
         CharacterSO data = actor != null && actor.Identity != null ? actor.Identity.Data : null;
         List<CharacterCombatAbilityDefinition> result = new List<CharacterCombatAbilityDefinition>();
-        if (data?.species?.combatAbilities?.Abilities != null)
+        IReadOnlyList<CharacterCombatAbilityDefinition> configured =
+            actor?.profile?.GetSpeciesCombatAbilities()
+            ?? data?.species?.combatAbilities?.Abilities;
+        if (configured != null)
         {
-            result.AddRange(data.species.combatAbilities.Abilities
+            result.AddRange(configured
                 .Where(ability => ability != null && ability.IsValid));
         }
 
+        // Legacy definitions without an authored ability keep their original
+        // species skill. Authored compositions are authoritative and complete.
         string species = actor != null ? actor.SpeciesTag : data?.SpeciesTag;
-        if (Contains(species, "slime", "슬라임")) result.Add(CreateSlimeBarrier());
-        if (Contains(species, "orc", "오크")) result.Add(CreateOrcCrush());
-        if (Contains(species, "vampire", "뱀파이어")) result.Add(CreateVampireDrain());
+        if (result.Count == 0)
+        {
+            if (Contains(species, "slime", "슬라임")) result.Add(CreateSlimeBarrier());
+            if (Contains(species, "orc", "오크")) result.Add(CreateOrcCrush());
+            if (Contains(species, "vampire", "뱀파이어")) result.Add(CreateVampireDrain());
+        }
         return result
             .GroupBy(ability => ability.Id, StringComparer.Ordinal)
             .Select(group => group.First())
-            .Take(1)
             .ToList();
     }
 
@@ -105,12 +119,8 @@ public static class CharacterCombatAbilityCatalog
     {
         CharacterSO data = actor != null && actor.Identity != null ? actor.Identity.Data : null;
         List<CharacterCombatSkillTrackEntry> result = new List<CharacterCombatSkillTrackEntry>();
-        AddConfigured(result, data?.species?.combatAbilities, 1, "종족");
-
-        string species = actor != null ? actor.SpeciesTag : data?.SpeciesTag;
-        if (Contains(species, "slime", "슬라임")) AddUnique(result, CreateSlimeBarrier(), 1, "종족");
-        if (Contains(species, "orc", "오크")) AddUnique(result, CreateOrcCrush(), 1, "종족");
-        if (Contains(species, "vampire", "뱀파이어")) AddUnique(result, CreateVampireDrain(), 1, "종족");
+        foreach (CharacterCombatAbilityDefinition ability in GetSpeciesAbilities(actor))
+            AddUnique(result, ability, 1, "종족");
 
         IReadOnlyList<CharacterTraitSO> selectedTraits =
             actor?.Progression?.ResolveSelectedTraits()

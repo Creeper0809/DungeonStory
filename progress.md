@@ -1,5 +1,23 @@
 # DungeonStory Current Progress
 
+## 2026-10-18 SO 최종 실행 완료
+
+메모리 확보 후 source-pin-r6 그대로 native-r4/character/campaign/combat/Play 5회 모두 PASS/exit0. Runtime/Editor compile36.238804초/CS0, 새 SO 생산/소비·JSON/fresh owner/retry·신체 초기화/피해/착용·실제 DI 조합과 기존 회귀를 통과했다. 실제 GameplayScene Play149modules/153bindings/facts도 PASS다. 입력4081/DLL47 drift0, OS 비대화형 probe5회 PASS, 메모리 보호 중단/소스 추가 수정0. 모든 프로세스 terminal/Unity0·편집/검증 창 CLOSED. [최종 근거](Artifacts/QA/SoModularity-20261017/verification-final.json), [보고서](docs/dev/so-modularity-audit-20261017.md). 아래 메모리 대기/재개 기록은 당시 상태다.
+
+
+## 2026-10-18 SO 실행 재개
+
+여유 RAM10.75GiB/commit23.43GiB·Unity/launcher0과 source-pin-r6 입력4081 drift0을 확인했다. 메인 단독 UNITY_VERIFY, 모든 소스/테스트/에셋 동결 유지. 기존 격리 런처로 native-r4부터 재개하며 이전 부분 PASS는 최종 PASS로 세지 않는다.
+
+
+## 2026-10-17 SO 전수 조사·선별 수정 — 실행 대기
+
+- 소스/에셋 조사와 필요한 수정, 세 담당자 독립 정적 검토를 마쳤다. [결과와 유지 판정](docs/dev/so-modularity-audit-20261017.md), [161타입 최종 판정](Artifacts/QA/SoModularity-20261017/audit-final.json).
+- native-r2 당시 Runtime/Editor compile 오류0, 추가 카탈로그·적 생성/복원·관측 사건 거절/재시도·기후 JSON PASS. 질병 fixture의 전염 불가 입력을 수정했으며 전체 PASS는 아니다.
+- native-r3 compile 중 QA_MEMORY_PRESSURE(여유 물리 메모리1,001,017,344 bytes)로 해당 격리 job만 종료했다. OS 비대화형 station/desktop/창 probe는 세 실행 모두 PASS다. 원 실패 로그 보존.
+- 마지막 프로필 준비 순서/구문 검사: ID만 있는 DI·조회가 임시 신체 권위를 만들지 않게 했고 기존 부위 메타데이터를 실제 피해/회복/투영에 연결했다. 변경 C#57개 Roslyn syntax0·diff check PASS. 의미 컴파일·실행 PASS로 세지 않는다.
+- 현재 source-pin-r6 READY/FROZEN, Unity/launcher0. 최종 컴파일·전체 표적·Play는 메모리 확보 뒤 재개한다. 사용자는 현재 코드 정리 계속을 요청했다. 생성 인덱스는 `knowledge-base-close-r2.log`에서 query5·freshness/content validation 오류0·exit0로 마감했다.
+
 ## 2026-10-17 최종 통합·32개 완료 대조
 
 - 공식 지원군 최종 통합: current Runtime+Editor40.446704초/CS0, 104-section checkpoint4개·공식 복원7회, 부분/응답 소실 prefix·fresh actor/root·현재 root 완료/이전 root 무변경·입장/hook 중복 방지·baseline PASS/consoleErrors0/exit0. [실행 근거](Artifacts/QA/RequiredStructureGoal-20261016/verification-final-integration-r4.json).

@@ -1327,10 +1327,10 @@ public sealed class CombatEquipmentRuntime :
                 out CombatEquipmentInstance instance)
             || CombatEquipmentWorldStateRules.IsExternalCustody(
                 instance.worldState)
-            || !CharacterArcaneWeaponRules.IsArcane(instance.definitionId)
             || !catalog.TryGet(
                 instance.definitionId,
                 out CombatEquipmentDefinitionSO definition)
+            || definition.ArcaneManaCost <= 0f
             || instance.durabilityRatio <= 0f)
         {
             return false;
@@ -1361,7 +1361,8 @@ public sealed class CombatEquipmentRuntime :
                 out CombatEquipmentInstance instance)
             || CombatEquipmentWorldStateRules.IsExternalCustody(
                 instance.worldState)
-            || !CharacterArcaneWeaponRules.IsArcane(instance.definitionId)
+            || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
+            || definition.ArcaneManaCost <= 0f
             || instance.durabilityRatio >= durabilityRatio)
         {
             return false;

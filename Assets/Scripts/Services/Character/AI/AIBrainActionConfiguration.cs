@@ -50,6 +50,24 @@ internal static class AIBrainActionConfiguration
         return BindClocks(actions, clock);
     }
 
+    public static AIAction[] ConfigureOwner(
+        AIAction[] configured,
+        ICharacterAiActionAssetCatalog catalog,
+        IGameClock clock)
+    {
+        AIAction[] retained = (configured ?? Array.Empty<AIAction>())
+            .Where(action => action?.actionset != null
+                && action.actionset.Branch != CharacterAiBranch.ExitDungeon)
+            .GroupBy(action => action.actionset)
+            .Select(group => group.First()).ToArray();
+        List<AIAction> actions = ConfigureOwner(catalog, clock)
+            .Select(required => retained.FirstOrDefault(action =>
+                ReferenceEquals(action.actionset, required.actionset)) ?? required).ToList();
+        actions.AddRange(retained.Where(action => !actions.Any(existing =>
+            ReferenceEquals(existing.actionset, action.actionset))));
+        return BindClocks(actions, clock);
+    }
+
     public static AIAction[] ConfigureStaff(
         AIAction[] configured,
         ICharacterAiActionAssetCatalog catalog,
@@ -205,24 +223,26 @@ internal static class AIBrainActionConfiguration
         CharacterAiBranch branch)
         where T : AIPrimitiveSurvivalAction
     {
-        int primitiveIndex = actions.FindIndex(action => action?.actionset is T);
-        int facilityIndex = actions.FindIndex(action =>
-            action?.actionset != null
-            && action.actionset.Branch == branch
-            && action.actionset is not AIPrimitiveSurvivalAction);
-        if (primitiveIndex < 0
-            || facilityIndex < 0
-            || facilityIndex < primitiveIndex)
+        while (true)
         {
-            return;
-        }
+            int primitiveIndex = actions.FindIndex(action =>
+                action?.actionset is T);
+            int facilityIndex = primitiveIndex < 0
+                ? -1
+                : actions.FindIndex(
+                    primitiveIndex + 1,
+                    action => action?.actionset != null
+                        && action.actionset.Branch == branch
+                        && action.actionset is not AIPrimitiveSurvivalAction);
+            if (facilityIndex < 0)
+            {
+                return;
+            }
 
-        AIAction primitive = actions[primitiveIndex];
-        actions.RemoveAt(primitiveIndex);
-        // primitiveIndex was before facilityIndex, so after removal the facility
-        // shifted left once. Inserting at the old facility index places the
-        // primitive immediately after the facility action.
-        actions.Insert(facilityIndex, primitive);
+            AIAction facility = actions[facilityIndex];
+            actions.RemoveAt(facilityIndex);
+            actions.Insert(primitiveIndex, facility);
+        }
     }
 
     private static ICharacterAiActionAssetCatalog RequireCatalog(

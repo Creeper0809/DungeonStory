@@ -1,0 +1,229 @@
+{
+  "sourcePin": "source-pin-r6.json",
+  "exitCode": 0,
+  "compileSeconds": [
+    "36.238804"
+  ],
+  "compilerErrors": [],
+  "markers": [
+    "SO_DEFINITION_EXTENSIONS=PASS; enemy=enemy:crown-chaplain-qa-so-extension; deterministic=true; jsonRestore=true; enemyDefinitions=37; abilityDefinitions=19; modifierDefinitions=13; encounterDefinitions=37; backgroundDefinitions=13; ambitionDefinitions=19; heritableDefinitions=25; proficiencyDefinitions=10; lifeEventDefinitions=33; encounterRestored=true",
+    "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay",
+    "SO_ADDITIVE_CATALOGS=PASS; registered variants; subtype queries; real enemy/incident consumers; duplicate/broken reference reject",
+    "SO_CLIMATE_DEFINITIONS=PASS; 6 zones/7 fronts; normalized weights; temperature; JSON/advance; invalid total reject",
+    "SO_CROP_DISEASE=PASS; 13th crop seed grant/sow; fresh pending harvest/commit/replay; 17th disease exposure/infection/JSON; invalid definition reject",
+    "SO_RECORD_TOKENS=PASS; existing event amounts; additional token/metric crossing; fresh owner; unsupported metric/decay reject",
+    "SO_ACTOR_COMPOSITION=PASS; phenotype/expressed traits preserved; two species+trait abilities in real battle projection; authored damage surface/fit/node removal; JSON/fresh body; bad profile atomic reject",
+    "SO_MODULARITY=PASS; real root clones; additive catalogs; enemy factory/encounter; climate; crop seed/sow/harvest; disease exposure; record tokens; JSON/fresh owners; malformed/duplicate/reference rejection",
+    "OWNER_ACTION_COMPOSITION=PASS",
+    "SO_OBSERVATION_COMPOSITION=PASS",
+    "SO_ROLE_COMPOSITION=PASS",
+    "SO_MODULARITY_CONSOLE_ERRORS=0",
+    "worker-allocation=PASS; native facility/actor/pose/registry; controlled movement; cancel/retry/stale-dispose; natural AI/whole-world restore=not-covered",
+    "BUILDING_DESTRUCTION_LIFETIME=PASS; EditMode native destruction; observer reentry/failure; contract-release retry; physical destructive drain=not-covered",
+    "ARCHITECTURE_BUILDING_RUNTIME_BINDINGS=PASS; definitions13; runtime capabilities; JSON identity; duplicate/missing/invalid factories; current collection/revision; readonly config; atomic reject; retry",
+    "ARCHITECTURE_BUILDING_DEFINITIONS=PASS; authored managed references; inspector; registered capabilities; every part instantiate/register",
+    "ARCHITECTURE_BUILDING_STATE=PASS; cases=8; custom registered runtime; module IDs; JSON roundtrip; reject; approved work",
+    "B124_COMMAND_OBSERVER_MAPPING=PASS",
+    "B124_COMMAND_OWNER_TRANSACTIONS=PASS",
+    "B124_COMMAND_ACK_BEFORE_JSON_FRESH_OWNER=PASS",
+    "B124_COMMAND_ACK_AFTER_JSON_FRESH_OWNER=PASS",
+    "B124_COMMAND_CAUSAL_OWNER_RESTORE=PASS",
+    "B124_COMMAND_OBSERVER_RECOVERY=PASS",
+    "ARCHITECTURE_PRODUCTION_BILL_GC=PASS; exact receipt; missing/duplicate; candidate identity; root/revision drift; rollback; JSON fresh owner; retry",
+    "ARCHITECTURE_PRODUCTION_RESOLUTION=PASS; normal; declared loss; ruined; source proof; JSON restore; replay",
+    "ARCHITECTURE_PRODUCTION_BILLS_BATCH=PASS; command fence; ACK before/after; fresh-owner restore; exact WIP GC; prepared output; retry",
+    "ARCHITECTURE_BUILDINGS_BATCH=PASS; immutable definitions; registered runtime; authored assets; state module restore; crime; exterior; production"
+  ],
+  "dlls": {
+    "Library/ScriptAssemblies/DungeonStory.AI.dll": {
+      "sha256": "d6cccdc190dd4838c49d7d7a770e4ff02f29b8534f36a049e9888f8e804074a2",
+      "bytes": 315392
+    },
+    "Library/ScriptAssemblies/DungeonStory.Architecture.Tests.dll": {
+      "sha256": "14f05722c1bf8abebe34489380cb05c4b06758f69b358827b0f8d7b6646f1b61",
+      "bytes": 278528
+    },
+    "Library/ScriptAssemblies/DungeonStory.Automation.dll": {
+      "sha256": "06bc9f6af028f48dd753974fa296a663494cfa6cfcb78968d3d599313b3337da",
+      "bytes": 14848
+    },
+    "Library/ScriptAssemblies/DungeonStory.Buildings.dll": {
+      "sha256": "e939738b02c6aebe5319a12ac7b476004597efdd6547c301e8e167cd77833b14",
+      "bytes": 124928
+    },
+    "Library/ScriptAssemblies/DungeonStory.Buildings.Editor.dll": {
+      "sha256": "1c0d5788ae25c353e6eb1626293cae2b2c112ad3e6066337eb29e877bc3f796c",
+      "bytes": 13312
+    },
+    "Library/ScriptAssemblies/DungeonStory.Captivity.dll": {
+      "sha256": "db70b917cb33e38dfed62c282ebdad467965b08445424c0fd586968dfdb0d381",
+      "bytes": 138240
+    },
+    "Library/ScriptAssemblies/DungeonStory.CharacterNeeds.dll": {
+      "sha256": "6bfa140e3c3026f74925585823f4bea8e78540da6b8e6a75e8be222c681656fe",
+      "bytes": 18432
+    },
+    "Library/ScriptAssemblies/DungeonStory.Characters.dll": {
+      "sha256": "e8e30bee00bfe96d3b296344cc0c9a8c24284f754b5d92233f26e53d2945c02f",
+      "bytes": 58368
+    },
+    "Library/ScriptAssemblies/DungeonStory.Codex.dll": {
+      "sha256": "04a54394a458b7857d11ebea4227fc9ba47be042e710fa7d20c27dc6f633742b",
+      "bytes": 38400
+    },
+    "Library/ScriptAssemblies/DungeonStory.Combat.dll": {
+      "sha256": "ee31b172dd461f01d4d90657dabcc6e0d2f443955b0aef822cd23d1de52f6b6a",
+      "bytes": 131072
+    },
+    "Library/ScriptAssemblies/DungeonStory.Content.dll": {
+      "sha256": "f524367ca7a4a6de8da97b746211489b725daecc8c1b88e83531674299fb3ec4",
+      "bytes": 106496
+    },
+    "Library/ScriptAssemblies/DungeonStory.CoreSession.dll": {
+      "sha256": "98c0b12ac70b1bc46503aa6eccdcf3908bf5d08f3ccf272680bd733d7cfaf766",
+      "bytes": 71168
+    },
+    "Library/ScriptAssemblies/DungeonStory.Defense.dll": {
+      "sha256": "7bc66b824ab906f171acf52451ca687751bc1bf85cf7d85bbb762ccdbeb7eb08",
+      "bytes": 23040
+    },
+    "Library/ScriptAssemblies/DungeonStory.Economy.dll": {
+      "sha256": "6a7a8ad6fecc704e59debf0495faff129743adc9dea3b0fdde1b5b46ed66b423",
+      "bytes": 674304
+    },
+    "Library/ScriptAssemblies/DungeonStory.Environment.dll": {
+      "sha256": "0ab78e1ab2c562e8d7c38870f85efc0bb1a332a9a72c5ab4f1be21895b33c604",
+      "bytes": 89600
+    },
+    "Library/ScriptAssemblies/DungeonStory.Evolution.dll": {
+      "sha256": "cdc5a9be4a149f278202de4446c95ec1bba145fa49db6592541f7d5895a5aea0",
+      "bytes": 103424
+    },
+    "Library/ScriptAssemblies/DungeonStory.Exterior.dll": {
+      "sha256": "58f4f76338ed0eac9f06988f052ad6f9d09c0615e667b3c63fbfb1a8e60e2939",
+      "bytes": 20480
+    },
+    "Library/ScriptAssemblies/DungeonStory.FacilityEvolution.dll": {
+      "sha256": "af836a9be60c463f9e8fc843a71c3d7854231de76a9c8e8b8b7f687465575de0",
+      "bytes": 29184
+    },
+    "Library/ScriptAssemblies/DungeonStory.FacilityShop.dll": {
+      "sha256": "734c00e4ec454a74880fa73797aeaa5aa48a0559062cd4c201f56542b438eb16",
+      "bytes": 18944
+    },
+    "Library/ScriptAssemblies/DungeonStory.FacilityShop.Editor.dll": {
+      "sha256": "ce4bb56e5aea3ed3a420a8dbf5aff44c4df42641d63bda42fb676468d5d3e69d",
+      "bytes": 5632
+    },
+    "Library/ScriptAssemblies/DungeonStory.Factions.dll": {
+      "sha256": "c384de7f49e87ab603f7750636594e035adfc7d8ed6cb079b0fe29caf43a04e2",
+      "bytes": 60416
+    },
+    "Library/ScriptAssemblies/DungeonStory.Foundation.dll": {
+      "sha256": "b21ab2b1b3c26ba2d26cd6378f515426e111be0b62f7117f45b65543bc2e800e",
+      "bytes": 228864
+    },
+    "Library/ScriptAssemblies/DungeonStory.Foundation.Tests.dll": {
+      "sha256": "b55d786c5f618e7387148d9bfca3f1b0c88edee193d4d5ce8d49bb3264a10e56",
+      "bytes": 8704
+    },
+    "Library/ScriptAssemblies/DungeonStory.Grid.dll": {
+      "sha256": "62d91d932fee6744ccf509839b283a9c1bc7bfc72a3c2794d3d0c0e7a9d1d8a2",
+      "bytes": 77312
+    },
+    "Library/ScriptAssemblies/DungeonStory.Infrastructure.dll": {
+      "sha256": "a463ca8c057212f91e77ef7b549f64d3fa999564298f987c2453c1a90e513f94",
+      "bytes": 178176
+    },
+    "Library/ScriptAssemblies/DungeonStory.Invasion.dll": {
+      "sha256": "5c9ec73215b62dd53836b2577ce7c2afd31aad716f892522deabc54639b5466d",
+      "bytes": 104960
+    },
+    "Library/ScriptAssemblies/DungeonStory.Items.dll": {
+      "sha256": "04e1951f8014884788816fbc116f4d1274170102c85845a5c147ec9621b16be3",
+      "bytes": 177664
+    },
+    "Library/ScriptAssemblies/DungeonStory.Medical.dll": {
+      "sha256": "cba7db79ca4488a259b76ae76e6a0575442cc05c1b34a6cbcda9e37f7b5187f1",
+      "bytes": 112128
+    },
+    "Library/ScriptAssemblies/DungeonStory.Meta.dll": {
+      "sha256": "985da8598e32b2300c30d43d4023584720ae282b248d8300a72ae9fd5da2471f",
+      "bytes": 44544
+    },
+    "Library/ScriptAssemblies/DungeonStory.Offense.dll": {
+      "sha256": "36cd9e3c9317e438acc2eee35198f00c746bbde1272d961f86ad4eb961847ffd",
+      "bytes": 96768
+    },
+    "Library/ScriptAssemblies/DungeonStory.Operation.dll": {
+      "sha256": "230d4ab25316bb8e85502983ed52e106034b026be1af6ac64fc26b5d99d74b89",
+      "bytes": 54784
+    },
+    "Library/ScriptAssemblies/DungeonStory.Presentation.dll": {
+      "sha256": "3398ce5390815616a4089cab634fcab64acfed17cd4e70190b6d0dca529eba4f",
+      "bytes": 197632
+    },
+    "Library/ScriptAssemblies/DungeonStory.Production.dll": {
+      "sha256": "f87f8098769f635feb3541e6cf2d7813365918a5407f8db8c83fe20473ad717b",
+      "bytes": 190464
+    },
+    "Library/ScriptAssemblies/DungeonStory.Recruitment.dll": {
+      "sha256": "77c86487dc6c5cceb0af95f433acc388b6548a13c960a260cafffa8cfd5ea21c",
+      "bytes": 15872
+    },
+    "Library/ScriptAssemblies/DungeonStory.Recruitment.Editor.dll": {
+      "sha256": "560d1d946aa19dde53c06cba2f792eeef422b7ea69bba7d14716ce906da5dfbb",
+      "bytes": 10752
+    },
+    "Library/ScriptAssemblies/DungeonStory.Research.dll": {
+      "sha256": "7bcc719a0e7723fee438185fc74b31b5ce61f23f7144801cfe9e4b25bc3fd373",
+      "bytes": 56832
+    },
+    "Library/ScriptAssemblies/DungeonStory.Rooms.dll": {
+      "sha256": "7317590c1d4b1f56b95454a1b25df1e5310999f8a15fb9127e8a0bfba090c86e",
+      "bytes": 44544
+    },
+    "Library/ScriptAssemblies/DungeonStory.Run.dll": {
+      "sha256": "b5f6a4140195c2a1e8eddf6d2550da8a8859e0c492877a52045043887121b277",
+      "bytes": 12800
+    },
+    "Library/ScriptAssemblies/DungeonStory.ServiceRooms.dll": {
+      "sha256": "e9a1eb00b5e90361d63aa288138608be3243ef7356cae4e320c7c9accbc47f3b",
+      "bytes": 31232
+    },
+    "Library/ScriptAssemblies/DungeonStory.SessionRuntime.dll": {
+      "sha256": "51e980fb04c1582562001fe500308de6a54ecb46bad6716490e64cf65ed3ffba",
+      "bytes": 10240
+    },
+    "Library/ScriptAssemblies/DungeonStory.Species.dll": {
+      "sha256": "a45a160d0542870f884c4d08dee76b94318d5eaa99d5b9859367b615979dbeb4",
+      "bytes": 227840
+    },
+    "Library/ScriptAssemblies/DungeonStory.Survival.dll": {
+      "sha256": "e97861eefc80a99d13aa19daa78719bdccc95deb19ff168a656a8b303f9273ff",
+      "bytes": 227840
+    },
+    "Library/ScriptAssemblies/DungeonStory.Synthesis.dll": {
+      "sha256": "99caa56763b6b04c76f942348b00d4470dd9e4eefdefc1c63f97abcae5819306",
+      "bytes": 6144
+    },
+    "Library/ScriptAssemblies/DungeonStory.Synthesis.Editor.dll": {
+      "sha256": "793bb4093dfd18b0f5401a1cb70f2263eb1a3aee70950ecef3f4207ef496e82e",
+      "bytes": 5632
+    },
+    "Library/ScriptAssemblies/DungeonStory.Wildlife.dll": {
+      "sha256": "c38038947a3324b6631f8c44902f31a6f03f29ea78749e1c8478404db88b1249",
+      "bytes": 89088
+    },
+    "Library/ScriptAssemblies/DungeonStory.Work.dll": {
+      "sha256": "2cd285f41889e5d5a7f73e7891d84c9e5ff6a86598a5833a9423aea0b59740f2",
+      "bytes": 34816
+    },
+    "Library/ScriptAssemblies/DungeonStory.World.dll": {
+      "sha256": "34a37154879f39c1612ff62838b005e43c0f2707a521813b305392fb58c184c6",
+      "bytes": 7680
+    }
+  },
+  "osProbe": "PASS_NONINTERACTIVE_PROBE\nstation=Service-0x0-11e673$\ndesktop=DungeonStoryQA_0653d2c00df84d709eb9440a4c708726\nvisible=false\nwindowCreatedAndDestroyed=true\ninJob=true\navailablePhysicalBytes=11346862080\navailableCommitBytes=24996634624\n",
+  "scope": "Actual isolated EditMode native new-definition composition, runtime producers/consumers, JSON/fresh-owner/retry plus existing building regression. No natural UI/AI or whole-world extra-definition claim."
+}

@@ -27,6 +27,7 @@ MonoBehaviour:
   description: "\uC2F8\uC6C0\uACFC \uC18C\uB780\uC774 \uBC18\uBCF5\uB41C \uAE30\uB85D\uC774\uB2E4.
     \uC804\uD22C/\uBB34\uBC95 \uACC4\uBCF4\uC758 \uBCC0\uC774 \uD6C4\uBCF4\uB97C
     \uAC15\uD654\uD55C\uB2E4."
+  generationTrigger: 0
   sourceMetric: BrawlCount
   threshold: 1
   decayPolicy: recent-weighted

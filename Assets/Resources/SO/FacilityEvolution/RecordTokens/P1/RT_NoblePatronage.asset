@@ -27,6 +27,7 @@ MonoBehaviour:
   description: "\uADC0\uC871 \uC190\uB2D8\uC774 \uBC18\uBCF5 \uBC29\uBB38\uD558\uAC70\uB098
     \uD070\uB3C8\uC744 \uC9C0\uBD88\uD55C \uAE30\uB85D\uC774\uB2E4. \uACE0\uAE09/\uADC0\uC871
     \uACC4\uBCF4\uC758 \uC5ED\uC0AC \uC99D\uAC70\uB85C \uB0A8\uAE34\uB2E4."
+  generationTrigger: 2
   sourceMetric: NobleVisitorRatio
   threshold: 0.25
   decayPolicy: long-term

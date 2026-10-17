@@ -1,0 +1,8 @@
+PASS_NONINTERACTIVE_PROBE
+station=Service-0x0-11e673$
+desktop=DungeonStoryQA_4e42f80f6f054959b2c0e431127493d5
+visible=false
+windowCreatedAndDestroyed=true
+inJob=true
+availablePhysicalBytes=11703623680
+availableCommitBytes=25437831168

@@ -14,18 +14,18 @@ public sealed class CharacterNarrativeCatalog : ICharacterNarrativeCatalog
     public CharacterNarrativeCatalog(IGameContentDefinitionSource content)
     {
         if (content == null) throw new ArgumentNullException(nameof(content));
-        Backgrounds = RequireDefinitions(content.GetAll<CharacterBackgroundDefinitionSO>(), 12, "background");
-        Ambitions = RequireDefinitions(content.GetAll<CharacterAmbitionDefinitionSO>(), 18, "ambition");
-        LifeEvents = RequireDefinitions(content.GetAll<LifeEventDefinitionSO>(), 32, "life event");
-        Cultures = RequireDefinitions(content.GetAll<SpeciesCultureDefinitionSO>(), 10, "culture");
-        Practices = RequireDefinitions(content.GetAll<CulturalPracticeDefinitionSO>(), 20, "cultural practice");
+        Backgrounds = RequireDefinitions(content.GetAll<CharacterBackgroundDefinitionSO>(), "background");
+        Ambitions = RequireDefinitions(content.GetAll<CharacterAmbitionDefinitionSO>(), "ambition");
+        LifeEvents = RequireDefinitions(content.GetAll<LifeEventDefinitionSO>(), "life event");
+        Cultures = RequireDefinitions(content.GetAll<SpeciesCultureDefinitionSO>(), "culture");
+        Practices = RequireDefinitions(content.GetAll<CulturalPracticeDefinitionSO>(), "cultural practice");
         HeritableTraits = content.GetAll<HeritableTraitDefinitionSO>()
             .Where(value => value != null)
             .OrderBy(value => value.traitId, StringComparer.Ordinal)
             .ToArray();
-        if (HeritableTraits.Count != 24)
+        if (HeritableTraits.Count == 0)
             throw new InvalidOperationException(
-                $"V20 requires exactly 24 heritable traits, found {HeritableTraits.Count}.");
+                "At least one heritable trait definition is required.");
         string[] heritableErrors = HeritableTraits
             .SelectMany(value => value.ValidateDefinition())
             .ToArray();
@@ -34,7 +34,6 @@ public sealed class CharacterNarrativeCatalog : ICharacterNarrativeCatalog
                 "V20 heritable trait content is invalid:\n" + string.Join("\n", heritableErrors));
         Proficiencies = RequireDefinitions(
             content.GetAll<ProficiencyDefinitionSO>(),
-            9,
             "proficiency");
         backgrounds = Backgrounds.ToDictionary(value => value.StableId, StringComparer.Ordinal);
         ambitions = Ambitions.ToDictionary(value => value.StableId, StringComparer.Ordinal);
@@ -67,7 +66,7 @@ public sealed class CharacterNarrativeCatalog : ICharacterNarrativeCatalog
                         ?? new List<V20WeightedId>()).All(value =>
                     Math.Abs(value.weight - 1f) < 0.0001f))
                 throw new InvalidOperationException(
-                    $"Culture '{culture.StableId}' requires nine distinct, mechanically varied inter-culture attitudes.");
+                    $"Culture '{culture.StableId}' requires distinct, mechanically varied attitudes for every other culture.");
         }
     }
 
@@ -92,13 +91,13 @@ public sealed class CharacterNarrativeCatalog : ICharacterNarrativeCatalog
     public ProficiencyDefinitionSO Require(CharacterProficiencyId id) =>
         Require(proficiencies, id.Value, "proficiency");
 
-    private static IReadOnlyList<T> RequireDefinitions<T>(IEnumerable<T> source, int expected, string label)
+    private static IReadOnlyList<T> RequireDefinitions<T>(IEnumerable<T> source, string label)
         where T : V20AuthoredContentSO
     {
         T[] values = (source ?? Array.Empty<T>()).Where(value => value != null)
             .OrderBy(value => value.StableId, StringComparer.Ordinal).ToArray();
-        if (values.Length != expected)
-            throw new InvalidOperationException($"V20 requires exactly {expected} {label} definitions, found {values.Length}.");
+        if (values.Length == 0)
+            throw new InvalidOperationException($"At least one {label} definition is required.");
         List<string> errors = values.SelectMany(value => value.ValidateDefinition().Select(error => $"{value.name}: {error}")).ToList();
         if (values.Select(value => value.StableId).Distinct(StringComparer.Ordinal).Count() != values.Length)
             errors.Add($"V20 {label} ids are not unique.");

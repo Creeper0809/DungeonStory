@@ -14,8 +14,8 @@ public sealed class ResourceDiseaseDefinitionCatalog : IDiseaseDefinitionCatalog
     {
         if (content == null) throw new ArgumentNullException(nameof(content));
         DiseaseDefinitionSO[] assets = content.GetAll<DiseaseDefinitionSO>().ToArray();
-        if (assets.Length != 16)
-            throw new InvalidOperationException($"V20 requires exactly 16 disease definitions, found {assets.Length}.");
+        if (assets.Length == 0)
+            throw new InvalidOperationException("At least one disease definition is required.");
         IReadOnlyList<string> authoredErrors = assets
             .SelectMany(value => value.ValidateDefinition())
             .ToArray();

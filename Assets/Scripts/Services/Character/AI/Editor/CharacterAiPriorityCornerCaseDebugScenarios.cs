@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,17 @@ using Object = UnityEngine.Object;
 
 public static class CharacterAiPriorityCornerCaseDebugScenarios
 {
+    public static string RunOwnerActionCompositionForBatch()
+    {
+        if (!VerifyOwnerActionConfigurationPreservesAuthoredVariants())
+        {
+            throw new InvalidOperationException(
+                "Owner action configuration discarded or misordered an authored variant.");
+        }
+
+        return "OWNER_ACTION_COMPOSITION=PASS";
+    }
+
     public static string RunWorkerAllocationLifetimeForArchitectureBatch()
     {
         using PriorityScenarioWorld world = new();
@@ -128,6 +140,10 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         List<string> errors = new List<string>();
 
         RunScenario("AI action score edge cases", VerifyActionScoreEdgeCases, errors);
+        RunScenario(
+            "Owner action configuration preserves authored variants",
+            VerifyOwnerActionConfigurationPreservesAuthoredVariants,
+            errors);
         RunScenario("AI action plan invariants", VerifyActionPlanInvariants, errors);
         RunScenario("Running AI action execution is idempotent", VerifyRunningActionExecutionIsIdempotent, errors);
         RunScenario("AI Execute exception terminates the expected action", VerifyExecutionExceptionTerminatesExpectedAction, errors);
@@ -268,6 +284,90 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         finally
         {
             Object.DestroyImmediate(targetObject);
+        }
+    }
+
+    private static bool VerifyOwnerActionConfigurationPreservesAuthoredVariants()
+    {
+        ICharacterAiActionAssetCatalog catalog =
+            new ResourceCharacterAiActionAssetCatalog(
+                new ResourceGameContentCatalog(
+                    new UnityGameContentRootLoader()));
+        IGameClock clock = CharacterAiEditorTestDependencies.GameClock;
+        AIWork alternativeWork = ScriptableObject.CreateInstance<AIWork>();
+        AIWait additionalWait = ScriptableObject.CreateInstance<AIWait>();
+        AIExitDungeon disallowedExit =
+            ScriptableObject.CreateInstance<AIExitDungeon>();
+        AIAction configuredWork = new AIAction { actionset = alternativeWork };
+        AIAction configuredWait = new AIAction { actionset = additionalWait };
+        AIAction configuredExit = new AIAction { actionset = disallowedExit };
+
+        try
+        {
+            AIAction[] configured =
+            {
+                configuredWork,
+                null,
+                configuredWait,
+                configuredWork,
+                configuredExit
+            };
+            AIAction[] actions = AIBrainActionConfiguration.ConfigureOwner(
+                configured,
+                catalog,
+                clock);
+
+            AIActionSet baselineWork = catalog.GetRequiredAction(
+                "SO/AI/Action/Work",
+                CharacterAiBranch.Work);
+            AIActionSet baselineWait = catalog.GetRequiredAction(
+                "SO/AI/Action/Wait",
+                CharacterAiBranch.Wait);
+            int facilityMealIndex = Array.FindIndex(actions, action =>
+                action?.actionset?.Branch == CharacterAiBranch.Eat
+                && action.actionset is not AIPrimitiveSurvivalAction);
+            int primitiveMealIndex = Array.FindIndex(actions, action =>
+                action?.actionset is AIPrimitiveFieldMeal);
+            FieldInfo clockField = typeof(AIAction).GetField(
+                "gameClock",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            return actions.Length == 18
+                && actions.Count(action => ReferenceEquals(
+                    action,
+                    configuredWork)) == 1
+                && actions.Count(action => ReferenceEquals(
+                    action,
+                    configuredWait)) == 1
+                && actions.Count(action => ReferenceEquals(
+                    action?.actionset,
+                    alternativeWork)) == 1
+                && actions.Count(action => ReferenceEquals(
+                    action?.actionset,
+                    additionalWait)) == 1
+                && actions.Any(action => ReferenceEquals(
+                    action?.actionset,
+                    baselineWork))
+                && actions.Any(action => ReferenceEquals(
+                    action?.actionset,
+                    baselineWait))
+                && actions.All(action =>
+                    action?.actionset?.Branch
+                        != CharacterAiBranch.ExitDungeon)
+                && facilityMealIndex >= 0
+                && primitiveMealIndex > facilityMealIndex
+                && ReferenceEquals(
+                    clockField?.GetValue(configuredWork),
+                    clock)
+                && ReferenceEquals(
+                    clockField?.GetValue(configuredWait),
+                    clock);
+        }
+        finally
+        {
+            Object.DestroyImmediate(alternativeWork);
+            Object.DestroyImmediate(additionalWait);
+            Object.DestroyImmediate(disallowedExit);
         }
     }
 

@@ -52,11 +52,11 @@ public sealed class CombatWeaponSO : CombatEquipmentDefinitionSO
             : new MeleeStrikeVerb();
         float powerMultiplier = CombatEquipmentRoleRules
             .GetPowerPerformanceMultiplier(
-                EquipmentId,
+                RoleFlags,
                 instance?.powerCharge ?? 100f);
         CombatEquipmentRoleFlags roleFlags = CombatEquipmentRoleRules
             .ForPowerState(
-                EquipmentId,
+                RoleFlags,
                 (instance?.powerCharge ?? 100f) > 0f);
         return new CombatWeaponSnapshot(
             EquipmentId,
@@ -91,6 +91,7 @@ public sealed class CombatWeaponSO : CombatEquipmentDefinitionSO
             instance?.durabilityRatio ?? 1f,
             MaximumMisfireChance,
             SmokeExposure,
-            roleFlags);
+            roleFlags,
+            ArcaneManaCost);
     }
 }

@@ -354,19 +354,22 @@ public sealed class CropEcologyRuntime :
                 ":base",
                 StringComparison.Ordinal))
             .ToArray();
-        if (authoredCropIds.Count != 12
-            || authoredGenomes.Length != 32
+        if (authoredCropIds.Count == 0
+            || authoredGenomes.Length == 0
             || authoredGenomes.Any(value => string.IsNullOrWhiteSpace(value.GenomeId)
                 || string.IsNullOrWhiteSpace(value.CropId)
-                || !authoredCropIds.Contains(value.CropId))
+                || !authoredCropIds.Contains(value.CropId)
+                || value.ValidateDefinition().Count != 0)
             || authoredGenomes.Select(value => value.GenomeId)
-                .Distinct(StringComparer.Ordinal).Count() != 32
-            || baseGenomes.Length != 12
+                .Distinct(StringComparer.Ordinal).Count() != authoredGenomes.Length
+            || baseGenomes.Length != authoredCropIds.Count
+            || baseGenomes.Select(value => value.CropId)
+                .Distinct(StringComparer.Ordinal).Count() != baseGenomes.Length
             || !baseGenomes.Select(value => value.CropId)
                 .ToHashSet(StringComparer.Ordinal)
                 .SetEquals(authoredCropIds))
             throw new InvalidOperationException(
-                "V22 requires 12 crops, 32 valid authored genomes, and exactly one base genome per crop.");
+                "Crop ecology requires valid unique authored genomes and exactly one base genome per crop.");
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get(GeneticsRandomStreamId);
         this.stock = stock ?? throw new ArgumentNullException(nameof(stock));

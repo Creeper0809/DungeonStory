@@ -43,27 +43,18 @@ public interface IAnatomyAttachmentQuery
 
 public sealed class AnatomyAttachmentQuery : IAnatomyAttachmentQuery
 {
-    private const AnatomyAttachmentPoint StandardHumanoidPoints =
-        AnatomyAttachmentPoint.Head
-        | AnatomyAttachmentPoint.Face
-        | AnatomyAttachmentPoint.Neck
-        | AnatomyAttachmentPoint.Torso
-        | AnatomyAttachmentPoint.Pelvis
-        | AnatomyAttachmentPoint.Arms
-        | AnatomyAttachmentPoint.Hands
-        | AnatomyAttachmentPoint.Legs
-        | AnatomyAttachmentPoint.Feet
-        | AnatomyAttachmentPoint.Back;
-
     private readonly ICharacterWorldQuery characters;
     private readonly IAnatomyHealthRuntime anatomy;
+    private readonly IAnatomyProfileCatalog profiles;
 
     public AnatomyAttachmentQuery(
         ICharacterWorldQuery characters,
-        IAnatomyHealthRuntime anatomy)
+        IAnatomyHealthRuntime anatomy,
+        IAnatomyProfileCatalog profiles)
     {
         this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
         this.anatomy = anatomy ?? throw new ArgumentNullException(nameof(anatomy));
+        this.profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
     }
 
     public bool CanEquip(
@@ -153,85 +144,41 @@ public sealed class AnatomyAttachmentQuery : IAnatomyAttachmentQuery
             return AnatomyAttachmentPoint.None;
         }
 
-        // Every biological resident, including slime, uses the humanoid apparel
-        // surface. Existing anatomy nodes only remove a standard point when that
-        // exact surface node exists and is missing.
-        AnatomyAttachmentPoint result = StandardHumanoidPoints;
         AnatomyHealthSnapshot snapshot = anatomy.GetAnatomySnapshot(characterId.Value);
-        result = ApplyStandardNode(result, snapshot, "head", AnatomyAttachmentPoint.Head | AnatomyAttachmentPoint.Face);
-        result = ApplyStandardNode(result, snapshot, "torso", AnatomyAttachmentPoint.Torso | AnatomyAttachmentPoint.Pelvis | AnatomyAttachmentPoint.Back);
-        result = ApplyStandardNode(result, snapshot, "arm:left", AnatomyAttachmentPoint.ArmLeft | AnatomyAttachmentPoint.HandLeft);
-        result = ApplyStandardNode(result, snapshot, "arm:right", AnatomyAttachmentPoint.ArmRight | AnatomyAttachmentPoint.HandRight);
-        result = ApplyStandardNode(result, snapshot, "leg:left", AnatomyAttachmentPoint.LegLeft | AnatomyAttachmentPoint.FootLeft);
-        result = ApplyStandardNode(result, snapshot, "leg:right", AnatomyAttachmentPoint.LegRight | AnatomyAttachmentPoint.FootRight);
-
-        if (HasFunctionalNode(snapshot, "tail")
-            || HasFunctionalNode(snapshot, "balance-tail"))
+        AnatomyProfileDefinition profile = RequireProfile(characterId, snapshot);
+        AnatomyAttachmentPoint result = profile.ApparelBasePoints;
+        foreach (AnatomyApparelAttachment binding in profile.ApparelAttachments)
         {
-            result |= AnatomyAttachmentPoint.Tail;
+            AnatomyNodeHealthState node = snapshot.Nodes.FirstOrDefault(value => value != null
+                && string.Equals(value.nodeId, binding.nodeId, StringComparison.Ordinal));
+            if (binding.mode == AnatomyApparelAttachmentMode.RemoveWhenMissing)
+            {
+                if (node?.missing == true) result &= ~binding.points;
+            }
+            else if (node != null && !node.missing)
+                result |= binding.points;
         }
-        if (HasFunctionalNode(snapshot, "wing:left"))
-        {
-            result |= AnatomyAttachmentPoint.WingLeft;
-        }
-        if (HasFunctionalNode(snapshot, "wing:right"))
-        {
-            result |= AnatomyAttachmentPoint.WingRight;
-        }
-        if (HasFunctionalNode(snapshot, "horn:left")
-            || HasFunctionalNode(snapshot, "horn:right")
-            || HasFunctionalNode(snapshot, "horn-set"))
-        {
-            result |= AnatomyAttachmentPoint.HornSet;
-        }
-
         return result;
     }
 
-    public ApparelBodyForm GetBodyForm(CharacterId characterId)
-    {
-        CharacterActor actor = FindActor(characterId);
-        return string.Equals(actor?.SpeciesTag, "Golem", StringComparison.OrdinalIgnoreCase)
-            ? ApparelBodyForm.Construct
-            : ApparelBodyForm.Humanoid;
-    }
+    public ApparelBodyForm GetBodyForm(CharacterId characterId) =>
+        RequireProfile(characterId, anatomy.GetAnatomySnapshot(characterId.Value)).ApparelBodyForm;
 
-    public ApparelSizeClass GetSize(CharacterId characterId)
+    public ApparelSizeClass GetSize(CharacterId characterId) =>
+        RequireProfile(characterId, anatomy.GetAnatomySnapshot(characterId.Value)).ApparelSize;
+
+    private AnatomyProfileDefinition RequireProfile(CharacterId id, AnatomyHealthSnapshot snapshot)
     {
-        string species = FindActor(characterId)?.SpeciesTag?.Trim() ?? string.Empty;
-        if (string.Equals(species, "Kobold", StringComparison.OrdinalIgnoreCase))
-        {
-            return ApparelSizeClass.Small;
-        }
-        if (string.Equals(species, "Orc", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(species, "Golem", StringComparison.OrdinalIgnoreCase))
-        {
-            return ApparelSizeClass.Large;
-        }
-        return ApparelSizeClass.Medium;
+        string profileId = string.IsNullOrWhiteSpace(snapshot.ProfileId)
+            ? FindActor(id)?.profile?.GetAnatomyProfileId() : snapshot.ProfileId;
+        return profiles.TryGet(profileId, out AnatomyProfileDefinition profile)
+            ? profile
+            : throw new InvalidOperationException($"Apparel fit requires the actor's authored anatomy profile '{profileId}'.");
     }
 
     private CharacterActor FindActor(CharacterId id) => characters.Characters
         .FirstOrDefault(actor => CharacterPersistentIdentity.TryGet(actor, out CharacterId found)
             && found.Equals(id));
-
-    private static AnatomyAttachmentPoint ApplyStandardNode(
-        AnatomyAttachmentPoint current,
-        AnatomyHealthSnapshot snapshot,
-        string nodeId,
-        AnatomyAttachmentPoint points)
-    {
-        AnatomyNodeHealthState node = snapshot.Nodes.FirstOrDefault(value =>
-            value != null && string.Equals(value.nodeId, nodeId, StringComparison.Ordinal));
-        return node != null && node.missing
-            ? current & ~points
-            : current;
-    }
-
-    private static bool HasFunctionalNode(AnatomyHealthSnapshot snapshot, string nodeId) =>
-        snapshot.Nodes.Any(value => value != null
-            && !value.missing
-            && string.Equals(value.nodeId, nodeId, StringComparison.Ordinal));
 
     private static ApparelModificationKind RequiredOpenings(AnatomyAttachmentPoint points)
     {

@@ -26,6 +26,7 @@ MonoBehaviour:
   displayName: "\uACBD\uBE44 \uC9D1\uACB0\uC9C0"
   description: "\uACBD\uBE44\uB098 \uC804\uD22C \uC778\uC6D0\uC774 \uC774 \uC2DC\uC124\uC744
     \uC9D1\uACB0\uC9C0\uCC98\uB7FC \uC774\uC6A9\uD55C \uAE30\uB85D\uC774\uB2E4."
+  generationTrigger: 7
   sourceMetric: ZoneSafetyScore
   threshold: 0.4
   decayPolicy: recent+long-term

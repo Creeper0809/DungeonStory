@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using UnityEngine;
 
 public interface IFacilityEvolutionRecordEventRecorder
@@ -27,17 +28,58 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
     private readonly IFacilityCandidateCache facilityCandidateCache;
     private readonly IFacilityEvolutionRecordComponentService recordComponentService;
     private readonly IFacilityEvolutionRuntime instanceEvolutionRuntime;
+    private readonly FacilityEvolutionRecordTokenDefinitionSO[] tokenDefinitions;
+    private static readonly HashSet<string> ProducedMetrics = new(StringComparer.Ordinal)
+    {
+        FacilityEvolutionTerms.AverageSatisfaction,
+        FacilityEvolutionTerms.AverageSpend,
+        FacilityEvolutionTerms.CombatVisitorRatio,
+        FacilityEvolutionTerms.CrimeCount,
+        FacilityEvolutionTerms.CriminalVisitorRatio,
+        FacilityEvolutionTerms.FacilityDamageTaken,
+        FacilityEvolutionTerms.HighValueTransactionCount,
+        FacilityEvolutionTerms.IntruderDamageDealt,
+        FacilityEvolutionTerms.IntruderDelayTime,
+        FacilityEvolutionTerms.NegativeMentionCount,
+        FacilityEvolutionTerms.NobleVisitorRatio,
+        FacilityEvolutionTerms.PositiveMentionCount,
+        FacilityEvolutionTerms.ProfitPerVisit,
+        FacilityEvolutionTerms.RepeatVisitorRatio,
+        FacilityEvolutionTerms.StockCostPerVisit,
+        FacilityEvolutionTerms.StockoutCount,
+        FacilityEvolutionTerms.TheftCount,
+        FacilityEvolutionTerms.TotalRevenue,
+        FacilityEvolutionTerms.UniqueVisitorCount,
+        FacilityEvolutionTerms.VisitCount,
+    };
 
     public FacilityEvolutionRecordEventRecorder(
         IFacilityCandidateCache facilityCandidateCache,
         IFacilityEvolutionRecordComponentService recordComponentService,
-        IFacilityEvolutionRuntime instanceEvolutionRuntime)
+        IFacilityEvolutionRuntime instanceEvolutionRuntime,
+        IFacilityEvolutionRecordTokenDefinitionProvider tokenDefinitionProvider)
     {
         this.facilityCandidateCache = facilityCandidateCache
             ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
         this.recordComponentService = recordComponentService
             ?? throw new ArgumentNullException(nameof(recordComponentService));
         this.instanceEvolutionRuntime = instanceEvolutionRuntime;
+        tokenDefinitions = (tokenDefinitionProvider
+            ?? throw new ArgumentNullException(nameof(tokenDefinitionProvider))).GetDefinitions().ToArray();
+        if (tokenDefinitions.Any(definition => definition == null
+                || string.IsNullOrWhiteSpace(definition.EffectiveId)
+                || !Enum.IsDefined(typeof(FacilityEvolutionRecordTokenGenerationTrigger), definition.generationTrigger))
+            || tokenDefinitions.Select(definition => definition.EffectiveId)
+                .Distinct(StringComparer.Ordinal).Count() != tokenDefinitions.Length)
+            throw new InvalidOperationException("Facility record token generation definitions are invalid or duplicated.");
+        foreach (FacilityEvolutionRecordTokenDefinitionSO definition in tokenDefinitions.Where(definition =>
+                     definition.generationTrigger == FacilityEvolutionRecordTokenGenerationTrigger.MetricThresholdCrossing))
+        {
+            if (!ProducedMetrics.Contains(definition.sourceMetric ?? string.Empty)
+                || !float.IsFinite(definition.threshold) || definition.threshold <= 0f
+                || !string.Equals(definition.decayPolicy, "long-term", StringComparison.Ordinal))
+                throw new InvalidOperationException($"Token '{definition.EffectiveId}' requires a produced metric, positive threshold and long-term retention.");
+        }
     }
 
     public void RecordVisit(FacilityVisitEvent eventType, int highTurnoverVisitStep)
@@ -90,19 +132,19 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
 
             if (combatVisitor && SupportsRole(facility, FacilityRole.Meal))
             {
-                record.AddToken(FacilityEvolutionTerms.MercenaryHangout, 1);
+                GrantTokens(record, FacilityEvolutionRecordTokenGenerationTrigger.CombatMealVisit, 1);
                 record.AddRecentEvent($"{GetActorName(visitor)} visited {GetFacilityName(facility)} as a combat-oriented guest.");
             }
 
             if (nobleVisitor)
             {
-                record.AddToken(FacilityEvolutionTerms.NoblePatronage, 1);
+                GrantTokens(record, FacilityEvolutionRecordTokenGenerationTrigger.NobleVisitOrHighValueRevenue, 1);
             }
         }
 
         if (highTurnoverVisitStep > 0 && Mathf.RoundToInt(nextVisits) % highTurnoverVisitStep == 0)
         {
-            record.AddToken(FacilityEvolutionTerms.HighTurnoverService, 1);
+            GrantTokens(record, FacilityEvolutionRecordTokenGenerationTrigger.TurnoverVisitMilestone, 1);
         }
 
         RecordInstanceUsage(
@@ -139,7 +181,7 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
         if (eventType.revenue >= highValueRevenueThreshold)
         {
             IncrementMetric(record, FacilityEvolutionTerms.HighValueTransactionCount, 1f);
-            record.AddToken(FacilityEvolutionTerms.NoblePatronage, 1);
+            GrantTokens(record, FacilityEvolutionRecordTokenGenerationTrigger.NobleVisitOrHighValueRevenue, 1);
         }
 
         GetDayRecord(facility).revenue += eventType.revenue;
@@ -176,7 +218,7 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
         SetMetric(record, FacilityEvolutionTerms.StockCostPerVisit, consumedStock / visitCount);
         if (eventType.category == StockCategory.Food && SupportsRole(facility, FacilityRole.Meal))
         {
-            record.AddToken(FacilityEvolutionTerms.HighMeatConsumption, Mathf.Max(1, eventType.amount));
+            GrantTokens(record, FacilityEvolutionRecordTokenGenerationTrigger.MealFoodConsumed, Mathf.Max(1, eventType.amount));
         }
 
         RecordInstanceUsage(
@@ -217,7 +259,7 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             record,
             FacilityEvolutionTerms.CriminalVisitorRatio,
             Mathf.Clamp01(GetMetric(record, FacilityEvolutionTerms.CrimeCount) / visits));
-        record.AddToken(FacilityEvolutionTerms.OutlawRumor, 1);
+        GrantTokens(record, FacilityEvolutionRecordTokenGenerationTrigger.CrimeReported, 1);
         record.AddRecentEvent(string.IsNullOrWhiteSpace(eventType.detail)
             ? $"Crime occurred at {GetFacilityName(facility)}."
             : eventType.detail);
@@ -291,12 +333,12 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
         IncrementMetric(record, FacilityEvolutionTerms.IntruderDelayTime, report.MovementDelaySeconds);
         if (report.TotalDamage > 0f)
         {
-            record.AddToken(FacilityEvolutionTerms.IntruderBloodied, 1);
+            GrantTokens(record, FacilityEvolutionRecordTokenGenerationTrigger.DamagingDefense, 1);
         }
 
         if (report.Concept == DefenseAttackConcept.Guard)
         {
-            record.AddToken(FacilityEvolutionTerms.GuardRallyPoint, 1);
+            GrantTokens(record, FacilityEvolutionRecordTokenGenerationTrigger.GuardDefense, 1);
         }
 
         record.AddRecentEvent(report.FormatSummary());
@@ -358,7 +400,7 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             FacilityEvolutionRecordComponent record = GetOrAddRecord(day.facility);
             if (day.visits >= cleanServiceMinVisits && day.incidents == 0)
             {
-                record.AddToken(FacilityEvolutionTerms.CleanServiceStreak, 1);
+                GrantTokens(record, FacilityEvolutionRecordTokenGenerationTrigger.CleanServiceDay, 1);
                 IncrementMetric(record, FacilityEvolutionTerms.PositiveMentionCount, 1f);
                 RecordInstanceUsage(
                     day.facility,
@@ -490,7 +532,7 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             });
     }
 
-    private static void IncrementMetric(FacilityEvolutionRecordComponent record, string key, float delta)
+    private void IncrementMetric(FacilityEvolutionRecordComponent record, string key, float delta)
     {
         if (record == null || string.IsNullOrWhiteSpace(key) || Mathf.Approximately(delta, 0f))
         {
@@ -500,9 +542,26 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
         SetMetric(record, key, GetMetric(record, key) + delta);
     }
 
-    private static void SetMetric(FacilityEvolutionRecordComponent record, string key, float value)
+    private void SetMetric(FacilityEvolutionRecordComponent record, string key, float value)
     {
-        record?.SetMetric(key, value);
+        if (record == null) return;
+        float previous = GetMetric(record, key);
+        record.SetMetric(key, value);
+        foreach (FacilityEvolutionRecordTokenDefinitionSO definition in tokenDefinitions)
+        {
+            if (definition.generationTrigger == FacilityEvolutionRecordTokenGenerationTrigger.MetricThresholdCrossing
+                && string.Equals(definition.sourceMetric, key, StringComparison.Ordinal)
+                && previous < definition.threshold && value >= definition.threshold)
+                record.AddToken(definition.EffectiveId, 1);
+        }
+    }
+
+    private void GrantTokens(FacilityEvolutionRecordComponent record,
+        FacilityEvolutionRecordTokenGenerationTrigger trigger, int amount)
+    {
+        foreach (FacilityEvolutionRecordTokenDefinitionSO definition in tokenDefinitions)
+            if (definition.generationTrigger == trigger)
+                record.AddToken(definition.EffectiveId, amount);
     }
 
     private static float GetMetric(FacilityEvolutionRecordComponent record, string key)

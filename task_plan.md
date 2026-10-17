@@ -1,5 +1,13 @@
 # DungeonStory Current Task Plan
 
+## 현재 작업 — SO 모듈 확장 완료 (2026-10-18)
+
+Status: complete
+
+SO161타입/147원본과 작성124타입/3538 asset-script 연결의 전수 조사, 필요한 확장 장벽 수정과 정적 검토를 마쳤다. 최종 source-pin-r6으로 current compile/새 SO 조합·복원/재시도·기존 캐릭터/사건/전투 회귀·실제 GameplayScene Play를 5회 모두 PASS/exit0로 완료했다. 입력4081/DLL47 drift0, compile36.238804초/CS0, actual Play149modules/153bindings/facts. 새 소스/에셋/asmdef 편집 없이 실행했고 관련 인덱스는 기존 current PASS를 재사용한다.
+
+[조사·수정 보고서](docs/dev/so-modularity-audit-20261017.md), [최종 검증](Artifacts/QA/SoModularity-20261017/verification-final.json). 모든 native terminal/Unity0, SOURCE_EDIT/UNITY_VERIFY CLOSED. 남은 필수 구현/실행 대기는 없다. 아래 32개 기록은 이전 완료 작업이다.
+
 ## 현재 단계 — 보고서 32개 처리·필수 실행 완료
 
 Status: complete

@@ -19,6 +19,16 @@ internal sealed class CharacterBodyHealthStateRules
         return anatomyProfiles.GetForSpecies(speciesTag);
     }
 
+    public AnatomyProfileDefinition ResolveForActor(CharacterActor actor)
+    {
+        string profileId = actor?.profile?.GetAnatomyProfileId();
+        if (string.IsNullOrWhiteSpace(profileId))
+            return ResolveForSpecies(actor?.SpeciesTag);
+        return anatomyProfiles.TryGet(profileId, out AnatomyProfileDefinition profile)
+            ? profile
+            : throw new InvalidOperationException($"Unknown authored anatomy profile '{profileId}'.");
+    }
+
     public bool TryResolveProfile(
         string profileId,
         out AnatomyProfileDefinition profile) =>
@@ -526,6 +536,14 @@ internal sealed class CharacterBodyHealthStateRules
         string profileId,
         CombatBodyPart bodyPart)
     {
+        if (anatomyProfiles.TryGet(profileId, out AnatomyProfileDefinition profile))
+        {
+            AnatomyNodeDefinition authored = profile.Nodes.FirstOrDefault(node =>
+                node.MapsToLegacyBodyPart && node.LegacyBodyPart == bodyPart);
+            if (authored != null) return authored.NodeId;
+        }
+
+        // Preserve unmapped compatibility aliases in existing saved profiles.
         if (string.Equals(profileId, "anatomy:slime", StringComparison.Ordinal))
         {
             return bodyPart == CombatBodyPart.Head ? "core" : "membrane";

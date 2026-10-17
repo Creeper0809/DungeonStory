@@ -1,5 +1,6 @@
 ﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
 CombatWeaponSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/CombatAmmunitionPolicy.cs
+CombatWeaponSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs
 CombatWeaponSO,content-type,,type-reference; save-restore-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentLoadoutRuntime.cs
 CombatWeaponSO,content-type,,type-reference; save-restore-reference,services:combat,persistence,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentRestoreBuilder.cs
 CombatWeaponSO,content-type,,type-reference,services:combat,runtime,structural-type-consumer,Assets/Scripts/Services/Combat/CombatEquipmentSupplyService.cs

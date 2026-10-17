@@ -1,0 +1,623 @@
+{
+  "audit": "ScriptableObject modular-extension audit: combat/medical",
+  "owner": "combat_medical",
+  "branch": "codex/so-modular-extension",
+  "inventory": {
+    "source": "Artifacts/QA/SoModularity-20261017/so-inventory.json",
+    "assetCrosscheck": "Artifacts/QA/SoModularity-20261017/so-authored-assets.json",
+    "assignedTypeCount": 18,
+    "reviewedTypeCount": 18,
+    "authoredAssetCrosscheck": {
+      "authoredTypeCount": 124,
+      "firstPartyAssetScriptPairs": 3538,
+      "unclassifiedFirstPartyScriptRefs": 0
+    }
+  },
+  "method": {
+    "instructions": [
+      "AGENTS.md",
+      "C:/Users/vulpo/.codex/skills/unity-scriptableobjects/SKILL.md",
+      "docs/dev/verification.md"
+    ],
+    "knowledgeBase": "Reused the already-fresh index and the main session's narrow lookup clue; no regeneration or repeated freshness scan was performed. Source, registrations, consumers, runtime ownership, and save paths are the authority for this audit.",
+    "criteria": "A finding is reported only when new data/composition using an existing capability requires a content-ID branch, a registered definition is silently ignored, shared SO state leaks, or runtime/save behavior prevents extension. New enum mechanics or explicit handler registration for a genuinely new mechanic are excluded.",
+    "unityExecuted": false,
+    "sourceTestOrAssetEdits": false,
+    "result": "Five confirmed modular-extension blockers, no unresolved candidate findings. Eighteen assigned types have explicit dispositions."
+  },
+  "summary": {
+    "confirmedBlockerCount": 5,
+    "confirmedBlockerIds": [
+      "CM-OFFENSE-FIXED-CENSUS",
+      "CM-DISEASE-FIXED-CENSUS",
+      "CM-COMBAT-EQUIPMENT-ID-ROLES",
+      "CM-ANATOMY-SPECIES-AUTHORITY",
+      "CM-APPAREL-SPECIES-ID-FIT"
+    ],
+    "unresolvedCandidateCount": 0,
+    "blockedTypeCount": 10,
+    "clearTypeCount": 8
+  },
+  "findings": [
+    {
+      "id": "CM-OFFENSE-FIXED-CENSUS",
+      "status": "confirmed_blocker",
+      "affectedTypes": [
+        "BattlefieldModifierDefinitionSO",
+        "EnemyAbilityDefinitionSO",
+        "EnemyArchetypeDefinitionSO"
+      ],
+      "problem": "The production enemy-combat catalog discovers all three definition families generically, validates their references, and then rejects every valid additional archetype, ability, or battlefield modifier through exact 36/18/12 content counts.",
+      "productionEvidence": [
+        {
+          "path": "Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs",
+          "lines": "46-56,124-138,141-169,171-185",
+          "evidence": "EnemyCombatContentCatalog calls RequireExact for 36 archetypes, 18 abilities, and 12 modifiers before building ID dictionaries. RequireExact adds an error whenever the discovered count differs, while later lookup and cross-reference validation are generic and ID-based."
+        },
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonProgressionOffenseRegistration.cs",
+          "lines": "158",
+          "evidence": "The exact-count catalog is the production offense registration."
+        },
+        {
+          "path": "Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs",
+          "lines": "46-64,174-185,373-387,520-581",
+          "evidence": "Production resolves archetypes, abilities, and modifiers through catalog interfaces; existing ability effect kinds and modifier data are projected without content-ID branches."
+        },
+        {
+          "path": "Assets/Scripts/Models/Characters/EnemyIndividualSaveData.cs",
+          "lines": "13-42",
+          "evidence": "Enemy individuals persist enemyArchetypeId, and restore resolves it through the catalog in EnemyIndividualRuntime.cs:342-378."
+        }
+      ],
+      "smallestReproducer": "Add one valid unique EnemyAbilityDefinitionSO, EnemyArchetypeDefinitionSO, or BattlefieldModifierDefinitionSO to the authoritative domain catalog without removing an existing asset. Construct EnemyCombatContentCatalog through production registration. Construction throws only because the family count is 19, 37, or 13.",
+      "existingTargetedNativeEntries": [
+        {
+          "path": "Assets/Scripts/Services/Offense/Editor/V20EnemyIndividualDebugScenarios.cs",
+          "lines": "9-25,52-78,118-164",
+          "entry": "V20EnemyIndividualDebugScenarios.Run",
+          "coverage": "Constructs the real root catalog and EnemyCombatContentCatalog, creates deterministic individuals, resolves a blueprint, and round-trips persisted enemyArchetypeId data."
+        },
+        {
+          "path": "Assets/Scripts/Services/Offense/Editor/OffenseNodeResolutionCausalProductionEntryDebugScenarios.cs",
+          "lines": "30-56,261-268",
+          "entry": "OffenseNodeResolutionCausalProductionEntryDebugScenarios.RunCausalOwnerFamily",
+          "coverage": "Existing production-entry fixture reaches EnemyCombatContentCatalog and tactical decisions."
+        }
+      ],
+      "smallestRepairBoundary": "Remove only the three exact census checks. Retain non-empty IDs, definition validation, duplicate rejection, equipment references, archetype-to-ability references, encounter-to-archetype references, and modifier references."
+    },
+    {
+      "id": "CM-DISEASE-FIXED-CENSUS",
+      "status": "confirmed_blocker",
+      "affectedTypes": [
+        "DiseaseDefinitionSO"
+      ],
+      "problem": "The disease catalog converts every valid SO to an immutable runtime definition, but requires the discovered set to contain exactly 16 definitions. A valid seventeenth disease cannot enter production or restore.",
+      "productionEvidence": [
+        {
+          "path": "Assets/Scripts/Services/Character/PopulationHealthRuntime.cs",
+          "lines": "9-38",
+          "evidence": "ResourceDiseaseDefinitionCatalog loads all DiseaseDefinitionSO assets, checks definitions.Length != 16, then builds a generic ID dictionary and Require lookup."
+        },
+        {
+          "path": "Assets/Scripts/Content/DiseaseDefinitionSO.cs",
+          "lines": "7-50",
+          "evidence": "All authored transmission, duration, probability, severity, target-system, chronic, symptom, and field-response values are copied into DiseaseDefinition and validated."
+        },
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonCharacterRegistration.cs",
+          "lines": "303",
+          "evidence": "ResourceDiseaseDefinitionCatalog is the production IDiseaseDefinitionCatalog."
+        },
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Save/DungeonHealthSaveReferenceValidation.cs",
+          "lines": "47-116,146,294-304",
+          "evidence": "Health restore validates persisted disease IDs against the catalog; the save contract is already ID-based and does not require a fixed count."
+        }
+      ],
+      "smallestReproducer": "Add a seventeenth valid, uniquely identified DiseaseDefinitionSO and include it in the authoritative domain catalog. Construct ResourceDiseaseDefinitionCatalog. It throws before PopulationHealthRuntime can use the otherwise valid definition.",
+      "existingTargetedNativeEntries": [
+        {
+          "path": "Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs",
+          "lines": "31-52,1235-1258",
+          "entry": "V20ContentResolutionRecoveryDebugScenarios.RunObserverBatch",
+          "coverage": "Its production-style fixture creates ResourceDiseaseDefinitionCatalog from root content and wires PopulationHealthRuntime through save/recovery work."
+        },
+        {
+          "path": "Assets/Scripts/Services/Character/Editor/DiseaseAnatomyBurdenProjectionDebugScenarios.cs",
+          "lines": "13-24,277-285,460-506",
+          "entry": "DiseaseAnatomyBurdenProjectionDebugScenarios.RunCA02FromBatch",
+          "coverage": "Existing isolated native disease-to-anatomy and save/retry boundary; it currently uses a controlled disease catalog for the focused projection."
+        }
+      ],
+      "smallestRepairBoundary": "Remove only the exact-sixteen guard; retain DiseaseDefinition.IsValid, authoring validation, duplicate-ID rejection, and save-reference validation."
+    },
+    {
+      "id": "CM-COMBAT-EQUIPMENT-ID-ROLES",
+      "status": "confirmed_blocker",
+      "affectedTypes": [
+        "CombatEquipmentDefinitionSO",
+        "CombatWeaponSO",
+        "CombatArmorSO",
+        "CombatShieldSO"
+      ],
+      "problem": "Existing combat roles and arcane-weapon behavior are assigned by exact equipment IDs outside the SOs. A new weapon, armor, or shield cannot opt into an already-supported role such as Powered, ArmorBreaker, SpellBlock, DeployableCover, or Arcane through authored composition.",
+      "productionEvidence": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs",
+          "lines": "8-70,121-163",
+          "evidence": "The base SO and generic catalog expose stable IDs, craft data, slots, effects, lineage, and durability, but no role flags or arcane profile. The catalog accepts every unique derived definition."
+        },
+        {
+          "path": "Assets/Scripts/Models/Combat/Core/CombatModels.cs",
+          "lines": "19-103",
+          "evidence": "CombatEquipmentRoleRules.For switches on ten exact definition IDs to assign all existing role flags and power behavior. Unknown IDs receive None."
+        },
+        {
+          "path": "Assets/Scripts/Models/Combat/Core/CharacterArcaneWeaponRules.cs",
+          "lines": "3-17",
+          "evidence": "Arcane classification and mana costs are exact-ID checks for rune-blade, mana-lance, and rune-bow."
+        },
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CombatWeaponSO.cs",
+          "lines": "41-94",
+          "evidence": "CreateSnapshot ignores authored effects for role selection and derives roleFlags/powerMultiplier only from EquipmentId through CombatEquipmentRoleRules."
+        },
+        {
+          "path": "Assets/Scripts/Services/Combat/CombatResolutionService.cs",
+          "lines": "439-612,850-878,996-1017,1317-1416",
+          "evidence": "The derived flags change ammunition bursts, suppression, armor breaking, pull, cover, spell blocking, and smoke/blast protection in live combat."
+        },
+        {
+          "path": "Assets/Scripts/Models/Combat/Core/EquipmentItemStateCodec.cs",
+          "lines": "15-63,81-138",
+          "evidence": "Physical equipment persists the instance and definitionId in the JSON payload; save identity is already stable-ID based and does not require the role switch."
+        }
+      ],
+      "smallestReproducer": "Clone the data of weapon:pollaxe or shield:mana-buckler into a new valid SO with a new EquipmentId and catalog it. CreateSnapshot returns no ArmorBreaker/PullOnHit or SpellBlock role for the clone even though the runtime already supports those mechanics; the new ID must be added to code.",
+      "existingTargetedNativeEntries": [
+        {
+          "path": "Assets/Scripts/Services/Combat/Editor/CombatSystemDebugScenarios.cs",
+          "lines": "11-18,89-118,680-796",
+          "entry": "CombatSystemDebugScenarios.RunFromMenu",
+          "coverage": "RunAll includes VerifyV21RoleEquipmentEffects and verifies the current exact-ID role outcomes in real combat resolution."
+        },
+        {
+          "path": "Assets/Scripts/Services/Character/Editor/ArcaneOverchargeA07DebugScenarios.cs",
+          "lines": "12-24,129-150",
+          "entry": "ArcaneOverchargeA07DebugScenarios.RunBatch",
+          "coverage": "Existing arcane equipment/mana behavior target for preserving current rules while adding a new-ID witness."
+        }
+      ],
+      "smallestRepairBoundary": "Author existing role flags and arcane mana policy on the immutable equipment definition surface, project them into snapshots, and keep CombatResolutionService consuming flags. Preserve stable definition IDs and instance save data. Do not introduce a new strategy family for these already-supported roles."
+    },
+    {
+      "id": "CM-ANATOMY-SPECIES-AUTHORITY",
+      "status": "confirmed_blocker",
+      "affectedTypes": [
+        "AnatomyProfileSO"
+      ],
+      "problem": "Character species author an anatomyProfileId and the character model retains it, but body-health creation ignores that field. It reverse-resolves the actor's SpeciesTag through AnatomyProfileSO.speciesIds and silently falls back to a humanoid profile. A newly authored species-to-profile binding can therefore be ignored and saved with the wrong anatomy.",
+      "productionEvidence": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/CharacterSpeciesDefinitionSO.cs",
+          "lines": "237-255,307-332",
+          "evidence": "Every species definition has a required anatomyProfileId."
+        },
+        {
+          "path": "Assets/Scripts/Services/Character/SO/CharacterModelData.cs",
+          "lines": "68-77,236-244",
+          "evidence": "CharacterModelData copies anatomyProfileId and exposes GetAnatomyProfileId, proving the authored binding reaches immutable character model data."
+        },
+        {
+          "path": "Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs",
+          "lines": "17-43,47-80",
+          "evidence": "ResourceAnatomyProfileCatalog creates a reverse species map from profile.SpeciesIds using TryAdd; duplicate species mappings are silently ignored. Missing species return a hard-coded humanoid/human/family/first profile fallback."
+        },
+        {
+          "path": "Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs",
+          "lines": "1666-1685,1715-1765",
+          "evidence": "Body creation calls ResolveForSpecies(actor.SpeciesTag); it never reads CharacterModelData.GetAnatomyProfileId. The first state is even initialized from ResolveProfile(string.Empty) before the reverse species projection overwrites it."
+        },
+        {
+          "path": "Assets/Scripts/Services/Combat/CharacterBodyHealthContracts.cs",
+          "lines": "8-20",
+          "evidence": "The mutable body state persists anatomyProfileId, so a wrong initial choice becomes save authority."
+        },
+        {
+          "path": "Assets/Scripts/Services/Combat/CharacterBodyHealthStateRules.cs",
+          "lines": "17-25,182-189,230-272,1066-1078",
+          "evidence": "Runtime and restore subsequently trust the saved profile ID and validate that it exists, rather than reconciling it with the species definition's authored binding."
+        }
+      ],
+      "smallestReproducer": "Add a valid species definition whose anatomyProfileId references an existing non-humanoid profile, but do not duplicate the new species tag into that AnatomyProfileSO.speciesIds list. Spawn the species and create body health. The body receives the default humanoid profile instead of the explicitly authored profile, with no failure.",
+      "existingTargetedNativeEntries": [
+        {
+          "path": "Assets/Scripts/Services/Medical/Editor/SurgeryDebugScenarios.cs",
+          "lines": "109-156,603-658",
+          "entry": "SurgeryDebugScenarios.RunFromMenu",
+          "coverage": "The existing anatomy_profiles case validates the current reverse SpeciesIds mappings, including the nine known species. It is the narrow place to add a species-definition authority witness."
+        },
+        {
+          "path": "Assets/Scripts/Services/Character/Editor/AgeConditionAnatomyProjectionDebugScenarios.cs",
+          "lines": "12-24,67-87",
+          "entry": "AgeConditionAnatomyProjectionDebugScenarios.RunCA01FromBatch",
+          "coverage": "Existing isolated production body lifecycle and save/retry witness after profile selection is corrected."
+        }
+      ],
+      "smallestRepairBoundary": "Choose one authority for species-to-anatomy mapping. The smallest production repair is to resolve the species definition's existing anatomyProfileId through IAnatomyProfileCatalog when creating a body, fail explicitly when it is absent, and validate any retained profile.SpeciesIds index against that binding. Preserve saved anatomyProfileId for existing bodies."
+    },
+    {
+      "id": "CM-APPAREL-SPECIES-ID-FIT",
+      "status": "confirmed_blocker",
+      "affectedTypes": [
+        "AnatomyProfileSO",
+        "ApparelDefinitionSO"
+      ],
+      "problem": "Apparel definitions author body form and attachment requirements, but wearer form, size, and available attachment points are derived from hard-coded species and anatomy node IDs. A new species/profile cannot express an existing body form or size and can be granted humanoid attachment points that its anatomy does not have.",
+      "productionEvidence": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs",
+          "lines": "269-317,386-426",
+          "evidence": "ApparelDefinitionSO authors BodyForm, FitMode, required/occupied/sealed attachment points and is cataloged generically by stable ID and physical item ID."
+        },
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs",
+          "lines": "31-56,69-145,148-211",
+          "evidence": "AnatomyAttachmentQuery starts every biological resident with StandardHumanoidPoints, removes points only for six exact node IDs, recognizes optional appendages by exact node IDs, assigns Construct only to species Golem, assigns Small only to Kobold, Large only to Orc/Golem, and defaults every other species to Humanoid/Medium."
+        },
+        {
+          "path": "Assets/Scripts/Models/Medical/Core/AnatomyProfileSO.cs",
+          "lines": "7-36",
+          "evidence": "The profile supplies arbitrary authored nodes and family/species identity, but the apparel query has no generic projection from them to body form, size, or attachment surface."
+        },
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelItemStateCodec.cs",
+          "lines": "109-149,152-263",
+          "evidence": "Apparel instance save data persists apparelDefinitionId and size by stable values. The catalog's ordinal index is not the saved identity, so extension is blocked by fit projection rather than persistence."
+        }
+      ],
+      "smallestReproducer": "Create a new large construct species and a valid AnatomyProfileSO with its own non-humanoid surface node names. Give the species that profile and call AnatomyAttachmentQuery. It returns Humanoid/Medium and begins with all standard humanoid points; a humanoid garment may pass while a construct garment or valid large sizing fails unless the new SpeciesTag and node IDs are added to code.",
+      "existingTargetedNativeEntries": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Environment/Editor/Wim003ApparelConditionRuntimeDebugScenarios.cs",
+          "lines": "13-55,58-84,273-283",
+          "entry": "Wim003ApparelConditionRuntimeDebugScenarios.RunProtectedPlay",
+          "coverage": "Resolves production IAnatomyAttachmentQuery/IApparelDefinitionCatalog and uses CanEquip/GetSize through real apparel commands and physical save state."
+        },
+        {
+          "path": "Assets/Scripts/Services/Economy/Editor/V22ApparelDebugScenarios.cs",
+          "lines": "12-38,41-70",
+          "entry": "V22ApparelDebugScenarios.RunFromMenu",
+          "coverage": "Validates current authored apparel definition identities and attachment requirements; it currently has no new-species fit witness."
+        }
+      ],
+      "smallestRepairBoundary": "Add immutable apparel fit metadata at the species/anatomy definition boundary and have AnatomyAttachmentQuery consume it. Existing ApparelBodyForm, ApparelSizeClass, and AnatomyAttachmentPoint mechanics are sufficient; remove the SpeciesTag switches and derive available points from authored profile projection with explicit validation for unmapped nodes."
+    }
+  ],
+  "nonFindings": [
+    {
+      "id": "CM-FUNCTIONAL-CAPACITY-METADATA",
+      "types": [
+        "CharacterFunctionalCapacityDefinitionSO"
+      ],
+      "reason": "The fourteen assets are authoring/display metadata for the closed CharacterFunctionalCapacityId mechanic and are referenced only by Editor builder/debug validation. Runtime formulas consume the enum and anatomy-derived snapshot. Adding a genuinely new capacity requires a new mechanic and is excluded by the audit criterion."
+    },
+    {
+      "id": "CM-SURGERY-EFFECT-HANDLER-REGISTRATION",
+      "types": [
+        "SurgicalProcedureSO"
+      ],
+      "reason": "New procedures composed from existing effect records are cataloged and executed generically. A new SurgicalProcedureEffect subtype needs an explicit ISurgicalProcedureEffectHandler, which is a genuinely new mechanic. Automatic emergency suggestions select canonical procedure IDs, but manual/catalog execution of additional procedures is not blocked."
+    },
+    {
+      "id": "CM-MODULE-OBTAINABILITY",
+      "types": [
+        "EquipmentModuleDefinitionSO"
+      ],
+      "reason": "The module catalog, install compatibility, stat projection, gameplay effects, and persistence are definition-ID driven. CreateExpeditionModule currently has only Editor callers, which is a broader feature obtainability gap affecting current and future modules equally, not a content-specific modular-extension branch. Duplicate module IDs are invalid content even though the catalog currently keeps the first."
+    },
+    {
+      "id": "CM-LEXICON-REQUIRED-SPECIES",
+      "types": [
+        "AnatomyConditionLexiconSO"
+      ],
+      "reason": "Runtime resolution is generic by authored species then anatomy family. The fixed RequiredSpecies list appears only in validation and omits future species from completeness auditing; it does not prevent a new lexicon from being discovered or used, so it is a QA coverage gap rather than a runtime blocker."
+    },
+    {
+      "id": "CM-EQUIPMENT-FORMULA-REUSE",
+      "types": [
+        "EquipmentEvolutionFormulaCatalogSO"
+      ],
+      "reason": "ValidateApplicator deliberately binds each supported applicator to an exact stat/modifier pair, and multiple capability IDs already reuse the same applicator (force/execution, precision/control, durability/reinforced-durability). A new capability using an existing supported stat/modifier pair can reuse that applicator. Adding a new stat, modifier mechanic, applicator, or capability registration is a genuinely new mechanic and is outside the blocker criterion. Catalog/module cross-checks fail explicitly rather than silently ignoring authored modules."
+    }
+  ],
+  "reviewed": [
+    {
+      "name": "AgeConditionDefinitionSO",
+      "source": "Assets/Scripts/Models/Species/Core/AgeConditionDefinitionSO.cs:6-26",
+      "authoredAssetCount": 6,
+      "productionReachability": [
+        "Assets/Scripts/Models/Species/Core/CharacterSpeciesCatalog.cs:35-60,137-148",
+        "Assets/Scripts/Models/Species/Core/CharacterLifeDomain.cs:391-519"
+      ],
+      "runtimeAndSave": "Converted to immutable AgeConditionDefinition; biological/construct lists and ID dictionary are generic. CharacterAgeConditionSaveData persists conditionId and restore resolves it through RequireAgeCondition.",
+      "nativeEvidence": [
+        "Assets/Scripts/Services/Character/Editor/AgeConditionAnatomyProjectionDebugScenarios.cs:12-87"
+      ],
+      "disposition": "clear",
+      "reason": "Additional valid conditions enter the catalog, runtime selection, anatomy projection, and ID-based save path without condition-ID branches."
+    },
+    {
+      "name": "AnatomyConditionLexiconSO",
+      "source": "Assets/Scripts/Models/Medical/Core/AnatomyConditionLexiconSO.cs:29-88",
+      "authoredAssetCount": 7,
+      "productionReachability": [
+        "Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs:15-68",
+        "Assets/Scripts/Views/UI/CharacterDetailedStatsRuntime.cs:646-655"
+      ],
+      "runtimeAndSave": "Copied into immutable lexicon definitions; presentation is derived and not saved. Resolution first matches authored species IDs and then anatomy family.",
+      "disposition": "clear",
+      "reason": "New lexicons and species/family compositions are discovered generically. Fixed completeness validation is recorded as a non-finding."
+    },
+    {
+      "name": "AnatomyProfileSO",
+      "source": "Assets/Scripts/Models/Medical/Core/AnatomyProfileSO.cs:7-115",
+      "authoredAssetCount": 12,
+      "productionReachability": [
+        "Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs:11-116",
+        "Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs:1666-1788",
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs:148-211"
+      ],
+      "runtimeAndSave": "Projected to immutable AnatomyProfileDefinition; CharacterBodyHealthState persists anatomyProfileId and node state. Initial selection and apparel projection contain the two confirmed extension faults.",
+      "disposition": "confirmed_blocker",
+      "findingIds": [
+        "CM-ANATOMY-SPECIES-AUTHORITY",
+        "CM-APPAREL-SPECIES-ID-FIT"
+      ],
+      "reason": "The species' authored profile ID is ignored during body creation, unknown species silently become humanoid, duplicate reverse mappings are silently ignored, and apparel fit hard-codes known species/node IDs."
+    },
+    {
+      "name": "ApparelDefinitionSO",
+      "source": "Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs:269-358",
+      "authoredAssetCount": 56,
+      "productionReachability": [
+        "Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs:386-426",
+        "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs:69-211"
+      ],
+      "runtimeAndSave": "Cataloged by stable apparel and physical item IDs. ApparelItemStateCodec.cs:109-263 persists apparelDefinitionId and size; mutable condition/equipment state remains outside the SO.",
+      "disposition": "confirmed_blocker",
+      "findingIds": [
+        "CM-APPAREL-SPECIES-ID-FIT"
+      ],
+      "reason": "New apparel definitions are discoverable, but their existing body-form/attachment capability cannot be used correctly by new species without SpeciesTag/node-ID source branches."
+    },
+    {
+      "name": "BattlefieldModifierDefinitionSO",
+      "source": "Assets/Scripts/Models/Offense/Core/BattlefieldModifierDefinitionSO.cs:6-31",
+      "authoredAssetCount": 12,
+      "productionReachability": [
+        "Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs:46-185",
+        "Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs:373-387"
+      ],
+      "runtimeAndSave": "Resolved by stableId into encounter rules; multipliers and counter tags are immutable encounter data.",
+      "disposition": "confirmed_blocker",
+      "findingIds": [
+        "CM-OFFENSE-FIXED-CENSUS"
+      ],
+      "reason": "All fields are consumed generically, but the production catalog rejects a valid thirteenth modifier."
+    },
+    {
+      "name": "CharacterFunctionalCapacityDefinitionSO",
+      "source": "Assets/Scripts/Services/Foundation/CharacterFunctionalCapacityDefinitionSO.cs:5-44",
+      "authoredAssetCount": 14,
+      "productionReachability": [
+        "Assets/Scripts/Services/Character/Editor/V27CharacterPerformanceDebugScenarios.cs:141-150",
+        "Assets/Scripts/Services/Character/Editor/V27CharacterPerformanceContentAssetBuilder.cs:50-82"
+      ],
+      "runtimeAndSave": "Metadata-only SO; runtime capacity values are derived from CharacterFunctionalCapacityId and anatomy. No mutable SO or save authority was found.",
+      "disposition": "clear",
+      "reason": "A new enum capacity is a genuinely new mechanic; unused display metadata is not a blocker for existing capacities."
+    },
+    {
+      "name": "CharacterPerformanceFormulaDefinitionSO",
+      "source": "Assets/Scripts/Services/Foundation/CharacterPerformanceFormulaDefinitionSO.cs:36-190",
+      "authoredAssetCount": 107,
+      "productionReachability": [
+        "Assets/Scripts/Services/Character/Core/CharacterPerformanceQuery.cs:45-125,306-459",
+        "Assets/Scripts/Services/Infrastructure/Registration/DungeonCharacterRegistration.cs:383"
+      ],
+      "runtimeAndSave": "Cataloged generically by formula ID and work/channel mapping; runtime evaluates authored capacity roles/weights, proficiencies, result channel, context, and gameplay-effect target. Formula results are derived rather than saved.",
+      "disposition": "clear",
+      "reason": "New formulas built from existing result channels and capacities execute without formula-ID branches. Adding a new result-channel mechanic is excluded."
+    },
+    {
+      "name": "CombatArmorSO",
+      "source": "Assets/Scripts/Models/Economy/Content/CombatArmorSO.cs:5-91",
+      "authoredAssetCount": 21,
+      "productionReachability": [
+        "Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs:129-163",
+        "Assets/Scripts/Models/Combat/Core/CombatModels.cs:33-103",
+        "Assets/Scripts/Services/Combat/CombatResolutionService.cs:1317-1416"
+      ],
+      "runtimeAndSave": "Catalog and equipment instances are stable-ID based; role behavior is derived from exact IDs outside the SO.",
+      "disposition": "confirmed_blocker",
+      "findingIds": [
+        "CM-COMBAT-EQUIPMENT-ID-ROLES"
+      ],
+      "reason": "A new armor cannot opt into existing Powered or BlastAndSmokeProtection roles through authored data."
+    },
+    {
+      "name": "CombatEquipmentDefinitionSO",
+      "source": "Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs:7-111",
+      "authoredAssetCount": 0,
+      "productionReachability": [
+        "Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs:121-163",
+        "Assets/Scripts/Services/Combat/EquipmentModuleRuntime.cs:845-857"
+      ],
+      "runtimeAndSave": "Abstract immutable base despite the inventory's syntax-only abstract flag. Derived definitions are cataloged generically and persistent instances store definitionId.",
+      "disposition": "confirmed_blocker",
+      "findingIds": [
+        "CM-COMBAT-EQUIPMENT-ID-ROLES"
+      ],
+      "reason": "The common definition surface lacks authored existing role/arcane policy, forcing derived content IDs into external rules."
+    },
+    {
+      "name": "CombatShieldSO",
+      "source": "Assets/Scripts/Models/Economy/Content/CombatShieldSO.cs:4-86",
+      "authoredAssetCount": 9,
+      "productionReachability": [
+        "Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs:129-163",
+        "Assets/Scripts/Models/Combat/Core/CombatModels.cs:33-103",
+        "Assets/Scripts/Services/Combat/CombatResolutionService.cs:850-878,1317-1416"
+      ],
+      "runtimeAndSave": "Catalog and save identity are generic; role flags alter cover, spell block, and power behavior.",
+      "disposition": "confirmed_blocker",
+      "findingIds": [
+        "CM-COMBAT-EQUIPMENT-ID-ROLES"
+      ],
+      "reason": "A new shield cannot opt into existing SpellBlock, DeployableCover, or Powered roles without an ID branch."
+    },
+    {
+      "name": "CombatWeaponSO",
+      "source": "Assets/Scripts/Models/Economy/Content/CombatWeaponSO.cs:6-96",
+      "authoredAssetCount": 31,
+      "productionReachability": [
+        "Assets/Scripts/Models/Economy/Content/CombatWeaponSO.cs:41-94",
+        "Assets/Scripts/Models/Combat/Core/CharacterArcaneWeaponRules.cs:3-17",
+        "Assets/Scripts/Services/Combat/CombatResolutionService.cs:439-612,996-1017"
+      ],
+      "runtimeAndSave": "Snapshot copies authored verbs/ranges/ammunition/fire modes and saved instance state, then injects role and power behavior from EquipmentId.",
+      "disposition": "confirmed_blocker",
+      "findingIds": [
+        "CM-COMBAT-EQUIPMENT-ID-ROLES"
+      ],
+      "reason": "New weapons cannot opt into already-supported repeating, suppression, armor-break, pull, powered, or arcane behavior through the SO."
+    },
+    {
+      "name": "DiseaseDefinitionSO",
+      "source": "Assets/Scripts/Content/DiseaseDefinitionSO.cs:4-52",
+      "authoredAssetCount": 16,
+      "productionReachability": [
+        "Assets/Scripts/Services/Character/PopulationHealthRuntime.cs:9-38",
+        "Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs:103-141,339-347"
+      ],
+      "runtimeAndSave": "Copied into immutable DiseaseDefinition; active disease, pending field response, and burden projections persist diseaseId and resolve it on restore.",
+      "disposition": "confirmed_blocker",
+      "findingIds": [
+        "CM-DISEASE-FIXED-CENSUS"
+      ],
+      "reason": "All data and persistence are generic, but a valid seventeenth asset is rejected."
+    },
+    {
+      "name": "EnemyAbilityDefinitionSO",
+      "source": "Assets/Scripts/Models/Offense/Core/EnemyAbilityDefinitionSO.cs:28-83",
+      "authoredAssetCount": 18,
+      "productionReachability": [
+        "Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs:46-185",
+        "Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs:520-581"
+      ],
+      "runtimeAndSave": "Existing effect kinds are projected to immutable combat modules; archetypes persist/restore by ID and reference ability IDs through the catalog.",
+      "disposition": "confirmed_blocker",
+      "findingIds": [
+        "CM-OFFENSE-FIXED-CENSUS"
+      ],
+      "reason": "A nineteenth ability using existing effect kinds is valid composition but cannot enter the production catalog. A new effect enum kind would be a new mechanic and is not part of this finding."
+    },
+    {
+      "name": "EnemyArchetypeDefinitionSO",
+      "source": "Assets/Scripts/Models/Offense/Core/EnemyArchetypeDefinitionSO.cs:72-113",
+      "authoredAssetCount": 36,
+      "productionReachability": [
+        "Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs:46-185,269-378",
+        "Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs:98-180,373-402"
+      ],
+      "runtimeAndSave": "Catalog validation resolves equipment and ability references; EnemyIndividualSaveData persists enemyArchetypeId and restore rehydrates a blueprint from the same definition.",
+      "disposition": "confirmed_blocker",
+      "findingIds": [
+        "CM-OFFENSE-FIXED-CENSUS"
+      ],
+      "reason": "A valid thirty-seventh archetype is rejected solely by the fixed census. Species phenotype mapping otherwise passes through non-empty tags except documented aliases."
+    },
+    {
+      "name": "EnvironmentalWorkwearSO",
+      "source": "Assets/Scripts/Models/Economy/Content/EnvironmentalWorkwearSO.cs:7-88",
+      "authoredAssetCount": 4,
+      "productionReachability": [
+        "Assets/Scripts/Models/Economy/Content/EnvironmentalWorkwearSO.cs:90-155",
+        "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs:1-490",
+        "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs:1000-1003"
+      ],
+      "runtimeAndSave": "Cataloged by workwear and physical item IDs; species eligibility and thermal snapshot are authored. Mutable equipment selection/state is captured by IDs in the runtime, not on the SO.",
+      "disposition": "clear",
+      "reason": "Additional workwear definitions participate in generic selection, species filtering, protection projection, and ID-based restore without content-ID branches."
+    },
+    {
+      "name": "EquipmentEvolutionFormulaCatalogSO",
+      "source": "Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaCatalogSO.cs:4-6; Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaDefinitionSO.cs:150-378",
+      "authoredAssetCount": 2,
+      "productionReachability": [
+        "Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaDefinitionSO.cs:169-193,280-377",
+        "Assets/Scripts/Services/Combat/CombatEquipmentStatProjector.cs:95-135,244-280"
+      ],
+      "runtimeAndSave": "The current and frozen V3 catalogs are immutable formula authorities. Nodes persist formulaVersion, catalog hash, envelopes, budget, and evidence; restore loads the matching catalog.",
+      "disposition": "clear",
+      "reason": "Capabilities can reuse the existing applicator for their supported stat/modifier pair; the authored catalogs already demonstrate this reuse. New applicator semantics or module registration are genuinely new mechanics, and invalid/unregistered definitions fail explicitly."
+    },
+    {
+      "name": "EquipmentModuleDefinitionSO",
+      "source": "Assets/Scripts/Models/Combat/Core/EquipmentModuleDefinitionSO.cs:5-38",
+      "authoredAssetCount": 20,
+      "productionReachability": [
+        "Assets/Scripts/Services/Combat/ResourceEquipmentModuleCatalog.cs:5-24",
+        "Assets/Scripts/Services/Combat/EquipmentModuleRuntime.cs:71-108,845-857",
+        "Assets/Scripts/Services/Combat/CombatEquipmentStatProjector.cs:165-187"
+      ],
+      "runtimeAndSave": "Cataloged by ModuleId; install compatibility, effects, PowerPerGrade/UtilityPerGrade, condition, grade, and definitionId-based save state are runtime owned.",
+      "disposition": "clear",
+      "reason": "A unique new module using existing lineage/stat/effect capabilities is consumed generically. Current lack of a non-Editor producer is recorded as a broader obtainability gap, not a modularity defect."
+    },
+    {
+      "name": "SurgicalProcedureSO",
+      "source": "Assets/Scripts/Models/Medical/Core/SurgicalProcedureSO.cs:7-188",
+      "authoredAssetCount": 47,
+      "productionReachability": [
+        "Assets/Scripts/Services/Medical/SurgicalProcedureCatalog.cs:5-101",
+        "Assets/Scripts/Services/Medical/SurgeryRuntimeServices.cs:264-284",
+        "Assets/Scripts/Services/Medical/SurgeryRuntime.cs:1780-1810,1899-1940",
+        "Assets/Scripts/Services/Infrastructure/Registration/DungeonCombatRegistration.cs:198-230"
+      ],
+      "runtimeAndSave": "Cataloged by ProcedureId with validation of facilities, effects, materials, and operator requirements. Orders persist procedureId; existing effect records dispatch by exact runtime type to registered handlers and fail closed when a handler is absent.",
+      "nativeEvidence": [
+        "Assets/Scripts/Services/Medical/Editor/SurgeryDebugScenarios.cs:109-169,560-600"
+      ],
+      "disposition": "clear",
+      "reason": "New procedures composed from existing effect types flow through catalog, planning, execution, and save/restore. Handler registration is required only for a genuinely new effect mechanic."
+    }
+  ],
+  "crossBoundaryObservations": [
+    {
+      "owner": "main/actor",
+      "observation": "CharacterSpeciesDefinitionSO.anatomyProfileId is required and copied into CharacterModelData, but combat body health ignores it. The finding is owned here because it blocks AnatomyProfileSO extension; any species-side repair must retain one authority."
+    },
+    {
+      "owner": "main",
+      "observation": "EquipmentEvolutionFormulaCatalogSO cross-checks catalogModuleIds against EvolutionModuleRegistry and fails explicitly. Existing applicators are reusable by compatible capabilities; no modular-extension repair is warranted."
+    },
+    {
+      "owner": "main",
+      "observation": "ResourceEquipmentModuleCatalog silently takes the first duplicate ModuleId. Duplicate IDs are invalid content, so this was not counted as an extension blocker; fail-fast duplicate validation would still improve diagnostics if touched for another reason."
+    }
+  ],
+  "verification": {
+    "status": "READY/FROZEN",
+    "kind": "read-only source/catalog/consumer/save-path audit",
+    "unityExecuted": false,
+    "nativeScenariosExecuted": false,
+    "sourceEdits": false,
+    "testEdits": false,
+    "assetEdits": false,
+    "outputOnly": "Artifacts/QA/SoModularity-20261017/audit-combat-medical.json"
+  }
+}

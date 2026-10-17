@@ -26,6 +26,7 @@ MonoBehaviour:
   displayName: "\uBB34\uBC95\uC790 \uC18C\uBB38"
   description: "\uBC94\uC8C4, \uC808\uB3C4, \uBD80\uC815\uC801 \uC18C\uBB38\uC774
     \uC2DC\uC124\uC5D0 \uBD99\uC740 \uAE30\uB85D\uC774\uB2E4."
+  generationTrigger: 5
   sourceMetric: NegativeMentionCount
   threshold: 1
   decayPolicy: rumor-decay

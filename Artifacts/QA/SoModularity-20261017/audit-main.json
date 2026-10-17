@@ -1,0 +1,824 @@
+{
+  "audit": "ScriptableObject modular-extension audit: main content/economy/story/offense/effects",
+  "owner": "main",
+  "inventory": {
+    "source": "Artifacts/QA/SoModularity-20261017/so-inventory.json",
+    "sourceFilesScanned": 4001,
+    "classDeclarations": 7993,
+    "assignedTypeCount": 49,
+    "reviewedTypeCount": 49
+  },
+  "method": {
+    "knowledgeBase": "One narrow ScriptableObject lookup had already been attempted for this unchanged source snapshot; it returned no useful rows. Current C# source and the existing authored-asset census were used as authority without regenerating indexes.",
+    "assetCensus": "Artifacts/QA/SoModularity-20261017/so-authored-assets.json",
+    "criteria": "A finding requires existing-capability content to be rejected or ignored by a fixed census/content-ID branch, a definition mutation that leaks between peers, an executable registration that production composition drops, or save/restore that defeats otherwise-supported extension. Fixed schemas, balance contracts, intentional singletons, and registration for genuinely new mechanics are non-findings.",
+    "unityExecuted": false,
+    "sourceOrAssetEditsByThisAudit": false,
+    "result": "Seven confirmed baseline blockers affect nineteen assigned types. All seven have repairs present in the current shared worktree. No unresolved candidate remains in this owner slice."
+  },
+  "summary": {
+    "confirmedBlockerCount": 7,
+    "confirmedBlockerIds": [
+      "MAIN-ITEM-SUBTYPE-CATALOG",
+      "MAIN-STORY-FIXED-CENSUS",
+      "MAIN-CHARACTER-FIXED-CENSUS",
+      "MAIN-FESTIVAL-FIXED-CENSUS",
+      "MAIN-CROP-ECOLOGY-FIXED-CENSUS",
+      "MAIN-OFFENSE-COMBAT-FIXED-CENSUS",
+      "MAIN-OBSERVED-INCIDENT-KIND-SINGLETON"
+    ],
+    "unresolvedCandidateCount": 0,
+    "blockedTypeCount": 19,
+    "clearOrMetadataTypeCount": 30,
+    "currentWorktreeDisposition": "All seven confirmed baseline blockers are repaired in current source; this audit did not run Unity or claim execution verification."
+  },
+  "findings": [
+    {
+      "id": "MAIN-ITEM-SUBTYPE-CATALOG",
+      "status": "confirmed_blocker_repaired_in_current_worktree",
+      "affectedTypes": [
+        "GameContentCatalogSO",
+        "ItemDefinitionCatalogSO",
+        "ItemDefinitionSO",
+        "GenericItemDefinitionSO",
+        "ResourceItemDefinitionSO"
+      ],
+      "baselineProblem": "ResourceGameContentCatalog.GetAll<T> routed only the exact ItemDefinitionSO type to the item catalog. Derived item queries fell through to the domain catalog, while the builder deliberately excludes every ItemDefinitionSO subtype from that domain catalog.",
+      "productionEvidence": [
+        "Assets/Scripts/Services/Items/GameContentCatalog.cs:11-102 constructs the production root and implements GetAll<T>; baseline lines 88-92 used exact type equality.",
+        "Assets/Scripts/Services/Items/Editor/GameContentCatalogAssetBuilder.cs:635-666 stores item subclasses in ItemDefinitionCatalogSO and excludes ItemDefinitionSO-derived assets from GameDomainContentCatalogSO.",
+        "Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs:12-86 validates one polymorphic item list and exposes Definitions.",
+        "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs:20-68 consumes derived item families through the generic content source."
+      ],
+      "smallestReproducer": "Resolve the production IGameContentDefinitionSource and call GetAll<ResourceItemDefinitionSO>() or GetAll<GenericItemDefinitionSO>(). Baseline returns zero although the item catalog contains 366 and 703 authored assets respectively.",
+      "existingTargetedNativeEntries": [
+        "Assets/Scripts/Services/Infrastructure/Editor/BatchAContentAuthorityDebugScenarios.cs:45-76 constructs the real root catalog.",
+        "Assets/Scripts/Services/Economy/Editor/CropCycleInputRequirementAuthorityDebugScenarios.cs:15 and CropHarvestSpecialThroughputDebugScenarios.cs:15 already issue derived resource-item queries."
+      ],
+      "currentRepair": "Assets/Scripts/Services/Items/GameContentCatalog.cs:88-92 now uses typeof(ItemDefinitionSO).IsAssignableFrom(typeof(T)) and Items.Definitions.OfType<T>()."
+    },
+    {
+      "id": "MAIN-STORY-FIXED-CENSUS",
+      "status": "confirmed_blocker_repaired_in_current_worktree",
+      "affectedTypes": [
+        "LifeEventDefinitionSO",
+        "GuestRequestDefinitionSO",
+        "ServiceIncidentDefinitionSO",
+        "FactionArcDefinitionSO",
+        "FactionChapterDefinitionSO",
+        "FactionContractDefinitionSO",
+        "SeasonalWorldEventDefinitionSO",
+        "EndingDefinitionSO"
+      ],
+      "baselineProblem": "V20StoryContentCatalog discovered definitions through GetAll<T> and keyed them by stable ID, but rejected every valid additional instance through global exact counts of 32/13/8/6/36/24/28/9.",
+      "productionEvidence": [
+        "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-51 loads all eight families; baseline lines 16-25 and 46 required the fixed global counts.",
+        "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:52-126 builds stable-ID dictionaries and generic TryGet/Require access used by runtime and restore.",
+        "Assets/Scripts/Services/Run/V20CampaignRuntime.cs and V20SocietyEventRuntime.cs resolve story definitions by stable ID rather than ordinal or content-specific branch.",
+        "Assets/Scripts/Services/Run/V20SeasonalOutcomeRuntime.cs, V20ContentResolutionService.cs, and V20MilestoneRuntime.cs consume the same generic catalog and persisted IDs."
+      ],
+      "smallestReproducer": "Add one valid, uniquely identified definition to any affected family and rebuild the root catalog. Baseline V20StoryContentCatalog throws before the otherwise-ID-driven runtime can use it.",
+      "existingTargetedNativeEntries": [
+        "Assets/Scripts/Services/Run/Editor/V20CampaignDebugScenarios.cs:267,407 exercises real campaign catalog resolution.",
+        "Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:1499 exercises save-time content recovery."
+      ],
+      "currentRepair": "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 now requires nonempty, valid, unique families. The one EndlessCrisisPolicyDefinitionSO remains an intentional singleton."
+    },
+    {
+      "id": "MAIN-CHARACTER-FIXED-CENSUS",
+      "status": "confirmed_blocker_repaired_in_current_worktree",
+      "affectedTypes": [
+        "LifeEventDefinitionSO",
+        "CulturalPracticeDefinitionSO",
+        "ProficiencyDefinitionSO"
+      ],
+      "baselineProblem": "CharacterNarrativeCatalog loaded extensible definition lists but rejected valid additional life events, cultural practices, and proficiencies through exact global counts 32, 20, and 9.",
+      "productionEvidence": [
+        "Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs:14-68 loads the assigned families, validates stable IDs, and builds dictionaries; baseline constructor passed fixed counts.",
+        "Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs:69-106 exposes generic ID lookup to the character narrative runtime.",
+        "Assets/Scripts/Services/Character/CharacterNarrativeAggregate.cs:652-667,849-875 materializes proficiency state from definitions and preserves mutable state outside the SO."
+      ],
+      "smallestReproducer": "Catalog a tenth valid ProficiencyDefinitionSO, twenty-first CulturalPracticeDefinitionSO, or thirty-third LifeEventDefinitionSO. Baseline construction throws before aggregate creation or story selection.",
+      "existingTargetedNativeEntries": [
+        "Assets/Scripts/Services/Character/Editor character narrative scenarios construct CharacterNarrativeCatalog and aggregate state through the production content source."
+      ],
+      "currentRepair": "Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs:14-105 now requires nonempty, valid, unique families and validates culture peers against the actual loaded culture set."
+    },
+    {
+      "id": "MAIN-FESTIVAL-FIXED-CENSUS",
+      "status": "confirmed_blocker_repaired_in_current_worktree",
+      "affectedTypes": ["FestivalDefinitionSO"],
+      "baselineProblem": "FestivalDefinitionCatalog rejected any catalog whose count was not exactly sixteen even though lookup, execution, and save identity are stable-ID based. The authored census contains twenty festival assets, and any additional valid registered festival was blocked.",
+      "productionEvidence": [
+        "Assets/Scripts/Services/Character/FestivalDefinitionCatalog.cs:10-40 loads all festivals, validates them, and builds a stable-ID dictionary; baseline line 17 required exactly sixteen.",
+        "Assets/Scripts/Services/Character/FestivalExecutionRuntime.cs:307-430 selects and executes definitions generically.",
+        "Assets/Scripts/Services/Infrastructure/Save/FestivalExecutionSaveSection.cs restores festival state through definition IDs."
+      ],
+      "smallestReproducer": "Add one complete, uniquely identified FestivalDefinitionSO and construct FestivalDefinitionCatalog. Baseline throws solely because count is seventeen or greater.",
+      "existingTargetedNativeEntries": [
+        "Assets/Scripts/Services/Character/Editor/Wim041FestivalExecutionLiveWitness.cs exercises live festival execution.",
+        "Assets/Scripts/Services/Character/Editor/Wim037041VenueAuthoringDebugScenarios.cs:90-109 resolves authored festival venues and definitions."
+      ],
+      "currentRepair": "Assets/Scripts/Services/Character/FestivalDefinitionCatalog.cs:10-40 now accepts any nonempty set of complete, unique definitions."
+    },
+    {
+      "id": "MAIN-CROP-ECOLOGY-FIXED-CENSUS",
+      "status": "confirmed_blocker_repaired_in_current_worktree",
+      "affectedTypes": ["CropDefinitionSO", "CropGenomeDefinitionSO"],
+      "baselineProblem": "CropEcologyRuntime loaded crops and genomes generically but then required exactly twelve crops, thirty-two genomes, and twelve base genomes. This prevented an additional crop with its valid base genome or an additional valid genome for an existing crop.",
+      "productionEvidence": [
+        "Assets/Scripts/Services/Economy/CropEcologyRuntime.cs:335-374 reads all CropDefinitionSO and CropGenomeDefinitionSO assets and validates their relationship; baseline used fixed 12/32/12 counts.",
+        "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs:20-68 exposes crops and genomes from the production content source.",
+        "Assets/Scripts/Services/Economy/CropPlotRuntime.cs resolves crops by ID and owns mutable crop state; CropEcologyRuntime owns saved ecology state."
+      ],
+      "smallestReproducer": "Add a thirteenth valid crop plus one valid :base genome, or add a valid non-base genome to an existing crop. Baseline CropEcologyRuntime throws on count despite all references being valid.",
+      "existingTargetedNativeEntries": [
+        "Assets/Scripts/Services/Economy/Editor/CropPlotDebugScenarios.cs:705,718 exercises the crop runtime.",
+        "Assets/Scripts/Services/Economy/Editor/V21CropGenomeDebugScenarios.cs:7-16 exercises authored genome validation."
+      ],
+      "currentRepair": "Assets/Scripts/Services/Economy/CropEcologyRuntime.cs:335-374 now requires nonempty valid unique genomes and exactly one base genome per loaded crop. The six-locus genome schema remains intentional."
+    },
+    {
+      "id": "MAIN-OFFENSE-COMBAT-FIXED-CENSUS",
+      "status": "confirmed_blocker_repaired_in_current_worktree",
+      "affectedTypes": ["OffenseEncounterSO"],
+      "baselineProblem": "EnemyCombatContentCatalog rejected every valid additional encounter because it required exactly thirty-six, although encounter lookup, factory creation, and save validation are keyed by encounter ID.",
+      "productionEvidence": [
+        "Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs:46-57,168-187 loads encounter definitions and builds ID dictionaries; baseline required exactly thirty-six.",
+        "Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs:142-159 implements IEncounterCatalog generic ID lookup.",
+        "Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs:143,407-426 creates real encounters from IEncounterCatalog and stable IDs."
+      ],
+      "smallestReproducer": "Catalog a thirty-seventh valid uniquely identified OffenseEncounterSO. Baseline EnemyCombatContentCatalog throws before EnemyEncounterFactory can resolve it.",
+      "existingTargetedNativeEntries": [
+        "Assets/Scripts/Services/Offense/Editor/V20EnemyIndividualDebugScenarios.cs:24,173 exercises the production combat catalog and encounter factory.",
+        "Assets/Scripts/Services/Offense/Editor/CombatContentBalanceCalibrationScenario.cs:41-68 loads the authored encounter family."
+      ],
+      "currentRepair": "Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs:46-57,168-187 now requires nonempty, valid, unique combat families."
+    },
+    {
+      "id": "MAIN-OBSERVED-INCIDENT-KIND-SINGLETON",
+      "status": "confirmed_blocker_repaired_in_current_worktree",
+      "affectedTypes": ["ServiceIncidentDefinitionSO"],
+      "baselineProblem": "Observed service incidents filtered definitions by ServiceIncidentKind and then required exactly one. A second valid same-kind definition disabled that observed incident path even though the shared eligibility contract can choose between definitions and society event state is keyed by stable ID.",
+      "productionEvidence": [
+        "Assets/Scripts/Services/Run/V20ObservedIncidentRuntime.cs:282-310 baseline selected all same-kind definitions and rejected unless Length == 1.",
+        "Assets/Scripts/Services/Run/V20ObservedIncidentRuntime.cs:311-390 already has CanStartSocietyDefinition and stable-ID state creation for an eligible definition.",
+        "Assets/Scripts/Services/Run/V20SocietyEventRuntime.cs:623-737 selects life-event and guest-request candidates generically; observed service incidents are the separate production producer for this family."
+      ],
+      "smallestReproducer": "Add a second valid Shoplifting or Brawl ServiceIncidentDefinitionSO with distinct requirements, trigger the matching observed meal incident, and observe baseline definition-unavailable rather than selection of an eligible definition.",
+      "existingTargetedNativeEntries": [
+        "Assets/Scripts/Services/Run/Editor/Wim040ObservedIncidentDebugScenarios.cs:204-358 exercises real shoplifting and brawl observation.",
+        "Assets/Scripts/Services/Run/Editor/ObservedServiceIncidentFactDebugScenarios.cs exercises the same catalog through observed incident facts."
+      ],
+      "currentRepair": "Assets/Scripts/Services/Run/V20ObservedIncidentRuntime.cs:282-310 now filters with CanStartSocietyDefinition, orders by StableId, and selects the first eligible definition."
+    }
+  ],
+  "nonFindings": [
+    {
+      "id": "INTENTIONAL-FIXED-SCHEMAS",
+      "status": "not_a_defect",
+      "disposition": "FactionArc's six chapters/three contracts/three relics, CropGenome's six loci, OffenseDecisionCard's two choices, and Ending's single permanent reward/counterpressure are definition schemas rather than global content censuses. Adding a genuinely new mechanic or changing those schemas remains an explicit contract change."
+    },
+    {
+      "id": "INTENTIONAL-SINGLETONS-AND-BALANCE",
+      "status": "not_a_defect",
+      "disposition": "EndlessCrisisPolicyDefinitionSO, FactionAllianceBenefitBudgetSO, GameContentCatalogSO, GameDomainContentCatalogSO, GameMediaCatalogSO, ItemHaulingSettingsSO, and the other settings/catalog roots have one deliberate composition or balance authority. OffenseCampaignCatalogSO's single truth target is a unique campaign role, not a global family count."
+    },
+    {
+      "id": "RESEARCH-UNLOCK-BUNDLE-AUTHORING-PROJECTION",
+      "status": "not_a_blocker",
+      "evidence": [
+        "Assets/Scripts/Services/Research/Editor/ResearchUnlockBundleAssetBuilder.cs:12-56 generates one descriptive bundle asset per project.",
+        "Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs:23-118 derives executable rewards from ResearchProjectSO.Unlocks and RequiredResearchId.",
+        "docs/architecture/systems/15-research-progression-and-meta.md:22 names the bundle as a grouping concept, but the current SO contains role/design-intent/group-heading/singleton-reason metadata rather than reward entries."
+      ],
+      "disposition": "ResearchUnlockBundleDefinitionSO has no non-Editor consumer, but adding a ResearchProjectSO with existing unlock capabilities executes without it. It is recorded as an authoring/documentation projection rather than a modular-extension blocker."
+    },
+    {
+      "id": "LEGACY-DATA-CATALOG-EXACT-TYPES",
+      "status": "not_a_blocker",
+      "disposition": "DataCatalogService exact-type indexes for SaleItem and StockInfo are an explicit numeric-ID compatibility path. New typed content families use the stable-ID domain/item catalogs; an enum or index addition for a genuinely new legacy kind is not an ignored existing registration."
+    }
+  ],
+  "reviewed": [
+    {
+      "name": "CraftMaterialDefinitionSO",
+      "source": "Assets/Scripts/Models/Economy/Content/CraftMaterialDefinitionSO.cs:4",
+      "authoredAssetCount": 12,
+      "productionReachability": [
+        "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs:20-99 loads material definitions through GetAll<T>.",
+        "Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs:87-93 resolves craft-material rewards through the content source."
+      ],
+      "compositionAndPersistence": "Immutable material identity/economic definition; mutable inventory and rewards are owned by economy runtimes and saves.",
+      "disposition": "clear",
+      "reason": "Additional material assets use generic stable-ID lookup with no material-ID branch."
+    },
+    {
+      "name": "CropDefinitionSO",
+      "source": "Assets/Scripts/Models/Economy/Content/CropDefinitionSO.cs:68",
+      "authoredAssetCount": 12,
+      "productionReachability": [
+        "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs:20-68 exposes crops by stable ID.",
+        "Assets/Scripts/Services/Economy/CropEcologyRuntime.cs:335-374 validates the loaded crop/genome set; CropPlotRuntime resolves crop definitions during play and restore."
+      ],
+      "compositionAndPersistence": "Definition stays immutable; CropPlotRuntime and CropEcologyRuntime own changing/saved state.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-CROP-ECOLOGY-FIXED-CENSUS"],
+      "reason": "Baseline ecology construction rejected any thirteenth crop; current source validates relationships dynamically."
+    },
+    {
+      "name": "CropGenomeDefinitionSO",
+      "source": "Assets/Scripts/Models/Economy/Content/CropGenomeDefinitionSO.cs:6",
+      "authoredAssetCount": 32,
+      "productionReachability": [
+        "Assets/Scripts/Services/Economy/CropEcologyRuntime.cs:335-374 loads, validates, and indexes all genomes.",
+        "Assets/Scripts/Services/Economy/Editor/V21CropGenomeDebugScenarios.cs:7-16 is the targeted native validation entry."
+      ],
+      "compositionAndPersistence": "CreateRuntimeDefinition projects immutable authored loci; ecology runtime persists mutable genome/crop state. Six loci are an intentional genome schema.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-CROP-ECOLOGY-FIXED-CENSUS"],
+      "reason": "Baseline rejected any thirty-third valid genome; current source validates uniqueness and one base genome per actual crop."
+    },
+    {
+      "name": "CulturalPracticeDefinitionSO",
+      "source": "Assets/Scripts/Content/CulturalPracticeDefinitionSO.cs:7",
+      "authoredAssetCount": 20,
+      "productionReachability": [
+        "Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs:14-106 loads, validates, and keys practices by StableId.",
+        "Assets/Scripts/Services/Character/CharacterNarrativeRuntime.cs consumes the catalog while aggregate/save state retains IDs."
+      ],
+      "compositionAndPersistence": "Immutable V20AuthoredContentSO definition; character narrative aggregate owns mutable state.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-CHARACTER-FIXED-CENSUS"],
+      "reason": "Baseline exact-twenty guard blocked a valid additional practice."
+    },
+    {
+      "name": "DataScriptableObject",
+      "source": "Assets/Scripts/Models/Economy/Content/DataScriptableObject.cs:4",
+      "authoredAssetCount": 0,
+      "productionReachability": [
+        "Assets/Scripts/Services/Infrastructure/DataCatalogService.cs:11-92 indexes concrete legacy DataScriptableObject families by explicit numeric IDs.",
+        "Assets/Scripts/Models/Economy/Content/SaleItem.cs:7 and Assets/Scripts/Services/Buildings/SO/StockInfo.cs:7 are production concrete families."
+      ],
+      "compositionAndPersistence": "Legacy base carries numeric ID/display data; concrete catalogs and economy state own use and persistence.",
+      "disposition": "clear_legacy_contract",
+      "reason": "Zero direct base assets is expected. Exact concrete indexes are a compatibility contract, while new stable-ID content uses domain catalogs."
+    },
+    {
+      "name": "DungeonAudioLibrarySO",
+      "source": "Assets/Scripts/Content/DungeonAudioLibrarySO.cs:4",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Content/GameMediaCatalogSO.cs:12-41 owns and validates the audio library reference.",
+        "Assets/Scripts/Services/Infrastructure/DungeonAudioController.cs resolves clips from the library for production playback."
+      ],
+      "compositionAndPersistence": "Global immutable media library; playback controller owns runtime channel state.",
+      "disposition": "clear_singleton",
+      "reason": "One media-library authority is intentional and entries are consumed through authored fields rather than content-ID switches."
+    },
+    {
+      "name": "DungeonFactionDefinitionSO",
+      "source": "Assets/Scripts/Models/Factions/Core/DungeonFactionDefinitionSO.cs:34",
+      "authoredAssetCount": 12,
+      "productionReachability": [
+        "Assets/Scripts/Services/Factions/FactionApplicationDependencies.cs:6-38 loads faction definitions through the generic content source.",
+        "Assets/Scripts/Services/Factions/FactionRuntime.cs projects definitions into faction snapshots and owns mutable/saved faction state."
+      ],
+      "compositionAndPersistence": "Definition data is projected into snapshots; runtime/save state uses stable faction IDs.",
+      "disposition": "clear",
+      "reason": "Additional valid faction definitions are discovered and keyed generically."
+    },
+    {
+      "name": "DungeonStory.Content.CoreSession.CoreSessionRulesSO",
+      "source": "Assets/Scripts/Content/CoreSession/CoreSessionRulesSO.cs:33",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Services/Items/GameContentCatalog.cs:65 exposes the required core-session rules from the root catalog.",
+        "Assets/Scripts/Services/Run/RunFlow and ServiceSession/save paths consume the projected rules."
+      ],
+      "compositionAndPersistence": "Required immutable global session policy; GameSessionState and save sections own changing state.",
+      "disposition": "clear_singleton",
+      "reason": "This is a deliberate rules authority, not an extensible family."
+    },
+    {
+      "name": "EndingDefinitionSO",
+      "source": "Assets/Scripts/Content/EndingDefinitionSO.cs:7",
+      "authoredAssetCount": 9,
+      "productionReachability": [
+        "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:43-126 loads endings and exposes ID lookup.",
+        "Assets/Scripts/Services/Run/V20MilestoneRuntime.cs evaluates and persists milestone/ending progress by stable ID."
+      ],
+      "compositionAndPersistence": "Immutable authored milestone definition; campaign/milestone runtime owns progress. One reward/counterpressure per ending is a schema invariant.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-STORY-FIXED-CENSUS"],
+      "reason": "Baseline exact-nine census blocked a valid additional ending."
+    },
+    {
+      "name": "EndlessCrisisPolicyDefinitionSO",
+      "source": "Assets/Scripts/Content/EndlessCrisisPolicyDefinitionSO.cs:58",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:25-42 requires and exposes one policy.",
+        "Assets/Scripts/Services/Run/V20CampaignRuntime.cs applies the policy to endless-crisis campaign progression."
+      ],
+      "compositionAndPersistence": "Immutable global endless-mode policy; campaign save owns mutable progress.",
+      "disposition": "clear_intentional_singleton",
+      "reason": "The policy has one explicit global authority; a second policy would require selection semantics and is a new mechanic."
+    },
+    {
+      "name": "FactionAllianceBenefitBudgetSO",
+      "source": "Assets/Scripts/Models/Factions/Core/FactionAllianceBenefitBudgetSO.cs:15",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Services/Factions/FactionApplicationDependencies.cs:61-116 projects the required budget.",
+        "Assets/Scripts/Services/Factions/FactionRuntime.cs:1197 onward applies that projection to alliance benefits."
+      ],
+      "compositionAndPersistence": "One immutable balance authority; faction runtime owns mutable alliance state.",
+      "disposition": "clear_intentional_balance_authority",
+      "reason": "A singleton budget is an intentional balance contract rather than an extensible content family."
+    },
+    {
+      "name": "FactionArcDefinitionSO",
+      "source": "Assets/Scripts/Content/FactionArcDefinitionSO.cs:5",
+      "authoredAssetCount": 6,
+      "productionReachability": [
+        "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 loads arcs by StableId.",
+        "Assets/Scripts/Services/Run/V20CampaignRuntime.cs resolves arc/chapter/contract state through catalog IDs."
+      ],
+      "compositionAndPersistence": "Immutable arc definition; campaign runtime/save owns active stage. Its fixed six-stage internal shape is an intentional schema.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-STORY-FIXED-CENSUS"],
+      "reason": "Baseline global exact-six arc census blocked an additional complete arc; the internal per-arc stage schema is not a defect."
+    },
+    {
+      "name": "FactionChapterDefinitionSO",
+      "source": "Assets/Scripts/Content/FactionChapterDefinitionSO.cs:7",
+      "authoredAssetCount": 36,
+      "productionReachability": [
+        "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 loads chapters into a stable-ID dictionary.",
+        "Assets/Scripts/Services/Run/V20CampaignRuntime.cs consumes chapter IDs during campaign transitions and restore."
+      ],
+      "compositionAndPersistence": "Immutable authored chapter; campaign state owns completion/progress.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-STORY-FIXED-CENSUS"],
+      "reason": "Baseline exact-thirty-six census blocked a valid additional chapter."
+    },
+    {
+      "name": "FactionContractDefinitionSO",
+      "source": "Assets/Scripts/Content/FactionContractDefinitionSO.cs:29",
+      "authoredAssetCount": 24,
+      "productionReachability": [
+        "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 loads contracts by StableId.",
+        "Assets/Scripts/Services/Run/V20CampaignRuntime.cs selects contracts and persists their IDs/results."
+      ],
+      "compositionAndPersistence": "Immutable contract requirements/outcomes; campaign runtime/save owns mutable contract state.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-STORY-FIXED-CENSUS"],
+      "reason": "Baseline exact-twenty-four census blocked a valid additional contract."
+    },
+    {
+      "name": "FestivalDefinitionSO",
+      "source": "Assets/Scripts/Models/Species/Core/FestivalDefinitionSO.cs:6",
+      "authoredAssetCount": 20,
+      "productionReachability": [
+        "Assets/Scripts/Services/Character/FestivalDefinitionCatalog.cs:10-40 loads complete definitions by StableId.",
+        "Assets/Scripts/Services/Character/FestivalExecutionRuntime.cs:307-430 executes them; FestivalExecutionSaveSection restores their IDs."
+      ],
+      "compositionAndPersistence": "Definition remains immutable; festival runtime/save owns schedule and execution state.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-FESTIVAL-FIXED-CENSUS"],
+      "reason": "Baseline global exact-sixteen guard rejected valid additional festivals."
+    },
+    {
+      "name": "GameContentCatalogSO",
+      "source": "Assets/Scripts/Content/GameContentCatalogSO.cs:6",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Services/Items/GameContentCatalog.cs:11-102 loads this root and implements production IGameContentDefinitionSource.",
+        "Assets/Scripts/Content/GameContentCatalogSO.cs:21-107 validates root references to item, domain, media, rules, and settings catalogs."
+      ],
+      "compositionAndPersistence": "One composition root; contained catalogs own immutable definitions and runtimes own state.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-ITEM-SUBTYPE-CATALOG"],
+      "reason": "The root itself is intentionally singular, but its baseline generic query routing hid every derived item family."
+    },
+    {
+      "name": "GameData",
+      "source": "Assets/Scripts/Models/GameData/GameData.cs:3",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Controllers/GameManager.cs reads GameData during game composition.",
+        "Assets/Scripts/Services/Infrastructure/GameRuntimeServices.cs projects its starting configuration while GameSessionState owns runtime mutations."
+      ],
+      "compositionAndPersistence": "Bootstrap definition/settings asset; session state and save DTOs own mutable play data.",
+      "disposition": "clear_singleton",
+      "reason": "A single boot configuration is intentional; no peer mutation or ignored extension registration was found."
+    },
+    {
+      "name": "GameDomainContentCatalogSO",
+      "source": "Assets/Scripts/Content/GameDomainContentCatalogSO.cs:8",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Content/GameDomainContentCatalogSO.cs:15-103,149-157 validates a heterogeneous definition list and returns OfType<T>().",
+        "Assets/Scripts/Services/Items/GameContentCatalog.cs:88-102 delegates non-item generic queries to this catalog."
+      ],
+      "compositionAndPersistence": "One domain catalog containing open ScriptableObject families; definitions stay immutable.",
+      "disposition": "clear_singleton",
+      "reason": "Generic OfType<T> discovery supports new instances and derived types; the separate item routing defect is recorded on the root/item families."
+    },
+    {
+      "name": "GameMediaCatalogSO",
+      "source": "Assets/Scripts/Content/GameMediaCatalogSO.cs:7",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Content/GameMediaCatalogSO.cs:12-41 validates audio/font/presentation references.",
+        "Assets/Scripts/Services/Items/GameContentCatalog.cs exposes the media catalog to production consumers."
+      ],
+      "compositionAndPersistence": "One immutable media composition root; presenters/controllers own runtime state.",
+      "disposition": "clear_singleton",
+      "reason": "The singleton groups media authorities; adding entries within its referenced libraries does not require content-ID branching."
+    },
+    {
+      "name": "GameplayEffectConditionDefinitionSO",
+      "source": "Assets/Scripts/Services/Foundation/GameplayEffectConditionDefinitionSO.cs:3",
+      "authoredAssetCount": 45,
+      "productionReachability": [
+        "Assets/Scripts/Services/Foundation/GameplayEffectContracts.cs:225-282 binds condition references and active condition IDs.",
+        "Assets/Scripts/Services/Effects/Runtime/CharacterGameplayEffectProjector.cs:8-193 evaluates condition IDs while projecting effects."
+      ],
+      "compositionAndPersistence": "Immutable condition identity/metadata; active condition state is owned by runtime snapshots and saves.",
+      "disposition": "clear",
+      "reason": "New instances using the existing condition semantics are referenced and evaluated generically by ID."
+    },
+    {
+      "name": "GameplayEffectDefinitionSO",
+      "source": "Assets/Scripts/Services/Foundation/GameplayEffectDefinitionSO.cs:4",
+      "authoredAssetCount": 65,
+      "productionReachability": [
+        "Assets/Scripts/Services/Foundation/GameplayEffectContracts.cs:225-282 binds definitions to targets, phases, and conditions.",
+        "Assets/Scripts/Services/Effects/Runtime/CharacterGameplayEffectProjector.cs:8-193 validates stacking and applies authored operations.",
+        "Assets/Scripts/Services/Effects/Runtime/GameplayEffectResultBoundsCatalog.cs:59-132 loads all effect definitions."
+      ],
+      "compositionAndPersistence": "SO owns immutable effect operations; character/effect runtime owns stacks and results.",
+      "disposition": "clear",
+      "reason": "Existing operations, phases, targets, conditions, and stacking modes execute without definition-ID branches."
+    },
+    {
+      "name": "GenericItemDefinitionSO",
+      "source": "Assets/Scripts/Models/Economy/Content/GenericItemDefinitionSO.cs:4",
+      "authoredAssetCount": 703,
+      "productionReachability": [
+        "Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs:12-86 stores this subtype in the item catalog.",
+        "Assets/Scripts/Services/Items/GameContentCatalog.cs:88-92 is the production generic query boundary."
+      ],
+      "compositionAndPersistence": "Immutable item subtype; stock/inventory runtimes persist item IDs and quantities.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-ITEM-SUBTYPE-CATALOG"],
+      "reason": "Baseline derived query returned zero because item subclasses were excluded from the domain catalog."
+    },
+    {
+      "name": "GuestRequestDefinitionSO",
+      "source": "Assets/Scripts/Content/GuestRequestDefinitionSO.cs:8",
+      "authoredAssetCount": 14,
+      "productionReachability": [
+        "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 loads guest requests by StableId.",
+        "Assets/Scripts/Services/Run/V20SocietyEventRuntime.cs:623-737 evaluates guest-request candidates and persists active IDs."
+      ],
+      "compositionAndPersistence": "Immutable authored request; society-event runtime/save owns active progress.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-STORY-FIXED-CENSUS"],
+      "reason": "Baseline exact-thirteen census rejected the fourteenth valid request."
+    },
+    {
+      "name": "InGameNarrativeTextCatalogSO",
+      "source": "Assets/Scripts/Content/InGameNarrativeTextCatalogSO.cs:44",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Content/InGameNarrativeTextCatalogSO.cs:48-99,135-200 validates and queries entries by kind plus stable ID.",
+        "BuildingSummaryFormatter, the item panel, and the offense panel request narrative text through that key."
+      ],
+      "compositionAndPersistence": "One immutable localization/presentation catalog; UI view state is separate.",
+      "disposition": "clear_singleton",
+      "reason": "New entries are keyed data, and missing text fails through the catalog contract rather than a content-specific branch."
+    },
+    {
+      "name": "ItemDefinitionCatalogSO",
+      "source": "Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs:7",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs:12-86 validates and exposes one polymorphic definition list.",
+        "Assets/Scripts/Services/Items/GameContentCatalog.cs:88-92 routes production generic item queries."
+      ],
+      "compositionAndPersistence": "One item catalog; item assets are immutable and inventory runtimes own quantities/state.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-ITEM-SUBTYPE-CATALOG"],
+      "reason": "Its polymorphic list was complete, but baseline root routing exposed it only for the exact base type."
+    },
+    {
+      "name": "ItemDefinitionSO",
+      "source": "Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs:539",
+      "authoredAssetCount": 0,
+      "productionReachability": [
+        "Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs:9-538 defines polymorphic immutable item features consumed by the base at line 539 onward.",
+        "Assets/Scripts/Services/Items/GameContentCatalog.cs:88-92 supplies all item definitions and subtypes to production services."
+      ],
+      "compositionAndPersistence": "Base definition owns immutable authored feature composition; stock/inventory/save own mutable instances and counts.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-ITEM-SUBTYPE-CATALOG"],
+      "reason": "Direct base queries worked, but its derived families were invisible at the same public generic query boundary."
+    },
+    {
+      "name": "ItemHaulingSettingsSO",
+      "source": "Assets/Scripts/Services/Items/ItemHaulingSettingsSO.cs:4",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Services/Items/ItemHaulingSettingsSO.cs:30-90 is resolved as a required singleton and projected into hauling runtime settings.",
+        "Item hauling runtime capture/restore persists runtime state independently of the SO."
+      ],
+      "compositionAndPersistence": "One immutable hauling policy; runtime and save sections own queues/assignments.",
+      "disposition": "clear_singleton",
+      "reason": "A global hauling policy is intentional and all authored fields have production consumers."
+    },
+    {
+      "name": "LifeEventDefinitionSO",
+      "source": "Assets/Scripts/Content/LifeEventDefinitionSO.cs:13",
+      "authoredAssetCount": 32,
+      "productionReachability": [
+        "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 loads life events for society selection and save resolution.",
+        "Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs:14-106 loads the same family for character narrative state."
+      ],
+      "compositionAndPersistence": "Immutable definition shared by two catalogs; runtime aggregates persist stable IDs and outcomes without mutating the SO.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-STORY-FIXED-CENSUS", "MAIN-CHARACTER-FIXED-CENSUS"],
+      "reason": "Two independent baseline exact-thirty-two guards rejected an additional life event."
+    },
+    {
+      "name": "MaterialEconomicProfileSO",
+      "source": "Assets/Scripts/Models/Economy/Content/MaterialEconomicProfileSO.cs:7",
+      "authoredAssetCount": 0,
+      "productionReachability": [
+        "Assets/Scripts/Models/Economy/Content/MaterialEconomicProfileSO.cs:55-140 resolves explicit profiles and derives a profile from ItemDefinitionSO when none is authored.",
+        "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs uses the resulting profiles for economy calculations."
+      ],
+      "compositionAndPersistence": "Optional immutable override; deterministic derivation from the authoritative item definition is the designed default.",
+      "disposition": "clear_optional_override",
+      "reason": "Zero explicit assets is supported by a declared derivation contract; an added profile is discovered by stable item ID."
+    },
+    {
+      "name": "OffenseCampaignCatalogSO",
+      "source": "Assets/Scripts/Services/Offense/OffenseCampaignCatalogSO.cs:6",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Services/Offense/OffenseCampaignCatalogSO.cs:13-113,138-169 validates and exposes campaign targets and one truth target.",
+        "Assets/Scripts/Services/Offense/Strategic/OffenseStrategicDefinitions.cs:20-33 projects the catalog's site, urgent-site, card, and encounter lists."
+      ],
+      "compositionAndPersistence": "One campaign composition root; offense runtimes/save own map, travel, and encounter state.",
+      "disposition": "clear_singleton",
+      "reason": "Generic content lists accept additional instances. The single truth target is a unique campaign role."
+    },
+    {
+      "name": "OffenseDecisionCardSO",
+      "source": "Assets/Scripts/Models/Offense/Core/OffenseDecisionCardSO.cs:5",
+      "authoredAssetCount": 54,
+      "productionReachability": [
+        "Assets/Scripts/Services/Offense/Strategic/OffenseStrategicDefinitions.cs:20-33 loads all cards from the campaign catalog.",
+        "Assets/Scripts/Services/Offense/Strategic/OffenseTravelAndDecisionRuntime.cs:1482-1505,1546-1744 selects cards and applies choices."
+      ],
+      "compositionAndPersistence": "Immutable card with two authored choices; travel/decision runtime persists chosen state.",
+      "disposition": "clear_intentional_schema",
+      "reason": "Cards are discovered generically. The exact two-choice validation at Assets/Scripts/Services/Offense/Strategic/OffenseTravelAndDecisionRuntime.cs:1632-1640 is the current UI/gameplay schema, not a global card census."
+    },
+    {
+      "name": "OffenseEncounterSO",
+      "source": "Assets/Scripts/Models/Offense/Core/OffenseEncounterSO.cs:26",
+      "authoredAssetCount": 36,
+      "productionReachability": [
+        "Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs:46-57,142-187 loads and resolves encounters by encounterId.",
+        "Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs:143,407-426 creates production encounter state from the catalog."
+      ],
+      "compositionAndPersistence": "Immutable encounter composition; battle/individual runtimes and save data own changing state.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-OFFENSE-COMBAT-FIXED-CENSUS"],
+      "reason": "Baseline exact-thirty-six census blocked an additional valid encounter."
+    },
+    {
+      "name": "OffenseSiteArchetypeSO",
+      "source": "Assets/Scripts/Models/Offense/Core/OffenseSiteArchetypeSO.cs:5",
+      "authoredAssetCount": 12,
+      "productionReachability": [
+        "Assets/Scripts/Services/Offense/Strategic/OffenseStrategicDefinitions.cs:20-33 loads site archetypes from the catalog.",
+        "Assets/Scripts/Services/Offense/Strategic/OffenseHexWorldSimulation.cs:848-972 selects authored sites generically."
+      ],
+      "compositionAndPersistence": "Immutable site archetype; hex-world simulation/save owns generated site state.",
+      "disposition": "clear",
+      "reason": "New valid site assets participate through the catalog array without site-ID branching."
+    },
+    {
+      "name": "OffenseUrgentSiteDefinitionSO",
+      "source": "Assets/Scripts/Models/Offense/Core/OffenseUrgentSiteDefinitionSO.cs:4",
+      "authoredAssetCount": 6,
+      "productionReachability": [
+        "Assets/Scripts/Services/Offense/Strategic/OffenseStrategicDefinitions.cs:20-33 loads urgent sites.",
+        "Assets/Scripts/Services/Offense/Strategic/OffenseHexWorldSimulation.cs:848-972 evaluates and spawns them from authored criteria."
+      ],
+      "compositionAndPersistence": "Immutable urgent-site definition; spawned sites and timers live in world state/save.",
+      "disposition": "clear",
+      "reason": "The simulation iterates definitions and uses stable IDs; no fixed census or content-ID switch was found."
+    },
+    {
+      "name": "OnBuyItemSO",
+      "source": "Assets/Scripts/Models/Buildings/Core/OnBuyItemSO.cs:4",
+      "authoredAssetCount": 0,
+      "productionReachability": [
+        "Assets/Scripts/Models/Buildings/Core/OnBuyItemSO.cs:5-9 defines the virtual purchase strategy.",
+        "Assets/Scripts/Services/Character/Ability/AbilityShopping.cs:992,1156-1159,1219 invokes the item's buyevent through that strategy."
+      ],
+      "compositionAndPersistence": "Base strategy is referenced by item/building content; shopping runtime owns transaction state.",
+      "disposition": "clear_open_strategy",
+      "reason": "Zero direct base assets is expected, and derived existing strategies execute by virtual dispatch without a central content-ID branch."
+    },
+    {
+      "name": "ProductionRecipeSO",
+      "source": "Assets/Scripts/Models/Economy/Content/ProductionRecipeSO.cs:22",
+      "authoredAssetCount": 367,
+      "productionReachability": [
+        "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs:20-99 loads recipes generically.",
+        "Assets/Scripts/Models/Economy/Content/ProductionBillCommandRuntime.cs:130 and Assets/Scripts/Models/Economy/Content/ProductionDistributionRuntime.cs:147-227 resolve and execute recipe IDs.",
+        "Production save codecs persist bills and recipe references by stable ID."
+      ],
+      "compositionAndPersistence": "Immutable inputs/outputs/timing definition; bill/distribution runtimes and DTOs own mutable progress.",
+      "disposition": "clear",
+      "reason": "A new recipe composed from existing item/process semantics is cataloged and executed without recipe-ID branches."
+    },
+    {
+      "name": "ProficiencyDefinitionSO",
+      "source": "Assets/Scripts/Content/ProficiencyDefinitionSO.cs:5",
+      "authoredAssetCount": 9,
+      "productionReachability": [
+        "Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs:34-106 loads proficiencies by StableId.",
+        "Assets/Scripts/Services/Character/CharacterNarrativeAggregate.cs:652-667,849-875 materializes and persists proficiency state."
+      ],
+      "compositionAndPersistence": "Immutable proficiency definition; aggregate/save owns XP/level state.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-CHARACTER-FIXED-CENSUS"],
+      "reason": "Baseline exact-nine catalog guard blocked an additional definition. Awarding a new proficiency from a new work mechanic remains explicit gameplay wiring, not an audit defect."
+    },
+    {
+      "name": "ResearchProjectSO",
+      "source": "Assets/Scripts/Models/Research/Core/ResearchProjectSO.cs:7",
+      "authoredAssetCount": 180,
+      "productionReachability": [
+        "Assets/Scripts/Services/Infrastructure/ResearchProjectCatalogAdapter.cs:14-79 loads and resolves projects by stable ID.",
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs executes prerequisites/unlocks and research save sections restore project state."
+      ],
+      "compositionAndPersistence": "SO owns immutable cost/prerequisite/unlock data; research runtime/save owns progress and completion.",
+      "disposition": "clear",
+      "reason": "New projects using existing unlock capabilities are discovered and executed by ID without project-ID branching."
+    },
+    {
+      "name": "ResearchUnlockBundleDefinitionSO",
+      "source": "Assets/Scripts/Models/Research/Core/ResearchUnlockBundleDefinitionSO.cs:46",
+      "authoredAssetCount": 180,
+      "productionReachability": [
+        "Assets/Scripts/Services/Research/Editor/ResearchUnlockBundleAssetBuilder.cs:12-56 generates descriptive bundle assets from projects.",
+        "Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs:23-118 is the production reward path and derives executable rewards from ResearchProjectSO instead."
+      ],
+      "compositionAndPersistence": "Authoring projection holds role/design-intent/group-heading metadata and no executable reward entries; research project/runtime own gameplay and save identity.",
+      "disposition": "authoring_projection_clear",
+      "reason": "No non-Editor consumer exists, but this does not block a new project's existing-capability unlocks. The documentation/metadata mismatch is recorded as a non-finding."
+    },
+    {
+      "name": "ResourceItemDefinitionSO",
+      "source": "Assets/Scripts/Models/Economy/Content/ResourceItemDefinitionSO.cs:5",
+      "authoredAssetCount": 366,
+      "productionReachability": [
+        "Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs:12-86 stores resource items in its polymorphic list.",
+        "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs:20-68 requests this subtype through IGameContentDefinitionSource."
+      ],
+      "compositionAndPersistence": "Immutable item subtype; stock/inventory/save own resource quantities and instances.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-ITEM-SUBTYPE-CATALOG"],
+      "reason": "Baseline public subtype query returned zero despite 366 cataloged assets."
+    },
+    {
+      "name": "SaleItem",
+      "source": "Assets/Scripts/Models/Economy/Content/SaleItem.cs:7",
+      "authoredAssetCount": 4,
+      "productionReachability": [
+        "Assets/Scripts/Services/Infrastructure/DataCatalogService.cs:11-92 indexes SaleItem by legacy numeric ID.",
+        "Assets/Scripts/Services/Infrastructure/ShopStockCatalogService.cs:17-111 validates physical item references; Assets/Scripts/Services/Infrastructure/ShopInventoryRuntimeAdapter.cs:279-312 consumes the entries."
+      ],
+      "compositionAndPersistence": "Legacy immutable shop entry; inventory/shop runtime and save own changing stock.",
+      "disposition": "clear_legacy_contract",
+      "reason": "Existing SaleItem entries are consumed through the explicit legacy catalog. A new content mechanic/type would require a deliberate compatibility mapping."
+    },
+    {
+      "name": "SeasonalWorldEventDefinitionSO",
+      "source": "Assets/Scripts/Content/SeasonalWorldEventDefinitionSO.cs:255",
+      "authoredAssetCount": 28,
+      "productionReachability": [
+        "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 loads seasonal events by StableId.",
+        "Assets/Scripts/Services/Run/V20SeasonalOutcomeRuntime.cs evaluates definitions and persists selected event/outcome IDs."
+      ],
+      "compositionAndPersistence": "Immutable seasonal requirements/outcomes; seasonal runtime/save owns active state.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-STORY-FIXED-CENSUS"],
+      "reason": "Baseline exact-twenty-eight global census blocked a valid additional seasonal event."
+    },
+    {
+      "name": "ServiceIncidentDefinitionSO",
+      "source": "Assets/Scripts/Content/ServiceIncidentDefinitionSO.cs:7",
+      "authoredAssetCount": 8,
+      "productionReachability": [
+        "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 catalogs incidents by StableId.",
+        "Assets/Scripts/Services/Run/V20ObservedIncidentRuntime.cs:282-390 creates observed incident state; V20SocietyEventRuntime/save owns active event persistence."
+      ],
+      "compositionAndPersistence": "Immutable incident definition; society-event runtime/save owns occurrences, participants, and progress.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["MAIN-STORY-FIXED-CENSUS", "MAIN-OBSERVED-INCIDENT-KIND-SINGLETON"],
+      "reason": "Baseline both capped the global family at eight and rejected a second same-kind definition in the only production producer."
+    },
+    {
+      "name": "ServiceProcessSO",
+      "source": "Assets/Scripts/Models/Rooms/Core/ServiceProcessSO.cs:23",
+      "authoredAssetCount": 5,
+      "productionReachability": [
+        "Assets/Scripts/Models/Rooms/Core/ServiceProcessCatalog.cs:20-83 loads all definitions and resolves them by stable ID.",
+        "Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:528,742,824,1156 executes authored stages and persists session/process IDs."
+      ],
+      "compositionAndPersistence": "Immutable process/stage definition; ServiceSessionRuntime and room save sections own mutable sessions.",
+      "disposition": "clear",
+      "reason": "Additional processes using existing stage semantics are discovered and executed without process-ID branches."
+    },
+    {
+      "name": "StockInfo",
+      "source": "Assets/Scripts/Services/Buildings/SO/StockInfo.cs:7",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Services/Infrastructure/DataCatalogService.cs:11-92 indexes StockInfo through the legacy numeric-ID catalog.",
+        "Assets/Scripts/Services/Infrastructure/ShopStockCatalogService.cs:17-111 validates it against physical items; Assets/Scripts/Services/Infrastructure/ShopInventoryRuntimeAdapter.cs:279-312 consumes it."
+      ],
+      "compositionAndPersistence": "Immutable legacy stock definition; shop inventory runtime/save owns quantities.",
+      "disposition": "clear_legacy_contract",
+      "reason": "The one stock table is an explicit shop composition authority and its entries are fully consumed."
+    },
+    {
+      "name": "TextileMaterialDefinitionSO",
+      "source": "Assets/Scripts/Models/Economy/Content/TextileMaterialDefinitionSO.cs:5",
+      "authoredAssetCount": 12,
+      "productionReachability": [
+        "Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs:439 references textile material IDs.",
+        "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs:610-625 resolves textile definitions for apparel/economy runtime."
+      ],
+      "compositionAndPersistence": "Immutable textile properties; apparel/inventory runtimes own items and wear state.",
+      "disposition": "clear",
+      "reason": "Additional textiles are resolved by stable ID through the generic economy catalog."
+    },
+    {
+      "name": "TmpKoreanFontSettingsSO",
+      "source": "Assets/Scripts/Content/TmpKoreanFontSettingsSO.cs:6",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Content/GameMediaCatalogSO.cs:12-41 validates the font settings reference.",
+        "Assets/Scripts/Services/Infrastructure/TmpKoreanFontProvider.cs consumes it to configure TMP font fallback."
+      ],
+      "compositionAndPersistence": "One immutable UI font policy; TMP components own transient rendering state.",
+      "disposition": "clear_singleton",
+      "reason": "A single font-settings authority is intentional and authored references are consumed directly."
+    },
+    {
+      "name": "V20AuthoredContentSO",
+      "source": "Assets/Scripts/Content/V20AuthoredContentContracts.cs:6",
+      "authoredAssetCount": 0,
+      "productionReachability": [
+        "Assets/Scripts/Content/V20AuthoredContentContracts.cs:6-43,115-154 defines stable identity, requirements, and validation shared by all narrative subclasses.",
+        "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs and Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs consume derived instances polymorphically."
+      ],
+      "compositionAndPersistence": "Abstract immutable contract; derived StableId is persisted by narrative runtimes and resolved through catalogs.",
+      "disposition": "clear_abstract_contract",
+      "reason": "Zero direct base assets is expected, and derived families share generic validation/ID composition."
+    },
+    {
+      "name": "WorldInteractionPresentationCatalogSO",
+      "source": "Assets/Scripts/Views/UI/Core/WorldInteractionPresentationCatalogSO.cs:91",
+      "authoredAssetCount": 1,
+      "productionReachability": [
+        "Assets/Scripts/Views/UI/Core/WorldInteractionPresentationCatalogSO.cs:95-238 validates and matches presentation profiles and props.",
+        "CharacterProceduralMotionPresenter, CharacterCarryPresentation, and ActorPresentationBridge query it in production."
+      ],
+      "compositionAndPersistence": "One immutable presentation catalog; presenters own transient visual state and gameplay state stays elsewhere.",
+      "disposition": "clear_singleton",
+      "reason": "New profiles and prop mappings are matched through authored keys/capabilities rather than content-ID code branches."
+    }
+  ],
+  "crossBoundaryObservations": [
+    {
+      "owner": "actors",
+      "observation": "The same character-catalog repair also removed fixed global counts for backgrounds, ambitions, cultures, and heritable traits, and EnemyIndividualFactory removed general/heritable trait count assumptions. Those types are outside this 49-row owner slice."
+    },
+    {
+      "owner": "combat_medical",
+      "observation": "The EnemyCombatContentCatalog repair also removes fixed counts for enemy archetypes, abilities, and battlefield modifiers. Those types are outside this owner slice."
+    }
+  ]
+}

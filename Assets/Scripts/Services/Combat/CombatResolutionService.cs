@@ -1321,8 +1321,7 @@ public sealed class CombatResolutionService :
 
         bool arcane = (ammunition.Effects & (CombatSpecialEffectFlags.RuneDamage
             | CombatSpecialEffectFlags.ManaBlocked)) != 0
-            || (weapon?.DefinitionId ?? string.Empty) is
-                "weapon:rune-blade" or "weapon:mana-lance" or "weapon:rune-bow";
+            || CharacterArcaneWeaponRules.IsArcane(weapon);
         return arcane ? Mathf.Max(chance, 0.85f) : chance;
     }
 
@@ -1349,7 +1348,7 @@ public sealed class CombatResolutionService :
         CombatAttackRequest request,
         CombatWeaponSnapshot weapon)
     {
-        if (!CharacterArcaneWeaponRules.IsArcane(weapon?.DefinitionId))
+        if (!CharacterArcaneWeaponRules.IsArcane(weapon))
             return 1f;
         if (!request.Attacker.HasArcanePowerMultiplier)
             return ResolveArcanePowerMultiplier(request.AttackerId, weapon);
@@ -1376,7 +1375,7 @@ public sealed class CombatResolutionService :
         string attackerId,
         CombatWeaponSnapshot weapon)
     {
-        if (!CharacterArcaneWeaponRules.IsArcane(weapon?.DefinitionId))
+        if (!CharacterArcaneWeaponRules.IsArcane(weapon))
             return 1f;
         CharacterActor actor = characters?.Characters?.FirstOrDefault(value =>
             value != null

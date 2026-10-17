@@ -110,6 +110,19 @@ public static class P1FacilityEvolutionAssetBuilder
             definition.tokenId = spec.tokenId;
             definition.displayName = spec.displayName;
             definition.description = spec.description;
+            definition.generationTrigger = spec.tokenId switch
+            {
+                FacilityEvolutionTerms.MercenaryHangout => FacilityEvolutionRecordTokenGenerationTrigger.CombatMealVisit,
+                FacilityEvolutionTerms.NoblePatronage => FacilityEvolutionRecordTokenGenerationTrigger.NobleVisitOrHighValueRevenue,
+                FacilityEvolutionTerms.HighTurnoverService => FacilityEvolutionRecordTokenGenerationTrigger.TurnoverVisitMilestone,
+                FacilityEvolutionTerms.HighMeatConsumption => FacilityEvolutionRecordTokenGenerationTrigger.MealFoodConsumed,
+                FacilityEvolutionTerms.OutlawRumor => FacilityEvolutionRecordTokenGenerationTrigger.CrimeReported,
+                FacilityEvolutionTerms.IntruderBloodied => FacilityEvolutionRecordTokenGenerationTrigger.DamagingDefense,
+                FacilityEvolutionTerms.GuardRallyPoint => FacilityEvolutionRecordTokenGenerationTrigger.GuardDefense,
+                FacilityEvolutionTerms.CleanServiceStreak => FacilityEvolutionRecordTokenGenerationTrigger.CleanServiceDay,
+                FacilityEvolutionTerms.FrequentBrawls => FacilityEvolutionRecordTokenGenerationTrigger.Manual,
+                _ => throw new InvalidOperationException("Unknown authored record token trigger: " + spec.tokenId)
+            };
             definition.sourceMetric = spec.sourceMetric;
             definition.threshold = spec.threshold;
             definition.decayPolicy = spec.decayPolicy;

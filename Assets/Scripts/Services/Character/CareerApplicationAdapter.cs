@@ -330,7 +330,8 @@ public sealed class CareerApplicationAdapter :
                     value.ownerCharacterId,
                     mentorship.MentorCharacterId.Value,
                     StringComparison.Ordinal)
-                && (CombatEquipmentRoleRules.For(value.definitionId)
+                && combatEquipment.TryGetDefinition(value.definitionId, out CombatEquipmentDefinitionSO definition)
+                && (definition.RoleFlags
                     & CombatEquipmentRoleFlags.BlastAndSmokeProtection) != 0)
             .OrderBy(value => value.instanceId, StringComparer.Ordinal)
             .FirstOrDefault();

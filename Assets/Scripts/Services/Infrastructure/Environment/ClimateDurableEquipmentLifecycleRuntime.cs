@@ -4,7 +4,7 @@ using System.Linq;
 using VContainer.Unity;
 
 /// <summary>
-/// Closes climate observation equipment slots when their exact authored tower
+/// Closes climate observation equipment slots when their owner tower
 /// disappears or no longer owns the weather-observation capability. The common
 /// durable slot runtime performs the carried-aware physical drain and save join.
 /// </summary>
@@ -14,6 +14,7 @@ public sealed class ClimateDurableEquipmentLifecycleRuntime :
     IDungeonSaveCaptureGuard
 {
     public const int WeatherTowerDefinitionId = 8851;
+    public const string WeatherObservationWorkstationTag = "workstation:v19:weather-observation";
 
     private readonly IBuildingWorldQuery buildings;
     private readonly IDurableFacilityEquipmentSlotQuery slots;
@@ -101,7 +102,8 @@ public sealed class ClimateDurableEquipmentLifecycleRuntime :
         facility != null
         && !facility.isDestroy
         && facility.BuildingData != null
-        && facility.BuildingData.id == WeatherTowerDefinitionId;
+        && string.Equals(facility.BuildingData.GetProductionWorkstationAbility()?.WorkstationTag,
+            WeatherObservationWorkstationTag, StringComparison.Ordinal);
 
     private void Close(
         DurableFacilityEquipmentSlotSnapshot slot,

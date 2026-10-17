@@ -1,0 +1,632 @@
+{
+  "artifact": "Combat/medical modular-extension repair boundaries",
+  "owner": "combat_medical",
+  "branch": "codex/so-modular-extension",
+  "status": "READY/FROZEN",
+  "scope": "Read-only source evidence and smallest repair boundaries. No source, test, Unity, or asset edits were made by this audit agent.",
+  "formulaDisposition": {
+    "findingId": "CM-EQUIPMENT-FORMULA-APPLICATOR",
+    "disposition": "withdrawn_false_positive",
+    "reason": "The extension criterion does not require a new applicator identity for a new capability that uses an already-supported stat/modifier pair. Current assets prove that capability IDs intentionally reuse applicators. A new stat, modifier mechanic, applicator, direction/offer semantic, or EvolutionModuleRegistry entry is a genuinely new mechanic and may require explicit source registration.",
+    "validatedPairs": [
+      {
+        "applicatorId": "equipment:combat-damage:increase",
+        "statId": "combat.damage",
+        "modifierKind": "MultiplierIncrease",
+        "currentCapabilityIds": [
+          "equipment:force",
+          "equipment:execution"
+        ]
+      },
+      {
+        "applicatorId": "equipment:combat-accuracy:increase",
+        "statId": "combat.accuracy",
+        "modifierKind": "MultiplierIncrease",
+        "currentCapabilityIds": [
+          "equipment:precision",
+          "equipment:control"
+        ]
+      },
+      {
+        "applicatorId": "equipment:combat-durability:increase",
+        "statId": "combat.durability",
+        "modifierKind": "MultiplierIncrease",
+        "currentCapabilityIds": [
+          "equipment:durability",
+          "equipment:reinforced-durability"
+        ]
+      },
+      {
+        "applicatorId": "equipment:combat-reload:reduction",
+        "statId": "combat.reload",
+        "modifierKind": "MultiplierReduction",
+        "currentCapabilityIds": [
+          "equipment:cadence"
+        ]
+      }
+    ],
+    "evidence": [
+      "Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaDefinitionSO.cs:82-101",
+      "Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaDefinitionSO.cs:305-331",
+      "Assets/Scripts/Services/Combat/CombatEquipmentStatProjector.cs:244-280",
+      "Assets/Scripts/Models/Evolution/Core/EvolutionModuleRegistry.cs:315-437",
+      "Assets/Resources/SO/EquipmentEvolutionFormulaCatalog.asset:36-318",
+      "Assets/Resources/SO/EquipmentEvolutionFormulaCatalogV3.asset:36-274"
+    ],
+    "catalogBehavior": "Unregistered module IDs and unknown/mismatched applicators fail explicitly; no registered compatible capability is silently ignored.",
+    "auditCorrection": "Artifacts/QA/SoModularity-20261017/audit-combat-medical.json now reports five confirmed blockers, ten blocked types, and EquipmentEvolutionFormulaCatalogSO clear."
+  },
+  "currentAnatomyAuthorityRepairObserved": {
+    "status": "implemented_by_main_not_verified_by_this_agent",
+    "evidence": [
+      "Assets/Scripts/Services/Combat/CharacterBodyHealthStateRules.cs:22-29 reads actor.profile.GetAnatomyProfileId, resolves it through IAnatomyProfileCatalog, and throws for an unknown authored ID.",
+      "Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs:1678-1684 reuses the state's saved anatomyProfileId; lines 1759-1763 initialize an actor-backed state through ResolveForActor."
+    ],
+    "saveBoundary": "Existing CharacterBodyHealthState.anatomyProfileId remains the restore authority. The change affects initial actor-backed state creation and does not require a save schema change.",
+    "verification": "Source diff inspected only; compilation and native scenarios are owned by main."
+  },
+  "equipmentMetadataBoundary": {
+    "blockerId": "CM-COMBAT-EQUIPMENT-ID-ROLES",
+    "smallestContract": {
+      "definitionMetadata": [
+        "CombatEquipmentDefinitionSO.RoleFlags, default CombatEquipmentRoleFlags.None.",
+        "CombatWeaponSO.ArcaneManaCost, default 0. IsArcane is derived from a positive authored mana cost."
+      ],
+      "sharedExistingRules": [
+        "ForPowerState consumes authored RoleFlags. When a Powered item is depleted, strip Powered and ArmorBreaker exactly as before.",
+        "GetPowerPerformanceMultiplier consumes authored RoleFlags and retains the existing Powered constants: 1.15 with charge, 0.75 depleted, otherwise 1.0.",
+        "CombatWeaponSnapshot carries the derived role flags and arcane mana cost because command and resolution paths do not own a catalog."
+      ],
+      "saveCompatibility": "Do not add role or arcane data to CombatEquipmentInstance or EquipmentItemStateCodec. Persist definitionId and mutable instance state exactly as today; resolve immutable metadata from the SO on load and project it into ephemeral combat snapshots. Existing saves therefore retain their schema and acquire metadata from the referenced definition.",
+      "defaults": "Unmigrated definitions remain ordinary equipment: RoleFlags.None, ArcaneManaCost 0, power multiplier 1.0. No content-ID fallback is needed in production."
+    },
+    "preRepairProductionCallInventory": [
+      {
+        "method": "CombatEquipmentRoleRules.For",
+        "path": "Assets/Scripts/Services/Character/CareerApplicationAdapter.cs",
+        "lines": "326-336",
+        "context": "Selects equipped last-lesson PPE.",
+        "dataAtCall": "ICombatEquipmentRuntime is available and exposes TryGetDefinition; use definition.RoleFlags."
+      },
+      {
+        "method": "CombatEquipmentRoleRules.For",
+        "path": "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs",
+        "lines": "1213-1244",
+        "context": "Revalidates BlastAndSmokeProtection inside a historical receipt constructor and during parse.",
+        "dataAtCall": "No catalog or snapshot is available. Validate eligibility at the producing CareerApplicationAdapter/observer boundary; keep receipt owner/equipped/canonical identity checks and do not reclassify historical payloads from the current catalog."
+      },
+      {
+        "method": "CombatEquipmentRoleRules.For",
+        "path": "Assets/Scripts/Services/Combat/CombatEquipmentSupplyService.cs",
+        "lines": "202-213",
+        "context": "TryConsumePower eligibility.",
+        "dataAtCall": "ICombatEquipmentCatalog is a field; resolve instance.definitionId and use definition.RoleFlags."
+      },
+      {
+        "method": "CombatEquipmentRoleRules.For",
+        "path": "Assets/Scripts/Services/Combat/CombatEquipmentSupplyService.cs",
+        "lines": "226-236",
+        "context": "TryRestorePower eligibility.",
+        "dataAtCall": "ICombatEquipmentCatalog is a field; resolve instance.definitionId and use definition.RoleFlags."
+      },
+      {
+        "method": "CombatEquipmentRoleRules.GetPowerPerformanceMultiplier",
+        "path": "Assets/Scripts/Models/Economy/Content/CombatWeaponSO.cs",
+        "lines": "41-56",
+        "context": "Weapon snapshot multiplier.",
+        "dataAtCall": "The CombatWeaponSO itself is available; use authored RoleFlags."
+      },
+      {
+        "method": "CombatEquipmentRoleRules.ForPowerState",
+        "path": "Assets/Scripts/Models/Economy/Content/CombatWeaponSO.cs",
+        "lines": "57-60",
+        "context": "Weapon snapshot active role flags.",
+        "dataAtCall": "The CombatWeaponSO itself is available; use authored RoleFlags and charge state."
+      },
+      {
+        "method": "CombatEquipmentRoleRules.GetPowerPerformanceMultiplier",
+        "path": "Assets/Scripts/Services/Combat/CombatEquipmentLoadoutRuntime.cs",
+        "lines": "400-431",
+        "context": "Armor snapshot multiplier.",
+        "dataAtCall": "The catalog has already resolved CombatArmorSO armor; use armor.RoleFlags."
+      },
+      {
+        "method": "CombatEquipmentRoleRules.ForPowerState",
+        "path": "Assets/Scripts/Services/Combat/CombatEquipmentLoadoutRuntime.cs",
+        "lines": "433-435",
+        "context": "Armor snapshot active role flags.",
+        "dataAtCall": "The catalog has already resolved CombatArmorSO armor; use armor.RoleFlags."
+      },
+      {
+        "method": "CombatEquipmentRoleRules.GetPowerPerformanceMultiplier",
+        "path": "Assets/Scripts/Services/Combat/CombatEquipmentLoadoutRuntime.cs",
+        "lines": "455-479",
+        "context": "Shield snapshot multiplier.",
+        "dataAtCall": "The catalog has already resolved CombatShieldSO shield; use shield.RoleFlags."
+      },
+      {
+        "method": "CombatEquipmentRoleRules.ForPowerState",
+        "path": "Assets/Scripts/Services/Combat/CombatEquipmentLoadoutRuntime.cs",
+        "lines": "481-483",
+        "context": "Shield snapshot active role flags.",
+        "dataAtCall": "The catalog has already resolved CombatShieldSO shield; use shield.RoleFlags."
+      },
+      {
+        "method": "CharacterArcaneWeaponRules.IsArcane",
+        "path": "Assets/Scripts/Views/Character/UI/StaffManagementSurfacePanel.cs",
+        "lines": "645-673",
+        "context": "Finds an equipped weapon for the overcharge UI.",
+        "dataAtCall": "ICombatEquipmentRuntime is available; after TryGetDerivedStats, TryGetDefinition can resolve CombatWeaponSO and authored ArcaneManaCost."
+      },
+      {
+        "method": "CharacterArcaneWeaponRules.IsArcane",
+        "path": "Assets/Scripts/Services/Character/Identity/Runtime/ArcaneOverchargeCommandRuntime.cs",
+        "lines": "207-229",
+        "context": "Validates overcharge equipment.",
+        "dataAtCall": "ICombatEquipmentRuntime is available; resolve the definition and authored ArcaneManaCost."
+      },
+      {
+        "method": "CharacterArcaneWeaponRules.GetManaCost",
+        "path": "Assets/Scripts/Services/Combat/CharacterCombatCommandRuntime.cs",
+        "lines": "731-759",
+        "context": "Ranged attack against an empty tile.",
+        "dataAtCall": "Only CombatWeaponSnapshot is available; read snapshot.ArcaneManaCost."
+      },
+      {
+        "method": "CharacterArcaneWeaponRules.GetManaCost",
+        "path": "Assets/Scripts/Services/Combat/CharacterCombatCommandRuntime.cs",
+        "lines": "889-900",
+        "context": "Ranged attack against a participant.",
+        "dataAtCall": "Only CombatWeaponSnapshot is available; read snapshot.ArcaneManaCost."
+      },
+      {
+        "method": "CharacterArcaneWeaponRules.GetManaCost",
+        "path": "Assets/Scripts/Services/Combat/CharacterCombatCommandRuntime.cs",
+        "lines": "1012-1045",
+        "context": "Melee attack.",
+        "dataAtCall": "Only CombatWeaponSnapshot is available; read snapshot.ArcaneManaCost."
+      },
+      {
+        "method": "CharacterArcaneWeaponRules.IsArcane",
+        "path": "Assets/Scripts/Services/Combat/CombatEquipmentRuntime.cs",
+        "lines": "1319-1334",
+        "context": "Applies overcharge durability damage.",
+        "dataAtCall": "ICombatEquipmentCatalog is a field and is already queried later in the guard; resolve first and use CombatWeaponSO.ArcaneManaCost."
+      },
+      {
+        "method": "CharacterArcaneWeaponRules.IsArcane",
+        "path": "Assets/Scripts/Services/Combat/CombatEquipmentRuntime.cs",
+        "lines": "1352-1365",
+        "context": "Rolls back overcharge durability damage.",
+        "dataAtCall": "ICombatEquipmentCatalog is a field; resolve the definition and authored ArcaneManaCost."
+      },
+      {
+        "method": "direct arcane definition-ID branch",
+        "path": "Assets/Scripts/Services/Combat/CombatResolutionService.cs",
+        "lines": "1311-1326",
+        "context": "SpellBlock raises block chance for arcane weapon attacks.",
+        "dataAtCall": "CombatWeaponSnapshot is available; use snapshot.IsArcane."
+      },
+      {
+        "method": "CharacterArcaneWeaponRules.IsArcane",
+        "path": "Assets/Scripts/Services/Combat/CombatResolutionService.cs",
+        "lines": "1348-1355",
+        "context": "Chooses arcane power multiplier from request snapshot.",
+        "dataAtCall": "CombatWeaponSnapshot is available; use snapshot.IsArcane."
+      },
+      {
+        "method": "CharacterArcaneWeaponRules.IsArcane",
+        "path": "Assets/Scripts/Services/Combat/CombatResolutionService.cs",
+        "lines": "1372-1380",
+        "context": "Compatibility path for active-world arcane power.",
+        "dataAtCall": "CombatWeaponSnapshot is available; use snapshot.IsArcane."
+      }
+    ],
+    "authoredMigration": {
+      "roleAssetCount": 10,
+      "roleAssets": [
+        {
+          "id": "weapon:repeating-crossbow",
+          "asset": "Assets/Resources/SO/Combat/Equipment/W22_RepeatingCrossbow.asset",
+          "roleFlags": [
+            "RepeatingBurst"
+          ]
+        },
+        {
+          "id": "weapon:shotgun",
+          "asset": "Assets/Resources/SO/Combat/Equipment/W26_Shotgun.asset",
+          "roleFlags": [
+            "ShotgunSuppression"
+          ]
+        },
+        {
+          "id": "weapon:pollaxe",
+          "asset": "Assets/Resources/SO/Combat/Equipment/W30_Pollaxe.asset",
+          "roleFlags": [
+            "ArmorBreaker",
+            "PullOnHit"
+          ]
+        },
+        {
+          "id": "weapon:blacksteel-poleaxe",
+          "asset": "Assets/Resources/SO/Combat/Equipment/W28_BlacksteelPoleaxe.asset",
+          "roleFlags": [
+            "ArmorBreaker"
+          ]
+        },
+        {
+          "id": "weapon:powered-striking-gauntlet",
+          "asset": "Assets/Resources/SO/Combat/Equipment/W27_PoweredStrikingGauntlet.asset",
+          "roleFlags": [
+            "Powered",
+            "ArmorBreaker"
+          ]
+        },
+        {
+          "id": "armor:powered-harness",
+          "asset": "Assets/Resources/SO/Combat/Equipment/A15_PoweredHarness.asset",
+          "roleFlags": [
+            "Powered"
+          ]
+        },
+        {
+          "id": "shield:powered",
+          "asset": "Assets/Resources/SO/Combat/Equipment/S06_PoweredShield.asset",
+          "roleFlags": [
+            "Powered"
+          ]
+        },
+        {
+          "id": "armor:powder-cuirass",
+          "asset": "Assets/Resources/SO/Combat/Equipment/A19_PowderCuirass.asset",
+          "roleFlags": [
+            "BlastAndSmokeProtection"
+          ]
+        },
+        {
+          "id": "shield:mana-buckler",
+          "asset": "Assets/Resources/SO/Combat/Equipment/S08_ManaBuckler.asset",
+          "roleFlags": [
+            "SpellBlock"
+          ]
+        },
+        {
+          "id": "shield:pavise",
+          "asset": "Assets/Resources/SO/Combat/Equipment/S09_Pavise.asset",
+          "roleFlags": [
+            "DeployableCover"
+          ]
+        }
+      ],
+      "arcaneAssetCount": 3,
+      "arcaneAssets": [
+        {
+          "id": "weapon:rune-blade",
+          "asset": "Assets/Resources/SO/Combat/Equipment/W20_RuneBlade.asset",
+          "arcaneManaCost": 8.0
+        },
+        {
+          "id": "weapon:rune-bow",
+          "asset": "Assets/Resources/SO/Combat/Equipment/W31_RuneBow.asset",
+          "arcaneManaCost": 10.0
+        },
+        {
+          "id": "weapon:mana-lance",
+          "asset": "Assets/Resources/SO/Combat/Equipment/W21_ManaLance.asset",
+          "arcaneManaCost": 12.0
+        }
+      ],
+      "countClarification": "The current CombatEquipmentRoleRules.For switch classifies ten definition IDs. Arcane classification is a separate three-weapon migration."
+    }
+  },
+  "apparelMetadataBoundary": {
+    "blockerId": "CM-APPAREL-SPECIES-ID-FIT",
+    "authority": "AnatomyProfileSO is the narrow authority because body form, size, baseline fit surface, and node attachment behavior vary by anatomy profile. AnatomyAttachmentQuery should resolve the body's saved anatomyProfileId through IAnatomyProfileCatalog rather than switch on SpeciesTag.",
+    "preservationContract": {
+      "baseline": "All existing profiles start with StandardHumanoidPoints exactly as the current query does, including slime and profiles that omit arm/leg nodes.",
+      "bindingModes": [
+        "RemoveWhenMissing: if an exact mapped standard node exists in the health snapshot and is missing, remove its mapped points; if the node does not exist, retain the baseline points.",
+        "AddWhenPresent: add optional appendage points only while at least one mapped node is present and functional."
+      ],
+      "bodyForm": "anatomy:construct => Construct; every other current profile => Humanoid.",
+      "size": "anatomy:kobold => Small; anatomy:orc and anatomy:construct => Large; every other current profile => Medium.",
+      "saveCompatibility": "Keep EquippedApparelSaveData and body-health save schemas unchanged. Fit metadata is immutable profile data; runtime resolves the saved anatomyProfileId and computes available points. Existing occupiedPoints remain stored as before."
+    },
+    "legacyNodeBindingsToAuthor": [
+      {
+        "nodeIds": [
+          "head"
+        ],
+        "points": [
+          "Head",
+          "Face"
+        ],
+        "mode": "RemoveWhenMissing"
+      },
+      {
+        "nodeIds": [
+          "torso"
+        ],
+        "points": [
+          "Torso",
+          "Pelvis",
+          "Back"
+        ],
+        "mode": "RemoveWhenMissing"
+      },
+      {
+        "nodeIds": [
+          "arm:left"
+        ],
+        "points": [
+          "ArmLeft",
+          "HandLeft"
+        ],
+        "mode": "RemoveWhenMissing"
+      },
+      {
+        "nodeIds": [
+          "arm:right"
+        ],
+        "points": [
+          "ArmRight",
+          "HandRight"
+        ],
+        "mode": "RemoveWhenMissing"
+      },
+      {
+        "nodeIds": [
+          "leg:left"
+        ],
+        "points": [
+          "LegLeft",
+          "FootLeft"
+        ],
+        "mode": "RemoveWhenMissing"
+      },
+      {
+        "nodeIds": [
+          "leg:right"
+        ],
+        "points": [
+          "LegRight",
+          "FootRight"
+        ],
+        "mode": "RemoveWhenMissing"
+      },
+      {
+        "nodeIds": [
+          "tail",
+          "balance-tail"
+        ],
+        "points": [
+          "Tail"
+        ],
+        "mode": "AddWhenPresent"
+      },
+      {
+        "nodeIds": [
+          "wing:left"
+        ],
+        "points": [
+          "WingLeft"
+        ],
+        "mode": "AddWhenPresent"
+      },
+      {
+        "nodeIds": [
+          "wing:right"
+        ],
+        "points": [
+          "WingRight"
+        ],
+        "mode": "AddWhenPresent"
+      },
+      {
+        "nodeIds": [
+          "horn:left",
+          "horn:right",
+          "horn-set"
+        ],
+        "points": [
+          "HornSet"
+        ],
+        "mode": "AddWhenPresent"
+      }
+    ],
+    "currentProfileProjection": [
+      {
+        "profileId": "anatomy:avian",
+        "asset": "Assets/Resources/SO/Medical/Anatomy/anatomy_avian.asset",
+        "form": "Humanoid",
+        "size": "Medium",
+        "optionalPoints": [
+          "WingLeft",
+          "WingRight",
+          "Tail"
+        ],
+        "mappedStandardNodes": [
+          "head",
+          "torso",
+          "leg:left",
+          "leg:right"
+        ]
+      },
+      {
+        "profileId": "anatomy:beastkin",
+        "asset": "Assets/Resources/SO/Medical/Anatomy/anatomy_beastkin.asset",
+        "form": "Humanoid",
+        "size": "Medium",
+        "optionalPoints": [
+          "Tail"
+        ],
+        "mappedStandardNodes": [
+          "head",
+          "torso",
+          "arm:left",
+          "arm:right",
+          "leg:left",
+          "leg:right"
+        ]
+      },
+      {
+        "profileId": "anatomy:construct",
+        "asset": "Assets/Resources/SO/Medical/Anatomy/anatomy_construct.asset",
+        "form": "Construct",
+        "size": "Large",
+        "optionalPoints": [],
+        "mappedStandardNodes": [
+          "head",
+          "torso",
+          "arm:left",
+          "arm:right",
+          "leg:left",
+          "leg:right"
+        ]
+      },
+      {
+        "profileId": "anatomy:demon",
+        "asset": "Assets/Resources/SO/Medical/Anatomy/anatomy_demon.asset",
+        "form": "Humanoid",
+        "size": "Medium",
+        "optionalPoints": [
+          "HornSet",
+          "Tail"
+        ],
+        "mappedStandardNodes": [
+          "head",
+          "torso",
+          "arm:left",
+          "arm:right",
+          "leg:left",
+          "leg:right"
+        ]
+      },
+      {
+        "profileId": "anatomy:fungal",
+        "asset": "Assets/Resources/SO/Medical/Anatomy/anatomy_fungal.asset",
+        "form": "Humanoid",
+        "size": "Medium",
+        "optionalPoints": [],
+        "mappedStandardNodes": [
+          "head",
+          "torso",
+          "arm:left",
+          "arm:right",
+          "leg:left",
+          "leg:right"
+        ]
+      },
+      {
+        "profileId": "anatomy:human",
+        "asset": "Assets/Resources/SO/Medical/Anatomy/anatomy_human.asset",
+        "form": "Humanoid",
+        "size": "Medium",
+        "optionalPoints": [],
+        "mappedStandardNodes": [
+          "head",
+          "torso",
+          "arm:left",
+          "arm:right",
+          "leg:left",
+          "leg:right"
+        ]
+      },
+      {
+        "profileId": "anatomy:humanoid",
+        "asset": "Assets/Resources/SO/Medical/Anatomy/anatomy_humanoid.asset",
+        "form": "Humanoid",
+        "size": "Medium",
+        "optionalPoints": [],
+        "mappedStandardNodes": [
+          "head",
+          "torso",
+          "arm:left",
+          "arm:right",
+          "leg:left",
+          "leg:right"
+        ]
+      },
+      {
+        "profileId": "anatomy:kobold",
+        "asset": "Assets/Resources/SO/Medical/Anatomy/anatomy_kobold.asset",
+        "form": "Humanoid",
+        "size": "Small",
+        "optionalPoints": [
+          "Tail"
+        ],
+        "mappedStandardNodes": [
+          "head",
+          "torso",
+          "leg:left",
+          "leg:right"
+        ]
+      },
+      {
+        "profileId": "anatomy:orc",
+        "asset": "Assets/Resources/SO/Medical/Anatomy/anatomy_orc.asset",
+        "form": "Humanoid",
+        "size": "Large",
+        "optionalPoints": [],
+        "mappedStandardNodes": [
+          "head",
+          "torso",
+          "arm:left",
+          "arm:right",
+          "leg:left",
+          "leg:right"
+        ]
+      },
+      {
+        "profileId": "anatomy:quadruped",
+        "asset": "Assets/Resources/SO/Medical/Anatomy/anatomy_quadruped.asset",
+        "form": "Humanoid",
+        "size": "Medium",
+        "optionalPoints": [],
+        "mappedStandardNodes": [
+          "head",
+          "torso"
+        ],
+        "note": "No CharacterSpeciesDefinitionSO currently references this profile; migrate it for catalog completeness."
+      },
+      {
+        "profileId": "anatomy:slime",
+        "asset": "Assets/Resources/SO/Medical/Anatomy/anatomy_slime.asset",
+        "form": "Humanoid",
+        "size": "Medium",
+        "optionalPoints": [],
+        "mappedStandardNodes": [],
+        "note": "Preserve the current full StandardHumanoidPoints baseline despite no standard surface nodes."
+      },
+      {
+        "profileId": "anatomy:vampire",
+        "asset": "Assets/Resources/SO/Medical/Anatomy/anatomy_vampire.asset",
+        "form": "Humanoid",
+        "size": "Medium",
+        "optionalPoints": [],
+        "mappedStandardNodes": [
+          "head",
+          "torso",
+          "arm:left",
+          "arm:right",
+          "leg:left",
+          "leg:right"
+        ]
+      }
+    ],
+    "speciesProfileEvidence": [
+      "Eleven SpeciesDefinition assets author anatomyProfileId: Adventurer->anatomy:humanoid, Human->anatomy:human, Beastkin->anatomy:beastkin, Demon->anatomy:demon, Golem->anatomy:construct, Harpy->anatomy:avian, Kobold->anatomy:kobold, Myconid->anatomy:fungal, Orc->anatomy:orc, Slime->anatomy:slime, Vampire->anatomy:vampire.",
+      "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs:46-56,148-211 is the exact legacy behavior being migrated."
+    ]
+  },
+  "verification": {
+    "sourceInspection": "complete",
+    "jsonParse": "passed",
+    "unityExecuted": false,
+    "nativeScenariosExecuted": false,
+    "sourceEdits": false,
+    "testEdits": false,
+    "assetEdits": false,
+    "output": "Artifacts/QA/SoModularity-20261017/combat-fix-boundaries.json"
+  }
+}

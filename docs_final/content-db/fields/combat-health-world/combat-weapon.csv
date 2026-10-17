@@ -128,6 +128,8 @@ CombatWeaponSO|equipment-item:weapon:blacksteel-poleaxe,equipment-item:weapon:bl
 CombatWeaponSO|equipment-item:weapon:blacksteel-poleaxe,equipment-item:weapon:blacksteel-poleaxe,references.RefIds.0.data.penetration,35,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:blacksteel-poleaxe,equipment-item:weapon:blacksteel-poleaxe,references.RefIds.0.data.damageType,1,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:blacksteel-poleaxe,equipment-item:weapon:blacksteel-poleaxe,references.RefIds.0.data.tracking,0.025,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:blacksteel-poleaxe,equipment-item:weapon:blacksteel-poleaxe,roleFlags,4,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:blacksteel-poleaxe,equipment-item:weapon:blacksteel-poleaxe,arcaneManaCost,0,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:blacksteel-poleaxe,equipment-item:weapon:blacksteel-poleaxe,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default
 CombatWeaponSO|equipment-item:weapon:composite-bow,equipment-item:weapon:composite-bow,m_Name,W14_CompositeBow,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:composite-bow,equipment-item:weapon:composite-bow,equipmentId,weapon:composite-bow,,,explicit-serialized
@@ -985,6 +987,8 @@ CombatWeaponSO|equipment-item:weapon:mana-lance,equipment-item:weapon:mana-lance
 CombatWeaponSO|equipment-item:weapon:mana-lance,equipment-item:weapon:mana-lance,references.RefIds.0.data.penetration,26,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:mana-lance,equipment-item:weapon:mana-lance,references.RefIds.0.data.damageType,1,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:mana-lance,equipment-item:weapon:mana-lance,references.RefIds.0.data.tracking,0.05,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:mana-lance,equipment-item:weapon:mana-lance,roleFlags,0,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:mana-lance,equipment-item:weapon:mana-lance,arcaneManaCost,12,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:mana-lance,equipment-item:weapon:mana-lance,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default
 CombatWeaponSO|equipment-item:weapon:matchlock-long-gun,equipment-item:weapon:matchlock-long-gun,m_Name,W23_MatchlockLongGun,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:matchlock-long-gun,equipment-item:weapon:matchlock-long-gun,equipmentId,weapon:matchlock-long-gun,,,explicit-serialized
@@ -1179,6 +1183,8 @@ CombatWeaponSO|equipment-item:weapon:pollaxe,equipment-item:weapon:pollaxe,refer
 CombatWeaponSO|equipment-item:weapon:pollaxe,equipment-item:weapon:pollaxe,references.RefIds.0.data.penetration,21,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:pollaxe,equipment-item:weapon:pollaxe,references.RefIds.0.data.damageType,2,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:pollaxe,equipment-item:weapon:pollaxe,references.RefIds.0.data.tracking,0.04,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:pollaxe,equipment-item:weapon:pollaxe,roleFlags,12,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:pollaxe,equipment-item:weapon:pollaxe,arcaneManaCost,0,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:pollaxe,equipment-item:weapon:pollaxe,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default
 CombatWeaponSO|equipment-item:weapon:powered-striking-gauntlet,equipment-item:weapon:powered-striking-gauntlet,m_Name,W27_PoweredStrikingGauntlet,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:powered-striking-gauntlet,equipment-item:weapon:powered-striking-gauntlet,equipmentId,weapon:powered-striking-gauntlet,,,explicit-serialized
@@ -1236,6 +1242,8 @@ CombatWeaponSO|equipment-item:weapon:powered-striking-gauntlet,equipment-item:we
 CombatWeaponSO|equipment-item:weapon:powered-striking-gauntlet,equipment-item:weapon:powered-striking-gauntlet,references.RefIds.0.data.penetration,28,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:powered-striking-gauntlet,equipment-item:weapon:powered-striking-gauntlet,references.RefIds.0.data.damageType,2,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:powered-striking-gauntlet,equipment-item:weapon:powered-striking-gauntlet,references.RefIds.0.data.tracking,0.025,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:powered-striking-gauntlet,equipment-item:weapon:powered-striking-gauntlet,roleFlags,20,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:powered-striking-gauntlet,equipment-item:weapon:powered-striking-gauntlet,arcaneManaCost,0,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:powered-striking-gauntlet,equipment-item:weapon:powered-striking-gauntlet,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default
 CombatWeaponSO|equipment-item:weapon:repeating-crossbow,equipment-item:weapon:repeating-crossbow,m_Name,W22_RepeatingCrossbow,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:repeating-crossbow,equipment-item:weapon:repeating-crossbow,equipmentId,weapon:repeating-crossbow,,,explicit-serialized
@@ -1311,6 +1319,8 @@ CombatWeaponSO|equipment-item:weapon:repeating-crossbow,equipment-item:weapon:re
 CombatWeaponSO|equipment-item:weapon:repeating-crossbow,equipment-item:weapon:repeating-crossbow,references.RefIds.0.data.damageType,1,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:repeating-crossbow,equipment-item:weapon:repeating-crossbow,references.RefIds.0.data.tracking,0.04,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:repeating-crossbow,equipment-item:weapon:repeating-crossbow,references.RefIds.0.data.projectileSpeed,18,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:repeating-crossbow,equipment-item:weapon:repeating-crossbow,roleFlags,1,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:repeating-crossbow,equipment-item:weapon:repeating-crossbow,arcaneManaCost,0,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:repeating-crossbow,equipment-item:weapon:repeating-crossbow,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default
 CombatWeaponSO|equipment-item:weapon:rune-blade,equipment-item:weapon:rune-blade,m_Name,W20_RuneBlade,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:rune-blade,equipment-item:weapon:rune-blade,equipmentId,weapon:rune-blade,,,explicit-serialized
@@ -1370,6 +1380,8 @@ CombatWeaponSO|equipment-item:weapon:rune-blade,equipment-item:weapon:rune-blade
 CombatWeaponSO|equipment-item:weapon:rune-blade,equipment-item:weapon:rune-blade,references.RefIds.0.data.penetration,20,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:rune-blade,equipment-item:weapon:rune-blade,references.RefIds.0.data.damageType,0,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:rune-blade,equipment-item:weapon:rune-blade,references.RefIds.0.data.tracking,0.08,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:rune-blade,equipment-item:weapon:rune-blade,roleFlags,0,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:rune-blade,equipment-item:weapon:rune-blade,arcaneManaCost,8,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:rune-blade,equipment-item:weapon:rune-blade,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default
 CombatWeaponSO|equipment-item:weapon:rune-bow,equipment-item:weapon:rune-bow,m_Name,W31_RuneBow,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:rune-bow,equipment-item:weapon:rune-bow,equipmentId,weapon:rune-bow,,,explicit-serialized
@@ -1444,6 +1456,8 @@ CombatWeaponSO|equipment-item:weapon:rune-bow,equipment-item:weapon:rune-bow,ref
 CombatWeaponSO|equipment-item:weapon:rune-bow,equipment-item:weapon:rune-bow,references.RefIds.0.data.damageType,1,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:rune-bow,equipment-item:weapon:rune-bow,references.RefIds.0.data.tracking,0.035,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:rune-bow,equipment-item:weapon:rune-bow,references.RefIds.0.data.projectileSpeed,22,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:rune-bow,equipment-item:weapon:rune-bow,roleFlags,0,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:rune-bow,equipment-item:weapon:rune-bow,arcaneManaCost,10,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:rune-bow,equipment-item:weapon:rune-bow,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default
 CombatWeaponSO|equipment-item:weapon:shortbow,equipment-item:weapon:shortbow,m_Name,W05_Shortbow,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:shortbow,equipment-item:weapon:shortbow,equipmentId,weapon:shortbow,,,explicit-serialized
@@ -1582,6 +1596,8 @@ CombatWeaponSO|equipment-item:weapon:shotgun,equipment-item:weapon:shotgun,refer
 CombatWeaponSO|equipment-item:weapon:shotgun,equipment-item:weapon:shotgun,references.RefIds.0.data.damageType,1,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:shotgun,equipment-item:weapon:shotgun,references.RefIds.0.data.tracking,0.035,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:shotgun,equipment-item:weapon:shotgun,references.RefIds.0.data.projectileSpeed,12,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:shotgun,equipment-item:weapon:shotgun,roleFlags,2,,,explicit-serialized
+CombatWeaponSO|equipment-item:weapon:shotgun,equipment-item:weapon:shotgun,arcaneManaCost,0,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:shotgun,equipment-item:weapon:shotgun,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default
 CombatWeaponSO|equipment-item:weapon:siege-arbalest,equipment-item:weapon:siege-arbalest,m_Name,W19_SiegeArbalest,,,explicit-serialized
 CombatWeaponSO|equipment-item:weapon:siege-arbalest,equipment-item:weapon:siege-arbalest,equipmentId,weapon:siege-arbalest,,,explicit-serialized

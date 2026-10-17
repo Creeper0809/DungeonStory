@@ -124,10 +124,11 @@ public sealed class CharacterSummaryGrowthPresenter
             string text;
             if (i == 0)
             {
-                CharacterCombatAbilityDefinition species =
-                    CharacterCombatAbilityCatalog.GetSpeciesAbilities(actor).FirstOrDefault();
-                text = species != null
-                    ? $"종족기  {species.DisplayName}  ·  {species.Description}"
+                IReadOnlyList<CharacterCombatAbilityDefinition> species =
+                    CharacterCombatAbilityCatalog.GetSpeciesAbilities(actor);
+                text = species.Count > 0
+                    ? "종족기  " + string.Join("\n", species.Select(ability =>
+                        $"{ability.DisplayName}  ·  {ability.Description}"))
                     : "종족기  없음";
             }
             else if (i <= 3)

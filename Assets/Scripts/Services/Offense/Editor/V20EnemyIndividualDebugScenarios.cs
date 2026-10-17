@@ -170,6 +170,213 @@ public static class V20EnemyIndividualDebugScenarios
             + "battlefieldModifiers=12; backgroundFactionReaction=true");
     }
 
+    public static string RunSoDefinitionExtensionsForBatch(
+        IGameContentCatalog content,
+        string additionalEnemyId,
+        string additionalEncounterId = null)
+    {
+        if (content == null)
+        {
+            throw new ArgumentNullException(nameof(content));
+        }
+
+        string enemyId = additionalEnemyId?.Trim() ?? string.Empty;
+        if (enemyId.Length == 0)
+        {
+            throw new ArgumentException(
+                "An additional enemy definition ID is required.",
+                nameof(additionalEnemyId));
+        }
+
+        DungeonRuntimeAggregateRootStore rootStore = new();
+        CharacterNarrativeCatalog narrativeCatalog = new(content);
+        CharacterNarrativeRuntime narrative = new(rootStore, narrativeCatalog);
+        ResourceCharacterSpeciesCatalog species = new(content);
+        CharacterLifeRuntime life = new(
+            rootStore,
+            species,
+            new RandomStreamProvider(rootStore));
+        EnemyCombatContentCatalog combat = new(content);
+        ICombatEquipmentRuntime equipment =
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime();
+        EnemyIndividualFactory factory = new(
+            combat,
+            narrativeCatalog,
+            narrative,
+            narrative,
+            life,
+            life,
+            species,
+            content,
+            equipment);
+
+        IEnemyAbilityCatalog abilities = combat;
+        IBattlefieldModifierCatalog modifiers = combat;
+        IEncounterCatalog encounters = combat;
+        Require(combat.All.Count > 36,
+            "The additional enemy definition was not present in the combat catalog.");
+        Require(abilities.All.Count > 18,
+            "The additional enemy ability definition was not present in the combat catalog.");
+        Require(modifiers.All.Count > 12,
+            "The additional battlefield modifier definition was not present in the combat catalog.");
+        Require(encounters.All.Count > 36,
+            "The additional encounter definition was not present in the combat catalog.");
+        Require(narrativeCatalog.Backgrounds.Count > 12,
+            "The additional background definition was not present in the narrative catalog.");
+        Require(narrativeCatalog.Ambitions.Count > 18,
+            "The additional ambition definition was not present in the narrative catalog.");
+        Require(narrativeCatalog.HeritableTraits.Count > 24,
+            "The additional heritable-trait definition was not present in the narrative catalog.");
+        Require(narrativeCatalog.Proficiencies.Count > 9,
+            "The additional proficiency definition was not present in the narrative catalog.");
+        Require(narrativeCatalog.LifeEvents.Count > 32,
+            "The additional life-event definition was not present in the narrative catalog.");
+
+        EnemyArchetypeDefinitionSO additionalEnemy = combat.Require(enemyId);
+        foreach (string abilityId in additionalEnemy.abilityIds)
+        {
+            abilities.Require(abilityId);
+        }
+
+        CharacterId stableId = CharacterId.FromStableSuffix(
+            "so-definition-extension:" + enemyId);
+        const string deterministicContext = "qa:so-definition-extension";
+        EnemyIndividualSaveData first = factory.Create(
+            enemyId,
+            stableId,
+            deterministicContext);
+        EnemyIndividualSaveData repeated = factory.Create(
+            enemyId,
+            stableId,
+            deterministicContext);
+        string firstJson = JsonUtility.ToJson(first);
+        Require(string.Equals(
+                firstJson,
+                JsonUtility.ToJson(repeated),
+                StringComparison.Ordinal),
+            "The additional enemy definition did not produce a deterministic individual.");
+
+        EnemyIndividualBlueprint blueprint = factory.RequireBlueprint(first);
+        Require(string.Equals(
+                blueprint.Archetype.stableId,
+                enemyId,
+                StringComparison.Ordinal),
+            "The individual blueprint did not retain the additional enemy definition.");
+        factory.EnsureCharacterDomains(blueprint);
+        RequireEnemyDomains(
+            stableId,
+            first,
+            life,
+            narrative,
+            "created");
+
+        EnemyIndividualSaveData restored =
+            JsonUtility.FromJson<EnemyIndividualSaveData>(firstJson);
+        Require(restored != null
+                && string.Equals(
+                    firstJson,
+                    JsonUtility.ToJson(restored),
+                    StringComparison.Ordinal),
+            "The additional enemy individual did not survive JSON serialization.");
+
+        DungeonRuntimeAggregateRootStore restoredRootStore = new();
+        CharacterNarrativeCatalog restoredNarrativeCatalog = new(content);
+        CharacterNarrativeRuntime restoredNarrative = new(
+            restoredRootStore,
+            restoredNarrativeCatalog);
+        ResourceCharacterSpeciesCatalog restoredSpecies = new(content);
+        CharacterLifeRuntime restoredLife = new(
+            restoredRootStore,
+            restoredSpecies,
+            new RandomStreamProvider(restoredRootStore));
+        EnemyCombatContentCatalog restoredCombat = new(content);
+        ICombatEquipmentRuntime restoredEquipment =
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime();
+        EnemyIndividualFactory restoredFactory = new(
+            restoredCombat,
+            restoredNarrativeCatalog,
+            restoredNarrative,
+            restoredNarrative,
+            restoredLife,
+            restoredLife,
+            restoredSpecies,
+            content,
+            restoredEquipment);
+        EnemyIndividualBlueprint restoredBlueprint =
+            restoredFactory.RequireBlueprint(restored);
+        restoredFactory.EnsureCharacterDomains(restoredBlueprint);
+        RequireEnemyDomains(
+            stableId,
+            restored,
+            restoredLife,
+            restoredNarrative,
+            "restored");
+
+        string encounterId = additionalEncounterId?.Trim() ?? string.Empty;
+        bool encounterRestored = encounterId.Length > 0;
+        if (encounterRestored)
+        {
+            EnemyEncounterFactory encounterFactory = new(
+                restoredCombat,
+                restoredCombat,
+                restoredCombat,
+                restoredCombat,
+                restoredFactory,
+                combatEquipment: restoredEquipment);
+            EnemyEncounterComposition encounter = encounterFactory.Restore(
+                encounterId,
+                new[] { restored },
+                DungeonDifficulty.Normal);
+            Require(string.Equals(
+                    encounter.Encounter.encounterId,
+                    encounterId,
+                    StringComparison.Ordinal)
+                    && encounter.Individuals.Count == 1
+                    && encounter.Combatants.Count == 1
+                    && string.Equals(
+                        encounter.Individuals[0].enemyArchetypeId,
+                        enemyId,
+                        StringComparison.Ordinal),
+                "The additional encounter definition did not restore its authored enemy through the real encounter factory.");
+        }
+
+        return "SO_DEFINITION_EXTENSIONS=PASS; "
+            + $"enemy={enemyId}; deterministic=true; jsonRestore=true; "
+            + $"enemyDefinitions={combat.All.Count}; "
+            + $"abilityDefinitions={abilities.All.Count}; "
+            + $"modifierDefinitions={modifiers.All.Count}; "
+            + $"encounterDefinitions={encounters.All.Count}; "
+            + $"backgroundDefinitions={narrativeCatalog.Backgrounds.Count}; "
+            + $"ambitionDefinitions={narrativeCatalog.Ambitions.Count}; "
+            + $"heritableDefinitions={narrativeCatalog.HeritableTraits.Count}; "
+            + $"proficiencyDefinitions={narrativeCatalog.Proficiencies.Count}; "
+            + $"lifeEventDefinitions={narrativeCatalog.LifeEvents.Count}; "
+            + $"encounterRestored={encounterRestored.ToString().ToLowerInvariant()}";
+    }
+
+    private static void RequireEnemyDomains(
+        CharacterId characterId,
+        EnemyIndividualSaveData expected,
+        CharacterLifeRuntime life,
+        CharacterNarrativeRuntime narrative,
+        string phase)
+    {
+        Require(life.TryGet(characterId, out CharacterLifeRecord lifeRecord)
+                && Math.Abs(lifeRecord.BiologicalAgeDayUnits
+                    - expected.biologicalAgeDayUnits) < 0.001d,
+            $"The {phase} additional enemy was not preserved in the life aggregate.");
+        Require(narrative.TryGet(
+                    characterId,
+                    out CharacterNarrativeSnapshot narrativeState)
+                && narrativeState.HasEnemyOrigin
+                && narrativeState.BackgroundId.Value == expected.backgroundId
+                && narrativeState.CultureId.Value == expected.cultureId
+                && narrativeState.ActiveAmbitionId.Value == expected.ambitionId
+                && narrativeState.OriginEnemyArchetypeId
+                    == expected.enemyArchetypeId,
+            $"The {phase} additional enemy origin was not preserved in the narrative aggregate.");
+    }
+
     private static void VerifyEncounterObjectives(EnemyCombatContentCatalog combat)
     {
         IBattlefieldModifierCatalog modifiers = combat;

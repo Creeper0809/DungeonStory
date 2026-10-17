@@ -407,7 +407,7 @@ public sealed class CombatEquipmentLoadoutRuntime
                 crafting.ResolveInstanceMaterial(instance, armor);
             float powerMultiplier = CombatEquipmentRoleRules
                 .GetPowerPerformanceMultiplier(
-                    armor.EquipmentId,
+                    armor.RoleFlags,
                     instance.powerCharge);
             foreach (CombatArmorPartValue value in armor.BodyPartDefense)
             {
@@ -431,7 +431,7 @@ public sealed class CombatEquipmentLoadoutRuntime
                         * powerMultiplier,
                     armor.EquipmentId,
                     CombatEquipmentRoleRules.ForPowerState(
-                        armor.EquipmentId,
+                        armor.RoleFlags,
                         instance.powerCharge > 0f)));
             }
         }
@@ -474,12 +474,12 @@ public sealed class CombatEquipmentLoadoutRuntime
                 * statProjector.GetEvolutionMultiplier(instance, "combat.defense")
                 * statProjector.GetInstalledModuleMultiplier(instance, true)
                 * CombatEquipmentRoleRules.GetPowerPerformanceMultiplier(
-                    shield.EquipmentId,
+                    shield.RoleFlags,
                     instance.powerCharge)
                 ?? statProjector.GetEvolutionMultiplier(instance, "combat.defense"),
             shield.EquipmentId,
             CombatEquipmentRoleRules.ForPowerState(
-                shield.EquipmentId,
+                shield.RoleFlags,
                 instance.powerCharge > 0f));
     }
 

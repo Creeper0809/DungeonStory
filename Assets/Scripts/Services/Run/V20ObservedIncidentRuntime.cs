@@ -282,10 +282,13 @@ internal sealed class V20ObservedIncidentRuntime :
                 existing.occurrenceInstanceId,
                 DomainFailure.None);
         }
-        ServiceIncidentDefinitionSO[] definitions = catalog.ServiceIncidents
-            .Where(value => value != null && value.kind == incidentKind)
-            .ToArray();
-        if (definitions.Length != 1)
+        ServiceIncidentDefinitionSO definition = catalog.ServiceIncidents
+            .Where(value => value != null && value.kind == incidentKind
+                && CanStartSocietyDefinition(catalog, value, context, state))
+            .OrderBy(value => WeightedDefinitionRoll(context, value))
+            .ThenBy(value => value.StableId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (definition == null)
         {
             return new ObservedMealIncidentCaptureResult(
                 ObservedMealIncidentCaptureDisposition.NotEligible,
@@ -297,7 +300,6 @@ internal sealed class V20ObservedIncidentRuntime :
                     "observed-service-incident-definition-unavailable"));
         }
 
-        ServiceIncidentDefinitionSO definition = definitions[0];
         bool participantOccupied = state.activeEvents.Any(value =>
             value?.participantCharacterIds?.Contains(
                 targetCharacterId.Value,

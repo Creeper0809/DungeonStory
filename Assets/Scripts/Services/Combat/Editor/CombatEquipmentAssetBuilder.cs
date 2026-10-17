@@ -482,6 +482,8 @@ public static class CombatEquipmentAssetBuilder
         serialized.FindProperty("weight").floatValue = weight;
         serialized.FindProperty("occupiedHands").intValue = hands;
         serialized.FindProperty("maxDurability").floatValue = durability;
+        serialized.FindProperty("roleFlags").intValue = (int)CombatEquipmentRoleRules.For(id);
+        serialized.FindProperty("arcaneManaCost").floatValue = CharacterArcaneWeaponRules.GetManaCost(id);
         SetProgressionRules(serialized, id);
         SetMaterialRules(serialized, id, weight);
         SetComponentRules(serialized, id);

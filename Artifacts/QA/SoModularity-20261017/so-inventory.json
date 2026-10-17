@@ -1,0 +1,2600 @@
+{
+  "scope": "All first-party ScriptableObject definition/action types in Assets/Scripts, including abstract bases and Editor fixture subtypes; excludes third-party and Unity Editor infrastructure subclasses. Current Roslyn class syntax + transitive inheritance and canonical partial consolidation.",
+  "sourceFilesScanned": 4001,
+  "classDeclarations": 7993,
+  "soTypes": 161,
+  "soSourceFiles": 147,
+  "roots": [
+    "UnityEngine.ScriptableObject",
+    "Sirenix.OdinInspector.SerializedScriptableObject"
+  ],
+  "ownerCounts": {
+    "actors": 75,
+    "combat_medical": 18,
+    "buildings": 19,
+    "main": 49
+  },
+  "unresolvedNamedSO": [],
+  "types": [
+    {
+      "name": "AIActionSet",
+      "shortName": "AIActionSet",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": SerializedScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIActionSet.cs",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "name": "AICollapse",
+      "shortName": "AICollapse",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIDeprivationBreakdownAction"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+          "line": 76
+        }
+      ]
+    },
+    {
+      "name": "AIDeprivationBreakdownAction",
+      "shortName": "AIDeprivationBreakdownAction",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": true,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "AIDesperateDrink",
+      "shortName": "AIDesperateDrink",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIDeprivationBreakdownAction"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+          "line": 54
+        }
+      ]
+    },
+    {
+      "name": "AIDesperateEat",
+      "shortName": "AIDesperateEat",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIDeprivationBreakdownAction"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+          "line": 65
+        }
+      ]
+    },
+    {
+      "name": "AIDesperateRelief",
+      "shortName": "AIDesperateRelief",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIDeprivationBreakdownAction"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+          "line": 43
+        }
+      ]
+    },
+    {
+      "name": "AIDrink",
+      "shortName": "AIDrink",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIDrink.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "AIEat",
+      "shortName": "AIEat",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIEatAdapter.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "AIExitDungeon",
+      "shortName": "AIExitDungeon",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIExitDungeonAdapter.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "AIFacilityRoleAction",
+      "shortName": "AIFacilityRoleAction",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIFacilityRoleActionAdapter.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "AIHaul",
+      "shortName": "AIHaul",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIHaul.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "AIHunt",
+      "shortName": "AIHunt",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIHunt.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "AILookAround",
+      "shortName": "AILookAround",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AILookAroundAdapter.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "AIPrimitiveBucketWash",
+      "shortName": "AIPrimitiveBucketWash",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIPrimitiveSurvivalAction"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveBucketWash.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "AIPrimitiveFieldMeal",
+      "shortName": "AIPrimitiveFieldMeal",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIPrimitiveSurvivalAction"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveFieldMeal.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "AIPrimitiveFloorRest",
+      "shortName": "AIPrimitiveFloorRest",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIPrimitiveSurvivalAction"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveFloorRest.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "AIPrimitiveLatrine",
+      "shortName": "AIPrimitiveLatrine",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIPrimitiveSurvivalAction"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveLatrine.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "AIPrimitiveSurvivalAction",
+      "shortName": "AIPrimitiveSurvivalAction",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": true,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveSurvivalActions.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "AIRescue",
+      "shortName": "AIRescue",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIRescue.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "AIRest",
+      "shortName": "AIRest",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIRestAdapter.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "AIShopping",
+      "shortName": "AIShopping",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIShoppingAdapter.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "AISubstanceUse",
+      "shortName": "AISubstanceUse",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AISubstanceUse.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "AIViolentBreakdown",
+      "shortName": "AIViolentBreakdown",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIDeprivationBreakdownAction"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+          "line": 87
+        }
+      ]
+    },
+    {
+      "name": "AIWait",
+      "shortName": "AIWait",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIWaitAdapter.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "AIWork",
+      "shortName": "AIWork",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIWork.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "AgeConditionDefinitionSO",
+      "shortName": "AgeConditionDefinitionSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/AgeConditionDefinitionSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "AnatomyConditionLexiconSO",
+      "shortName": "AnatomyConditionLexiconSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Medical/Core/AnatomyConditionLexiconSO.cs",
+          "line": 29
+        }
+      ]
+    },
+    {
+      "name": "AnatomyProfileSO",
+      "shortName": "AnatomyProfileSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Medical/Core/AnatomyProfileSO.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "ApparelDefinitionSO",
+      "shortName": "ApparelDefinitionSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs",
+          "line": 269
+        }
+      ]
+    },
+    {
+      "name": "BattlefieldModifierDefinitionSO",
+      "shortName": "BattlefieldModifierDefinitionSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Offense/Core/BattlefieldModifierDefinitionSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "BuildingLightingSettingsSO",
+      "shortName": "BuildingLightingSettingsSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Buildings/Core/BuildingLightingSettingsSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "BuildingSO",
+      "shortName": "BuildingSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject, IGridBuildAreaCapability"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Buildings/SO/BuildingSO.cs",
+          "line": 133
+        }
+      ]
+    },
+    {
+      "name": "CareerPositionDefinitionSO",
+      "shortName": "CareerPositionDefinitionSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/CareerPositionDefinitionSO.cs",
+          "line": 11
+        }
+      ]
+    },
+    {
+      "name": "CharacterAcquiredTraitModuleSO",
+      "shortName": "CharacterAcquiredTraitModuleSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitModuleSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "CharacterAcquiredTraitSettingsSO",
+      "shortName": "CharacterAcquiredTraitSettingsSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitSettingsSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "CharacterAiActionDescriptorDebugScenarios.TestDescriptorAction",
+      "shortName": "TestDescriptorAction",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiActionDescriptorDebugScenarios.cs",
+          "line": 137
+        }
+      ]
+    },
+    {
+      "name": "CharacterAiActionScenarioMatrixDebugScenarios.MatrixDestinationAction",
+      "shortName": "MatrixDestinationAction",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiActionScenarioMatrixDebugScenarios.cs",
+          "line": 350
+        }
+      ]
+    },
+    {
+      "name": "CharacterAiLifecycleFaultPlayModeRunner.LifecycleProbeAction",
+      "shortName": "LifecycleProbeAction",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiLifecycleFaultPlayModeVerifier.cs",
+          "line": 479
+        }
+      ]
+    },
+    {
+      "name": "CharacterAiNaturalnessSettingsSO",
+      "shortName": "CharacterAiNaturalnessSettingsSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/AI/Core/CharacterAiNaturalnessSettingsSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "CharacterAiPerfSettingsSO",
+      "shortName": "CharacterAiPerfSettingsSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/CharacterAiPerformanceModels.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "CharacterAiPriorityCornerCaseDebugScenarios.FixedScoreConsideration",
+      "shortName": "FixedScoreConsideration",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": Consideration"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPriorityCornerCaseDebugScenarios.cs",
+          "line": 1533
+        }
+      ]
+    },
+    {
+      "name": "CharacterAiPriorityCornerCaseDebugScenarios.TestActionSet",
+      "shortName": "TestActionSet",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPriorityCornerCaseDebugScenarios.cs",
+          "line": 1543
+        }
+      ]
+    },
+    {
+      "name": "CharacterAmbitionDefinitionSO",
+      "shortName": "CharacterAmbitionDefinitionSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": V20AuthoredContentSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/CharacterAmbitionDefinitionSO.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "CharacterBackgroundDefinitionSO",
+      "shortName": "CharacterBackgroundDefinitionSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": V20AuthoredContentSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/CharacterBackgroundDefinitionSO.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "CharacterDefinitionBoundaryDebugScenarios.DescriptorProbe",
+      "shortName": "DescriptorProbe",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterDefinitionBoundaryDebugScenarios.cs",
+          "line": 187
+        }
+      ]
+    },
+    {
+      "name": "CharacterFunctionalCapacityDefinitionSO",
+      "shortName": "CharacterFunctionalCapacityDefinitionSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Foundation/CharacterFunctionalCapacityDefinitionSO.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "CharacterPerformanceFormulaDefinitionSO",
+      "shortName": "CharacterPerformanceFormulaDefinitionSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Foundation/CharacterPerformanceFormulaDefinitionSO.cs",
+          "line": 36
+        }
+      ]
+    },
+    {
+      "name": "CharacterSO",
+      "shortName": "CharacterSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/SO/CharacterSO.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "CharacterSkillSystemSettingsSO",
+      "shortName": "CharacterSkillSystemSettingsSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/SO/CharacterSkillSystemSettingsSO.cs",
+          "line": 482
+        }
+      ]
+    },
+    {
+      "name": "CharacterSpeciesDefinitionSO",
+      "shortName": "CharacterSpeciesDefinitionSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": SerializedScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/CharacterSpeciesDefinitionSO.cs",
+          "line": 237
+        }
+      ]
+    },
+    {
+      "name": "CharacterSpeciesSO",
+      "shortName": "CharacterSpeciesSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": CharacterSpeciesDefinitionSO, IGameplayEffectSource"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/CharacterSpeciesSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "CharacterStartingHistorySO",
+      "shortName": "CharacterStartingHistorySO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Characters/CharacterStartingHistorySO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "CharacterStartingOriginSO",
+      "shortName": "CharacterStartingOriginSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Characters/CharacterStartingOriginSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "CharacterTraitSO",
+      "shortName": "CharacterTraitSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject, IGameplayEffectSource"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/CharacterTraitSO.cs",
+          "line": 23
+        }
+      ]
+    },
+    {
+      "name": "ClimateZoneDefinitionSO",
+      "shortName": "ClimateZoneDefinitionSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/ClimateZoneDefinitionSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "CombatArmorSO",
+      "shortName": "CombatArmorSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": CombatEquipmentDefinitionSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CombatArmorSO.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "CombatEquipmentDefinitionSO",
+      "shortName": "CombatEquipmentDefinitionSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject, IGameplayEffectSource"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "CombatShieldSO",
+      "shortName": "CombatShieldSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": CombatEquipmentDefinitionSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CombatShieldSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "CombatWeaponSO",
+      "shortName": "CombatWeaponSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": CombatEquipmentDefinitionSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CombatWeaponSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "Consideration",
+      "shortName": "Consideration",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": SerializedScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Consideration/Consideration.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "ConsiderationCanLookAround",
+      "shortName": "ConsiderationCanLookAround",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": Consideration"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Consideration/ConsiderationCanLookAround.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "ConsiderationFacilityNeed",
+      "shortName": "ConsiderationFacilityNeed",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": Consideration"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationFacilityNeedAdapter.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "ConsiderationIsVisitable",
+      "shortName": "ConsiderationIsVisitable",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": Consideration"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationIsVisitableAdapter.cs",
+          "line": 2
+        }
+      ]
+    },
+    {
+      "name": "ConsiderationRandom",
+      "shortName": "ConsiderationRandom",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": Consideration"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationRandomAdapter.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "ConsiderationShoppingCount",
+      "shortName": "ConsiderationShoppingCount",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": Consideration"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationShoppingCountAdapter.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "ConsiderationShouldExitDungeon",
+      "shortName": "ConsiderationShouldExitDungeon",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": Consideration"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationShouldExitDungeonAdapter.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "ConsiderationStat",
+      "shortName": "ConsiderationStat",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": Consideration"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationStatAdapter.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "ConsiderationWorkNeed",
+      "shortName": "ConsiderationWorkNeed",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": Consideration"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationWorkNeedAdapter.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "CraftMaterialDefinitionSO",
+      "shortName": "CraftMaterialDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CraftMaterialDefinitionSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "CropDefinitionSO",
+      "shortName": "CropDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CropDefinitionSO.cs",
+          "line": 68
+        }
+      ]
+    },
+    {
+      "name": "CropGenomeDefinitionSO",
+      "shortName": "CropGenomeDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CropGenomeDefinitionSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "CulturalPracticeDefinitionSO",
+      "shortName": "CulturalPracticeDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": V20AuthoredContentSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/CulturalPracticeDefinitionSO.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "CustomerAiDebugScenarios.FixedScoreConsideration",
+      "shortName": "FixedScoreConsideration",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": Consideration"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CustomerAiDebugScenarios.cs",
+          "line": 1697
+        }
+      ]
+    },
+    {
+      "name": "CustomerAiDebugScenarios.PrimitiveFallbackProbe",
+      "shortName": "PrimitiveFallbackProbe",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIPrimitiveSurvivalAction"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CustomerAiDebugScenarios.cs",
+          "line": 570
+        }
+      ]
+    },
+    {
+      "name": "DataScriptableObject",
+      "shortName": "DataScriptableObject",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": SerializedScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/DataScriptableObject.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "DebugProbeDefenseEffectSO",
+      "shortName": "DebugProbeDefenseEffectSO",
+      "owner": "buildings",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": DefenseEffectSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/Editor/DefenseFacilityDebugScenarios.cs",
+          "line": 1209
+        }
+      ]
+    },
+    {
+      "name": "DefenseBurnEffectSO",
+      "shortName": "DefenseBurnEffectSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DefenseEffectSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/DefenseBurnEffectSO.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "DefenseChargeEffectSO",
+      "shortName": "DefenseChargeEffectSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DefenseEffectSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/DefenseChargeEffectSO.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "DefenseCorrosionEffectSO",
+      "shortName": "DefenseCorrosionEffectSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DefenseEffectSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/DefenseCorrosionEffectSO.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "DefenseDamageEffectSO",
+      "shortName": "DefenseDamageEffectSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DefenseEffectSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/DefenseDamageEffectSO.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "DefenseEffectSO",
+      "shortName": "DefenseEffectSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": true,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/DefenseEffectSO.cs",
+          "line": 15
+        }
+      ]
+    },
+    {
+      "name": "DefenseGuardAttackEffectSO",
+      "shortName": "DefenseGuardAttackEffectSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DefenseEffectSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/DefenseGuardAttackEffectSO.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "DefenseSlowEffectSO",
+      "shortName": "DefenseSlowEffectSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DefenseEffectSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/DefenseSlowEffectSO.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "DiseaseDefinitionSO",
+      "shortName": "DiseaseDefinitionSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/DiseaseDefinitionSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "DungeonAudioLibrarySO",
+      "shortName": "DungeonAudioLibrarySO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/DungeonAudioLibrarySO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "DungeonFactionDefinitionSO",
+      "shortName": "DungeonFactionDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Factions/Core/DungeonFactionDefinitionSO.cs",
+          "line": 34
+        }
+      ]
+    },
+    {
+      "name": "DungeonStory.Content.CoreSession.CoreSessionRulesSO",
+      "shortName": "CoreSessionRulesSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/CoreSession/CoreSessionRulesSO.cs",
+          "line": 33
+        }
+      ]
+    },
+    {
+      "name": "EndingDefinitionSO",
+      "shortName": "EndingDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": V20AuthoredContentSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/EndingDefinitionSO.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "EndlessCrisisPolicyDefinitionSO",
+      "shortName": "EndlessCrisisPolicyDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/EndlessCrisisPolicyDefinitionSO.cs",
+          "line": 58
+        }
+      ]
+    },
+    {
+      "name": "EnemyAbilityDefinitionSO",
+      "shortName": "EnemyAbilityDefinitionSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Offense/Core/EnemyAbilityDefinitionSO.cs",
+          "line": 28
+        }
+      ]
+    },
+    {
+      "name": "EnemyArchetypeDefinitionSO",
+      "shortName": "EnemyArchetypeDefinitionSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Offense/Core/EnemyArchetypeDefinitionSO.cs",
+          "line": 72
+        }
+      ]
+    },
+    {
+      "name": "EnvironmentalWorkwearSO",
+      "shortName": "EnvironmentalWorkwearSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/EnvironmentalWorkwearSO.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "EquipmentEvolutionFormulaCatalogSO",
+      "shortName": "EquipmentEvolutionFormulaCatalogSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaCatalogSO.cs",
+          "line": 4
+        },
+        {
+          "path": "Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaDefinitionSO.cs",
+          "line": 150
+        }
+      ]
+    },
+    {
+      "name": "EquipmentModuleDefinitionSO",
+      "shortName": "EquipmentModuleDefinitionSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject, IGameplayEffectSource"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Combat/Core/EquipmentModuleDefinitionSO.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "FacilityBlueprintSO",
+      "shortName": "FacilityBlueprintSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/FacilityShop/Core/FacilityBlueprintSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "FacilityCrimeSettingsSO",
+      "shortName": "FacilityCrimeSettingsSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Buildings/Core/FacilityCrimeSettingsSO.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "FacilityEvolutionRecipeSO",
+      "shortName": "FacilityEvolutionRecipeSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "FacilityEvolutionRecordTokenDefinitionSO",
+      "shortName": "FacilityEvolutionRecordTokenDefinitionSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordTokens.cs",
+          "line": 14
+        }
+      ]
+    },
+    {
+      "name": "FacilitySynthesisRecipeSO",
+      "shortName": "FacilitySynthesisRecipeSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Synthesis/FacilitySynthesisRecipeSO.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "FactionAllianceBenefitBudgetSO",
+      "shortName": "FactionAllianceBenefitBudgetSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Factions/Core/FactionAllianceBenefitBudgetSO.cs",
+          "line": 15
+        }
+      ]
+    },
+    {
+      "name": "FactionArcDefinitionSO",
+      "shortName": "FactionArcDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": V20AuthoredContentSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/FactionArcDefinitionSO.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "FactionChapterDefinitionSO",
+      "shortName": "FactionChapterDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": V20AuthoredContentSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/FactionChapterDefinitionSO.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "FactionContractDefinitionSO",
+      "shortName": "FactionContractDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": V20AuthoredContentSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/FactionContractDefinitionSO.cs",
+          "line": 29
+        }
+      ]
+    },
+    {
+      "name": "FestivalDefinitionSO",
+      "shortName": "FestivalDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/FestivalDefinitionSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "FuneralCultureSO",
+      "shortName": "FuneralCultureSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/FuneralCultureSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "GameContentCatalogSO",
+      "shortName": "GameContentCatalogSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/GameContentCatalogSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "GameData",
+      "shortName": "GameData",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/GameData/GameData.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "GameDomainContentCatalogSO",
+      "shortName": "GameDomainContentCatalogSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/GameDomainContentCatalogSO.cs",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "name": "GameMediaCatalogSO",
+      "shortName": "GameMediaCatalogSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/GameMediaCatalogSO.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "GameplayEffectConditionDefinitionSO",
+      "shortName": "GameplayEffectConditionDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Foundation/GameplayEffectConditionDefinitionSO.cs",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "name": "GameplayEffectDefinitionSO",
+      "shortName": "GameplayEffectDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Foundation/GameplayEffectDefinitionSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "GenericItemDefinitionSO",
+      "shortName": "GenericItemDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ItemDefinitionSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/GenericItemDefinitionSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "GuestRequestDefinitionSO",
+      "shortName": "GuestRequestDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": V20AuthoredContentSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/GuestRequestDefinitionSO.cs",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "name": "HeritableTraitDefinitionSO",
+      "shortName": "HeritableTraitDefinitionSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/HeritableTraitDefinitionSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "InGameNarrativeTextCatalogSO",
+      "shortName": "InGameNarrativeTextCatalogSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/InGameNarrativeTextCatalogSO.cs",
+          "line": 44
+        }
+      ]
+    },
+    {
+      "name": "ItemDefinitionCatalogSO",
+      "shortName": "ItemDefinitionCatalogSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "ItemDefinitionSO",
+      "shortName": "ItemDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs",
+          "line": 539
+        }
+      ]
+    },
+    {
+      "name": "ItemHaulingSettingsSO",
+      "shortName": "ItemHaulingSettingsSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Items/ItemHaulingSettingsSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "LifeEventDefinitionSO",
+      "shortName": "LifeEventDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": V20AuthoredContentSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/LifeEventDefinitionSO.cs",
+          "line": 13
+        }
+      ]
+    },
+    {
+      "name": "MaterialEconomicProfileSO",
+      "shortName": "MaterialEconomicProfileSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/MaterialEconomicProfileSO.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "OffenseCampaignCatalogSO",
+      "shortName": "OffenseCampaignCatalogSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Offense/OffenseCampaignCatalogSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "OffenseDecisionCardSO",
+      "shortName": "OffenseDecisionCardSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Offense/Core/OffenseDecisionCardSO.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "OffenseEncounterSO",
+      "shortName": "OffenseEncounterSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Offense/Core/OffenseEncounterSO.cs",
+          "line": 26
+        }
+      ]
+    },
+    {
+      "name": "OffenseSiteArchetypeSO",
+      "shortName": "OffenseSiteArchetypeSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Offense/Core/OffenseSiteArchetypeSO.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "OffenseUrgentSiteDefinitionSO",
+      "shortName": "OffenseUrgentSiteDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Offense/Core/OffenseUrgentSiteDefinitionSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "OnBuyItemSO",
+      "shortName": "OnBuyItemSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Buildings/Core/OnBuyItemSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "ProbeContinuableWorkActionSet",
+      "shortName": "ProbeContinuableWorkActionSet",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIWork"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 204
+        }
+      ]
+    },
+    {
+      "name": "ProbeEatActionSet",
+      "shortName": "ProbeEatActionSet",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIEat"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 26
+        }
+      ]
+    },
+    {
+      "name": "ProbeExitDungeonActionSet",
+      "shortName": "ProbeExitDungeonActionSet",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIExitDungeon"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "name": "ProbeLookAroundActionSet",
+      "shortName": "ProbeLookAroundActionSet",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AILookAround"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 123
+        }
+      ]
+    },
+    {
+      "name": "ProbeOneShotWorkActionSet",
+      "shortName": "ProbeOneShotWorkActionSet",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIWork"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 261
+        }
+      ]
+    },
+    {
+      "name": "ProbeShoppingActionSet",
+      "shortName": "ProbeShoppingActionSet",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIShopping"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 87
+        }
+      ]
+    },
+    {
+      "name": "ProbeVolatileWorkActionSet",
+      "shortName": "ProbeVolatileWorkActionSet",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIWork"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 173
+        }
+      ]
+    },
+    {
+      "name": "ProbeWaitActionSet",
+      "shortName": "ProbeWaitActionSet",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIWait"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 148
+        }
+      ]
+    },
+    {
+      "name": "ProbeWorkActionSet",
+      "shortName": "ProbeWorkActionSet",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIWork"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 62
+        }
+      ]
+    },
+    {
+      "name": "ProductionRecipeSO",
+      "shortName": "ProductionRecipeSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/ProductionRecipeSO.cs",
+          "line": 22
+        }
+      ]
+    },
+    {
+      "name": "ProficiencyDefinitionSO",
+      "shortName": "ProficiencyDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": V20AuthoredContentSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/ProficiencyDefinitionSO.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "ReproductionProfileSO",
+      "shortName": "ReproductionProfileSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/ReproductionProfileSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "ResearchProjectSO",
+      "shortName": "ResearchProjectSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject,\n    IResearchProjectDefinition,\n    IGameplayEffectSource"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Research/Core/ResearchProjectSO.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "ResearchUnlockBundleDefinitionSO",
+      "shortName": "ResearchUnlockBundleDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Research/Core/ResearchUnlockBundleDefinitionSO.cs",
+          "line": 46
+        }
+      ]
+    },
+    {
+      "name": "ResourceItemDefinitionSO",
+      "shortName": "ResourceItemDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ItemDefinitionSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/ResourceItemDefinitionSO.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "RoomEnvironmentSettingsSO",
+      "shortName": "RoomEnvironmentSettingsSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Rooms/Core/RoomEnvironmentSettingsSO.cs",
+          "line": 20
+        }
+      ]
+    },
+    {
+      "name": "SaleItem",
+      "shortName": "SaleItem",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/SaleItem.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "SeasonalWorldEventDefinitionSO",
+      "shortName": "SeasonalWorldEventDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": V20AuthoredContentSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/SeasonalWorldEventDefinitionSO.cs",
+          "line": 255
+        }
+      ]
+    },
+    {
+      "name": "ServiceIncidentDefinitionSO",
+      "shortName": "ServiceIncidentDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": V20AuthoredContentSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/ServiceIncidentDefinitionSO.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "ServiceProcessSO",
+      "shortName": "ServiceProcessSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Rooms/Core/ServiceProcessSO.cs",
+          "line": 23
+        }
+      ]
+    },
+    {
+      "name": "SpeciesCultureDefinitionSO",
+      "shortName": "SpeciesCultureDefinitionSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": V20AuthoredContentSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/SpeciesCultureDefinitionSO.cs",
+          "line": 29
+        }
+      ]
+    },
+    {
+      "name": "SpeciesLifeHistorySO",
+      "shortName": "SpeciesLifeHistorySO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/SpeciesLifeHistorySO.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "StatChange",
+      "shortName": "StatChange",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": OnBuyItemSO"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Buildings/Core/StatChange.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "StockInfo",
+      "shortName": "StockInfo",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Buildings/SO/StockInfo.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "SurgicalProcedureSO",
+      "shortName": "SurgicalProcedureSO",
+      "owner": "combat_medical",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Medical/Core/SurgicalProcedureSO.cs",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "name": "SurvivalBalanceSettingsSO",
+      "shortName": "SurvivalBalanceSettingsSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Survival/Core/SurvivalBalanceSettingsSO.cs",
+          "line": 98
+        }
+      ]
+    },
+    {
+      "name": "SurvivalHardLockProbeActionSet",
+      "shortName": "SurvivalHardLockProbeActionSet",
+      "owner": "actors",
+      "editorOnlySource": true,
+      "abstract": false,
+      "bases": [
+        ": AIActionSet"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiNaturalnessDebugScenarios.cs",
+          "line": 898
+        }
+      ]
+    },
+    {
+      "name": "TextileMaterialDefinitionSO",
+      "shortName": "TextileMaterialDefinitionSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": DataScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/TextileMaterialDefinitionSO.cs",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "name": "TmpKoreanFontSettingsSO",
+      "shortName": "TmpKoreanFontSettingsSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/TmpKoreanFontSettingsSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "V20AuthoredContentSO",
+      "shortName": "V20AuthoredContentSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": true,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/V20AuthoredContentContracts.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "WasteProcessingRulesSO",
+      "shortName": "WasteProcessingRulesSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/WasteProcessingRulesSO.cs",
+          "line": 41
+        }
+      ]
+    },
+    {
+      "name": "WeatherFrontDefinitionSO",
+      "shortName": "WeatherFrontDefinitionSO",
+      "owner": "buildings",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/WeatherFrontDefinitionSO.cs",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "name": "WildlifeHabitatDecorationPaletteSO",
+      "shortName": "WildlifeHabitatDecorationPaletteSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Wildlife/Core/WildlifeHabitatDecorationPaletteSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "WildlifeSpeciesSO",
+      "shortName": "WildlifeSpeciesSO",
+      "owner": "actors",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Wildlife/Core/WildlifeSpeciesSO.cs",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "name": "WorldInteractionPresentationCatalogSO",
+      "shortName": "WorldInteractionPresentationCatalogSO",
+      "owner": "main",
+      "editorOnlySource": false,
+      "abstract": false,
+      "bases": [
+        ": ScriptableObject"
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scripts/Views/UI/Core/WorldInteractionPresentationCatalogSO.cs",
+          "line": 91
+        }
+      ]
+    }
+  ]
+}

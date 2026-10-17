@@ -7,6 +7,41 @@ using UnityEngine;
 
 public static class ObservedServiceIncidentFactDebugScenarios
 {
+    public static string RunSoIncidentVariantsForBatch(IGameContentCatalog content)
+    {
+        using var fixture = new Fixture(content: content);
+        Require(content.GetAll<ServiceIncidentDefinitionSO>().Count(value =>
+            value.kind == ServiceIncidentKind.Contamination) == 2, "Incident variant fixture requires two same-kind definitions.");
+        ServiceIncidentDefinitionSO added = content.GetAll<ServiceIncidentDefinitionSO>()
+            .Single(value => value.kind == ServiceIncidentKind.Contamination
+                && value.StableId.EndsWith("-qa-so-extension", StringComparison.Ordinal));
+        ServiceIncidentDefinitionSO original = content.GetAll<ServiceIncidentDefinitionSO>()
+            .Single(value => value.kind == ServiceIncidentKind.Contamination && value != added);
+        // Select fixture input before invoking any owner: exercise the added variant itself.
+        V20DailyEventContext context = Enumerable.Range(1, 64).Select(seed =>
+            new V20DailyEventContext { AbsoluteDay = 42, RunSeed = seed, Season = Season.Spring })
+            .First(value => V20ContentDefinitionRules.EventRoll(value, added.StableId)
+                < V20ContentDefinitionRules.EventRoll(value, original.StableId));
+        fixture.Transport.Reject = true;
+        string before = JsonUtility.ToJson(fixture.Campaign.CaptureSociety());
+        Require(!fixture.Campaign.CaptureObservedMealIncident(Evidence(), context).Created
+            && JsonUtility.ToJson(fixture.Campaign.CaptureSociety()) == before,
+            "Rejected variant incident changed campaign authority.");
+        fixture.Transport.Reject = false;
+        var result = fixture.Campaign.CaptureObservedMealIncident(Evidence(), context);
+        Require(result.Created && fixture.NativeCount == 1
+            && fixture.Campaign.CaptureSociety().successfulIncidentOperations.Single().definitionId == added.StableId,
+            "Two same-kind definitions blocked the real incident producer.");
+        Bundle saved = RoundTrip(fixture.Capture());
+        using var restored = new Fixture(saved, content);
+        string once = JsonUtility.ToJson(restored.Capture());
+        Require(restored.Campaign.CaptureObservedMealIncident(Evidence(), context).Disposition
+            == ObservedMealIncidentCaptureDisposition.ExactReplay
+            && JsonUtility.ToJson(restored.Capture()) == once && restored.NativeCount == 1,
+            "Variant incident JSON/fresh-owner replay duplicated the event or outcome.");
+        return "SO_INCIDENT_VARIANTS=PASS; same-kind composition; real rejection/retry; JSON/fresh owner; exact replay";
+    }
+
     public static void RunBatch()
     {
         Require(Application.isBatchMode, "B114 requires isolated batch execution.");
@@ -170,14 +205,14 @@ public static class ObservedServiceIncidentFactDebugScenarios
         internal readonly V20CampaignRuntime Campaign;
         internal int NativeCount => Outcomes.Ledger.CaptureGameplayOutcomes().outbox.Count
             + Outcomes.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count;
-        internal Fixture(Bundle saved = null)
+        internal Fixture(Bundle saved = null, IGameContentDefinitionSource content = null)
         {
             Facts = new SocialRitualFactEditorFixture(Outcomes);
             Transport = new Transport(Facts.Dispatcher);
             Journal = new SocialRitualFactJournal(Transport, Transport);
             Publisher = new PublisherProbe(Journal);
             Campaign = new V20CampaignRuntime(Outcomes.AggregateRootStore,
-                new V20StoryContentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader())), null, null, Publisher);
+                new V20StoryContentCatalog(content ?? new ResourceGameContentCatalog(new UnityGameContentRootLoader())), null, null, Publisher);
             if (saved == null) return;
             Validate(saved);
             var candidate = Campaign.PrepareSociety(saved.society);
