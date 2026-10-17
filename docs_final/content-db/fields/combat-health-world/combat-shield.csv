@@ -140,6 +140,8 @@ CombatShieldSO|equipment-item:shield:mana-buckler,equipment-item:shield:mana-buc
 CombatShieldSO|equipment-item:shield:mana-buckler,equipment-item:shield:mana-buckler,slashDefense,14,,,explicit-serialized
 CombatShieldSO|equipment-item:shield:mana-buckler,equipment-item:shield:mana-buckler,pierceDefense,24,,,explicit-serialized
 CombatShieldSO|equipment-item:shield:mana-buckler,equipment-item:shield:mana-buckler,bluntDefense,18,,,explicit-serialized
+CombatShieldSO|equipment-item:shield:mana-buckler,equipment-item:shield:mana-buckler,roleFlags,64,,,explicit-serialized
+CombatShieldSO|equipment-item:shield:mana-buckler,equipment-item:shield:mana-buckler,arcaneManaCost,0,,,explicit-serialized
 CombatShieldSO|equipment-item:shield:mana-buckler,equipment-item:shield:mana-buckler,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default
 CombatShieldSO|equipment-item:shield:pavise,equipment-item:shield:pavise,m_Name,S09_Pavise,,,explicit-serialized
 CombatShieldSO|equipment-item:shield:pavise,equipment-item:shield:pavise,equipmentId,shield:pavise,,,explicit-serialized
@@ -177,6 +179,8 @@ CombatShieldSO|equipment-item:shield:pavise,equipment-item:shield:pavise,frontal
 CombatShieldSO|equipment-item:shield:pavise,equipment-item:shield:pavise,slashDefense,34,,,explicit-serialized
 CombatShieldSO|equipment-item:shield:pavise,equipment-item:shield:pavise,pierceDefense,31,,,explicit-serialized
 CombatShieldSO|equipment-item:shield:pavise,equipment-item:shield:pavise,bluntDefense,26,,,explicit-serialized
+CombatShieldSO|equipment-item:shield:pavise,equipment-item:shield:pavise,roleFlags,32,,,explicit-serialized
+CombatShieldSO|equipment-item:shield:pavise,equipment-item:shield:pavise,arcaneManaCost,0,,,explicit-serialized
 CombatShieldSO|equipment-item:shield:pavise,equipment-item:shield:pavise,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default
 CombatShieldSO|equipment-item:shield:powered,equipment-item:shield:powered,m_Name,S06_PoweredShield,,,explicit-serialized
 CombatShieldSO|equipment-item:shield:powered,equipment-item:shield:powered,equipmentId,shield:powered,,,explicit-serialized
@@ -216,6 +220,8 @@ CombatShieldSO|equipment-item:shield:powered,equipment-item:shield:powered,front
 CombatShieldSO|equipment-item:shield:powered,equipment-item:shield:powered,slashDefense,39,,,explicit-serialized
 CombatShieldSO|equipment-item:shield:powered,equipment-item:shield:powered,pierceDefense,38,,,explicit-serialized
 CombatShieldSO|equipment-item:shield:powered,equipment-item:shield:powered,bluntDefense,33,,,explicit-serialized
+CombatShieldSO|equipment-item:shield:powered,equipment-item:shield:powered,roleFlags,16,,,explicit-serialized
+CombatShieldSO|equipment-item:shield:powered,equipment-item:shield:powered,arcaneManaCost,0,,,explicit-serialized
 CombatShieldSO|equipment-item:shield:powered,equipment-item:shield:powered,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default
 CombatShieldSO|equipment-item:shield:rune,equipment-item:shield:rune,m_Name,S05_RuneShield,,,explicit-serialized
 CombatShieldSO|equipment-item:shield:rune,equipment-item:shield:rune,equipmentId,shield:rune,,,explicit-serialized

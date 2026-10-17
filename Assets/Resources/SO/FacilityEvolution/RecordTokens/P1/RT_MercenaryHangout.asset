@@ -27,6 +27,7 @@ MonoBehaviour:
   description: "\uC6A9\uBCD1 \uC190\uB2D8\uC774 \uBC18\uBCF5\uD574\uC11C \uC774\uC6A9\uD55C
     \uAE30\uB85D\uC774\uB2E4. \uC804\uD22C/\uC5F0\uD68C \uACC4\uBCF4\uC758 \uC5ED\uC0AC
     \uC99D\uAC70\uB85C \uB0A8\uAE34\uB2E4."
+  generationTrigger: 1
   sourceMetric: CombatVisitorRatio
   threshold: 0.25
   decayPolicy: recent+long-term

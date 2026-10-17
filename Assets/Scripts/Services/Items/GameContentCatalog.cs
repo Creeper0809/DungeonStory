@@ -87,8 +87,8 @@ public sealed class ResourceGameContentCatalog :
 
     public IReadOnlyList<T> GetAll<T>() where T : ScriptableObject
     {
-        if (typeof(T) == typeof(ItemDefinitionSO))
-            return Items.Definitions.Cast<T>().ToArray();
+        if (typeof(ItemDefinitionSO).IsAssignableFrom(typeof(T)))
+            return Items.Definitions.OfType<T>().ToArray();
         return Domain.GetAll<T>();
     }
 

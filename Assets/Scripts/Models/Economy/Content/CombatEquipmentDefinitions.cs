@@ -33,6 +33,8 @@ public abstract class CombatEquipmentDefinitionSO : ScriptableObject, IGameplayE
     [SerializeField] private ProficiencyWorkProfileAuthoring proficiency = new();
     [SerializeField] private List<GameplayEffectBinding> effects = new();
     [SerializeField] private bool allowMythicInspiration = true;
+    [SerializeField] private CombatEquipmentRoleFlags roleFlags;
+    [Min(0f), SerializeField] private float arcaneManaCost;
 
     public string EquipmentId => equipmentId?.Trim() ?? string.Empty;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? EquipmentId : displayName.Trim();
@@ -63,6 +65,8 @@ public abstract class CombatEquipmentDefinitionSO : ScriptableObject, IGameplayE
     public ProficiencyWorkProfileAuthoring Proficiency =>
         proficiency ??= new ProficiencyWorkProfileAuthoring();
     public bool AllowMythicInspiration => allowMythicInspiration;
+    public CombatEquipmentRoleFlags RoleFlags => roleFlags;
+    public float ArcaneManaCost => arcaneManaCost;
     public GameplayEffectSourceRef SourceRef =>
         new(GameplayEffectSourceKind.Equipment, EquipmentId);
     public IReadOnlyList<GameplayEffectBinding> Effects =>
@@ -77,6 +81,14 @@ public abstract class CombatEquipmentDefinitionSO : ScriptableObject, IGameplayE
     }
 
 #if UNITY_EDITOR
+    public void ConfigureCombatRoles(CombatEquipmentRoleFlags roles, float manaCost = 0f)
+    {
+        if (!float.IsFinite(manaCost) || manaCost < 0f)
+            throw new ArgumentOutOfRangeException(nameof(manaCost));
+        roleFlags = roles;
+        arcaneManaCost = manaCost;
+    }
+
     public void ConfigureGameplayEffects(
         IEnumerable<GameplayEffectBinding> bindings)
     {
@@ -147,6 +159,10 @@ public sealed class ResourceCombatEquipmentCatalog : ICombatEquipmentCatalog
             throw new InvalidOperationException(
                 $"Duplicate combat equipment definition id '{duplicate.Key}'.");
         }
+        if (definitions.Any(value => ((int)value.RoleFlags & ~255) != 0
+            || !float.IsFinite(value.ArcaneManaCost) || value.ArcaneManaCost < 0f
+            || value.ArcaneManaCost > 0f && value is not CombatWeaponSO))
+            throw new InvalidOperationException("Combat equipment has invalid role or arcane metadata.");
 
         byId = definitions.ToDictionary(item => item.EquipmentId, StringComparer.Ordinal);
         all = byId.Values

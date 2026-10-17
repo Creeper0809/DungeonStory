@@ -14,7 +14,7 @@ public sealed class FestivalDefinitionCatalog : IFestivalDefinitionCatalog
             .Where(value => value != null)
             .OrderBy(value => value.StableId, StringComparer.Ordinal)
             .ToArray();
-        if (all.Count != 16
+        if (all.Count == 0
             || all.Any(value => string.IsNullOrWhiteSpace(value.StableId)
                 || string.IsNullOrWhiteSpace(value.displayName)
                 || value.dayOfSeason < 1
@@ -22,7 +22,7 @@ public sealed class FestivalDefinitionCatalog : IFestivalDefinitionCatalog
                 || value.ValidateDefinition().Count > 0))
         {
             throw new InvalidOperationException(
-                "The V20 festival catalog must contain exactly sixteen complete authored definitions.");
+                "The festival catalog requires complete authored definitions.");
         }
 
         byId = all.ToDictionary(value => value.StableId, StringComparer.Ordinal);

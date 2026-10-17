@@ -56,7 +56,7 @@ public sealed class CharacterStatsVitalsService
         CharacterActor actor,
         CharacterVitalsSnapshot localProjection)
     {
-        if (actor == null || !CharacterPersistentIdentity.TryGet(actor, out _))
+        if (actor == null || actor.Identity?.Profile == null || !CharacterPersistentIdentity.TryGet(actor, out _))
         {
             return localProjection;
         }

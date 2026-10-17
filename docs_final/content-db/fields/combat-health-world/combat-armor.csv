@@ -667,6 +667,8 @@ CombatArmorSO|equipment-item:armor:powder-cuirass,equipment-item:armor:powder-cu
 CombatArmorSO|equipment-item:armor:powder-cuirass,equipment-item:armor:powder-cuirass,bodyPartDefense.0.slashDefense,14,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:powder-cuirass,equipment-item:armor:powder-cuirass,bodyPartDefense.0.pierceDefense,18,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:powder-cuirass,equipment-item:armor:powder-cuirass,bodyPartDefense.0.bluntDefense,31,,,explicit-serialized
+CombatArmorSO|equipment-item:armor:powder-cuirass,equipment-item:armor:powder-cuirass,roleFlags,128,,,explicit-serialized
+CombatArmorSO|equipment-item:armor:powder-cuirass,equipment-item:armor:powder-cuirass,arcaneManaCost,0,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:powder-cuirass,equipment-item:armor:powder-cuirass,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default
 CombatArmorSO|equipment-item:armor:powered-harness,equipment-item:armor:powered-harness,m_Name,A15_PoweredHarness,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:powered-harness,equipment-item:armor:powered-harness,equipmentId,armor:powered-harness,,,explicit-serialized
@@ -717,6 +719,8 @@ CombatArmorSO|equipment-item:armor:powered-harness,equipment-item:armor:powered-
 CombatArmorSO|equipment-item:armor:powered-harness,equipment-item:armor:powered-harness,bodyPartDefense.0.slashDefense,42,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:powered-harness,equipment-item:armor:powered-harness,bodyPartDefense.0.pierceDefense,40,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:powered-harness,equipment-item:armor:powered-harness,bodyPartDefense.0.bluntDefense,34,,,explicit-serialized
+CombatArmorSO|equipment-item:armor:powered-harness,equipment-item:armor:powered-harness,roleFlags,16,,,explicit-serialized
+CombatArmorSO|equipment-item:armor:powered-harness,equipment-item:armor:powered-harness,arcaneManaCost,0,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:powered-harness,equipment-item:armor:powered-harness,Kind,0,CombatEquipmentKind,Melee Weapon,implicit-csharp-default
 CombatArmorSO|equipment-item:armor:rune-ward-mail,equipment-item:armor:rune-ward-mail,m_Name,A16_RuneWardMail,,,explicit-serialized
 CombatArmorSO|equipment-item:armor:rune-ward-mail,equipment-item:armor:rune-ward-mail,equipmentId,armor:rune-ward-mail,,,explicit-serialized

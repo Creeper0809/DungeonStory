@@ -175,7 +175,11 @@ public sealed class AnatomyProfileDefinition
             source?.AnatomyFamily,
             source?.SpeciesIds,
             source?.Nodes,
-            source?.NotApplicableCapacities)
+            source?.NotApplicableCapacities,
+            source?.ApparelBodyForm ?? ApparelBodyForm.Humanoid,
+            source?.ApparelSize ?? ApparelSizeClass.Medium,
+            source?.ApparelBasePoints ?? (AnatomyAttachmentPoint)16383,
+            source?.ApparelAttachments)
     {
     }
 
@@ -185,7 +189,11 @@ public sealed class AnatomyProfileDefinition
         string anatomyFamily,
         IEnumerable<string> speciesIds,
         IEnumerable<AnatomyNodeDefinition> nodes,
-        IEnumerable<AnatomyFunctionalCapacityNotApplicable> notApplicable = null)
+        IEnumerable<AnatomyFunctionalCapacityNotApplicable> notApplicable = null,
+        ApparelBodyForm apparelBodyForm = ApparelBodyForm.Humanoid,
+        ApparelSizeClass apparelSize = ApparelSizeClass.Medium,
+        AnatomyAttachmentPoint apparelBasePoints = (AnatomyAttachmentPoint)16383,
+        IEnumerable<AnatomyApparelAttachment> apparelAttachments = null)
     {
         ProfileId = profileId?.Trim() ?? string.Empty;
         DisplayName = string.IsNullOrWhiteSpace(displayName)
@@ -203,6 +211,26 @@ public sealed class AnatomyProfileDefinition
             .Where(node => node != null && !string.IsNullOrWhiteSpace(node.NodeId))
             .ToArray();
         byId = Nodes.ToDictionary(node => node.NodeId, StringComparer.Ordinal);
+        AnatomyNodeDefinition[] mappedNodes = Nodes.Where(node => node.MapsToLegacyBodyPart).ToArray();
+        if (mappedNodes.Any(node => !Enum.IsDefined(typeof(CombatBodyPart), node.LegacyBodyPart))
+            || mappedNodes.GroupBy(node => node.LegacyBodyPart).Any(group => group.Count() > 1))
+            throw new InvalidOperationException($"Anatomy profile '{ProfileId}' has ambiguous legacy surface mappings.");
+        ApparelBodyForm = apparelBodyForm;
+        ApparelSize = apparelSize;
+        ApparelBasePoints = apparelBasePoints;
+        ApparelAttachments = Array.AsReadOnly((apparelAttachments
+            ?? Array.Empty<AnatomyApparelAttachment>()).Select(value =>
+                value == null ? null : new AnatomyApparelAttachment
+                { nodeId = value.nodeId, points = value.points, mode = value.mode }).ToArray());
+        if (apparelBodyForm is not (ApparelBodyForm.Humanoid or ApparelBodyForm.Construct)
+            || !Enum.IsDefined(typeof(ApparelSizeClass), apparelSize)
+            || ((uint)apparelBasePoints & ~((1u << 18) - 1)) != 0
+            || ApparelAttachments.Any(value => value == null
+                || !byId.ContainsKey(value.nodeId ?? string.Empty)
+                || value.points == AnatomyAttachmentPoint.None
+                || ((uint)value.points & ~((1u << 18) - 1)) != 0
+                || !Enum.IsDefined(typeof(AnatomyApparelAttachmentMode), value.mode)))
+            throw new InvalidOperationException($"Anatomy profile '{ProfileId}' has invalid apparel fit metadata.");
         NotApplicableCapacities = (notApplicable
                 ?? Array.Empty<AnatomyFunctionalCapacityNotApplicable>())
             .Where(value => value != null)
@@ -214,6 +242,10 @@ public sealed class AnatomyProfileDefinition
     public string AnatomyFamily { get; }
     public IReadOnlyList<string> SpeciesIds { get; }
     public IReadOnlyList<AnatomyNodeDefinition> Nodes { get; }
+    public ApparelBodyForm ApparelBodyForm { get; }
+    public ApparelSizeClass ApparelSize { get; }
+    public AnatomyAttachmentPoint ApparelBasePoints { get; }
+    public IReadOnlyList<AnatomyApparelAttachment> ApparelAttachments { get; }
     public IReadOnlyDictionary<CharacterFunctionalCapacityId, string>
         NotApplicableCapacities { get; }
 

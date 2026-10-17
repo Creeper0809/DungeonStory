@@ -1,0 +1,512 @@
+{
+  "audit": "ScriptableObject modular-extension audit: buildings/environment/defense/facility",
+  "owner": "buildings",
+  "inventory": {
+    "source": "Artifacts/QA/SoModularity-20261017/so-inventory.json",
+    "sourceFilesScanned": 4001,
+    "classDeclarations": 7993,
+    "assignedTypeCount": 19,
+    "reviewedTypeCount": 19
+  },
+  "method": {
+    "knowledgeBase": "A single narrow lookup for BuildingDefinition/DefenseFacility/PowerGrid/IndustrialFacility returned no rows; the current source and authored YAML assets were used as authority.",
+    "assetCountMethod": "Counted YAML .asset references to each declaring MonoScript GUID. Counts are evidence of current authored reachability, not an execution result.",
+    "unityExecuted": false,
+    "sourceOrAssetEdits": false,
+    "result": "Four confirmed modular-extension blockers; no unresolved candidate findings. One deliberate save compatibility boundary is recorded as a non-finding."
+  },
+  "summary": {
+    "confirmedBlockerCount": 4,
+    "confirmedBlockerIds": [
+      "BLD-RUNTIME-FACTORY-COMPOSITION",
+      "CLIMATE-FIXED-CENSUS",
+      "CLIMATE-OBSERVATION-ID-BINDING",
+      "EVOLUTION-TOKEN-DEFINITION-DISCONNECTED"
+    ],
+    "unresolvedCandidateCount": 0,
+    "clearOrFixtureTypeCount": 15,
+    "blockedTypeCount": 4
+  },
+  "findings": [
+    {
+      "id": "BLD-RUNTIME-FACTORY-COMPOSITION",
+      "status": "confirmed_blocker",
+      "affectedTypes": ["BuildingSO"],
+      "problem": "The public runtime-factory extension contract works only when a caller manually constructs a catalog or uses the non-injected three-argument dispatcher constructor. A separately DI-registered IBuildingAbilityRuntimeFactory never reaches the production dispatcher.",
+      "productionEvidence": [
+        {
+          "path": "Assets/Scripts/Services/Buildings/Abilities/BuildingAbilityRuntimeCatalog.cs",
+          "lines": "4-8,33-67,69-89",
+          "evidence": "IBuildingAbilityRuntimeFactory is the executable binding contract; the exact-type catalog rejects a runtime definition without a factory; CreateBuiltIns explicitly accepts additionalFactories."
+        },
+        {
+          "path": "Assets/Scripts/Services/Buildings/Abilities/BuildingAbilityHandlers.cs",
+          "lines": "73-91",
+          "evidence": "The sole VContainer.Inject constructor accepts only work and fallback handler lists and always creates the catalog with CreateBuiltIns() without factories."
+        },
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorkRegistration.cs",
+          "lines": "125-160",
+          "evidence": "Production registers handler collections and the dispatcher but has no composition path that feeds registered runtime factories to that dispatcher."
+        },
+        {
+          "path": "Assets/Scripts/Services/Buildings/BuildableObject.cs",
+          "lines": "381-429",
+          "evidence": "Real building initialization calls the injected dispatcher to bind BuildingSO.Abilities, so the omitted factory collection is production-reachable."
+        }
+      ],
+      "smallestReproducer": "Register a custom executable BuildingAbility definition, its IBuildingAbilityRuntimeFactory, and its work handler in the production container; resolve IBuildingAbilityRuntimeDispatcher and initialize a BuildingSO containing the definition. Binding throws 'No runtime factory is registered' even though the factory was registered.",
+      "existingTargetedNativeEntries": [
+        {
+          "path": "Assets/Scripts/Services/Buildings/Editor/BuildingAbilityRuntimeDebugScenarios.cs",
+          "lines": "11-16,57-67",
+          "entry": "BuildingAbilityRuntimeDebugScenarios.RunForBatch",
+          "coverage": "Proves a custom factory binds only when manually passed to CreateBuiltIns and that missing/duplicate/invalid factories reject."
+        },
+        {
+          "path": "Assets/Scripts/Services/Buildings/Editor/BuildingStatePersistenceDebugScenarios.cs",
+          "lines": "160-202",
+          "entry": "Existing unlisted-ability dispatch/persistence scenario",
+          "coverage": "Uses the non-production three-argument dispatcher with a custom handler and factory, then proves real work output and state-module persistence."
+        }
+      ],
+      "smallestRepairBoundary": "Inject the IBuildingAbilityRuntimeFactory collection into production dispatcher composition and pass it to CreateBuiltIns, preserving duplicate and executable-capability validation."
+    },
+    {
+      "id": "CLIMATE-FIXED-CENSUS",
+      "status": "confirmed_blocker",
+      "affectedTypes": ["ClimateZoneDefinitionSO", "WeatherFrontDefinitionSO"],
+      "problem": "The climate catalog discovers definitions generically and persists their IDs, but rejects every valid sixth zone or seventh weather front through a hard-coded content census.",
+      "productionEvidence": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Environment/ClimateRuntime.cs",
+          "lines": "12-27",
+          "evidence": "The constructor reads all zone/front assets, builds ID dictionaries, then requires exactly five zones and six fronts."
+        },
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Environment/ClimateRuntime.cs",
+          "lines": "29-51,100-105,127-135",
+          "evidence": "All later lookup, runtime use, and save restore are generic and ID-based. The seasonal 100-weight validation is an invariant independent of the content count."
+        }
+      ],
+      "smallestReproducer": "Add and catalog a sixth valid ClimateZoneDefinitionSO or seventh valid WeatherFrontDefinitionSO. Constructing ResourceClimateDefinitionCatalog throws before ClimateRuntime can start.",
+      "existingTargetedNativeEntries": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Editor/V19ClimateContentAssetBuilder.cs",
+          "lines": "83",
+          "entry": "DungeonStory/V19/Build Climate Content",
+          "coverage": "Current authoring entry for the five-zone/six-front set."
+        },
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Environment/Editor/Wim003ApparelConditionRuntimeDebugScenarios.cs",
+          "lines": "93-95",
+          "entry": "Existing apparel/climate runtime scenario",
+          "coverage": "Resolves the production IClimateDefinitionCatalog."
+        },
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Environment/Editor/E09EnvironmentExposurePlayModeVerifier.cs",
+          "lines": "900",
+          "entry": "E09 environment exposure PlayMode verifier",
+          "coverage": "Uses the production climate catalog in an executable environment path."
+        }
+      ],
+      "smallestRepairBoundary": "Remove only the exact 5/6 census; retain validity, duplicate-ID, and seasonal weight-total checks."
+    },
+    {
+      "id": "EVOLUTION-TOKEN-DEFINITION-DISCONNECTED",
+      "status": "confirmed_blocker",
+      "affectedTypes": ["FacilityEvolutionRecordTokenDefinitionSO"],
+      "problem": "Token definition assets author sourceMetric, threshold, and decayPolicy, but production event recording does not receive the definition provider and mints only hard-coded token IDs under hard-coded conditions. New token content using an existing metric cannot execute without a new content-ID branch.",
+      "productionEvidence": [
+        {
+          "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordTokens.cs",
+          "lines": "14-33,65-143",
+          "evidence": "The asset declares sourceMetric, threshold, decayPolicy, consumePolicy, recipeTags, and uiHint. Runtime consumption looks up only EffectiveId and consumePolicy; producer semantics are not projected."
+        },
+        {
+          "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordEventRecorder.cs",
+          "lines": "18-41",
+          "evidence": "The production recorder constructor has no token-definition provider."
+        },
+        {
+          "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordEventRecorder.cs",
+          "lines": "51-106,124-143,162-180,199-220,280-300,348-362",
+          "evidence": "Visit, revenue, stock, crime, defense, and clean-day producers directly reference FacilityEvolutionTerms token constants and embed thresholds/conditions."
+        },
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/FacilityRecipeCatalogServices.cs",
+          "lines": "160-194",
+          "evidence": "Definition assets are cataloged and queryable by ID, confirming they are registered but their producer fields are ignored."
+        }
+      ],
+      "authoredRowsVsProducer": [
+        {
+          "tokenId": "CleanServiceStreak",
+          "sourceMetric": "ServiceQuality",
+          "threshold": 0.7,
+          "decayPolicy": "streak",
+          "producer": "Mints once when daily visits reach the caller-provided minimum and incidents equal zero; it does not evaluate ServiceQuality or 0.7."
+        },
+        {
+          "tokenId": "FrequentBrawls",
+          "sourceMetric": "BrawlCount",
+          "threshold": 1,
+          "decayPolicy": "recent-weighted",
+          "producer": "No production AddToken call exists; only downstream readers and editor/manual fixtures reference this token."
+        },
+        {
+          "tokenId": "GuardRallyPoint",
+          "sourceMetric": "ZoneSafetyScore",
+          "threshold": 0.4,
+          "decayPolicy": "recent+long-term",
+          "producer": "Mints on DefenseAttackConcept.Guard; it does not evaluate ZoneSafetyScore or 0.4."
+        },
+        {
+          "tokenId": "HighMeatConsumption",
+          "sourceMetric": "StockCostPerVisit",
+          "threshold": 1,
+          "decayPolicy": "daily",
+          "producer": "Mints event amount for any food stock consumption at a meal facility; it updates StockCostPerVisit but does not compare the authored threshold."
+        },
+        {
+          "tokenId": "HighTurnoverService",
+          "sourceMetric": "TurnoverRate",
+          "threshold": 0.65,
+          "decayPolicy": "daily",
+          "producer": "Mints every caller-provided visit step; no TurnoverRate metric or 0.65 comparison drives it."
+        },
+        {
+          "tokenId": "IntruderBloodied",
+          "sourceMetric": "IntruderDamageDealt",
+          "threshold": 1,
+          "decayPolicy": "event-memory",
+          "producer": "Mints when a defense report has TotalDamage greater than zero, independent of the authored threshold."
+        },
+        {
+          "tokenId": "MercenaryHangout",
+          "sourceMetric": "CombatVisitorRatio",
+          "threshold": 0.25,
+          "decayPolicy": "recent+long-term",
+          "producer": "Mints for each combat visitor at a meal facility; it updates CombatVisitorRatio but does not compare 0.25."
+        },
+        {
+          "tokenId": "NoblePatronage",
+          "sourceMetric": "NobleVisitorRatio",
+          "threshold": 0.25,
+          "decayPolicy": "long-term",
+          "producer": "Mints per noble visit and per revenue event above a caller-provided value; it does not compare NobleVisitorRatio to 0.25."
+        },
+        {
+          "tokenId": "OutlawRumor",
+          "sourceMetric": "NegativeMentionCount",
+          "threshold": 1,
+          "decayPolicy": "rumor-decay",
+          "producer": "Mints for every crime event while also incrementing NegativeMentionCount; the authored threshold and decay policy are not evaluated."
+        }
+      ],
+      "smallestReproducer": "Catalog a tenth token definition whose sourceMetric names an already-recorded metric and whose threshold is satisfied; emit that existing visit/revenue/stock event. The record's new token count remains zero.",
+      "existingTargetedNativeEntries": [
+        {
+          "path": "Assets/Scripts/Services/FacilityEvolution/Editor/FacilityEvolutionRecordEventRecorderDebugScenarios.cs",
+          "lines": "8-70",
+          "entry": "FacilityEvolutionRecordEventRecorderDebugScenarios.RunPlayModeSmoke",
+          "coverage": "Resolves the production recorder and verifies the hard-coded CleanServiceStreak and HighMeatConsumption tokens."
+        },
+        {
+          "path": "Assets/Scripts/Services/FacilityEvolution/Editor/FacilityEvolutionDebugScenarios.cs",
+          "lines": "11-17,633-658",
+          "entry": "DungeonStory/Debug/Facility Evolution/Run Scenarios",
+          "coverage": "Audits current token definitions and consume policy but does not prove definition-driven production."
+        }
+      ],
+      "smallestRepairBoundary": "Introduce the smallest explicit producer binding that makes supported existing event semantics executable while preserving all current token thresholds and balance. The nine authored sourceMetric/threshold/decay rows do not map one-to-one onto the recorder's current increments, so unsupported rows must remain fail-closed rather than receiving an inferred generic fallback."
+    },
+    {
+      "id": "CLIMATE-OBSERVATION-ID-BINDING",
+      "status": "confirmed_blocker",
+      "affectedTypes": ["BuildingSO"],
+      "problem": "Climate forecasting and durable observation-equipment ownership are selected by one numeric BuildingSO ID even though the authored tower already opts in through existing workstation and semantic-tag capabilities.",
+      "productionEvidence": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Environment/ClimateRuntime.cs",
+          "lines": "151-176",
+          "evidence": "Both equipment maintenance and forecast availability query only building:8851."
+        },
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Environment/ClimateDurableEquipmentLifecycleRuntime.cs",
+          "lines": "6-9,16,76-104",
+          "evidence": "The lifecycle describes a weather-observation capability but closes active slots unless BuildingData.id equals 8851."
+        },
+        {
+          "path": "Assets/Resources/SO/Building/ResearchOverhaul/RF51_기상_관측탑.asset",
+          "lines": "80-99",
+          "evidence": "The current tower already has BuildingSemanticTagsAbility tags research:climate:weather-observation and workstation:v19:weather-observation plus a BuildingProductionWorkstationAbility with the same workstation tag."
+        },
+        {
+          "path": "Assets/Scripts/Services/Economy/CertifiedSeedFacilityEligibility.cs",
+          "lines": "5-55",
+          "evidence": "An existing production pattern explicitly excludes numeric IDs and filters operational facilities by an authored workstation capability."
+        }
+      ],
+      "smallestReproducer": "Author a second operational BuildingSO with the existing workstation:v19:weather-observation capability and valid observation equipment, but a different ID. It never enables forecast, is never maintained by ClimateRuntime, and its active climate equipment slot is closed as capability-removed.",
+      "existingTargetedNativeEntries": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/Environment/Editor/ClimateDurableEquipmentDebugScenarios.cs",
+          "lines": "13,143-187,222-229",
+          "entry": "Tools/Dungeon Story/QA/Climate Durable Equipment",
+          "coverage": "Exercises slot assignment and lost-owner reconciliation but currently resolves only the authored 8851 tower. It is the narrow place to add a second capability-equivalent definition witness."
+        }
+      ],
+      "smallestRepairBoundary": "Centralize weather-observation eligibility on the existing authored capability/tag and use it consistently for runtime selection and durable-slot reconciliation."
+    }
+  ],
+  "nonFindings": [
+    {
+      "id": "BUILDING-STATE-STRICT-COMPATIBILITY",
+      "status": "intentional_contract_not_blocker",
+      "evidence": [
+        "Assets/Scripts/Services/Buildings/BuildingStateModule.cs:123-129,140-179,181-262",
+        "Assets/Scripts/Services/Buildings/Editor/BuildingStatePersistenceDebugScenarios.cs:21-22,122-128"
+      ],
+      "disposition": "Restore deliberately rejects saved unknown modules and newly required current modules. Adding a stateful ability to an existing BuildingSO therefore needs an explicit save migration. The repository has a targeted rejection test and the assigned scope identifies state interfaces as intentional, so this is recorded as a migration boundary rather than a defect."
+    },
+    {
+      "id": "NEW-MECHANIC-REGISTRATION",
+      "status": "not_a_defect",
+      "disposition": "A new capability/effect/evolution module that introduces genuinely new mechanics may require an enum, handler, factory, or module registration. The audit reports only ignored registrations or existing-capability content that cannot execute."
+    }
+  ],
+  "reviewed": [
+    {
+      "name": "BuildingLightingSettingsSO",
+      "source": "Assets/Scripts/Models/Buildings/Core/BuildingLightingSettingsSO.cs:4-24",
+      "authoredAssetCount": 0,
+      "productionReachability": [
+        "Assets/Scripts/Services/Buildings/Abilities/BuildingAbility.cs:103-137",
+        "Assets/Scripts/Services/Buildings/ModularFacilityRuntimeEffects.cs:32-59,112-119"
+      ],
+      "compositionAndPersistence": "Referenced optionally by BuildingLightingAbility inside BuildingSO's SerializeReference ability collection; values are immutable definition data and runtime light configuration is derived on binding. Missing settings use declared constants.",
+      "disposition": "clear",
+      "reason": "A new settings asset can be referenced by any lighting ability without a content-ID branch. Zero current standalone assets is valid because the reference is optional."
+    },
+    {
+      "name": "BuildingSO",
+      "source": "Assets/Scripts/Services/Buildings/SO/BuildingSO.cs:133-437",
+      "authoredAssetCount": 400,
+      "productionReachability": [
+        "Assets/Scripts/Controllers/Grid/DungeonStory/Building/DungeonStoryGridBuildingController.cs:148-149",
+        "Assets/Scripts/Controllers/Grid/DungeonStory/UI/GridConstructTab.cs:114-115",
+        "Assets/Scripts/Services/Buildings/BuildableObject.cs:381-429"
+      ],
+      "compositionAndPersistence": "BuildingSO owns a polymorphic BuildingAbilityCollection (`BuildingAbilityContracts.cs:38-92,129-180`) and BuildableObject binds runtime abilities, state modules, visuals, and world registration. State capture/restore is module-ID based (`BuildingStateModule.cs:123-262`). Industrial, environmental, production, and facility behaviors are composed as abilities rather than selected by building ID.",
+      "associatedConsumerEvidence": [
+        "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureTopology.cs:143-182",
+        "Assets/Scripts/Services/Infrastructure/Industrial/ElectricalNetworkRuntime.cs:822-1670",
+        "Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkRuntime.cs:798-2208",
+        "Assets/Scripts/Services/Infrastructure/Industrial/AutomationRuntime.cs:233-725",
+        "Assets/Scripts/Services/Economy/ProductionFacilityOutputCensus.cs:842"
+      ],
+      "disposition": "confirmed_blocker",
+      "findingIds": ["BLD-RUNTIME-FACTORY-COMPOSITION", "CLIMATE-OBSERVATION-ID-BINDING"],
+      "reason": "The data composition and state boundary are open, but production DI drops additional runtime factories and the climate service selects an already-authored weather-observation capability by one building ID."
+    },
+    {
+      "name": "ClimateZoneDefinitionSO",
+      "source": "Assets/Scripts/Content/ClimateZoneDefinitionSO.cs:4-27",
+      "authoredAssetCount": 5,
+      "productionReachability": ["Assets/Scripts/Services/Infrastructure/Environment/ClimateRuntime.cs:12-51,100-105,127-135"],
+      "compositionAndPersistence": "Projected to immutable ClimateZoneDefinition and resolved by canonical ID during climate runtime and restore.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["CLIMATE-FIXED-CENSUS"],
+      "reason": "The generic catalog is followed by an exact-five guard."
+    },
+    {
+      "name": "DebugProbeDefenseEffectSO",
+      "source": "Assets/Scripts/Services/Defense/Editor/DefenseFacilityDebugScenarios.cs:1209-1218",
+      "authoredAssetCount": 0,
+      "productionReachability": ["Assets/Scripts/Services/Defense/Editor/DefenseFacilityDebugScenarios.cs:214-250"],
+      "compositionAndPersistence": "Editor-only derived effect inserted into a cloned BuildingSO defense effect array and executed through the real DefenseFacilityResolver.",
+      "disposition": "editor_fixture_clear",
+      "reason": "The fixture is direct evidence that a new derived defense effect executes without a central effect-type switch."
+    },
+    {
+      "name": "DefenseBurnEffectSO",
+      "source": "Assets/Scripts/Services/Defense/DefenseBurnEffectSO.cs:3-26",
+      "authoredAssetCount": 2,
+      "productionReachability": ["Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:576-624"],
+      "compositionAndPersistence": "DefenseFacilityData stores DefenseEffectSO references; virtual Apply emits burn status and environmental ignition commands. Assets are immutable definitions and mutable status lives in the status runtime.",
+      "disposition": "clear",
+      "reason": "Additional burn assets use the same executable command path without an ID branch."
+    },
+    {
+      "name": "DefenseChargeEffectSO",
+      "source": "Assets/Scripts/Services/Defense/DefenseChargeEffectSO.cs:3-36",
+      "authoredAssetCount": 3,
+      "productionReachability": ["Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:576-624"],
+      "compositionAndPersistence": "Virtual Apply emits status and threshold/discharge damage through IDefenseEffectCommands.",
+      "disposition": "clear",
+      "reason": "New charge content is parameterized by asset fields and follows the shared effect transaction."
+    },
+    {
+      "name": "DefenseCorrosionEffectSO",
+      "source": "Assets/Scripts/Services/Defense/DefenseCorrosionEffectSO.cs:3-12",
+      "authoredAssetCount": 3,
+      "productionReachability": ["Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:576-624,741-789"],
+      "compositionAndPersistence": "Virtual Apply emits corrosion status; the mutable status runtime owns duration/stacks and combat projection.",
+      "disposition": "clear",
+      "reason": "Additional corrosion assets execute without content-specific registration."
+    },
+    {
+      "name": "DefenseDamageEffectSO",
+      "source": "Assets/Scripts/Services/Defense/DefenseDamageEffectSO.cs:3-12",
+      "authoredAssetCount": 11,
+      "productionReachability": ["Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:576-624"],
+      "compositionAndPersistence": "Virtual Apply sends damage through the transactional command boundary; each failed effect rolls back body, status, report, and receipts.",
+      "disposition": "clear",
+      "reason": "Damage variants are data-only asset additions."
+    },
+    {
+      "name": "DefenseEffectSO",
+      "source": "Assets/Scripts/Services/Defense/DefenseEffectSO.cs:15-59",
+      "authoredAssetCount": 0,
+      "productionReachability": ["Assets/Scripts/Services/Defense/DefenseFacilityData.cs:15-27", "Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:576-624,656-688"],
+      "compositionAndPersistence": "Abstract strategy with immutable authored amount/duration/stacks/log tag and virtual Apply(IDefenseEffectCommands).",
+      "nativeEvidence": ["Assets/Scripts/Services/Defense/Editor/DefenseEffectCommandBoundaryDebugScenarios.cs:13-70,110-126", "Assets/Scripts/Services/Defense/Editor/DefenseFacilityDebugScenarios.cs:73-89,214-250"],
+      "disposition": "clear",
+      "reason": "Runtime dispatch is polymorphic and the open-strategy fixture proves a previously unlisted effect reaches production execution."
+    },
+    {
+      "name": "DefenseGuardAttackEffectSO",
+      "source": "Assets/Scripts/Services/Defense/DefenseGuardAttackEffectSO.cs:3-22",
+      "authoredAssetCount": 2,
+      "productionReachability": ["Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:576-624"],
+      "compositionAndPersistence": "Virtual Apply emits guard-attributed damage through the shared command boundary.",
+      "disposition": "clear",
+      "reason": "Additional guard-attack assets need no content-ID branch."
+    },
+    {
+      "name": "DefenseSlowEffectSO",
+      "source": "Assets/Scripts/Services/Defense/DefenseSlowEffectSO.cs:3-13",
+      "authoredAssetCount": 3,
+      "productionReachability": ["Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:576-624,741-789"],
+      "compositionAndPersistence": "Virtual Apply emits slow status and movement delay; runtime state is owned outside the SO.",
+      "disposition": "clear",
+      "reason": "Additional slow assets use the shared effect/status path."
+    },
+    {
+      "name": "FacilityBlueprintSO",
+      "source": "Assets/Scripts/Models/FacilityShop/Core/FacilityBlueprintSO.cs:4-21",
+      "authoredAssetCount": 7,
+      "productionReachability": [
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchContracts.cs:611-646",
+        "Assets/Scripts/Services/Infrastructure/BlueprintResearchSaveSection.cs:164-249,545-776",
+        "Assets/Scripts/Services/FacilityShop/FacilityShopSystem.cs:335-408"
+      ],
+      "compositionAndPersistence": "Owns a SerializeReference BlueprintUnlockCollection. Completion iterates BlueprintUnlock and calls virtual Apply; save/restore resolves blueprint IDs and freezes unlock result records.",
+      "nativeEvidence": ["Assets/Scripts/Services/Research/Editor/BlueprintResearchDebugScenarios.cs:14-24,312-331,537-553"],
+      "disposition": "clear",
+      "reason": "The targeted DebugBlueprintUnlock fixture executes an unlisted unlock subclass and formats its result without a core branch."
+    },
+    {
+      "name": "FacilityCrimeSettingsSO",
+      "source": "Assets/Scripts/Models/Buildings/Core/FacilityCrimeSettingsSO.cs:5-55",
+      "authoredAssetCount": 1,
+      "productionReachability": ["Assets/Scripts/Services/Buildings/FacilityCrimeRiskUtility.cs:51-188", "Assets/Scripts/Services/Infrastructure/Registration/DungeonCombatRegistration.cs:304-306"],
+      "compositionAndPersistence": "A required singleton immutable rules asset injected through IFacilityCrimeSettingsProvider; mutable crime state remains in facility/runtime owners.",
+      "nativeEvidence": ["Assets/Scripts/Services/Buildings/Editor/FacilityCrimeRiskDebugScenarios.cs:30-31"],
+      "disposition": "clear",
+      "reason": "This SO is a global policy authority rather than an extensible content family; all fields have production consumers and no peer mutation was found."
+    },
+    {
+      "name": "FacilityEvolutionRecipeSO",
+      "source": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs:6-130",
+      "authoredAssetCount": 6,
+      "productionReachability": [
+        "Assets/Scripts/Services/Infrastructure/FacilityRecipeCatalogServices.cs:90-157",
+        "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs:181-189,740",
+        "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRuntime.cs:1436"
+      ],
+      "compositionAndPersistence": "Cataloged generically; source matching uses building references or lineage tags, requirements are arrays, and effective recipe IDs drive visibility, proposals, formula authority, and persisted evolution state.",
+      "nativeEvidence": ["Assets/Scripts/Services/FacilityEvolution/Editor/FacilityEvolutionDebugScenarios.cs:11-23,2501-2602", "Assets/Scripts/Services/FacilityEvolution/Editor/P1FacilityEvolutionAssetBuilder.cs:16-49"],
+      "disposition": "clear",
+      "reason": "A new recipe using registered existing formula capabilities is discovered without recipe-ID branches. New evolution mechanics requiring a module registration are outside the defect criterion."
+    },
+    {
+      "name": "FacilityEvolutionRecordTokenDefinitionSO",
+      "source": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordTokens.cs:14-33",
+      "authoredAssetCount": 9,
+      "productionReachability": ["Assets/Scripts/Services/Infrastructure/FacilityRecipeCatalogServices.cs:160-194", "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordTokens.cs:65-143", "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordEventRecorder.cs:18-362"],
+      "compositionAndPersistence": "Definitions are cataloged by EffectiveId and consulted during token consumption, while token counts/metrics are mutable facility record state.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["EVOLUTION-TOKEN-DEFINITION-DISCONNECTED"],
+      "reason": "The producer ignores the definition's source metric, threshold, and decay fields and hard-codes every mintable token."
+    },
+    {
+      "name": "FacilitySynthesisRecipeSO",
+      "source": "Assets/Scripts/Services/Synthesis/FacilitySynthesisRecipeSO.cs:5-30",
+      "authoredAssetCount": 9,
+      "productionReachability": ["Assets/Scripts/Services/Infrastructure/FacilityRecipeCatalogServices.cs:29-87", "Assets/Scripts/Services/Synthesis/FacilitySynthesisSystem.cs:74-94", "Assets/Scripts/Services/Synthesis/FacilitySynthesisRuntime.cs:65,311,469"],
+      "compositionAndPersistence": "Cataloged generically; building references define materials/result, recipe/research IDs govern visibility and operation identity, and world save restores resulting building state through the normal building persistence path.",
+      "nativeEvidence": ["Assets/Scripts/Services/Synthesis/Editor/FacilitySynthesisDebugScenarios.cs:32-109,437-452", "Assets/Scripts/Services/Synthesis/Editor/FacilitySynthesisCausalProductionEntryDebugScenarios.cs:550-641"],
+      "disposition": "clear",
+      "reason": "New recipes built from existing synthesis semantics are discovered by the catalog and execute without recipe-ID switches."
+    },
+    {
+      "name": "RoomEnvironmentSettingsSO",
+      "source": "Assets/Scripts/Models/Rooms/Core/RoomEnvironmentSettingsSO.cs:20-190",
+      "authoredAssetCount": 1,
+      "productionReachability": ["Assets/Scripts/Services/Infrastructure/Rooms/RoomEnvironmentAdapter.cs:377-412", "Assets/Scripts/Services/Infrastructure/Rooms/RoomEnvironmentExperienceAdapter.cs:80-143", "Assets/Scripts/Services/Infrastructure/Rooms/RoomInspectionRuntime.cs:275"],
+      "compositionAndPersistence": "A required singleton immutable formula/mood/presentation policy asset injected through IRoomEnvironmentSettingsProvider; room runtime owns changing environment state.",
+      "nativeEvidence": ["Assets/Scripts/Services/Buildings/Editor/ModularFacilityDebugScenarios.cs:1537,1780-1787"],
+      "disposition": "clear",
+      "reason": "All policy projections are consumed; role colors fall back through FacilityRoleCatalog rather than requiring per-content branches."
+    },
+    {
+      "name": "WasteProcessingRulesSO",
+      "source": "Assets/Scripts/Models/Economy/Content/WasteProcessingRulesSO.cs:41-190",
+      "authoredAssetCount": 1,
+      "productionReachability": ["Assets/Scripts/Models/Economy/Content/WasteProcessingRulesSO.cs:99-115,361-401", "Assets/Scripts/Services/Infrastructure/Editor/BatchACoreSessionSaveDebugScenarios.cs:1195"],
+      "compositionAndPersistence": "Required singleton rules asset validates then projects immutable WasteProcessingRulesDefinition; mutable batches, processing state, and save DTOs are held by economy runtimes.",
+      "disposition": "clear",
+      "reason": "Existing origin/disposition records and recipe/feed/legacy mappings are data-driven. Exact enum-origin coverage is a completeness invariant; adding a genuinely new origin mechanic requires enum/rule authoring and is not itself a modularity defect."
+    },
+    {
+      "name": "WeatherFrontDefinitionSO",
+      "source": "Assets/Scripts/Content/WeatherFrontDefinitionSO.cs:4-37",
+      "authoredAssetCount": 6,
+      "productionReachability": ["Assets/Scripts/Services/Infrastructure/Environment/ClimateRuntime.cs:12-51,100-105,127-146"],
+      "compositionAndPersistence": "Projected to immutable WeatherFrontDefinition, ordered/weighted generically, selected by season, and restored by canonical ID.",
+      "disposition": "confirmed_blocker",
+      "findingIds": ["CLIMATE-FIXED-CENSUS"],
+      "reason": "The generic catalog is followed by an exact-six guard."
+    }
+  ],
+  "associatedCompositionReview": {
+    "buildingAbilityDefinition": "Assets/Scripts/Models/Buildings/Core/BuildingAbilityContracts.cs:38-92,129-180",
+    "buildingRuntimeBinding": "Assets/Scripts/Services/Buildings/Abilities/BuildingAbilityRuntimeCatalog.cs:33-89",
+    "buildingWorkDispatch": "Assets/Scripts/Services/Buildings/Abilities/BuildingAbilityHandlers.cs:55-145",
+    "buildingStatePersistence": "Assets/Scripts/Services/Buildings/BuildingStateModule.cs:123-262",
+    "definitionRebind": "Assets/Scripts/Services/Buildings/BuildableObject.StateAndCapabilities.cs:17-41",
+    "industrialConsumers": [
+      "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureTopology.cs:143-182",
+      "Assets/Scripts/Services/Infrastructure/Industrial/ElectricalNetworkRuntime.cs:822-1670",
+      "Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkRuntime.cs:798-2208",
+      "Assets/Scripts/Services/Infrastructure/Industrial/WaterFixtureUseRuntime.cs:44-233",
+      "Assets/Scripts/Services/Infrastructure/Industrial/ProcessFluidUseRuntime.cs:38-129",
+      "Assets/Scripts/Services/Infrastructure/Industrial/CropIrrigationRuntime.cs:427-723",
+      "Assets/Scripts/Services/Infrastructure/Industrial/AutomationRuntime.cs:233-725"
+    ],
+    "defenseStrategyConsumer": "Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:528-624",
+    "blueprintPolymorphicConsumer": "Assets/Scripts/Services/Infrastructure/BlueprintResearchContracts.cs:611-646"
+  },
+  "crossBoundaryObservations": [
+    {
+      "owner": "main",
+      "observation": "ResourceGameContentCatalog.GetAll<T> exact ItemDefinitionSO handling and ResourceItemDefinitionSO/Generic subtype queries are outside this owner audit and were not duplicated here."
+    },
+    {
+      "owner": "main",
+      "observation": "Facility evolution formula module registration and economy catalog/effect families were inspected only far enough to prove the assigned recipe and building consumers; their standalone SO inventories belong to other owners."
+    }
+  ]
+}

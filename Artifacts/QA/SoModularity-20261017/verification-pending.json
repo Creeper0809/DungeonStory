@@ -1,0 +1,54 @@
+{
+  "status": "source_ready_execution_pending_memory",
+  "sourcePin": "source-pin-r6.json",
+  "finalNativePass": false,
+  "startupGuardCasesPassed": 188,
+  "startupGuardsAreUnityExecution": false,
+  "nativeRuns": [
+    {
+      "directory": "native-r1",
+      "exitCode": 1,
+      "osNoninteractiveProbe": "PASS",
+      "failure": "Editor compile namespace missing in added scenario; repaired"
+    },
+    {
+      "directory": "native-r2",
+      "exitCode": 1,
+      "osNoninteractiveProbe": "PASS",
+      "compileErrors": 0,
+      "compileSeconds": 24.806179,
+      "partialMarkers": [
+        "SO_DEFINITION_EXTENSIONS=PASS",
+        "SO_INCIDENT_VARIANTS=PASS",
+        "SO_ADDITIVE_CATALOGS=PASS",
+        "SO_CLIMATE_DEFINITIONS=PASS"
+      ],
+      "failure": "Disease fixture cloned an Environment-only condition; changed to a contagious source. Later source edits remain unexecuted."
+    },
+    {
+      "directory": "native-r3",
+      "exitCode": 1,
+      "osNoninteractiveProbe": "PASS",
+      "failure": "QA_MEMORY_PRESSURE during compile; availablePhysicalBytes=1001017344 below requiredPhysicalBytes=1073741824; only owned isolated job terminated",
+      "executeMethodReached": false
+    }
+  ],
+  "staticResult": "static-close.json",
+  "sourceSyntax": "syntax-results.json",
+  "remainingRequired": [
+    "Final source import/semantic compile",
+    "RunBuildings extension/runtime/JSON/retry suite to terminal PASS",
+    "Relevant character/campaign/combat regression",
+    "Actual GameplayScene container Play via existing allowed isolated entry"
+  ],
+  "userSteering": "User asked to continue code cleanup while memory is unavailable. No memory guard relaxation or user-application control.",
+  "knowledgeBase": {
+    "log": "knowledge-base-close-r2.log",
+    "exitCode": 0,
+    "queryTests": 5,
+    "freshnessFailureCount": 0,
+    "sourcePinAtClose": "source-pin-r6.json"
+  },
+  "historicalRecord": true,
+  "supersededBy": "verification-final.json"
+}

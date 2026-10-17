@@ -1239,8 +1239,7 @@ internal readonly struct ObservedLastLessonLifeEventReceipt
                 StringComparison.Ordinal)
             || protectiveEquipment.worldState
                 != CombatEquipmentWorldState.Equipped
-            || (CombatEquipmentRoleRules.For(protectiveEquipment.definitionId)
-                & CombatEquipmentRoleFlags.BlastAndSmokeProtection) == 0
+            || string.IsNullOrWhiteSpace(protectiveEquipment.definitionId)
             || !award.IsValid
             || !award.AcademyBuildingId.Equals(
                 mentorship.AcademyBuildingId)
@@ -1251,6 +1250,9 @@ internal readonly struct ObservedLastLessonLifeEventReceipt
                 "Observed last-lesson receipt is inconsistent with its retirement, mentorship, PPE, or durable award.");
         }
 
+        // The source owner checks the equipped definition's protective role.
+        // A frozen receipt retains that historical identity; parsing must not
+        // reclassify equipment through a closed list of current content IDs.
         SourceOperationId = award.SourceOperationId;
         MentorCharacterId = mentorship.MentorCharacterId;
         StudentCharacterId = mentorship.StudentCharacterId;

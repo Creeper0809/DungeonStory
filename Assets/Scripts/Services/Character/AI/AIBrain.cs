@@ -384,6 +384,7 @@ public class AIBrain : CharacterAbility
     public void UseOwnerWorkActions()
     {
         availableActions = AIBrainActionConfiguration.ConfigureOwner(
+            availableActions,
             RequireActionCatalog(),
             gameClock);
     }

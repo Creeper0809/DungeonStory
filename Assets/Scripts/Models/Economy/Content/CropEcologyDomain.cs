@@ -377,9 +377,10 @@ public sealed class CropEcologyAggregateState
                     ":base",
                     StringComparison.Ordinal))
             .OrderBy(value => value.cropId, StringComparer.Ordinal).ToArray();
-        if (bases.Length != 12)
+        if (bases.Length == 0
+            || bases.Select(value => value.cropId).Distinct(StringComparer.Ordinal).Count() != bases.Length)
             throw new InvalidOperationException(
-                $"V22 initial seed grant requires 12 base cultivars, found {bases.Length}.");
+                "Initial seed grant requires exactly one base cultivar per crop.");
         initialSeedGrantIssued = true;
         seedLots = bases.Select(value => new SeedLotState
         {

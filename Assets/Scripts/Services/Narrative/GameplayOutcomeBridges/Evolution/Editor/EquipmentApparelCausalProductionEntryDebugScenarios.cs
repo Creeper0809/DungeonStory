@@ -268,7 +268,8 @@ public static class EquipmentApparelCausalProductionEntryDebugScenarios
 
             var anatomy = new AnatomyAttachmentQuery(
                 world,
-                CharacterAiEditorTestDependencies.BodyHealthRuntime);
+                CharacterAiEditorTestDependencies.BodyHealthRuntime,
+                new ResourceAnatomyProfileCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader())));
             var availability = new ApparelAvailabilityIndex(
                 physical.WorldItems,
                 apparelCatalog,

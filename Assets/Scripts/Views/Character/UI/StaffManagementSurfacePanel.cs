@@ -669,7 +669,7 @@ internal sealed class StaffManagementSurfacePanel
                 combatEquipment.TryGetDerivedStats(
                     value,
                     out CombatEquipmentDerivedStats stats)
-                && CharacterArcaneWeaponRules.IsArcane(stats.DefinitionId));
+                && CharacterArcaneWeaponRules.IsArcane(stats));
         if (string.IsNullOrWhiteSpace(instanceId))
             return;
 

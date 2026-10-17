@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 
@@ -26,6 +27,110 @@ public static class ClimateDurableEquipmentDebugScenarios
         VerifyMissingPolicyFailsLoudly();
         VerifyLostTowerClosesSlot();
         VerifyLifecycleConflictBlocksSave();
+    }
+
+    public static string RunSoObservationCompositionForBatch()
+    {
+        BuildingSO authored = LoadAuthoredWeatherTowerDefinition();
+        BuildingSO clone = UnityEngine.Object.Instantiate(authored);
+        GameObject root = new GameObject("QA SO Observation Composition Tower");
+        ClimateRuntime climate = null;
+        try
+        {
+            clone.id = authored.id + 1_000_000;
+            clone.name = authored.name + "_SO_Observation_Composition";
+            BuildingProductionWorkstationAbility workstation =
+                clone.GetProductionWorkstationAbility();
+            Require(authored.id ==
+                    ClimateDurableEquipmentLifecycleRuntime.WeatherTowerDefinitionId
+                && clone.id != authored.id
+                && workstation != null
+                && string.Equals(
+                    workstation.WorkstationTag,
+                    ClimateDurableEquipmentLifecycleRuntime
+                        .WeatherObservationWorkstationTag,
+                    StringComparison.Ordinal),
+                "The cloned observation tower did not preserve its authored workstation capability.");
+
+            BuildableObject tower = root.AddComponent<BuildableObject>();
+            tower.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+            CharacterAiEditorTestDependencies.Inject(tower);
+            tower.Initialization(clone, TowerPosition);
+            BuildingInstanceId towerId = tower.RequirePersistentInstanceId();
+            MutableBuildingWorld world = new(tower);
+            DefinitionFilteringFacilityQuery facilities = new(tower);
+            Require(facilities.FindOperational(
+                        FacilityCapabilityKind.None,
+                        $"building:{clone.id}").SingleOrDefault() == tower
+                    && facilities.FindOperational(
+                        FacilityCapabilityKind.None,
+                        $"building:{authored.id}").Count == 0,
+                "The controlled facility query did not honor the cloned definition ID filter.");
+
+            Fixture fixture = new();
+            climate = new ClimateRuntime(
+                new DungeonRuntimeAggregateRootStore(),
+                new ResourceClimateDefinitionCatalog(
+                    new ResourceGameContentCatalog(
+                        new UnityGameContentRootLoader())),
+                CharacterAiEditorTestDependencies.GameCalendar,
+                CharacterAiEditorTestDependencies.GameEvents,
+                new RandomStreamProvider(8851001),
+                facilities,
+                fixture.Policies,
+                fixture.Slots,
+                fixture.Slots,
+                fixture.Use);
+            climate.Start();
+            Require(climate.ObservationToolsOperational
+                    && climate.ForecastHorizonDays > 0
+                    && fixture.Slots.Snapshot != null
+                    && fixture.Slots.Snapshot.OwnerFacilityId.Equals(towerId)
+                    && fixture.Slots.LastAssignment.OwnerFacilityId.Equals(towerId),
+                "The actual climate runtime did not select the cloned observation tower.");
+
+            ClimateDurableEquipmentLifecycleRuntime lifecycle = new(
+                world,
+                fixture.Slots,
+                fixture.Slots);
+            lifecycle.Start();
+            lifecycle.Tick();
+            Require(fixture.Slots.CloseCalls == 0
+                    && fixture.Slots.Snapshot != null
+                    && fixture.Slots.Snapshot.OwnerFacilityId.Equals(towerId),
+                "The climate lifecycle discarded a live cloned tower slot.");
+
+            CharacterAiEditorTestDependencies.GameEvents.Publish(
+                new OperatingDayEndedEvent(climate.AbsoluteDay));
+            Require(fixture.Use.Calls.Count == 2,
+                "A climate observation day did not wear both durable tools.");
+
+            string[] preservedAbilityIds = clone.AbilityModules.Items
+                .Where(value => value is not BuildingProductionWorkstationAbility)
+                .Select(value => value.AbilityId)
+                .ToArray();
+            Require(clone.AbilityModules
+                    .Remove<BuildingProductionWorkstationAbility>() == 1
+                && clone.AbilityModules.Items
+                    .Select(value => value.AbilityId)
+                    .SequenceEqual(preservedAbilityIds),
+                "Removing the observation workstation changed other cloned abilities.");
+            lifecycle.Tick();
+            lifecycle.Tick();
+            Require(fixture.Slots.CloseCalls == 1
+                    && fixture.Slots.Snapshot == null
+                    && fixture.Slots.LastCloseReason ==
+                        "climate-observation-capability-removed",
+                "The removed workstation capability did not close its slot exactly once.");
+            lifecycle.ValidateBeforeCapture();
+            return "SO_OBSERVATION_COMPOSITION=PASS";
+        }
+        finally
+        {
+            climate?.Dispose();
+            UnityEngine.Object.DestroyImmediate(root);
+            UnityEngine.Object.DestroyImmediate(clone);
+        }
     }
 
     private static void VerifyExactPairAssignmentAndOperationalProjection()
@@ -214,7 +319,16 @@ public static class ClimateDurableEquipmentDebugScenarios
 
     private static BuildableObject CreateWeatherTower(out GameObject root)
     {
-        BuildingSO definition = AssetDatabase.FindAssets("t:BuildingSO")
+        BuildingSO definition = LoadAuthoredWeatherTowerDefinition();
+        root = new GameObject("QA Climate Durable Equipment Tower");
+        BuildableObject tower = root.AddComponent<BuildableObject>();
+        CharacterAiEditorTestDependencies.Inject(tower);
+        tower.Initialization(definition, TowerPosition);
+        return tower;
+    }
+
+    private static BuildingSO LoadAuthoredWeatherTowerDefinition() =>
+        AssetDatabase.FindAssets("t:BuildingSO")
             .Select(AssetDatabase.GUIDToAssetPath)
             .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
             .SingleOrDefault(value => value != null
@@ -222,12 +336,6 @@ public static class ClimateDurableEquipmentDebugScenarios
                     ClimateDurableEquipmentLifecycleRuntime.WeatherTowerDefinitionId)
             ?? throw new InvalidOperationException(
                 "The authored weather observation tower BuildingSO is missing or duplicate.");
-        root = new GameObject("QA Climate Durable Equipment Tower");
-        BuildableObject tower = root.AddComponent<BuildableObject>();
-        CharacterAiEditorTestDependencies.Inject(tower);
-        tower.Initialization(definition, TowerPosition);
-        return tower;
-    }
 
     private static void Require(bool condition, string message)
     {
@@ -377,6 +485,49 @@ public static class ClimateDurableEquipmentDebugScenarios
             buildings.Clear();
             BuildingVersion++;
         }
+    }
+
+    private sealed class DefinitionFilteringFacilityQuery :
+        IFacilityCapabilityQuery
+    {
+        private readonly BuildableObject facility;
+
+        internal DefinitionFilteringFacilityQuery(BuildableObject facility)
+        {
+            this.facility = facility
+                ?? throw new ArgumentNullException(nameof(facility));
+        }
+
+        public IReadOnlyList<BuildableObject> FindOperational(
+            FacilityCapabilityKind capability,
+            string buildingDefinitionId = "")
+        {
+            string requested = buildingDefinitionId?.Trim() ?? string.Empty;
+            if (facility.BuildingData == null
+                || facility.IsBuildingDestroyed
+                || requested.Length > 0
+                    && !string.Equals(
+                        ResolveDefinitionId(facility.BuildingData),
+                        requested,
+                        StringComparison.Ordinal))
+            {
+                return Array.Empty<BuildableObject>();
+            }
+
+            return new[] { facility };
+        }
+
+        public IReadOnlyList<BuildableObject> FindOperational(
+            ResearchFacilityCommandKind command) =>
+            command != ResearchFacilityCommandKind.None
+            && facility.BuildingData?.ResearchFacilityCommand == command
+                ? new[] { facility }
+                : Array.Empty<BuildableObject>();
+
+        private static string ResolveDefinitionId(BuildingSO definition) =>
+            !string.IsNullOrWhiteSpace(definition.ContentDefinitionId)
+                ? definition.ContentDefinitionId
+                : $"building:{definition.id}";
     }
 
     private readonly struct WearCall

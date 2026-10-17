@@ -74,3 +74,5 @@ MonoBehaviour:
         penetration: 20
         damageType: 0
         tracking: 0.08
+  roleFlags: 0
+  arcaneManaCost: 8

@@ -1,5 +1,13 @@
 # 최신 Goal — 2026-10-16 보고서 전체 수정 결과
 
+## 현재 인계 — SO 전수 조사·선별 수정·실행 완료 (2026-10-18)
+
+브랜치 `codex/so-modular-extension`. [SO 보고서](docs/dev/so-modularity-audit-20261017.md)와 [최종 검증](Artifacts/QA/SoModularity-20261017/verification-final.json)을 따른다. source-pin-r6의 입력4081/DLL47 지문을 유지한 채 current compile CS0·표적/캐릭터/사건/전투/실제 GameplayScene Play 5회 모두 PASS/exit0. native-r1~r3 실패 기록은 보존했다. 추가 소스 변경 없이 이전 실행 대기를 해결했다.
+
+SO161타입/147원본·작성124타입/3538연결의 판정은 audit-final.json. 기존 파일의 등록/소비/프로필·정의 메타데이터 경계를 고쳤으며 새 생산 파일 분할·씬/프리팹/기존 GUID/저장 버전/수동 연결 변경은 없다. 미정의 신규 유전/종족 효과는 기능 공백으로 구분하며 구현 완료로 세지 않는다. 범위 밖 자연 UI/AI 전수·장기 밸런스·추가 정의의 공식 whole-world 저장을 주장하지 않는다.
+
+SOURCE_EDIT/UNITY_VERIFY CLOSED, 모든 native terminal/Unity0, 남은 필수 구현/실행 없음. 소스/계약 변화나 실제 실패가 없으면 전체 검증을 반복하지 않는다. 아래는 이전 32개 Goal 완료 기록이며 현재 SO 작업에 신규 Goal은 만들지 않았다.
+
 ## 2026-10-17 최종 인계 — 보고서 32개 처리·필수 통합 완료
 
 요청 보고서의 F1/F2·G1~G10·조건부20 모두 수정 또는 구체적 유지 판정과 필요한 표적 실행을 마쳤다. 최종 공식 지원군 월드 복원7회와 보충 운반 회귀 복원6회도 현재 소스/DLL로 PASS다. 남은 구현/필수 Unity 실행은 없다. [최종 보고서](docs/code-audit/god-class-and-required-fixes-2026-10-16.md), [32개 완료 대조](Artifacts/QA/RequiredStructureGoal-20261016/completion-audit-final-r1.json), [최종 마감](Artifacts/QA/RequiredStructureGoal-20261016/verification-final-goal-close-r1.json)가 최신 권위다. 도구 Goal의 최종 상태는 [완료 영수증](Artifacts/QA/RequiredStructureGoal-20261016/goal-tool-completion-r1.json)을 따른다.

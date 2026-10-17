@@ -11,6 +11,20 @@ public enum FacilityEvolutionRecordTokenConsumePolicy
     ConsumeAll = 2
 }
 
+public enum FacilityEvolutionRecordTokenGenerationTrigger
+{
+    Manual = 0,
+    CombatMealVisit = 1,
+    NobleVisitOrHighValueRevenue = 2,
+    TurnoverVisitMilestone = 3,
+    MealFoodConsumed = 4,
+    CrimeReported = 5,
+    DamagingDefense = 6,
+    GuardDefense = 7,
+    CleanServiceDay = 8,
+    MetricThresholdCrossing = 9
+}
+
 [CreateAssetMenu(menuName = "DungeonStory/Facility Evolution/Record Token Definition", order = 1)]
 public class FacilityEvolutionRecordTokenDefinitionSO : DataScriptableObject
 {
@@ -19,8 +33,11 @@ public class FacilityEvolutionRecordTokenDefinitionSO : DataScriptableObject
     [TextArea] public string description;
 
     [Header("Source")]
+    public FacilityEvolutionRecordTokenGenerationTrigger generationTrigger;
+    [Tooltip("Executable metric and threshold for MetricThresholdCrossing; descriptive provenance for event triggers.")]
     public string sourceMetric;
     public float threshold;
+    [Tooltip("Historical authoring metadata. Automatic decay is not supported; threshold tokens require long-term retention.")]
     public string decayPolicy;
 
     [Header("Evolution")]

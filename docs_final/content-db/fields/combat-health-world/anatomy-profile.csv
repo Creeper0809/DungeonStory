@@ -149,8 +149,34 @@ AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.pairedGroupId,,,,explicit-
 AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.legacyBodyPart,0,,,explicit-serialized
 AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.mapsToLegacyBodyPart,0,,,explicit-serialized
 AnatomyProfileSO|anatomy:avian,anatomy:avian,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelSize,1,ApparelSizeClass,Medium,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.1.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.2.nodeId,wing:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.2.points,32768,AnatomyAttachmentPoint,알 수 없음 (32768),explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.2.mode,1,AnatomyApparelAttachmentMode,Add When Present,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.3.nodeId,wing:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.3.points,65536,AnatomyAttachmentPoint,알 수 없음 (65536),explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.3.mode,1,AnatomyApparelAttachmentMode,Add When Present,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.4.nodeId,leg:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.4.points,2560,AnatomyAttachmentPoint,알 수 없음 (2560),explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.4.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.5.nodeId,leg:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.5.points,5120,AnatomyAttachmentPoint,알 수 없음 (5120),explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.5.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.6.nodeId,balance-tail,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.6.points,16384,AnatomyAttachmentPoint,알 수 없음 (16384),explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,apparelAttachments.6.mode,1,AnatomyApparelAttachmentMode,Add When Present,explicit-serialized
 AnatomyProfileSO|anatomy:avian,anatomy:avian,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:avian,anatomy:avian,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:avian,anatomy:avian,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:avian,anatomy:avian,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
 AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,m_Name,anatomy_beastkin,,,explicit-serialized
 AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,profileId,anatomy:beastkin,,,explicit-serialized
 AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,displayName,수인 해부 구조,,,explicit-serialized
@@ -313,8 +339,34 @@ AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,nodes.12.pairedGroupId,,,,exp
 AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,nodes.12.legacyBodyPart,0,,,explicit-serialized
 AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,nodes.12.mapsToLegacyBodyPart,0,,,explicit-serialized
 AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelSize,1,ApparelSizeClass,Medium,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.1.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.2.nodeId,arm:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.2.points,160,AnatomyAttachmentPoint,알 수 없음 (160),explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.2.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.3.nodeId,arm:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.3.points,320,AnatomyAttachmentPoint,알 수 없음 (320),explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.3.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.4.nodeId,leg:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.4.points,2560,AnatomyAttachmentPoint,알 수 없음 (2560),explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.4.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.5.nodeId,leg:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.5.points,5120,AnatomyAttachmentPoint,알 수 없음 (5120),explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.5.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.6.nodeId,balance-tail,,,explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.6.points,16384,AnatomyAttachmentPoint,알 수 없음 (16384),explicit-serialized
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,apparelAttachments.6.mode,1,AnatomyApparelAttachmentMode,Add When Present,explicit-serialized
 AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:beastkin,anatomy:beastkin,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
 AnatomyProfileSO|anatomy:construct,anatomy:construct,m_Name,anatomy_construct,,,explicit-serialized
 AnatomyProfileSO|anatomy:construct,anatomy:construct,profileId,anatomy:construct,,,explicit-serialized
 AnatomyProfileSO|anatomy:construct,anatomy:construct,displayName,골렘 기계 구조,,,explicit-serialized
@@ -417,8 +469,31 @@ AnatomyProfileSO|anatomy:construct,anatomy:construct,nodes.7.pairedGroupId,legs,
 AnatomyProfileSO|anatomy:construct,anatomy:construct,nodes.7.legacyBodyPart,5,,,explicit-serialized
 AnatomyProfileSO|anatomy:construct,anatomy:construct,nodes.7.mapsToLegacyBodyPart,1,,,explicit-serialized
 AnatomyProfileSO|anatomy:construct,anatomy:construct,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelBodyForm,1,ApparelBodyForm,Construct,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelSize,2,ApparelSizeClass,Large,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.1.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.2.nodeId,arm:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.2.points,160,AnatomyAttachmentPoint,알 수 없음 (160),explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.2.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.3.nodeId,arm:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.3.points,320,AnatomyAttachmentPoint,알 수 없음 (320),explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.3.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.4.nodeId,leg:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.4.points,2560,AnatomyAttachmentPoint,알 수 없음 (2560),explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.4.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.5.nodeId,leg:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.5.points,5120,AnatomyAttachmentPoint,알 수 없음 (5120),explicit-serialized
+AnatomyProfileSO|anatomy:construct,anatomy:construct,apparelAttachments.5.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
 AnatomyProfileSO|anatomy:construct,anatomy:construct,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:construct,anatomy:construct,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:construct,anatomy:construct,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:construct,anatomy:construct,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
 AnatomyProfileSO|anatomy:demon,anatomy:demon,m_Name,anatomy_demon,,,explicit-serialized
 AnatomyProfileSO|anatomy:demon,anatomy:demon,profileId,anatomy:demon,,,explicit-serialized
 AnatomyProfileSO|anatomy:demon,anatomy:demon,displayName,데몬 해부 구조,,,explicit-serialized
@@ -581,8 +656,40 @@ AnatomyProfileSO|anatomy:demon,anatomy:demon,nodes.12.pairedGroupId,,,,explicit-
 AnatomyProfileSO|anatomy:demon,anatomy:demon,nodes.12.legacyBodyPart,0,,,explicit-serialized
 AnatomyProfileSO|anatomy:demon,anatomy:demon,nodes.12.mapsToLegacyBodyPart,0,,,explicit-serialized
 AnatomyProfileSO|anatomy:demon,anatomy:demon,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelSize,1,ApparelSizeClass,Medium,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.1.nodeId,horn:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.1.points,131072,AnatomyAttachmentPoint,알 수 없음 (131072),explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.1.mode,1,AnatomyApparelAttachmentMode,Add When Present,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.2.nodeId,horn:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.2.points,131072,AnatomyAttachmentPoint,알 수 없음 (131072),explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.2.mode,1,AnatomyApparelAttachmentMode,Add When Present,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.3.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.3.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.3.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.4.nodeId,arm:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.4.points,160,AnatomyAttachmentPoint,알 수 없음 (160),explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.4.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.5.nodeId,arm:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.5.points,320,AnatomyAttachmentPoint,알 수 없음 (320),explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.5.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.6.nodeId,leg:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.6.points,2560,AnatomyAttachmentPoint,알 수 없음 (2560),explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.6.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.7.nodeId,leg:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.7.points,5120,AnatomyAttachmentPoint,알 수 없음 (5120),explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.7.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.8.nodeId,tail,,,explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.8.points,16384,AnatomyAttachmentPoint,알 수 없음 (16384),explicit-serialized
+AnatomyProfileSO|anatomy:demon,anatomy:demon,apparelAttachments.8.mode,1,AnatomyApparelAttachmentMode,Add When Present,explicit-serialized
 AnatomyProfileSO|anatomy:demon,anatomy:demon,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:demon,anatomy:demon,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:demon,anatomy:demon,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:demon,anatomy:demon,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
 AnatomyProfileSO|anatomy:fungal,anatomy:fungal,m_Name,anatomy_fungal,,,explicit-serialized
 AnatomyProfileSO|anatomy:fungal,anatomy:fungal,profileId,anatomy:fungal,,,explicit-serialized
 AnatomyProfileSO|anatomy:fungal,anatomy:fungal,displayName,균사 군체 구조,,,explicit-serialized
@@ -685,8 +792,31 @@ AnatomyProfileSO|anatomy:fungal,anatomy:fungal,nodes.7.pairedGroupId,legs,,,expl
 AnatomyProfileSO|anatomy:fungal,anatomy:fungal,nodes.7.legacyBodyPart,5,,,explicit-serialized
 AnatomyProfileSO|anatomy:fungal,anatomy:fungal,nodes.7.mapsToLegacyBodyPart,1,,,explicit-serialized
 AnatomyProfileSO|anatomy:fungal,anatomy:fungal,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelSize,1,ApparelSizeClass,Medium,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.1.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.2.nodeId,arm:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.2.points,160,AnatomyAttachmentPoint,알 수 없음 (160),explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.2.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.3.nodeId,arm:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.3.points,320,AnatomyAttachmentPoint,알 수 없음 (320),explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.3.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.4.nodeId,leg:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.4.points,2560,AnatomyAttachmentPoint,알 수 없음 (2560),explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.4.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.5.nodeId,leg:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.5.points,5120,AnatomyAttachmentPoint,알 수 없음 (5120),explicit-serialized
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,apparelAttachments.5.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
 AnatomyProfileSO|anatomy:fungal,anatomy:fungal,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:fungal,anatomy:fungal,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:fungal,anatomy:fungal,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
 AnatomyProfileSO|anatomy:human,anatomy:human,m_Name,anatomy_human,,,explicit-serialized
 AnatomyProfileSO|anatomy:human,anatomy:human,profileId,anatomy:human,,,explicit-serialized
 AnatomyProfileSO|anatomy:human,anatomy:human,displayName,인간 해부 구조,,,explicit-serialized
@@ -885,8 +1015,31 @@ AnatomyProfileSO|anatomy:human,anatomy:human,nodes.15.pairedGroupId,legs,,,expli
 AnatomyProfileSO|anatomy:human,anatomy:human,nodes.15.legacyBodyPart,5,,,explicit-serialized
 AnatomyProfileSO|anatomy:human,anatomy:human,nodes.15.mapsToLegacyBodyPart,1,,,explicit-serialized
 AnatomyProfileSO|anatomy:human,anatomy:human,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelSize,1,ApparelSizeClass,Medium,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.1.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.2.nodeId,arm:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.2.points,160,AnatomyAttachmentPoint,알 수 없음 (160),explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.2.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.3.nodeId,arm:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.3.points,320,AnatomyAttachmentPoint,알 수 없음 (320),explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.3.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.4.nodeId,leg:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.4.points,2560,AnatomyAttachmentPoint,알 수 없음 (2560),explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.4.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.5.nodeId,leg:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.5.points,5120,AnatomyAttachmentPoint,알 수 없음 (5120),explicit-serialized
+AnatomyProfileSO|anatomy:human,anatomy:human,apparelAttachments.5.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
 AnatomyProfileSO|anatomy:human,anatomy:human,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:human,anatomy:human,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:human,anatomy:human,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:human,anatomy:human,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,m_Name,anatomy_humanoid,,,explicit-serialized
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,profileId,anatomy:humanoid,,,explicit-serialized
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,displayName,인간형,,,explicit-serialized
@@ -1086,8 +1239,31 @@ AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,nodes.15.pairedGroupId,legs,,
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,nodes.15.legacyBodyPart,5,,,explicit-serialized
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,nodes.15.mapsToLegacyBodyPart,1,,,explicit-serialized
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelSize,1,ApparelSizeClass,Medium,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.1.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.2.nodeId,arm:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.2.points,160,AnatomyAttachmentPoint,알 수 없음 (160),explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.2.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.3.nodeId,arm:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.3.points,320,AnatomyAttachmentPoint,알 수 없음 (320),explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.3.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.4.nodeId,leg:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.4.points,2560,AnatomyAttachmentPoint,알 수 없음 (2560),explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.4.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.5.nodeId,leg:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.5.points,5120,AnatomyAttachmentPoint,알 수 없음 (5120),explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,apparelAttachments.5.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
 AnatomyProfileSO|anatomy:kobold,anatomy:kobold,m_Name,anatomy_kobold,,,explicit-serialized
 AnatomyProfileSO|anatomy:kobold,anatomy:kobold,profileId,anatomy:kobold,,,explicit-serialized
 AnatomyProfileSO|anatomy:kobold,anatomy:kobold,displayName,코볼트 해부 구조,,,explicit-serialized
@@ -1238,8 +1414,28 @@ AnatomyProfileSO|anatomy:kobold,anatomy:kobold,nodes.11.pairedGroupId,,,,explici
 AnatomyProfileSO|anatomy:kobold,anatomy:kobold,nodes.11.legacyBodyPart,0,,,explicit-serialized
 AnatomyProfileSO|anatomy:kobold,anatomy:kobold,nodes.11.mapsToLegacyBodyPart,0,,,explicit-serialized
 AnatomyProfileSO|anatomy:kobold,anatomy:kobold,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelSize,0,ApparelSizeClass,Small,explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.1.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.2.nodeId,leg:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.2.points,2560,AnatomyAttachmentPoint,알 수 없음 (2560),explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.2.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.3.nodeId,leg:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.3.points,5120,AnatomyAttachmentPoint,알 수 없음 (5120),explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.3.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.4.nodeId,balance-tail,,,explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.4.points,16384,AnatomyAttachmentPoint,알 수 없음 (16384),explicit-serialized
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,apparelAttachments.4.mode,1,AnatomyApparelAttachmentMode,Add When Present,explicit-serialized
 AnatomyProfileSO|anatomy:kobold,anatomy:kobold,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:kobold,anatomy:kobold,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:kobold,anatomy:kobold,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
 AnatomyProfileSO|anatomy:orc,anatomy:orc,m_Name,anatomy_orc,,,explicit-serialized
 AnatomyProfileSO|anatomy:orc,anatomy:orc,profileId,anatomy:orc,,,explicit-serialized
 AnatomyProfileSO|anatomy:orc,anatomy:orc,displayName,오크 해부 구조,,,explicit-serialized
@@ -1438,8 +1634,31 @@ AnatomyProfileSO|anatomy:orc,anatomy:orc,nodes.15.pairedGroupId,legs,,,explicit-
 AnatomyProfileSO|anatomy:orc,anatomy:orc,nodes.15.legacyBodyPart,5,,,explicit-serialized
 AnatomyProfileSO|anatomy:orc,anatomy:orc,nodes.15.mapsToLegacyBodyPart,1,,,explicit-serialized
 AnatomyProfileSO|anatomy:orc,anatomy:orc,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelSize,2,ApparelSizeClass,Large,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.1.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.2.nodeId,arm:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.2.points,160,AnatomyAttachmentPoint,알 수 없음 (160),explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.2.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.3.nodeId,arm:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.3.points,320,AnatomyAttachmentPoint,알 수 없음 (320),explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.3.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.4.nodeId,leg:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.4.points,2560,AnatomyAttachmentPoint,알 수 없음 (2560),explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.4.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.5.nodeId,leg:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.5.points,5120,AnatomyAttachmentPoint,알 수 없음 (5120),explicit-serialized
+AnatomyProfileSO|anatomy:orc,anatomy:orc,apparelAttachments.5.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
 AnatomyProfileSO|anatomy:orc,anatomy:orc,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:orc,anatomy:orc,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:orc,anatomy:orc,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:orc,anatomy:orc,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,m_Name,anatomy_quadruped,,,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,profileId,anatomy:quadruped,,,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,displayName,사족 동물,,,explicit-serialized
@@ -1619,8 +1838,19 @@ AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,nodes.13.pairedGroupId,legs
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,nodes.13.legacyBodyPart,5,,,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,nodes.13.mapsToLegacyBodyPart,1,,,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,apparelSize,1,ApparelSizeClass,Medium,explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,apparelAttachments.1.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
 AnatomyProfileSO|anatomy:slime,anatomy:slime,m_Name,anatomy_slime,,,explicit-serialized
 AnatomyProfileSO|anatomy:slime,anatomy:slime,profileId,anatomy:slime,,,explicit-serialized
 AnatomyProfileSO|anatomy:slime,anatomy:slime,displayName,슬라임 핵 구조,,,explicit-serialized
@@ -1675,8 +1905,14 @@ AnatomyProfileSO|anatomy:slime,anatomy:slime,nodes.3.pairedGroupId,,,,explicit-s
 AnatomyProfileSO|anatomy:slime,anatomy:slime,nodes.3.legacyBodyPart,0,,,explicit-serialized
 AnatomyProfileSO|anatomy:slime,anatomy:slime,nodes.3.mapsToLegacyBodyPart,0,,,explicit-serialized
 AnatomyProfileSO|anatomy:slime,anatomy:slime,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:slime,anatomy:slime,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:slime,anatomy:slime,apparelSize,1,ApparelSizeClass,Medium,explicit-serialized
+AnatomyProfileSO|anatomy:slime,anatomy:slime,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:slime,anatomy:slime,apparelAttachments,[],,,explicit-serialized
 AnatomyProfileSO|anatomy:slime,anatomy:slime,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:slime,anatomy:slime,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:slime,anatomy:slime,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:slime,anatomy:slime,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
 AnatomyProfileSO|anatomy:vampire,anatomy:vampire,m_Name,anatomy_vampire,,,explicit-serialized
 AnatomyProfileSO|anatomy:vampire,anatomy:vampire,profileId,anatomy:vampire,,,explicit-serialized
 AnatomyProfileSO|anatomy:vampire,anatomy:vampire,displayName,뱀파이어 해부 구조,,,explicit-serialized
@@ -1875,5 +2111,28 @@ AnatomyProfileSO|anatomy:vampire,anatomy:vampire,nodes.15.pairedGroupId,legs,,,e
 AnatomyProfileSO|anatomy:vampire,anatomy:vampire,nodes.15.legacyBodyPart,5,,,explicit-serialized
 AnatomyProfileSO|anatomy:vampire,anatomy:vampire,nodes.15.mapsToLegacyBodyPart,1,,,explicit-serialized
 AnatomyProfileSO|anatomy:vampire,anatomy:vampire,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelSize,1,ApparelSizeClass,Medium,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.1.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.2.nodeId,arm:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.2.points,160,AnatomyAttachmentPoint,알 수 없음 (160),explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.2.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.3.nodeId,arm:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.3.points,320,AnatomyAttachmentPoint,알 수 없음 (320),explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.3.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.4.nodeId,leg:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.4.points,2560,AnatomyAttachmentPoint,알 수 없음 (2560),explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.4.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.5.nodeId,leg:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.5.points,5120,AnatomyAttachmentPoint,알 수 없음 (5120),explicit-serialized
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,apparelAttachments.5.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
 AnatomyProfileSO|anatomy:vampire,anatomy:vampire,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:vampire,anatomy:vampire,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:vampire,anatomy:vampire,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default

@@ -2,6 +2,13 @@
 
 원시 숫자의 해석 권위는 현재 C# enum 선언이다.
 
+## AnatomyApparelAttachmentMode
+
+| 값 | 이름 | 문서 표기 |
+|---:|---|---|
+| 0 | `RemoveWhenMissing` | Remove When Missing |
+| 1 | `AddWhenPresent` | Add When Present |
+
 ## AnatomyAttachmentPoint
 
 | 값 | 이름 | 문서 표기 |
@@ -445,6 +452,21 @@
 | 0 | `ConsumeRequiredAmount` | Consume Required Amount |
 | 1 | `Preserve` | Preserve |
 | 2 | `ConsumeAll` | Consume All |
+
+## FacilityEvolutionRecordTokenGenerationTrigger
+
+| 값 | 이름 | 문서 표기 |
+|---:|---|---|
+| 0 | `Manual` | Manual |
+| 1 | `CombatMealVisit` | Combat Meal Visit |
+| 2 | `NobleVisitOrHighValueRevenue` | Noble Visit Or High Value Revenue |
+| 3 | `TurnoverVisitMilestone` | Turnover Visit Milestone |
+| 4 | `MealFoodConsumed` | Meal Food Consumed |
+| 5 | `CrimeReported` | Crime Reported |
+| 6 | `DamagingDefense` | Damaging Defense |
+| 7 | `GuardDefense` | Guard Defense |
+| 8 | `CleanServiceDay` | Clean Service Day |
+| 9 | `MetricThresholdCrossing` | Metric Threshold Crossing |
 
 ## FacilityRole
 

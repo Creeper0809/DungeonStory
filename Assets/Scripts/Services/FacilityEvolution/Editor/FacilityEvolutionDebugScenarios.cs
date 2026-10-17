@@ -1178,7 +1178,8 @@ public static partial class FacilityEvolutionDebugScenarios
         FacilityEvolutionRecordComponentService records =
             new FacilityEvolutionRecordComponentService(new FacilityEvolutionRecordComponentFactory());
         runtime.Construct(
-            new FacilityEvolutionRecordEventRecorder(candidateCache, records, instanceEvolutionRuntime: null),
+            new FacilityEvolutionRecordEventRecorder(candidateCache, records, instanceEvolutionRuntime: null,
+                new StaticRecordTokenDefinitionProvider(Resources.LoadAll<FacilityEvolutionRecordTokenDefinitionSO>("SO/FacilityEvolution/RecordTokens/P1"))),
             CharacterAiEditorTestDependencies.GameEvents);
         CharacterActor mercenary = CreateDebugActor(
             world,

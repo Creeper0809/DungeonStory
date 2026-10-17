@@ -1,0 +1,4142 @@
+{
+  "scope": "All baseline first-party ScriptableObject-derived types, including abstract/Editor fixtures; final main adjudication overrides raw candidate reports. Static audit is not runtime proof.",
+  "typeCount": 161,
+  "sourceFileCount": 147,
+  "authoredTypes": 124,
+  "assetScriptPairs": 3538,
+  "unclassifiedFirstPartyScriptRefs": 0,
+  "coverageComplete": true,
+  "types": [
+    {
+      "name": "AIActionSet",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIActionSet.cs",
+          "line": 8
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "ACTOR-001"
+      ],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIActionSet",
+        "source": "Assets/Scripts/Services/Character/AI/Action/AIActionSet.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "candidate ACTOR-001: immutable base is sound, but root registry/owner assembly cannot compose another existing-subclass asset"
+      },
+      "mainAdjudication": "candidate ACTOR-001: immutable base is sound, but root registry/owner assembly cannot compose another existing-subclass asset"
+    },
+    {
+      "name": "AICollapse",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+          "line": 76
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AICollapse",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+        "consumer": "G-AI-BREAKDOWN",
+        "disposition": "retain: fixed breakdown-kind adapter; production ownership is the external breakdown runner"
+      },
+      "mainAdjudication": "retain: fixed breakdown-kind adapter; production ownership is the external breakdown runner"
+    },
+    {
+      "name": "AIDeprivationBreakdownAction",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIDeprivationBreakdownAction",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+        "consumer": "G-AI-BREAKDOWN",
+        "disposition": "retain abstract adapter; new kind requires explicit mechanics registration"
+      },
+      "mainAdjudication": "retain abstract adapter; new kind requires explicit mechanics registration"
+    },
+    {
+      "name": "AIDesperateDrink",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+          "line": 54
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIDesperateDrink",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+        "consumer": "G-AI-BREAKDOWN",
+        "disposition": "retain: fixed breakdown-kind adapter"
+      },
+      "mainAdjudication": "retain: fixed breakdown-kind adapter"
+    },
+    {
+      "name": "AIDesperateEat",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+          "line": 65
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIDesperateEat",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+        "consumer": "G-AI-BREAKDOWN",
+        "disposition": "retain: fixed breakdown-kind adapter"
+      },
+      "mainAdjudication": "retain: fixed breakdown-kind adapter"
+    },
+    {
+      "name": "AIDesperateRelief",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+          "line": 43
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIDesperateRelief",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+        "consumer": "G-AI-BREAKDOWN",
+        "disposition": "retain: fixed breakdown-kind adapter"
+      },
+      "mainAdjudication": "retain: fixed breakdown-kind adapter"
+    },
+    {
+      "name": "AIDrink",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIDrink.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIDrink",
+        "source": "Assets/Scripts/Services/Character/AI/Action/AIDrink.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current action; cataloged and assembled by required asset name"
+      },
+      "mainAdjudication": "retain current action; cataloged and assembled by required asset name"
+    },
+    {
+      "name": "AIEat",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIEatAdapter.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIEat",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIEatAdapter.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current action; generic actor/ability command path"
+      },
+      "mainAdjudication": "retain current action; generic actor/ability command path"
+    },
+    {
+      "name": "AIExitDungeon",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIExitDungeonAdapter.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIExitDungeon",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIExitDungeonAdapter.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current visitor action and save/replan path"
+      },
+      "mainAdjudication": "retain current visitor action and save/replan path"
+    },
+    {
+      "name": "AIFacilityRoleAction",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIFacilityRoleActionAdapter.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 3,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIFacilityRoleAction",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIFacilityRoleActionAdapter.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain abstract fixed facility-action schema"
+      },
+      "mainAdjudication": "retain abstract fixed facility-action schema"
+    },
+    {
+      "name": "AIHaul",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIHaul.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIHaul",
+        "source": "Assets/Scripts/Services/Character/AI/Action/AIHaul.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current special work action"
+      },
+      "mainAdjudication": "retain current special work action"
+    },
+    {
+      "name": "AIHunt",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIHunt.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIHunt",
+        "source": "Assets/Scripts/Services/Character/AI/Action/AIHunt.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current special work action"
+      },
+      "mainAdjudication": "retain current special work action"
+    },
+    {
+      "name": "AILookAround",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AILookAroundAdapter.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AILookAround",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Actions/AILookAroundAdapter.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current visitor action"
+      },
+      "mainAdjudication": "retain current visitor action"
+    },
+    {
+      "name": "AIPrimitiveBucketWash",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveBucketWash.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIPrimitiveBucketWash",
+        "source": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveBucketWash.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current survival fallback; facility-before-primitive order is explicit"
+      },
+      "mainAdjudication": "retain current survival fallback; facility-before-primitive order is explicit"
+    },
+    {
+      "name": "AIPrimitiveFieldMeal",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveFieldMeal.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIPrimitiveFieldMeal",
+        "source": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveFieldMeal.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current survival fallback; facility-before-primitive order is explicit"
+      },
+      "mainAdjudication": "retain current survival fallback; facility-before-primitive order is explicit"
+    },
+    {
+      "name": "AIPrimitiveFloorRest",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveFloorRest.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIPrimitiveFloorRest",
+        "source": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveFloorRest.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current survival fallback; facility-before-primitive order is explicit"
+      },
+      "mainAdjudication": "retain current survival fallback; facility-before-primitive order is explicit"
+    },
+    {
+      "name": "AIPrimitiveLatrine",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveLatrine.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIPrimitiveLatrine",
+        "source": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveLatrine.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current survival fallback; facility-before-primitive order is explicit"
+      },
+      "mainAdjudication": "retain current survival fallback; facility-before-primitive order is explicit"
+    },
+    {
+      "name": "AIPrimitiveSurvivalAction",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveSurvivalActions.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIPrimitiveSurvivalAction",
+        "source": "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveSurvivalActions.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain abstract fallback strategy; mutable execution is outside the SO"
+      },
+      "mainAdjudication": "retain abstract fallback strategy; mutable execution is outside the SO"
+    },
+    {
+      "name": "AIRescue",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIRescue.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIRescue",
+        "source": "Assets/Scripts/Services/Character/AI/Action/AIRescue.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current special work action"
+      },
+      "mainAdjudication": "retain current special work action"
+    },
+    {
+      "name": "AIRest",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIRestAdapter.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIRest",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIRestAdapter.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current facility action"
+      },
+      "mainAdjudication": "retain current facility action"
+    },
+    {
+      "name": "AIShopping",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIShoppingAdapter.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIShopping",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIShoppingAdapter.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current shopping action"
+      },
+      "mainAdjudication": "retain current shopping action"
+    },
+    {
+      "name": "AISubstanceUse",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AISubstanceUse.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AISubstanceUse",
+        "source": "Assets/Scripts/Services/Character/AI/Action/AISubstanceUse.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current special work action"
+      },
+      "mainAdjudication": "retain current special work action"
+    },
+    {
+      "name": "AIViolentBreakdown",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+          "line": 87
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIViolentBreakdown",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIDeprivationBreakdownsAdapter.cs",
+        "consumer": "G-AI-BREAKDOWN",
+        "disposition": "retain: fixed breakdown-kind adapter"
+      },
+      "mainAdjudication": "retain: fixed breakdown-kind adapter"
+    },
+    {
+      "name": "AIWait",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIWaitAdapter.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIWait",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Actions/AIWaitAdapter.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current wait action"
+      },
+      "mainAdjudication": "retain current wait action"
+    },
+    {
+      "name": "AIWork",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Action/AIWork.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "AIWork",
+        "source": "Assets/Scripts/Services/Character/AI/Action/AIWork.cs",
+        "consumer": "G-AI-ACTIONS",
+        "disposition": "retain current generic work action"
+      },
+      "mainAdjudication": "retain current generic work action"
+    },
+    {
+      "name": "AgeConditionDefinitionSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/AgeConditionDefinitionSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 6,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "AgeConditionDefinitionSO",
+        "source": "Assets/Scripts/Models/Species/Core/AgeConditionDefinitionSO.cs:6-26",
+        "authoredAssetCount": 6,
+        "productionReachability": [
+          "Assets/Scripts/Models/Species/Core/CharacterSpeciesCatalog.cs:35-60,137-148",
+          "Assets/Scripts/Models/Species/Core/CharacterLifeDomain.cs:391-519"
+        ],
+        "runtimeAndSave": "Converted to immutable AgeConditionDefinition; biological/construct lists and ID dictionary are generic. CharacterAgeConditionSaveData persists conditionId and restore resolves it through RequireAgeCondition.",
+        "nativeEvidence": [
+          "Assets/Scripts/Services/Character/Editor/AgeConditionAnatomyProjectionDebugScenarios.cs:12-87"
+        ],
+        "disposition": "clear",
+        "reason": "Additional valid conditions enter the catalog, runtime selection, anatomy projection, and ID-based save path without condition-ID branches."
+      },
+      "mainAdjudication": "Additional valid conditions enter the catalog, runtime selection, anatomy projection, and ID-based save path without condition-ID branches."
+    },
+    {
+      "name": "AnatomyConditionLexiconSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Medical/Core/AnatomyConditionLexiconSO.cs",
+          "line": 29
+        }
+      ],
+      "authoredAssetCount": 7,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "AnatomyConditionLexiconSO",
+        "source": "Assets/Scripts/Models/Medical/Core/AnatomyConditionLexiconSO.cs:29-88",
+        "authoredAssetCount": 7,
+        "productionReachability": [
+          "Assets/Scripts/Services/Medical/AnatomyConditionLexiconCatalog.cs:15-68",
+          "Assets/Scripts/Views/UI/CharacterDetailedStatsRuntime.cs:646-655"
+        ],
+        "runtimeAndSave": "Copied into immutable lexicon definitions; presentation is derived and not saved. Resolution first matches authored species IDs and then anatomy family.",
+        "disposition": "clear",
+        "reason": "New lexicons and species/family compositions are discovered generically. Fixed completeness validation is recorded as a non-finding."
+      },
+      "mainAdjudication": "New lexicons and species/family compositions are discovered generically. Fixed completeness validation is recorded as a non-finding."
+    },
+    {
+      "name": "AnatomyProfileSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Medical/Core/AnatomyProfileSO.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 12,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "CM-ANATOMY-SPECIES-AUTHORITY",
+        "CM-APPAREL-SPECIES-ID-FIT"
+      ],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "AnatomyProfileSO",
+        "source": "Assets/Scripts/Models/Medical/Core/AnatomyProfileSO.cs:7-115",
+        "authoredAssetCount": 12,
+        "productionReachability": [
+          "Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs:11-116",
+          "Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs:1666-1788",
+          "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs:148-211"
+        ],
+        "runtimeAndSave": "Projected to immutable AnatomyProfileDefinition; CharacterBodyHealthState persists anatomyProfileId and node state. Initial selection and apparel projection contain the two confirmed extension faults.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "CM-ANATOMY-SPECIES-AUTHORITY",
+          "CM-APPAREL-SPECIES-ID-FIT"
+        ],
+        "reason": "The species' authored profile ID is ignored during body creation, unknown species silently become humanoid, duplicate reverse mappings are silently ignored, and apparel fit hard-codes known species/node IDs."
+      },
+      "mainAdjudication": "The species' authored profile ID is ignored during body creation, unknown species silently become humanoid, duplicate reverse mappings are silently ignored, and apparel fit hard-codes known species/node IDs."
+    },
+    {
+      "name": "ApparelDefinitionSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs",
+          "line": 269
+        }
+      ],
+      "authoredAssetCount": 56,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "CM-APPAREL-SPECIES-ID-FIT"
+      ],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "ApparelDefinitionSO",
+        "source": "Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs:269-358",
+        "authoredAssetCount": 56,
+        "productionReachability": [
+          "Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs:386-426",
+          "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs:69-211"
+        ],
+        "runtimeAndSave": "Cataloged by stable apparel and physical item IDs. ApparelItemStateCodec.cs:109-263 persists apparelDefinitionId and size; mutable condition/equipment state remains outside the SO.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "CM-APPAREL-SPECIES-ID-FIT"
+        ],
+        "reason": "New apparel definitions are discoverable, but their existing body-form/attachment capability cannot be used correctly by new species without SpeciesTag/node-ID source branches."
+      },
+      "mainAdjudication": "New apparel definitions are discoverable, but their existing body-form/attachment capability cannot be used correctly by new species without SpeciesTag/node-ID source branches."
+    },
+    {
+      "name": "BattlefieldModifierDefinitionSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Offense/Core/BattlefieldModifierDefinitionSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 12,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "CM-OFFENSE-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "BattlefieldModifierDefinitionSO",
+        "source": "Assets/Scripts/Models/Offense/Core/BattlefieldModifierDefinitionSO.cs:6-31",
+        "authoredAssetCount": 12,
+        "productionReachability": [
+          "Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs:46-185",
+          "Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs:373-387"
+        ],
+        "runtimeAndSave": "Resolved by stableId into encounter rules; multipliers and counter tags are immutable encounter data.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "CM-OFFENSE-FIXED-CENSUS"
+        ],
+        "reason": "All fields are consumed generically, but the production catalog rejects a valid thirteenth modifier."
+      },
+      "mainAdjudication": "All fields are consumed generically, but the production catalog rejects a valid thirteenth modifier."
+    },
+    {
+      "name": "BuildingLightingSettingsSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Buildings/Core/BuildingLightingSettingsSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "BuildingLightingSettingsSO",
+        "source": "Assets/Scripts/Models/Buildings/Core/BuildingLightingSettingsSO.cs:4-24",
+        "authoredAssetCount": 0,
+        "productionReachability": [
+          "Assets/Scripts/Services/Buildings/Abilities/BuildingAbility.cs:103-137",
+          "Assets/Scripts/Services/Buildings/ModularFacilityRuntimeEffects.cs:32-59,112-119"
+        ],
+        "compositionAndPersistence": "Referenced optionally by BuildingLightingAbility inside BuildingSO's SerializeReference ability collection; values are immutable definition data and runtime light configuration is derived on binding. Missing settings use declared constants.",
+        "disposition": "clear",
+        "reason": "A new settings asset can be referenced by any lighting ability without a content-ID branch. Zero current standalone assets is valid because the reference is optional."
+      },
+      "mainAdjudication": "A new settings asset can be referenced by any lighting ability without a content-ID branch. Zero current standalone assets is valid because the reference is optional."
+    },
+    {
+      "name": "BuildingSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Buildings/SO/BuildingSO.cs",
+          "line": 133
+        }
+      ],
+      "authoredAssetCount": 400,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "BLD-RUNTIME-FACTORY-COMPOSITION",
+        "CLIMATE-OBSERVATION-ID-BINDING"
+      ],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "BuildingSO",
+        "source": "Assets/Scripts/Services/Buildings/SO/BuildingSO.cs:133-437",
+        "authoredAssetCount": 400,
+        "productionReachability": [
+          "Assets/Scripts/Controllers/Grid/DungeonStory/Building/DungeonStoryGridBuildingController.cs:148-149",
+          "Assets/Scripts/Controllers/Grid/DungeonStory/UI/GridConstructTab.cs:114-115",
+          "Assets/Scripts/Services/Buildings/BuildableObject.cs:381-429"
+        ],
+        "compositionAndPersistence": "BuildingSO owns a polymorphic BuildingAbilityCollection (`BuildingAbilityContracts.cs:38-92,129-180`) and BuildableObject binds runtime abilities, state modules, visuals, and world registration. State capture/restore is module-ID based (`BuildingStateModule.cs:123-262`). Industrial, environmental, production, and facility behaviors are composed as abilities rather than selected by building ID.",
+        "associatedConsumerEvidence": [
+          "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureTopology.cs:143-182",
+          "Assets/Scripts/Services/Infrastructure/Industrial/ElectricalNetworkRuntime.cs:822-1670",
+          "Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkRuntime.cs:798-2208",
+          "Assets/Scripts/Services/Infrastructure/Industrial/AutomationRuntime.cs:233-725",
+          "Assets/Scripts/Services/Economy/ProductionFacilityOutputCensus.cs:842"
+        ],
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "BLD-RUNTIME-FACTORY-COMPOSITION",
+          "CLIMATE-OBSERVATION-ID-BINDING"
+        ],
+        "reason": "The data composition and state boundary are open, but production DI drops additional runtime factories and the climate service selects an already-authored weather-observation capability by one building ID."
+      },
+      "mainAdjudication": "The data composition and state boundary are open, but production DI drops additional runtime factories and the climate service selects an already-authored weather-observation capability by one building ID."
+    },
+    {
+      "name": "CareerPositionDefinitionSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/CareerPositionDefinitionSO.cs",
+          "line": 11
+        }
+      ],
+      "authoredAssetCount": 6,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CareerPositionDefinitionSO",
+        "source": "Assets/Scripts/Models/Species/Core/CareerPositionDefinitionSO.cs",
+        "consumer": "G-CAREER",
+        "disposition": "retain: cataloged fixed position definitions reach career runtime/UI"
+      },
+      "mainAdjudication": "retain: cataloged fixed position definitions reach career runtime/UI"
+    },
+    {
+      "name": "CharacterAcquiredTraitModuleSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitModuleSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 8,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterAcquiredTraitModuleSO",
+        "source": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitModuleSO.cs",
+        "consumer": "G-ACQUIRED-TRAIT",
+        "disposition": "retain: registered module IDs, effects, reactions, formula, and save references are consumed"
+      },
+      "mainAdjudication": "retain: registered module IDs, effects, reactions, formula, and save references are consumed"
+    },
+    {
+      "name": "CharacterAcquiredTraitSettingsSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitSettingsSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterAcquiredTraitSettingsSO",
+        "source": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitSettingsSO.cs",
+        "consumer": "G-ACQUIRED-TRAIT",
+        "disposition": "retain: singleton gates/formula/drawbacks reach inference and validation"
+      },
+      "mainAdjudication": "retain: singleton gates/formula/drawbacks reach inference and validation"
+    },
+    {
+      "name": "CharacterAiActionDescriptorDebugScenarios.TestDescriptorAction",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiActionDescriptorDebugScenarios.cs",
+          "line": 137
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterAiActionDescriptorDebugScenarios.TestDescriptorAction",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiActionDescriptorDebugScenarios.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor fixture"
+      },
+      "mainAdjudication": "retain Editor fixture"
+    },
+    {
+      "name": "CharacterAiActionScenarioMatrixDebugScenarios.MatrixDestinationAction",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiActionScenarioMatrixDebugScenarios.cs",
+          "line": 350
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterAiActionScenarioMatrixDebugScenarios.MatrixDestinationAction",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiActionScenarioMatrixDebugScenarios.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor fixture"
+      },
+      "mainAdjudication": "retain Editor fixture"
+    },
+    {
+      "name": "CharacterAiLifecycleFaultPlayModeRunner.LifecycleProbeAction",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiLifecycleFaultPlayModeVerifier.cs",
+          "line": 479
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterAiLifecycleFaultPlayModeRunner.LifecycleProbeAction",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiLifecycleFaultPlayModeVerifier.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor play-mode fixture"
+      },
+      "mainAdjudication": "retain Editor play-mode fixture"
+    },
+    {
+      "name": "CharacterAiNaturalnessSettingsSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/AI/Core/CharacterAiNaturalnessSettingsSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterAiNaturalnessSettingsSO",
+        "source": "Assets/Scripts/Models/AI/Core/CharacterAiNaturalnessSettingsSO.cs",
+        "consumer": "G-AI-SETTINGS",
+        "disposition": "retain immutable singleton naturalness policy"
+      },
+      "mainAdjudication": "retain immutable singleton naturalness policy"
+    },
+    {
+      "name": "CharacterAiPerfSettingsSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/CharacterAiPerformanceModels.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterAiPerfSettingsSO",
+        "source": "Assets/Scripts/Services/Character/AI/CharacterAiPerformanceModels.cs",
+        "consumer": "G-AI-SETTINGS",
+        "disposition": "retain immutable singleton performance policy"
+      },
+      "mainAdjudication": "retain immutable singleton performance policy"
+    },
+    {
+      "name": "CharacterAiPriorityCornerCaseDebugScenarios.FixedScoreConsideration",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPriorityCornerCaseDebugScenarios.cs",
+          "line": 1533
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterAiPriorityCornerCaseDebugScenarios.FixedScoreConsideration",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPriorityCornerCaseDebugScenarios.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor scoring fixture"
+      },
+      "mainAdjudication": "retain Editor scoring fixture"
+    },
+    {
+      "name": "CharacterAiPriorityCornerCaseDebugScenarios.TestActionSet",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPriorityCornerCaseDebugScenarios.cs",
+          "line": 1543
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterAiPriorityCornerCaseDebugScenarios.TestActionSet",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPriorityCornerCaseDebugScenarios.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor action fixture"
+      },
+      "mainAdjudication": "retain Editor action fixture"
+    },
+    {
+      "name": "CharacterAmbitionDefinitionSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/CharacterAmbitionDefinitionSO.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 18,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterAmbitionDefinitionSO",
+        "source": "Assets/Scripts/Content/CharacterAmbitionDefinitionSO.cs",
+        "consumer": "G-NARRATIVE",
+        "disposition": "retain: catalog, aggregate, transition, UI, and stable-ID save paths consume it"
+      },
+      "mainAdjudication": "retain: catalog, aggregate, transition, UI, and stable-ID save paths consume it"
+    },
+    {
+      "name": "CharacterBackgroundDefinitionSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/CharacterBackgroundDefinitionSO.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 12,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterBackgroundDefinitionSO",
+        "source": "Assets/Scripts/Content/CharacterBackgroundDefinitionSO.cs",
+        "consumer": "G-NARRATIVE",
+        "disposition": "retain: catalog and character/enemy initialization consume it"
+      },
+      "mainAdjudication": "retain: catalog and character/enemy initialization consume it"
+    },
+    {
+      "name": "CharacterDefinitionBoundaryDebugScenarios.DescriptorProbe",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterDefinitionBoundaryDebugScenarios.cs",
+          "line": 187
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterDefinitionBoundaryDebugScenarios.DescriptorProbe",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterDefinitionBoundaryDebugScenarios.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor descriptor boundary fixture"
+      },
+      "mainAdjudication": "retain Editor descriptor boundary fixture"
+    },
+    {
+      "name": "CharacterFunctionalCapacityDefinitionSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Foundation/CharacterFunctionalCapacityDefinitionSO.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 14,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "CharacterFunctionalCapacityDefinitionSO",
+        "source": "Assets/Scripts/Services/Foundation/CharacterFunctionalCapacityDefinitionSO.cs:5-44",
+        "authoredAssetCount": 14,
+        "productionReachability": [
+          "Assets/Scripts/Services/Character/Editor/V27CharacterPerformanceDebugScenarios.cs:141-150",
+          "Assets/Scripts/Services/Character/Editor/V27CharacterPerformanceContentAssetBuilder.cs:50-82"
+        ],
+        "runtimeAndSave": "Metadata-only SO; runtime capacity values are derived from CharacterFunctionalCapacityId and anatomy. No mutable SO or save authority was found.",
+        "disposition": "clear",
+        "reason": "A new enum capacity is a genuinely new mechanic; unused display metadata is not a blocker for existing capacities."
+      },
+      "mainAdjudication": "A new enum capacity is a genuinely new mechanic; unused display metadata is not a blocker for existing capacities."
+    },
+    {
+      "name": "CharacterPerformanceFormulaDefinitionSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Foundation/CharacterPerformanceFormulaDefinitionSO.cs",
+          "line": 36
+        }
+      ],
+      "authoredAssetCount": 107,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "CharacterPerformanceFormulaDefinitionSO",
+        "source": "Assets/Scripts/Services/Foundation/CharacterPerformanceFormulaDefinitionSO.cs:36-190",
+        "authoredAssetCount": 107,
+        "productionReachability": [
+          "Assets/Scripts/Services/Character/Core/CharacterPerformanceQuery.cs:45-125,306-459",
+          "Assets/Scripts/Services/Infrastructure/Registration/DungeonCharacterRegistration.cs:383"
+        ],
+        "runtimeAndSave": "Cataloged generically by formula ID and work/channel mapping; runtime evaluates authored capacity roles/weights, proficiencies, result channel, context, and gameplay-effect target. Formula results are derived rather than saved.",
+        "disposition": "clear",
+        "reason": "New formulas built from existing result channels and capacities execute without formula-ID branches. Adding a new result-channel mechanic is excluded."
+      },
+      "mainAdjudication": "New formulas built from existing result channels and capacities execute without formula-ID branches. Adding a new result-channel mechanic is excluded."
+    },
+    {
+      "name": "CharacterSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/SO/CharacterSO.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 16,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterSO",
+        "source": "Assets/Scripts/Services/Character/SO/CharacterSO.cs",
+        "consumer": "G-CHARACTER-ARCHETYPE",
+        "disposition": "retain: immutable archetype is projected into per-actor runtime/save state"
+      },
+      "mainAdjudication": "retain: immutable archetype is projected into per-actor runtime/save state"
+    },
+    {
+      "name": "CharacterSkillSystemSettingsSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/SO/CharacterSkillSystemSettingsSO.cs",
+          "line": 482
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterSkillSystemSettingsSO",
+        "source": "Assets/Scripts/Services/Character/SO/CharacterSkillSystemSettingsSO.cs",
+        "consumer": "G-SKILL",
+        "disposition": "retain: reusable capability registry and runtime/save consumers are complete for registered modules"
+      },
+      "mainAdjudication": "retain: reusable capability registry and runtime/save consumers are complete for registered modules"
+    },
+    {
+      "name": "CharacterSpeciesDefinitionSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/CharacterSpeciesDefinitionSO.cs",
+          "line": 237
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterSpeciesDefinitionSO",
+        "source": "Assets/Scripts/Models/Species/Core/CharacterSpeciesDefinitionSO.cs",
+        "consumer": "G-SPECIES",
+        "disposition": "retain abstract definition contract; U01/U02 are intentionally uncertain, not confirmed defects"
+      },
+      "mainAdjudication": "retain abstract definition contract; U01/U02 are intentionally uncertain, not confirmed defects"
+    },
+    {
+      "name": "CharacterSpeciesSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/CharacterSpeciesSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 11,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "ACTOR-002"
+      ],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterSpeciesSO",
+        "source": "Assets/Scripts/Models/Species/Core/CharacterSpeciesSO.cs",
+        "consumer": "G-SPECIES",
+        "disposition": "candidate ACTOR-002 for combat publication; other species composition reaches catalog/runtime/save"
+      },
+      "mainAdjudication": "candidate ACTOR-002 for combat publication; other species composition reaches catalog/runtime/save"
+    },
+    {
+      "name": "CharacterStartingHistorySO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Characters/CharacterStartingHistorySO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 9,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterStartingHistorySO",
+        "source": "Assets/Scripts/Models/Characters/CharacterStartingHistorySO.cs",
+        "consumer": "G-STARTING",
+        "disposition": "retain: starting-profile composition applies authored bonuses"
+      },
+      "mainAdjudication": "retain: starting-profile composition applies authored bonuses"
+    },
+    {
+      "name": "CharacterStartingOriginSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Characters/CharacterStartingOriginSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 6,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterStartingOriginSO",
+        "source": "Assets/Scripts/Models/Characters/CharacterStartingOriginSO.cs",
+        "consumer": "G-STARTING",
+        "disposition": "retain: starting-profile composition applies authored bonuses"
+      },
+      "mainAdjudication": "retain: starting-profile composition applies authored bonuses"
+    },
+    {
+      "name": "CharacterTraitSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/CharacterTraitSO.cs",
+          "line": 23
+        }
+      ],
+      "authoredAssetCount": 113,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "ACTOR-002"
+      ],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CharacterTraitSO",
+        "source": "Assets/Scripts/Content/CharacterTraitSO.cs",
+        "consumer": "G-TRAIT",
+        "disposition": "candidate ACTOR-002 for combatAbilities only; selection, identity, effects, UI, and save paths are retained"
+      },
+      "mainAdjudication": "candidate ACTOR-002 for combatAbilities only; selection, identity, effects, UI, and save paths are retained"
+    },
+    {
+      "name": "ClimateZoneDefinitionSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/ClimateZoneDefinitionSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 5,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "CLIMATE-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "ClimateZoneDefinitionSO",
+        "source": "Assets/Scripts/Content/ClimateZoneDefinitionSO.cs:4-27",
+        "authoredAssetCount": 5,
+        "productionReachability": [
+          "Assets/Scripts/Services/Infrastructure/Environment/ClimateRuntime.cs:12-51,100-105,127-135"
+        ],
+        "compositionAndPersistence": "Projected to immutable ClimateZoneDefinition and resolved by canonical ID during climate runtime and restore.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "CLIMATE-FIXED-CENSUS"
+        ],
+        "reason": "The generic catalog is followed by an exact-five guard."
+      },
+      "mainAdjudication": "The generic catalog is followed by an exact-five guard."
+    },
+    {
+      "name": "CombatArmorSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CombatArmorSO.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 21,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "CM-COMBAT-EQUIPMENT-ID-ROLES"
+      ],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "CombatArmorSO",
+        "source": "Assets/Scripts/Models/Economy/Content/CombatArmorSO.cs:5-91",
+        "authoredAssetCount": 21,
+        "productionReachability": [
+          "Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs:129-163",
+          "Assets/Scripts/Models/Combat/Core/CombatModels.cs:33-103",
+          "Assets/Scripts/Services/Combat/CombatResolutionService.cs:1317-1416"
+        ],
+        "runtimeAndSave": "Catalog and equipment instances are stable-ID based; role behavior is derived from exact IDs outside the SO.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "CM-COMBAT-EQUIPMENT-ID-ROLES"
+        ],
+        "reason": "A new armor cannot opt into existing Powered or BlastAndSmokeProtection roles through authored data."
+      },
+      "mainAdjudication": "A new armor cannot opt into existing Powered or BlastAndSmokeProtection roles through authored data."
+    },
+    {
+      "name": "CombatEquipmentDefinitionSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "CM-COMBAT-EQUIPMENT-ID-ROLES"
+      ],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "CombatEquipmentDefinitionSO",
+        "source": "Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs:7-111",
+        "authoredAssetCount": 0,
+        "productionReachability": [
+          "Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs:121-163",
+          "Assets/Scripts/Services/Combat/EquipmentModuleRuntime.cs:845-857"
+        ],
+        "runtimeAndSave": "Abstract immutable base despite the inventory's syntax-only abstract flag. Derived definitions are cataloged generically and persistent instances store definitionId.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "CM-COMBAT-EQUIPMENT-ID-ROLES"
+        ],
+        "reason": "The common definition surface lacks authored existing role/arcane policy, forcing derived content IDs into external rules."
+      },
+      "mainAdjudication": "The common definition surface lacks authored existing role/arcane policy, forcing derived content IDs into external rules."
+    },
+    {
+      "name": "CombatShieldSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CombatShieldSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 9,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "CM-COMBAT-EQUIPMENT-ID-ROLES"
+      ],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "CombatShieldSO",
+        "source": "Assets/Scripts/Models/Economy/Content/CombatShieldSO.cs:4-86",
+        "authoredAssetCount": 9,
+        "productionReachability": [
+          "Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs:129-163",
+          "Assets/Scripts/Models/Combat/Core/CombatModels.cs:33-103",
+          "Assets/Scripts/Services/Combat/CombatResolutionService.cs:850-878,1317-1416"
+        ],
+        "runtimeAndSave": "Catalog and save identity are generic; role flags alter cover, spell block, and power behavior.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "CM-COMBAT-EQUIPMENT-ID-ROLES"
+        ],
+        "reason": "A new shield cannot opt into existing SpellBlock, DeployableCover, or Powered roles without an ID branch."
+      },
+      "mainAdjudication": "A new shield cannot opt into existing SpellBlock, DeployableCover, or Powered roles without an ID branch."
+    },
+    {
+      "name": "CombatWeaponSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CombatWeaponSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 31,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "CM-COMBAT-EQUIPMENT-ID-ROLES"
+      ],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "CombatWeaponSO",
+        "source": "Assets/Scripts/Models/Economy/Content/CombatWeaponSO.cs:6-96",
+        "authoredAssetCount": 31,
+        "productionReachability": [
+          "Assets/Scripts/Models/Economy/Content/CombatWeaponSO.cs:41-94",
+          "Assets/Scripts/Models/Combat/Core/CharacterArcaneWeaponRules.cs:3-17",
+          "Assets/Scripts/Services/Combat/CombatResolutionService.cs:439-612,996-1017"
+        ],
+        "runtimeAndSave": "Snapshot copies authored verbs/ranges/ammunition/fire modes and saved instance state, then injects role and power behavior from EquipmentId.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "CM-COMBAT-EQUIPMENT-ID-ROLES"
+        ],
+        "reason": "New weapons cannot opt into already-supported repeating, suppression, armor-break, pull, powered, or arcane behavior through the SO."
+      },
+      "mainAdjudication": "New weapons cannot opt into already-supported repeating, suppression, armor-break, pull, powered, or arcane behavior through the SO."
+    },
+    {
+      "name": "Consideration",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Consideration/Consideration.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "Consideration",
+        "source": "Assets/Scripts/Services/Character/AI/Consideration/Consideration.cs",
+        "consumer": "G-AI-CONSIDERATIONS",
+        "disposition": "retain abstract stateless scoring contract"
+      },
+      "mainAdjudication": "retain abstract stateless scoring contract"
+    },
+    {
+      "name": "ConsiderationCanLookAround",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Consideration/ConsiderationCanLookAround.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ConsiderationCanLookAround",
+        "source": "Assets/Scripts/Services/Character/AI/Consideration/ConsiderationCanLookAround.cs",
+        "consumer": "G-AI-CONSIDERATIONS",
+        "disposition": "retain current look-around scorer"
+      },
+      "mainAdjudication": "retain current look-around scorer"
+    },
+    {
+      "name": "ConsiderationFacilityNeed",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationFacilityNeedAdapter.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 6,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ConsiderationFacilityNeed",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationFacilityNeedAdapter.cs",
+        "consumer": "G-AI-CONSIDERATIONS",
+        "disposition": "retain current facility-need scorer"
+      },
+      "mainAdjudication": "retain current facility-need scorer"
+    },
+    {
+      "name": "ConsiderationIsVisitable",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationIsVisitableAdapter.cs",
+          "line": 2
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ConsiderationIsVisitable",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationIsVisitableAdapter.cs",
+        "consumer": "G-AI-CONSIDERATIONS",
+        "disposition": "retain current visitability scorer"
+      },
+      "mainAdjudication": "retain current visitability scorer"
+    },
+    {
+      "name": "ConsiderationRandom",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationRandomAdapter.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 2,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ConsiderationRandom",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationRandomAdapter.cs",
+        "consumer": "G-AI-CONSIDERATIONS",
+        "disposition": "retain: random state is actor stream, not shared SO"
+      },
+      "mainAdjudication": "retain: random state is actor stream, not shared SO"
+    },
+    {
+      "name": "ConsiderationShoppingCount",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationShoppingCountAdapter.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ConsiderationShoppingCount",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationShoppingCountAdapter.cs",
+        "consumer": "G-AI-CONSIDERATIONS",
+        "disposition": "retain current shopping scorer"
+      },
+      "mainAdjudication": "retain current shopping scorer"
+    },
+    {
+      "name": "ConsiderationShouldExitDungeon",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationShouldExitDungeonAdapter.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ConsiderationShouldExitDungeon",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationShouldExitDungeonAdapter.cs",
+        "consumer": "G-AI-CONSIDERATIONS",
+        "disposition": "retain current exit scorer"
+      },
+      "mainAdjudication": "retain current exit scorer"
+    },
+    {
+      "name": "ConsiderationStat",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationStatAdapter.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 4,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ConsiderationStat",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationStatAdapter.cs",
+        "consumer": "G-AI-CONSIDERATIONS",
+        "disposition": "retain current actor-stat scorer"
+      },
+      "mainAdjudication": "retain current actor-stat scorer"
+    },
+    {
+      "name": "ConsiderationWorkNeed",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationWorkNeedAdapter.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ConsiderationWorkNeed",
+        "source": "Assets/Scripts/Services/Infrastructure/AI/Considerations/ConsiderationWorkNeedAdapter.cs",
+        "consumer": "G-AI-CONSIDERATIONS",
+        "disposition": "retain current work-need scorer"
+      },
+      "mainAdjudication": "retain current work-need scorer"
+    },
+    {
+      "name": "CraftMaterialDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CraftMaterialDefinitionSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 12,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "CraftMaterialDefinitionSO",
+        "source": "Assets/Scripts/Models/Economy/Content/CraftMaterialDefinitionSO.cs:4",
+        "authoredAssetCount": 12,
+        "productionReachability": [
+          "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs:20-99 loads material definitions through GetAll<T>.",
+          "Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs:87-93 resolves craft-material rewards through the content source."
+        ],
+        "compositionAndPersistence": "Immutable material identity/economic definition; mutable inventory and rewards are owned by economy runtimes and saves.",
+        "disposition": "clear",
+        "reason": "Additional material assets use generic stable-ID lookup with no material-ID branch."
+      },
+      "mainAdjudication": "Additional material assets use generic stable-ID lookup with no material-ID branch."
+    },
+    {
+      "name": "CropDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CropDefinitionSO.cs",
+          "line": 68
+        }
+      ],
+      "authoredAssetCount": 12,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-CROP-ECOLOGY-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "CropDefinitionSO",
+        "source": "Assets/Scripts/Models/Economy/Content/CropDefinitionSO.cs:68",
+        "authoredAssetCount": 12,
+        "productionReachability": [
+          "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs:20-68 exposes crops by stable ID.",
+          "Assets/Scripts/Services/Economy/CropEcologyRuntime.cs:335-374 validates the loaded crop/genome set; CropPlotRuntime resolves crop definitions during play and restore."
+        ],
+        "compositionAndPersistence": "Definition stays immutable; CropPlotRuntime and CropEcologyRuntime own changing/saved state.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-CROP-ECOLOGY-FIXED-CENSUS"
+        ],
+        "reason": "Baseline ecology construction rejected any thirteenth crop; current source validates relationships dynamically."
+      },
+      "mainAdjudication": "Baseline ecology construction rejected any thirteenth crop; current source validates relationships dynamically."
+    },
+    {
+      "name": "CropGenomeDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/CropGenomeDefinitionSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 32,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-CROP-ECOLOGY-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "CropGenomeDefinitionSO",
+        "source": "Assets/Scripts/Models/Economy/Content/CropGenomeDefinitionSO.cs:6",
+        "authoredAssetCount": 32,
+        "productionReachability": [
+          "Assets/Scripts/Services/Economy/CropEcologyRuntime.cs:335-374 loads, validates, and indexes all genomes.",
+          "Assets/Scripts/Services/Economy/Editor/V21CropGenomeDebugScenarios.cs:7-16 is the targeted native validation entry."
+        ],
+        "compositionAndPersistence": "CreateRuntimeDefinition projects immutable authored loci; ecology runtime persists mutable genome/crop state. Six loci are an intentional genome schema.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-CROP-ECOLOGY-FIXED-CENSUS"
+        ],
+        "reason": "Baseline rejected any thirty-third valid genome; current source validates uniqueness and one base genome per actual crop."
+      },
+      "mainAdjudication": "Baseline rejected any thirty-third valid genome; current source validates uniqueness and one base genome per actual crop."
+    },
+    {
+      "name": "CulturalPracticeDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/CulturalPracticeDefinitionSO.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 20,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-CHARACTER-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "CulturalPracticeDefinitionSO",
+        "source": "Assets/Scripts/Content/CulturalPracticeDefinitionSO.cs:7",
+        "authoredAssetCount": 20,
+        "productionReachability": [
+          "Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs:14-106 loads, validates, and keys practices by StableId.",
+          "Assets/Scripts/Services/Character/CharacterNarrativeRuntime.cs consumes the catalog while aggregate/save state retains IDs."
+        ],
+        "compositionAndPersistence": "Immutable V20AuthoredContentSO definition; character narrative aggregate owns mutable state.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-CHARACTER-FIXED-CENSUS"
+        ],
+        "reason": "Baseline exact-twenty guard blocked a valid additional practice."
+      },
+      "mainAdjudication": "Baseline exact-twenty guard blocked a valid additional practice."
+    },
+    {
+      "name": "CustomerAiDebugScenarios.FixedScoreConsideration",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CustomerAiDebugScenarios.cs",
+          "line": 1697
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CustomerAiDebugScenarios.FixedScoreConsideration",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CustomerAiDebugScenarios.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor customer scoring fixture"
+      },
+      "mainAdjudication": "retain Editor customer scoring fixture"
+    },
+    {
+      "name": "CustomerAiDebugScenarios.PrimitiveFallbackProbe",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CustomerAiDebugScenarios.cs",
+          "line": 570
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "CustomerAiDebugScenarios.PrimitiveFallbackProbe",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CustomerAiDebugScenarios.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor fallback fixture"
+      },
+      "mainAdjudication": "retain Editor fallback fixture"
+    },
+    {
+      "name": "DataScriptableObject",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/DataScriptableObject.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "DataScriptableObject",
+        "source": "Assets/Scripts/Models/Economy/Content/DataScriptableObject.cs:4",
+        "authoredAssetCount": 0,
+        "productionReachability": [
+          "Assets/Scripts/Services/Infrastructure/DataCatalogService.cs:11-92 indexes concrete legacy DataScriptableObject families by explicit numeric IDs.",
+          "Assets/Scripts/Models/Economy/Content/SaleItem.cs:7 and Assets/Scripts/Services/Buildings/SO/StockInfo.cs:7 are production concrete families."
+        ],
+        "compositionAndPersistence": "Legacy base carries numeric ID/display data; concrete catalogs and economy state own use and persistence.",
+        "disposition": "clear_legacy_contract",
+        "reason": "Zero direct base assets is expected. Exact concrete indexes are a compatibility contract, while new stable-ID content uses domain catalogs."
+      },
+      "mainAdjudication": "Zero direct base assets is expected. Exact concrete indexes are a compatibility contract, while new stable-ID content uses domain catalogs."
+    },
+    {
+      "name": "DebugProbeDefenseEffectSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/Editor/DefenseFacilityDebugScenarios.cs",
+          "line": 1209
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "DebugProbeDefenseEffectSO",
+        "source": "Assets/Scripts/Services/Defense/Editor/DefenseFacilityDebugScenarios.cs:1209-1218",
+        "authoredAssetCount": 0,
+        "productionReachability": [
+          "Assets/Scripts/Services/Defense/Editor/DefenseFacilityDebugScenarios.cs:214-250"
+        ],
+        "compositionAndPersistence": "Editor-only derived effect inserted into a cloned BuildingSO defense effect array and executed through the real DefenseFacilityResolver.",
+        "disposition": "editor_fixture_clear",
+        "reason": "The fixture is direct evidence that a new derived defense effect executes without a central effect-type switch."
+      },
+      "mainAdjudication": "The fixture is direct evidence that a new derived defense effect executes without a central effect-type switch."
+    },
+    {
+      "name": "DefenseBurnEffectSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/DefenseBurnEffectSO.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 2,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "DefenseBurnEffectSO",
+        "source": "Assets/Scripts/Services/Defense/DefenseBurnEffectSO.cs:3-26",
+        "authoredAssetCount": 2,
+        "productionReachability": [
+          "Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:576-624"
+        ],
+        "compositionAndPersistence": "DefenseFacilityData stores DefenseEffectSO references; virtual Apply emits burn status and environmental ignition commands. Assets are immutable definitions and mutable status lives in the status runtime.",
+        "disposition": "clear",
+        "reason": "Additional burn assets use the same executable command path without an ID branch."
+      },
+      "mainAdjudication": "Additional burn assets use the same executable command path without an ID branch."
+    },
+    {
+      "name": "DefenseChargeEffectSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/DefenseChargeEffectSO.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 3,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "DefenseChargeEffectSO",
+        "source": "Assets/Scripts/Services/Defense/DefenseChargeEffectSO.cs:3-36",
+        "authoredAssetCount": 3,
+        "productionReachability": [
+          "Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:576-624"
+        ],
+        "compositionAndPersistence": "Virtual Apply emits status and threshold/discharge damage through IDefenseEffectCommands.",
+        "disposition": "clear",
+        "reason": "New charge content is parameterized by asset fields and follows the shared effect transaction."
+      },
+      "mainAdjudication": "New charge content is parameterized by asset fields and follows the shared effect transaction."
+    },
+    {
+      "name": "DefenseCorrosionEffectSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/DefenseCorrosionEffectSO.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 3,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "DefenseCorrosionEffectSO",
+        "source": "Assets/Scripts/Services/Defense/DefenseCorrosionEffectSO.cs:3-12",
+        "authoredAssetCount": 3,
+        "productionReachability": [
+          "Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:576-624,741-789"
+        ],
+        "compositionAndPersistence": "Virtual Apply emits corrosion status; the mutable status runtime owns duration/stacks and combat projection.",
+        "disposition": "clear",
+        "reason": "Additional corrosion assets execute without content-specific registration."
+      },
+      "mainAdjudication": "Additional corrosion assets execute without content-specific registration."
+    },
+    {
+      "name": "DefenseDamageEffectSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/DefenseDamageEffectSO.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 11,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "DefenseDamageEffectSO",
+        "source": "Assets/Scripts/Services/Defense/DefenseDamageEffectSO.cs:3-12",
+        "authoredAssetCount": 11,
+        "productionReachability": [
+          "Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:576-624"
+        ],
+        "compositionAndPersistence": "Virtual Apply sends damage through the transactional command boundary; each failed effect rolls back body, status, report, and receipts.",
+        "disposition": "clear",
+        "reason": "Damage variants are data-only asset additions."
+      },
+      "mainAdjudication": "Damage variants are data-only asset additions."
+    },
+    {
+      "name": "DefenseEffectSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/DefenseEffectSO.cs",
+          "line": 15
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "DefenseEffectSO",
+        "source": "Assets/Scripts/Services/Defense/DefenseEffectSO.cs:15-59",
+        "authoredAssetCount": 0,
+        "productionReachability": [
+          "Assets/Scripts/Services/Defense/DefenseFacilityData.cs:15-27",
+          "Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:576-624,656-688"
+        ],
+        "compositionAndPersistence": "Abstract strategy with immutable authored amount/duration/stacks/log tag and virtual Apply(IDefenseEffectCommands).",
+        "nativeEvidence": [
+          "Assets/Scripts/Services/Defense/Editor/DefenseEffectCommandBoundaryDebugScenarios.cs:13-70,110-126",
+          "Assets/Scripts/Services/Defense/Editor/DefenseFacilityDebugScenarios.cs:73-89,214-250"
+        ],
+        "disposition": "clear",
+        "reason": "Runtime dispatch is polymorphic and the open-strategy fixture proves a previously unlisted effect reaches production execution."
+      },
+      "mainAdjudication": "Runtime dispatch is polymorphic and the open-strategy fixture proves a previously unlisted effect reaches production execution."
+    },
+    {
+      "name": "DefenseGuardAttackEffectSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/DefenseGuardAttackEffectSO.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 2,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "DefenseGuardAttackEffectSO",
+        "source": "Assets/Scripts/Services/Defense/DefenseGuardAttackEffectSO.cs:3-22",
+        "authoredAssetCount": 2,
+        "productionReachability": [
+          "Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:576-624"
+        ],
+        "compositionAndPersistence": "Virtual Apply emits guard-attributed damage through the shared command boundary.",
+        "disposition": "clear",
+        "reason": "Additional guard-attack assets need no content-ID branch."
+      },
+      "mainAdjudication": "Additional guard-attack assets need no content-ID branch."
+    },
+    {
+      "name": "DefenseSlowEffectSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Defense/DefenseSlowEffectSO.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 3,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "DefenseSlowEffectSO",
+        "source": "Assets/Scripts/Services/Defense/DefenseSlowEffectSO.cs:3-13",
+        "authoredAssetCount": 3,
+        "productionReachability": [
+          "Assets/Scripts/Services/Defense/DefenseFacilitySystem.cs:576-624,741-789"
+        ],
+        "compositionAndPersistence": "Virtual Apply emits slow status and movement delay; runtime state is owned outside the SO.",
+        "disposition": "clear",
+        "reason": "Additional slow assets use the shared effect/status path."
+      },
+      "mainAdjudication": "Additional slow assets use the shared effect/status path."
+    },
+    {
+      "name": "DiseaseDefinitionSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/DiseaseDefinitionSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 16,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "CM-DISEASE-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "DiseaseDefinitionSO",
+        "source": "Assets/Scripts/Content/DiseaseDefinitionSO.cs:4-52",
+        "authoredAssetCount": 16,
+        "productionReachability": [
+          "Assets/Scripts/Services/Character/PopulationHealthRuntime.cs:9-38",
+          "Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs:103-141,339-347"
+        ],
+        "runtimeAndSave": "Copied into immutable DiseaseDefinition; active disease, pending field response, and burden projections persist diseaseId and resolve it on restore.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "CM-DISEASE-FIXED-CENSUS"
+        ],
+        "reason": "All data and persistence are generic, but a valid seventeenth asset is rejected."
+      },
+      "mainAdjudication": "All data and persistence are generic, but a valid seventeenth asset is rejected."
+    },
+    {
+      "name": "DungeonAudioLibrarySO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/DungeonAudioLibrarySO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "DungeonAudioLibrarySO",
+        "source": "Assets/Scripts/Content/DungeonAudioLibrarySO.cs:4",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Content/GameMediaCatalogSO.cs:12-41 owns and validates the audio library reference.",
+          "Assets/Scripts/Services/Infrastructure/DungeonAudioController.cs resolves clips from the library for production playback."
+        ],
+        "compositionAndPersistence": "Global immutable media library; playback controller owns runtime channel state.",
+        "disposition": "clear_singleton",
+        "reason": "One media-library authority is intentional and entries are consumed through authored fields rather than content-ID switches."
+      },
+      "mainAdjudication": "One media-library authority is intentional and entries are consumed through authored fields rather than content-ID switches."
+    },
+    {
+      "name": "DungeonFactionDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Factions/Core/DungeonFactionDefinitionSO.cs",
+          "line": 34
+        }
+      ],
+      "authoredAssetCount": 12,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "DungeonFactionDefinitionSO",
+        "source": "Assets/Scripts/Models/Factions/Core/DungeonFactionDefinitionSO.cs:34",
+        "authoredAssetCount": 12,
+        "productionReachability": [
+          "Assets/Scripts/Services/Factions/FactionApplicationDependencies.cs:6-38 loads faction definitions through the generic content source.",
+          "Assets/Scripts/Services/Factions/FactionRuntime.cs projects definitions into faction snapshots and owns mutable/saved faction state."
+        ],
+        "compositionAndPersistence": "Definition data is projected into snapshots; runtime/save state uses stable faction IDs.",
+        "disposition": "clear",
+        "reason": "Additional valid faction definitions are discovered and keyed generically."
+      },
+      "mainAdjudication": "Additional valid faction definitions are discovered and keyed generically."
+    },
+    {
+      "name": "DungeonStory.Content.CoreSession.CoreSessionRulesSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/CoreSession/CoreSessionRulesSO.cs",
+          "line": 33
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "DungeonStory.Content.CoreSession.CoreSessionRulesSO",
+        "source": "Assets/Scripts/Content/CoreSession/CoreSessionRulesSO.cs:33",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Services/Items/GameContentCatalog.cs:65 exposes the required core-session rules from the root catalog.",
+          "Assets/Scripts/Services/Run/RunFlow and ServiceSession/save paths consume the projected rules."
+        ],
+        "compositionAndPersistence": "Required immutable global session policy; GameSessionState and save sections own changing state.",
+        "disposition": "clear_singleton",
+        "reason": "This is a deliberate rules authority, not an extensible family."
+      },
+      "mainAdjudication": "This is a deliberate rules authority, not an extensible family."
+    },
+    {
+      "name": "EndingDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/EndingDefinitionSO.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 9,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-STORY-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "EndingDefinitionSO",
+        "source": "Assets/Scripts/Content/EndingDefinitionSO.cs:7",
+        "authoredAssetCount": 9,
+        "productionReachability": [
+          "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:43-126 loads endings and exposes ID lookup.",
+          "Assets/Scripts/Services/Run/V20MilestoneRuntime.cs evaluates and persists milestone/ending progress by stable ID."
+        ],
+        "compositionAndPersistence": "Immutable authored milestone definition; campaign/milestone runtime owns progress. One reward/counterpressure per ending is a schema invariant.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-STORY-FIXED-CENSUS"
+        ],
+        "reason": "Baseline exact-nine census blocked a valid additional ending."
+      },
+      "mainAdjudication": "Baseline exact-nine census blocked a valid additional ending."
+    },
+    {
+      "name": "EndlessCrisisPolicyDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/EndlessCrisisPolicyDefinitionSO.cs",
+          "line": 58
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "EndlessCrisisPolicyDefinitionSO",
+        "source": "Assets/Scripts/Content/EndlessCrisisPolicyDefinitionSO.cs:58",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:25-42 requires and exposes one policy.",
+          "Assets/Scripts/Services/Run/V20CampaignRuntime.cs applies the policy to endless-crisis campaign progression."
+        ],
+        "compositionAndPersistence": "Immutable global endless-mode policy; campaign save owns mutable progress.",
+        "disposition": "clear_intentional_singleton",
+        "reason": "The policy has one explicit global authority; a second policy would require selection semantics and is a new mechanic."
+      },
+      "mainAdjudication": "The policy has one explicit global authority; a second policy would require selection semantics and is a new mechanic."
+    },
+    {
+      "name": "EnemyAbilityDefinitionSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Offense/Core/EnemyAbilityDefinitionSO.cs",
+          "line": 28
+        }
+      ],
+      "authoredAssetCount": 18,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "CM-OFFENSE-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "EnemyAbilityDefinitionSO",
+        "source": "Assets/Scripts/Models/Offense/Core/EnemyAbilityDefinitionSO.cs:28-83",
+        "authoredAssetCount": 18,
+        "productionReachability": [
+          "Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs:46-185",
+          "Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs:520-581"
+        ],
+        "runtimeAndSave": "Existing effect kinds are projected to immutable combat modules; archetypes persist/restore by ID and reference ability IDs through the catalog.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "CM-OFFENSE-FIXED-CENSUS"
+        ],
+        "reason": "A nineteenth ability using existing effect kinds is valid composition but cannot enter the production catalog. A new effect enum kind would be a new mechanic and is not part of this finding."
+      },
+      "mainAdjudication": "A nineteenth ability using existing effect kinds is valid composition but cannot enter the production catalog. A new effect enum kind would be a new mechanic and is not part of this finding."
+    },
+    {
+      "name": "EnemyArchetypeDefinitionSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Offense/Core/EnemyArchetypeDefinitionSO.cs",
+          "line": 72
+        }
+      ],
+      "authoredAssetCount": 36,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "CM-OFFENSE-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "EnemyArchetypeDefinitionSO",
+        "source": "Assets/Scripts/Models/Offense/Core/EnemyArchetypeDefinitionSO.cs:72-113",
+        "authoredAssetCount": 36,
+        "productionReachability": [
+          "Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs:46-185,269-378",
+          "Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs:98-180,373-402"
+        ],
+        "runtimeAndSave": "Catalog validation resolves equipment and ability references; EnemyIndividualSaveData persists enemyArchetypeId and restore rehydrates a blueprint from the same definition.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "CM-OFFENSE-FIXED-CENSUS"
+        ],
+        "reason": "A valid thirty-seventh archetype is rejected solely by the fixed census. Species phenotype mapping otherwise passes through non-empty tags except documented aliases."
+      },
+      "mainAdjudication": "A valid thirty-seventh archetype is rejected solely by the fixed census. Species phenotype mapping otherwise passes through non-empty tags except documented aliases."
+    },
+    {
+      "name": "EnvironmentalWorkwearSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/EnvironmentalWorkwearSO.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 4,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "EnvironmentalWorkwearSO",
+        "source": "Assets/Scripts/Models/Economy/Content/EnvironmentalWorkwearSO.cs:7-88",
+        "authoredAssetCount": 4,
+        "productionReachability": [
+          "Assets/Scripts/Models/Economy/Content/EnvironmentalWorkwearSO.cs:90-155",
+          "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs:1-490",
+          "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs:1000-1003"
+        ],
+        "runtimeAndSave": "Cataloged by workwear and physical item IDs; species eligibility and thermal snapshot are authored. Mutable equipment selection/state is captured by IDs in the runtime, not on the SO.",
+        "disposition": "clear",
+        "reason": "Additional workwear definitions participate in generic selection, species filtering, protection projection, and ID-based restore without content-ID branches."
+      },
+      "mainAdjudication": "Additional workwear definitions participate in generic selection, species filtering, protection projection, and ID-based restore without content-ID branches."
+    },
+    {
+      "name": "EquipmentEvolutionFormulaCatalogSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaCatalogSO.cs",
+          "line": 4
+        },
+        {
+          "path": "Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaDefinitionSO.cs",
+          "line": 150
+        }
+      ],
+      "authoredAssetCount": 2,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "EquipmentEvolutionFormulaCatalogSO",
+        "source": "Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaCatalogSO.cs:4-6; Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaDefinitionSO.cs:150-378",
+        "authoredAssetCount": 2,
+        "productionReachability": [
+          "Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaDefinitionSO.cs:169-193,280-377",
+          "Assets/Scripts/Services/Combat/CombatEquipmentStatProjector.cs:95-135,244-280"
+        ],
+        "runtimeAndSave": "The current and frozen V3 catalogs are immutable formula authorities. Nodes persist formulaVersion, catalog hash, envelopes, budget, and evidence; restore loads the matching catalog.",
+        "disposition": "clear",
+        "reason": "Capabilities can reuse the existing applicator for their supported stat/modifier pair; the authored catalogs already demonstrate this reuse. New applicator semantics or module registration are genuinely new mechanics, and invalid/unregistered definitions fail explicitly."
+      },
+      "mainAdjudication": "Capabilities can reuse the existing applicator for their supported stat/modifier pair; the authored catalogs already demonstrate this reuse. New applicator semantics or module registration are genuinely new mechanics, and invalid/unregistered definitions fail explicitly."
+    },
+    {
+      "name": "EquipmentModuleDefinitionSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Combat/Core/EquipmentModuleDefinitionSO.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 20,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "EquipmentModuleDefinitionSO",
+        "source": "Assets/Scripts/Models/Combat/Core/EquipmentModuleDefinitionSO.cs:5-38",
+        "authoredAssetCount": 20,
+        "productionReachability": [
+          "Assets/Scripts/Services/Combat/ResourceEquipmentModuleCatalog.cs:5-24",
+          "Assets/Scripts/Services/Combat/EquipmentModuleRuntime.cs:71-108,845-857",
+          "Assets/Scripts/Services/Combat/CombatEquipmentStatProjector.cs:165-187"
+        ],
+        "runtimeAndSave": "Cataloged by ModuleId; install compatibility, effects, PowerPerGrade/UtilityPerGrade, condition, grade, and definitionId-based save state are runtime owned.",
+        "disposition": "clear",
+        "reason": "A unique new module using existing lineage/stat/effect capabilities is consumed generically. Current lack of a non-Editor producer is recorded as a broader obtainability gap, not a modularity defect."
+      },
+      "mainAdjudication": "A unique new module using existing lineage/stat/effect capabilities is consumed generically. Current lack of a non-Editor producer is recorded as a broader obtainability gap, not a modularity defect."
+    },
+    {
+      "name": "FacilityBlueprintSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/FacilityShop/Core/FacilityBlueprintSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 7,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "FacilityBlueprintSO",
+        "source": "Assets/Scripts/Models/FacilityShop/Core/FacilityBlueprintSO.cs:4-21",
+        "authoredAssetCount": 7,
+        "productionReachability": [
+          "Assets/Scripts/Services/Infrastructure/BlueprintResearchContracts.cs:611-646",
+          "Assets/Scripts/Services/Infrastructure/BlueprintResearchSaveSection.cs:164-249,545-776",
+          "Assets/Scripts/Services/FacilityShop/FacilityShopSystem.cs:335-408"
+        ],
+        "compositionAndPersistence": "Owns a SerializeReference BlueprintUnlockCollection. Completion iterates BlueprintUnlock and calls virtual Apply; save/restore resolves blueprint IDs and freezes unlock result records.",
+        "nativeEvidence": [
+          "Assets/Scripts/Services/Research/Editor/BlueprintResearchDebugScenarios.cs:14-24,312-331,537-553"
+        ],
+        "disposition": "clear",
+        "reason": "The targeted DebugBlueprintUnlock fixture executes an unlisted unlock subclass and formats its result without a core branch."
+      },
+      "mainAdjudication": "The targeted DebugBlueprintUnlock fixture executes an unlisted unlock subclass and formats its result without a core branch."
+    },
+    {
+      "name": "FacilityCrimeSettingsSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Buildings/Core/FacilityCrimeSettingsSO.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "FacilityCrimeSettingsSO",
+        "source": "Assets/Scripts/Models/Buildings/Core/FacilityCrimeSettingsSO.cs:5-55",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Services/Buildings/FacilityCrimeRiskUtility.cs:51-188",
+          "Assets/Scripts/Services/Infrastructure/Registration/DungeonCombatRegistration.cs:304-306"
+        ],
+        "compositionAndPersistence": "A required singleton immutable rules asset injected through IFacilityCrimeSettingsProvider; mutable crime state remains in facility/runtime owners.",
+        "nativeEvidence": [
+          "Assets/Scripts/Services/Buildings/Editor/FacilityCrimeRiskDebugScenarios.cs:30-31"
+        ],
+        "disposition": "clear",
+        "reason": "This SO is a global policy authority rather than an extensible content family; all fields have production consumers and no peer mutation was found."
+      },
+      "mainAdjudication": "This SO is a global policy authority rather than an extensible content family; all fields have production consumers and no peer mutation was found."
+    },
+    {
+      "name": "FacilityEvolutionRecipeSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 6,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "FacilityEvolutionRecipeSO",
+        "source": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs:6-130",
+        "authoredAssetCount": 6,
+        "productionReachability": [
+          "Assets/Scripts/Services/Infrastructure/FacilityRecipeCatalogServices.cs:90-157",
+          "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs:181-189,740",
+          "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRuntime.cs:1436"
+        ],
+        "compositionAndPersistence": "Cataloged generically; source matching uses building references or lineage tags, requirements are arrays, and effective recipe IDs drive visibility, proposals, formula authority, and persisted evolution state.",
+        "nativeEvidence": [
+          "Assets/Scripts/Services/FacilityEvolution/Editor/FacilityEvolutionDebugScenarios.cs:11-23,2501-2602",
+          "Assets/Scripts/Services/FacilityEvolution/Editor/P1FacilityEvolutionAssetBuilder.cs:16-49"
+        ],
+        "disposition": "clear",
+        "reason": "A new recipe using registered existing formula capabilities is discovered without recipe-ID branches. New evolution mechanics requiring a module registration are outside the defect criterion."
+      },
+      "mainAdjudication": "A new recipe using registered existing formula capabilities is discovered without recipe-ID branches. New evolution mechanics requiring a module registration are outside the defect criterion."
+    },
+    {
+      "name": "FacilityEvolutionRecordTokenDefinitionSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordTokens.cs",
+          "line": 14
+        }
+      ],
+      "authoredAssetCount": 9,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "EVOLUTION-TOKEN-DEFINITION-DISCONNECTED"
+      ],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "FacilityEvolutionRecordTokenDefinitionSO",
+        "source": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordTokens.cs:14-33",
+        "authoredAssetCount": 9,
+        "productionReachability": [
+          "Assets/Scripts/Services/Infrastructure/FacilityRecipeCatalogServices.cs:160-194",
+          "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordTokens.cs:65-143",
+          "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordEventRecorder.cs:18-362"
+        ],
+        "compositionAndPersistence": "Definitions are cataloged by EffectiveId and consulted during token consumption, while token counts/metrics are mutable facility record state.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "EVOLUTION-TOKEN-DEFINITION-DISCONNECTED"
+        ],
+        "reason": "The producer ignores the definition's source metric, threshold, and decay fields and hard-codes every mintable token."
+      },
+      "mainAdjudication": "The producer ignores the definition's source metric, threshold, and decay fields and hard-codes every mintable token."
+    },
+    {
+      "name": "FacilitySynthesisRecipeSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Synthesis/FacilitySynthesisRecipeSO.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 9,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "FacilitySynthesisRecipeSO",
+        "source": "Assets/Scripts/Services/Synthesis/FacilitySynthesisRecipeSO.cs:5-30",
+        "authoredAssetCount": 9,
+        "productionReachability": [
+          "Assets/Scripts/Services/Infrastructure/FacilityRecipeCatalogServices.cs:29-87",
+          "Assets/Scripts/Services/Synthesis/FacilitySynthesisSystem.cs:74-94",
+          "Assets/Scripts/Services/Synthesis/FacilitySynthesisRuntime.cs:65,311,469"
+        ],
+        "compositionAndPersistence": "Cataloged generically; building references define materials/result, recipe/research IDs govern visibility and operation identity, and world save restores resulting building state through the normal building persistence path.",
+        "nativeEvidence": [
+          "Assets/Scripts/Services/Synthesis/Editor/FacilitySynthesisDebugScenarios.cs:32-109,437-452",
+          "Assets/Scripts/Services/Synthesis/Editor/FacilitySynthesisCausalProductionEntryDebugScenarios.cs:550-641"
+        ],
+        "disposition": "clear",
+        "reason": "New recipes built from existing synthesis semantics are discovered by the catalog and execute without recipe-ID switches."
+      },
+      "mainAdjudication": "New recipes built from existing synthesis semantics are discovered by the catalog and execute without recipe-ID switches."
+    },
+    {
+      "name": "FactionAllianceBenefitBudgetSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Factions/Core/FactionAllianceBenefitBudgetSO.cs",
+          "line": 15
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "FactionAllianceBenefitBudgetSO",
+        "source": "Assets/Scripts/Models/Factions/Core/FactionAllianceBenefitBudgetSO.cs:15",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Services/Factions/FactionApplicationDependencies.cs:61-116 projects the required budget.",
+          "Assets/Scripts/Services/Factions/FactionRuntime.cs:1197 onward applies that projection to alliance benefits."
+        ],
+        "compositionAndPersistence": "One immutable balance authority; faction runtime owns mutable alliance state.",
+        "disposition": "clear_intentional_balance_authority",
+        "reason": "A singleton budget is an intentional balance contract rather than an extensible content family."
+      },
+      "mainAdjudication": "A singleton budget is an intentional balance contract rather than an extensible content family."
+    },
+    {
+      "name": "FactionArcDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/FactionArcDefinitionSO.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 6,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-STORY-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "FactionArcDefinitionSO",
+        "source": "Assets/Scripts/Content/FactionArcDefinitionSO.cs:5",
+        "authoredAssetCount": 6,
+        "productionReachability": [
+          "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 loads arcs by StableId.",
+          "Assets/Scripts/Services/Run/V20CampaignRuntime.cs resolves arc/chapter/contract state through catalog IDs."
+        ],
+        "compositionAndPersistence": "Immutable arc definition; campaign runtime/save owns active stage. Its fixed six-stage internal shape is an intentional schema.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-STORY-FIXED-CENSUS"
+        ],
+        "reason": "Baseline global exact-six arc census blocked an additional complete arc; the internal per-arc stage schema is not a defect."
+      },
+      "mainAdjudication": "Baseline global exact-six arc census blocked an additional complete arc; the internal per-arc stage schema is not a defect."
+    },
+    {
+      "name": "FactionChapterDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/FactionChapterDefinitionSO.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 36,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-STORY-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "FactionChapterDefinitionSO",
+        "source": "Assets/Scripts/Content/FactionChapterDefinitionSO.cs:7",
+        "authoredAssetCount": 36,
+        "productionReachability": [
+          "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 loads chapters into a stable-ID dictionary.",
+          "Assets/Scripts/Services/Run/V20CampaignRuntime.cs consumes chapter IDs during campaign transitions and restore."
+        ],
+        "compositionAndPersistence": "Immutable authored chapter; campaign state owns completion/progress.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-STORY-FIXED-CENSUS"
+        ],
+        "reason": "Baseline exact-thirty-six census blocked a valid additional chapter."
+      },
+      "mainAdjudication": "Baseline exact-thirty-six census blocked a valid additional chapter."
+    },
+    {
+      "name": "FactionContractDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/FactionContractDefinitionSO.cs",
+          "line": 29
+        }
+      ],
+      "authoredAssetCount": 24,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-STORY-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "FactionContractDefinitionSO",
+        "source": "Assets/Scripts/Content/FactionContractDefinitionSO.cs:29",
+        "authoredAssetCount": 24,
+        "productionReachability": [
+          "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 loads contracts by StableId.",
+          "Assets/Scripts/Services/Run/V20CampaignRuntime.cs selects contracts and persists their IDs/results."
+        ],
+        "compositionAndPersistence": "Immutable contract requirements/outcomes; campaign runtime/save owns mutable contract state.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-STORY-FIXED-CENSUS"
+        ],
+        "reason": "Baseline exact-twenty-four census blocked a valid additional contract."
+      },
+      "mainAdjudication": "Baseline exact-twenty-four census blocked a valid additional contract."
+    },
+    {
+      "name": "FestivalDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/FestivalDefinitionSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 20,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-FESTIVAL-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "FestivalDefinitionSO",
+        "source": "Assets/Scripts/Models/Species/Core/FestivalDefinitionSO.cs:6",
+        "authoredAssetCount": 20,
+        "productionReachability": [
+          "Assets/Scripts/Services/Character/FestivalDefinitionCatalog.cs:10-40 loads complete definitions by StableId.",
+          "Assets/Scripts/Services/Character/FestivalExecutionRuntime.cs:307-430 executes them; FestivalExecutionSaveSection restores their IDs."
+        ],
+        "compositionAndPersistence": "Definition remains immutable; festival runtime/save owns schedule and execution state.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-FESTIVAL-FIXED-CENSUS"
+        ],
+        "reason": "Baseline global exact-sixteen guard rejected valid additional festivals."
+      },
+      "mainAdjudication": "Baseline global exact-sixteen guard rejected valid additional festivals."
+    },
+    {
+      "name": "FuneralCultureSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/FuneralCultureSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 11,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "FuneralCultureSO",
+        "source": "Assets/Scripts/Models/Species/Core/FuneralCultureSO.cs",
+        "consumer": "G-LIFE",
+        "disposition": "retain: species reference and FuneralFestivalRuntime consume facility/culture data"
+      },
+      "mainAdjudication": "retain: species reference and FuneralFestivalRuntime consume facility/culture data"
+    },
+    {
+      "name": "GameContentCatalogSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/GameContentCatalogSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-ITEM-SUBTYPE-CATALOG"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "GameContentCatalogSO",
+        "source": "Assets/Scripts/Content/GameContentCatalogSO.cs:6",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Services/Items/GameContentCatalog.cs:11-102 loads this root and implements production IGameContentDefinitionSource.",
+          "Assets/Scripts/Content/GameContentCatalogSO.cs:21-107 validates root references to item, domain, media, rules, and settings catalogs."
+        ],
+        "compositionAndPersistence": "One composition root; contained catalogs own immutable definitions and runtimes own state.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-ITEM-SUBTYPE-CATALOG"
+        ],
+        "reason": "The root itself is intentionally singular, but its baseline generic query routing hid every derived item family."
+      },
+      "mainAdjudication": "The root itself is intentionally singular, but its baseline generic query routing hid every derived item family."
+    },
+    {
+      "name": "GameData",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/GameData/GameData.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "GameData",
+        "source": "Assets/Scripts/Models/GameData/GameData.cs:3",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Controllers/GameManager.cs reads GameData during game composition.",
+          "Assets/Scripts/Services/Infrastructure/GameRuntimeServices.cs projects its starting configuration while GameSessionState owns runtime mutations."
+        ],
+        "compositionAndPersistence": "Bootstrap definition/settings asset; session state and save DTOs own mutable play data.",
+        "disposition": "clear_singleton",
+        "reason": "A single boot configuration is intentional; no peer mutation or ignored extension registration was found."
+      },
+      "mainAdjudication": "A single boot configuration is intentional; no peer mutation or ignored extension registration was found."
+    },
+    {
+      "name": "GameDomainContentCatalogSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/GameDomainContentCatalogSO.cs",
+          "line": 8
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "GameDomainContentCatalogSO",
+        "source": "Assets/Scripts/Content/GameDomainContentCatalogSO.cs:8",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Content/GameDomainContentCatalogSO.cs:15-103,149-157 validates a heterogeneous definition list and returns OfType<T>().",
+          "Assets/Scripts/Services/Items/GameContentCatalog.cs:88-102 delegates non-item generic queries to this catalog."
+        ],
+        "compositionAndPersistence": "One domain catalog containing open ScriptableObject families; definitions stay immutable.",
+        "disposition": "clear_singleton",
+        "reason": "Generic OfType<T> discovery supports new instances and derived types; the separate item routing defect is recorded on the root/item families."
+      },
+      "mainAdjudication": "Generic OfType<T> discovery supports new instances and derived types; the separate item routing defect is recorded on the root/item families."
+    },
+    {
+      "name": "GameMediaCatalogSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/GameMediaCatalogSO.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "GameMediaCatalogSO",
+        "source": "Assets/Scripts/Content/GameMediaCatalogSO.cs:7",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Content/GameMediaCatalogSO.cs:12-41 validates audio/font/presentation references.",
+          "Assets/Scripts/Services/Items/GameContentCatalog.cs exposes the media catalog to production consumers."
+        ],
+        "compositionAndPersistence": "One immutable media composition root; presenters/controllers own runtime state.",
+        "disposition": "clear_singleton",
+        "reason": "The singleton groups media authorities; adding entries within its referenced libraries does not require content-ID branching."
+      },
+      "mainAdjudication": "The singleton groups media authorities; adding entries within its referenced libraries does not require content-ID branching."
+    },
+    {
+      "name": "GameplayEffectConditionDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Foundation/GameplayEffectConditionDefinitionSO.cs",
+          "line": 3
+        }
+      ],
+      "authoredAssetCount": 45,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "GameplayEffectConditionDefinitionSO",
+        "source": "Assets/Scripts/Services/Foundation/GameplayEffectConditionDefinitionSO.cs:3",
+        "authoredAssetCount": 45,
+        "productionReachability": [
+          "Assets/Scripts/Services/Foundation/GameplayEffectContracts.cs:225-282 binds condition references and active condition IDs.",
+          "Assets/Scripts/Services/Effects/Runtime/CharacterGameplayEffectProjector.cs:8-193 evaluates condition IDs while projecting effects."
+        ],
+        "compositionAndPersistence": "Immutable condition identity/metadata; active condition state is owned by runtime snapshots and saves.",
+        "disposition": "clear",
+        "reason": "New instances using the existing condition semantics are referenced and evaluated generically by ID."
+      },
+      "mainAdjudication": "New instances using the existing condition semantics are referenced and evaluated generically by ID."
+    },
+    {
+      "name": "GameplayEffectDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Foundation/GameplayEffectDefinitionSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 65,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "GameplayEffectDefinitionSO",
+        "source": "Assets/Scripts/Services/Foundation/GameplayEffectDefinitionSO.cs:4",
+        "authoredAssetCount": 65,
+        "productionReachability": [
+          "Assets/Scripts/Services/Foundation/GameplayEffectContracts.cs:225-282 binds definitions to targets, phases, and conditions.",
+          "Assets/Scripts/Services/Effects/Runtime/CharacterGameplayEffectProjector.cs:8-193 validates stacking and applies authored operations.",
+          "Assets/Scripts/Services/Effects/Runtime/GameplayEffectResultBoundsCatalog.cs:59-132 loads all effect definitions."
+        ],
+        "compositionAndPersistence": "SO owns immutable effect operations; character/effect runtime owns stacks and results.",
+        "disposition": "clear",
+        "reason": "Existing operations, phases, targets, conditions, and stacking modes execute without definition-ID branches."
+      },
+      "mainAdjudication": "Existing operations, phases, targets, conditions, and stacking modes execute without definition-ID branches."
+    },
+    {
+      "name": "GenericItemDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/GenericItemDefinitionSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 703,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-ITEM-SUBTYPE-CATALOG"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "GenericItemDefinitionSO",
+        "source": "Assets/Scripts/Models/Economy/Content/GenericItemDefinitionSO.cs:4",
+        "authoredAssetCount": 703,
+        "productionReachability": [
+          "Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs:12-86 stores this subtype in the item catalog.",
+          "Assets/Scripts/Services/Items/GameContentCatalog.cs:88-92 is the production generic query boundary."
+        ],
+        "compositionAndPersistence": "Immutable item subtype; stock/inventory runtimes persist item IDs and quantities.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-ITEM-SUBTYPE-CATALOG"
+        ],
+        "reason": "Baseline derived query returned zero because item subclasses were excluded from the domain catalog."
+      },
+      "mainAdjudication": "Baseline derived query returned zero because item subclasses were excluded from the domain catalog."
+    },
+    {
+      "name": "GuestRequestDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/GuestRequestDefinitionSO.cs",
+          "line": 8
+        }
+      ],
+      "authoredAssetCount": 14,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-STORY-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "GuestRequestDefinitionSO",
+        "source": "Assets/Scripts/Content/GuestRequestDefinitionSO.cs:8",
+        "authoredAssetCount": 14,
+        "productionReachability": [
+          "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 loads guest requests by StableId.",
+          "Assets/Scripts/Services/Run/V20SocietyEventRuntime.cs:623-737 evaluates guest-request candidates and persists active IDs."
+        ],
+        "compositionAndPersistence": "Immutable authored request; society-event runtime/save owns active progress.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-STORY-FIXED-CENSUS"
+        ],
+        "reason": "Baseline exact-thirteen census rejected the fourteenth valid request."
+      },
+      "mainAdjudication": "Baseline exact-thirteen census rejected the fourteenth valid request."
+    },
+    {
+      "name": "HeritableTraitDefinitionSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/HeritableTraitDefinitionSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 24,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "HeritableTraitDefinitionSO",
+        "source": "Assets/Scripts/Models/Species/Core/HeritableTraitDefinitionSO.cs",
+        "consumer": "G-HERITABLE",
+        "disposition": "candidate ACTOR-003: four currently authored consequence families are registered/saved but never demanded"
+      },
+      "mainAdjudication": "candidate ACTOR-003: four currently authored consequence families are registered/saved but never demanded; ACTOR-003: undefined new-mechanic semantics, outside composition repair; not claimed implemented."
+    },
+    {
+      "name": "InGameNarrativeTextCatalogSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/InGameNarrativeTextCatalogSO.cs",
+          "line": 44
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "InGameNarrativeTextCatalogSO",
+        "source": "Assets/Scripts/Content/InGameNarrativeTextCatalogSO.cs:44",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Content/InGameNarrativeTextCatalogSO.cs:48-99,135-200 validates and queries entries by kind plus stable ID.",
+          "BuildingSummaryFormatter, the item panel, and the offense panel request narrative text through that key."
+        ],
+        "compositionAndPersistence": "One immutable localization/presentation catalog; UI view state is separate.",
+        "disposition": "clear_singleton",
+        "reason": "New entries are keyed data, and missing text fails through the catalog contract rather than a content-specific branch."
+      },
+      "mainAdjudication": "New entries are keyed data, and missing text fails through the catalog contract rather than a content-specific branch."
+    },
+    {
+      "name": "ItemDefinitionCatalogSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-ITEM-SUBTYPE-CATALOG"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "ItemDefinitionCatalogSO",
+        "source": "Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs:7",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs:12-86 validates and exposes one polymorphic definition list.",
+          "Assets/Scripts/Services/Items/GameContentCatalog.cs:88-92 routes production generic item queries."
+        ],
+        "compositionAndPersistence": "One item catalog; item assets are immutable and inventory runtimes own quantities/state.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-ITEM-SUBTYPE-CATALOG"
+        ],
+        "reason": "Its polymorphic list was complete, but baseline root routing exposed it only for the exact base type."
+      },
+      "mainAdjudication": "Its polymorphic list was complete, but baseline root routing exposed it only for the exact base type."
+    },
+    {
+      "name": "ItemDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs",
+          "line": 539
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-ITEM-SUBTYPE-CATALOG"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "ItemDefinitionSO",
+        "source": "Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs:539",
+        "authoredAssetCount": 0,
+        "productionReachability": [
+          "Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs:9-538 defines polymorphic immutable item features consumed by the base at line 539 onward.",
+          "Assets/Scripts/Services/Items/GameContentCatalog.cs:88-92 supplies all item definitions and subtypes to production services."
+        ],
+        "compositionAndPersistence": "Base definition owns immutable authored feature composition; stock/inventory/save own mutable instances and counts.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-ITEM-SUBTYPE-CATALOG"
+        ],
+        "reason": "Direct base queries worked, but its derived families were invisible at the same public generic query boundary."
+      },
+      "mainAdjudication": "Direct base queries worked, but its derived families were invisible at the same public generic query boundary."
+    },
+    {
+      "name": "ItemHaulingSettingsSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Items/ItemHaulingSettingsSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "ItemHaulingSettingsSO",
+        "source": "Assets/Scripts/Services/Items/ItemHaulingSettingsSO.cs:4",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Services/Items/ItemHaulingSettingsSO.cs:30-90 is resolved as a required singleton and projected into hauling runtime settings.",
+          "Item hauling runtime capture/restore persists runtime state independently of the SO."
+        ],
+        "compositionAndPersistence": "One immutable hauling policy; runtime and save sections own queues/assignments.",
+        "disposition": "clear_singleton",
+        "reason": "A global hauling policy is intentional and all authored fields have production consumers."
+      },
+      "mainAdjudication": "A global hauling policy is intentional and all authored fields have production consumers."
+    },
+    {
+      "name": "LifeEventDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/LifeEventDefinitionSO.cs",
+          "line": 13
+        }
+      ],
+      "authoredAssetCount": 32,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-STORY-FIXED-CENSUS",
+        "MAIN-CHARACTER-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "LifeEventDefinitionSO",
+        "source": "Assets/Scripts/Content/LifeEventDefinitionSO.cs:13",
+        "authoredAssetCount": 32,
+        "productionReachability": [
+          "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 loads life events for society selection and save resolution.",
+          "Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs:14-106 loads the same family for character narrative state."
+        ],
+        "compositionAndPersistence": "Immutable definition shared by two catalogs; runtime aggregates persist stable IDs and outcomes without mutating the SO.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-STORY-FIXED-CENSUS",
+          "MAIN-CHARACTER-FIXED-CENSUS"
+        ],
+        "reason": "Two independent baseline exact-thirty-two guards rejected an additional life event."
+      },
+      "mainAdjudication": "Two independent baseline exact-thirty-two guards rejected an additional life event."
+    },
+    {
+      "name": "MaterialEconomicProfileSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/MaterialEconomicProfileSO.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "MaterialEconomicProfileSO",
+        "source": "Assets/Scripts/Models/Economy/Content/MaterialEconomicProfileSO.cs:7",
+        "authoredAssetCount": 0,
+        "productionReachability": [
+          "Assets/Scripts/Models/Economy/Content/MaterialEconomicProfileSO.cs:55-140 resolves explicit profiles and derives a profile from ItemDefinitionSO when none is authored.",
+          "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs uses the resulting profiles for economy calculations."
+        ],
+        "compositionAndPersistence": "Optional immutable override; deterministic derivation from the authoritative item definition is the designed default.",
+        "disposition": "clear_optional_override",
+        "reason": "Zero explicit assets is supported by a declared derivation contract; an added profile is discovered by stable item ID."
+      },
+      "mainAdjudication": "Zero explicit assets is supported by a declared derivation contract; an added profile is discovered by stable item ID."
+    },
+    {
+      "name": "OffenseCampaignCatalogSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Offense/OffenseCampaignCatalogSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "OffenseCampaignCatalogSO",
+        "source": "Assets/Scripts/Services/Offense/OffenseCampaignCatalogSO.cs:6",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Services/Offense/OffenseCampaignCatalogSO.cs:13-113,138-169 validates and exposes campaign targets and one truth target.",
+          "Assets/Scripts/Services/Offense/Strategic/OffenseStrategicDefinitions.cs:20-33 projects the catalog's site, urgent-site, card, and encounter lists."
+        ],
+        "compositionAndPersistence": "One campaign composition root; offense runtimes/save own map, travel, and encounter state.",
+        "disposition": "clear_singleton",
+        "reason": "Generic content lists accept additional instances. The single truth target is a unique campaign role."
+      },
+      "mainAdjudication": "Generic content lists accept additional instances. The single truth target is a unique campaign role."
+    },
+    {
+      "name": "OffenseDecisionCardSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Offense/Core/OffenseDecisionCardSO.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 54,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "OffenseDecisionCardSO",
+        "source": "Assets/Scripts/Models/Offense/Core/OffenseDecisionCardSO.cs:5",
+        "authoredAssetCount": 54,
+        "productionReachability": [
+          "Assets/Scripts/Services/Offense/Strategic/OffenseStrategicDefinitions.cs:20-33 loads all cards from the campaign catalog.",
+          "Assets/Scripts/Services/Offense/Strategic/OffenseTravelAndDecisionRuntime.cs:1482-1505,1546-1744 selects cards and applies choices."
+        ],
+        "compositionAndPersistence": "Immutable card with two authored choices; travel/decision runtime persists chosen state.",
+        "disposition": "clear_intentional_schema",
+        "reason": "Cards are discovered generically. The exact two-choice validation at Assets/Scripts/Services/Offense/Strategic/OffenseTravelAndDecisionRuntime.cs:1632-1640 is the current UI/gameplay schema, not a global card census."
+      },
+      "mainAdjudication": "Cards are discovered generically. The exact two-choice validation at Assets/Scripts/Services/Offense/Strategic/OffenseTravelAndDecisionRuntime.cs:1632-1640 is the current UI/gameplay schema, not a global card census."
+    },
+    {
+      "name": "OffenseEncounterSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Offense/Core/OffenseEncounterSO.cs",
+          "line": 26
+        }
+      ],
+      "authoredAssetCount": 36,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-OFFENSE-COMBAT-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "OffenseEncounterSO",
+        "source": "Assets/Scripts/Models/Offense/Core/OffenseEncounterSO.cs:26",
+        "authoredAssetCount": 36,
+        "productionReachability": [
+          "Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs:46-57,142-187 loads and resolves encounters by encounterId.",
+          "Assets/Scripts/Services/Offense/EnemyEncounterFactory.cs:143,407-426 creates production encounter state from the catalog."
+        ],
+        "compositionAndPersistence": "Immutable encounter composition; battle/individual runtimes and save data own changing state.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-OFFENSE-COMBAT-FIXED-CENSUS"
+        ],
+        "reason": "Baseline exact-thirty-six census blocked an additional valid encounter."
+      },
+      "mainAdjudication": "Baseline exact-thirty-six census blocked an additional valid encounter."
+    },
+    {
+      "name": "OffenseSiteArchetypeSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Offense/Core/OffenseSiteArchetypeSO.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 12,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "OffenseSiteArchetypeSO",
+        "source": "Assets/Scripts/Models/Offense/Core/OffenseSiteArchetypeSO.cs:5",
+        "authoredAssetCount": 12,
+        "productionReachability": [
+          "Assets/Scripts/Services/Offense/Strategic/OffenseStrategicDefinitions.cs:20-33 loads site archetypes from the catalog.",
+          "Assets/Scripts/Services/Offense/Strategic/OffenseHexWorldSimulation.cs:848-972 selects authored sites generically."
+        ],
+        "compositionAndPersistence": "Immutable site archetype; hex-world simulation/save owns generated site state.",
+        "disposition": "clear",
+        "reason": "New valid site assets participate through the catalog array without site-ID branching."
+      },
+      "mainAdjudication": "New valid site assets participate through the catalog array without site-ID branching."
+    },
+    {
+      "name": "OffenseUrgentSiteDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Offense/Core/OffenseUrgentSiteDefinitionSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 6,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "OffenseUrgentSiteDefinitionSO",
+        "source": "Assets/Scripts/Models/Offense/Core/OffenseUrgentSiteDefinitionSO.cs:4",
+        "authoredAssetCount": 6,
+        "productionReachability": [
+          "Assets/Scripts/Services/Offense/Strategic/OffenseStrategicDefinitions.cs:20-33 loads urgent sites.",
+          "Assets/Scripts/Services/Offense/Strategic/OffenseHexWorldSimulation.cs:848-972 evaluates and spawns them from authored criteria."
+        ],
+        "compositionAndPersistence": "Immutable urgent-site definition; spawned sites and timers live in world state/save.",
+        "disposition": "clear",
+        "reason": "The simulation iterates definitions and uses stable IDs; no fixed census or content-ID switch was found."
+      },
+      "mainAdjudication": "The simulation iterates definitions and uses stable IDs; no fixed census or content-ID switch was found."
+    },
+    {
+      "name": "OnBuyItemSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Buildings/Core/OnBuyItemSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "OnBuyItemSO",
+        "source": "Assets/Scripts/Models/Buildings/Core/OnBuyItemSO.cs:4",
+        "authoredAssetCount": 0,
+        "productionReachability": [
+          "Assets/Scripts/Models/Buildings/Core/OnBuyItemSO.cs:5-9 defines the virtual purchase strategy.",
+          "Assets/Scripts/Services/Character/Ability/AbilityShopping.cs:992,1156-1159,1219 invokes the item's buyevent through that strategy."
+        ],
+        "compositionAndPersistence": "Base strategy is referenced by item/building content; shopping runtime owns transaction state.",
+        "disposition": "clear_open_strategy",
+        "reason": "Zero direct base assets is expected, and derived existing strategies execute by virtual dispatch without a central content-ID branch."
+      },
+      "mainAdjudication": "Zero direct base assets is expected, and derived existing strategies execute by virtual dispatch without a central content-ID branch."
+    },
+    {
+      "name": "ProbeContinuableWorkActionSet",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 204
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ProbeContinuableWorkActionSet",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor plan fixture"
+      },
+      "mainAdjudication": "retain Editor plan fixture"
+    },
+    {
+      "name": "ProbeEatActionSet",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 26
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ProbeEatActionSet",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor plan fixture"
+      },
+      "mainAdjudication": "retain Editor plan fixture"
+    },
+    {
+      "name": "ProbeExitDungeonActionSet",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 1
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ProbeExitDungeonActionSet",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor plan fixture"
+      },
+      "mainAdjudication": "retain Editor plan fixture"
+    },
+    {
+      "name": "ProbeLookAroundActionSet",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 123
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ProbeLookAroundActionSet",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor plan fixture"
+      },
+      "mainAdjudication": "retain Editor plan fixture"
+    },
+    {
+      "name": "ProbeOneShotWorkActionSet",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 261
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ProbeOneShotWorkActionSet",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor plan fixture"
+      },
+      "mainAdjudication": "retain Editor plan fixture"
+    },
+    {
+      "name": "ProbeShoppingActionSet",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 87
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ProbeShoppingActionSet",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor plan fixture"
+      },
+      "mainAdjudication": "retain Editor plan fixture"
+    },
+    {
+      "name": "ProbeVolatileWorkActionSet",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 173
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ProbeVolatileWorkActionSet",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor plan fixture"
+      },
+      "mainAdjudication": "retain Editor plan fixture"
+    },
+    {
+      "name": "ProbeWaitActionSet",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 148
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ProbeWaitActionSet",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor plan fixture"
+      },
+      "mainAdjudication": "retain Editor plan fixture"
+    },
+    {
+      "name": "ProbeWorkActionSet",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+          "line": 62
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ProbeWorkActionSet",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPlanProbeActions.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor plan fixture"
+      },
+      "mainAdjudication": "retain Editor plan fixture"
+    },
+    {
+      "name": "ProductionRecipeSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/ProductionRecipeSO.cs",
+          "line": 22
+        }
+      ],
+      "authoredAssetCount": 367,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "ProductionRecipeSO",
+        "source": "Assets/Scripts/Models/Economy/Content/ProductionRecipeSO.cs:22",
+        "authoredAssetCount": 367,
+        "productionReachability": [
+          "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs:20-99 loads recipes generically.",
+          "Assets/Scripts/Models/Economy/Content/ProductionBillCommandRuntime.cs:130 and Assets/Scripts/Models/Economy/Content/ProductionDistributionRuntime.cs:147-227 resolve and execute recipe IDs.",
+          "Production save codecs persist bills and recipe references by stable ID."
+        ],
+        "compositionAndPersistence": "Immutable inputs/outputs/timing definition; bill/distribution runtimes and DTOs own mutable progress.",
+        "disposition": "clear",
+        "reason": "A new recipe composed from existing item/process semantics is cataloged and executed without recipe-ID branches."
+      },
+      "mainAdjudication": "A new recipe composed from existing item/process semantics is cataloged and executed without recipe-ID branches."
+    },
+    {
+      "name": "ProficiencyDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/ProficiencyDefinitionSO.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 9,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-CHARACTER-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "ProficiencyDefinitionSO",
+        "source": "Assets/Scripts/Content/ProficiencyDefinitionSO.cs:5",
+        "authoredAssetCount": 9,
+        "productionReachability": [
+          "Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs:34-106 loads proficiencies by StableId.",
+          "Assets/Scripts/Services/Character/CharacterNarrativeAggregate.cs:652-667,849-875 materializes and persists proficiency state."
+        ],
+        "compositionAndPersistence": "Immutable proficiency definition; aggregate/save owns XP/level state.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-CHARACTER-FIXED-CENSUS"
+        ],
+        "reason": "Baseline exact-nine catalog guard blocked an additional definition. Awarding a new proficiency from a new work mechanic remains explicit gameplay wiring, not an audit defect."
+      },
+      "mainAdjudication": "Baseline exact-nine catalog guard blocked an additional definition. Awarding a new proficiency from a new work mechanic remains explicit gameplay wiring, not an audit defect."
+    },
+    {
+      "name": "ReproductionProfileSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/ReproductionProfileSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 11,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "ReproductionProfileSO",
+        "source": "Assets/Scripts/Models/Species/Core/ReproductionProfileSO.cs",
+        "consumer": "G-LIFE",
+        "disposition": "retain: catalog projection, reproduction runtime, population, and save validation consume it"
+      },
+      "mainAdjudication": "retain: catalog projection, reproduction runtime, population, and save validation consume it"
+    },
+    {
+      "name": "ResearchProjectSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Research/Core/ResearchProjectSO.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 180,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "ResearchProjectSO",
+        "source": "Assets/Scripts/Models/Research/Core/ResearchProjectSO.cs:7",
+        "authoredAssetCount": 180,
+        "productionReachability": [
+          "Assets/Scripts/Services/Infrastructure/ResearchProjectCatalogAdapter.cs:14-79 loads and resolves projects by stable ID.",
+          "Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs executes prerequisites/unlocks and research save sections restore project state."
+        ],
+        "compositionAndPersistence": "SO owns immutable cost/prerequisite/unlock data; research runtime/save owns progress and completion.",
+        "disposition": "clear",
+        "reason": "New projects using existing unlock capabilities are discovered and executed by ID without project-ID branching."
+      },
+      "mainAdjudication": "New projects using existing unlock capabilities are discovered and executed by ID without project-ID branching."
+    },
+    {
+      "name": "ResearchUnlockBundleDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Research/Core/ResearchUnlockBundleDefinitionSO.cs",
+          "line": 46
+        }
+      ],
+      "authoredAssetCount": 180,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "ResearchUnlockBundleDefinitionSO",
+        "source": "Assets/Scripts/Models/Research/Core/ResearchUnlockBundleDefinitionSO.cs:46",
+        "authoredAssetCount": 180,
+        "productionReachability": [
+          "Assets/Scripts/Services/Research/Editor/ResearchUnlockBundleAssetBuilder.cs:12-56 generates descriptive bundle assets from projects.",
+          "Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs:23-118 is the production reward path and derives executable rewards from ResearchProjectSO instead."
+        ],
+        "compositionAndPersistence": "Authoring projection holds role/design-intent/group-heading metadata and no executable reward entries; research project/runtime own gameplay and save identity.",
+        "disposition": "authoring_projection_clear",
+        "reason": "No non-Editor consumer exists, but this does not block a new project's existing-capability unlocks. The documentation/metadata mismatch is recorded as a non-finding."
+      },
+      "mainAdjudication": "No non-Editor consumer exists, but this does not block a new project's existing-capability unlocks. The documentation/metadata mismatch is recorded as a non-finding."
+    },
+    {
+      "name": "ResourceItemDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/ResourceItemDefinitionSO.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 366,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-ITEM-SUBTYPE-CATALOG"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "ResourceItemDefinitionSO",
+        "source": "Assets/Scripts/Models/Economy/Content/ResourceItemDefinitionSO.cs:5",
+        "authoredAssetCount": 366,
+        "productionReachability": [
+          "Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs:12-86 stores resource items in its polymorphic list.",
+          "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs:20-68 requests this subtype through IGameContentDefinitionSource."
+        ],
+        "compositionAndPersistence": "Immutable item subtype; stock/inventory/save own resource quantities and instances.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-ITEM-SUBTYPE-CATALOG"
+        ],
+        "reason": "Baseline public subtype query returned zero despite 366 cataloged assets."
+      },
+      "mainAdjudication": "Baseline public subtype query returned zero despite 366 cataloged assets."
+    },
+    {
+      "name": "RoomEnvironmentSettingsSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Rooms/Core/RoomEnvironmentSettingsSO.cs",
+          "line": 20
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "RoomEnvironmentSettingsSO",
+        "source": "Assets/Scripts/Models/Rooms/Core/RoomEnvironmentSettingsSO.cs:20-190",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Services/Infrastructure/Rooms/RoomEnvironmentAdapter.cs:377-412",
+          "Assets/Scripts/Services/Infrastructure/Rooms/RoomEnvironmentExperienceAdapter.cs:80-143",
+          "Assets/Scripts/Services/Infrastructure/Rooms/RoomInspectionRuntime.cs:275"
+        ],
+        "compositionAndPersistence": "A required singleton immutable formula/mood/presentation policy asset injected through IRoomEnvironmentSettingsProvider; room runtime owns changing environment state.",
+        "nativeEvidence": [
+          "Assets/Scripts/Services/Buildings/Editor/ModularFacilityDebugScenarios.cs:1537,1780-1787"
+        ],
+        "disposition": "clear",
+        "reason": "All policy projections are consumed; role colors fall back through FacilityRoleCatalog rather than requiring per-content branches."
+      },
+      "mainAdjudication": "All policy projections are consumed; role colors fall back through FacilityRoleCatalog rather than requiring per-content branches."
+    },
+    {
+      "name": "SaleItem",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/SaleItem.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 4,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "SaleItem",
+        "source": "Assets/Scripts/Models/Economy/Content/SaleItem.cs:7",
+        "authoredAssetCount": 4,
+        "productionReachability": [
+          "Assets/Scripts/Services/Infrastructure/DataCatalogService.cs:11-92 indexes SaleItem by legacy numeric ID.",
+          "Assets/Scripts/Services/Infrastructure/ShopStockCatalogService.cs:17-111 validates physical item references; Assets/Scripts/Services/Infrastructure/ShopInventoryRuntimeAdapter.cs:279-312 consumes the entries."
+        ],
+        "compositionAndPersistence": "Legacy immutable shop entry; inventory/shop runtime and save own changing stock.",
+        "disposition": "clear_legacy_contract",
+        "reason": "Existing SaleItem entries are consumed through the explicit legacy catalog. A new content mechanic/type would require a deliberate compatibility mapping."
+      },
+      "mainAdjudication": "Existing SaleItem entries are consumed through the explicit legacy catalog. A new content mechanic/type would require a deliberate compatibility mapping."
+    },
+    {
+      "name": "SeasonalWorldEventDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/SeasonalWorldEventDefinitionSO.cs",
+          "line": 255
+        }
+      ],
+      "authoredAssetCount": 28,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-STORY-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "SeasonalWorldEventDefinitionSO",
+        "source": "Assets/Scripts/Content/SeasonalWorldEventDefinitionSO.cs:255",
+        "authoredAssetCount": 28,
+        "productionReachability": [
+          "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 loads seasonal events by StableId.",
+          "Assets/Scripts/Services/Run/V20SeasonalOutcomeRuntime.cs evaluates definitions and persists selected event/outcome IDs."
+        ],
+        "compositionAndPersistence": "Immutable seasonal requirements/outcomes; seasonal runtime/save owns active state.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-STORY-FIXED-CENSUS"
+        ],
+        "reason": "Baseline exact-twenty-eight global census blocked a valid additional seasonal event."
+      },
+      "mainAdjudication": "Baseline exact-twenty-eight global census blocked a valid additional seasonal event."
+    },
+    {
+      "name": "ServiceIncidentDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/ServiceIncidentDefinitionSO.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 8,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "MAIN-STORY-FIXED-CENSUS",
+        "MAIN-OBSERVED-INCIDENT-KIND-SINGLETON"
+      ],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "ServiceIncidentDefinitionSO",
+        "source": "Assets/Scripts/Content/ServiceIncidentDefinitionSO.cs:7",
+        "authoredAssetCount": 8,
+        "productionReachability": [
+          "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:16-126 catalogs incidents by StableId.",
+          "Assets/Scripts/Services/Run/V20ObservedIncidentRuntime.cs:282-390 creates observed incident state; V20SocietyEventRuntime/save owns active event persistence."
+        ],
+        "compositionAndPersistence": "Immutable incident definition; society-event runtime/save owns occurrences, participants, and progress.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "MAIN-STORY-FIXED-CENSUS",
+          "MAIN-OBSERVED-INCIDENT-KIND-SINGLETON"
+        ],
+        "reason": "Baseline both capped the global family at eight and rejected a second same-kind definition in the only production producer."
+      },
+      "mainAdjudication": "Baseline both capped the global family at eight and rejected a second same-kind definition in the only production producer."
+    },
+    {
+      "name": "ServiceProcessSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Rooms/Core/ServiceProcessSO.cs",
+          "line": 23
+        }
+      ],
+      "authoredAssetCount": 5,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "ServiceProcessSO",
+        "source": "Assets/Scripts/Models/Rooms/Core/ServiceProcessSO.cs:23",
+        "authoredAssetCount": 5,
+        "productionReachability": [
+          "Assets/Scripts/Models/Rooms/Core/ServiceProcessCatalog.cs:20-83 loads all definitions and resolves them by stable ID.",
+          "Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:528,742,824,1156 executes authored stages and persists session/process IDs."
+        ],
+        "compositionAndPersistence": "Immutable process/stage definition; ServiceSessionRuntime and room save sections own mutable sessions.",
+        "disposition": "clear",
+        "reason": "Additional processes using existing stage semantics are discovered and executed without process-ID branches."
+      },
+      "mainAdjudication": "Additional processes using existing stage semantics are discovered and executed without process-ID branches."
+    },
+    {
+      "name": "SpeciesCultureDefinitionSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/SpeciesCultureDefinitionSO.cs",
+          "line": 29
+        }
+      ],
+      "authoredAssetCount": 10,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "SpeciesCultureDefinitionSO",
+        "source": "Assets/Scripts/Content/SpeciesCultureDefinitionSO.cs",
+        "consumer": "G-NARRATIVE",
+        "disposition": "retain: catalog, culture gameplay, narrative, consumables, enemy, and save paths consume it"
+      },
+      "mainAdjudication": "retain: catalog, culture gameplay, narrative, consumables, enemy, and save paths consume it"
+    },
+    {
+      "name": "SpeciesLifeHistorySO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Species/Core/SpeciesLifeHistorySO.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 11,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "SpeciesLifeHistorySO",
+        "source": "Assets/Scripts/Models/Species/Core/SpeciesLifeHistorySO.cs",
+        "consumer": "G-LIFE",
+        "disposition": "retain: life-stage/aging/population/reproduction/save consumers use it"
+      },
+      "mainAdjudication": "retain: life-stage/aging/population/reproduction/save consumers use it"
+    },
+    {
+      "name": "StatChange",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Buildings/Core/StatChange.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "StatChange",
+        "source": "Assets/Scripts/Models/Buildings/Core/StatChange.cs",
+        "consumer": "G-STATCHANGE",
+        "disposition": "retain: shop purchase invokes actor-owned need mutation"
+      },
+      "mainAdjudication": "retain: shop purchase invokes actor-owned need mutation"
+    },
+    {
+      "name": "StockInfo",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Buildings/SO/StockInfo.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "StockInfo",
+        "source": "Assets/Scripts/Services/Buildings/SO/StockInfo.cs:7",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Services/Infrastructure/DataCatalogService.cs:11-92 indexes StockInfo through the legacy numeric-ID catalog.",
+          "Assets/Scripts/Services/Infrastructure/ShopStockCatalogService.cs:17-111 validates it against physical items; Assets/Scripts/Services/Infrastructure/ShopInventoryRuntimeAdapter.cs:279-312 consumes it."
+        ],
+        "compositionAndPersistence": "Immutable legacy stock definition; shop inventory runtime/save owns quantities.",
+        "disposition": "clear_legacy_contract",
+        "reason": "The one stock table is an explicit shop composition authority and its entries are fully consumed."
+      },
+      "mainAdjudication": "The one stock table is an explicit shop composition authority and its entries are fully consumed."
+    },
+    {
+      "name": "SurgicalProcedureSO",
+      "owner": "combat_medical",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Medical/Core/SurgicalProcedureSO.cs",
+          "line": 7
+        }
+      ],
+      "authoredAssetCount": 47,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-combat-medical.json",
+      "reviewEvidence": {
+        "name": "SurgicalProcedureSO",
+        "source": "Assets/Scripts/Models/Medical/Core/SurgicalProcedureSO.cs:7-188",
+        "authoredAssetCount": 47,
+        "productionReachability": [
+          "Assets/Scripts/Services/Medical/SurgicalProcedureCatalog.cs:5-101",
+          "Assets/Scripts/Services/Medical/SurgeryRuntimeServices.cs:264-284",
+          "Assets/Scripts/Services/Medical/SurgeryRuntime.cs:1780-1810,1899-1940",
+          "Assets/Scripts/Services/Infrastructure/Registration/DungeonCombatRegistration.cs:198-230"
+        ],
+        "runtimeAndSave": "Cataloged by ProcedureId with validation of facilities, effects, materials, and operator requirements. Orders persist procedureId; existing effect records dispatch by exact runtime type to registered handlers and fail closed when a handler is absent.",
+        "nativeEvidence": [
+          "Assets/Scripts/Services/Medical/Editor/SurgeryDebugScenarios.cs:109-169,560-600"
+        ],
+        "disposition": "clear",
+        "reason": "New procedures composed from existing effect types flow through catalog, planning, execution, and save/restore. Handler registration is required only for a genuinely new effect mechanic."
+      },
+      "mainAdjudication": "New procedures composed from existing effect types flow through catalog, planning, execution, and save/restore. Handler registration is required only for a genuinely new effect mechanic."
+    },
+    {
+      "name": "SurvivalBalanceSettingsSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Survival/Core/SurvivalBalanceSettingsSO.cs",
+          "line": 98
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "SurvivalBalanceSettingsSO",
+        "source": "Assets/Scripts/Models/Survival/Core/SurvivalBalanceSettingsSO.cs",
+        "consumer": "G-SURVIVAL",
+        "disposition": "retain immutable singleton; no runtime shared mutation found"
+      },
+      "mainAdjudication": "retain immutable singleton; no runtime shared mutation found"
+    },
+    {
+      "name": "SurvivalHardLockProbeActionSet",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiNaturalnessDebugScenarios.cs",
+          "line": 898
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "SurvivalHardLockProbeActionSet",
+        "source": "Assets/Scripts/Services/Character/AI/Editor/CharacterAiNaturalnessDebugScenarios.cs",
+        "consumer": "G-FIXTURE",
+        "disposition": "retain Editor hard-lock fixture"
+      },
+      "mainAdjudication": "retain Editor hard-lock fixture"
+    },
+    {
+      "name": "TextileMaterialDefinitionSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/TextileMaterialDefinitionSO.cs",
+          "line": 5
+        }
+      ],
+      "authoredAssetCount": 12,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "TextileMaterialDefinitionSO",
+        "source": "Assets/Scripts/Models/Economy/Content/TextileMaterialDefinitionSO.cs:5",
+        "authoredAssetCount": 12,
+        "productionReachability": [
+          "Assets/Scripts/Models/Economy/Content/ApparelDefinitionSO.cs:439 references textile material IDs.",
+          "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs:610-625 resolves textile definitions for apparel/economy runtime."
+        ],
+        "compositionAndPersistence": "Immutable textile properties; apparel/inventory runtimes own items and wear state.",
+        "disposition": "clear",
+        "reason": "Additional textiles are resolved by stable ID through the generic economy catalog."
+      },
+      "mainAdjudication": "Additional textiles are resolved by stable ID through the generic economy catalog."
+    },
+    {
+      "name": "TmpKoreanFontSettingsSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/TmpKoreanFontSettingsSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "TmpKoreanFontSettingsSO",
+        "source": "Assets/Scripts/Content/TmpKoreanFontSettingsSO.cs:6",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Content/GameMediaCatalogSO.cs:12-41 validates the font settings reference.",
+          "Assets/Scripts/Services/Infrastructure/TmpKoreanFontProvider.cs consumes it to configure TMP font fallback."
+        ],
+        "compositionAndPersistence": "One immutable UI font policy; TMP components own transient rendering state.",
+        "disposition": "clear_singleton",
+        "reason": "A single font-settings authority is intentional and authored references are consumed directly."
+      },
+      "mainAdjudication": "A single font-settings authority is intentional and authored references are consumed directly."
+    },
+    {
+      "name": "V20AuthoredContentSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/V20AuthoredContentContracts.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 0,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "V20AuthoredContentSO",
+        "source": "Assets/Scripts/Content/V20AuthoredContentContracts.cs:6",
+        "authoredAssetCount": 0,
+        "productionReachability": [
+          "Assets/Scripts/Content/V20AuthoredContentContracts.cs:6-43,115-154 defines stable identity, requirements, and validation shared by all narrative subclasses.",
+          "Assets/Scripts/Services/Run/V20StoryContentCatalog.cs and Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs consume derived instances polymorphically."
+        ],
+        "compositionAndPersistence": "Abstract immutable contract; derived StableId is persisted by narrative runtimes and resolved through catalogs.",
+        "disposition": "clear_abstract_contract",
+        "reason": "Zero direct base assets is expected, and derived families share generic validation/ID composition."
+      },
+      "mainAdjudication": "Zero direct base assets is expected, and derived families share generic validation/ID composition."
+    },
+    {
+      "name": "WasteProcessingRulesSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Economy/Content/WasteProcessingRulesSO.cs",
+          "line": 41
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "WasteProcessingRulesSO",
+        "source": "Assets/Scripts/Models/Economy/Content/WasteProcessingRulesSO.cs:41-190",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Models/Economy/Content/WasteProcessingRulesSO.cs:99-115,361-401",
+          "Assets/Scripts/Services/Infrastructure/Editor/BatchACoreSessionSaveDebugScenarios.cs:1195"
+        ],
+        "compositionAndPersistence": "Required singleton rules asset validates then projects immutable WasteProcessingRulesDefinition; mutable batches, processing state, and save DTOs are held by economy runtimes.",
+        "disposition": "clear",
+        "reason": "Existing origin/disposition records and recipe/feed/legacy mappings are data-driven. Exact enum-origin coverage is a completeness invariant; adding a genuinely new origin mechanic requires enum/rule authoring and is not itself a modularity defect."
+      },
+      "mainAdjudication": "Existing origin/disposition records and recipe/feed/legacy mappings are data-driven. Exact enum-origin coverage is a completeness invariant; adding a genuinely new origin mechanic requires enum/rule authoring and is not itself a modularity defect."
+    },
+    {
+      "name": "WeatherFrontDefinitionSO",
+      "owner": "buildings",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Content/WeatherFrontDefinitionSO.cs",
+          "line": 4
+        }
+      ],
+      "authoredAssetCount": 6,
+      "disposition": "repaired_extension_boundary",
+      "repairedFindings": [
+        "CLIMATE-FIXED-CENSUS"
+      ],
+      "baselineReport": "audit-buildings.json",
+      "reviewEvidence": {
+        "name": "WeatherFrontDefinitionSO",
+        "source": "Assets/Scripts/Content/WeatherFrontDefinitionSO.cs:4-37",
+        "authoredAssetCount": 6,
+        "productionReachability": [
+          "Assets/Scripts/Services/Infrastructure/Environment/ClimateRuntime.cs:12-51,100-105,127-146"
+        ],
+        "compositionAndPersistence": "Projected to immutable WeatherFrontDefinition, ordered/weighted generically, selected by season, and restored by canonical ID.",
+        "disposition": "confirmed_blocker",
+        "findingIds": [
+          "CLIMATE-FIXED-CENSUS"
+        ],
+        "reason": "The generic catalog is followed by an exact-six guard."
+      },
+      "mainAdjudication": "The generic catalog is followed by an exact-six guard."
+    },
+    {
+      "name": "WildlifeHabitatDecorationPaletteSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Wildlife/Core/WildlifeHabitatDecorationPaletteSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "WildlifeHabitatDecorationPaletteSO",
+        "source": "Assets/Scripts/Models/Wildlife/Core/WildlifeHabitatDecorationPaletteSO.cs",
+        "consumer": "G-WILDLIFE",
+        "disposition": "retain: required runtime palette is read-only; Configure is Editor builder-only"
+      },
+      "mainAdjudication": "retain: required runtime palette is read-only; Configure is Editor builder-only"
+    },
+    {
+      "name": "WildlifeSpeciesSO",
+      "owner": "actors",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Models/Wildlife/Core/WildlifeSpeciesSO.cs",
+          "line": 6
+        }
+      ],
+      "authoredAssetCount": 18,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-actors.json",
+      "reviewEvidence": {
+        "name": "WildlifeSpeciesSO",
+        "source": "Assets/Scripts/Models/Wildlife/Core/WildlifeSpeciesSO.cs",
+        "consumer": "G-WILDLIFE",
+        "disposition": "retain: generic catalog projection reaches ecology, husbandry, capture, carcass, roles, UI, and save"
+      },
+      "mainAdjudication": "retain: generic catalog projection reaches ecology, husbandry, capture, carcass, roles, UI, and save"
+    },
+    {
+      "name": "WorldInteractionPresentationCatalogSO",
+      "owner": "main",
+      "sources": [
+        {
+          "path": "Assets/Scripts/Views/UI/Core/WorldInteractionPresentationCatalogSO.cs",
+          "line": 91
+        }
+      ],
+      "authoredAssetCount": 1,
+      "disposition": "retained_existing_contract",
+      "repairedFindings": [],
+      "baselineReport": "audit-main.json",
+      "reviewEvidence": {
+        "name": "WorldInteractionPresentationCatalogSO",
+        "source": "Assets/Scripts/Views/UI/Core/WorldInteractionPresentationCatalogSO.cs:91",
+        "authoredAssetCount": 1,
+        "productionReachability": [
+          "Assets/Scripts/Views/UI/Core/WorldInteractionPresentationCatalogSO.cs:95-238 validates and matches presentation profiles and props.",
+          "CharacterProceduralMotionPresenter, CharacterCarryPresentation, and ActorPresentationBridge query it in production."
+        ],
+        "compositionAndPersistence": "One immutable presentation catalog; presenters own transient visual state and gameplay state stays elsewhere.",
+        "disposition": "clear_singleton",
+        "reason": "New profiles and prop mappings are matched through authored keys/capabilities rather than content-ID code branches."
+      },
+      "mainAdjudication": "New profiles and prop mappings are matched through authored keys/capabilities rather than content-ID code branches."
+    }
+  ],
+  "excludedCandidates": {
+    "ACTOR-003": "Four heritable consequence families lack defined reusable runtime semantics; this is a feature gap, not an extension wiring fix.",
+    "ACTOR-U01": "Species incident effects without handlers require new mechanic contracts; existing lore-only species are intentional.",
+    "ACTOR-U02": "Descriptive species labels/tags have no defined executable semantics; not invented here.",
+    "CM-EQUIPMENT-FORMULA-APPLICATOR": "Withdrawn false positive: existing kind/stat applicators already support multiple capability IDs; new stats need intentional registration."
+  },
+  "additionalConfirmedRepair": "CharacterProgressionProfileProjector must preserve actual spawn phenotype/traits/innate/latent inputs and identity-profile cache invalidation instead of rebuilding only from archetype. Pre-profile DI/vitals queries no longer create a provisional anatomy; production prepared staff/owner/restore/exterior creation set stable IDs before component injection, then Initialize publishes the canonical profile. Existing MapsToLegacyBodyPart/LegacyBodyPart metadata now reaches localized damage/healing/projection with baseline alias preservation and invalid/ambiguous mapping rejection.",
+  "sourcePin": "source-pin-r6.json",
+  "currentExecutionStatus": "complete: current source compile, targeted native and actual GameplayScene Play PASS",
+  "finalVerification": "verification-final.json"
+}

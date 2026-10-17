@@ -213,6 +213,23 @@ public static class ArchitectureRefactorVerificationBatch
     {
         if (!Application.isBatchMode)
             throw new InvalidOperationException("Building verification requires isolated batch execution.");
+        var errors = new List<string>();
+        void Observe(string condition, string stack, LogType type)
+        {
+            if (type is LogType.Error or LogType.Exception or LogType.Assert) errors.Add(condition);
+        }
+        Application.logMessageReceived += Observe;
+        try
+        {
+            Debug.Log(ScriptableObjectModularityDebugScenarios.RunForBatch());
+            Debug.Log(CharacterAiPriorityCornerCaseDebugScenarios.RunOwnerActionCompositionForBatch());
+            Debug.Log(ClimateDurableEquipmentDebugScenarios.RunSoObservationCompositionForBatch());
+            Debug.Log(CombatSystemDebugScenarios.RunSoRoleCompositionForBatch());
+            if (errors.Count != 0)
+                throw new InvalidOperationException("SO execution emitted engine errors: " + string.Join(" | ", errors));
+            Debug.Log("SO_MODULARITY_CONSOLE_ERRORS=0");
+        }
+        finally { Application.logMessageReceived -= Observe; }
         BuildingWorldRegistryReplacementDebugScenarios.VerifyDestructionLifetime();
         Debug.Log(CharacterAiPriorityCornerCaseDebugScenarios.RunWorkerAllocationLifetimeForArchitectureBatch());
         Debug.Log("BUILDING_DESTRUCTION_LIFETIME=PASS; EditMode native destruction; observer reentry/failure; contract-release retry; physical destructive drain=not-covered");

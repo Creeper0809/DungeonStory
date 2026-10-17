@@ -46,10 +46,10 @@ public sealed class EnemyCombatContentCatalog :
     public EnemyCombatContentCatalog(IGameContentDefinitionSource content)
     {
         if (content == null) throw new ArgumentNullException(nameof(content));
-        All = RequireExact(content.GetAll<EnemyArchetypeDefinitionSO>(), 36, value => value.stableId, value => value.ValidateDefinition(), "enemy archetype");
-        allEncounters = RequireExact(content.GetAll<OffenseEncounterSO>(), 36, value => value.encounterId, value => value.ValidateDefinition(), "encounter");
-        allAbilities = RequireExact(content.GetAll<EnemyAbilityDefinitionSO>(), 18, value => value.stableId, value => value.ValidateDefinition(), "enemy ability");
-        allModifiers = RequireExact(content.GetAll<BattlefieldModifierDefinitionSO>(), 12, value => value.stableId, value => value.ValidateDefinition(), "battlefield modifier");
+        All = RequireDefinitions(content.GetAll<EnemyArchetypeDefinitionSO>(), value => value.stableId, value => value.ValidateDefinition(), "enemy archetype");
+        allEncounters = RequireDefinitions(content.GetAll<OffenseEncounterSO>(), value => value.encounterId, value => value.ValidateDefinition(), "encounter");
+        allAbilities = RequireDefinitions(content.GetAll<EnemyAbilityDefinitionSO>(), value => value.stableId, value => value.ValidateDefinition(), "enemy ability");
+        allModifiers = RequireDefinitions(content.GetAll<BattlefieldModifierDefinitionSO>(), value => value.stableId, value => value.ValidateDefinition(), "battlefield modifier");
         enemies = All.ToDictionary(value => value.stableId, StringComparer.Ordinal);
         encounters = allEncounters.ToDictionary(value => value.encounterId, StringComparer.Ordinal);
         abilities = allAbilities.ToDictionary(value => value.stableId, StringComparer.Ordinal);
@@ -168,9 +168,8 @@ public sealed class EnemyCombatContentCatalog :
             ? value
             : throw new KeyNotFoundException($"Unknown battlefield modifier '{id}'.");
 
-    private static IReadOnlyList<T> RequireExact<T>(
+    private static IReadOnlyList<T> RequireDefinitions<T>(
         IEnumerable<T> source,
-        int expected,
         Func<T, string> id,
         Func<T, IReadOnlyList<string>> validate,
         string label)
@@ -179,7 +178,7 @@ public sealed class EnemyCombatContentCatalog :
         T[] values = (source ?? Array.Empty<T>()).Where(value => value != null)
             .OrderBy(id, StringComparer.Ordinal).ToArray();
         List<string> errors = values.SelectMany(value => validate(value).Select(error => $"{value.name}: {error}")).ToList();
-        if (values.Length != expected) errors.Add($"V20 requires exactly {expected} {label} definitions, found {values.Length}.");
+        if (values.Length == 0) errors.Add($"At least one {label} definition is required.");
         if (values.Select(id).Distinct(StringComparer.Ordinal).Count() != values.Length) errors.Add($"V20 {label} ids are not unique.");
         if (errors.Count > 0) throw new InvalidOperationException($"V20 {label} content is invalid:\n" + string.Join("\n", errors));
         return values;
@@ -262,8 +261,11 @@ public sealed class EnemyIndividualFactory : IEnemyIndividualFactory
             .OrderBy(value => value.traitId, StringComparer.Ordinal).ToArray();
         generalTraitIds = generalTraits.Select(value => value.DefinitionId.Value)
             .ToHashSet(StringComparer.Ordinal);
-        if (generalTraits.Count != 100 || heritableTraits.Count != 24)
-            throw new InvalidOperationException($"V26 enemy generation requires 100 general and 24 heritable traits; found {generalTraits.Count}/{heritableTraits.Count}.");
+        if (generalTraits.Count == 0 || heritableTraits.Count == 0
+            || generalTraitIds.Count != generalTraits.Count
+            || heritableTraits.Select(value => value.traitId)
+                .Distinct(StringComparer.Ordinal).Count() != heritableTraits.Count)
+            throw new InvalidOperationException("Enemy generation requires nonempty, uniquely identified general and heritable traits.");
     }
 
     public EnemyIndividualSaveData Create(

@@ -70,7 +70,6 @@ public sealed class BuildingAbilityRuntimeDispatcher :
     private readonly Dictionary<WorkTypeId, IBuildingWorkCompletionFallbackHandler> fallbackHandlers;
     private readonly BuildingAbilityRuntimeCatalog runtimeCatalog;
 
-    [VContainer.Inject]
     public BuildingAbilityRuntimeDispatcher(
         IReadOnlyList<IBuildingAbilityWorkCompletedHandler> registeredWorkHandlers,
         IReadOnlyList<IBuildingWorkCompletionFallbackHandler> registeredFallbackHandlers)
@@ -78,6 +77,7 @@ public sealed class BuildingAbilityRuntimeDispatcher :
     {
     }
 
+    [VContainer.Inject]
     public BuildingAbilityRuntimeDispatcher(
         IReadOnlyList<IBuildingAbilityWorkCompletedHandler> registeredWorkHandlers,
         IReadOnlyList<IBuildingWorkCompletionFallbackHandler> registeredFallbackHandlers,

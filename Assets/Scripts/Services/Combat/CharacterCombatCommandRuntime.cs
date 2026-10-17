@@ -749,8 +749,7 @@ public sealed class CharacterCombatCommandRuntime :
                 BlockCommand(command, tileSight.FailureReason);
                 return;
             }
-            float tileManaCost = CharacterArcaneWeaponRules.GetManaCost(
-                weapon.DefinitionId);
+            float tileManaCost = CharacterArcaneWeaponRules.GetManaCost(weapon);
             int tileAmmunitionCost = CombatEquipmentRoleRules
                 .GetAmmunitionPerAttack(
                     weapon,
@@ -891,8 +890,7 @@ public sealed class CharacterCombatCommandRuntime :
         CharacterBodyHealthSnapshot defenderBody = impactTarget.IsCharacter
             ? bodyHealth.GetSnapshot(impactTarget.Character)
             : default;
-        float manaCost = CharacterArcaneWeaponRules.GetManaCost(
-            weapon.DefinitionId);
+        float manaCost = CharacterArcaneWeaponRules.GetManaCost(weapon);
         if (manaCost > 0f
             && !mana.CanSpendMana(actor, manaCost, out string manaFailure))
         {
@@ -1036,8 +1034,7 @@ public sealed class CharacterCombatCommandRuntime :
                 BlockCommand(command, reserveFailure);
             return;
         }
-        float manaCost = CharacterArcaneWeaponRules.GetManaCost(
-            weapon.DefinitionId);
+        float manaCost = CharacterArcaneWeaponRules.GetManaCost(weapon);
         if (manaCost > 0f
             && !mana.CanSpendMana(actor, manaCost, out string manaFailure))
         {

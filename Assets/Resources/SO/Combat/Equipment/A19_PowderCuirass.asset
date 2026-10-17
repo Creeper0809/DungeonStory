@@ -52,3 +52,5 @@ MonoBehaviour:
     slashDefense: 14
     pierceDefense: 18
     bluntDefense: 31
+  roleFlags: 128
+  arcaneManaCost: 0

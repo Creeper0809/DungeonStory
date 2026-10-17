@@ -85,3 +85,5 @@ MonoBehaviour:
         damageType: 1
         tracking: 0.035
         projectileSpeed: 12
+  roleFlags: 2
+  arcaneManaCost: 0

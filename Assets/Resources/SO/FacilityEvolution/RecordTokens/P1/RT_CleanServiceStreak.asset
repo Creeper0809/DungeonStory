@@ -26,6 +26,7 @@ MonoBehaviour:
   displayName: "\uCCAD\uACB0\uD55C \uC11C\uBE44\uC2A4 \uC5F0\uC18D"
   description: "\uB192\uC740 \uB9CC\uC871\uB3C4\uC640 \uB0AE\uC740 \uC2E4\uD328\uC728\uC774
     \uC774\uC5B4\uC9C4 \uAE30\uB85D\uC774\uB2E4."
+  generationTrigger: 8
   sourceMetric: ServiceQuality
   threshold: 0.7
   decayPolicy: streak

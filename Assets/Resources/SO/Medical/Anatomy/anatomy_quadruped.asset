@@ -192,3 +192,13 @@ MonoBehaviour:
     legacyBodyPart: 5
     mapsToLegacyBodyPart: 1
   notApplicableCapacities: []
+  apparelBodyForm: 0
+  apparelSize: 1
+  apparelBasePoints: 16383
+  apparelAttachments:
+  - nodeId: head
+    points: 3
+    mode: 0
+  - nodeId: torso
+    points: 8216
+    mode: 0

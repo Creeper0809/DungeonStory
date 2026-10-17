@@ -1403,6 +1403,39 @@ public static class SurgeryContentAssetBuilder
             definition.AnatomyFamily,
             definition.SpeciesIds,
             definition.Nodes);
+        // These are the authored baseline profiles, not runtime species rules.
+        var apparelBindings = new Dictionary<string, (AnatomyAttachmentPoint points, AnatomyApparelAttachmentMode mode)>
+        {
+            ["head"] = ((AnatomyAttachmentPoint)3, AnatomyApparelAttachmentMode.RemoveWhenMissing),
+            ["torso"] = ((AnatomyAttachmentPoint)8216, AnatomyApparelAttachmentMode.RemoveWhenMissing),
+            ["arm:left"] = ((AnatomyAttachmentPoint)160, AnatomyApparelAttachmentMode.RemoveWhenMissing),
+            ["arm:right"] = ((AnatomyAttachmentPoint)320, AnatomyApparelAttachmentMode.RemoveWhenMissing),
+            ["leg:left"] = ((AnatomyAttachmentPoint)2560, AnatomyApparelAttachmentMode.RemoveWhenMissing),
+            ["leg:right"] = ((AnatomyAttachmentPoint)5120, AnatomyApparelAttachmentMode.RemoveWhenMissing),
+            ["tail"] = ((AnatomyAttachmentPoint)16384, AnatomyApparelAttachmentMode.AddWhenPresent),
+            ["balance-tail"] = ((AnatomyAttachmentPoint)16384, AnatomyApparelAttachmentMode.AddWhenPresent),
+            ["wing:left"] = ((AnatomyAttachmentPoint)32768, AnatomyApparelAttachmentMode.AddWhenPresent),
+            ["wing:right"] = ((AnatomyAttachmentPoint)65536, AnatomyApparelAttachmentMode.AddWhenPresent),
+            ["horn:left"] = ((AnatomyAttachmentPoint)131072, AnatomyApparelAttachmentMode.AddWhenPresent),
+            ["horn:right"] = ((AnatomyAttachmentPoint)131072, AnatomyApparelAttachmentMode.AddWhenPresent),
+            ["horn-set"] = ((AnatomyAttachmentPoint)131072, AnatomyApparelAttachmentMode.AddWhenPresent),
+        };
+        asset.ConfigureApparelFit(
+            definition.ProfileId == "anatomy:construct" ? ApparelBodyForm.Construct : ApparelBodyForm.Humanoid,
+            definition.ProfileId switch
+            {
+                "anatomy:construct" or "anatomy:orc" => ApparelSizeClass.Large,
+                "anatomy:kobold" => ApparelSizeClass.Small,
+                _ => ApparelSizeClass.Medium
+            },
+            (AnatomyAttachmentPoint)16383,
+            definition.Nodes.Where(node => apparelBindings.ContainsKey(node.NodeId)).Select(node =>
+                new AnatomyApparelAttachment
+                {
+                    nodeId = node.NodeId,
+                    points = apparelBindings[node.NodeId].points,
+                    mode = apparelBindings[node.NodeId].mode
+                }));
         asset.ConfigureNotApplicableCapacities(
             Array.Empty<AnatomyFunctionalCapacityNotApplicable>());
         EditorUtility.SetDirty(asset);

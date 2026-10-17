@@ -20,6 +20,10 @@ public sealed class AnatomyProfileSO : ScriptableObject
         new List<AnatomyNodeDefinition>();
     [SerializeField] private List<AnatomyFunctionalCapacityNotApplicable> notApplicableCapacities =
         new List<AnatomyFunctionalCapacityNotApplicable>();
+    [SerializeField] private ApparelBodyForm apparelBodyForm;
+    [SerializeField] private ApparelSizeClass apparelSize = ApparelSizeClass.Medium;
+    [SerializeField] private AnatomyAttachmentPoint apparelBasePoints = (AnatomyAttachmentPoint)16383;
+    [SerializeField] private List<AnatomyApparelAttachment> apparelAttachments = new();
 
     public string ProfileId => string.IsNullOrWhiteSpace(profileId)
         ? name
@@ -34,8 +38,21 @@ public sealed class AnatomyProfileSO : ScriptableObject
     public IReadOnlyList<AnatomyNodeDefinition> Nodes => nodes;
     public IReadOnlyList<AnatomyFunctionalCapacityNotApplicable> NotApplicableCapacities =>
         notApplicableCapacities;
+    public ApparelBodyForm ApparelBodyForm => apparelBodyForm;
+    public ApparelSizeClass ApparelSize => apparelSize;
+    public AnatomyAttachmentPoint ApparelBasePoints => apparelBasePoints;
+    public IReadOnlyList<AnatomyApparelAttachment> ApparelAttachments => apparelAttachments;
 
 #if UNITY_EDITOR
+    public void ConfigureApparelFit(ApparelBodyForm form, ApparelSizeClass size,
+        AnatomyAttachmentPoint basePoints, IEnumerable<AnatomyApparelAttachment> attachments)
+    {
+        apparelBodyForm = form;
+        apparelSize = size;
+        apparelBasePoints = basePoints;
+        apparelAttachments = (attachments ?? Array.Empty<AnatomyApparelAttachment>()).ToList();
+    }
+
     public void Configure(
         string id,
         string label,
@@ -72,6 +89,16 @@ public sealed class AnatomyProfileSO : ScriptableObject
             .ToList();
     }
 #endif
+}
+
+public enum AnatomyApparelAttachmentMode { RemoveWhenMissing, AddWhenPresent }
+
+[Serializable]
+public sealed class AnatomyApparelAttachment
+{
+    public string nodeId;
+    public AnatomyAttachmentPoint points;
+    public AnatomyApparelAttachmentMode mode;
 }
 
 [Serializable]

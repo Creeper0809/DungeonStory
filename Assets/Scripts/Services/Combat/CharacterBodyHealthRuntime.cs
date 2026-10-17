@@ -1678,8 +1678,7 @@ public sealed class CharacterBodyHealthRuntime :
         }
 
         CharacterBodyHealthState state = GetOrCreate(id, actor);
-        AnatomyProfileDefinition profile = stateRules.ResolveForSpecies(
-            actor?.SpeciesTag);
+        AnatomyProfileDefinition profile = stateRules.ResolveProfile(state.anatomyProfileId);
         stateRules.EnsureAnatomy(state, profile);
         vitalsAuthority.Project(actor, state);
         return state;
@@ -1702,6 +1701,10 @@ public sealed class CharacterBodyHealthRuntime :
                 stateRules.ResolveProfile(existing.anatomyProfileId));
             return existing;
         }
+
+        // Injection can assign a persistent ID before the spawn profile. A
+        // query must not freeze a default anatomy during that construction gap.
+        if (actor.Identity?.Profile == null) return null;
 
         // A retired actor can remain alive until Unity processes Destroy at
         // the end of the frame. Read-only queries during that window must not
@@ -1760,7 +1763,8 @@ public sealed class CharacterBodyHealthRuntime :
         stateRules.EnsureParts(state);
         stateRules.EnsureAnatomy(
             state,
-            stateRules.ResolveProfile(string.Empty));
+            actorContext != null ? stateRules.ResolveForActor(actorContext)
+                : stateRules.ResolveProfile(string.Empty));
         WriteState.Set(characterId, state);
         return state;
     }

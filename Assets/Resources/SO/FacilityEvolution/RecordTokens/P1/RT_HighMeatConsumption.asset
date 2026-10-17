@@ -27,6 +27,7 @@ MonoBehaviour:
   description: "\uACE0\uAE30 \uC7AC\uACE0\uB97C \uB9CE\uC774 \uC18C\uBE44\uD55C \uAE30\uB85D\uC774\uB2E4.
     \uC2DD\uB2F9, \uC5F0\uD68C, \uC804\uD22C \uC2DD\uB2F9 \uACC4\uBCF4\uC5D0 \uC601\uD5A5\uC744
     \uC900\uB2E4."
+  generationTrigger: 4
   sourceMetric: StockCostPerVisit
   threshold: 1
   decayPolicy: daily

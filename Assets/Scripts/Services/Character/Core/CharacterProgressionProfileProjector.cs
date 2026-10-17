@@ -22,6 +22,7 @@ public sealed class CharacterProgressionProfileProjector
         new List<CharacterTraitSO>();
     private IReadOnlyList<CharacterTraitSO> resolvedSelectedTraitsView;
     private CharacterRuntimeProfile effectiveRuntimeProfile;
+    private CharacterRuntimeProfile effectiveRuntimeProfileSource;
     private int effectiveRuntimeProfileKey;
     private int initializedDataInstanceId;
     private int resolvedSelectedTraitsKey = int.MinValue;
@@ -111,15 +112,22 @@ public sealed class CharacterProgressionProfileProjector
         }
 
         int key = BuildEffectiveRuntimeProfileKey(data, state);
-        if (effectiveRuntimeProfile == null || effectiveRuntimeProfileKey != key)
+        CharacterRuntimeProfile source = actor.Identity.Profile;
+        if (effectiveRuntimeProfile == null || effectiveRuntimeProfileKey != key
+            || !ReferenceEquals(effectiveRuntimeProfileSource, source))
         {
-            effectiveRuntimeProfileKey = key;
             using (EffectiveProfileBuildMarker.Auto())
             {
+                CharacterTraitId[] expressed = ResolveSelectedTraits(actor, state)
+                    .Select(trait => trait.DefinitionId).ToArray();
                 effectiveRuntimeProfile = runtimeProfileFactory.Create(
-                    CharacterSpawnRequest.FromAuthoring(
-                        data,
-                        ResolveSelectedTraits(actor, state)));
+                    source == null ? CharacterSpawnRequest.FromAuthoring(data, ResolveSelectedTraits(actor, state))
+                    : new CharacterSpawnRequest(data.DefinitionId, source.PhenotypeSpeciesId,
+                        source.VisualVariantId, source.ReproductiveRole, expressed,
+                        source.LatentTraitIds.Select(id => new CharacterTraitId(id)).Except(expressed),
+                        source.InnateAptitudes));
+                effectiveRuntimeProfileSource = source;
+                effectiveRuntimeProfileKey = key;
             }
         }
 
@@ -166,12 +174,11 @@ public sealed class CharacterProgressionProfileProjector
         state.potentialGrade = CharacterGrowthRules.RollPotential(
             requiredSettings,
             random);
-        state.traitIds = actor.Identity.Data.traits?
-            .Where(item => item != null)
-            .Select(item => item.id)
-            .Distinct()
-            .Take(4)
-            .ToList() ?? new List<int>();
+        state.traitIds = actor.Identity.Profile != null
+            ? actor.Identity.Profile.ExpressedTraitIds.Select(id => traitCatalog.Values
+                .Single(trait => string.Equals(trait.DefinitionId.Value, id, StringComparison.Ordinal)).id).ToList()
+            : actor.Identity.Data.traits?.Where(item => item != null).Select(item => item.id)
+                .Distinct().Take(4).ToList() ?? new List<int>();
         state.traitSelectionAuthorityVersion =
             CharacterGrowthState.CurrentTraitSelectionAuthorityVersion;
         state.traitSelectionAuthorityOrigin = state.traitIds.Count > 0
@@ -185,6 +192,7 @@ public sealed class CharacterProgressionProfileProjector
     public void Invalidate()
     {
         effectiveRuntimeProfile = null;
+        effectiveRuntimeProfileSource = null;
         effectiveRuntimeProfileKey = 0;
         resolvedSelectedTraitsKey = int.MinValue;
     }

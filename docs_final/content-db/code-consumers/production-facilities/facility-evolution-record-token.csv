@@ -1,4 +1,5 @@
 ﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+FacilityEvolutionRecordTokenDefinitionSO,content-type,,type-reference,services:facilityevolution,runtime,structural-type-consumer,Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecordEventRecorder.cs
 FacilityEvolutionRecordTokenDefinitionSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/FacilityRecipeCatalogServices.cs
 FacilityEvolutionRecordTokenDefinitionSO,stable-id,CleanServiceStreak,stable-id-literal,models:evolution,runtime,exact-literal-consumer,Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs
 FacilityEvolutionRecordTokenDefinitionSO,stable-id,FrequentBrawls,stable-id-literal,models:evolution,runtime,exact-literal-consumer,Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs

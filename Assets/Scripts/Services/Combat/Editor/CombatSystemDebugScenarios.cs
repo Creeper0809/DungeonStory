@@ -62,6 +62,17 @@ public static class CombatSystemDebugScenarios
     public static bool VerifyCharacterMedicalStrictSaveForAutomation() =>
         VerifyCharacterMedicalStrictSave();
 
+    public static string RunSoRoleCompositionForBatch()
+    {
+        if (!VerifySoRoleComposition())
+        {
+            throw new InvalidOperationException(
+                "ScriptableObject combat-role composition verification failed.");
+        }
+
+        return "SO_ROLE_COMPOSITION=PASS";
+    }
+
     public static bool RunAll(bool logSuccess)
     {
         IReadOnlyList<string> failures = ValidateAll();
@@ -115,6 +126,9 @@ public static class CombatSystemDebugScenarios
             failures);
         Verify("V21 role equipment typed combat effects",
             VerifyV21RoleEquipmentEffects,
+            failures);
+        Verify("SO combat role composition",
+            VerifySoRoleComposition,
             failures);
 
         return failures;
@@ -794,6 +808,366 @@ public static class CombatSystemDebugScenarios
                 == CombatEquipmentRoleFlags.BlastAndSmokeProtection
             && CombatEquipmentRoleRules.For("shield:pavise")
                 == CombatEquipmentRoleFlags.DeployableCover;
+    }
+
+    private static bool VerifySoRoleComposition()
+    {
+        VerifyLegacyEquipmentRoleMetadata();
+
+        CombatWeaponSO pollaxe = null;
+        CombatWeaponSO poweredGauntlet = null;
+        CombatWeaponSO runeBlade = null;
+        try
+        {
+            pollaxe = CloneEquipmentWithId<CombatWeaponSO>(
+                "Assets/Resources/SO/Combat/Equipment/W30_Pollaxe.asset",
+                "weapon:so-role-composition-pollaxe");
+            poweredGauntlet = CloneEquipmentWithId<CombatWeaponSO>(
+                "Assets/Resources/SO/Combat/Equipment/W27_PoweredStrikingGauntlet.asset",
+                "weapon:so-role-composition-powered-gauntlet");
+            runeBlade = CloneEquipmentWithId<CombatWeaponSO>(
+                "Assets/Resources/SO/Combat/Equipment/W20_RuneBlade.asset",
+                "weapon:so-role-composition-rune-blade");
+
+            VerifyClonedPollaxeCombatOutcome(pollaxe);
+            VerifyClonedPoweredWeapon(poweredGauntlet);
+            VerifyClonedArcaneWeapon(runeBlade);
+            return true;
+        }
+        finally
+        {
+            if (pollaxe != null)
+                UnityEngine.Object.DestroyImmediate(pollaxe);
+            if (poweredGauntlet != null)
+                UnityEngine.Object.DestroyImmediate(poweredGauntlet);
+            if (runeBlade != null)
+                UnityEngine.Object.DestroyImmediate(runeBlade);
+        }
+    }
+
+    private static void VerifyLegacyEquipmentRoleMetadata()
+    {
+        (string path, string definitionId)[] cases =
+        {
+            ("Assets/Resources/SO/Combat/Equipment/W22_RepeatingCrossbow.asset", "weapon:repeating-crossbow"),
+            ("Assets/Resources/SO/Combat/Equipment/W26_Shotgun.asset", "weapon:shotgun"),
+            ("Assets/Resources/SO/Combat/Equipment/W30_Pollaxe.asset", "weapon:pollaxe"),
+            ("Assets/Resources/SO/Combat/Equipment/W28_BlacksteelPoleaxe.asset", "weapon:blacksteel-poleaxe"),
+            ("Assets/Resources/SO/Combat/Equipment/W27_PoweredStrikingGauntlet.asset", "weapon:powered-striking-gauntlet"),
+            ("Assets/Resources/SO/Combat/Equipment/A15_PoweredHarness.asset", "armor:powered-harness"),
+            ("Assets/Resources/SO/Combat/Equipment/S06_PoweredShield.asset", "shield:powered"),
+            ("Assets/Resources/SO/Combat/Equipment/A19_PowderCuirass.asset", "armor:powder-cuirass"),
+            ("Assets/Resources/SO/Combat/Equipment/S08_ManaBuckler.asset", "shield:mana-buckler"),
+            ("Assets/Resources/SO/Combat/Equipment/S09_Pavise.asset", "shield:pavise"),
+            ("Assets/Resources/SO/Combat/Equipment/W20_RuneBlade.asset", "weapon:rune-blade"),
+            ("Assets/Resources/SO/Combat/Equipment/W31_RuneBow.asset", "weapon:rune-bow"),
+            ("Assets/Resources/SO/Combat/Equipment/W21_ManaLance.asset", "weapon:mana-lance")
+        };
+
+        foreach ((string path, string definitionId) in cases)
+        {
+            CombatEquipmentDefinitionSO definition =
+                AssetDatabase.LoadAssetAtPath<CombatEquipmentDefinitionSO>(path);
+            RequireSoRole(
+                definition != null
+                && string.Equals(
+                    definition.EquipmentId,
+                    definitionId,
+                    StringComparison.Ordinal),
+                $"Missing legacy combat equipment definition '{definitionId}'.");
+            RequireSoRole(
+                definition.RoleFlags == CombatEquipmentRoleRules.For(definitionId),
+                $"Authored role metadata drifted for '{definitionId}'.");
+            RequireSoRole(
+                Mathf.Approximately(
+                    definition.ArcaneManaCost,
+                    CharacterArcaneWeaponRules.GetManaCost(definitionId)),
+                $"Authored arcane mana cost drifted for '{definitionId}'.");
+        }
+    }
+
+    private static void VerifyClonedPollaxeCombatOutcome(CombatWeaponSO clone)
+    {
+        CombatWeaponSO original = AssetDatabase.LoadAssetAtPath<CombatWeaponSO>(
+            "Assets/Resources/SO/Combat/Equipment/W30_Pollaxe.asset");
+        RequireSoRole(original != null, "Authored pollaxe is unavailable.");
+        RequireSoRole(
+            CombatEquipmentRoleRules.For(clone.EquipmentId)
+                == CombatEquipmentRoleFlags.None,
+            "New pollaxe fixture ID unexpectedly entered the legacy ID mapping.");
+
+        CombatWeaponSnapshot originalSnapshot = original.CreateSnapshot(null);
+        CombatWeaponSnapshot cloneSnapshot = clone.CreateSnapshot(null);
+        RequireSoRole(
+            cloneSnapshot.RoleFlags
+                == (CombatEquipmentRoleFlags.ArmorBreaker
+                    | CombatEquipmentRoleFlags.PullOnHit),
+            "Cloned pollaxe did not project its authored role flags.");
+
+        CombatStatSnapshot attacker = new(9f, 12f, 5f, 6f, 9f, 7f, 9f);
+        CombatStatSnapshot defender = new(7f, 7f, 4f, 5f, 6f, 8f, 5f);
+        CombatArmorSnapshot plate = new(
+            "armor-instance:so-role-plate",
+            CombatBodyPart.Torso,
+            CombatArmorLayer.Plate,
+            CombatEquipmentQuality.Normal,
+            1f,
+            28f,
+            26f,
+            20f);
+        CombatAttackRequest originalRequest = new(
+            "so-role:pollaxe:original",
+            "so-role:attacker",
+            "so-role:defender",
+            attacker,
+            defender,
+            originalSnapshot,
+            1,
+            CombatFireMode.Aimed,
+            default,
+            defenderMeleeLocked: true,
+            defenderArmor: new[] { plate });
+        CombatAttackRequest cloneRequest = new(
+            "so-role:pollaxe:clone",
+            "so-role:attacker",
+            "so-role:defender",
+            attacker,
+            defender,
+            cloneSnapshot,
+            1,
+            CombatFireMode.Aimed,
+            default,
+            defenderMeleeLocked: true,
+            defenderArmor: new[] { plate });
+
+        CombatResolutionService previewService = CreateSoRoleResolution(
+            new SequenceRandom(0.5f));
+        CombatAttackPreview originalPreview = previewService.Preview(originalRequest);
+        CombatAttackPreview clonePreview = previewService.Preview(cloneRequest);
+        RequireSoRole(
+            originalPreview.Valid
+            && clonePreview.Valid
+            && Mathf.Approximately(
+                originalPreview.HitChance,
+                clonePreview.HitChance)
+            && Mathf.Approximately(
+                originalPreview.DamageOnHit,
+                clonePreview.DamageOnHit)
+            && Mathf.Approximately(
+                originalPreview.ExpectedDamage,
+                clonePreview.ExpectedDamage),
+            "New-ID pollaxe preview diverged from the authored pollaxe.");
+
+        CombatAttackResult originalResult = CreateSoRoleResolution(
+                new SequenceRandom(0f, 0.99f, 0.2f))
+            .Resolve(originalRequest);
+        CombatAttackResult cloneResult = CreateSoRoleResolution(
+                new SequenceRandom(0f, 0.99f, 0.2f))
+            .Resolve(cloneRequest);
+        RequireSoRole(
+            originalResult.Executed
+            && cloneResult.Executed
+            && originalResult.Hit
+            && cloneResult.Hit
+            && originalResult.ForcedMovement == -1
+            && cloneResult.ForcedMovement == originalResult.ForcedMovement
+            && originalResult.ArmorDurabilityDamage > 0f
+            && Mathf.Approximately(
+                cloneResult.ArmorDurabilityDamage,
+                originalResult.ArmorDurabilityDamage)
+            && Mathf.Approximately(
+                cloneResult.AppliedDamage,
+                originalResult.AppliedDamage),
+            "New-ID pollaxe execution did not preserve armor-break and pull outcomes.");
+    }
+
+    private static void VerifyClonedPoweredWeapon(CombatWeaponSO clone)
+    {
+        RequireSoRole(
+            CombatEquipmentRoleRules.For(clone.EquipmentId)
+                == CombatEquipmentRoleFlags.None,
+            "New powered-weapon fixture ID unexpectedly entered the legacy ID mapping.");
+        CombatEquipmentInstance chargedInstance = new()
+        {
+            instanceId = "instance:so-role-powered:charged",
+            definitionId = clone.EquipmentId,
+            powerCharge = 100f
+        };
+        CombatEquipmentInstance depletedInstance = new()
+        {
+            instanceId = "instance:so-role-powered:depleted",
+            definitionId = clone.EquipmentId,
+            powerCharge = 0f
+        };
+        CombatWeaponSnapshot charged = clone.CreateSnapshot(chargedInstance);
+        CombatWeaponSnapshot depleted = clone.CreateSnapshot(depletedInstance);
+        float chargedMultiplier = CombatEquipmentRoleRules
+            .GetPowerPerformanceMultiplier(clone.RoleFlags, 100f);
+        float depletedMultiplier = CombatEquipmentRoleRules
+            .GetPowerPerformanceMultiplier(clone.RoleFlags, 0f);
+        RequireSoRole(
+            charged.RoleFlags
+                == (CombatEquipmentRoleFlags.Powered
+                    | CombatEquipmentRoleFlags.ArmorBreaker)
+            && depleted.RoleFlags == CombatEquipmentRoleFlags.None
+            && Mathf.Approximately(chargedMultiplier, 1.15f)
+            && Mathf.Approximately(depletedMultiplier, 0.75f)
+            && Mathf.Approximately(
+                charged.MaterialDamageMultiplier,
+                clone.BaseStatMultiplier * chargedMultiplier)
+            && Mathf.Approximately(
+                depleted.MaterialDamageMultiplier,
+                clone.BaseStatMultiplier * depletedMultiplier),
+            "Powered weapon snapshot did not preserve charge-state flags or multipliers.");
+
+        CombatStatSnapshot attacker = new(9f, 9f, 5f, 6f, 9f, 7f, 9f);
+        CombatStatSnapshot defender = new(7f, 7f, 4f, 5f, 6f, 8f, 5f);
+        CombatAttackPreview chargedPreview = CreateSoRoleResolution(
+                new SequenceRandom(0.5f))
+            .Preview(new CombatAttackRequest(
+                "so-role:powered:charged",
+                "so-role:attacker",
+                "so-role:defender",
+                attacker,
+                defender,
+                charged,
+                1,
+                CombatFireMode.Aimed,
+                default));
+        CombatAttackPreview depletedPreview = CreateSoRoleResolution(
+                new SequenceRandom(0.5f))
+            .Preview(new CombatAttackRequest(
+                "so-role:powered:depleted",
+                "so-role:attacker",
+                "so-role:defender",
+                attacker,
+                defender,
+                depleted,
+                1,
+                CombatFireMode.Aimed,
+                default));
+        RequireSoRole(
+            chargedPreview.Valid
+            && depletedPreview.Valid
+            && chargedPreview.DamageOnHit > depletedPreview.DamageOnHit,
+            "Combat preview did not consume the powered snapshot multiplier.");
+    }
+
+    private static void VerifyClonedArcaneWeapon(CombatWeaponSO clone)
+    {
+        bool rejectedNan = false;
+        bool rejectedNegative = false;
+        try
+        {
+            clone.ConfigureCombatRoles(clone.RoleFlags, float.NaN);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            rejectedNan = true;
+        }
+        try
+        {
+            clone.ConfigureCombatRoles(clone.RoleFlags, -1f);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            rejectedNegative = true;
+        }
+        RequireSoRole(
+            rejectedNan && rejectedNegative,
+            "Malformed authored arcane mana costs were accepted.");
+
+        const float customManaCost = 17.5f;
+        clone.ConfigureCombatRoles(clone.RoleFlags, customManaCost);
+        CombatWeaponSnapshot arcane = clone.CreateSnapshot(null);
+        RequireSoRole(
+            !CharacterArcaneWeaponRules.IsArcane(clone.EquipmentId)
+            && CharacterArcaneWeaponRules.GetManaCost(clone.EquipmentId) == 0f,
+            "New rune-weapon fixture ID unexpectedly entered the legacy ID mapping.");
+        RequireSoRole(
+            CharacterArcaneWeaponRules.IsArcane(arcane)
+            && Mathf.Approximately(
+                CharacterArcaneWeaponRules.GetManaCost(arcane),
+                customManaCost),
+            "New-ID rune snapshot did not preserve its authored custom mana cost.");
+
+        clone.ConfigureCombatRoles(clone.RoleFlags, 0f);
+        CombatWeaponSnapshot nonArcane = clone.CreateSnapshot(null);
+        CombatStatSnapshot arcaneAttacker = new(
+            9f,
+            9f,
+            5f,
+            6f,
+            9f,
+            7f,
+            9f,
+            arcanePowerMultiplier: 1.6f,
+            hasArcanePowerMultiplier: true);
+        CombatStatSnapshot defender = new(7f, 7f, 4f, 5f, 6f, 8f, 5f);
+        CombatAttackPreview arcanePreview = CreateSoRoleResolution(
+                new SequenceRandom(0.5f))
+            .Preview(new CombatAttackRequest(
+                "so-role:rune:arcane",
+                "so-role:attacker",
+                "so-role:defender",
+                arcaneAttacker,
+                defender,
+                arcane,
+                1,
+                CombatFireMode.Aimed,
+                default));
+        CombatAttackPreview nonArcanePreview = CreateSoRoleResolution(
+                new SequenceRandom(0.5f))
+            .Preview(new CombatAttackRequest(
+                "so-role:rune:plain",
+                "so-role:attacker",
+                "so-role:defender",
+                arcaneAttacker,
+                defender,
+                nonArcane,
+                1,
+                CombatFireMode.Aimed,
+                default));
+        RequireSoRole(
+            arcanePreview.Valid
+            && nonArcanePreview.Valid
+            && arcanePreview.DamageOnHit > nonArcanePreview.DamageOnHit
+            && !CharacterArcaneWeaponRules.IsArcane(nonArcane),
+            "Combat preview did not consume snapshot arcane classification.");
+    }
+
+    private static CombatResolutionService CreateSoRoleResolution(
+        ICombatRandomSource random) => new(
+        random,
+        evolution: null,
+        overclock: null,
+        environmentStatus: null,
+        environmentalField: NoEnvironmentalFieldQuery.Instance,
+        characters: null,
+        environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
+
+    private static T CloneEquipmentWithId<T>(string assetPath, string definitionId)
+        where T : CombatEquipmentDefinitionSO
+    {
+        T source = AssetDatabase.LoadAssetAtPath<T>(assetPath);
+        RequireSoRole(source != null, $"Missing combat equipment fixture '{assetPath}'.");
+        T clone = UnityEngine.Object.Instantiate(source);
+        clone.name = source.name + "_SoRoleCompositionClone";
+        SerializedObject serialized = new(clone);
+        SerializedProperty id = serialized.FindProperty("equipmentId");
+        RequireSoRole(id != null, "Combat equipment ID serialized field is unavailable.");
+        id.stringValue = definitionId;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        RequireSoRole(
+            string.Equals(clone.EquipmentId, definitionId, StringComparison.Ordinal),
+            "Cloned combat equipment did not receive its new authored ID.");
+        return clone;
+    }
+
+    private static void RequireSoRole(bool condition, string message)
+    {
+        if (!condition)
+            throw new InvalidOperationException(message);
     }
 
     private static CombatWeaponSnapshot CreateRoleWeapon(

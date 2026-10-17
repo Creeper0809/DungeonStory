@@ -122,7 +122,6 @@ BuildingSO,content-type,,type-reference,views,player-observation,structural-type
 BuildingSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/WorldInfoClickSelector.cs
 BuildingSO,stable-id,building:8813,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/ReproductionCommandRuntime.cs
 BuildingSO,stable-id,building:8847,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/ReproductionCommandRuntime.cs
-BuildingSO,stable-id,building:8851,stable-id-literal,services:infrastructure,runtime,exact-literal-consumer,Assets/Scripts/Services/Infrastructure/Environment/ClimateRuntime.cs
 BuildingSO,stable-id,building:8859,stable-id-literal,services:character,runtime,exact-literal-consumer,Assets/Scripts/Services/Character/ReproductionCommandRuntime.cs
 BuildingSO,stable-id,building:8868,stable-id-literal,services:narrative,runtime,exact-literal-consumer,Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/CampaignPresentationObserver.cs
 BuildingSO,stable-id,building:8869,stable-id-literal,services:narrative,runtime,exact-literal-consumer,Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/CampaignPresentationObserver.cs

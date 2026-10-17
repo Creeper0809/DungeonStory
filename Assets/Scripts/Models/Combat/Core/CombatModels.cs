@@ -76,9 +76,12 @@ public static class CombatEquipmentRoleRules
 
     public static CombatEquipmentRoleFlags ForPowerState(
         string definitionId,
+        bool powered) => ForPowerState(For(definitionId), powered);
+
+    public static CombatEquipmentRoleFlags ForPowerState(
+        CombatEquipmentRoleFlags flags,
         bool powered)
     {
-        CombatEquipmentRoleFlags flags = For(definitionId);
         if (powered || (flags & CombatEquipmentRoleFlags.Powered) == 0)
         {
             return flags;
@@ -91,9 +94,12 @@ public static class CombatEquipmentRoleRules
 
     public static float GetPowerPerformanceMultiplier(
         string definitionId,
+        float powerCharge) => GetPowerPerformanceMultiplier(For(definitionId), powerCharge);
+
+    public static float GetPowerPerformanceMultiplier(
+        CombatEquipmentRoleFlags flags,
         float powerCharge)
     {
-        CombatEquipmentRoleFlags flags = For(definitionId);
         if ((flags & CombatEquipmentRoleFlags.Powered) == 0)
         {
             return 1f;
@@ -385,7 +391,9 @@ public readonly struct CombatEquipmentDerivedStats
         float damageMultiplier,
         float penetrationDefenseMultiplier,
         float valueMultiplier,
-        Color tint)
+        Color tint,
+        CombatEquipmentRoleFlags roleFlags = CombatEquipmentRoleFlags.None,
+        float? arcaneManaCost = null)
     {
         DefinitionId = definitionId ?? string.Empty;
         MaterialId = materialId ?? string.Empty;
@@ -397,6 +405,8 @@ public readonly struct CombatEquipmentDerivedStats
             Mathf.Max(0.01f, penetrationDefenseMultiplier);
         ValueMultiplier = Mathf.Max(0.01f, valueMultiplier);
         Tint = tint;
+        RoleFlags = roleFlags;
+        ArcaneManaCost = arcaneManaCost ?? CharacterArcaneWeaponRules.GetManaCost(definitionId);
     }
 
     public string DefinitionId { get; }
@@ -408,6 +418,8 @@ public readonly struct CombatEquipmentDerivedStats
     public float PenetrationDefenseMultiplier { get; }
     public float ValueMultiplier { get; }
     public Color Tint { get; }
+    public CombatEquipmentRoleFlags RoleFlags { get; }
+    public float ArcaneManaCost { get; }
 }
 
 [Serializable]

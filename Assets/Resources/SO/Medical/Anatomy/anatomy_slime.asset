@@ -67,3 +67,7 @@ MonoBehaviour:
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
   notApplicableCapacities: []
+  apparelBodyForm: 0
+  apparelSize: 1
+  apparelBasePoints: 16383
+  apparelAttachments: []

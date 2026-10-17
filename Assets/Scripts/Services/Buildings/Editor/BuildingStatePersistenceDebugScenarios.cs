@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
+using VContainer;
 
 public static class BuildingStatePersistenceDebugScenarios
 {
@@ -159,9 +160,22 @@ public static class BuildingStatePersistenceDebugScenarios
     private static string VerifyUnlistedAbilityDispatch()
     {
         BuildingSO data = ScriptableObject.CreateInstance<BuildingSO>();
-        GameObject gameObject = new GameObject("UnlistedAbilityDispatch");
+        GameObject sourceObject = new GameObject("UnlistedAbilityDispatchSource");
+        GameObject restoredObject = new GameObject("UnlistedAbilityDispatchRestored");
         try
         {
+            ContainerBuilder builder = new ContainerBuilder();
+            builder.RegisterInstance<IBuildingAbilityRuntimeFactory>(
+                new BuildingAbilityRuntimeFactory<
+                    UnlistedWorkAbility,
+                    UnlistedWorkAbilityRuntime>(definition => new(definition)));
+            builder.Register<UnlistedWorkAbilityHandler>(Lifetime.Singleton)
+                .As<IBuildingAbilityWorkCompletedHandler>();
+            builder.RegisterBuildingAbilityRuntime();
+            using IObjectResolver resolver = builder.Build();
+            IBuildingAbilityRuntimeDispatcher dispatcher =
+                resolver.Resolve<IBuildingAbilityRuntimeDispatcher>();
+
             data.objectName = "Unlisted Ability Fixture";
             data.width = 1;
             data.height = 1;
@@ -172,38 +186,59 @@ public static class BuildingStatePersistenceDebugScenarios
             UnlistedWorkAbility ability = UnlistedWorkAbility.Create();
             data.AbilityModules.Add(ability);
 
-            BuildableObject building = gameObject.AddComponent<BuildableObject>();
-            building.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
-            CharacterAiEditorTestDependencies.Inject(building);
-            SetAbilityDispatcher(
-                building,
-                new BuildingAbilityRuntimeDispatcher(
-                    new IBuildingAbilityWorkCompletedHandler[]
-                    {
-                        new UnlistedWorkAbilityHandler()
-                    },
-                    Array.Empty<IBuildingWorkCompletionFallbackHandler>(),
-                    BuildingAbilityRuntimeCatalog.CreateBuiltIns(
-                        new BuildingAbilityRuntimeFactory<UnlistedWorkAbility, UnlistedWorkAbilityRuntime>(d => new(d)))));
-            building.Initialization(data, Vector2Int.zero);
+            BuildableObject source = sourceObject.AddComponent<BuildableObject>();
+            source.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+            CharacterAiEditorTestDependencies.Inject(source);
+            SetAbilityDispatcher(source, dispatcher);
+            source.Initialization(data, Vector2Int.zero);
             int output = ModularFacilityRuntimeEffects.ApplyWorkCompleted(
                 null,
-                building,
+                source,
                 BuiltInWorkTypeIds.Operate,
                 0f);
-            UnlistedWorkStateModule state = building.RequireStateModule<UnlistedWorkStateModule>(
+            UnlistedWorkStateModule state = source.RequireStateModule<UnlistedWorkStateModule>(
                 BuildingStateModuleIds.ForAbility("contract", ability.AbilityId));
 
             Require(output == 7, $"unlisted ability output={output}");
             Require(state.ExecutionCount == 1, $"unlisted ability executions={state.ExecutionCount}");
-            Require(BuildingStateModulePersistence.Capture(building)
-                    .Any(module => module.moduleId == state.ModuleId),
+            List<BuildingStateModuleSaveData> captured =
+                BuildingStateModulePersistence.Capture(source);
+            Require(captured.Any(module => module.moduleId == state.ModuleId),
                 "unlisted ability state did not enter persistence");
-            return $"output={output}; executions={state.ExecutionCount}; module={state.ModuleId}";
+
+            string json = JsonUtility.ToJson(new ModularFacilityBuildingSaveData
+            {
+                stateModules = captured
+            });
+            ModularFacilityBuildingSaveData parsed =
+                JsonUtility.FromJson<ModularFacilityBuildingSaveData>(json);
+            BuildableObject restored = restoredObject.AddComponent<BuildableObject>();
+            restored.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+            CharacterAiEditorTestDependencies.Inject(restored);
+            SetAbilityDispatcher(restored, dispatcher);
+            restored.Initialization(data, Vector2Int.one);
+            BuildingStateModuleRestoreResult restore =
+                BuildingStateModulePersistence.Restore(restored, parsed.stateModules);
+            Require(restore.Success, string.Join(" | ", restore.errors));
+
+            int restoredOutput = ModularFacilityRuntimeEffects.ApplyWorkCompleted(
+                null,
+                restored,
+                BuiltInWorkTypeIds.Operate,
+                0f);
+            UnlistedWorkStateModule restoredState =
+                restored.RequireStateModule<UnlistedWorkStateModule>(state.ModuleId);
+            Require(restoredOutput == 7,
+                $"restored unlisted ability output={restoredOutput}");
+            Require(restoredState.ExecutionCount == 2,
+                $"restored unlisted ability executions={restoredState.ExecutionCount}");
+            return $"output={output}; restoredOutput={restoredOutput}; "
+                + $"executions={restoredState.ExecutionCount}; module={state.ModuleId}";
         }
         finally
         {
-            UnityEngine.Object.DestroyImmediate(gameObject);
+            UnityEngine.Object.DestroyImmediate(sourceObject);
+            UnityEngine.Object.DestroyImmediate(restoredObject);
             UnityEngine.Object.DestroyImmediate(data);
         }
     }

@@ -72,7 +72,8 @@ public sealed class CombatWeaponSnapshot
         float durabilityRatio = 1f,
         float maximumMisfireChance = 0f,
         float smokeExposure = 0f,
-        CombatEquipmentRoleFlags roleFlags = CombatEquipmentRoleFlags.None)
+        CombatEquipmentRoleFlags roleFlags = CombatEquipmentRoleFlags.None,
+        float? arcaneManaCost = null)
     {
         DefinitionId = definitionId ?? string.Empty;
         InstanceId = instanceId ?? string.Empty;
@@ -98,6 +99,10 @@ public sealed class CombatWeaponSnapshot
         MaximumMisfireChance = Mathf.Clamp01(maximumMisfireChance);
         SmokeExposure = Mathf.Max(0f, smokeExposure);
         RoleFlags = roleFlags;
+        float resolvedManaCost = arcaneManaCost ?? CharacterArcaneWeaponRules.GetManaCost(definitionId);
+        if (!float.IsFinite(resolvedManaCost) || resolvedManaCost < 0f)
+            throw new ArgumentOutOfRangeException(nameof(arcaneManaCost));
+        ArcaneManaCost = resolvedManaCost;
     }
 
     public string DefinitionId { get; }
@@ -122,6 +127,7 @@ public sealed class CombatWeaponSnapshot
     public float MaximumMisfireChance { get; }
     public float SmokeExposure { get; }
     public CombatEquipmentRoleFlags RoleFlags { get; }
+    public float ArcaneManaCost { get; }
 
     public float MisfireChance => !GunpowderWeapon || DurabilityRatio >= 0.4f
         ? 0f
